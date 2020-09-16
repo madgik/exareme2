@@ -1,4 +1,4 @@
-# monetdb_federated_poc
+# Exareme2
 
 <b>Installation</b>
 1) Python3 with numpy should be installed in all federation nodes. The mserver runs with Python 3.7 or newer. It does not run with python3 versions older than 3.7.
