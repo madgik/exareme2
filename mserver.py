@@ -1,27 +1,27 @@
+
+import logging
+import sys
+import settings
+import json
+import asyncio
+import run_algorithm
 import tornado.web
 from threading import Thread
 from tornado import gen 
 from tornado.log import enable_pretty_logging
 from tornado.options import define, options
-import logging
-import pymonetdb
-import sys
-import settings
-import json
-import asyncio
-from tornado.concurrent import run_on_executor
-from concurrent.futures import ThreadPoolExecutor
-import run_algorithm
-MAX_WORKERS = 4
-    
-PROCESSES_PER_CPU = 2
-WEB_SERVER_PORT=9999
+import time
+
+
+WEB_SERVER_PORT=7779
+define("port", default=WEB_SERVER_PORT, help="run on the given port", type=int)
+
 
 class AlgorithmException(Exception):
     def __init__(self,message):
       super(AlgorithmException,self).__init__(message)
 
-define("port", default=WEB_SERVER_PORT, help="run on the given port", type=int)
+
 
 
 class Application(tornado.web.Application):
@@ -34,6 +34,7 @@ class Application(tornado.web.Application):
 class BaseHandler(tornado.web.RequestHandler):
     def __init__(self, *args):
         tornado.web.RequestHandler.__init__(self, *args)
+
 
 class MainHandler(BaseHandler):
   #logging stuff..
@@ -51,34 +52,46 @@ class MainHandler(BaseHandler):
   access_log.addHandler(hdlr)
   app_log.addHandler(hdlr)
   gen_log.addHandler(hdlr)
-  
-  #executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
-  
 
-      
+  dbs = settings.Settings()
+
+  async def post(self):
+   ## get params, algorithm contains the name of the algorithm, params is a valid json file
   
-  def post(self):
     algorithm = self.get_argument("algorithm")
     params = self.get_argument("params")
+    
+    #### new connection per request - required since connection objects are not thread safe at the time
+    await  self.dbs.initialize()
+    db_objects = await self.dbs.acquire()
+    
+    try:      
+      result = await run_algorithm.run(algorithm,params,db_objects)
+      self.write("{}".format(result))
+      
+    except Exception as e:
 
-    try:
-      result = run_algorithm.run(algorithm,params, settings.global_node, settings.local_nodes)
-    except AlgorithmException as e:
+  
       #raise tornado.web.HTTPError(status_code=500,log_message="...the log message??")
       self.logger.debug("(MadisServer::post) QueryExecutionException: {}".format(str(e)))
       #print "QueryExecutionException ->{}".format(str(e))
-      self.set_status(500)
-      self.write(str(e))
+      await self.dbs.release(db_objects)
+      self.write("Error: "+str(e))
       self.finish()
-      return
-    
-    self.logger.debug("(MadisServer::post) str_result-> {}".format(result))
-    self.write("{}".format(result))
-    
-    self.finish()
+      return 
 
-def main(args):
-    settings.initialize(args)
+    
+    await self.dbs.release(db_objects)
+    self.logger.debug("(MadisServer::post) str_result-> {}".format(result))
+    #self.write("{}".format(result))
+    self.finish()
+    
+    
+
+
+
+
+def main(args):   
     sockets = tornado.netutil.bind_sockets(options.port)
     #tornado.process.fork_processes(tornado.process.cpu_count() * PROCESSES_PER_CPU)
     server = tornado.httpserver.HTTPServer(Application())

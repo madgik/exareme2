@@ -1,11 +1,15 @@
 import merge_broadcast
+import asyncio
 
-def merge(global_node, local_nodes, localtable, globaltable):
-    merge_broadcast.merge(global_node[0], local_nodes, localtable, globaltable)
+async def merge(db_objects, localtable, globaltable, localschema):
+    await asyncio.sleep(0)
+    merge_broadcast.merge(db_objects, localtable, globaltable, localschema)
 
-
-def broadcast(global_node, local_nodes, globalresulttable):
-    merge_broadcast.broadcast(global_node[1], local_nodes, globalresulttable)
+async def broadcast(db_objects, globalresulttable, globalschema):
+    await asyncio.sleep(0)
+    merge_broadcast.broadcast(db_objects, globalresulttable, globalschema)
     
-def transfer(node1,  localtable, node2):
+async def transfer(node1,  localtable, node2, transferschema):
+    await asyncio.sleep(0)
     merge_broadcast.transferdirect(node1, localtable, node2)
+
