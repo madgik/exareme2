@@ -39,15 +39,17 @@ async def run_simple(algorithm,parameters, attr, db_objects, localtable, globalt
 # globalresulttable: the name of the result table in globalnode, not used here since simple local global algorithms just return their global result without storing it.
 # localschema: the schema of the result table in localnodes 
 # globalschema: the schema of the result table in global node
-          
+
 async def run_iterative(algorithm, parameters, attr, db_objects, localtable, globaltable, globalresulttable, viewlocaltable, localschema, globalschema):
-    await run_step.run_local_init(db_objects,localtable, algorithm, parameters, attr, viewlocaltable, localschema)
-    for i in range(20):
-        await transfer_data.merge(db_objects, localtable, globaltable, localschema)
-        await run_step.run_global_iter(db_objects, globaltable, localtable, globalresulttable, algorithm,parameters, attr, viewlocaltable, globalschema)
-        await transfer_data.broadcast(db_objects, globalresulttable, globalschema)
-        await run_step.run_local_iter(db_objects, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, localschema)
+
+    await run_step.run_local_init(db_objects,localtable, algorithm, parameters, attr, viewlocaltable, localschema, globalschema, globalresulttable)
     await transfer_data.merge(db_objects, localtable, globaltable, localschema)
+    await run_step.run_global_iter(db_objects, globaltable, localtable, globalresulttable, algorithm,parameters, attr, viewlocaltable, globalschema)
+    await transfer_data.broadcast(db_objects, globalresulttable, globalschema)
+    for i in range(19):
+        await run_step.run_local_iter(db_objects, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, localschema)
+        await run_step.run_global_iter(db_objects, globaltable, localtable, globalresulttable, algorithm,parameters, attr, viewlocaltable, globalschema)
+    await run_step.run_local_iter(db_objects, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, localschema)
     return await run_step.run_global_final(db_objects, globaltable, algorithm, parameters, attr)
 
 
@@ -76,7 +78,7 @@ async def run(algorithm, params, db_objects):
          if isinstance(i, (int, float, complex)):
              bindparams.append(i)
          else:
-             bindparams.append(db_objects['global']['async_con'].bindsingle(i))
+             bindparams.append(db_objects['global']['async_con'].bind_str(i))
           
       ### get the corresponding algorithm python module using algorithm name
       module = get_package(algorithm)

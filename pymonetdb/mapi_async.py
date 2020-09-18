@@ -13,13 +13,15 @@ import logging
 import struct
 from pymonetdb.sql import monetize, pythonize
 import hashlib
+import re
+
 import os
 from six import BytesIO, PY3
 from typing import Optional
 
 from pymonetdb.exceptions import OperationalError, DatabaseError, \
     ProgrammingError, NotSupportedError, IntegrityError
-
+lock = asyncio.Lock()
 logger = logging.getLogger(__name__)
 
 MAX_PACKAGE_LENGTH = (1024 * 8) - 2
@@ -233,8 +235,16 @@ class Connection():
         if self.state != STATE_READY:
             raise (ProgrammingError, "Not connected")
 
-        await self._putblock(operation)
-        response = await self._getblock()
+        if not bool(re.match('create|drop', operation, re.I)):
+            await self._putblock(operation)
+            response = await self._getblock()
+        else:
+            await lock.acquire()
+            try:
+              await self._putblock(operation)
+              response = await self._getblock()
+            finally:
+                lock.release()
         if not len(response):
             return ""
         elif response.startswith(MSG_OK):

@@ -1,8 +1,7 @@
-from monetdblib import mapi_async
 from pymonetdb import mapi
 import asyncio
 from urllib.parse import urlparse
-from monetdblib import pool
+import pool
 import servers
 
 
@@ -19,7 +18,7 @@ class Settings:
           self.mservers = servers.servers
           glob = urlparse(servers.servers[0])
           self.db_objects['global']['pool'] = await pool.create_pool(hostname=glob.hostname, port=glob.port, username="monetdb",
-            password="monetdb", database=glob.path[1:], language="sql")
+            password="monetdb", database=glob.path[1:])
             
           self.db_objects['global']['dbname'] = servers.servers[0]  ## global database name - required by remote tables to connect to the remote database
     
@@ -28,7 +27,7 @@ class Settings:
             loc = urlparse(db)      
        
             pol = await pool.create_pool(hostname=loc.hostname, port=loc.port, username="monetdb",
-                 password="monetdb", database=loc.path[1:], language="sql")
+                 password="monetdb", database=loc.path[1:])
             local_node = {}
             local_node['pool'] = pol
             local_node['dbname'] = db
@@ -47,26 +46,17 @@ class Settings:
     
         db_conn['global']['async_con'] = conn   ## global asynchronous connection object - this is used to execute commands on the remote database
         db_conn['global']['dbname'] = self.db_objects['global']['dbname']  ## global database name - required by remote tables to connect to the remote database
-    
-        glob = urlparse(self.db_objects['global']['dbname'])
-        server = mapi.Connection()
-        server.connect(hostname=glob.hostname, port=glob.port, username="monetdb",
-                 password="monetdb", database=glob.path[1:], language="sql")
-    
-        db_conn['global']['con'] = server ## global blocking connection objects - required at this time because monetdb does not support create commands concurrently
-     
+
+
         for db_object in self.db_objects['local']:
             loc = urlparse(db_object['dbname'])      
             conn = await db_object['pool'].acquire()
-            server2 = mapi.Connection()
-            server2.connect(hostname=loc.hostname, port=loc.port, username="monetdb",
-                 password="monetdb", database=loc.path[1:], language="sql")
+
         
             local_node = {}
             local_node['async_con'] = conn
             local_node['dbname'] = db_object['dbname']
-            local_node['con'] = server2
-            db_conn['local'].append(local_node)  # for each local node an asynchronous connection object, the database name, and a blocking connection object
+            db_conn['local'].append(local_node)  # for each local node an asynchronous connection object, the database name
         return db_conn
 
 
@@ -76,13 +66,11 @@ class Settings:
         await lock.acquire()
         if (db_conn['global']['dbname'] == self.db_objects['global']['dbname']):
             self.db_objects['global']['pool']._release(db_conn['global']['async_con'])
-        db_conn['global']['con'].disconnect()
         lock.release()
         for i,local in enumerate(self.db_objects['local']):
             await lock.acquire()
             if (db_conn['local'][i]['dbname'] == local['dbname']):
                 local['pool']._release(db_conn['local'][i]['async_con'])
-                db_conn['local'][i]['con'].disconnect()
             lock.release()
 
     async def _update_global(self,server):  #### update global server if servers file is reloaded
