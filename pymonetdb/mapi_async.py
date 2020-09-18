@@ -252,7 +252,7 @@ class Connection():
         if response == MSG_MORE:
             # tell server it isn't going to get more
             return self.cmd("")
-        print(operation+": "+response)
+        #print(operation+": "+response)
         # If we are performing an update test for errors such as a failed
         # transaction.
 

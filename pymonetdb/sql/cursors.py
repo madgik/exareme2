@@ -162,6 +162,7 @@ class Cursor(object):
         self._store_result(block)
         self.rownumber = 0
         self._executed = operation
+        print ("\nhost: ",self.connection.hostname ,"\ndatabase: ",self.connection.database, "\nquery: ", operation, "\nresult: ", self._rows, "\n\n")
         return self.rowcount
 
     async def executemany(self, operation, seq_of_parameters):

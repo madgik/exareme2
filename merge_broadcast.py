@@ -10,7 +10,6 @@ async def merge(db_objects, localtable, globaltable, localschema):
     await con.cursor().execute("CREATE MERGE TABLE %s (%s);" %(globaltable,localschema));
     for i,local_node in enumerate(db_objects['local']):
         await con.cursor().execute("DROP TABLE IF EXISTS %s_%s;" %(localtable, i))
-        print("CREATE REMOTE TABLE %s_%s (%s) on 'mapi:%s';" %(localtable, i, localschema,local_node['dbname']))
         await con.cursor().execute("CREATE REMOTE TABLE %s_%s (%s) on 'mapi:%s'; " %(localtable, i, localschema,local_node['dbname']))
         await con.cursor().execute("ALTER TABLE %s ADD TABLE %s_%s;" %(globaltable,localtable,i));
     
