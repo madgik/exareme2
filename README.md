@@ -4,7 +4,7 @@
 1) Python3 with numpy should be installed in all federation nodes. The mserver runs with Python 3.7 or newer. It does not run with python3 versions older than 3.7.
 2) Install monetdb from source (https://www.monetdb.org/Developers/SourceCompile) to all the nodes of the federation
    dependencies: `sudo apt-get install libssl-dev` `sudo apt-get install libpcre3 libpcre3-dev` `sudo apt-get install pkg-config` `sudo apt-get install python3-dev` `sudo apt-get install uuid-dev` `sudo apt-get install libxml2 libxml2-dev`
-3) Install dependencies for mserver: `pip3 install tornado` , `pip3 install pymonetdb`
+3) Install dependencies for mserver: `pip3 install tornado` , `pip3 install six`, `pip3 install pyodbc`
 4) Create databases in each node. The tables that will take place in the federation should have the same schema in all local nodes. 
 The nodes have to be really remote to play concurrently. (If all the dbs are in the same VM, strange bugs may occur).
 Run the creation steps in the tmpfs of your VMs (usually in /dev/shm), since remote tables at the time are created on disk, it makes a big difference in execution times.
