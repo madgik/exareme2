@@ -65,12 +65,12 @@ class Settings:
         lock = asyncio.Lock()
         await lock.acquire()
         if (db_conn['global']['dbname'] == self.db_objects['global']['dbname']):
-            self.db_objects['global']['pool']._release(db_conn['global']['async_con'])
+            await self.db_objects['global']['pool'].release(db_conn['global']['async_con'])
         lock.release()
         for i,local in enumerate(self.db_objects['local']):
             await lock.acquire()
             if (db_conn['local'][i]['dbname'] == local['dbname']):
-                local['pool']._release(db_conn['local'][i]['async_con'])
+                await local['pool'].release(db_conn['local'][i]['async_con'])
             lock.release()
 
     async def _update_global(self,server):  #### update global server if servers file is reloaded

@@ -126,7 +126,7 @@ class Connection(object):
         Database modules that do not support transactions should
         implement this method with void functionality.
         """
-        self.__mapi_check()
+        self.closed()
         return await  self.cursor().execute('COMMIT')
 
     async def rollback(self):
@@ -140,7 +140,7 @@ class Connection(object):
         committing the changes first will cause an implicit
         rollback to be performed.
         """
-        self.__mapi_check()
+        self.closed()
         return await self.cursor().execute('ROLLBACK')
 
     def cursor(self):
@@ -158,10 +158,12 @@ class Connection(object):
 
     async def command(self, command):
         """ use this function to send low level mapi commands """
-        self.__mapi_check()
+        self.closed()
         return await self.mapi.cmd(command)
 
-    def __mapi_check(self):
+
+
+    def closed(self):
         """ check if there is a connection with a server """
         if not self.mapi:
             raise exceptions.Error("connection closed")
