@@ -3,9 +3,8 @@
 
 import asyncio
 import collections
-import pymonetdb
-
-from utils import _PoolContextManager, _PoolConnectionContextManager
+from pymonetdb import connect
+from .utils import _PoolContextManager, _PoolConnectionContextManager
 
 __all__ = ['create_pool', 'Pool']
 
@@ -146,7 +145,7 @@ class Pool(asyncio.AbstractServer):
         while self.size < self.minsize:
             self._acquiring += 1
             try:
-                conn = await pymonetdb.connect(**self._conn_kwargs)
+                conn = await connect(**self._conn_kwargs)
                 # raise exception if pool is closing
                 self._free.append(conn)
                 self._cond.notify()
@@ -158,7 +157,7 @@ class Pool(asyncio.AbstractServer):
         if override_min and self.size < self.maxsize:
             self._acquiring += 1
             try:
-                conn = await pymonetdb.connect(**self._conn_kwargs)
+                conn = await connect(**self._conn_kwargs)
                 # raise exception if pool is closing
                 self._free.append(conn)
                 self._cond.notify()

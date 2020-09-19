@@ -1,7 +1,7 @@
 from pymonetdb import mapi
 import asyncio
 from urllib.parse import urlparse
-import pool
+from pymonetdb import pool
 import servers
 
 
