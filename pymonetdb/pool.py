@@ -9,14 +9,14 @@ from .utils import _PoolContextManager, _PoolConnectionContextManager
 __all__ = ['create_pool', 'Pool']
 
 
-def create_pool(minsize=10, maxsize=10, echo=False, loop=None,
+def create_pool(minsize=10, maxsize=64, echo=False, loop=None,
                 pool_recycle=-1, **kwargs):
     return _PoolContextManager(_create_pool(minsize=minsize, maxsize=maxsize,
                                echo=echo, loop=loop, pool_recycle=pool_recycle,
                                **kwargs))
 
 
-async def _create_pool(minsize=10, maxsize=10, echo=False, loop=None,
+async def _create_pool(minsize=10, maxsize=64, echo=False, loop=None,
                        pool_recycle=-1, **kwargs):
     if loop is None:
         loop = asyncio.get_event_loop()
@@ -123,8 +123,8 @@ class Pool(asyncio.AbstractServer):
                 await self._fill_free_pool(True)
                 if self._free:
                     conn = self._free.popleft()
-                    #assert not conn.closed, conn
-                    #assert conn not in self._used, (conn, self._used)
+                    assert conn.closed, conn
+                    assert conn not in self._used, (conn, self._used)
                     self._used.add(conn)
                     return conn
                 else:

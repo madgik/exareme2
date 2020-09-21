@@ -1,8 +1,6 @@
-from threading import Thread
 import algorithms
 import json
 import asyncio
-from pymonetdb import mapi
 
 import time
 
@@ -22,18 +20,17 @@ async def check_for_params(local,params):
     checked = []
     table_id = cur.fetchone()[0]
     for attribute in params['attributes']:
-               checked.append(attribute)
-               attr = await local['async_con'].cursor().execute("select name from columns where table_id = '"+str(table_id)+"' and name = %s;",(attribute,))
-               if attr == 0:
-                   raise Exception('Attribute '+attribute+' does not exist in all local nodes')
-           
+        checked.append(attribute)
+
     for formula in params['filters']:
-             for attribute in formula:
-               if attribute not in checked:
-                   checked.append(attribute)
-                   attr = await local['async_con'].cursor().execute("select name from columns where table_id = '"+str(table_id)+"' and name = %s;",(attribute[0],))
-                   if attr == 0:
-                       raise Exception('Attribute '+attribute[0]+' does not exist in all local nodes')
+        for attribute in formula:
+                checked.append(attribute)
+
+    cur2 = local['async_con'].cursor()
+    attr = await cur2.execute("select name from columns where table_id = '"+str(table_id)+"' and name in ("+','.join(['%s' for x in set(checked)])+");",[(*checked)])
+    if attr != len(checked):
+        res = cur2.fetchall()
+        raise Exception('Attributes other than '+str(res)+' does not exist in all local nodes')
 
 
 async def create_view_parallel(local,query,params = None):
@@ -59,8 +56,6 @@ async def createlocalviews(db_objects, viewlocaltable, params):
             filterpart += "("+andpart+")"
         if j < len(params["filters"])-1:
               filterpart += ' or '
-              
-
 
       if filterpart == " ":
           await asyncio.gather(*[create_view_parallel(local['async_con'],"CREATE VIEW "+viewlocaltable+" AS select "+','.join(params['attributes'])+" from "+params['table']+";") for i, local in enumerate(db_objects['local'])])
@@ -84,10 +79,12 @@ async def run_local(db_objects,localtable, algorithm, parameters, attr, viewloca
 
 async def run_local_iter(db_objects,localtable,globalresulttable, algorithm, parameters, attr, viewlocaltable, localschema):
       t1 = current_time()
-      for i,local in enumerate(db_objects['local']):
-          await local['async_con'].cursor().execute("delete from %s;" % (localtable + "_" + str(i),))
+      await asyncio.gather(*[local_run_inparallel(local['async_con'],"delete from "+localtable + "_" + str(i)+"; insert into "+localtable+"_"+str(i)+" "+algorithm._local_iter(globalresulttable, parameters, attr) ) for i,local in enumerate(db_objects['local'])] )
+      print("time " + str(current_time() - t1))
 
-      await asyncio.gather(*[local_run_inparallel(local['async_con'],"insert into "+localtable+"_"+str(i)+" "+algorithm._local_iter(globalresulttable, parameters, attr)) for i,local in enumerate(db_objects['local'])] )
+async def run_global_iter(db_objects, globaltable, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, globalschema):
+      t1 = current_time()
+      await db_objects['global']['async_con'].cursor().execute("delete from "+globalresulttable+"; insert into " + globalresulttable + " " +algorithm._global_iter(globaltable, parameters, attr))
       print("time " + str(current_time() - t1))
 
 async def run_global_final(db_objects, globaltable, algorithm, parameters, attr):
@@ -98,11 +95,6 @@ async def run_global_final(db_objects, globaltable, algorithm, parameters, attr)
       return cur.fetchall()
 
       
-async def run_global_iter(db_objects, globaltable, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, globalschema):
-      t1 = current_time()
-      await db_objects['global']['async_con'].cursor().execute("delete from %s;" % (globalresulttable,))
-      await db_objects['global']['async_con'].cursor().execute("insert into " + globalresulttable + " " +algorithm._global_iter(globaltable, parameters, attr))
-      print("time " + str(current_time() - t1))
 
 
 async def clean_up(db_objects, globaltable, localtable, viewlocaltable, globalrestable):

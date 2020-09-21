@@ -76,8 +76,8 @@ class Settings:
     async def _update_global(self,server):  #### update global server if servers file is reloaded
         await self.db_objects['global']['pool'].clear()
         glob = urlparse(server)
-        dbpool['global'] = await pool.create_pool(hostname=glob.hostname, port=glob.port, username="monetdb",
-            password="monetdb", database=glob.path[1:], language="sql")
+        self.db_objects['global']['pool'] = await pool.create_pool(hostname=glob.hostname, port=glob.port, username="monetdb",
+            password="monetdb", database=glob.path[1:])
 
 
     async def _update_local(self,added, removed): #### update local servers if servers file is reloaded
@@ -96,7 +96,7 @@ class Settings:
         for local in added:
             loc = urlparse(local)      
             pol = await pool.create_pool(hostname=loc.hostname, port=loc.port, username="monetdb",
-                 password="monetdb", database=loc.path[1:], language="sql")
+                 password="monetdb", database=loc.path[1:])
             local_node = {}
             local_node['pool'] = pol
             local_node['dbname'] = local

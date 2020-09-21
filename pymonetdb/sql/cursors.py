@@ -157,12 +157,15 @@ class Cursor(object):
                 self._exception_handler(ValueError, msg % type(parameters))
         else:
             query = operation
-
-        block = await self.connection.execute(query)
-        self._store_result(block)
-        self.rownumber = 0
-        self._executed = operation
-        print ("\nhost: ",self.connection.hostname ,"\ndatabase: ",self.connection.database, "\nquery: ", operation, "\nresult: ", self._rows, "\n\n")
+        try:
+            block = await self.connection.execute(query)
+            self._store_result(block)
+            self.rownumber = 0
+            self._executed = operation
+            print ("\nhost: ",self.connection.hostname ,"\ndatabase: ",self.connection.database, "\nquery: ", operation, "\nresult: ", self._rows, "\n\n")
+        except Exception as e:
+            print ("\nhost: ", self.connection.hostname, "\ndatabase: ", self.connection.database, "\nquery: ", operation,"\nexception: ", str(e), "\n\n")
+            raise
         return self.rowcount
 
     async def executemany(self, operation, seq_of_parameters):

@@ -78,6 +78,7 @@ class MainHandler(BaseHandler):
       await self.dbs.release(db_objects)
       self.write("Error: "+str(e))
       self.finish()
+      raise
       return 
 
     

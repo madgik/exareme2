@@ -1,7 +1,7 @@
 import datetime
 import random
-import run_step
-import transfer_data
+import task
+import transfer
 import json
 import importlib
 
@@ -25,9 +25,8 @@ def get_uniquetablename():
 # localschema: the schema of the result table in localnodes                  
 
 async def run_simple(algorithm,parameters, attr, db_objects, localtable, globaltable, viewlocaltable, localschema):
-    await run_step.run_local(db_objects,localtable, algorithm, parameters, attr, viewlocaltable, localschema)
-    await transfer_data.merge(db_objects, localtable, globaltable, localschema)
-    return await run_step.run_global_final(db_objects, globaltable, algorithm, parameters, attr)
+    await task.run_local(db_objects, localtable, algorithm, parameters, attr, viewlocaltable, localschema)
+    return await task.run_global_final(db_objects, globaltable, algorithm, parameters, attr)
       
 
 ######### iterative algorithm params:
@@ -41,16 +40,11 @@ async def run_simple(algorithm,parameters, attr, db_objects, localtable, globalt
 # globalschema: the schema of the result table in global node
 
 async def run_iterative(algorithm, parameters, attr, db_objects, localtable, globaltable, globalresulttable, viewlocaltable, localschema, globalschema):
-
-    await run_step.run_local_init(db_objects,localtable, algorithm, parameters, attr, viewlocaltable, localschema, globalschema, globalresulttable)
-    await transfer_data.merge(db_objects, localtable, globaltable, localschema)
-    await run_step.run_global_iter(db_objects, globaltable, localtable, globalresulttable, algorithm,parameters, attr, viewlocaltable, globalschema)
-    await transfer_data.broadcast(db_objects, globalresulttable, globalschema)
-    for i in range(19):
-        await run_step.run_local_iter(db_objects, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, localschema)
-        await run_step.run_global_iter(db_objects, globaltable, localtable, globalresulttable, algorithm,parameters, attr, viewlocaltable, globalschema)
-    await run_step.run_local_iter(db_objects, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, localschema)
-    return await run_step.run_global_final(db_objects, globaltable, algorithm, parameters, attr)
+    await task.run_local_init(db_objects, localtable, algorithm, parameters, attr, viewlocaltable, localschema, globalschema, globalresulttable)
+    for i in range(20):
+        await task.run_global_iter(db_objects, globaltable, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, globalschema)
+        await task.run_local_iter(db_objects, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, localschema)
+    return await task.run_global_final(db_objects, globaltable, algorithm, parameters, attr)
 
 
 #### run function:
@@ -84,23 +78,26 @@ async def run(algorithm, params, db_objects):
       module = get_package(algorithm)
       # create database views on local databases - each view processes the filters and the selected attributes on the requested table
       # the algorithm won't run directly on the local dataset but on the view
-      await run_step.createlocalviews(db_objects, viewlocaltable,params)
+      await task.createlocalviews(db_objects, viewlocaltable, params)
       
       ##### schema.json contains info about each algorithm: the name, the type (simple, iterative etc.) and the intermediate result schema
       with open('schema.json') as json_file:
           data = json.load(json_file)
-      
+
+
       ##### according to the input algorithm param and the json algorithm properties select to run the algorithm
       for c,algo in enumerate([ data['algorithms'][i]['name'] for i,j in enumerate(data['algorithms'])]):
           if algorithm == algo:
             try:
                  if data['algorithms'][c]['type'] == 'simple':
+                     await transfer.initialize(db_objects, localtable, globaltable, globalresulttable,data['algorithms'][c]['local_schema'])
                      result  = await run_simple(module, bindparams, params['attributes'], db_objects, localtable, globaltable, viewlocaltable, data['algorithms'][c]['local_schema'])
                  elif  data['algorithms'][c]['type'] == 'multiple':
+                     await transfer.initialize(db_objects, localtable, globaltable, globalresulttable, data['algorithms'][c]['local_schema'], data['algorithms'][c]['global_schema'])
                      result =  await run_iterative(module,bindparams, params['attributes'], db_objects, localtable, globaltable, globalresulttable, viewlocaltable, data['algorithms'][c]['local_schema'], data['algorithms'][c]['global_schema'])
             except:
-                 await run_step.clean_up(db_objects, globaltable,localtable, viewlocaltable, globalresulttable)
+                 await task.clean_up(db_objects, globaltable, localtable, viewlocaltable, globalresulttable)
                  raise
       ### clean up tables that are created during the execution
-      await run_step.clean_up(db_objects, globaltable,localtable, viewlocaltable, globalresulttable)
+      #await task.clean_up(db_objects, globaltable, localtable, viewlocaltable, globalresulttable)
       return result
