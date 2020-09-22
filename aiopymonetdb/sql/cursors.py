@@ -7,10 +7,10 @@
 import logging
 from collections import namedtuple
 from typing import Optional, Dict
-from pymonetdb.sql.debug import debug, export
-from pymonetdb.sql import monetize, pythonize
-from pymonetdb.exceptions import ProgrammingError, InterfaceError
-from pymonetdb import mapi
+from aiopymonetdb.sql.debug import debug, export
+from aiopymonetdb.sql import monetize, pythonize
+from aiopymonetdb.exceptions import ProgrammingError, InterfaceError
+from aiopymonetdb import mapi_async
 
 logger = logging.getLogger("pymonetdb")
 
@@ -344,11 +344,11 @@ class Cursor(object):
         type_ = []
 
         for line in block.split("\n"):
-            if line.startswith(mapi.MSG_INFO):
+            if line.startswith(mapi_async.MSG_INFO):
                 logger.info(line[1:])
                 self.messages.append((Warning, line[1:]))
 
-            elif line.startswith(mapi.MSG_QTABLE):
+            elif line.startswith(mapi_async.MSG_QTABLE):
                 self._query_id, rowcount, columns, tuples = line[2:].split()[:4]
 
                 columns = int(columns)  # number of columns in result
@@ -370,7 +370,7 @@ class Cursor(object):
                 self._offset = 0
                 self.lastrowid = None
 
-            elif line.startswith(mapi.MSG_HEADER):
+            elif line.startswith(mapi_async.MSG_HEADER):
                 (data, identity) = line[1:].split("#")
                 values = [x.strip() for x in data.split(",")]
                 identity = identity.strip()
@@ -403,24 +403,24 @@ class Cursor(object):
                 self._offset = 0
                 self.lastrowid = None
 
-            elif line.startswith(mapi.MSG_TUPLE):
+            elif line.startswith(mapi_async.MSG_TUPLE):
                 values = self._parse_tuple(line)
                 self._rows.append(values)
 
-            elif line.startswith(mapi.MSG_TUPLE_NOSLICE):
+            elif line.startswith(mapi_async.MSG_TUPLE_NOSLICE):
                 self._rows.append((line[1:],))
 
-            elif line.startswith(mapi.MSG_QBLOCK):
+            elif line.startswith(mapi_async.MSG_QBLOCK):
                 self._rows = []
 
-            elif line.startswith(mapi.MSG_QSCHEMA):
+            elif line.startswith(mapi_async.MSG_QSCHEMA):
                 self._offset = 0
                 self.lastrowid = None
                 self._rows = []
                 self.description = None
                 self.rowcount = -1
 
-            elif line.startswith(mapi.MSG_QUPDATE):
+            elif line.startswith(mapi_async.MSG_QUPDATE):
                 (affected, identity) = line[2:].split()[:2]
                 self._offset = 0
                 self._rows = []
@@ -429,17 +429,17 @@ class Cursor(object):
                 self.lastrowid = int(identity)
                 self._query_id = -1
 
-            elif line.startswith(mapi.MSG_QTRANS):
+            elif line.startswith(mapi_async.MSG_QTRANS):
                 self._offset = 0
                 self.lastrowid = None
                 self._rows = []
                 self.description = None
                 self.rowcount = -1
 
-            elif line == mapi.MSG_PROMPT:
+            elif line == mapi_async.MSG_PROMPT:
                 return
 
-            elif line.startswith(mapi.MSG_ERROR):
+            elif line.startswith(mapi_async.MSG_ERROR):
                 self._exception_handler(ProgrammingError, line[1:])
 
         self._exception_handler(InterfaceError, "Unknown state, %s" % block)

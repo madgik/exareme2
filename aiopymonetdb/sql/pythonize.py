@@ -15,8 +15,8 @@ import re
 import uuid
 from decimal import Decimal
 
-from pymonetdb.sql import types
-from pymonetdb.exceptions import ProgrammingError
+from aiopymonetdb.sql import types
+from aiopymonetdb.exceptions import ProgrammingError
 
 
 def _extract_timezone(data):

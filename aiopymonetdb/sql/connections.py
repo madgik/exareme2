@@ -6,10 +6,10 @@
 
 import logging
 import platform
-
-from pymonetdb.sql import cursors
-from pymonetdb import exceptions
-from pymonetdb import mapi_async as mapi
+import asyncio
+from aiopymonetdb.sql import cursors
+from aiopymonetdb import exceptions
+from aiopymonetdb import mapi_async as mapi
 
 logger = logging.getLogger("pymonetdb")
 
@@ -142,6 +142,22 @@ class Connection(object):
         """
         self.closed()
         return await self.cursor().execute('ROLLBACK')
+
+    async def check_for_params(self,table,attributes):
+        cur = cursors.Cursor(self)
+        result = await cur.execute("select id from tables where tables.system = false and tables.name = %s;", (table,))
+
+        if result == 0:
+            raise Exception('Dataset does not exist in all local nodes')
+
+        table_id = cur.fetchone()[0]
+
+
+        cur2 = cursors.Cursor(self)
+        attr = await cur2.execute("select name from columns where table_id = '" + str(table_id) + "' and name in (" + ','.join(['%s' for x in set(attributes)]) + ");", [(*attributes)])
+        if attr != len(attributes):
+            res = cur2.fetchall()
+            raise Exception('Attributes other than ' + str(res) + ' does not exist in all local nodes')
 
     def cursor(self):
         """

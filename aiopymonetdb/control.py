@@ -6,8 +6,8 @@
 
 import platform
 import logging
-from pymonetdb import mapi
-from pymonetdb.exceptions import OperationalError, InterfaceError
+from aiopymonetdb import mapi_async as mapi
+from aiopymonetdb.exceptions import OperationalError, InterfaceError
 
 
 logger = logging.getLogger(__name__)

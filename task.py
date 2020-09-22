@@ -10,27 +10,6 @@ current_time = lambda: int(round(time.time() * 1000))
 @asyncio.coroutine
 async def local_run_inparallel(local,query):
     await local.cursor().execute(query)
-    
-async def check_for_params(local,params):
-    cur = local['async_con'].cursor()
-    result = await cur.execute("select id from tables where tables.system = false and tables.name = %s;",(params['table'],))
-
-    if result == 0:
-        raise Exception('Dataset does not exist in all local nodes')
-    checked = []
-    table_id = cur.fetchone()[0]
-    for attribute in params['attributes']:
-        checked.append(attribute)
-
-    for formula in params['filters']:
-        for attribute in formula:
-                checked.append(attribute)
-
-    cur2 = local['async_con'].cursor()
-    attr = await cur2.execute("select name from columns where table_id = '"+str(table_id)+"' and name in ("+','.join(['%s' for x in set(checked)])+");",[(*checked)])
-    if attr != len(checked):
-        res = cur2.fetchall()
-        raise Exception('Attributes other than '+str(res)+' does not exist in all local nodes')
 
 
 async def create_view_parallel(local,query,params = None):
@@ -38,7 +17,14 @@ async def create_view_parallel(local,query,params = None):
    
 async def createlocalviews(db_objects, viewlocaltable, params):
       t1 = current_time()
-      await asyncio.gather(*[check_for_params(local,params) for i,local in enumerate(db_objects['local'])] )
+      t = params['table']
+      attributes = []
+      for attribute in params['attributes']:
+          attributes.append(attribute)
+      for formula in params['filters']:
+          for attribute in formula:
+              attributes.append(attribute)
+      await asyncio.gather(*[local['async_con'].check_for_params(t,attributes) for i,local in enumerate(db_objects['local'])] )
 
 
       filterpart = " "

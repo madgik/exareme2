@@ -7,8 +7,8 @@
 This implements a connection to the profiler.
 """
 
-from pymonetdb import mapi
-from pymonetdb.exceptions import OperationalError
+from aiopymonetdb import mapi_async as mapi
+from aiopymonetdb.exceptions import OperationalError
 
 
 class ProfilerConnection(object):

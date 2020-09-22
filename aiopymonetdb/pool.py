@@ -3,7 +3,7 @@
 
 import asyncio
 import collections
-from pymonetdb import connect
+from aiopymonetdb import connect
 from .utils import _PoolContextManager, _PoolConnectionContextManager
 
 __all__ = ['create_pool', 'Pool']

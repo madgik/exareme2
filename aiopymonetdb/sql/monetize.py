@@ -13,7 +13,7 @@ the mapping dict and the datatype as key.
 import datetime
 import decimal
 
-from pymonetdb.exceptions import ProgrammingError
+from aiopymonetdb.exceptions import ProgrammingError
 
 
 def monet_none(_):

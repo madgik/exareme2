@@ -11,7 +11,7 @@ import socket
 import asyncio
 import logging
 import struct
-from pymonetdb.sql import monetize, pythonize
+from aiopymonetdb.sql import monetize, pythonize
 import hashlib
 import re
 

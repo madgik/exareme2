@@ -1,7 +1,5 @@
-from pymonetdb import mapi
 import asyncio
 from urllib.parse import urlparse
-from pymonetdb import pool
 import servers
 
 
@@ -12,13 +10,24 @@ class Settings:
         self.db_objects['local'] = []
         self.db_objects['global'] = {}
         self.mservers = []
+        self.glob = urlparse(servers.servers[0])
+        if self.glob.scheme == 'monetdb':
+            from aiopymonetdb import pool
+            self.user = 'monetdb'
+            self.password = 'monetdb'
+        if self.glob.scheme == 'postgres':
+            from aiopg import pool
+            self.user = 'postgres'
+            self.password = 'mypassword'
+        self.pool = pool
         
     async def initialize(self):  ### create connection pools
         if self.db_objects['global'] == {}:
           self.mservers = servers.servers
-          glob = urlparse(servers.servers[0])
-          self.db_objects['global']['pool'] = await pool.create_pool(hostname=glob.hostname, port=glob.port, username="monetdb",
-            password="monetdb", database=glob.path[1:])
+          glob = self.glob
+
+          self.db_objects['global']['pool'] = await self.pool.create_pool(host=glob.hostname, port=glob.port, user=self.user,
+            password=self.password, database=glob.path[1:])
             
           self.db_objects['global']['dbname'] = servers.servers[0]  ## global database name - required by remote tables to connect to the remote database
     
@@ -26,8 +35,8 @@ class Settings:
           for i,db in enumerate(servers.servers[1:]):
             loc = urlparse(db)      
        
-            pol = await pool.create_pool(hostname=loc.hostname, port=loc.port, username="monetdb",
-                 password="monetdb", database=loc.path[1:])
+            pol = await self.pool.create_pool(host=loc.hostname, port=loc.port, user=self.user,
+                 password=self.password, database=loc.path[1:])
             local_node = {}
             local_node['pool'] = pol
             local_node['dbname'] = db
@@ -75,9 +84,12 @@ class Settings:
 
     async def _update_global(self,server):  #### update global server if servers file is reloaded
         await self.db_objects['global']['pool'].clear()
-        glob = urlparse(server)
-        self.db_objects['global']['pool'] = await pool.create_pool(hostname=glob.hostname, port=glob.port, username="monetdb",
-            password="monetdb", database=glob.path[1:])
+        self.glob = urlparse(server)
+        if self.glob.scheme == 'monetdb':
+            from aiopymonetdb import pool
+        self.pool = pool
+        self.db_objects['global']['pool'] = await self.pool.create_pool(host=self.glob.hostname, port=self.glob.port, user="monetdb",
+            password="monetdb", database=self.glob.path[1:])
 
 
     async def _update_local(self,added, removed): #### update local servers if servers file is reloaded
@@ -91,11 +103,12 @@ class Settings:
                        break
                   c+=1
            # await self.db_objects['local'][c]['pool'].clear()
-            
          
         for local in added:
-            loc = urlparse(local)      
-            pol = await pool.create_pool(hostname=loc.hostname, port=loc.port, username="monetdb",
+            loc = urlparse(local)
+            if loc.scheme == 'monetdb':
+                from aiopymonetdb import pool
+            pol = await pool.create_pool(host=loc.hostname, port=loc.port, user="monetdb",
                  password="monetdb", database=loc.path[1:])
             local_node = {}
             local_node['pool'] = pol

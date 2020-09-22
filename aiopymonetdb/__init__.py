@@ -11,15 +11,15 @@ To set up a connection use pymonetdb.connect()
 # Copyright 1997 - July 2008 CWI, August 2008 - 2016 MonetDB B.V.
 
 import pkg_resources
-from pymonetdb import sql
-from pymonetdb import mapi_async as mapi
-from pymonetdb import exceptions
-from pymonetdb import profiler
+from aiopymonetdb import sql
+from aiopymonetdb import mapi_async as mapi
+from aiopymonetdb import exceptions
+from aiopymonetdb import profiler
 
-from pymonetdb.profiler import ProfilerConnection
-from pymonetdb.sql.connections import Connection
-from pymonetdb.sql.pythonize import *
-from pymonetdb.exceptions import *
+from aiopymonetdb.profiler import ProfilerConnection
+from aiopymonetdb.sql.connections import Connection
+from aiopymonetdb.sql.pythonize import *
+from aiopymonetdb.exceptions import *
 
 try:
     __version__ = pkg_resources.require("pymonetdb")[0].version
