@@ -84,10 +84,4 @@ async def run_global_final(db_objects, globaltable, algorithm, parameters, attr)
 
 
 async def clean_up(db_objects, globaltable, localtable, viewlocaltable, globalrestable):
-      await db_objects['global']['async_con'].cursor().execute("drop table if exists %s;" %globaltable)
-      await db_objects['global']['async_con'].cursor().execute("drop table if exists %s;" %globalrestable)
-      for i,local in enumerate(db_objects['local']):
-          await local['async_con'].cursor().execute("drop view if exists "+viewlocaltable+";")
-          await local['async_con'].cursor().execute("drop table if exists "+globalrestable+";")
-          await local['async_con'].cursor().execute("drop table if exists "+localtable+"_"+str(i)+";")
-          await db_objects['global']['async_con'].cursor().execute("drop table if exists "+localtable+"_"+str(i)+";")
+      await db_objects['global']['async_con'].clean_tables(db_objects, globaltable, localtable, viewlocaltable, globalrestable)

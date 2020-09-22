@@ -99,5 +99,5 @@ async def run(algorithm, params, db_objects):
                  await task.clean_up(db_objects, globaltable, localtable, viewlocaltable, globalresulttable)
                  raise
       ### clean up tables that are created during the execution
-      #await task.clean_up(db_objects, globaltable, localtable, viewlocaltable, globalresulttable)
+      await task.clean_up(db_objects, globaltable, localtable, viewlocaltable, globalresulttable)
       return result

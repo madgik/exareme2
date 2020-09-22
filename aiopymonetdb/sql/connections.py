@@ -159,6 +159,37 @@ class Connection(object):
             res = cur2.fetchall()
             raise Exception('Attributes other than ' + str(res) + ' does not exist in all local nodes')
 
+    async def init_remote_connections(self,db_objects):
+        await asyncio.sleep(0)
+
+    async def broadcast_inparallel(self, local, globalresulttable, globalschema, dbname ):
+        await local.cursor().execute("CREATE REMOTE TABLE %s (%s) on 'mapi:%s';" %(globalresulttable, globalschema, dbname))
+
+    async def merge(self,db_objects, localtable, globaltable, localschema):
+        cur = cursors.Cursor(self)
+        await cur.execute("CREATE MERGE TABLE %s (%s);" %(globaltable,localschema));
+        for i,local_node in enumerate(db_objects['local']):
+            await cur.execute("CREATE REMOTE TABLE %s_%s (%s) on 'mapi:%s'; " %(localtable, i, localschema,local_node['dbname']))
+            await cur.execute("ALTER TABLE %s ADD TABLE %s_%s;" %(globaltable,localtable,i));
+
+
+    async def broadcast(self,db_objects, globalresulttable, globalschema):
+        await asyncio.gather(*[self.broadcast_inparallel(local_node['async_con'], globalresulttable, globalschema, db_objects['global']['dbname']) for i,local_node in enumerate(db_objects['local'])])
+
+
+    async def transferdirect(self,node1, localtable, node2, transferschema):
+        await node2[2].cursor().execute("CREATE REMOTE TABLE %s (%s) on 'mapi:%s';" %(localtable, transferschema,node1[1]))
+
+    async def clean_tables(self,db_objects, globaltable, localtable, viewlocaltable, globalrestable):
+      await db_objects['global']['async_con'].cursor().execute("drop table if exists %s;" %globaltable)
+      await db_objects['global']['async_con'].cursor().execute("drop table if exists %s;" %globalrestable)
+      for i,local in enumerate(db_objects['local']):
+          await local['async_con'].cursor().execute("drop view if exists "+viewlocaltable+";")
+          await local['async_con'].cursor().execute("drop table if exists "+globalrestable+";")
+          await local['async_con'].cursor().execute("drop table if exists "+localtable+"_"+str(i)+";")
+          await db_objects['global']['async_con'].cursor().execute("drop table if exists "+localtable+"_"+str(i)+";")
+
+
     def cursor(self):
         """
         Return a new Cursor Object using the connection.  If the

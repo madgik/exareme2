@@ -30,7 +30,7 @@ class Settings:
             password=self.password, database=glob.path[1:])
             
           self.db_objects['global']['dbname'] = servers.servers[0]  ## global database name - required by remote tables to connect to the remote database
-    
+
          
           for i,db in enumerate(servers.servers[1:]):
             loc = urlparse(db)      
@@ -42,7 +42,30 @@ class Settings:
             local_node['dbname'] = db
             self.db_objects['local'].append(local_node)  # for each local node an asynchronous connection object, the database name, and a blocking connection object
 
+          con = await self.acquire()
+          await con['global']['async_con'].init_remote_connections(con)
+          await self.release(con)
   
+    async def broadcast_inparallel(self, local, globalresulttable, globalschema, dbname ):
+        await local.cursor().execute("CREATE REMOTE TABLE %s (%s) on 'mapi:%s';" %(globalresulttable, globalschema, dbname))
+
+    async def merge(self,db_objects, localtable, globaltable, localschema):
+        cur = cursors.Cursor(self)
+        await cur.execute("CREATE MERGE TABLE %s (%s);" %(globaltable,localschema));
+        for i,local_node in enumerate(db_objects['local']):
+            await cur.execute("CREATE REMOTE TABLE %s_%s (%s) on 'mapi:%s'; " %(localtable, i, localschema,local_node['dbname']))
+            await cur.execute("ALTER TABLE %s ADD TABLE %s_%s;" %(globaltable,localtable,i));
+
+
+    async def broadcast(self,db_objects, globalresulttable, globalschema):
+        await asyncio.gather(*[self.broadcast_inparallel(local_node['async_con'], globalresulttable, globalschema, db_objects['global']['dbname']) for i,local_node in enumerate(db_objects['local'])])
+
+
+    async def transferdirect(self,node1, localtable, node2, transferschema):
+        await node2[2].cursor().execute("CREATE REMOTE TABLE %s (%s) on 'mapi:%s';" %(localtable, transferschema,node1[1]))
+
+
+
 
     async def acquire(self): #### get connection objects 
         db_conn = {}
