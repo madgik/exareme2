@@ -22,6 +22,7 @@ class Settings:
         self.pool = pool
         
     async def initialize(self):  ### create connection pools
+
         if self.db_objects['global'] == {}:
           self.mservers = servers.servers
           glob = self.glob
@@ -51,7 +52,6 @@ class Settings:
         db_conn = {}
         db_conn['local'] = []
         db_conn['global'] = {}
-        
         await self._reload()
     
         conn = await self.db_objects['global']['pool'].acquire()
@@ -90,9 +90,14 @@ class Settings:
         self.glob = urlparse(server)
         if self.glob.scheme == 'monetdb':
             from aiopymonetdb import pool
+            self.db_objects['global']['pool'] = await pool.create_pool(host=self.glob.hostname, port=self.glob.port, user="monetdb",
+                                  password="monetdb", database=self.glob.path[1:])
+        if self.glob.scheme == 'postgres':
+            from aiopg import pool
+            self.db_objects['global']['pool'] = await pool.create_pool(host=self.glob.hostname, port=self.glob.port, user="postgres",
+                                  password="mypostgres", database=self.glob.path[1:])
         self.pool = pool
-        self.db_objects['global']['pool'] = await self.pool.create_pool(host=self.glob.hostname, port=self.glob.port, user="monetdb",
-            password="monetdb", database=self.glob.path[1:])
+
 
 
     async def _update_local(self,added, removed): #### update local servers if servers file is reloaded
@@ -111,8 +116,13 @@ class Settings:
             loc = urlparse(local)
             if loc.scheme == 'monetdb':
                 from aiopymonetdb import pool
-            pol = await pool.create_pool(host=loc.hostname, port=loc.port, user="monetdb",
-                 password="monetdb", database=loc.path[1:])
+                pol = await pool.create_pool(host=loc.hostname, port=loc.port, user="monetdb",
+                                 password="monetdb", database=loc.path[1:])
+            if loc.scheme == 'postgres':
+                from aiopg import pool
+                pol = await pool.create_pool(host=loc.hostname, port=loc.port, user="postgres",
+                                 password="mypassword", database=loc.path[1:])
+
             local_node = {}
             local_node['pool'] = pol
             local_node['dbname'] = local
@@ -120,34 +130,34 @@ class Settings:
 
         
     #### these two functions calculate the updates to the servers files (new nodes and deleted nodes)
-    def old_minus_new(self,first, second):
+    def serversdiff(self,first, second):
         second = set(second)
         return [item for item in first if item not in second]
 
-    def new_minus_old(self,first, second):
-        second = set(second)
-        return [item for item in first if item not in second]
 
     ###### reload federation nodes
     async def _reload(self):
         import importlib
         importlib.reload(servers)
         if self.mservers != servers.servers:
-            if (self.mservers[0] != servers.servers[0]):
-                await self._update_global(servers.servers[0])
-            else:
-                await self._update_local(self.new_minus_old(servers.servers[1:],self.mservers[1:]), self.old_minus_new(self.mservers[1:],servers.servers[1:]))
-            self.mservers = servers.servers
-            return 1
+            await self.clearall()
+            self.__init__()
+            await self.initialize()
+            #if (self.mservers[0] != servers.servers[0]):
+            #    await self._update_global(servers.servers[0])
+            #else:
+            #    await self._update_local(self.serversdiff(servers.servers[1:],self.mservers[1:]), self.serversdiff(self.mservers[1:],servers.servers[1:]))
+            #self.mservers = servers.servers
+            #return 1
         return 0
     
    
 
 
     async def clearall(self):
-        await dbpool['global'].clear()
-        for i in dbpool['local']:
-            await i.clear()
+        await self.db_objects['global']['pool'].clear()
+        for i in self.db_objects['local']:
+            await i['pool'].clear()
 
 #    await  db_objects['global']['async_con'].disconnect()
 #    db_objects['global']['con'].disconnect()
