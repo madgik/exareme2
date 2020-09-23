@@ -20,22 +20,19 @@ class Settings:
             self.user = 'postgres'
             self.password = 'mypassword'
         self.pool = pool
+        self.lock = asyncio.Lock()
         
     async def initialize(self):  ### create connection pools
 
         if self.db_objects['global'] == {}:
           self.mservers = servers.servers
           glob = self.glob
-
           self.db_objects['global']['pool'] = await self.pool.create_pool(host=glob.hostname, port=glob.port, user=self.user,
             password=self.password, database=glob.path[1:])
-            
           self.db_objects['global']['dbname'] = servers.servers[0]  ## global database name - required by remote tables to connect to the remote database
 
-         
           for i,db in enumerate(servers.servers[1:]):
-            loc = urlparse(db)      
-       
+            loc = urlparse(db)
             pol = await self.pool.create_pool(host=loc.hostname, port=loc.port, user=self.user,
                  password=self.password, database=loc.path[1:])
             local_node = {}
@@ -53,18 +50,13 @@ class Settings:
         db_conn['local'] = []
         db_conn['global'] = {}
         await self._reload()
-    
         conn = await self.db_objects['global']['pool'].acquire()
-    
         db_conn['global']['async_con'] = conn   ## global asynchronous connection object - this is used to execute commands on the remote database
         db_conn['global']['dbname'] = self.db_objects['global']['dbname']  ## global database name - required by remote tables to connect to the remote database
-
 
         for db_object in self.db_objects['local']:
             loc = urlparse(db_object['dbname'])
             conn = await db_object['pool'].acquire()
-
-        
             local_node = {}
             local_node['async_con'] = conn
             local_node['dbname'] = db_object['dbname']
@@ -74,7 +66,6 @@ class Settings:
 
      ### asyncio locks because there may be a reload 
     async def release(self,db_conn): ### release connection objects back to pool
-        lock = asyncio.Lock()
         await lock.acquire()
         if (db_conn['global']['dbname'] == self.db_objects['global']['dbname']):
             await self.db_objects['global']['pool'].release(db_conn['global']['async_con'])
@@ -85,64 +76,17 @@ class Settings:
                 await local['pool'].release(db_conn['local'][i]['async_con'])
             lock.release()
 
-    async def _update_global(self,server):  #### update global server if servers file is reloaded
-        await self.db_objects['global']['pool'].clear()
-        self.glob = urlparse(server)
-        if self.glob.scheme == 'monetdb':
-            from aiopymonetdb import pool
-            self.db_objects['global']['pool'] = await pool.create_pool(host=self.glob.hostname, port=self.glob.port, user="monetdb",
-                                  password="monetdb", database=self.glob.path[1:])
-        if self.glob.scheme == 'postgres':
-            from aiopg import pool
-            self.db_objects['global']['pool'] = await pool.create_pool(host=self.glob.hostname, port=self.glob.port, user="postgres",
-                                  password="mypostgres", database=self.glob.path[1:])
-        self.pool = pool
-
-
-
-    async def _update_local(self,added, removed): #### update local servers if servers file is reloaded
-        for local in removed:
-            c = 0
-            for i in self.db_objects['local']:
-                  
-                  if i['dbname'] == local:
-                       await i['pool'].clear()
-                       del self.db_objects['local'][c]
-                       break
-                  c+=1
-           # await self.db_objects['local'][c]['pool'].clear()
-         
-        for local in added:
-            loc = urlparse(local)
-            if loc.scheme == 'monetdb':
-                from aiopymonetdb import pool
-                pol = await pool.create_pool(host=loc.hostname, port=loc.port, user="monetdb",
-                                 password="monetdb", database=loc.path[1:])
-            if loc.scheme == 'postgres':
-                from aiopg import pool
-                pol = await pool.create_pool(host=loc.hostname, port=loc.port, user="postgres",
-                                 password="mypassword", database=loc.path[1:])
-
-            local_node = {}
-            local_node['pool'] = pol
-            local_node['dbname'] = local
-            self.db_objects['local'].append(local_node)
-
-        
-    #### these two functions calculate the updates to the servers files (new nodes and deleted nodes)
-    def serversdiff(self,first, second):
-        second = set(second)
-        return [item for item in first if item not in second]
-
-
     ###### reload federation nodes
     async def _reload(self):
         import importlib
         importlib.reload(servers)
         if self.mservers != servers.servers:
-            await self.clearall()
+            await lock.acquire()
+            await self.clearall()      #### re-init all the connections
             self.__init__()
             await self.initialize()
+            await lock.release()
+            ##### commented section - solve only the updates in the servers.
             #if (self.mservers[0] != servers.servers[0]):
             #    await self._update_global(servers.servers[0])
             #else:
@@ -150,14 +94,65 @@ class Settings:
             #self.mservers = servers.servers
             #return 1
         return 0
-    
-   
-
 
     async def clearall(self):
         await self.db_objects['global']['pool'].clear()
         for i in self.db_objects['local']:
             await i['pool'].clear()
+
+
+ #   #### this function calculates the updates to the servers files (new nodes and deleted nodes)
+ #   def serversdiff(self,first, second):
+ #       second = set(second)
+ #       return [item for item in first if item not in second]
+
+#async def _update_global(self, server):  #### update global server if servers file is reloaded
+#    await
+#    self.db_objects['global']['pool'].clear()
+#    self.glob = urlparse(server)
+#    if self.glob.scheme == 'monetdb':
+#        from aiopymonetdb import pool
+#        self.db_objects['global']['pool'] = await
+#        pool.create_pool(host=self.glob.hostname, port=self.glob.port, user="monetdb",
+#                         password="monetdb", database=self.glob.path[1:])
+#    if self.glob.scheme == 'postgres':
+#        from aiopg import pool
+#        self.db_objects['global']['pool'] = await
+#        pool.create_pool(host=self.glob.hostname, port=self.glob.port, user="postgres",
+#                         password="mypostgres", database=self.glob.path[1:])
+#    self.pool = pool
+
+
+#async def _update_local(self, added, removed):  #### update local servers if servers file is reloaded
+#    for local in removed:
+#        c = 0
+#        for i in self.db_objects['local']:
+
+#            if i['dbname'] == local:
+#               await
+#                i['pool'].clear()
+#                del self.db_objects['local'][c]
+#                break
+#            c += 1
+    # await self.db_objects['local'][c]['pool'].clear()
+
+#    for local in added:
+#        loc = urlparse(local)
+#        if loc.scheme == 'monetdb':
+#            from aiopymonetdb import pool
+#            pol = await
+#            pool.create_pool(host=loc.hostname, port=loc.port, user="monetdb",
+#                             password="monetdb", database=loc.path[1:])
+#        if loc.scheme == 'postgres':
+#            from aiopg import pool
+#            pol = await
+#            pool.create_pool(host=loc.hostname, port=loc.port, user="postgres",
+#                             password="mypassword", database=loc.path[1:])
+
+#        local_node = {}
+#        local_node['pool'] = pol
+#        local_node['dbname'] = local
+#        self.db_objects['local'].append(local_node)
 
 #    await  db_objects['global']['async_con'].disconnect()
 #    db_objects['global']['con'].disconnect()
