@@ -41,7 +41,7 @@ async def run_simple(algorithm,parameters, attr, db_objects, localtable, globalt
 
 async def run_iterative(algorithm, parameters, attr, db_objects, localtable, globaltable, globalresulttable, viewlocaltable, localschema, globalschema):
     await task.run_local_init(db_objects, localtable, algorithm, parameters, attr, viewlocaltable, localschema, globalschema, globalresulttable)
-    for i in range(20):
+    for i in range(60):
         await task.run_global_iter(db_objects, globaltable, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, globalschema)
         await task.run_local_iter(db_objects, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, localschema)
     return await task.run_global_final(db_objects, globaltable, algorithm, parameters, attr)

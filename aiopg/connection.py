@@ -235,6 +235,8 @@ class Connection:
         res = cur.fetchall()
         if len(res) != len(attributes):
             cur.close()
+            if len(res) ==  0:
+                raise Exception('Requested data does not exist in all local nodes')
             raise Exception('Attributes other than ' + str(res) + ' does not exist in all local nodes')
         cur.close()
 

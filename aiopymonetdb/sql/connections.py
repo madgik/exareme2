@@ -145,18 +145,13 @@ class Connection(object):
 
     async def check_for_params(self,table,attributes):
         cur = cursors.Cursor(self)
-        result = await cur.execute("select id from tables where tables.system = false and tables.name = %s;", (table,))
+        params = [table]+attributes
+        attr = await cur.execute("select columns.name from tables,columns where tables.id = columns.table_id and tables.system = false and tables.name = %s and columns.name in (" + ','.join(['%s' for x in set(attributes)]) + ");", [(*params)])
 
-        if result == 0:
-            raise Exception('Dataset does not exist in all local nodes')
-
-        table_id = cur.fetchone()[0]
-
-
-        cur2 = cursors.Cursor(self)
-        attr = await cur2.execute("select name from columns where table_id = '" + str(table_id) + "' and name in (" + ','.join(['%s' for x in set(attributes)]) + ");", [(*attributes)])
         if attr != len(attributes):
-            res = cur2.fetchall()
+            res = cur.fetchall()
+            if res == []:
+                raise Exception('Requested data does not exist in all local nodes')
             raise Exception('Attributes other than ' + str(res) + ' does not exist in all local nodes')
 
     async def init_remote_connections(self,db_objects):

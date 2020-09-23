@@ -80,8 +80,5 @@ async def run_global_final(db_objects, globaltable, algorithm, parameters, attr)
       print("time " + str(current_time() - t1))
       return cur.fetchall()
 
-      
-
-
 async def clean_up(db_objects, globaltable, localtable, viewlocaltable, globalrestable):
       await db_objects['global']['async_con'].clean_tables(db_objects, globaltable, localtable, viewlocaltable, globalrestable)
