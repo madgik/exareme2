@@ -71,6 +71,15 @@ The innermost tuples each describe a single column predicate. The list of inner 
 
 <br>
 
+<br>Run with Postgres: <br>
+
+1) Install Postgres in each node and create databases (setup passwords, username is `postgres` you need to set password `mypassword`).
+2) Create the Postgres extension postgres_fdw https://www.postgresql.org/docs/9.5/postgres-fdw.html in all the nodes
+3) You may need to install some dependencies for aiopg https://aiopg.readthedocs.io/en/stable/ https://github.com/aio-libs/aiopg 
+4) `pip3 install psycopg2` is one dependency may be there are some more
+5) Edit servers.py file using postgres hosts, db names etc.
+6) Pearson is not implemented in postgres. It could be using postgres UDFs or naive SQL. Iterative dummy algorithm countiter is supported
+
 <b>General comments:</b> <br>
 
 1) Functional programming style is adopted.
