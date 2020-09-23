@@ -143,6 +143,8 @@ class Connection(object):
         self.closed()
         return await self.cursor().execute('ROLLBACK')
 
+
+    ##################### added code to support federation #############################
     async def check_for_params(self,table,attributes):
         cur = cursors.Cursor(self)
         params = [table]+attributes
@@ -183,6 +185,8 @@ class Connection(object):
           await local['async_con'].cursor().execute("drop table if exists "+globalrestable+";")
           await local['async_con'].cursor().execute("drop table if exists "+localtable+"_"+str(i)+";")
           await db_objects['global']['async_con'].cursor().execute("drop table if exists "+localtable+"_"+str(i)+";")
+
+    ##################### end of added code to support federation #############################
 
 
     def cursor(self):

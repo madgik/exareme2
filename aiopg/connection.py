@@ -228,6 +228,7 @@ class Connection:
     def _isexecuting(self):
         return self._conn.isexecuting()
 
+    ##################### added code to support federation #############################
     async def check_for_params(self,table,attributes):
         cur = self.cursor()
         params = [table]+attributes
@@ -291,6 +292,8 @@ class Connection:
           await local['async_con'].cursor().execute("drop table if exists "+localtable+"_"+str(i)+";")
           await db_objects['global']['async_con'].cursor().execute("drop foreign table if exists "+localtable+"_"+str(i)+";")
 
+    ##################### end of added code to support federation #############################
+    
     def cursor(self, name=None, cursor_factory=None,
                       scrollable=None, withhold=False, timeout=None):
 
