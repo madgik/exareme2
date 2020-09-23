@@ -115,6 +115,9 @@ class Cursor:
             self._impl.close()
             raise
 
+        print ("\nquery: ", operation)
+
+
     async def executemany(self, operation, seq_of_parameters):
         # Not supported
         raise psycopg2.ProgrammingError(
