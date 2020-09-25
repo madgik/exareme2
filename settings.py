@@ -66,26 +66,24 @@ class Settings:
 
      ### asyncio locks because there may be a reload 
     async def release(self,db_conn): ### release connection objects back to pool
-        await lock.acquire()
+        await self.lock.acquire()
         if (db_conn['global']['dbname'] == self.db_objects['global']['dbname']):
             await self.db_objects['global']['pool'].release(db_conn['global']['async_con'])
-        lock.release()
+        self.lock.release()
         for i,local in enumerate(self.db_objects['local']):
-            await lock.acquire()
+            await self.lock.acquire()
             if (db_conn['local'][i]['dbname'] == local['dbname']):
                 await local['pool'].release(db_conn['local'][i]['async_con'])
-            lock.release()
+            self.lock.release()
 
     ###### reload federation nodes
     async def _reload(self):
         import importlib
         importlib.reload(servers)
         if self.mservers != servers.servers:
-            await lock.acquire()
             await self.clearall()      #### re-init all the connections
             self.__init__()
             await self.initialize()
-            await lock.release()
             ##### commented section - solve only the updates in the servers.
             #if (self.mservers[0] != servers.servers[0]):
             #    await self._update_global(servers.servers[0])
