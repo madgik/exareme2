@@ -50,7 +50,7 @@ Run server: <br>
 <br> Content-Type: application/x-www-form-urlencoded (usually the default in most libraries), type application/json is not supported in tornado web framework</br>
 Two fields: <br>
 <br> 1) `algorithm` (e.g., "pearson")
-<br> 2) `params`: valid json including table name, attributes and filters. e.g. Filters follow the DNF (disjunctive normal form:
+<br> 2) `params`: valid json including table name, attributes, parameters and filters. e.g. Filters follow the DNF (disjunctive normal form:
 The innermost tuples each describe a single column predicate. The list of inner predicates is interpreted as a conjunction (AND), forming a more selective and multiple column predicate. Finally, the most outer list combines these filters as a disjunction (OR).
 `{"table":"data", "attributes":["c1","c2"],"parameters":[0.7,4],"filters":[[["c1",">","2"],["c1","<","10000"]],[["c1",">","0"]]]}`
 (i.e., pearson requires a table with 2 float attributes)
