@@ -1,4 +1,4 @@
-The code is a kind of python/pseudocode(obviously not executable..). The reason I uploaded it is just to describe the approach I have in mind. 
+The code is a kind of python/<b>pseudocode</b>(obviously <b>not executable</b>..). The reason I uploaded it is just to describe the approach I have in mind. 
 
 A python wrapper layer that takes care of the underlying nodes databases manipulation, giving the algorithms* developer a simple, minimal interface to control the accessibility and flow of the data between her code and the several databases. Introducing such a layer is towards the "separation of concerns" principle which will lead in a more modular system, on which one can implement more complete testing.
 
