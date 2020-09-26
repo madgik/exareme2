@@ -18,9 +18,9 @@ the last 2 parameters in all these functions define
     2.the database to which the resulting table will be visible to(in case of monetdb via remote tables)
 
 These functions in the wrapper have 3 purposes:
-1. Calling the underlying SQL udfs
-2. Dealing with the creation of the resulting table in the correct database, as defined by the caller of the function and
-3. Dealing with the creation of remote tables that will make the resulting table visible to other databases as defined by the caller of the function
+1.Calling the underlying SQL udfs
+2.Dealing with the creation of the resulting table in the correct database, as defined by the caller of the function and
+3.Dealing with the creation of remote tables that will make the resulting table visible to other databases as defined by the caller of the function
 
 These function will return the name of the table that contains the results of the udfs. Since the caller defines which dbs will have access to the table, the table table name is enough to proceed with the data flow of the algorithm. That obviously means that the wrapper functions ought to guarantee that the returned table is accessible to the nodes(native and broadcast nodes) that the caller of the wrapper function defined
 
@@ -30,22 +30,20 @@ One implication of such schema is obviously that the developper writting an algo
   
 *From now on wherever I use the term algorithm I mean a Statistical/Machine Learning/Data Mining algorithm.
 
-'''
+
 Not addressed in the current code:
-    1. drop unused tables mechanism
-    2. parallelism  This code is not using any asynchronicity at all, everything is executed sequentially. Nevertheless, a mechanism that will allow executing coroutines asynchronously is plausible.
-    3. error handling
+    1.drop unused tables mechanism
+    2.parallelism  This code is not using any asynchronicity at all, everything is executed sequentially. Nevertheless, a mechanism that will allow executing coroutines asynchronously is plausible.
+    3.error handling
 
 Pros:
-    1. small general udfs, as they accumulate (wisely..) at some point (hopefully) no new ones will be needed for new algorithms implementations
-    2. small general udfs, easy to test
-    3. easier mocking of the calls to the actual db for testing the algorithm
-    3. udfs can be initially written in Python, but since they ought to be small and general, someone else with better sql skills than the algorithm developper, can independently write them in native SQL for efficiency
-    4. ..all other efficiency benefits from manipulating data in the db instead of in memory
+    1.small general udfs, as they accumulate (wisely..) at some point (hopefully) no new ones will be needed for new algorithms implementations
+    2.small general udfs, easy to test
+    3.easier mocking of the calls to the actual db for testing the algorithm
+    4.udfs can be initially written in Python, but since they ought to be small and general, someone else with better sql skills than the algorithm developper, can independently write them in native SQL for efficiency
+    5...all other efficiency benefits from manipulating data in the db instead of in memory
 
 Cons:
-    1. When writting an algorithm you have to think in terms of database tables and predefined set of udfs, instead of readily availiable data in memory. Results returned from the udfs wrappers are only table names, not the actual data (but can easily be exported to numpy array? a udf for that for debugging purposes??)
-    2. udfs must be VERY WELL DOCUMENTED and maintained, otherwise the set of udfs will become bloated and with overlapping functionality. Cleaning this later will be a nightmare since each algorithm design will have specific dependencies on them..
-    3. ..and probably some more that I haven't thought about yet
-'''
- 
+    1.When writting an algorithm you have to think in terms of database tables and predefined set of udfs, instead of readily availiable data in memory. Results returned from the udfs wrappers are only table names, not the actual data (but can easily be exported to numpy array? a udf for that for debugging purposes??)
+    2.udfs must be VERY WELL DOCUMENTED and maintained, otherwise the set of udfs will become bloated and with overlapping functionality. Cleaning this later will be a nightmare since each algorithm design will have specific dependencies on them..
+    3...and probably some more that I haven't thought about yet
