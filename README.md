@@ -5,12 +5,13 @@ A python wrapper layer that takes care of the underlying nodes databases manipul
 In more detail, inside all the databases involved there will be a set of SQL user defined functions (python/sql/whatever..) implementing mathematical manipulations that will constitute the building blocks for more complex algorithms. The udfs must be minimal and general enough to encourage reuse in different algorithms.
 
 In my example I have defined 4 wrapper functions that are calling underlying Modetdb udfs:
-<code>
+
+<pre><code>
 def generate_random(params,node_native,nodes_broadcast):
 def means_by_index( indices, datapoints, data_node, nodes_broadcast)
 def min_column(table_name,node_native,nodes_broadcast):
 def calculate_norm(points_a_table_name,points_b_table_name,node_native,nodes_broadcast):
-<code>
+</code></pre>
 
 the last 2 parameters in all these functions define 
     1.the database in which the resulting table will be created and 
