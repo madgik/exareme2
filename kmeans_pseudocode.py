@@ -1,4 +1,4 @@
-def kmeans(num_of_clusters, data_tables_names, data_nodes,num_of_iterations, global_node){
+def kmeans(num_of_clusters, num_of_iterations, data_dbs, global_db){
     '''
     kmeans clustering:
         1. assign each datapoint to the closer centroid 
@@ -20,13 +20,14 @@ def kmeans(num_of_clusters, data_tables_names, data_nodes,num_of_iterations, glo
 
 
     Parameters:
-    num_off_clusters: the num of clusters the k-means must produce
-    datanodes: dictionary in the form   {   database1:data_table,
+    num_off_clusters:   the num of clusters the k-means must produce
+    data_dbs:   dictionary in the form   {   database1:data_table,
                                             database2:data_table,
                                             ...
                                         }
-    data_tables_names: the name of the tables that contain the actual datapoints, (most likely VIEW tables)
-    data_nodes: the nodes/databases that contain the data_tables_names
+                where database1,database2,... connection object to the respective dbs
+                
+    global_db:  a connection object to the global database
     '''
 
     params={
@@ -35,35 +36,35 @@ def kmeans(num_of_clusters, data_tables_names, data_nodes,num_of_iterations, glo
             "variable_type":float
             "range":#some range..
             }
-    centroids= udfs.generate_random( params, global_node, data_nodes )
+    centroids= udfs.generate_random( params, global_db, data_dbs )
     
     counter=0
     while(counter<num_of_iterations){
         points_assigned_to_clusters=[]
         recalculated_centroids=[]
-        for data_node in data_nodes:
-            #calculate distances each datapoint from each centroid
-            distances_from_centroids= udfs_wrapper.calculate_norms( centroids, data_nodes[data_node], data_node, [] )#result table visible only to local node
+        for local_db in data_dbs:
+            #calculate distance for each datapoint to each centroid
+            distances_from_centroids= udfs_wrapper.calculate_norms( centroids, data_dbs[local_db], local_db, [] )#result table visible only to local node
 
             #find the minimum distance centroid for each datapoint
-            #min_column udf will return only the indices 
-            tmp=udfs_wrapper.min_column( distances_from_centroids, data_node, global_node ) #result table visible to local AND global node
+            #min_column udf will return the index of the corresponding centroid
+            tmp=udfs_wrapper.min_column( distances_from_centroids, local_db, global_db ) #result table visible to local AND global node
             datapoints_assigned_to_clusters.append(tmp)
 
             #calculate new centroids
-            tmp=udfs_wrapper.means_by_index( points_assigned_to_clusters, data_nodes[data_node], data_node, global_node)#result table visible to local AND global node
+            tmp=udfs_wrapper.means_by_index( tmp, data_nodes[database], local_db, global_db)#result table visible to local AND global node
             recalculated_centroids.append(tmp)
 
         merged_datapoints_assigned_to_clusters="merged_datapoints_assigned_to_clusters"
         schema=#some schema...
-        create_merge_table(global_node,merged_datapoints_assigned_to_clusters,schema,datapoints_assigned_to_clusters)
+        create_merge_table(global_db,merged_datapoints_assigned_to_clusters,schema,datapoints_assigned_to_clusters)
 
         merged_local_recalculated_centroids="merged_recalculated_centroids"
         schema=#some schema...
-        create_merge_table(global_node,merged_recalculated_centroids,schema,recalculated_centroids)
+        create_merge_table(global_db,merged_recalculated_centroids,schema,recalculated_centroids)
         #calculate new centroids
 
-        centroids=udfs_wrapper.means_by_index(merged_datapoints_assigned_to_clusters,merged_recalculated_centroids,global_node,data_nodes)#result table visible to global node AND ALL local nodes
+        centroids=udfs_wrapper.means_by_index(merged_datapoints_assigned_to_clusters,merged_recalculated_centroids,global_db,data_dbs)#result table visible to global node AND ALL local nodes
 
         counter++
     }
