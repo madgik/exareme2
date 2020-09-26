@@ -1,8 +1,10 @@
 The code is a kind of python/<b>pseudocode</b>(obviously <b>not executable</b>..). The reason I uploaded it is just to describe the approach I have in mind. 
 
-A python wrapper layer that takes care of the underlying nodes databases manipulation, giving the algorithms* developer a simple, minimal interface to control the accessibility and flow of the data between her code and the several databases. Introducing such a layer is towards the "separation of concerns" principle which will lead in a more modular system, on which one can implement more complete testing.
+A python wrapper layer that takes care of the underlying nodes databases manipulation, giving the algorithms<b>*</b> developer a simple, minimal interface to control the accessibility and flow of the data between her code and the several databases. Introducing such a layer is towards the "separation of concerns" principle which will lead in a more modular system, on which one can implement more complete testing.
 
-In more detail, inside all the databases involved there will be a set of SQL user defined functions (python/sql/whatever..) implementing mathematical manipulations that will constitute the building blocks for more complex algorithms. The udfs must be minimal and general enough to encourage reuse in different algorithms.
+<b>*</b>with term algorithm I mean a Statistical/Machine Learning/Data Mining algorithm.
+
+In more detail, inside all the databases involved, there will be a set of SQL user defined functions (python/sql/whatever..) implementing mathematical manipulations that will constitute the building blocks for more complex algorithms. The udfs must be minimal and general enough to encourage reuse in different algorithms.
 
 In my example I have defined 4 wrapper functions that are calling underlying Modetdb udfs:
 
@@ -12,7 +14,6 @@ def means_by_index( indices, datapoints, data_node, nodes_broadcast)
 def min_column(table_name,node_native,nodes_broadcast):
 def calculate_norm(points_a_table_name,points_b_table_name,node_native,nodes_broadcast):
 </code></pre>
-
 
 the last 2 parameters in all these functions define: <br>
 1. the database in which the resulting table will be created and<br> 
@@ -29,8 +30,6 @@ The idea is that the algorithm developper will only have to state the udf she wa
 
 One implication of such schema is obviously that the developper writting an algorithm in Python has to think in terms of database tables that only exist inside the dbs of the system (instead of readily available data in memory) and a predefined set of SQL udfs. Results returned from the udf wrapping functions are only table names, not the actual data (but can easily be exported to numpy array? a udf for that for debugging purposes??)
   
-*with term algorithm I mean a Statistical/Machine Learning/Data Mining algorithm.
-
 
 Not addressed in the current code:<br>
     1.drop unused tables mechanism<br>
