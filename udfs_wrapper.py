@@ -1,6 +1,6 @@
 import pymonetdb
 
-def means_by_index( indices, datapoints, data_node, nodes_broadcast)
+def means_by_index( indices, datapoints, node_native, nodes_broadcast):
     '''
     Calculates means of the data_table that have the same index
     
