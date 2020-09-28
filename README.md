@@ -7,6 +7,7 @@ Python's parser module is much much more appropriate to do this job correcty, bu
 The idea behind this is to describe the dataflow in the algorithms file without having to deal with the system's internals. 
 The system then (file run_algorithm.py, function dataflow) reads the dataflow that has been defined by the algorithm's developer and replaces the calls to 
 local and global steps with the appropriate calls that actually submit these jobs and handle the database connections and the concurrency.
+After that, the developer can write his algorithm as shown in the countiter.py and pearson.py examples.
 
 
 <b>Installation</b>
