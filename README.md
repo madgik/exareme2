@@ -1,4 +1,13 @@
 # Exareme2
+<b>Important note</b>
+This branch is build on top of the postgres branch. It contains some clean up of the code and removal of redudant steps.
+All the algorithms are considered to be iterative, and the dataflow definition has been moved to the algorithm.py file.
+The way this has been done for now is the worst (using regular expressions to parse the dataflow). 
+Python's parser module is much much more appropriate to do this job correcty, but it also requires more time.
+The idea behind this is to describe the dataflow in the algorithms file without having to deal with the system's internals. 
+The system then (file run_algorithm.py, function dataflow) reads the dataflow that has been defined by the algorithm's developer and replaces the calls to 
+local and global steps with the appropriate calls that actually submit these jobs and handle the database connections and the concurrency.
+
 
 <b>Installation</b>
 1) Python3 with numpy should be installed in all federation nodes. The mserver runs with Python 3.7 or newer. It does not run with python3 versions older than 3.7.
