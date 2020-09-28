@@ -2,13 +2,12 @@
       [
         {
             "name":"pearson",
-            "type":"simple", 
-            "local_schema": "sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT"
+            "local_schema": "sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT",
+            "global_schema": "res FLOAT"
         },
       
         {
-            "name":"countiter", 
-            "type":"multiple", 
+            "name":"countiter",
             "local_schema": "c1 BIGINT",
             "global_schema": "c1 BIGINT"
         }

@@ -4,7 +4,10 @@ import task
 import transfer
 import json
 import importlib
-
+import parser
+import symbol, token
+import inspect
+import re
 
 def get_package(algorithm):
     mpackage = "algorithms"
@@ -15,36 +18,33 @@ def get_package(algorithm):
 def get_uniquetablename():
       return 'user{0}'.format(datetime.datetime.now().microsecond + (random.randrange(1, 100+1) * 100000))
 
-######### simple local global algorithm params:
+######### algorithm params:
 # algorithm: the algorithm module
-# parameters, attr: the algorithm parameters, attr
-# db_objects: the connection objects and the database names 
-# localtable: the name of the result table in localnodes
-# globaltable: the name of the table in global node which contains the merge of all the local result tables
-# viewlocaltable: the view which contains the data that will be processed
-# localschema: the schema of the result table in localnodes                  
-
-async def run_simple(algorithm,parameters, attr, db_objects, localtable, globaltable, viewlocaltable, localschema):
-    await task.run_local(db_objects, localtable, algorithm, parameters, attr, viewlocaltable, localschema)
-    return await task.run_global_final(db_objects, globaltable, algorithm, parameters, attr)
-      
-
-######### iterative algorithm params:
-# algorithm: the algorithm module 
-# db_objects: the connection objects and the database names 
+# db_objects: the connection objects and the database names
 # localtable: the name of the result table in localnodes
 # globaltable: the name of the table in global node which contains the merge of all the local result tables
 # viewlocaltable: the view which contains the data that will be processed
 # globalresulttable: the name of the result table in globalnode, not used here since simple local global algorithms just return their global result without storing it.
-# localschema: the schema of the result table in localnodes 
+# localschema: the schema of the result table in localnodes
 # globalschema: the schema of the result table in global node
 
-async def run_iterative(algorithm, parameters, attr, db_objects, localtable, globaltable, globalresulttable, viewlocaltable, localschema, globalschema):
-    await task.run_local_init(db_objects, localtable, algorithm, parameters, attr, viewlocaltable, localschema, globalschema, globalresulttable)
-    for i in range(60):
-        await task.run_global_iter(db_objects, globaltable, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, globalschema)
-        await task.run_local_iter(db_objects, localtable, globalresulttable, algorithm, parameters, attr, viewlocaltable, localschema)
-    return await task.run_global_final(db_objects, globaltable, algorithm, parameters, attr)
+async def dataflow(algorithm, parameters, attr, db_objects, localtable, globaltable,  viewlocaltable, localschema, globalresulttable = None, globalschema = None):
+    await task._init(db_objects,localtable,localschema,globalresulttable,globalschema)
+
+    src = inspect.getsource(algorithm.dataflow)
+    func = [0]
+
+    ###### of course this MUST change and use Python's parser module to edit bytecode ########################
+    src = re.sub("\_global\(iternum(?:\s)*\,(?:\s)*globaltable(?:\s)*\,(?:\s)*parameters(?:\s)*\,(?:\s)*attr(?:\s)*\)","await task._global(iternum, globaltable, parameters, attr, db_objects, localtable, globalresulttable, algorithm, viewlocaltable, globalschema)",src)
+    src = re.sub("\_local\(iternum(?:\s)*\,(?:\s)*viewlocaltable(?:\s)*\,(?:\s)*parameters(?:\s)*\,(?:\s)*attr(?:\s)*,(?:\s)*globalresulttable\)","await task._local(iternum, globalresulttable, parameters, attr, db_objects,localtable, algorithm, viewlocaltable, localschema)",src)
+    src = src.split('\n', 1)[-1]
+    src = "async def dataflow(algorithm, parameters, attr, db_objects, localtable, globaltable,  viewlocaltable, localschema, globalresulttable = None, globalschema = None):\n" + src + "\nfunc[0] = dataflow"
+    #########################################################################################
+
+    ast = parser.suite(src)
+    exec(parser.compilest(ast))
+    return await func[0](algorithm, parameters, attr, db_objects, localtable, globaltable,  viewlocaltable, localschema, globalresulttable, globalschema)
+
 
 
 #### run function:
@@ -84,17 +84,11 @@ async def run(algorithm, params, db_objects):
       with open('schema.json') as json_file:
           data = json.load(json_file)
 
-
-      ##### according to the input algorithm param and the json algorithm properties select to run the algorithm
       for c,algo in enumerate([ data['algorithms'][i]['name'] for i,j in enumerate(data['algorithms'])]):
           if algorithm == algo:
             try:
-                 if data['algorithms'][c]['type'] == 'simple':
-                     await transfer.initialize(db_objects, localtable, globaltable, globalresulttable,data['algorithms'][c]['local_schema'])
-                     result  = await run_simple(module, bindparams, params['attributes'], db_objects, localtable, globaltable, viewlocaltable, data['algorithms'][c]['local_schema'])
-                 elif  data['algorithms'][c]['type'] == 'multiple':
-                     await transfer.initialize(db_objects, localtable, globaltable, globalresulttable, data['algorithms'][c]['local_schema'], data['algorithms'][c]['global_schema'])
-                     result =  await run_iterative(module,bindparams, params['attributes'], db_objects, localtable, globaltable, globalresulttable, viewlocaltable, data['algorithms'][c]['local_schema'], data['algorithms'][c]['global_schema'])
+                await transfer.initialize(db_objects, localtable, globaltable, globalresulttable, data['algorithms'][c]['local_schema'],data['algorithms'][c]['global_schema'])
+                result =  await dataflow(module,bindparams, params['attributes'], db_objects, localtable, globaltable, viewlocaltable, data['algorithms'][c]['local_schema'], globalresulttable, data['algorithms'][c]['global_schema'])
             except:
                  await task.clean_up(db_objects, globaltable, localtable, viewlocaltable, globalresulttable)
                  raise

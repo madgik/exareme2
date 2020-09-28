@@ -1,7 +1,7 @@
 
 import logging
 import sys
-import settings
+import connections
 import json
 import asyncio
 import run_algorithm
@@ -53,7 +53,7 @@ class MainHandler(BaseHandler):
   app_log.addHandler(hdlr)
   gen_log.addHandler(hdlr)
 
-  dbs = settings.Settings()
+  dbs = connections.Connections()
 
   async def post(self):
    ## get params, algorithm contains the name of the algorithm, params is a valid json file

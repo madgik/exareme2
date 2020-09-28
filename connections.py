@@ -2,8 +2,7 @@ import asyncio
 from urllib.parse import urlparse
 import servers
 
-
-class Settings:
+class Connections:
 
     def __init__(self):
         self.db_objects = {}
