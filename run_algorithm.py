@@ -35,8 +35,15 @@ def get_uniquetablename():
 ###########
 # this function gets the dataflow definition from the [algorithm].py file and replaces local and global calls with the corrresponding calls that are implemented by the system
 # which handle the database objects and the parallelism
-### this must be done via editing the bytecode for example using the parser module. Currently it is done with regular expression and this is the bad but fast way.
-### Apparently, we could (and in my opinion should) support dataflow definitions in other workflow languages which are designed to support dataflow definitions.
+
+### Currently it is done with regular expression and this is the bad way. I keep it only to describe the logic with a running example.
+### Other options are using Python's parser module to edit the byte code but this is monkey patching and requires a lot of attention, or using classes and decorators
+## but in this case several issues occur (e.g., should an algorithm developed outside the system be able to have access to the system's objects like the connection objects of the DBs?)
+## Another perhaps cleaner option is to support a subset of Python or any other dataflow language which is enough for a developer to use the system defined tasks and produce any possible dataflow.
+## Currently there are 2 system defined tasks: 1) _local: runs a task in all the local nodes 2) _global merges local results and runs a task on the global server.
+## Other system defined tasks should be added (e.g., run a task to 1 or N local nodes) so that the algorithm developer is able to define any kind of data flow.
+## When in production this function probably will act as a parser of a user defined dataflow and an interpreter that interprets this dataflow to the system's internal flow of tasks.
+## In this way, we are able to separate the algorithm from the system's internals, so that it is simply an input to the system and agnostic to the techniques  the system uses to implement the dataflows.
 
 
 async def dataflow(
@@ -52,7 +59,7 @@ async def dataflow(
     src = inspect.getsource(algorithm.dataflow)
     func = [0]
 
-    ###### of course this MUST change and use Python's parser module to edit bytecode ########################
+    ###### of course this MUST change ########################
     src = re.sub(
         "\_global\(iternum(?:\s)*\,(?:\s)*globaltable(?:\s)*\,(?:\s)*parameters(?:\s)*\,(?:\s)*attributes(?:\s)*\)",
         "await task._global(iternum, globaltable, parameters, attributes, db_objects, localtable, globalresulttable, algorithm, viewlocaltable)",
