@@ -153,7 +153,7 @@ async def run(algorithm, params, db_objects):
                     globalresulttable,
                 )
             except:
-<<<<<<< HEAD
+
                 #### clean unused tables
                 await task.clean_up(
                     db_objects,
@@ -168,10 +168,4 @@ async def run(algorithm, params, db_objects):
         db_objects, globaltable, localtable, viewlocaltable, globalresulttable
     )
     return result
-=======
-                 await task.clean_up(db_objects, globaltable, localtable, viewlocaltable, globalresulttable)
-                 raise
-      ### clean up tables that are created during the execution
-      await task.clean_up(db_objects, globaltable, localtable, viewlocaltable, globalresulttable)
-      return result
->>>>>>> d0e6fd68c503a1ef93f2fc217b32554ae583c213
+
