@@ -16,6 +16,7 @@ class Warning(StandardError):
     truncations while inserting, etc. It must be a subclass of
     the Python StandardError (defined in the module
     exceptions)."""
+
     pass
 
 
@@ -26,6 +27,7 @@ class Error(StandardError):
     errors and thus should not use this class as base. It must
     be a subclass of the Python StandardError (defined in the
     module exceptions)."""
+
     pass
 
 
@@ -33,12 +35,14 @@ class InterfaceError(Error):
     """Exception raised for errors that are related to the
     database interface rather than the database itself.  It
     must be a subclass of Error."""
+
     pass
 
 
 class DatabaseError(Error):
     """Exception raised for errors that are related to the
     database.  It must be a subclass of Error."""
+
     pass
 
 
@@ -46,6 +50,7 @@ class DataError(DatabaseError):
     """Exception raised for errors that are due to problems with
     the processed data like division by zero, numeric value
     out of range, etc. It must be a subclass of DatabaseError."""
+
     pass
 
 
@@ -56,6 +61,7 @@ class OperationalError(DatabaseError):
     the data source name is not found, a transaction could not
     be processed, a memory allocation error occurred during
     processing, etc.  It must be a subclass of DatabaseError."""
+
     pass
 
 
@@ -63,6 +69,7 @@ class IntegrityError(DatabaseError):
     """Exception raised when the relational integrity of the
     database is affected, e.g. a foreign key check fails.  It
     must be a subclass of DatabaseError."""
+
     pass
 
 
@@ -71,6 +78,7 @@ class InternalError(DatabaseError):
     error, e.g. the cursor is not valid anymore, the
     transaction is out of sync, etc.  It must be a subclass of
     DatabaseError."""
+
     pass
 
 
@@ -79,6 +87,7 @@ class ProgrammingError(DatabaseError):
     found or already exists, syntax error in the SQL
     statement, wrong number of parameters specified, etc.  It
     must be a subclass of DatabaseError."""
+
     pass
 
 
@@ -87,4 +96,5 @@ class NotSupportedError(DatabaseError):
     supported by the database, e.g. requesting a .rollback() on a connection
     that does not support transaction or has transactions turned off.  It must
     be a subclass of DatabaseError."""
+
     pass

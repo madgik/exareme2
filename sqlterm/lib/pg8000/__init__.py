@@ -30,8 +30,8 @@
 __author__ = "Mathieu Fenniak"
 
 import dbapi as DBAPI
+
 pg8000_dbapi = DBAPI
 
 from interface import *
 from types import Bytea
-

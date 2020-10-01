@@ -17,7 +17,7 @@ from psycopg2.extensions import POLL_ERROR, POLL_OK, POLL_READ, POLL_WRITE
 from .cursor import Cursor
 from .utils import _ContextManager, create_future, get_running_loop
 
-__all__ = ('connect',)
+__all__ = ("connect",)
 
 TIMEOUT = 60.0
 
@@ -26,8 +26,16 @@ TIMEOUT = 60.0
 WSAENOTSOCK = 10038
 
 
-def connect(dsn=None, *, timeout=TIMEOUT, enable_json=True,
-            enable_hstore=True, enable_uuid=True, echo=False, **kwargs):
+def connect(
+    dsn=None,
+    *,
+    timeout=TIMEOUT,
+    enable_json=True,
+    enable_hstore=True,
+    enable_uuid=True,
+    echo=False,
+    **kwargs
+):
     """A factory for connecting to PostgreSQL.
 
     The coroutine accepts all parameters that psycopg2.connect() does
@@ -37,7 +45,9 @@ def connect(dsn=None, *, timeout=TIMEOUT, enable_json=True,
 
     """
     coro = Connection(
-        dsn, timeout, bool(echo),
+        dsn,
+        timeout,
+        bool(echo),
         enable_hstore=enable_hstore,
         enable_uuid=enable_uuid,
         enable_json=enable_json,
@@ -48,7 +58,7 @@ def connect(dsn=None, *, timeout=TIMEOUT, enable_json=True,
 
 
 def _is_bad_descriptor_error(os_error):
-    if platform.system() == 'Windows':  # pragma: no cover
+    if platform.system() == "Windows":  # pragma: no cover
         return os_error.winerror == WSAENOTSOCK
     else:
         return os_error.errno == errno.EBADF
@@ -65,17 +75,23 @@ class Connection:
     _source_traceback = None
 
     def __init__(
-            self, dsn, timeout, echo,
-            *, enable_json=True, enable_hstore=True,
-            enable_uuid=True, **kwargs
+        self,
+        dsn,
+        timeout,
+        echo,
+        *,
+        enable_json=True,
+        enable_hstore=True,
+        enable_uuid=True,
+        **kwargs
     ):
         self._enable_json = enable_json
         self._enable_hstore = enable_hstore
         self._enable_uuid = enable_uuid
-        self._loop = get_running_loop(kwargs.pop('loop', None) is not None)
+        self._loop = get_running_loop(kwargs.pop("loop", None) is not None)
         self._waiter = create_future(self._loop)
 
-        kwargs['async_'] = kwargs.pop('async', True)
+        kwargs["async_"] = kwargs.pop("async", True)
         self._conn = psycopg2.connect(dsn, **kwargs)
 
         self._dsn = self._conn.dsn
@@ -137,8 +153,7 @@ class Connection:
             if self._fileno is None:
                 # connection closed
                 if waiter is not None and not waiter.done():
-                    waiter.set_exception(
-                        psycopg2.OperationalError("Connection closed"))
+                    waiter.set_exception(psycopg2.OperationalError("Connection closed"))
             if state == POLL_OK:
                 if self._writing:
                     self._loop.remove_writer(self._fileno)
@@ -154,20 +169,25 @@ class Connection:
                     self._loop.add_writer(self._fileno, self._ready, weak_self)
                     self._writing = True
             elif state == POLL_ERROR:
-                self._fatal_error("Fatal error on aiopg connection: "
-                                  "POLL_ERROR from underlying .poll() call")
+                self._fatal_error(
+                    "Fatal error on aiopg connection: "
+                    "POLL_ERROR from underlying .poll() call"
+                )
             else:
-                self._fatal_error("Fatal error on aiopg connection: "
-                                  "unknown answer {} from underlying "
-                                  ".poll() call"
-                                  .format(state))
+                self._fatal_error(
+                    "Fatal error on aiopg connection: "
+                    "unknown answer {} from underlying "
+                    ".poll() call".format(state)
+                )
 
     def _fatal_error(self, message):
         # Should be called from exception handler only.
-        self._loop.call_exception_handler({
-            'message': message,
-            'connection': self,
-        })
+        self._loop.call_exception_handler(
+            {
+                "message": message,
+                "connection": self,
+            }
+        )
         self.close()
         if self._waiter and not self._waiter.done():
             self._waiter.set_exception(psycopg2.OperationalError(message))
@@ -176,12 +196,15 @@ class Connection:
         if self._waiter is not None:
             if self._cancelling:
                 if not self._waiter.done():
-                    raise RuntimeError('%s() called while connection is '
-                                       'being cancelled' % func_name)
+                    raise RuntimeError(
+                        "%s() called while connection is " "being cancelled" % func_name
+                    )
             else:
-                raise RuntimeError('%s() called while another coroutine is '
-                                   'already waiting for incoming '
-                                   'data' % func_name)
+                raise RuntimeError(
+                    "%s() called while another coroutine is "
+                    "already waiting for incoming "
+                    "data" % func_name
+                )
         self._waiter = create_future(self._loop)
         return self._waiter
 
@@ -197,8 +220,7 @@ class Connection:
             if not self._conn.isexecuting():
                 return
             try:
-                await asyncio.wait_for(self._waiter, timeout,
-                                       loop=self._loop)
+                await asyncio.wait_for(self._waiter, timeout, loop=self._loop)
             except psycopg2.extensions.QueryCanceledError:
                 pass
             except asyncio.TimeoutError:
@@ -210,11 +232,13 @@ class Connection:
             await asyncio.shield(cancel(), loop=self._loop)
             raise exc
         except psycopg2.extensions.QueryCanceledError as exc:
-            self._loop.call_exception_handler({
-                'message': exc.pgerror,
-                'exception': exc,
-                'future': self._waiter,
-            })
+            self._loop.call_exception_handler(
+                {
+                    "message": exc.pgerror,
+                    "exception": exc,
+                    "future": self._waiter,
+                }
+            )
             raise asyncio.CancelledError
         finally:
             if self._cancelling:
@@ -229,94 +253,165 @@ class Connection:
         return self._conn.isexecuting()
 
     ##################### added code to support federation #############################
-    async def check_for_params(self,table,attributes):
+    async def check_for_params(self, table, attributes):
         cur = self.cursor()
-        params = [table]+attributes
-        attr = await cur.execute("select column_name from information_schema.columns where table_name = %s and column_name in (" + ','.join(['%s' for x in set(attributes)]) + ");", [(*params)])
+        params = [table] + attributes
+        attr = await cur.execute(
+            "select column_name from information_schema.columns where table_name = %s and column_name in ("
+            + ",".join(["%s" for x in set(attributes)])
+            + ");",
+            [(*params)],
+        )
         res = cur.fetchall()
         if len(res) != len(attributes):
             cur.close()
-            if len(res) ==  0:
-                raise Exception('Requested data does not exist in all local nodes')
-            raise Exception('Attributes other than ' + str(res) + ' does not exist in all local nodes')
+            if len(res) == 0:
+                raise Exception("Requested data does not exist in all local nodes")
+            raise Exception(
+                "Attributes other than "
+                + str(res)
+                + " does not exist in all local nodes"
+            )
         cur.close()
 
-
     async def init_remote_connections(self, db_objects):
-        glob = urlparse(db_objects['global']['dbname'])
+        glob = urlparse(db_objects["global"]["dbname"])
         await self.destroy_remote_connections(db_objects)
-        for i,local_node in enumerate(db_objects['local']):
-            loc = urlparse(local_node['dbname'])
-            await db_objects['global']['async_con'].cursor().execute("CREATE SERVER local_"+str(i)+" FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host %s, dbname %s, port '%s');",[loc.hostname,loc.path[1:],loc.port])
-            await db_objects['global']['async_con'].cursor().execute("CREATE USER MAPPING FOR CURRENT_USER SERVER local_"+str(i)+" OPTIONS (user 'postgres', password 'mypassword');")
-            await local_node['async_con'].cursor().execute("CREATE SERVER global FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host %s, dbname %s, port '%s');",[glob.hostname,glob.path[1:],glob.port])
-            await local_node['async_con'].cursor().execute("CREATE USER MAPPING FOR CURRENT_USER SERVER global OPTIONS (user 'postgres', password 'mypassword');")
+        for i, local_node in enumerate(db_objects["local"]):
+            loc = urlparse(local_node["dbname"])
+            await db_objects["global"]["async_con"].cursor().execute(
+                "CREATE SERVER local_"
+                + str(i)
+                + " FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host %s, dbname %s, port '%s');",
+                [loc.hostname, loc.path[1:], loc.port],
+            )
+            await db_objects["global"]["async_con"].cursor().execute(
+                "CREATE USER MAPPING FOR CURRENT_USER SERVER local_"
+                + str(i)
+                + " OPTIONS (user 'postgres', password '121084jF.');"
+            )
+            await local_node["async_con"].cursor().execute(
+                "CREATE SERVER global FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host %s, dbname %s, port '%s');",
+                [glob.hostname, glob.path[1:], glob.port],
+            )
+            await local_node["async_con"].cursor().execute(
+                "CREATE USER MAPPING FOR CURRENT_USER SERVER global OPTIONS (user 'postgres', password '121084jF.');"
+            )
 
-    async def destroy_remote_connections(self,db_objects):
-        glob = urlparse(db_objects['global']['dbname'])
-        for i,local_node in enumerate(db_objects['local']):
-            loc = urlparse(local_node['dbname'])
-            await db_objects['global']['async_con'].cursor().execute("DROP SERVER if exists local_"+str(i)+" CASCADE;")
-            await local_node['async_con'].cursor().execute("DROP SERVER if exists global CASCADE;")
+    async def destroy_remote_connections(self, db_objects):
+        glob = urlparse(db_objects["global"]["dbname"])
+        for i, local_node in enumerate(db_objects["local"]):
+            loc = urlparse(local_node["dbname"])
+            await db_objects["global"]["async_con"].cursor().execute(
+                "DROP SERVER if exists local_" + str(i) + " CASCADE;"
+            )
+            await local_node["async_con"].cursor().execute(
+                "DROP SERVER if exists global CASCADE;"
+            )
 
+    async def broadcast_inparallel(
+        self, local, globalresulttable, globalschema, dbname
+    ):
+        await local.cursor().execute(
+            "CREATE FOREIGN TABLE %s (%s) SERVER global;"
+            % (globalresulttable, globalschema)
+        )
 
-    async def broadcast_inparallel(self, local, globalresulttable, globalschema, dbname ):
-        await local.cursor().execute("CREATE FOREIGN TABLE %s (%s) SERVER global;" %(globalresulttable, globalschema))
-
-    async def merge(self,db_objects, localtable, globaltable, localschema):
+    async def merge(self, db_objects, localtable, globaltable, localschema):
         cur = self.cursor()
-        query = "CREATE VIEW "+globaltable+" as ";
-        for i,local_node in enumerate(db_objects['local']):
-            await cur.execute("CREATE FOREIGN TABLE %s_%s (%s) SERVER local_%s;" %(localtable, i, localschema,i))
-            if i < len(db_objects['local'])-1:
-               query  += " select * from "+localtable+"_"+str(i)+ " UNION ALL "
+        query = "CREATE VIEW " + globaltable + " as "
+        for i, local_node in enumerate(db_objects["local"]):
+            await cur.execute(
+                "CREATE FOREIGN TABLE %s_%s (%s) SERVER local_%s;"
+                % (localtable, i, localschema, i)
+            )
+            if i < len(db_objects["local"]) - 1:
+                query += " select * from " + localtable + "_" + str(i) + " UNION ALL "
             else:
-                query += " select * from "+localtable+"_"+str(i)+ " ;"
+                query += " select * from " + localtable + "_" + str(i) + " ;"
         await cur.execute(query)
 
+    async def broadcast(self, db_objects, globalresulttable, globalschema):
+        await asyncio.gather(
+            *[
+                self.broadcast_inparallel(
+                    local_node["async_con"],
+                    globalresulttable,
+                    globalschema,
+                    db_objects["global"]["dbname"],
+                )
+                for i, local_node in enumerate(db_objects["local"])
+            ]
+        )
 
-    async def broadcast(self,db_objects, globalresulttable, globalschema):
-        await asyncio.gather(*[self.broadcast_inparallel(local_node['async_con'], globalresulttable, globalschema, db_objects['global']['dbname']) for i,local_node in enumerate(db_objects['local'])])
+    async def transferdirect(self, node1, localtable, node2, transferschema):
+        await node2[2].cursor().execute(
+            "CREATE REMOTE TABLE %s (%s) on 'mapi:%s';"
+            % (localtable, transferschema, node1[1])
+        )
 
-
-    async def transferdirect(self,node1, localtable, node2, transferschema):
-        await node2[2].cursor().execute("CREATE REMOTE TABLE %s (%s) on 'mapi:%s';" %(localtable, transferschema,node1[1]))
-
-
-    async def clean_tables(self,db_objects, globaltable, localtable, viewlocaltable, globalrestable):
-      await db_objects['global']['async_con'].cursor().execute("drop view if exists %s;" %globaltable)
-      await db_objects['global']['async_con'].cursor().execute("drop table if exists %s;" %globalrestable)
-      for i,local in enumerate(db_objects['local']):
-          await local['async_con'].cursor().execute("drop view if exists "+viewlocaltable+";")
-          await local['async_con'].cursor().execute("drop foreign table if exists "+globalrestable+";")
-          await local['async_con'].cursor().execute("drop table if exists "+localtable+"_"+str(i)+";")
-          await db_objects['global']['async_con'].cursor().execute("drop foreign table if exists "+localtable+"_"+str(i)+";")
+    async def clean_tables(
+        self, db_objects, globaltable, localtable, viewlocaltable, globalrestable
+    ):
+        await db_objects["global"]["async_con"].cursor().execute(
+            "drop view if exists %s;" % globaltable
+        )
+        await db_objects["global"]["async_con"].cursor().execute(
+            "drop table if exists %s;" % globalrestable
+        )
+        for i, local in enumerate(db_objects["local"]):
+            await local["async_con"].cursor().execute(
+                "drop view if exists " + viewlocaltable + ";"
+            )
+            await local["async_con"].cursor().execute(
+                "drop foreign table if exists " + globalrestable + ";"
+            )
+            await local["async_con"].cursor().execute(
+                "drop table if exists " + localtable + "_" + str(i) + ";"
+            )
+            await db_objects["global"]["async_con"].cursor().execute(
+                "drop foreign table if exists " + localtable + "_" + str(i) + ";"
+            )
 
     ##################### end of added code to support federation #############################
-    
-    def cursor(self, name=None, cursor_factory=None,
-                      scrollable=None, withhold=False, timeout=None):
+
+    def cursor(
+        self,
+        name=None,
+        cursor_factory=None,
+        scrollable=None,
+        withhold=False,
+        timeout=None,
+    ):
 
         self.free_cursor()
 
         if timeout is None:
             timeout = self._timeout
 
-        impl = self._cursor_impl(name=name,
-                                       cursor_factory=cursor_factory,
-                                       scrollable=scrollable,
-                                       withhold=withhold)
+        impl = self._cursor_impl(
+            name=name,
+            cursor_factory=cursor_factory,
+            scrollable=scrollable,
+            withhold=withhold,
+        )
         self._cursor_instance = Cursor(self, impl, timeout, self._echo)
         return self._cursor_instance
 
-    def _cursor_impl(self, name=None, cursor_factory=None,
-                           scrollable=None, withhold=False):
+    def _cursor_impl(
+        self, name=None, cursor_factory=None, scrollable=None, withhold=False
+    ):
         if cursor_factory is None:
-            impl = self._conn.cursor(name=name,
-                                     scrollable=scrollable, withhold=withhold)
+            impl = self._conn.cursor(
+                name=name, scrollable=scrollable, withhold=withhold
+            )
         else:
-            impl = self._conn.cursor(name=name, cursor_factory=cursor_factory,
-                                     scrollable=scrollable, withhold=withhold)
+            impl = self._conn.cursor(
+                name=name,
+                cursor_factory=cursor_factory,
+                scrollable=scrollable,
+                withhold=withhold,
+            )
         return impl
 
     def _close(self):
@@ -333,8 +428,7 @@ class Connection:
         self.free_cursor()
 
         if self._waiter is not None and not self._waiter.done():
-            self._waiter.set_exception(
-                psycopg2.OperationalError("Connection closed"))
+            self._waiter.set_exception(psycopg2.OperationalError("Connection closed"))
 
     @property
     def closed_cursor(self):
@@ -370,12 +464,10 @@ class Connection:
         return self._conn
 
     async def commit(self):
-        raise psycopg2.ProgrammingError(
-            "commit cannot be used in asynchronous mode")
+        raise psycopg2.ProgrammingError("commit cannot be used in asynchronous mode")
 
     async def rollback(self):
-        raise psycopg2.ProgrammingError(
-            "rollback cannot be used in asynchronous mode")
+        raise psycopg2.ProgrammingError("rollback cannot be used in asynchronous mode")
 
     # TPC
 
@@ -383,24 +475,27 @@ class Connection:
         return self._conn.xid(format_id, gtrid, bqual)
 
     async def tpc_begin(self, xid=None):
-        raise psycopg2.ProgrammingError(
-            "tpc_begin cannot be used in asynchronous mode")
+        raise psycopg2.ProgrammingError("tpc_begin cannot be used in asynchronous mode")
 
     async def tpc_prepare(self):
         raise psycopg2.ProgrammingError(
-            "tpc_prepare cannot be used in asynchronous mode")
+            "tpc_prepare cannot be used in asynchronous mode"
+        )
 
     async def tpc_commit(self, xid=None):
         raise psycopg2.ProgrammingError(
-            "tpc_commit cannot be used in asynchronous mode")
+            "tpc_commit cannot be used in asynchronous mode"
+        )
 
     async def tpc_rollback(self, xid=None):
         raise psycopg2.ProgrammingError(
-            "tpc_rollback cannot be used in asynchronous mode")
+            "tpc_rollback cannot be used in asynchronous mode"
+        )
 
     async def tpc_recover(self):
         raise psycopg2.ProgrammingError(
-            "tpc_recover cannot be used in asynchronous mode")
+            "tpc_recover cannot be used in asynchronous mode"
+        )
 
     async def cancel(self):
         """Cancel the current database operation."""
@@ -417,8 +512,7 @@ class Connection:
         await asyncio.shield(cancel(), loop=self._loop)
 
     async def reset(self):
-        raise psycopg2.ProgrammingError(
-            "reset cannot be used in asynchronous mode")
+        raise psycopg2.ProgrammingError("reset cannot be used in asynchronous mode")
 
     @property
     def dsn(self):
@@ -430,10 +524,12 @@ class Connection:
         """
         return self._dsn
 
-    async def set_session(self, *, isolation_level=None, readonly=None,
-                          deferrable=None, autocommit=None):
+    async def set_session(
+        self, *, isolation_level=None, readonly=None, deferrable=None, autocommit=None
+    ):
         raise psycopg2.ProgrammingError(
-            "set_session cannot be used in asynchronous mode")
+            "set_session cannot be used in asynchronous mode"
+        )
 
     @property
     def autocommit(self):
@@ -508,8 +604,7 @@ class Connection:
         return self._conn.status
 
     async def lobject(self, *args, **kwargs):
-        raise psycopg2.ProgrammingError(
-            "lobject cannot be used in asynchronous mode")
+        raise psycopg2.ProgrammingError("lobject cannot be used in asynchronous mode")
 
     @property
     def timeout(self):
@@ -528,13 +623,13 @@ class Connection:
 
     def __repr__(self):
         msg = (
-            '<'
-            '{module_name}::{class_name} '
-            'isexecuting={isexecuting}, '
-            'closed={closed}, '
-            'echo={echo}, '
-            'cursor={cursor}'
-            '>'
+            "<"
+            "{module_name}::{class_name} "
+            "isexecuting={isexecuting}, "
+            "closed={closed}, "
+            "echo={echo}, "
+            "cursor={cursor}"
+            ">"
         )
         return msg.format(
             module_name=type(self).__module__,
@@ -542,7 +637,7 @@ class Connection:
             echo=self.echo,
             isexecuting=self._isexecuting(),
             closed=bool(self.closed),
-            cursor=repr(self._cursor_instance)
+            cursor=repr(self._cursor_instance),
         )
 
     def __del__(self):
@@ -552,13 +647,11 @@ class Connection:
             return
         if _conn is not None and not _conn.closed:
             self.close()
-            warnings.warn("Unclosed connection {!r}".format(self),
-                          ResourceWarning)
+            warnings.warn("Unclosed connection {!r}".format(self), ResourceWarning)
 
-            context = {'connection': self,
-                       'message': 'Unclosed connection'}
+            context = {"connection": self, "message": "Unclosed connection"}
             if self._source_traceback is not None:
-                context['source_traceback'] = self._source_traceback
+                context["source_traceback"] = self._source_traceback
             self._loop.call_exception_handler(context)
 
     @property
@@ -578,8 +671,8 @@ class Connection:
 
             async for oids in cur:
                 if isinstance(oids, Mapping):
-                    rv0.append(oids['oid'])
-                    rv1.append(oids['typarray'])
+                    rv0.append(oids["oid"])
+                    rv1.append(oids["typarray"])
                 else:
                     rv0.append(oids[0])
                     rv1.append(oids[1])
@@ -602,11 +695,7 @@ class Connection:
             oids = await self._get_oids()
             if oids is not None:
                 oid, array_oid = oids
-                extras.register_hstore(
-                    self._conn,
-                    oid=oid,
-                    array_oid=array_oid
-                )
+                extras.register_hstore(self._conn, oid=oid, array_oid=array_oid)
 
         return self
 

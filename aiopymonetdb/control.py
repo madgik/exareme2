@@ -20,8 +20,8 @@ def parse_statusline(line):
     """
     if line.startswith("="):
         line = line[1:]
-    if not line.startswith('sabdb:'):
-        raise OperationalError('wrong result received')
+    if not line.startswith("sabdb:"):
+        raise OperationalError("wrong result received")
 
     code, prot_version, rest = line.split(":", 2)
 
@@ -30,31 +30,31 @@ def parse_statusline(line):
     else:
         prot_version = int(prot_version)
 
-    subparts = rest.split(',')
+    subparts = rest.split(",")
     sub_iter = iter(subparts)
 
     info = {}
 
-    info['name'] = next(sub_iter)
-    info['path'] = next(sub_iter)
-    info['locked'] = next(sub_iter) == "1"
-    info['state'] = int(next(sub_iter))
-    info['scenarios'] = next(sub_iter).split("'")
+    info["name"] = next(sub_iter)
+    info["path"] = next(sub_iter)
+    info["locked"] = next(sub_iter) == "1"
+    info["state"] = int(next(sub_iter))
+    info["scenarios"] = next(sub_iter).split("'")
     if prot_version == 1:
         next(sub_iter)
-    info['start_counter'] = int(next(sub_iter))
-    info['stop_counter'] = int(next(sub_iter))
-    info['crash_counter'] = int(next(sub_iter))
-    info['avg_uptime'] = int(next(sub_iter))
-    info['max_uptime'] = int(next(sub_iter))
-    info['min_uptime'] = int(next(sub_iter))
-    info['last_crash'] = int(next(sub_iter))
-    info['last_start'] = int(next(sub_iter))
+    info["start_counter"] = int(next(sub_iter))
+    info["stop_counter"] = int(next(sub_iter))
+    info["crash_counter"] = int(next(sub_iter))
+    info["avg_uptime"] = int(next(sub_iter))
+    info["max_uptime"] = int(next(sub_iter))
+    info["min_uptime"] = int(next(sub_iter))
+    info["last_crash"] = int(next(sub_iter))
+    info["last_start"] = int(next(sub_iter))
     if prot_version > 1:
-        info['last_stop'] = int(next(sub_iter))
-    info['crash_avg1'] = next(sub_iter) == "1"
-    info['crash_avg10'] = float(next(sub_iter))
-    info['crash_avg30'] = float(next(sub_iter))
+        info["last_stop"] = int(next(sub_iter))
+    info["crash_avg1"] = next(sub_iter) == "1"
+    info["crash_avg10"] = float(next(sub_iter))
+    info["crash_avg30"] = float(next(sub_iter))
 
     return info
 
@@ -72,8 +72,15 @@ class Control:
     Use this module to manage your MonetDB databases. You can create, start,
     stop, lock, unlock, destroy your databases and request status information.
     """
-    def __init__(self, hostname=None, port=50000, passphrase=None,
-                 unix_socket=None, connect_timeout=-1):
+
+    def __init__(
+        self,
+        hostname=None,
+        port=50000,
+        passphrase=None,
+        unix_socket=None,
+        connect_timeout=-1,
+    ):
 
         if not unix_socket:
             unix_socket = "/tmp/.s.merovingian.%i" % port
@@ -89,20 +96,32 @@ class Control:
         self.connect_timeout = connect_timeout
 
         # check connection
-        self.server.connect(hostname=hostname, port=port, username='monetdb',
-                            password=passphrase,
-                            database='merovingian', language='control',
-                            unix_socket=unix_socket,
-                            connect_timeout=connect_timeout)
+        self.server.connect(
+            hostname=hostname,
+            port=port,
+            username="monetdb",
+            password=passphrase,
+            database="merovingian",
+            language="control",
+            unix_socket=unix_socket,
+            connect_timeout=connect_timeout,
+        )
         self.server.disconnect()
 
     def _send_command(self, database_name, command):
-        logger.info("sending '{}' command to database {}".format(command, database_name))
-        self.server.connect(hostname=self.hostname, port=self.port,
-                            username='monetdb', password=self.passphrase,
-                            database='merovingian', language='control',
-                            unix_socket=self.unix_socket,
-                            connect_timeout=self.connect_timeout)
+        logger.info(
+            "sending '{}' command to database {}".format(command, database_name)
+        )
+        self.server.connect(
+            hostname=self.hostname,
+            port=self.port,
+            username="monetdb",
+            password=self.passphrase,
+            database="merovingian",
+            language="control",
+            unix_socket=self.unix_socket,
+            connect_timeout=self.connect_timeout,
+        )
         result = self.server.cmd("%s %s\n" % (database_name, command))
         self.server.disconnect()
         return result
@@ -182,8 +201,7 @@ class Control:
         sets property to value for the given database
         for a list of properties, use `pymonetdb get all`
         """
-        return isempty(self._send_command(database_name, "%s=%s" % (property_,
-                                                                    value)))
+        return isempty(self._send_command(database_name, "%s=%s" % (property_, value)))
 
     def get(self, database_name):
         """

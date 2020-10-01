@@ -1,4 +1,5 @@
 import sys
+
 if sys.platform == "win32":
     import codecs
     from ctypes import WINFUNCTYPE, windll, POINTER, byref, c_int
@@ -11,10 +12,12 @@ if sys.platform == "win32":
     # So be paranoid about catching errors and reporting them to original_stderr,
     # so that we can at least see them.
     def _complain(message):
-        print(isinstance(message, str) and message or repr(message), file=original_stderr)
+        print(
+            isinstance(message, str) and message or repr(message), file=original_stderr
+        )
 
     # Work around <http://bugs.python.org/issue6058>.
-    codecs.register(lambda name: name == 'cp65001' and codecs.lookup('utf-8') or None)
+    codecs.register(lambda name: name == "cp65001" and codecs.lookup("utf-8") or None)
 
     # Make Unicode console output work independently of the current code page.
     # This also fixes <http://bugs.python.org/issue1602>.
@@ -34,31 +37,33 @@ if sys.platform == "win32":
 
         GetStdHandle = WINFUNCTYPE(HANDLE, DWORD)(("GetStdHandle", windll.kernel32))
         STD_OUTPUT_HANDLE = DWORD(-11)
-        STD_ERROR_HANDLE  = DWORD(-12)
+        STD_ERROR_HANDLE = DWORD(-12)
         GetFileType = WINFUNCTYPE(DWORD, DWORD)(("GetFileType", windll.kernel32))
-        FILE_TYPE_CHAR   = 0x0002
+        FILE_TYPE_CHAR = 0x0002
         FILE_TYPE_REMOTE = 0x8000
-        GetConsoleMode = WINFUNCTYPE(BOOL, HANDLE, POINTER(DWORD)) \
-                             (("GetConsoleMode", windll.kernel32))
+        GetConsoleMode = WINFUNCTYPE(BOOL, HANDLE, POINTER(DWORD))(
+            ("GetConsoleMode", windll.kernel32)
+        )
         INVALID_HANDLE_VALUE = DWORD(-1).value
 
         def not_a_console(handle):
             if handle == INVALID_HANDLE_VALUE or handle is None:
                 return True
-            return ((GetFileType(handle) & ~FILE_TYPE_REMOTE) != FILE_TYPE_CHAR
-                    or GetConsoleMode(handle, byref(DWORD())) == 0)
+            return (
+                GetFileType(handle) & ~FILE_TYPE_REMOTE
+            ) != FILE_TYPE_CHAR or GetConsoleMode(handle, byref(DWORD())) == 0
 
         old_stdout_fileno = None
         old_stderr_fileno = None
-        if hasattr(sys.stdout, 'fileno'):
+        if hasattr(sys.stdout, "fileno"):
             old_stdout_fileno = sys.stdout.fileno()
-        if hasattr(sys.stderr, 'fileno'):
+        if hasattr(sys.stderr, "fileno"):
             old_stderr_fileno = sys.stderr.fileno()
 
         STDOUT_FILENO = 1
         STDERR_FILENO = 2
-        real_stdout = (old_stdout_fileno == STDOUT_FILENO)
-        real_stderr = (old_stderr_fileno == STDERR_FILENO)
+        real_stdout = old_stdout_fileno == STDOUT_FILENO
+        real_stderr = old_stderr_fileno == STDERR_FILENO
 
         if real_stdout:
             hStdout = GetStdHandle(STD_OUTPUT_HANDLE)
@@ -74,8 +79,9 @@ if sys.platform == "win32":
             # BOOL WINAPI WriteConsoleW(HANDLE hOutput, LPWSTR lpBuffer, DWORD nChars,
             #                           LPDWORD lpCharsWritten, LPVOID lpReserved);
 
-            WriteConsoleW = WINFUNCTYPE(BOOL, HANDLE, LPWSTR, DWORD, POINTER(DWORD), \
-                                        LPVOID)(("WriteConsoleW", windll.kernel32))
+            WriteConsoleW = WINFUNCTYPE(
+                BOOL, HANDLE, LPWSTR, DWORD, POINTER(DWORD), LPVOID
+            )(("WriteConsoleW", windll.kernel32))
 
             class UnicodeOutput:
                 def __init__(self, hConsole, stream, fileno, name):
@@ -84,51 +90,62 @@ if sys.platform == "win32":
                     self._fileno = fileno
                     self.closed = False
                     self.softspace = False
-                    self.mode = 'w'
-                    self.encoding = 'utf-8'
+                    self.mode = "w"
+                    self.encoding = "utf-8"
                     self.name = name
                     self.flush()
 
                 def isatty(self):
                     return False
+
                 def close(self):
                     # don't really close the handle, that would only cause problems
                     self.closed = True
+
                 def fileno(self):
                     return self._fileno
+
                 def flush(self):
                     if self._hConsole is None:
                         try:
                             self._stream.flush()
                         except Exception as e:
-                            _complain("%s.flush: %r from %r"
-                                      % (self.name, e, self._stream))
+                            _complain(
+                                "%s.flush: %r from %r" % (self.name, e, self._stream)
+                            )
                             raise
 
                 def write(self, text):
                     try:
                         if self._hConsole is None:
                             if isinstance(text, str):
-                                text = text.encode('utf-8')
+                                text = text.encode("utf-8")
                             self._stream.write(text)
                         else:
                             if not isinstance(text, str):
-                                text = str(text).decode('utf-8')
+                                text = str(text).decode("utf-8")
                             remaining = len(text)
                             while remaining > 0:
                                 n = DWORD(0)
                                 # There is a shorter-than-documented limitation on the
                                 # length of the string passed to WriteConsoleW (see
                                 # <http://tahoe-lafs.org/trac/tahoe-lafs/ticket/1232>.
-                                retval = WriteConsoleW(self._hConsole, text,
-                                                       min(remaining, 10000),
-                                                       byref(n), None)
+                                retval = WriteConsoleW(
+                                    self._hConsole,
+                                    text,
+                                    min(remaining, 10000),
+                                    byref(n),
+                                    None,
+                                )
                                 if retval == 0 or n.value == 0:
-                                    raise IOError("WriteConsoleW returned %r, n.value = %r"
-                                                  % (retval, n.value))
+                                    raise IOError(
+                                        "WriteConsoleW returned %r, n.value = %r"
+                                        % (retval, n.value)
+                                    )
                                 remaining -= n.value
-                                if remaining == 0: break
-                                text = text[n.value:]
+                                if remaining == 0:
+                                    break
+                                text = text[n.value :]
                     except Exception as e:
                         _complain("%s.write: %r" % (self.name, e))
                         raise
@@ -142,35 +159,39 @@ if sys.platform == "win32":
                         raise
 
             if real_stdout:
-                sys.stdout = UnicodeOutput(hStdout, None, STDOUT_FILENO,
-                                           '<Unicode console stdout>')
+                sys.stdout = UnicodeOutput(
+                    hStdout, None, STDOUT_FILENO, "<Unicode console stdout>"
+                )
             else:
-                sys.stdout = UnicodeOutput(None, sys.stdout, old_stdout_fileno,
-                                           '<Unicode redirected stdout>')
+                sys.stdout = UnicodeOutput(
+                    None, sys.stdout, old_stdout_fileno, "<Unicode redirected stdout>"
+                )
 
             if real_stderr:
-                sys.stderr = UnicodeOutput(hStderr, None, STDERR_FILENO,
-                                           '<Unicode console stderr>')
+                sys.stderr = UnicodeOutput(
+                    hStderr, None, STDERR_FILENO, "<Unicode console stderr>"
+                )
             else:
-                sys.stderr = UnicodeOutput(None, sys.stderr, old_stderr_fileno,
-                                           '<Unicode redirected stderr>')
+                sys.stderr = UnicodeOutput(
+                    None, sys.stderr, old_stderr_fileno, "<Unicode redirected stderr>"
+                )
     except Exception as e:
         _complain("exception %r while fixing up sys.stdout and sys.stderr" % (e,))
-
 
     # While we're at it, let's unmangle the command-line arguments:
 
     # This works around <http://bugs.python.org/issue2128>.
     GetCommandLineW = WINFUNCTYPE(LPWSTR)(("GetCommandLineW", windll.kernel32))
-    CommandLineToArgvW = WINFUNCTYPE(POINTER(LPWSTR), LPCWSTR, POINTER(c_int)) \
-                            (("CommandLineToArgvW", windll.shell32))
+    CommandLineToArgvW = WINFUNCTYPE(POINTER(LPWSTR), LPCWSTR, POINTER(c_int))(
+        ("CommandLineToArgvW", windll.shell32)
+    )
 
     argc = c_int(0)
     argv_unicode = CommandLineToArgvW(GetCommandLineW(), byref(argc))
 
-    argv = [argv_unicode[i].encode('utf-8') for i in range(0, argc.value)]
+    argv = [argv_unicode[i].encode("utf-8") for i in range(0, argc.value)]
 
-    if not hasattr(sys, 'frozen'):
+    if not hasattr(sys, "frozen"):
         # If this is an executable produced by py2exe or bbfreeze, then it will
         # have been invoked directly. Otherwise, unicode_argv[0] is the Python
         # interpreter, so skip that.
@@ -182,12 +203,12 @@ if sys.platform == "win32":
             if not arg.startswith("-") or arg == "-":
                 break
             argv = argv[1:]
-            if arg == '-m':
+            if arg == "-m":
                 # sys.argv[0] should really be the absolute path of the module source,
                 # but never mind
                 break
-            if arg == '-c':
-                argv[0] = '-c'
+            if arg == "-c":
+                argv[0] = "-c"
                 break
 
     # if you like:

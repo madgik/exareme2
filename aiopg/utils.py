@@ -10,15 +10,16 @@ from .log import logger
 try:
     ensure_future = asyncio.ensure_future
 except AttributeError:
-    ensure_future = getattr(asyncio, 'async')
+    ensure_future = getattr(asyncio, "async")
 
 if sys.version_info >= (3, 7, 0):
     __get_running_loop = asyncio.get_running_loop
 else:
+
     def __get_running_loop() -> asyncio.AbstractEventLoop:
         loop = asyncio.get_event_loop()
         if not loop.is_running():
-            raise RuntimeError('no running event loop')
+            raise RuntimeError("no running event loop")
         return loop
 
 
@@ -27,17 +28,16 @@ def get_running_loop(is_warn: bool = False) -> asyncio.AbstractEventLoop:
 
     if is_warn:
         warnings.warn(
-            'aiopg always uses "aiopg.get_running_loop", '
-            'look the documentation.',
+            'aiopg always uses "aiopg.get_running_loop", ' "look the documentation.",
             DeprecationWarning,
-            stacklevel=3
+            stacklevel=3,
         )
 
         if loop.get_debug():
             logger.warning(
                 'aiopg always uses "aiopg.get_running_loop", '
-                'look the documentation.',
-                exc_info=True
+                "look the documentation.",
+                exc_info=True,
             )
 
     return loop
@@ -51,7 +51,7 @@ def create_future(loop):
 
 
 class _ContextManager(Coroutine):
-    __slots__ = ('_coro', '_obj')
+    __slots__ = ("_coro", "_obj")
 
     def __init__(self, coro):
         self._coro = coro
@@ -108,7 +108,7 @@ class _SAConnectionContextManager(_ContextManager):
             self._obj = await self._coro
 
         try:
-            return (await self._obj.__anext__())
+            return await self._obj.__anext__()
         except StopAsyncIteration:
             self._obj.close()
             self._obj = None
@@ -153,7 +153,7 @@ class _TransactionContextManager(_ContextManager):
 
 
 class _PoolAcquireContextManager(_ContextManager):
-    __slots__ = ('_coro', '_obj', '_pool')
+    __slots__ = ("_coro", "_obj", "_pool")
 
     def __init__(self, coro, pool):
         super().__init__(coro)
@@ -180,7 +180,7 @@ class _PoolConnectionContextManager:
             <block>
     """
 
-    __slots__ = ('_pool', '_conn')
+    __slots__ = ("_pool", "_conn")
 
     def __init__(self, pool, conn):
         self._pool = pool
@@ -225,7 +225,7 @@ class _PoolCursorContextManager:
             <block>
     """
 
-    __slots__ = ('_pool', '_conn', '_cur')
+    __slots__ = ("_pool", "_conn", "_cur")
 
     def __init__(self, pool, conn, cur):
         self._pool = pool

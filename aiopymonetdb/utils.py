@@ -11,10 +11,9 @@ PY_352 = sys.version_info >= (3, 5, 2)
 # so we need specialize the check
 _CONN_CLOSE_ERRORS = {
     # [Microsoft][ODBC Driver 17 for SQL Server]Communication link failure
-    '08S01': None,
-
+    "08S01": None,
     # [HY000] server closed the connection unexpectedly
-    'HY000': '[HY000] server closed the connection unexpectedly',
+    "HY000": "[HY000] server closed the connection unexpectedly",
 }
 
 
@@ -35,7 +34,7 @@ def _is_conn_close_error(e):
 
 class _ContextManager(Coroutine):
 
-    __slots__ = ('_coro', '_obj')
+    __slots__ = ("_coro", "_obj")
 
     def __init__(self, coro):
         self._coro = coro
@@ -95,7 +94,7 @@ class _PoolContextManager(_ContextManager):
 
 class _PoolConnectionContextManager(_ContextManager):
 
-    __slots__ = ('_coro', '_conn', '_pool')
+    __slots__ = ("_coro", "_conn", "_pool")
 
     def __init__(self, coro, pool):
         self._coro = coro

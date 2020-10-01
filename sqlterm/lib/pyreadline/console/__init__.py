@@ -1,18 +1,20 @@
-import glob,sys
+import glob, sys
 
-success=False
-in_ironpython="IronPython" in sys.version
+success = False
+in_ironpython = "IronPython" in sys.version
 
 if in_ironpython:
     try:
         from ironpython_console import *
-        success=True
+
+        success = True
     except ImportError:
         raise
 else:
     try:
         from console import *
-        success=True
+
+        success = True
     except ImportError:
         pass
 

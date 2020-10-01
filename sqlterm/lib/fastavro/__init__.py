@@ -1,4 +1,4 @@
-'''Fast Avro file iteration.
+"""Fast Avro file iteration.
 
 Most of the code here is ripped off the Python avro package. It's missing a lot
 of features in order to get speed.
@@ -13,10 +13,10 @@ The only onterface function is iter_avro, example usage::
 
         for record in reader:
             process_record(record)
-'''
+"""
 
-__all__ = ['iter_avro', 'reader']
-__version__ = '0.7.9'
+__all__ = ["iter_avro", "reader"]
+__version__ = "0.7.9"
 
 
 try:

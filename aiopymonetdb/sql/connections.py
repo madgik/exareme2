@@ -16,12 +16,23 @@ logger = logging.getLogger("pymonetdb")
 
 class Connection(object):
     """A MonetDB SQL database connection"""
+
     default_cursor = cursors.Cursor
 
-    def __init__(self, database, hostname=None, port=50000, username="monetdb",
-                 password="monetdb", unix_socket=None, autocommit=True,
-                 host=None, user=None, connect_timeout=-1):
-        """ Set up a connection to a MonetDB SQL database.
+    def __init__(
+        self,
+        database,
+        hostname=None,
+        port=50000,
+        username="monetdb",
+        password="monetdb",
+        unix_socket=None,
+        autocommit=True,
+        host=None,
+        user=None,
+        connect_timeout=-1,
+    ):
+        """Set up a connection to a MonetDB SQL database.
 
         args:
             database (str): name of the database
@@ -58,29 +69,31 @@ class Connection(object):
         self.password = password
         self.database = database
         self.unixsocket = unix_socket
-        self.connect_timeout=connect_timeout
+        self.connect_timeout = connect_timeout
         self.unix_socket = unix_socket
         self.autocommit = autocommit
 
-
-
-
     async def open(self):
         self.mapi = mapi.Connection()
-        await self.mapi.connect(hostname=self.hostname, port=self.port, username=self.username,
-                          password=self.password, database=self.database, language="sql",
-                          unix_socket=self.unix_socket, connect_timeout=self.connect_timeout)
+        await self.mapi.connect(
+            hostname=self.hostname,
+            port=self.port,
+            username=self.username,
+            password=self.password,
+            database=self.database,
+            language="sql",
+            unix_socket=self.unix_socket,
+            connect_timeout=self.connect_timeout,
+        )
         await self.set_sizeheader(True)
         await self.set_replysize(100)
         await self.set_autocommit(self.autocommit)
 
-
-    def bind_str(self,  parameter):
+    def bind_str(self, parameter):
         return monetize.convert(parameter)
 
-
     async def close(self):
-        """ Close the connection.
+        """Close the connection.
 
         The connection will be unusable from this
         point forward; an Error exception will be raised if any operation
@@ -127,7 +140,7 @@ class Connection(object):
         implement this method with void functionality.
         """
         self.closed()
-        return await  self.cursor().execute('COMMIT')
+        return await self.cursor().execute("COMMIT")
 
     async def rollback(self):
         """
@@ -141,53 +154,95 @@ class Connection(object):
         rollback to be performed.
         """
         self.closed()
-        return await self.cursor().execute('ROLLBACK')
-
+        return await self.cursor().execute("ROLLBACK")
 
     ##################### added code to support federation #############################
-    async def check_for_params(self,table,attributes):
+    async def check_for_params(self, table, attributes):
         cur = cursors.Cursor(self)
-        params = [table]+attributes
-        attr = await cur.execute("select columns.name from tables,columns where tables.id = columns.table_id and tables.system = false and tables.name = %s and columns.name in (" + ','.join(['%s' for x in set(attributes)]) + ");", [(*params)])
+        params = [table] + attributes
+        attr = await cur.execute(
+            "select columns.name from tables,columns where tables.id = columns.table_id and tables.system = false and tables.name = %s and columns.name in ("
+            + ",".join(["%s" for x in set(attributes)])
+            + ");",
+            [(*params)],
+        )
 
         if attr != len(attributes):
             res = cur.fetchall()
             if res == []:
-                raise Exception('Requested data does not exist in all local nodes')
-            raise Exception('Attributes other than ' + str(res) + ' does not exist in all local nodes')
+                raise Exception("Requested data does not exist in all local nodes")
+            raise Exception(
+                "Attributes other than "
+                + str(res)
+                + " does not exist in all local nodes"
+            )
 
-    async def init_remote_connections(self,db_objects):
+    async def init_remote_connections(self, db_objects):
         await asyncio.sleep(0)
 
-    async def broadcast_inparallel(self, local, globalresulttable, globalschema, dbname ):
-        await local.cursor().execute("CREATE REMOTE TABLE %s (%s) on 'mapi:%s';" %(globalresulttable, globalschema, dbname))
+    async def broadcast_inparallel(
+        self, local, globalresulttable, globalschema, dbname
+    ):
+        await local.cursor().execute(
+            "CREATE REMOTE TABLE %s (%s) on 'mapi:%s';"
+            % (globalresulttable, globalschema, dbname)
+        )
 
-    async def merge(self,db_objects, localtable, globaltable, localschema):
+    async def merge(self, db_objects, localtable, globaltable, localschema):
         cur = cursors.Cursor(self)
-        await cur.execute("CREATE MERGE TABLE %s (%s);" %(globaltable,localschema));
-        for i,local_node in enumerate(db_objects['local']):
-            await cur.execute("CREATE REMOTE TABLE %s_%s (%s) on 'mapi:%s'; " %(localtable, i, localschema,local_node['dbname']))
-            await cur.execute("ALTER TABLE %s ADD TABLE %s_%s;" %(globaltable,localtable,i));
+        await cur.execute("CREATE MERGE TABLE %s (%s);" % (globaltable, localschema))
+        for i, local_node in enumerate(db_objects["local"]):
+            await cur.execute(
+                "CREATE REMOTE TABLE %s_%s (%s) on 'mapi:%s'; "
+                % (localtable, i, localschema, local_node["dbname"])
+            )
+            await cur.execute(
+                "ALTER TABLE %s ADD TABLE %s_%s;" % (globaltable, localtable, i)
+            )
 
+    async def broadcast(self, db_objects, globalresulttable, globalschema):
+        await asyncio.gather(
+            *[
+                self.broadcast_inparallel(
+                    local_node["async_con"],
+                    globalresulttable,
+                    globalschema,
+                    db_objects["global"]["dbname"],
+                )
+                for i, local_node in enumerate(db_objects["local"])
+            ]
+        )
 
-    async def broadcast(self,db_objects, globalresulttable, globalschema):
-        await asyncio.gather(*[self.broadcast_inparallel(local_node['async_con'], globalresulttable, globalschema, db_objects['global']['dbname']) for i,local_node in enumerate(db_objects['local'])])
+    async def transferdirect(self, node1, localtable, node2, transferschema):
+        await node2[2].cursor().execute(
+            "CREATE REMOTE TABLE %s (%s) on 'mapi:%s';"
+            % (localtable, transferschema, node1[1])
+        )
 
-
-    async def transferdirect(self,node1, localtable, node2, transferschema):
-        await node2[2].cursor().execute("CREATE REMOTE TABLE %s (%s) on 'mapi:%s';" %(localtable, transferschema,node1[1]))
-
-    async def clean_tables(self,db_objects, globaltable, localtable, viewlocaltable, globalrestable):
-      await db_objects['global']['async_con'].cursor().execute("drop table if exists %s;" %globaltable)
-      await db_objects['global']['async_con'].cursor().execute("drop table if exists %s;" %globalrestable)
-      for i,local in enumerate(db_objects['local']):
-          await local['async_con'].cursor().execute("drop view if exists "+viewlocaltable+";")
-          await local['async_con'].cursor().execute("drop table if exists "+globalrestable+";")
-          await local['async_con'].cursor().execute("drop table if exists "+localtable+"_"+str(i)+";")
-          await db_objects['global']['async_con'].cursor().execute("drop table if exists "+localtable+"_"+str(i)+";")
+    async def clean_tables(
+        self, db_objects, globaltable, localtable, viewlocaltable, globalrestable
+    ):
+        await db_objects["global"]["async_con"].cursor().execute(
+            "drop table if exists %s;" % globaltable
+        )
+        await db_objects["global"]["async_con"].cursor().execute(
+            "drop table if exists %s;" % globalrestable
+        )
+        for i, local in enumerate(db_objects["local"]):
+            await local["async_con"].cursor().execute(
+                "drop view if exists " + viewlocaltable + ";"
+            )
+            await local["async_con"].cursor().execute(
+                "drop table if exists " + globalrestable + ";"
+            )
+            await local["async_con"].cursor().execute(
+                "drop table if exists " + localtable + "_" + str(i) + ";"
+            )
+            await db_objects["global"]["async_con"].cursor().execute(
+                "drop table if exists " + localtable + "_" + str(i) + ";"
+            )
 
     ##################### end of added code to support federation #############################
-
 
     def cursor(self):
         """
@@ -200,14 +255,12 @@ class Connection(object):
 
     async def execute(self, query):
         """ use this for executing SQL queries """
-        return await self.command('s' + query + '\n;')
+        return await self.command("s" + query + "\n;")
 
     async def command(self, command):
         """ use this function to send low level mapi commands """
         self.closed()
         return await self.mapi.cmd(command)
-
-
 
     def closed(self):
         """ check if there is a connection with a server """

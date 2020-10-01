@@ -22,23 +22,27 @@ from aiopymonetdb.exceptions import ProgrammingError
 def _extract_timezone(data):
     sign_symbol = data[-6]
 
-    if sign_symbol == '+':
+    if sign_symbol == "+":
         sign = 1
-    elif sign_symbol == '-':
+    elif sign_symbol == "-":
         sign = -1
     else:
         raise ProgrammingError("no + or - in %s" % data)
 
-    return data[:-6], datetime.timedelta(hours=sign * int(data[-5:-3]),
-                                         minutes=sign * int(data[-2:]))
+    return data[:-6], datetime.timedelta(
+        hours=sign * int(data[-5:-3]), minutes=sign * int(data[-2:])
+    )
 
 
 def strip(data):
-    """ returns a python string, with chopped off quotes,
+    """returns a python string, with chopped off quotes,
     and replaced escape characters"""
-    return ''.join([w.encode('utf-8').decode('unicode_escape')
-                    if '\\' in w else w
-                    for w in re.split('([\000-\200]+)', data[1:-1])])
+    return "".join(
+        [
+            w.encode("utf-8").decode("unicode_escape") if "\\" in w else w
+            for w in re.split("([\000-\200]+)", data[1:-1])
+        ]
+    )
 
 
 def py_bool(data):
@@ -47,47 +51,42 @@ def py_bool(data):
 
 
 def py_time(data):
-    """ returns a python Time
-    """
-    if '.' in data:
-        return datetime.datetime.strptime(data, '%H:%M:%S.%f').time()
+    """returns a python Time"""
+    if "." in data:
+        return datetime.datetime.strptime(data, "%H:%M:%S.%f").time()
     else:
-        return datetime.datetime.strptime(data, '%H:%M:%S').time()
+        return datetime.datetime.strptime(data, "%H:%M:%S").time()
 
 
 def py_timetz(data):
-    """ returns a python Time where data contains a tz code
-    """
+    """returns a python Time where data contains a tz code"""
     t, timezone_delta = _extract_timezone(data)
-    if '.' in t:
-        return (datetime.datetime.strptime(t, '%H:%M:%S.%f') + timezone_delta).time()
+    if "." in t:
+        return (datetime.datetime.strptime(t, "%H:%M:%S.%f") + timezone_delta).time()
     else:
-        return (datetime.datetime.strptime(t, '%H:%M:%S') + timezone_delta).time()
+        return (datetime.datetime.strptime(t, "%H:%M:%S") + timezone_delta).time()
 
 
 def py_date(data):
-    """ Returns a python Date
-    """
-    return datetime.datetime.strptime(data, '%Y-%m-%d').date()
+    """Returns a python Date"""
+    return datetime.datetime.strptime(data, "%Y-%m-%d").date()
 
 
 def py_timestamp(data):
-    """ Returns a python Timestamp
-    """
-    if '.' in data:
-        return datetime.datetime.strptime(data, '%Y-%m-%d %H:%M:%S.%f')
+    """Returns a python Timestamp"""
+    if "." in data:
+        return datetime.datetime.strptime(data, "%Y-%m-%d %H:%M:%S.%f")
     else:
-        return datetime.datetime.strptime(data, '%Y-%m-%d %H:%M:%S')
+        return datetime.datetime.strptime(data, "%Y-%m-%d %H:%M:%S")
 
 
 def py_timestamptz(data):
-    """ Returns a python Timestamp where data contains a tz code
-    """
+    """Returns a python Timestamp where data contains a tz code"""
     dt, timezone_delta = _extract_timezone(data)
-    if '.' in dt:
-        return datetime.datetime.strptime(dt, '%Y-%m-%d %H:%M:%S.%f') + timezone_delta
+    if "." in dt:
+        return datetime.datetime.strptime(dt, "%Y-%m-%d %H:%M:%S.%f") + timezone_delta
     else:
-        return datetime.datetime.strptime(dt, '%Y-%m-%d %H:%M:%S') + timezone_delta
+        return datetime.datetime.strptime(dt, "%Y-%m-%d %H:%M:%S") + timezone_delta
 
 
 def py_bytes(data):
@@ -137,7 +136,7 @@ mapping = {
     types.UUID: uuid.UUID,
     types.JSON: json.loads,
     types.GEOMETRY: strip,
-    types.GEOMETRYA: strip
+    types.GEOMETRYA: strip,
 }
 
 
@@ -156,6 +155,7 @@ def convert(data, type_code):
 
 
 # below stuff required by the DBAPI
+
 
 def Binary(data):
     """returns binary encoding of data"""

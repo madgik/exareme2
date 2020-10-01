@@ -16,16 +16,32 @@ from .utils import (
 )
 
 
-def create_pool(dsn=None, *, minsize=1, maxsize=10,
-                timeout=TIMEOUT, pool_recycle=-1,
-                enable_json=True, enable_hstore=True, enable_uuid=True,
-                echo=False, on_connect=None,
-                **kwargs):
+def create_pool(
+    dsn=None,
+    *,
+    minsize=1,
+    maxsize=10,
+    timeout=TIMEOUT,
+    pool_recycle=-1,
+    enable_json=True,
+    enable_hstore=True,
+    enable_uuid=True,
+    echo=False,
+    on_connect=None,
+    **kwargs
+):
     coro = Pool.from_pool_fill(
-        dsn, minsize, maxsize, timeout,
-        enable_json=enable_json, enable_hstore=enable_hstore,
-        enable_uuid=enable_uuid, echo=echo, on_connect=on_connect,
-        pool_recycle=pool_recycle, **kwargs
+        dsn,
+        minsize,
+        maxsize,
+        timeout,
+        enable_json=enable_json,
+        enable_hstore=enable_hstore,
+        enable_uuid=enable_uuid,
+        echo=echo,
+        on_connect=on_connect,
+        pool_recycle=pool_recycle,
+        **kwargs
     )
 
     return _PoolContextManager(coro)
@@ -34,16 +50,28 @@ def create_pool(dsn=None, *, minsize=1, maxsize=10,
 class Pool(asyncio.AbstractServer):
     """Connection pool"""
 
-    def __init__(self, dsn, minsize, maxsize, timeout, *,
-                 enable_json, enable_hstore, enable_uuid, echo,
-                 on_connect, pool_recycle, **kwargs):
+    def __init__(
+        self,
+        dsn,
+        minsize,
+        maxsize,
+        timeout,
+        *,
+        enable_json,
+        enable_hstore,
+        enable_uuid,
+        echo,
+        on_connect,
+        pool_recycle,
+        **kwargs
+    ):
         if minsize < 0:
             raise ValueError("minsize should be zero or greater")
         if maxsize < minsize and maxsize != 0:
             raise ValueError("maxsize should be not less than minsize")
         self._dsn = dsn
         self._minsize = minsize
-        self._loop = get_running_loop(kwargs.pop('loop', None) is not None)
+        self._loop = get_running_loop(kwargs.pop("loop", None) is not None)
         self._timeout = timeout
         self._recycle = pool_recycle
         self._enable_json = enable_json
@@ -126,8 +154,7 @@ class Pool(asyncio.AbstractServer):
         if self._closed:
             return
         if not self._closing:
-            raise RuntimeError(".wait_closed() should be called "
-                               "after .close()")
+            raise RuntimeError(".wait_closed() should be called " "after .close()")
 
         while self._free:
             conn = self._free.popleft()
@@ -191,12 +218,14 @@ class Pool(asyncio.AbstractServer):
             self._acquiring += 1
             try:
                 conn = await connect(
-                    self._dsn, timeout=self._timeout,
+                    self._dsn,
+                    timeout=self._timeout,
                     enable_json=self._enable_json,
                     enable_hstore=self._enable_hstore,
                     enable_uuid=self._enable_uuid,
                     echo=self._echo,
-                    **self._conn_kwargs)
+                    **self._conn_kwargs
+                )
                 # raise exception if pool is closing
                 self._free.append(conn)
                 self._cond.notify()
@@ -209,12 +238,14 @@ class Pool(asyncio.AbstractServer):
             self._acquiring += 1
             try:
                 conn = await connect(
-                    self._dsn, timeout=self._timeout,
+                    self._dsn,
+                    timeout=self._timeout,
                     enable_json=self._enable_json,
                     enable_hstore=self._enable_hstore,
                     enable_uuid=self._enable_uuid,
                     echo=self._echo,
-                    **self._conn_kwargs)
+                    **self._conn_kwargs
+                )
                 # raise exception if pool is closing
                 self._free.append(conn)
                 self._cond.notify()
@@ -226,8 +257,7 @@ class Pool(asyncio.AbstractServer):
             self._cond.notify()
 
     def release(self, conn):
-        """Release free connection back to the connection pool.
-        """
+        """Release free connection back to the connection pool."""
         fut = create_future(self._loop)
         fut.set_result(None)
         if conn in self._terminated:
@@ -240,9 +270,10 @@ class Pool(asyncio.AbstractServer):
             tran_status = conn._conn.get_transaction_status()
             if tran_status != TRANSACTION_STATUS_IDLE:
                 warnings.warn(
-                    ("Invalid transaction status on "
-                     "released connection: {}").format(tran_status),
-                    ResourceWarning
+                    ("Invalid transaction status on " "released connection: {}").format(
+                        tran_status
+                    ),
+                    ResourceWarning,
                 )
                 conn.close()
                 return fut
@@ -254,12 +285,23 @@ class Pool(asyncio.AbstractServer):
             fut = ensure_future(self._wakeup(), loop=self._loop)
         return fut
 
-    async def cursor(self, name=None, cursor_factory=None,
-                     scrollable=None, withhold=False, *, timeout=None):
+    async def cursor(
+        self,
+        name=None,
+        cursor_factory=None,
+        scrollable=None,
+        withhold=False,
+        *,
+        timeout=None
+    ):
         conn = await self.acquire()
-        cur = await conn.cursor(name=name, cursor_factory=cursor_factory,
-                                scrollable=scrollable, withhold=withhold,
-                                timeout=timeout)
+        cur = await conn.cursor(
+            name=name,
+            cursor_factory=cursor_factory,
+            scrollable=scrollable,
+            withhold=withhold,
+            timeout=timeout,
+        )
         return _PoolCursorContextManager(self, conn, cur)
 
     def __await__(self):
@@ -279,8 +321,7 @@ class Pool(asyncio.AbstractServer):
         return _PoolConnectionContextManager(self, conn)
 
     def __enter__(self):
-        raise RuntimeError(
-            '"await" should be used as context manager expression')
+        raise RuntimeError('"await" should be used as context manager expression')
 
     def __exit__(self, *args):
         # This must exist because __enter__ exists, even though that
@@ -306,5 +347,5 @@ class Pool(asyncio.AbstractServer):
                 conn.close()
                 left += 1
             warnings.warn(
-                "Unclosed {} connections in {!r}".format(left, self),
-                ResourceWarning)
+                "Unclosed {} connections in {!r}".format(left, self), ResourceWarning
+            )

@@ -19,8 +19,14 @@ import os
 from six import BytesIO, PY3
 from typing import Optional
 
-from pymonetdb.exceptions import OperationalError, DatabaseError, \
-    ProgrammingError, NotSupportedError, IntegrityError
+from pymonetdb.exceptions import (
+    OperationalError,
+    DatabaseError,
+    ProgrammingError,
+    NotSupportedError,
+    IntegrityError,
+)
+
 lock = asyncio.Lock()
 logger = logging.getLogger(__name__)
 
@@ -48,10 +54,10 @@ STATE_READY = 1
 
 # MonetDB error codes
 errors = {
-    '42S02': OperationalError,  # no such table
-    'M0M29': IntegrityError,  # INSERT INTO: UNIQUE constraint violated
-    '2D000': IntegrityError,  # COMMIT: failed
-    '40000': IntegrityError,  # DROP TABLE: FOREIGN KEY constraint violated
+    "42S02": OperationalError,  # no such table
+    "M0M29": IntegrityError,  # INSERT INTO: UNIQUE constraint violated
+    "2D000": IntegrityError,  # COMMIT: failed
+    "40000": IntegrityError,  # DROP TABLE: FOREIGN KEY constraint violated
 }
 
 
@@ -67,13 +73,13 @@ def handle_error(error):
 
     """
 
-    if error[:13] == 'SQLException:':
-        idx = str.index(error, ':', 14)
-        error = error[idx + 10:]
+    if error[:13] == "SQLException:":
+        idx = str.index(error, ":", 14)
+        error = error[idx + 10 :]
     if len(error) > 5 and error[:5] in errors:
-        return  errors[error[:5]], error[6:]
+        return errors[error[:5]], error[6:]
     else:
-        return  OperationalError, error
+        return OperationalError, error
 
 
 def encode(s):
@@ -91,25 +97,23 @@ def decode(b):
 
 
 # noinspection PyExceptionInherit
-class Connection():
+class Connection:
     """
     MAPI (low level MonetDB API) connection
     """
 
     def __init__(self):
-        #self.url = url
-        #self.logger = logging.getLogger(self.url)
-        #self.parsed_url = urlparse.urlparse(url)
-        
-        #self.write_buffer = 'GET %s HTTP/1.0\r\n\r\n' % self.url
-        #self.read_buffer = StringIO()
-        #self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        #address = (self.parsed_url.netloc, 80)
-        #self.logger.debug('connecting to %s', address)
-        #self.connect(address)
-        
-    
-    
+        # self.url = url
+        # self.logger = logging.getLogger(self.url)
+        # self.parsed_url = urlparse.urlparse(url)
+
+        # self.write_buffer = 'GET %s HTTP/1.0\r\n\r\n' % self.url
+        # self.read_buffer = StringIO()
+        # self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        # address = (self.parsed_url.netloc, 80)
+        # self.logger.debug('connecting to %s', address)
+        # self.connect(address)
+
         self.state = STATE_INIT
         self._result = None
         self.socket = None  # type: Optional[socket.socket]
@@ -124,13 +128,22 @@ class Connection():
         self.writer = None
         self.connect_timeout = socket.getdefaulttimeout()
 
-    async def connect(self, database, username, password, language, hostname=None,
-                port=None, unix_socket=None, connect_timeout=-1):
-        """ setup connection to MAPI server
+    async def connect(
+        self,
+        database,
+        username,
+        password,
+        language,
+        hostname=None,
+        port=None,
+        unix_socket=None,
+        connect_timeout=-1,
+    ):
+        """setup connection to MAPI server
 
         unix_socket is used if hostname is not defined.
         """
-        
+
         self.reader, self.writer = await asyncio.open_connection(hostname, port)
 
         self.hostname = hostname
@@ -140,15 +153,14 @@ class Connection():
         self.database = database
         self.language = language
 
-        
         await self._login()
 
-        #self.socket.settimeout(socket.getdefaulttimeout())
+        # self.socket.settimeout(socket.getdefaulttimeout())
         self.state = STATE_READY
 
     async def _login(self, iteration=0):
-        """ Reads challenge from line, generate response and check if
-        everything is okay """
+        """Reads challenge from line, generate response and check if
+        everything is okay"""
 
         challenge = await self._getblock()
         response = self._challenge_response(challenge)
@@ -171,26 +183,34 @@ class Connection():
         elif prompt.startswith(MSG_REDIRECT):
             # a redirect can contain multiple redirects, for now we only use
             # the first
-            redirect = prompt.split()[0][1:].split(':')
+            redirect = prompt.split()[0][1:].split(":")
             if redirect[1] == "merovingian":
                 logger.debug("restarting authentication")
                 if iteration <= 10:
                     await self._login(iteration=iteration + 1)
                 else:
-                    raise OperationalError("maximal number of redirects "
-                                           "reached (10)")
+                    raise OperationalError(
+                        "maximal number of redirects " "reached (10)"
+                    )
 
             elif redirect[1] == "monetdb":
                 self.hostname = redirect[2][2:]
-                self.port, self.database = redirect[3].split('/')
+                self.port, self.database = redirect[3].split("/")
                 self.port = int(self.port)
-                logger.info("redirect to monetdb://%s:%s/%s" %
-                            (self.hostname, self.port, self.database))
+                logger.info(
+                    "redirect to monetdb://%s:%s/%s"
+                    % (self.hostname, self.port, self.database)
+                )
                 self.writer.close()
                 await self.writer.wait_closed()
-                self.connect(hostname=self.hostname, port=self.port,
-                             username=self.username, password=self.password,
-                             database=self.database, language=self.language)
+                self.connect(
+                    hostname=self.hostname,
+                    port=self.port,
+                    username=self.username,
+                    password=self.password,
+                    database=self.database,
+                    language=self.language,
+                )
 
             else:
                 raise ProgrammingError("unknown redirect: %s" % prompt)
@@ -198,26 +218,27 @@ class Connection():
         else:
             raise ProgrammingError("unknown state: %s" % prompt)
 
-
     def bind(self, operation, parameters):
-      if parameters:
-          if isinstance(parameters, dict):
-              query = operation % {k: monetize.convert(v) for (k, v) in parameters.items()}
-          elif type(parameters) == list or type(parameters) == tuple:
-              query = operation % tuple([monetize.convert(item) for item in parameters])
-          elif isinstance(parameters, str):
-              query = operation % monetize.convert(parameters)
-          else:
-              msg = "Parameters should be None, dict or list, now it is %s"
-      else:
-         query = operation
-      return query
-  
-    def bindsingle(self,  parameter):
+        if parameters:
+            if isinstance(parameters, dict):
+                query = operation % {
+                    k: monetize.convert(v) for (k, v) in parameters.items()
+                }
+            elif type(parameters) == list or type(parameters) == tuple:
+                query = operation % tuple(
+                    [monetize.convert(item) for item in parameters]
+                )
+            elif isinstance(parameters, str):
+                query = operation % monetize.convert(parameters)
+            else:
+                msg = "Parameters should be None, dict or list, now it is %s"
+        else:
+            query = operation
+        return query
+
+    def bindsingle(self, parameter):
         return monetize.convert(parameter)
-          
-  
-  
+
     async def disconnect(self):
         """ disconnect from the monetdb server """
         print(self.hostname)
@@ -225,24 +246,22 @@ class Connection():
         self.writer.close()
         await self.writer.wait_closed()
         logger.info("disconnecting from database")
-        
 
     async def cmd(self, operation):
         """ put a mapi command on the line"""
         logger.debug("executing command %s" % operation)
-        
 
         if self.state != STATE_READY:
             raise (ProgrammingError, "Not connected")
 
-        if not bool(re.match('create|drop', operation, re.I)):
+        if not bool(re.match("create|drop", operation, re.I)):
             await self._putblock(operation)
             response = await self._getblock()
         else:
             await lock.acquire()
             try:
-              await self._putblock(operation)
-              response = await self._getblock()
+                await self._putblock(operation)
+                response = await self._getblock()
             finally:
                 lock.release()
         if not len(response):
@@ -252,7 +271,7 @@ class Connection():
         if response == MSG_MORE:
             # tell server it isn't going to get more
             return self.cmd("")
-        #print(operation+": "+response)
+        # print(operation+": "+response)
         # If we are performing an update test for errors such as a failed
         # transaction.
 
@@ -260,7 +279,7 @@ class Connection():
         # starts with MSG_ERROR. If this is the case, find which line records
         # the error and use it to call handle_error.
         if response[:2] == MSG_QUPDATE:
-            lines = response.split('\n')
+            lines = response.split("\n")
             if any([l.startswith(MSG_ERROR) for l in lines]):
                 index = next(i for i, v in enumerate(lines) if v.startswith(MSG_ERROR))
                 exception, msg = handle_error(lines[index][1:])
@@ -273,7 +292,7 @@ class Connection():
             raise exception(msg)
         elif response[0] == MSG_INFO:
             logger.info("%s" % (response[1:]))
-        elif self.language == 'control' and not self.hostname:
+        elif self.language == "control" and not self.hostname:
             if response.startswith("OK"):
                 return response[2:].strip() or ""
             else:
@@ -283,11 +302,11 @@ class Connection():
 
     def _challenge_response(self, challenge):
         """ generate a response to a mapi login challenge """
-        challenges = challenge.split(':')
+        challenges = challenge.split(":")
         salt, identity, protocol, hashes, endian = challenges[:5]
         password = self.password
 
-        if protocol == '9':
+        if protocol == "9":
             algo = challenges[5]
             try:
                 h = hashlib.new(algo)
@@ -310,31 +329,29 @@ class Connection():
             m.update(salt.encode())
             pwhash = "{MD5}" + m.hexdigest()
         else:
-            raise NotSupportedError("Unsupported hash algorithms required"
-                                    " for login: %s" % hashes)
+            raise NotSupportedError(
+                "Unsupported hash algorithms required" " for login: %s" % hashes
+            )
 
-        return ":".join(["BIG", self.username, pwhash, self.language,
-                         self.database]) + ":"
+        return (
+            ":".join(["BIG", self.username, pwhash, self.language, self.database]) + ":"
+        )
 
-
-
-   
-    
     async def _getblock(self):
         """ read one mapi encoded block """
-        if self.language == 'control' and not self.hostname:
-            return await  self._getblock_socket()  # control doesn't do block splitting when using a socket
+        if self.language == "control" and not self.hostname:
+            return (
+                await self._getblock_socket()
+            )  # control doesn't do block splitting when using a socket
         else:
             return await self._getblock_inet()
 
-
-    
     async def _getblock_inet(self):
         result = BytesIO()
         last = 0
         while not last:
             flag = await self._getbytes(2)
-            unpacked = struct.unpack('<H', flag)[0]  # little endian short
+            unpacked = struct.unpack("<H", flag)[0]  # little endian short
             length = unpacked >> 1
             last = unpacked & 1
             result.write(await self._getbytes(length))
@@ -342,70 +359,61 @@ class Connection():
 
     async def _getblock_socket(self):
         buffer = BytesIO()
-        #lock = asyncio.Lock()
+        # lock = asyncio.Lock()
         while True:
-        #  async with lock:
-          x = await self.reader.read(1)
-          if len(x):
+            #  async with lock:
+            x = await self.reader.read(1)
+            if len(x):
                 buffer.write(x)
-          else:
+            else:
                 break
         return decode(buffer.getvalue().strip())
-
-
-   
 
     async def _getbytes(self, bytes_):
         """Read an amount of bytes from the socket"""
         result = BytesIO()
         count = bytes_
         while count > 0:
-        #  lock = asyncio.Lock()
-        #  async with lock:
-          recv = await self.reader.read(count)
-          if len(recv) == 0:
+            #  lock = asyncio.Lock()
+            #  async with lock:
+            recv = await self.reader.read(count)
+            if len(recv) == 0:
                 raise OperationalError("Server closed connection")
-          count -= len(recv)
-          result.write(recv)
+            count -= len(recv)
+            result.write(recv)
         return result.getvalue()
 
-   
-
-    async  def _putblock(self, block):
+    async def _putblock(self, block):
         """ wrap the line in mapi format and put it into the socket """
-        if self.language == 'control' and not self.hostname:
-          #lock = asyncio.Lock()
-          #async with lock:
-          self.writer.write(encode(block))
-          return await self.writer.drain()
-            #return self.socket.send(encode(block))  # control doesn't do block splitting when using a socket
+        if self.language == "control" and not self.hostname:
+            # lock = asyncio.Lock()
+            # async with lock:
+            self.writer.write(encode(block))
+            return await self.writer.drain()
+            # return self.socket.send(encode(block))  # control doesn't do block splitting when using a socket
         else:
             await self._putblock_inet(block)
-
-
-  
 
     async def _putblock_inet(self, block):
         pos = 0
         last = 0
         block = encode(block)
         while not last:
-            data = block[pos:pos + MAX_PACKAGE_LENGTH]
+            data = block[pos : pos + MAX_PACKAGE_LENGTH]
             length = len(data)
             if length < MAX_PACKAGE_LENGTH:
                 last = 1
-            flag = struct.pack('<H', (length << 1) + last)
-            #lock = asyncio.Lock()
-            #async with lock:
+            flag = struct.pack("<H", (length << 1) + last)
+            # lock = asyncio.Lock()
+            # async with lock:
             self.writer.write(flag)
             await self.writer.drain()
-            #async with lock:
+            # async with lock:
             self.writer.write(data)
             await self.writer.drain()
-            
+
             pos += length
 
-   
     async def __del2__(self):
         if self.writer:
             self.writer.close()

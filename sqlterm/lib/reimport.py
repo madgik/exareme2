@@ -50,12 +50,10 @@ import traceback
 import time
 
 
-
 __version__ = "1.3"
 __author__ = "Peter Shinners <pete@shinners.org>"
 __license__ = "MIT"
 __url__ = "http://code.google.com/p/reimport"
-
 
 
 _previous_scan_time = time.time() - 1.0
@@ -63,32 +61,34 @@ _module_timestamps = {}
 
 
 # find the 'instance' old style type
-class _OldClass: pass
+class _OldClass:
+    pass
+
+
 _InstanceType = type(_OldClass())
 del _OldClass
 
 
-
 def reimport(*modules):
     """Reimport python modules. Multiple modules can be passed either by
-        name or by reference. Only pure python modules can be reimported.
+    name or by reference. Only pure python modules can be reimported.
 
-        For advanced control, global variables can be placed in modules
-        that allows finer control of the reimport process.
+    For advanced control, global variables can be placed in modules
+    that allows finer control of the reimport process.
 
-        If a package module has a true value for "__package_reimport__"
-        then that entire package will be reimported when any of its children
-        packages or modules are reimported.
+    If a package module has a true value for "__package_reimport__"
+    then that entire package will be reimported when any of its children
+    packages or modules are reimported.
 
-        If a package module defines __reimported__ it must be a callable
-        function that accepts one argument and returns a bool. The argument
-        is the reference to the old version of that module before any
-        cleanup has happened. The function should normally return True to
-        allow the standard reimport cleanup. If the function returns false
-        then cleanup will be disabled for only that module. Any exceptions
-        raised during the callback will be handled by traceback.print_exc,
-        similar to what happens with tracebacks in the __del__ method.
-        """
+    If a package module defines __reimported__ it must be a callable
+    function that accepts one argument and returns a bool. The argument
+    is the reference to the old version of that module before any
+    cleanup has happened. The function should normally return True to
+    allow the standard reimport cleanup. If the function returns false
+    then cleanup will be disabled for only that module. Any exceptions
+    raised during the callback will be handled by traceback.print_exc,
+    similar to what happens with tracebacks in the __del__ method.
+    """
     __internal_swaprefs_ignore__ = "reimport"
     reloadSet = set()
 
@@ -131,7 +131,7 @@ def reimport(*modules):
     # don't get a chance to see our half-baked universe
     imp.acquire_lock()
     prevInterval = sys.getcheckinterval()
-    sys.setcheckinterval(min(sys.maxsize, 0x7fffffff))
+    sys.setcheckinterval(min(sys.maxsize, 0x7FFFFFFF))
     try:
 
         # Python will munge the parent package on import. Remember original value
@@ -141,9 +141,13 @@ def reimport(*modules):
             parentPackageName = name.rsplit(".", 1)
             if len(parentPackageName) == 2:
                 parentPackage = sys.modules.get(parentPackageName[0], None)
-                parentValue = getattr(parentPackage, parentPackageName[1], parentPackageDeleted)
+                parentValue = getattr(
+                    parentPackage, parentPackageName[1], parentPackageDeleted
+                )
                 if parentValue != sys.modules[name]:
-                    parentValues.append((parentPackage, parentPackageName[1], parentValue))
+                    parentValues.append(
+                        (parentPackage, parentPackageName[1], parentValue)
+                    )
                 parentPackage = parentValue = None
 
         # Move modules out of sys
@@ -235,11 +239,10 @@ def reimport(*modules):
         time.sleep(0)
 
 
-
 def modified(path=None):
     """Find loaded modules that have changed on disk under the given path.
-        If no path is given then all modules are searched.
-        """
+    If no path is given then all modules are searched.
+    """
     global _previous_scan_time
     modules = []
 
@@ -298,10 +301,9 @@ def _is_code_module(module):
         return ""
 
 
-
 def _find_exact_target(module):
     """Given a module name or object, find the
-            base module where reimport will happen."""
+    base module where reimport will happen."""
     # Given a name or a module, find both the name and the module
     actualModule = sys.modules.get(module)
     if actualModule is not None:
@@ -328,7 +330,6 @@ def _find_exact_target(module):
             actualModule = parentModule
 
 
-
 def _find_reloading_modules(name):
     """Find all modules that will be reloaded from given name"""
     modules = [name]
@@ -339,13 +340,13 @@ def _find_reloading_modules(name):
     return modules
 
 
-
 def _package_depth_sort(names, reverse):
     """Sort a list of module names by their package depth"""
+
     def packageDepth(name):
         return name.count(".")
-    return sorted(names, key=packageDepth, reverse=reverse)
 
+    return sorted(names, key=packageDepth, reverse=reverse)
 
 
 def _find_module_exports(module):
@@ -353,7 +354,6 @@ def _find_module_exports(module):
     if not allNames:
         allNames = [n for n in dir(module) if n[0] != "_"]
     return set(allNames)
-
 
 
 def _find_parent_importers(name, oldModule, newNames):
@@ -381,7 +381,6 @@ def _find_parent_importers(name, oldModule, newNames):
     return parents
 
 
-
 def _push_imported_symbols(newModule, oldModule, parent):
     """Transfer changes symbols from a child module to a parent package"""
     # This assumes everything in oldModule is already found in parent
@@ -398,10 +397,10 @@ def _push_imported_symbols(newModule, oldModule, parent):
         try:
             symbols[name] = getattr(newModule, name)
         except AttributeError:
-            holder = type(name, (_MissingAllReference,),
-                        {"__module__":newModule.__name__})
+            holder = type(
+                name, (_MissingAllReference,), {"__module__": newModule.__name__}
+            )
             symbols[name] = holder()
-
 
     # Add new symbols
     for name in newExports - oldExports:
@@ -412,7 +411,6 @@ def _push_imported_symbols(newModule, oldModule, parent):
         oldValue = getattr(oldModule, name)
         if getattr(parent, name) is oldValue:
             setattr(parent, name, symbols[name])
-
 
 
 # To rejigger is to copy internal values from new to old
@@ -457,7 +455,6 @@ def _rejigger_module(old, new, ignores):
     _swap_refs(old, new, ignores)
 
 
-
 def _from_file(filename, value):
     """Test if object came from a filename, works for pyc/py confusion"""
     try:
@@ -465,7 +462,6 @@ def _from_file(filename, value):
     except TypeError:
         return False
     return bool(objfile) and objfile.startswith(filename)
-
 
 
 def _rejigger_class(old, new, ignores):
@@ -507,7 +503,6 @@ def _rejigger_class(old, new, ignores):
     _swap_refs(old, new, ignores)
 
 
-
 def _rejigger_func(old, new, ignores):
     """Mighty morphin power functions"""
     __internal_swaprefs_ignore__ = "rejigger_func"
@@ -518,7 +513,6 @@ def _rejigger_func(old, new, ignores):
     _swap_refs(old, new, ignores)
 
 
-
 def _unimport(old, ignores):
     """Unimport something, mainly used to rollback a reimport"""
     if isinstance(old, type(sys)):
@@ -527,7 +521,6 @@ def _unimport(old, ignores):
         _unimport_class(old, ignores)
     else:
         _remove_refs(old, ignores)
-
 
 
 def _unimport_module(old, ignores):
@@ -543,8 +536,10 @@ def _unimport_module(old, ignores):
         filename = filename[:-1]
 
     for value in oldValues:
-        try: objfile = inspect.getsourcefile(value)
-        except TypeError: objfile = ""
+        try:
+            objfile = inspect.getsourcefile(value)
+        except TypeError:
+            objfile = ""
 
         if objfile == filename:
             if inspect.isclass(value):
@@ -554,7 +549,6 @@ def _unimport_module(old, ignores):
                 _remove_refs(value, ignores)
 
     _remove_refs(old, ignores)
-
 
 
 def _unimport_class(old, ignores):
@@ -576,18 +570,18 @@ def _unimport_class(old, ignores):
     _remove_refs(old, ignores)
 
 
-
-
 class _MissingAllReference(object):
     """This is a stub placeholder for objects added to __all__ but
-        are not actually found.
-        """
+    are not actually found.
+    """
+
     def __str__(self, *args):
-        raise AttributeError("%r missing from module %r" %
-                    (type(self).__name__, type(self).__module__))
+        raise AttributeError(
+            "%r missing from module %r" % (type(self).__name__, type(self).__module__)
+        )
+
     __nonzero__ = __hash__ = __id__ = __cmp__ = __len__ = __iter__ = __str__
     __repr__ = __int__ = __getattr__ = __setattr__ = __delattr__ = __str__
-
 
 
 _recursive_tuple_swap = set()
@@ -595,9 +589,9 @@ _recursive_tuple_swap = set()
 
 def _bonus_containers():
     """Find additional container types, if they are loaded. Returns
-        (deque, defaultdict).
-        Any of these will be None if not loaded.
-        """
+    (deque, defaultdict).
+    Any of these will be None if not loaded.
+    """
     deque = defaultdict = None
     collections = sys.modules.get("collections", None)
     if collections:
@@ -606,13 +600,12 @@ def _bonus_containers():
     return deque, defaultdict
 
 
-
 def _find_sequence_indices(container, value):
     """Find indices of value in container. The indices will
-        be in reverse order, to allow safe editing.
-        """
+    be in reverse order, to allow safe editing.
+    """
     indices = []
-    for i in range(len(container)-1, -1, -1):
+    for i in range(len(container) - 1, -1, -1):
         if container[i] is value:
             indices.append(i)
     return indices
@@ -668,7 +661,7 @@ def _swap_refs(old, new, ignores):
                         container[new] = container.pop(old)
                 except TypeError:  # Unhashable old value
                     pass
-                for k,v in container.items():
+                for k, v in container.items():
                     if v is old:
                         container[k] = new
 
@@ -692,7 +685,6 @@ def _swap_refs(old, new, ignores):
         elif containerType is _InstanceType:
             if container.__class__ is old:
                 container.__class__ = new
-
 
 
 def _remove_refs(old, ignores):
@@ -729,7 +721,7 @@ def _remove_refs(old, ignores):
                     container.pop(old, None)
                 except TypeError:  # Unhashable old value
                     pass
-                for k,v in list(container.items()):
+                for k, v in list(container.items()):
                     if v is old:
                         del container[k]
 

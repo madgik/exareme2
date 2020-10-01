@@ -6,7 +6,7 @@
 """Parse SQL statements."""
 
 
-__version__ = '0.1.1'
+__version__ = "0.1.1"
 
 
 class SQLParseError(Exception):
@@ -44,7 +44,7 @@ def format(sql, **options):
     options = formatter.validate_options(options)
     stack = formatter.build_filter_stack(stack, options)
     stack.postprocess.append(filters.SerializerUnicode())
-    return ''.join(stack.run(sql))
+    return "".join(stack.run(sql))
 
 
 def split(sql):

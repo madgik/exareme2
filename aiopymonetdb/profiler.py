@@ -22,7 +22,15 @@ class ProfilerConnection(object):
         self._buffer = ""
         self._objects = list()
 
-    def connect(self, database, username="monetdb", password="monetdb", hostname=None, port=50000, heartbeat=0):
+    def connect(
+        self,
+        database,
+        username="monetdb",
+        password="monetdb",
+        hostname=None,
+        port=50000,
+        heartbeat=0,
+    ):
         self._heartbeat = heartbeat
         self._mapi.connect(database, username, password, "mal", hostname, port)
         self._mapi.cmd("profiler.setheartbeat(%d);\n" % heartbeat)

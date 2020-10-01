@@ -30,11 +30,40 @@ apilevel = "2.0"
 threadsafety = 1
 paramstyle = "pyformat"
 
-__all__ = ['sql', 'mapi_async', 'exceptions', 'BINARY', 'Binary', 'connect', 'Connection', 'DATE', 'Date', 'Time',
-           'Timestamp', 'DateFromTicks', 'TimeFromTicks', 'TimestampFromTicks', 'DataError', 'DatabaseError', 'Error',
-           'IntegrityError', 'InterfaceError', 'InternalError', 'NUMBER', 'NotSupportedError', 'OperationalError',
-           'ProgrammingError', 'ROWID', 'STRING', 'TIME', 'Warning', 'apilevel', 'connect', 'paramstyle',
-           'threadsafety']
+__all__ = [
+    "sql",
+    "mapi_async",
+    "exceptions",
+    "BINARY",
+    "Binary",
+    "connect",
+    "Connection",
+    "DATE",
+    "Date",
+    "Time",
+    "Timestamp",
+    "DateFromTicks",
+    "TimeFromTicks",
+    "TimestampFromTicks",
+    "DataError",
+    "DatabaseError",
+    "Error",
+    "IntegrityError",
+    "InterfaceError",
+    "InternalError",
+    "NUMBER",
+    "NotSupportedError",
+    "OperationalError",
+    "ProgrammingError",
+    "ROWID",
+    "STRING",
+    "TIME",
+    "Warning",
+    "apilevel",
+    "connect",
+    "paramstyle",
+    "threadsafety",
+]
 
 
 async def connect(*args, **kwargs):

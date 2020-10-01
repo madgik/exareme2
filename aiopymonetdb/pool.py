@@ -6,23 +6,38 @@ import collections
 from aiopymonetdb import connect
 from .utils import _PoolContextManager, _PoolConnectionContextManager
 
-__all__ = ['create_pool', 'Pool']
+__all__ = ["create_pool", "Pool"]
 
 
-def create_pool(minsize=10, maxsize=64, echo=False, loop=None,
-                pool_recycle=-1, **kwargs):
-    return _PoolContextManager(_create_pool(minsize=minsize, maxsize=maxsize,
-                               echo=echo, loop=loop, pool_recycle=pool_recycle,
-                               **kwargs))
+def create_pool(
+    minsize=10, maxsize=64, echo=False, loop=None, pool_recycle=-1, **kwargs
+):
+    return _PoolContextManager(
+        _create_pool(
+            minsize=minsize,
+            maxsize=maxsize,
+            echo=echo,
+            loop=loop,
+            pool_recycle=pool_recycle,
+            **kwargs
+        )
+    )
 
 
-async def _create_pool(minsize=10, maxsize=64, echo=False, loop=None,
-                       pool_recycle=-1, **kwargs):
+async def _create_pool(
+    minsize=10, maxsize=64, echo=False, loop=None, pool_recycle=-1, **kwargs
+):
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    pool = Pool(minsize=minsize, maxsize=maxsize, echo=echo, loop=loop,
-                pool_recycle=pool_recycle, **kwargs)
+    pool = Pool(
+        minsize=minsize,
+        maxsize=maxsize,
+        echo=echo,
+        loop=loop,
+        pool_recycle=pool_recycle,
+        **kwargs
+    )
     if minsize > 0:
         with (await pool._cond):
             await pool._fill_free_pool(False)
@@ -97,8 +112,7 @@ class Pool(asyncio.AbstractServer):
         if self._closed:
             return
         if not self._closing:
-            raise RuntimeError(".wait_closed() should be called "
-                               "after .close()")
+            raise RuntimeError(".wait_closed() should be called " "after .close()")
 
         while self._free:
             conn = self._free.popleft()
@@ -134,8 +148,10 @@ class Pool(asyncio.AbstractServer):
         n, free = 0, len(self._free)
         while n < free:
             conn = self._free[-1]
-            if self._recycle > -1 \
-                    and self._loop.time() - conn.last_usage > self._recycle:
+            if (
+                self._recycle > -1
+                and self._loop.time() - conn.last_usage > self._recycle
+            ):
                 await conn.close()
                 self._free.pop()
             else:
@@ -169,8 +185,7 @@ class Pool(asyncio.AbstractServer):
             self._cond.notify()
 
     async def release(self, conn):
-        """Release free connection back to the connection pool.
-        """
+        """Release free connection back to the connection pool."""
         assert conn in self._used, (conn, self._used)
         self._used.remove(conn)
         if not conn.closed:

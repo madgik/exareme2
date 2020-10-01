@@ -35,7 +35,7 @@ def monet_escape(data):
     returns an escaped string
     """
     data = str(data).replace("\\", "\\\\")
-    data = data.replace("\'", "\\\'")
+    data = data.replace("'", "\\'")
     return "'%s'" % str(data)
 
 
@@ -75,11 +75,10 @@ def monet_timedelta(data):
 
 
 def monet_unicode(data):
-    return monet_escape(data.encode('utf-8'))
+    return monet_escape(data.encode("utf-8"))
 
 
 mapping = [
-
     (str, monet_escape),
     (bytes, monet_bytes),
     (int, str),

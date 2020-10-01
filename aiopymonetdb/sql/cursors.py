@@ -14,8 +14,18 @@ from aiopymonetdb import mapi_async
 
 logger = logging.getLogger("pymonetdb")
 
-Description = namedtuple('Description', ('name', 'type_code', 'display_size', 'internal_size', 'precision', 'scale',
-                                         'null_ok'))
+Description = namedtuple(
+    "Description",
+    (
+        "name",
+        "type_code",
+        "display_size",
+        "internal_size",
+        "precision",
+        "scale",
+        "null_ok",
+    ),
+)
 
 
 class Cursor(object):
@@ -113,7 +123,7 @@ class Cursor(object):
             self._exception_handler(ProgrammingError, "do a execute() first")
 
     def close(self):
-        """ Close the cursor now (rather than whenever __del__ is
+        """Close the cursor now (rather than whenever __del__ is
         called).  The cursor will be unusable from this point
         forward; an Error (or subclass) exception will be raised
         if any operation is attempted with the cursor."""
@@ -146,10 +156,13 @@ class Cursor(object):
         query = ""
         if parameters:
             if isinstance(parameters, dict):
-                query = operation % {k: monetize.convert(v) for (k, v) in parameters.items()}
+                query = operation % {
+                    k: monetize.convert(v) for (k, v) in parameters.items()
+                }
             elif type(parameters) == list or type(parameters) == tuple:
                 query = operation % tuple(
-                    [monetize.convert(item) for item in parameters])
+                    [monetize.convert(item) for item in parameters]
+                )
             elif isinstance(parameters, str):
                 query = operation % monetize.convert(parameters)
             else:
@@ -162,9 +175,29 @@ class Cursor(object):
             self._store_result(block)
             self.rownumber = 0
             self._executed = operation
-            print ("\nhost: ",self.connection.hostname ,"\ndatabase: ",self.connection.database, "\nquery: ", operation, "\nresult: ", self._rows, "\n\n")
+            print(
+                "\nhost: ",
+                self.connection.hostname,
+                "\ndatabase: ",
+                self.connection.database,
+                "\nquery: ",
+                operation,
+                "\nresult: ",
+                self._rows,
+                "\n\n",
+            )
         except Exception as e:
-            print ("\nhost: ", self.connection.hostname, "\ndatabase: ", self.connection.database, "\nquery: ", operation,"\nexception: ", str(e), "\n\n")
+            print(
+                "\nhost: ",
+                self.connection.hostname,
+                "\ndatabase: ",
+                self.connection.database,
+                "\nquery: ",
+                operation,
+                "\nexception: ",
+                str(e),
+                "\n\n",
+            )
             raise
         return self.rowcount
 
@@ -183,13 +216,13 @@ class Cursor(object):
         return count
 
     def debug(self, query, fname, sample=-1):
-        """ Locally debug a given Python UDF function in a SQL query
-            using the PDB debugger. Optionally can run on only a
-            sample of the input data, for faster data export.
+        """Locally debug a given Python UDF function in a SQL query
+        using the PDB debugger. Optionally can run on only a
+        sample of the input data, for faster data export.
         """
         debug(self, query, fname, sample)
 
-    def export(self, query, fname, sample=-1, filespath='./'):
+    def export(self, query, fname, sample=-1, filespath="./"):
         return export(self, query, fname, sample, filespath)
 
     def fetchone(self):
@@ -241,11 +274,11 @@ class Cursor(object):
             return []
 
         end = min(self.rownumber + (size or self.arraysize), self.rowcount)
-        result = self._rows[self.rownumber - self._offset:end - self._offset]
+        result = self._rows[self.rownumber - self._offset : end - self._offset]
         self.rownumber = min(end, len(self._rows) + self._offset)
 
         while (end > self.rownumber) and self.nextset():
-            result += self._rows[self.rownumber - self._offset:end - self._offset]
+            result += self._rows[self.rownumber - self._offset : end - self._offset]
             self.rownumber = min(end, len(self._rows) + self._offset)
         return result
 
@@ -265,7 +298,7 @@ class Cursor(object):
             msg = "query didn't result in a resultset"
             self._exception_handler(ProgrammingError, msg)
 
-        result = self._rows[self.rownumber - self._offset:]
+        result = self._rows[self.rownumber - self._offset :]
         self.rownumber = len(self._rows) + self._offset
 
         # slide the window over the resultset
@@ -299,7 +332,7 @@ class Cursor(object):
         end = min(self.rowcount, self.rownumber + self.arraysize)
         amount = end - self._offset
 
-        command = 'Xexport %s %s %s' % (self._query_id, self._offset, amount)
+        command = "Xexport %s %s %s" % (self._query_id, self._offset, amount)
         block = self.connection.command(command)
         self._store_result(block)
         return True
@@ -387,7 +420,7 @@ class Cursor(object):
                     typesizes = [[int(j) for j in i.split()] for i in values]
                     internal_size = [x[0] for x in typesizes]
                     for num, typeelem in enumerate(type_):
-                        if typeelem in ['decimal']:
+                        if typeelem in ["decimal"]:
                             precision[num] = typesizes[num][0]
                             scale[num] = typesizes[num][1]
                 else:
@@ -397,8 +430,17 @@ class Cursor(object):
 
                 description = []
                 for i in range(columns):
-                    description.append(Description(column_name[i], type_[i], display_size[i], internal_size[i],
-                                                   precision[i], scale[i], null_ok[i]))
+                    description.append(
+                        Description(
+                            column_name[i],
+                            type_[i],
+                            display_size[i],
+                            internal_size[i],
+                            precision[i],
+                            scale[i],
+                            null_ok[i],
+                        )
+                    )
                 self.description = description
                 self._offset = 0
                 self.lastrowid = None
@@ -448,15 +490,20 @@ class Cursor(object):
         """
         parses a mapi data tuple, and returns a list of python types
         """
-        elements = line[1:-1].split(',\t')
+        elements = line[1:-1].split(",\t")
         if len(elements) == len(self.description):
-            return tuple([pythonize.convert(element.strip(), description[1])
-                          for (element, description) in zip(elements,
-                                                            self.description)])
+            return tuple(
+                [
+                    pythonize.convert(element.strip(), description[1])
+                    for (element, description) in zip(elements, self.description)
+                ]
+            )
         else:
-            self._exception_handler(InterfaceError, "length of row doesn't match header")
+            self._exception_handler(
+                InterfaceError, "length of row doesn't match header"
+            )
 
-    def scroll(self, value, mode='relative'):
+    def scroll(self, value, mode="relative"):
         """
         Scroll the cursor in the result set to a new position according
         to mode.
@@ -470,11 +517,11 @@ class Cursor(object):
         """
         self._check_executed()
 
-        if mode not in ['relative', 'absolute']:
+        if mode not in ["relative", "absolute"]:
             msg = "unknown mode '%s'" % mode
             self._exception_handler(ProgrammingError, msg)
 
-        if mode == 'relative':
+        if mode == "relative":
             value += self.rownumber
 
         if value > self.rowcount:
@@ -483,7 +530,7 @@ class Cursor(object):
         self._offset = value
         end = min(self.rowcount, self.rownumber + self.arraysize)
         amount = end - self._offset
-        command = 'Xexport %s %s %s' % (self._query_id, self._offset, amount)
+        command = "Xexport %s %s %s" % (self._query_id, self._offset, amount)
         block = self.connection.command(command)
         self._store_result(block)
 

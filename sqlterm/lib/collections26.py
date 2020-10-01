@@ -1,8 +1,9 @@
-__all__ = ['Counter', 'deque', 'defaultdict', 'namedtuple', 'OrderedDict']
+__all__ = ["Counter", "deque", "defaultdict", "namedtuple", "OrderedDict"]
 # For bootstrapping reasons, the collection ABCs are defined in _abcoll.py.
 # They should however be considered an integral part of collections.py.
 from _abcoll import *
 import _abcoll
+
 __all__ += _abcoll.__all__
 
 from _collections import deque, defaultdict
@@ -22,8 +23,9 @@ except ImportError:
 ### OrderedDict
 ################################################################################
 
+
 class OrderedDict(dict):
-    'Dictionary that remembers insertion order'
+    "Dictionary that remembers insertion order"
     # An inherited dict maps keys to values.
     # The inherited dict provides __getitem__, __len__, __contains__, and get.
     # The remaining methods are order-aware.
@@ -35,23 +37,23 @@ class OrderedDict(dict):
     # Each link is stored as a list of length three:  [PREV, NEXT, KEY].
 
     def __init__(self, *args, **kwds):
-        '''Initialize an ordered dictionary.  The signature is the same as
+        """Initialize an ordered dictionary.  The signature is the same as
         regular dictionaries, but keyword arguments are not recommended because
         their insertion order is arbitrary.
 
-        '''
+        """
         if len(args) > 1:
-            raise TypeError('expected at most 1 arguments, got %d' % len(args))
+            raise TypeError("expected at most 1 arguments, got %d" % len(args))
         try:
             self.__root
         except AttributeError:
-            self.__root = root = []                     # sentinel node
+            self.__root = root = []  # sentinel node
             root[:] = [root, root, None]
             self.__map = {}
         self.__update(*args, **kwds)
 
     def __setitem__(self, key, value, PREV=0, NEXT=1, dict_setitem=dict.__setitem__):
-        'od.__setitem__(i, y) <==> od[i]=y'
+        "od.__setitem__(i, y) <==> od[i]=y"
         # Setting a new item creates a new link at the end of the linked list,
         # and the inherited dictionary is updated with the new key/value pair.
         if key not in self:
@@ -61,7 +63,7 @@ class OrderedDict(dict):
         dict_setitem(self, key, value)
 
     def __delitem__(self, key, PREV=0, NEXT=1, dict_delitem=dict.__delitem__):
-        'od.__delitem__(y) <==> del od[y]'
+        "od.__delitem__(y) <==> del od[y]"
         # Deleting an existing item uses self.__map to find the link which gets
         # removed by updating the links in the predecessor and successor nodes.
         dict_delitem(self, key)
@@ -70,7 +72,7 @@ class OrderedDict(dict):
         link_next[PREV] = link_prev
 
     def __iter__(self):
-        'od.__iter__() <==> iter(od)'
+        "od.__iter__() <==> iter(od)"
         # Traverse the linked list in order.
         NEXT, KEY = 1, 2
         root = self.__root
@@ -80,7 +82,7 @@ class OrderedDict(dict):
             curr = curr[NEXT]
 
     def __reversed__(self):
-        'od.__reversed__() <==> reversed(od)'
+        "od.__reversed__() <==> reversed(od)"
         # Traverse the linked list in reverse order.
         PREV, KEY = 0, 2
         root = self.__root
@@ -90,7 +92,7 @@ class OrderedDict(dict):
             curr = curr[PREV]
 
     def clear(self):
-        'od.clear() -> None.  Remove all items from od.'
+        "od.clear() -> None.  Remove all items from od."
         for node in self.__map.values():
             del node[:]
         root = self.__root
@@ -101,43 +103,43 @@ class OrderedDict(dict):
     # -- the following methods do not depend on the internal structure --
 
     def keys(self):
-        'od.keys() -> list of keys in od'
+        "od.keys() -> list of keys in od"
         return list(self)
 
     def values(self):
-        'od.values() -> list of values in od'
+        "od.values() -> list of values in od"
         return [self[key] for key in self]
 
     def items(self):
-        'od.items() -> list of (key, value) pairs in od'
+        "od.items() -> list of (key, value) pairs in od"
         return [(key, self[key]) for key in self]
 
     def iterkeys(self):
-        'od.iterkeys() -> an iterator over the keys in od'
+        "od.iterkeys() -> an iterator over the keys in od"
         return iter(self)
 
     def itervalues(self):
-        'od.itervalues -> an iterator over the values in od'
+        "od.itervalues -> an iterator over the values in od"
         for k in self:
             yield self[k]
 
     def iteritems(self):
-        'od.iteritems -> an iterator over the (key, value) pairs in od'
+        "od.iteritems -> an iterator over the (key, value) pairs in od"
         for k in self:
             yield (k, self[k])
 
     update = MutableMapping.update
 
-    __update = update # let subclasses override update without breaking __init__
+    __update = update  # let subclasses override update without breaking __init__
 
     __marker = object()
 
     def pop(self, key, default=__marker):
-        '''od.pop(k[,d]) -> v, remove specified key and return the corresponding
+        """od.pop(k[,d]) -> v, remove specified key and return the corresponding
         value.  If key is not found, d is returned if given, otherwise KeyError
         is raised.
 
-        '''
+        """
         if key in self:
             result = self[key]
             del self[key]
@@ -147,38 +149,38 @@ class OrderedDict(dict):
         return default
 
     def setdefault(self, key, default=None):
-        'od.setdefault(k[,d]) -> od.get(k,d), also set od[k]=d if k not in od'
+        "od.setdefault(k[,d]) -> od.get(k,d), also set od[k]=d if k not in od"
         if key in self:
             return self[key]
         self[key] = default
         return default
 
     def popitem(self, last=True):
-        '''od.popitem() -> (k, v), return and remove a (key, value) pair.
+        """od.popitem() -> (k, v), return and remove a (key, value) pair.
         Pairs are returned in LIFO order if last is true or FIFO order if false.
 
-        '''
+        """
         if not self:
-            raise KeyError('dictionary is empty')
+            raise KeyError("dictionary is empty")
         key = next(reversed(self) if last else iter(self))
         value = self.pop(key)
         return key, value
 
     def __repr__(self, _repr_running={}):
-        'od.__repr__() <==> repr(od)'
+        "od.__repr__() <==> repr(od)"
         call_key = id(self), _get_ident()
         if call_key in _repr_running:
-            return '...'
+            return "..."
         _repr_running[call_key] = 1
         try:
             if not self:
-                return '%s()' % (self.__class__.__name__,)
-            return '%s(%r)' % (self.__class__.__name__, list(self.items()))
+                return "%s()" % (self.__class__.__name__,)
+            return "%s(%r)" % (self.__class__.__name__, list(self.items()))
         finally:
             del _repr_running[call_key]
 
     def __reduce__(self):
-        'Return state information for pickling'
+        "Return state information for pickling"
         items = [[k, self[k]] for k in self]
         inst_dict = vars(self).copy()
         for k in vars(OrderedDict()):
@@ -188,31 +190,31 @@ class OrderedDict(dict):
         return self.__class__, (items,)
 
     def copy(self):
-        'od.copy() -> a shallow copy of od'
+        "od.copy() -> a shallow copy of od"
         return self.__class__(self)
 
     @classmethod
     def fromkeys(cls, iterable, value=None):
-        '''OD.fromkeys(S[, v]) -> New ordered dictionary with keys from S.
+        """OD.fromkeys(S[, v]) -> New ordered dictionary with keys from S.
         If not specified, the value defaults to None.
 
-        '''
+        """
         self = cls()
         for key in iterable:
             self[key] = value
         return self
 
     def __eq__(self, other):
-        '''od.__eq__(y) <==> od==y.  Comparison to another OD is order-sensitive
+        """od.__eq__(y) <==> od==y.  Comparison to another OD is order-sensitive
         while comparison to a regular mapping is order-insensitive.
 
-        '''
+        """
         if isinstance(other, OrderedDict):
-            return len(self)==len(other) and list(self.items()) == list(other.items())
+            return len(self) == len(other) and list(self.items()) == list(other.items())
         return dict.__eq__(self, other)
 
     def __ne__(self, other):
-        'od.__ne__(y) <==> od!=y'
+        "od.__ne__(y) <==> od!=y"
         return not self == other
 
     # -- the following methods support python 3.x style dictionary views --
@@ -233,6 +235,7 @@ class OrderedDict(dict):
 ################################################################################
 ### namedtuple
 ################################################################################
+
 
 def namedtuple(typename, field_names, verbose=False, rename=False):
     """Returns a new subclass of tuple with named fields.
@@ -261,38 +264,55 @@ def namedtuple(typename, field_names, verbose=False, rename=False):
     # Parse and validate the field names.  Validation serves two purposes,
     # generating informative error messages and preventing template injection attacks.
     if isinstance(field_names, str):
-        field_names = field_names.replace(',', ' ').split() # names separated by whitespace and/or commas
+        field_names = field_names.replace(
+            ",", " "
+        ).split()  # names separated by whitespace and/or commas
     field_names = tuple(map(str, field_names))
     if rename:
         names = list(field_names)
         seen = set()
         for i, name in enumerate(names):
-            if (not all(c.isalnum() or c=='_' for c in name) or _iskeyword(name)
-                or not name or name[0].isdigit() or name.startswith('_')
-                or name in seen):
-                names[i] = '_%d' % i
+            if (
+                not all(c.isalnum() or c == "_" for c in name)
+                or _iskeyword(name)
+                or not name
+                or name[0].isdigit()
+                or name.startswith("_")
+                or name in seen
+            ):
+                names[i] = "_%d" % i
             seen.add(name)
         field_names = tuple(names)
     for name in (typename,) + field_names:
-        if not all(c.isalnum() or c=='_' for c in name):
-            raise ValueError('Type names and field names can only contain alphanumeric characters and underscores: %r' % name)
+        if not all(c.isalnum() or c == "_" for c in name):
+            raise ValueError(
+                "Type names and field names can only contain alphanumeric characters and underscores: %r"
+                % name
+            )
         if _iskeyword(name):
-            raise ValueError('Type names and field names cannot be a keyword: %r' % name)
+            raise ValueError(
+                "Type names and field names cannot be a keyword: %r" % name
+            )
         if name[0].isdigit():
-            raise ValueError('Type names and field names cannot start with a number: %r' % name)
+            raise ValueError(
+                "Type names and field names cannot start with a number: %r" % name
+            )
     seen_names = set()
     for name in field_names:
-        if name.startswith('_') and not rename:
-            raise ValueError('Field names cannot start with an underscore: %r' % name)
+        if name.startswith("_") and not rename:
+            raise ValueError("Field names cannot start with an underscore: %r" % name)
         if name in seen_names:
-            raise ValueError('Encountered duplicate field name: %r' % name)
+            raise ValueError("Encountered duplicate field name: %r" % name)
         seen_names.add(name)
 
     # Create and fill-in the class template
     numfields = len(field_names)
-    argtxt = repr(field_names).replace("'", "")[1:-1]   # tuple repr without parens or quotes
-    reprtxt = ', '.join('%s=%%r' % name for name in field_names)
-    template = '''class %(typename)s(tuple):
+    argtxt = repr(field_names).replace("'", "")[
+        1:-1
+    ]  # tuple repr without parens or quotes
+    reprtxt = ", ".join("%s=%%r" % name for name in field_names)
+    template = (
+        """class %(typename)s(tuple):
         '%(typename)s(%(argtxt)s)' \n
         __slots__ = () \n
         _fields = %(field_names)r \n
@@ -321,20 +341,30 @@ def namedtuple(typename, field_names, verbose=False, rename=False):
             return result \n
         def __getnewargs__(self):
             'Return self as a plain tuple.  Used by copy and pickle.'
-            return tuple(self) \n\n''' % locals()
+            return tuple(self) \n\n"""
+        % locals()
+    )
     for i, name in enumerate(field_names):
-        template += "        %s = _property(_itemgetter(%d), doc='Alias for field number %d')\n" % (name, i, i)
+        template += (
+            "        %s = _property(_itemgetter(%d), doc='Alias for field number %d')\n"
+            % (name, i, i)
+        )
     if verbose:
         print(template)
 
     # Execute the template string in a temporary namespace and
     # support tracing utilities by setting a value for frame.f_globals['__name__']
-    namespace = dict(_itemgetter=_itemgetter, __name__='namedtuple_%s' % typename,
-                     OrderedDict=OrderedDict, _property=property, _tuple=tuple)
+    namespace = dict(
+        _itemgetter=_itemgetter,
+        __name__="namedtuple_%s" % typename,
+        OrderedDict=OrderedDict,
+        _property=property,
+        _tuple=tuple,
+    )
     try:
         exec(template, namespace)
     except SyntaxError as e:
-        raise SyntaxError(e.message + ':\n' + template)
+        raise SyntaxError(e.message + ":\n" + template)
     result = namespace[typename]
 
     # For pickling to work, the __module__ variable needs to be set to the frame
@@ -342,7 +372,7 @@ def namedtuple(typename, field_names, verbose=False, rename=False):
     # sys._getframe is not defined (Jython for example) or sys._getframe is not
     # defined for arguments greater than 0 (IronPython).
     try:
-        result.__module__ = _sys._getframe(1).f_globals.get('__name__', '__main__')
+        result.__module__ = _sys._getframe(1).f_globals.get("__name__", "__main__")
     except (AttributeError, ValueError):
         pass
 
@@ -353,8 +383,9 @@ def namedtuple(typename, field_names, verbose=False, rename=False):
 ###  Counter
 ########################################################################
 
+
 class Counter(dict):
-    '''Dict subclass for counting hashable items.  Sometimes called a bag
+    """Dict subclass for counting hashable items.  Sometimes called a bag
     or multiset.  Elements are stored as dictionary keys and their counts
     are stored as dictionary values.
 
@@ -396,7 +427,8 @@ class Counter(dict):
     >>> c.most_common()                 # 'b' is still in, but its count is zero
     [('a', 3), ('c', 1), ('b', 0)]
 
-    '''
+    """
+
     # References:
     #   http://en.wikipedia.org/wiki/Multiset
     #   http://www.gnu.org/software/smalltalk/manual-base/html_node/Bag.html
@@ -405,7 +437,7 @@ class Counter(dict):
     #   Knuth, TAOCP Vol. II section 4.6.3
 
     def __init__(self, iterable=None, **kwds):
-        '''Create a new, empty Counter object.  And if given, count elements
+        """Create a new, empty Counter object.  And if given, count elements
         from an input iterable.  Or, initialize the count from another mapping
         of elements to their counts.
 
@@ -414,30 +446,30 @@ class Counter(dict):
         >>> c = Counter({'a': 4, 'b': 2})           # a new counter from a mapping
         >>> c = Counter(a=4, b=2)                   # a new counter from keyword args
 
-        '''
+        """
         super(Counter, self).__init__()
         self.update(iterable, **kwds)
 
     def __missing__(self, key):
-        'The count of elements not in the Counter is zero.'
+        "The count of elements not in the Counter is zero."
         # Needed so that self[missing_item] does not raise KeyError
         return 0
 
     def most_common(self, n=None):
-        '''List the n most common elements and their counts from the most
+        """List the n most common elements and their counts from the most
         common to the least.  If n is None, then list all element counts.
 
         >>> Counter('abcdeabcdabcaba').most_common(3)
         [('a', 5), ('b', 4), ('c', 3)]
 
-        '''
+        """
         # Emulate Bag.sortedByCount from Smalltalk
         if n is None:
             return sorted(iter(self.items()), key=_itemgetter(1), reverse=True)
         return _heapq.nlargest(n, iter(self.items()), key=_itemgetter(1))
 
     def elements(self):
-        '''Iterator over elements repeating each as many times as its count.
+        """Iterator over elements repeating each as many times as its count.
 
         >>> c = Counter('ABCABC')
         >>> sorted(c.elements())
@@ -454,7 +486,7 @@ class Counter(dict):
         Note, if an element's count has been set to zero or is a negative
         number, elements() will ignore it.
 
-        '''
+        """
         # Emulate Bag.do from Smalltalk and Multiset.begin from C++.
         return _chain.from_iterable(_starmap(_repeat, iter(self.items())))
 
@@ -465,10 +497,11 @@ class Counter(dict):
         # There is no equivalent method for counters because setting v=1
         # means that no element can have a count greater than one.
         raise NotImplementedError(
-            'Counter.fromkeys() is undefined.  Use Counter(iterable) instead.')
+            "Counter.fromkeys() is undefined.  Use Counter(iterable) instead."
+        )
 
     def update(self, iterable=None, **kwds):
-        '''Like dict.update() but add counts instead of replacing them.
+        """Like dict.update() but add counts instead of replacing them.
 
         Source can be an iterable, a dictionary, or another Counter instance.
 
@@ -479,7 +512,7 @@ class Counter(dict):
         >>> c['h']                      # four 'h' in which, witch, and watch
         4
 
-        '''
+        """
         # The regular dict.update() operation makes no sense here because the
         # replace behavior results in the some of original untouched counts
         # being mixed-in with all of the other counts for a mismash that
@@ -494,7 +527,9 @@ class Counter(dict):
                     for elem, count in iterable.items():
                         self[elem] = self_get(elem, 0) + count
                 else:
-                    super(Counter, self).update(iterable) # fast path when counter is empty
+                    super(Counter, self).update(
+                        iterable
+                    )  # fast path when counter is empty
             else:
                 self_get = self.get
                 for elem in iterable:
@@ -503,7 +538,7 @@ class Counter(dict):
             self.update(kwds)
 
     def subtract(self, iterable=None, **kwds):
-        '''Like dict.update() but subtracts counts instead of replacing them.
+        """Like dict.update() but subtracts counts instead of replacing them.
         Counts can be reduced below zero.  Both the inputs and outputs are
         allowed to contain zero and negative counts.
 
@@ -517,7 +552,7 @@ class Counter(dict):
         >>> c['w']                          # 1 in which, minus 1 in witch, minus 1 in watch
         -1
 
-        '''
+        """
         if iterable is not None:
             self_get = self.get
             if isinstance(iterable, Mapping):
@@ -530,22 +565,22 @@ class Counter(dict):
             self.subtract(kwds)
 
     def copy(self):
-        'Return a shallow copy.'
+        "Return a shallow copy."
         return self.__class__(self)
 
     def __reduce__(self):
         return self.__class__, (dict(self),)
 
     def __delitem__(self, elem):
-        'Like dict.__delitem__() but does not raise KeyError for missing values.'
+        "Like dict.__delitem__() but does not raise KeyError for missing values."
         if elem in self:
             super(Counter, self).__delitem__(elem)
 
     def __repr__(self):
         if not self:
-            return '%s()' % self.__class__.__name__
-        items = ', '.join(map('%r: %r'.__mod__, self.most_common()))
-        return '%s({%s})' % (self.__class__.__name__, items)
+            return "%s()" % self.__class__.__name__
+        items = ", ".join(map("%r: %r".__mod__, self.most_common()))
+        return "%s({%s})" % (self.__class__.__name__, items)
 
     # Multiset-style mathematical operations discussed in:
     #       Knuth TAOCP Volume II section 4.6.3 exercise 19
@@ -557,12 +592,12 @@ class Counter(dict):
     #       c += Counter()
 
     def __add__(self, other):
-        '''Add counts from two counters.
+        """Add counts from two counters.
 
         >>> Counter('abbb') + Counter('bcc')
         Counter({'b': 4, 'c': 2, 'a': 1})
 
-        '''
+        """
         if not isinstance(other, Counter):
             return NotImplemented
         result = Counter()
@@ -576,12 +611,12 @@ class Counter(dict):
         return result
 
     def __sub__(self, other):
-        ''' Subtract count, but keep only results with positive counts.
+        """Subtract count, but keep only results with positive counts.
 
         >>> Counter('abbbc') - Counter('bccd')
         Counter({'b': 2, 'a': 1})
 
-        '''
+        """
         if not isinstance(other, Counter):
             return NotImplemented
         result = Counter()
@@ -595,12 +630,12 @@ class Counter(dict):
         return result
 
     def __or__(self, other):
-        '''Union is the maximum of value in either of the input counters.
+        """Union is the maximum of value in either of the input counters.
 
         >>> Counter('abbb') | Counter('bcc')
         Counter({'b': 3, 'c': 2, 'a': 1})
 
-        '''
+        """
         if not isinstance(other, Counter):
             return NotImplemented
         result = Counter()
@@ -615,12 +650,12 @@ class Counter(dict):
         return result
 
     def __and__(self, other):
-        ''' Intersection is the minimum of corresponding counts.
+        """Intersection is the minimum of corresponding counts.
 
         >>> Counter('abbb') & Counter('bcc')
         Counter({'b': 1})
 
-        '''
+        """
         if not isinstance(other, Counter):
             return NotImplemented
         result = Counter()
@@ -632,37 +667,42 @@ class Counter(dict):
         return result
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # verify that instances can be pickled
     from pickle import loads, dumps
-    Point = namedtuple('Point', 'x, y', True)
+
+    Point = namedtuple("Point", "x, y", True)
     p = Point(x=10, y=20)
     assert p == loads(dumps(p))
 
     # test and demonstrate ability to override methods
-    class Point(namedtuple('Point', 'x y')):
+    class Point(namedtuple("Point", "x y")):
         __slots__ = ()
+
         @property
         def hypot(self):
             return (self.x ** 2 + self.y ** 2) ** 0.5
-        def __str__(self):
-            return 'Point: x=%6.3f  y=%6.3f  hypot=%6.3f' % (self.x, self.y, self.hypot)
 
-    for p in Point(3, 4), Point(14, 5/7.):
+        def __str__(self):
+            return "Point: x=%6.3f  y=%6.3f  hypot=%6.3f" % (self.x, self.y, self.hypot)
+
+    for p in Point(3, 4), Point(14, 5 / 7.0):
         print(p)
 
-    class Point(namedtuple('Point', 'x y')):
-        'Point class with optimized _make() and _replace() without error-checking'
+    class Point(namedtuple("Point", "x y")):
+        "Point class with optimized _make() and _replace() without error-checking"
         __slots__ = ()
         _make = classmethod(tuple.__new__)
+
         def _replace(self, _map=map, **kwds):
-            return self._make(_map(kwds.get, ('x', 'y'), self))
+            return self._make(_map(kwds.get, ("x", "y"), self))
 
     print(Point(11, 22)._replace(x=100))
 
-    Point3D = namedtuple('Point3D', Point._fields + ('z',))
+    Point3D = namedtuple("Point3D", Point._fields + ("z",))
     print(Point3D.__doc__)
 
     import doctest
-    TestResults = namedtuple('TestResults', 'failed attempted')
+
+    TestResults = namedtuple("TestResults", "failed attempted")
     print(TestResults(*doctest.testmod()))

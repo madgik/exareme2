@@ -5,7 +5,6 @@ from sqlparse.engine.grouping import Statement, Token
 
 
 class TokenFilter(object):
-
     def __init__(self, **options):
         self.options = options
 
@@ -15,7 +14,6 @@ class TokenFilter(object):
 
 
 class StatementFilter(TokenFilter):
-
     def __init__(self):
         TokenFilter.__init__(self)
         self._in_declare = False
@@ -29,8 +27,7 @@ class StatementFilter(TokenFilter):
 
     def _change_splitlevel(self, ttype, value):
         # PostgreSQL
-        if (ttype == T.Name.Builtin
-            and value.startswith('$') and value.endswith('$')):
+        if ttype == T.Name.Builtin and value.startswith("$") and value.endswith("$"):
             if self._in_dbldollar:
                 self._in_dbldollar = False
                 return -1
@@ -46,24 +43,24 @@ class StatementFilter(TokenFilter):
 
         unified = value.upper()
 
-        if unified == 'DECLARE':
+        if unified == "DECLARE":
             self._in_declare = True
             return 1
 
-        if unified == 'BEGIN':
+        if unified == "BEGIN":
             if self._in_declare:
                 return 0
             return 0
 
-        if unified == 'END':
+        if unified == "END":
             # Should this respect a preceeding BEGIN?
             # In CASE ... WHEN ... END this results in a split level -1.
             return -1
 
-        if ttype is T.Keyword.DDL and unified.startswith('CREATE'):
+        if ttype is T.Keyword.DDL and unified.startswith("CREATE"):
             self._is_create = True
 
-        if unified in ('IF', 'FOR') and self._is_create:
+        if unified in ("IF", "FOR") and self._is_create:
             return 1
 
         # Default
@@ -76,8 +73,11 @@ class StatementFilter(TokenFilter):
         stmt_tokens = []
         for ttype, value in stream:
             # Before appending the token
-            if (consume_ws and ttype is not T.Whitespace
-                and ttype is not T.Comment.Single):
+            if (
+                consume_ws
+                and ttype is not T.Whitespace
+                and ttype is not T.Comment.Single
+            ):
                 consume_ws = False
                 stmt.tokens = stmt_tokens
 
@@ -93,10 +93,8 @@ class StatementFilter(TokenFilter):
 
             stmt_tokens.append(Token(ttype, value))
 
-
             # After appending the token
-            if (splitlevel <= 0 and ttype is T.Punctuation
-                and value == ';'):
+            if splitlevel <= 0 and ttype is T.Punctuation and value == ";":
                 consume_ws = True
         if stmt is not None:
             stmt.tokens = stmt_tokens

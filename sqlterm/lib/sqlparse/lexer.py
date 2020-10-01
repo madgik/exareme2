@@ -22,6 +22,7 @@ from sqlparse.tokens import _TokenType
 class include(str):
     pass
 
+
 class combined(tuple):
     """Indicates a state combined from multiple states."""
 
@@ -31,6 +32,7 @@ class combined(tuple):
     def __init__(self, *args):
         # tuple.__init__ doesn't do anything
         pass
+
 
 def is_keyword(value):
     test = value.upper()
@@ -61,7 +63,7 @@ class LexerMeta(type):
 
     def _process_state(cls, unprocessed, processed, state):
         assert type(state) is str, "wrong state name %r" % state
-        assert state[0] != '#', "invalid state name %r" % state
+        assert state[0] != "#", "invalid state name %r" % state
         if state in processed:
             return processed[state]
         tokens = processed[state] = []
@@ -70,8 +72,7 @@ class LexerMeta(type):
             if isinstance(tdef, include):
                 # it's a state reference
                 assert tdef != state, "circular state reference %r" % state
-                tokens.extend(cls._process_state(
-                    unprocessed, processed, str(tdef)))
+                tokens.extend(cls._process_state(unprocessed, processed, str(tdef)))
                 continue
 
             assert type(tdef) is tuple, "wrong rule def %r" % tdef
@@ -79,12 +80,16 @@ class LexerMeta(type):
             try:
                 rex = re.compile(tdef[0], rflags).match
             except Exception as err:
-                raise ValueError(("uncompilable regex %r in state"
-                                  " %r of %r: %s"
-                                  % (tdef[0], state, cls, err)))
+                raise ValueError(
+                    (
+                        "uncompilable regex %r in state"
+                        " %r of %r: %s" % (tdef[0], state, cls, err)
+                    )
+                )
 
-            assert type(tdef[1]) is _TokenType or callable(tdef[1]), \
-                   'token type must be simple type or callable, not %r' % (tdef[1],)
+            assert type(tdef[1]) is _TokenType or callable(
+                tdef[1]
+            ), "token type must be simple type or callable, not %r" % (tdef[1],)
 
             if len(tdef) == 2:
                 new_state = None
@@ -92,36 +97,37 @@ class LexerMeta(type):
                 tdef2 = tdef[2]
                 if isinstance(tdef2, str):
                     # an existing state
-                    if tdef2 == '#pop':
+                    if tdef2 == "#pop":
                         new_state = -1
                     elif tdef2 in unprocessed:
                         new_state = (tdef2,)
-                    elif tdef2 == '#push':
+                    elif tdef2 == "#push":
                         new_state = tdef2
-                    elif tdef2[:5] == '#pop:':
+                    elif tdef2[:5] == "#pop:":
                         new_state = -int(tdef2[5:])
                     else:
-                        assert False, 'unknown new state %r' % tdef2
+                        assert False, "unknown new state %r" % tdef2
                 elif isinstance(tdef2, combined):
                     # combine a new state from existing ones
-                    new_state = '_tmp_%d' % cls._tmpname
+                    new_state = "_tmp_%d" % cls._tmpname
                     cls._tmpname += 1
                     itokens = []
                     for istate in tdef2:
-                        assert istate != state, 'circular state ref %r' % istate
-                        itokens.extend(cls._process_state(unprocessed,
-                                                          processed, istate))
+                        assert istate != state, "circular state ref %r" % istate
+                        itokens.extend(
+                            cls._process_state(unprocessed, processed, istate)
+                        )
                     processed[new_state] = itokens
                     new_state = (new_state,)
                 elif isinstance(tdef2, tuple):
                     # push more than one state
                     for state in tdef2:
-                        assert (state in unprocessed or
-                                state in ('#pop', '#push')), \
-                               'unknown new state ' + state
+                        assert state in unprocessed or state in ("#pop", "#push"), (
+                            "unknown new state " + state
+                        )
                     new_state = tdef2
                 else:
-                    assert False, 'unknown new state def %r' % tdef2
+                    assert False, "unknown new state def %r" % tdef2
             tokens.append((rex, tdef[1], new_state))
         return tokens
 
@@ -129,16 +135,16 @@ class LexerMeta(type):
         cls._all_tokens = {}
         cls._tmpname = 0
         processed = cls._all_tokens[cls.__name__] = {}
-        #tokendefs = tokendefs or cls.tokens[name]
+        # tokendefs = tokendefs or cls.tokens[name]
         for state in list(cls.tokens.keys()):
             cls._process_state(cls.tokens, processed, state)
         return processed
 
     def __call__(cls, *args, **kwds):
-        if not hasattr(cls, '_tokens'):
+        if not hasattr(cls, "_tokens"):
             cls._all_tokens = {}
             cls._tmpname = 0
-            if hasattr(cls, 'token_variants') and cls.token_variants:
+            if hasattr(cls, "token_variants") and cls.token_variants:
                 # don't process yet
                 pass
             else:
@@ -147,47 +153,45 @@ class LexerMeta(type):
         return type.__call__(cls, *args, **kwds)
 
 
-
-
 class Lexer(metaclass=LexerMeta):
 
-    encoding = 'utf-8'
+    encoding = "utf-8"
     stripall = False
     stripnl = False
     tabsize = 0
     flags = re.IGNORECASE
 
     tokens = {
-        'root': [
-            (r'--.*?(\r|\n|\r\n)', Comment.Single),
-            (r'(\r|\n|\r\n)', Newline),
-            (r'\s+', Whitespace),
-            (r'/\*', Comment.Multiline, 'multiline-comments'),
-            (r':=', Assignment),
-            (r'::', Punctuation),
-            (r'[*]', Wildcard),
+        "root": [
+            (r"--.*?(\r|\n|\r\n)", Comment.Single),
+            (r"(\r|\n|\r\n)", Newline),
+            (r"\s+", Whitespace),
+            (r"/\*", Comment.Multiline, "multiline-comments"),
+            (r":=", Assignment),
+            (r"::", Punctuation),
+            (r"[*]", Wildcard),
             (r"`(``|[^`])*`", Name),
             (r"´(´´|[^´])*´", Name),
-            (r'@[a-zA-Z_][a-zA-Z0-9_]+', Name),
-            (r'[<>=~!]+', Operator.Comparsion),
-            (r'[+/@#%^&|`?^-]+', Operator),
-            (r'[0-9]+', Number.Integer),
+            (r"@[a-zA-Z_][a-zA-Z0-9_]+", Name),
+            (r"[<>=~!]+", Operator.Comparsion),
+            (r"[+/@#%^&|`?^-]+", Operator),
+            (r"[0-9]+", Number.Integer),
             # TODO: Backslash escapes?
             (r"'(''|[^'])*'", String.Single),
-            (r'"(""|[^"])*"', String.Symbol), # not a real string literal in ANSI SQL
-            (r'(LEFT |RIGHT )?(INNER |OUTER )?JOIN\b', Keyword),
-            (r'END( IF| LOOP)?\b', Keyword),
-            (r'CREATE( OR REPLACE)?\b', Keyword.DDL),
-            (r'[a-zA-Z_][a-zA-Z0-9_]*', is_keyword),
-            (r'\$([a-zA-Z_][a-zA-Z0-9_]*)?\$', Name.Builtin),
-            (r'[;:()\[\],\.]', Punctuation),
+            (r'"(""|[^"])*"', String.Symbol),  # not a real string literal in ANSI SQL
+            (r"(LEFT |RIGHT )?(INNER |OUTER )?JOIN\b", Keyword),
+            (r"END( IF| LOOP)?\b", Keyword),
+            (r"CREATE( OR REPLACE)?\b", Keyword.DDL),
+            (r"[a-zA-Z_][a-zA-Z0-9_]*", is_keyword),
+            (r"\$([a-zA-Z_][a-zA-Z0-9_]*)?\$", Name.Builtin),
+            (r"[;:()\[\],\.]", Punctuation),
         ],
-        'multiline-comments': [
-            (r'/\*', Comment.Multiline, 'multiline-comments'),
-            (r'\*/', Comment.Multiline, '#pop'),
-            (r'[^/\*]+', Comment.Multiline),
-            (r'[/*]', Comment.Multiline)
-        ]
+        "multiline-comments": [
+            (r"/\*", Comment.Multiline, "multiline-comments"),
+            (r"\*/", Comment.Multiline, "#pop"),
+            (r"[^/\*]+", Comment.Multiline),
+            (r"[/*]", Comment.Multiline),
+        ],
     }
 
     def __init__(self):
@@ -195,6 +199,7 @@ class Lexer(metaclass=LexerMeta):
 
     def add_filter(self, filter_, **options):
         from sqlparse.filters import Filter
+
         if not isinstance(filter_, Filter):
             filter_ = filter_(**options)
         self.filters.append(filter_)
@@ -209,43 +214,45 @@ class Lexer(metaclass=LexerMeta):
         wanted and applies registered filters.
         """
         if not isinstance(text, str):
-            if self.encoding == 'guess':
+            if self.encoding == "guess":
                 try:
-                    text = text.decode('utf-8')
-                    if text.startswith('\ufeff'):
-                        text = text[len('\ufeff'):]
+                    text = text.decode("utf-8")
+                    if text.startswith("\ufeff"):
+                        text = text[len("\ufeff") :]
                 except UnicodeDecodeError:
-                    text = text.decode('latin1')
-            elif self.encoding == 'chardet':
+                    text = text.decode("latin1")
+            elif self.encoding == "chardet":
                 try:
                     import chardet
                 except ImportError:
-                    raise ImportError('To enable chardet encoding guessing, '
-                                      'please install the chardet library '
-                                      'from http://chardet.feedparser.org/')
+                    raise ImportError(
+                        "To enable chardet encoding guessing, "
+                        "please install the chardet library "
+                        "from http://chardet.feedparser.org/"
+                    )
                 enc = chardet.detect(text)
-                text = text.decode(enc['encoding'])
+                text = text.decode(enc["encoding"])
             else:
                 text = text.decode(self.encoding)
         if self.stripall:
             text = text.strip()
         elif self.stripnl:
-            text = text.strip('\n')
+            text = text.strip("\n")
         if self.tabsize > 0:
             text = text.expandtabs(self.tabsize)
-#        if not text.endswith('\n'):
-#            text += '\n'
+        #        if not text.endswith('\n'):
+        #            text += '\n'
 
         def streamer():
             for i, t, v in self.get_tokens_unprocessed(text):
                 yield t, v
+
         stream = streamer()
         if not unfiltered:
             stream = apply_filters(stream, self.filters, self)
         return stream
 
-
-    def get_tokens_unprocessed(self, text, stack=('root',)):
+    def get_tokens_unprocessed(self, text, stack=("root",)):
         """
         Split ``text`` into (tokentype, text) pairs.
 
@@ -266,7 +273,7 @@ class Lexer(metaclass=LexerMeta):
                         yield pos, known_names[value], value
                     elif type(action) is _TokenType:
                         yield pos, action, value
-                    elif hasattr(action, '__call__'):
+                    elif hasattr(action, "__call__"):
                         ttype, value = action(value)
                         known_names[value] = ttype
                         yield pos, ttype, value
@@ -278,16 +285,16 @@ class Lexer(metaclass=LexerMeta):
                         # state transition
                         if isinstance(new_state, tuple):
                             for state in new_state:
-                                if state == '#pop':
+                                if state == "#pop":
                                     statestack.pop()
-                                elif state == '#push':
+                                elif state == "#push":
                                     statestack.append(statestack[-1])
                                 else:
                                     statestack.append(state)
                         elif isinstance(new_state, int):
                             # pop
                             del statestack[new_state:]
-                        elif new_state == '#push':
+                        elif new_state == "#push":
                             statestack.append(statestack[-1])
                         else:
                             assert False, "wrong state def: %r" % new_state
@@ -295,12 +302,12 @@ class Lexer(metaclass=LexerMeta):
                     break
             else:
                 try:
-                    if text[pos] == '\n':
+                    if text[pos] == "\n":
                         # at EOL, reset state to "root"
                         pos += 1
-                        statestack = ['root']
-                        statetokens = tokendefs['root']
-                        yield pos, Text, '\n'
+                        statestack = ["root"]
+                        statetokens = tokendefs["root"]
+                        yield pos, Text, "\n"
                         continue
                     yield pos, Error, text[pos]
                     pos += 1

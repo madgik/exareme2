@@ -12,33 +12,33 @@ and Perl version by Kate Rhodes at:
 
 __author__ = "Phil Budne"
 __revision__ = "$Revision: 1.13 $"
-__version__ = '0.54'
+__version__ = "0.54"
 
-#	Copyright (c) 2007 Stefan Goessner (goessner.net)
+# 	Copyright (c) 2007 Stefan Goessner (goessner.net)
 #       Copyright (c) 2008 Kate Rhodes (masukomi.org)
 #       Copyright (c) 2008-2012 Philip Budne (ultimate.com)
-#	Licensed under the MIT licence: 
-#	
-#	Permission is hereby granted, free of charge, to any person
-#	obtaining a copy of this software and associated documentation
-#	files (the "Software"), to deal in the Software without
-#	restriction, including without limitation the rights to use,
-#	copy, modify, merge, publish, distribute, sublicense, and/or sell
-#	copies of the Software, and to permit persons to whom the
-#	Software is furnished to do so, subject to the following
-#	conditions:
-#	
-#	The above copyright notice and this permission notice shall be
-#	included in all copies or substantial portions of the Software.
-#	
-#	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-#	EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-#	OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-#	NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-#	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-#	WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-#	FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-#	OTHER DEALINGS IN THE SOFTWARE.
+# 	Licensed under the MIT licence:
+#
+# 	Permission is hereby granted, free of charge, to any person
+# 	obtaining a copy of this software and associated documentation
+# 	files (the "Software"), to deal in the Software without
+# 	restriction, including without limitation the rights to use,
+# 	copy, modify, merge, publish, distribute, sublicense, and/or sell
+# 	copies of the Software, and to permit persons to whom the
+# 	Software is furnished to do so, subject to the following
+# 	conditions:
+#
+# 	The above copyright notice and this permission notice shall be
+# 	included in all copies or substantial portions of the Software.
+#
+# 	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# 	EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# 	OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# 	NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# 	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# 	WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# 	FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# 	OTHER DEALINGS IN THE SOFTWARE.
 
 import re
 import sys
@@ -53,11 +53,12 @@ import sys
 # internally keep paths as lists to preserve integer types
 #       (instead of as ';' delimited strings)
 
-__all__ = [ 'jsonpath' ]
+__all__ = ["jsonpath"]
 
 # XXX precompile RE objects on load???
 # re_1 = re.compile(.....)
 # re_2 = re.compile(.....)
+
 
 def normalize(x):
     """normalize the path expression; outside jsonpath to allow testing"""
@@ -66,12 +67,13 @@ def normalize(x):
     # replace index/filter expressions with placeholders
     # Python anonymous functions (lambdas) are cryptic, hard to debug
     def f1(m):
-        n = len(subx)   # before append
+        n = len(subx)  # before append
         g1 = m.group(1)
         subx.append(g1)
         ret = "[#%d]" % n
-#       print "f1:", g1, ret
+        #       print "f1:", g1, ret
         return ret
+
     x = re.sub(r"[\['](\??\(.*?\))[\]']", f1, x)
 
     # added the negative lookbehind -krhodes
@@ -84,19 +86,20 @@ def normalize(x):
     # put expressions back
     def f2(m):
         g1 = m.group(1)
-#       print "f2:", g1
+        #       print "f2:", g1
         return subx[int(g1)]
 
     x = re.sub(r"#([0-9]+)", f2, x)
 
     return x
 
-def jsonpath(obj, expr, result_type='VALUE', debug=0, use_eval=True):
+
+def jsonpath(obj, expr, result_type="VALUE", debug=0, use_eval=True):
     """traverse JSON object using jsonpath expr, returning values or paths"""
 
-    def s(x,y):
+    def s(x, y):
         """concatenate path elements"""
-        return str(x) + ';' + str(y)
+        return str(x) + ";" + str(y)
 
     def isint(x):
         """check if argument represents a decimal integer"""
@@ -104,9 +107,9 @@ def jsonpath(obj, expr, result_type='VALUE', debug=0, use_eval=True):
 
     def as_path(path):
         """convert internal path representation to
-           "full bracket notation" for PATH output"""
-        p = '$'
-        for piece in path.split(';')[1:]:
+        "full bracket notation" for PATH output"""
+        p = "$"
+        for piece in path.split(";")[1:]:
             # make a guess on how to index
             # XXX need to apply \ quoting on '!!
             if isint(piece):
@@ -116,43 +119,52 @@ def jsonpath(obj, expr, result_type='VALUE', debug=0, use_eval=True):
         return p
 
     def store(path, object):
-        if result_type == 'VALUE':
+        if result_type == "VALUE":
             result.append(object)
-        elif result_type == 'IPATH': # Index format path (Python ext)
+        elif result_type == "IPATH":  # Index format path (Python ext)
             # return list of list of indices -- can be used w/o "eval" or split
-            result.append(path.split(';')[1:])
-        else: # PATH
+            result.append(path.split(";")[1:])
+        else:  # PATH
             result.append(as_path(path))
         return path
 
     def trace(expr, obj, path):
-        if debug: print(("trace", expr, "/", path))
+        if debug:
+            print(("trace", expr, "/", path))
         if expr:
-            x = expr.split(';')
+            x = expr.split(";")
             loc = x[0]
-            x = ';'.join(x[1:])
-            if debug: print(("\t", loc, type(obj)))
+            x = ";".join(x[1:])
+            if debug:
+                print(("\t", loc, type(obj)))
             if loc == "*":
+
                 def f03(key, loc, expr, obj, path):
-                    if debug > 1: print(("\tf03", key, loc, expr, path))
+                    if debug > 1:
+                        print(("\tf03", key, loc, expr, path))
                     trace(s(key, expr), obj, path)
+
                 walk(loc, x, obj, path, f03)
             elif loc == "..":
                 trace(x, obj, path)
+
                 def f04(key, loc, expr, obj, path):
-                    if debug > 1: print(("\tf04", key, loc, expr, path))
+                    if debug > 1:
+                        print(("\tf04", key, loc, expr, path))
                     if isinstance(obj, dict):
                         if key in obj:
-                            trace(s('..', expr), obj[key], s(path, key))
+                            trace(s("..", expr), obj[key], s(path, key))
                     else:
                         if key < len(obj):
-                            trace(s('..', expr), obj[key], s(path, key))
+                            trace(s("..", expr), obj[key], s(path, key))
+
                 walk(loc, x, obj, path, f04)
             elif loc == "!":
                 # Perl jsonpath extension: return keys
                 def f06(key, loc, expr, obj, path):
                     if isinstance(obj, dict):
                         trace(expr, key, path)
+
                 walk(loc, x, obj, path, f06)
             elif isinstance(obj, dict) and loc in obj:
                 trace(x, obj[loc], s(path, loc))
@@ -163,16 +175,20 @@ def jsonpath(obj, expr, result_type='VALUE', debug=0, use_eval=True):
             else:
                 # [(index_expression)]
                 if loc.startswith("(") and loc.endswith(")"):
-                    if debug > 1: print(("index", loc))
+                    if debug > 1:
+                        print(("index", loc))
                     e = evalx(loc, obj)
-                    trace(s(e,x), obj, path)
+                    trace(s(e, x), obj, path)
                     return
 
                 # ?(filter_expression)
                 if loc.startswith("?(") and loc.endswith(")"):
-                    if debug > 1: print(("filter", loc))
+                    if debug > 1:
+                        print(("filter", loc))
+
                     def f05(key, loc, expr, obj, path):
-                        if debug > 1: print(("f05", key, loc, expr, path))
+                        if debug > 1:
+                            print(("f05", key, loc, expr, path))
                         if isinstance(obj, dict):
                             eval_result = evalx(loc, obj[key])
                         else:
@@ -184,15 +200,16 @@ def jsonpath(obj, expr, result_type='VALUE', debug=0, use_eval=True):
                     walk(loc, x, obj, path, f05)
                     return
 
-                m = re.match(r'(-?[0-9]*):(-?[0-9]*):?(-?[0-9]*)$', loc)
+                m = re.match(r"(-?[0-9]*):(-?[0-9]*):?(-?[0-9]*)$", loc)
                 if m:
                     if isinstance(obj, (dict, list)):
-                        def max(x,y):
+
+                        def max(x, y):
                             if x > y:
                                 return x
                             return y
 
-                        def min(x,y):
+                        def min(x, y):
                             if x < y:
                                 return x
                             return y
@@ -208,11 +225,11 @@ def jsonpath(obj, expr, result_type='VALUE', debug=0, use_eval=True):
                         step = int(s2) if s2 else 1
 
                         if start < 0:
-                            start = max(0, start+objlen)
+                            start = max(0, start + objlen)
                         else:
                             start = min(objlen, start)
                         if end < 0:
-                            end = max(0, end+objlen)
+                            end = max(0, end + objlen)
                         else:
                             end = min(objlen, end)
 
@@ -224,7 +241,8 @@ def jsonpath(obj, expr, result_type='VALUE', debug=0, use_eval=True):
                 if loc.find(",") >= 0:
                     # [index,index....]
                     for piece in re.split(r"'?,'?", loc):
-                        if debug > 1: print(("piece", piece))
+                        if debug > 1:
+                            print(("piece", piece))
                         trace(s(piece, x), obj, path)
         else:
             store(path, obj)
@@ -240,7 +258,8 @@ def jsonpath(obj, expr, result_type='VALUE', debug=0, use_eval=True):
     def evalx(loc, obj):
         """eval expression"""
 
-        if debug: print(("evalx", loc))
+        if debug:
+            print(("evalx", loc))
 
         # a nod to JavaScript. doesn't work for @.name.name.length
         # Write len(@.name.name) instead!!!
@@ -252,6 +271,7 @@ def jsonpath(obj, expr, result_type='VALUE', debug=0, use_eval=True):
         # XXX handle !@.name.name.name....
         def notvar(m):
             return "'%s' not in __obj" % m.group(1)
+
         loc = re.sub("!@\.([a-zA-Z@_]+)", notvar, loc)
 
         # replace @.name.... with __obj['name']....
@@ -261,35 +281,40 @@ def jsonpath(obj, expr, result_type='VALUE', debug=0, use_eval=True):
                 ret = "__obj"
                 for e in elts:
                     if isint(e):
-                        ret += "[%s]" % e # ain't necessarily so
+                        ret += "[%s]" % e  # ain't necessarily so
                     else:
-                        ret += "['%s']" % e # XXX beware quotes!!!!
+                        ret += "['%s']" % e  # XXX beware quotes!!!!
                 return ret
+
             g1 = m.group(1)
-            elts = g1.split('.')
+            elts = g1.split(".")
             if elts[-1] == "length":
                 return "len(%s)" % brackets(elts[1:-1])
             return brackets(elts[1:])
 
-        loc = re.sub(r'(?<!\\)(@\.[a-zA-Z@_.]+)', varmatch, loc)
+        loc = re.sub(r"(?<!\\)(@\.[a-zA-Z@_.]+)", varmatch, loc)
 
         # removed = -> == translation
         # causes problems if a string contains =
 
         # replace @  w/ "__obj", but \@ means a literal @
-        loc = re.sub(r'(?<!\\)@', "__obj", loc).replace(r'\@', '@')
+        loc = re.sub(r"(?<!\\)@", "__obj", loc).replace(r"\@", "@")
         if not use_eval:
-            if debug: print("eval disabled")
+            if debug:
+                print("eval disabled")
             raise Exception("eval disabled")
-        if debug: print(("eval", loc))
+        if debug:
+            print(("eval", loc))
         try:
             # eval w/ caller globals, w/ local "__obj"!
-            v = eval(loc, caller_globals, {'__obj': obj})
+            v = eval(loc, caller_globals, {"__obj": obj})
         except Exception as e:
-            if debug: print(e)
+            if debug:
+                print(e)
             return False
 
-        if debug: print(("->", v))
+        if debug:
+            print(("->", v))
         return v
 
     # body of jsonpath()
@@ -302,15 +327,16 @@ def jsonpath(obj, expr, result_type='VALUE', debug=0, use_eval=True):
             cleaned_expr = cleaned_expr[2:]
 
         # XXX wrap this in a try??
-        trace(cleaned_expr, obj, '$')
+        trace(cleaned_expr, obj, "$")
 
         if len(result) > 0:
             return result
     return False
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     try:
-        import json        # v2.6
+        import json  # v2.6
     except ImportError:
         import simplejson as json
 
@@ -324,7 +350,7 @@ if __name__ == '__main__':
 
     object = json.load(file(sys.argv[1]))
     path = sys.argv[2]
-    format = 'VALUE'
+    format = "VALUE"
 
     if len(sys.argv) > 3:
         # XXX verify?

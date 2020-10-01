@@ -100,7 +100,7 @@ class Cursor:
         """
         if timeout is None:
             timeout = self._timeout
-        waiter = self._conn._create_waiter('cursor.execute')
+        waiter = self._conn._create_waiter("cursor.execute")
         if self._echo:
             logger.info(operation)
             logger.info("%r", parameters)
@@ -115,13 +115,13 @@ class Cursor:
             self._impl.close()
             raise
 
-        print ("\nquery: ", operation)
-
+        print("\nquery: ", operation)
 
     async def executemany(self, operation, seq_of_parameters):
         # Not supported
         raise psycopg2.ProgrammingError(
-            "executemany cannot be used in asynchronous mode")
+            "executemany cannot be used in asynchronous mode"
+        )
 
     async def callproc(self, procname, parameters=None, *, timeout=None):
         """Call a stored database procedure with the given name.
@@ -135,7 +135,7 @@ class Cursor:
         """
         if timeout is None:
             timeout = self._timeout
-        waiter = self._conn._create_waiter('cursor.callproc')
+        waiter = self._conn._create_waiter("cursor.callproc")
         if self._echo:
             logger.info("CALL %s", procname)
             logger.info("%r", parameters)
@@ -152,8 +152,7 @@ class Cursor:
 
     def begin_nested(self):
         if not self._transaction.is_begin:
-            return _TransactionBeginContextManager(
-                self._transaction.begin())
+            return _TransactionBeginContextManager(self._transaction.begin())
         else:
             return self._transaction.point()
 
@@ -165,8 +164,7 @@ class Cursor:
 
         """
         ret = self._impl.mogrify(operation, parameters)
-        assert not self._conn._isexecuting(), ("Don't support server side "
-                                               "mogrify")
+        assert not self._conn._isexecuting(), "Don't support server side " "mogrify"
         return ret
 
     async def setinputsizes(self, sizes):
@@ -185,8 +183,7 @@ class Cursor:
 
         """
         ret = self._impl.fetchone()
-        assert not self._conn._isexecuting(), ("Don't support server side "
-                                               "cursors yet")
+        assert not self._conn._isexecuting(), "Don't support server side " "cursors yet"
         return ret
 
     def fetchmany(self, size=None):
@@ -206,8 +203,7 @@ class Cursor:
         if size is None:
             size = self._impl.arraysize
         ret = self._impl.fetchmany(size)
-        assert not self._conn._isexecuting(), ("Don't support server side "
-                                               "cursors yet")
+        assert not self._conn._isexecuting(), "Don't support server side " "cursors yet"
         return ret
 
     def fetchall(self):
@@ -218,8 +214,7 @@ class Cursor:
 
         """
         ret = self._impl.fetchall()
-        assert not self._conn._isexecuting(), ("Don't support server side "
-                                               "cursors yet")
+        assert not self._conn._isexecuting(), "Don't support server side " "cursors yet"
         return ret
 
     async def scroll(self, value, mode="relative"):
@@ -231,8 +226,7 @@ class Cursor:
 
         """
         ret = self._impl.scroll(value, mode)
-        assert not self._conn._isexecuting(), ("Don't support server side "
-                                               "cursors yet")
+        assert not self._conn._isexecuting(), "Don't support server side " "cursors yet"
         return ret
 
     @property
@@ -347,18 +341,18 @@ class Cursor:
         # Does nothing
         self._impl.setoutputsize(size, column)
 
-    async def copy_from(self, file, table, sep='\t', null='\\N', size=8192,
-                        columns=None):
-        raise psycopg2.ProgrammingError(
-            "copy_from cannot be used in asynchronous mode")
+    async def copy_from(
+        self, file, table, sep="\t", null="\\N", size=8192, columns=None
+    ):
+        raise psycopg2.ProgrammingError("copy_from cannot be used in asynchronous mode")
 
-    async def copy_to(self, file, table, sep='\t', null='\\N', columns=None):
-        raise psycopg2.ProgrammingError(
-            "copy_to cannot be used in asynchronous mode")
+    async def copy_to(self, file, table, sep="\t", null="\\N", columns=None):
+        raise psycopg2.ProgrammingError("copy_to cannot be used in asynchronous mode")
 
     async def copy_expert(self, sql, file, size=8192):
         raise psycopg2.ProgrammingError(
-            "copy_expert cannot be used in asynchronous mode")
+            "copy_expert cannot be used in asynchronous mode"
+        )
 
     @property
     def timeout(self):
@@ -383,16 +377,10 @@ class Cursor:
         return
 
     def __repr__(self):
-        msg = (
-            '<'
-            '{module_name}::{class_name} '
-            'name={name}, '
-            'closed={closed}'
-            '>'
-        )
+        msg = "<" "{module_name}::{class_name} " "name={name}, " "closed={closed}" ">"
         return msg.format(
             module_name=type(self).__module__,
             class_name=type(self).__name__,
             name=self.name,
-            closed=self.closed
+            closed=self.closed,
         )
