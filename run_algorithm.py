@@ -84,17 +84,6 @@ async def dataflow(
         globalresulttable,
     )
 
-###### this contains an example of how the dataflow looks like in this layer
-async def static_dataflow(algorithm, parameters, attr, db_objects, localtable, globaltable,  viewlocaltable, localschema, globalresulttable = None, globalschema = None):
-    await task._init(db_objects,localtable,localschema,globalresulttable,globalschema)
-    for iternum in range(100):
-        await task._local(iternum, globalresulttable, parameters, attr, db_objects,localtable, algorithm, viewlocaltable, localschema)
-        res = await task._global(iternum, globaltable, parameters, attr, db_objects, localtable, globalresulttable, algorithm, viewlocaltable, globalschema)
-        if res[0][0] > 1000000:
-            break
-    return res
-        
-
 
 #### run function:
 # creates unique table names
