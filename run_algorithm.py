@@ -64,15 +64,14 @@ async def dataflow_parse_and_execute(dataflow,  task_executor):
 
 
 # this is an example dataflow for pearson, this function is not called in the current execution flow, 
-# to run pearson you should edit the call to dataflow function in run_algorithm or rename the
-# two functions below.
-async def dataflow2(task_executor):
+# to run pearson you should edit the call to dataflow function in run_algorithm
+async def dataflow_pearson(task_executor):
     iternum = 0
     await task_executor._local(iternum)
     return await task_executor._global(iternum)
 
 
-async def dataflow(task_executor):    #### this  is an example dataflow for countiter
+async def dataflow_countiter(task_executor):    #### this  is an example dataflow for countiter
         res = 0
         for iternum in range(100):
             await task_executor._local(iternum)
@@ -130,7 +129,8 @@ async def run(algorithm, params, db_objects):
                     algorithm_metadata["algorithms"][c]["global_schema"],
                 )
                 #### run the algorithm dataflow
-                result = await dataflow(task_executor)
+                result = await dataflow_countiter(task_executor)
+                #result = await dataflow_pearson(task_executor)
                 #result =  await dataflow_parse_and_execute(algorithm_instance.dataflow, task_executor)
             except:
 
