@@ -7,8 +7,8 @@ Python's parser module is much much more appropriate to do this job correcty, bu
 The idea behind this is to describe the dataflow in the algorithms file without having to deal with the system's internals. 
 The system then (file run_algorithm.py, function dataflow_parse_and_execute) reads the dataflow that has been defined by the algorithm's developer and replaces the calls to local and global steps with the appropriate calls that actually submit these jobs and handle the database connections and the concurrency.
 After that, the developer can write his algorithm as shown in the countiter.py and pearson.py examples.
-The above is not called in the current execution flow. Currently, run_algorithm.py contains 2 functions dataflow (for countiter) and dataflow2(for pearson)
-The default algorithm that runs is countiter. If you want to run pearson you have to rename `dataflow2` to `dataflow`.
+The above is not called in the current execution flow. Currently, run_algorithm.py contains 2 functions dataflow_countiter (for countiter) and dataflow_pearson(for pearson)
+The default algorithm that runs is countiter. If you want to run pearson you have to edit the function call in function `run`.
 
 As for Postgres test integration, all the functionalities that are specific to the different DBMS have been moved to the connection objects of their aio libs and executed by the connection instance of the global node. This is not the perfect way to implement such an abstraction but a quick and dirty solution which is simpler at this time.
 These functions contain the remote and merge tables and the cleanup (it's different to drop a monetdb remote table compared to a postgres foreign data wrapper). The other SQL functionalities (selects, create tables, create views) exist in the standard SQL and they are the same for all the DBMSes so there is no significant reason to transfer them at the time being.
