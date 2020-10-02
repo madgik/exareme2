@@ -43,24 +43,24 @@ def get_uniquetableid():
 ## Other system defined tasks should be added (e.g., run a task to 1 or N local nodes) so that the algorithm developer is able to define any kind of data flow.
 ## When in production this function probably will act as a parser of a user defined dataflow and an interpreter that interprets this dataflow to the system's internal flow of tasks.
 ## In this way, we are able to separate the algorithm from the system's internals, so that it is simply an input to the system and agnostic to the techniques  the system uses to implement the dataflows.
-async def dataflow_parse_and_execute(task_runner):
-    dataflow_source_input = inspect.getsource(task_runner.algorithm.dataflow)
+async def dataflow_parse_and_execute(dataflow,  task_executor):
+    dataflow_source_input = inspect.getsource(dataflow)
     dataflow_func = [0]
 
     ###### of course this MUST change ########################
     edited_source = re.sub(
         "self\.\_global\(iternum(?:\s)*\,(?:\s)*globaltable(?:\s)*\,(?:\s)*parameters(?:\s)*\,(?:\s)*attributes(?:\s)*\)",
-        "await task_runner._global(iternum)",
+        "await task_executor._global(iternum)",
         dataflow_source_input,
     )
     edited_source = re.sub(
         "self\.\_local\(iternum(?:\s)*\,(?:\s)*viewlocaltable(?:\s)*\,(?:\s)*parameters(?:\s)*\,(?:\s)*attributes(?:\s)*,(?:\s)*globalresulttable\)",
-        "await task_runner._local(iternum)",
+        "await task_executor._local(iternum)",
         edited_source,
     )
     edited_source = edited_source.split("\n", 1)[-1]
     edited_source = (
-        "async def dataflow(task_runner):\n"
+        "async def dataflow(task_executor):\n"
         + edited_source
         + "\ndataflow_func[0] = dataflow"
     )
@@ -68,22 +68,22 @@ async def dataflow_parse_and_execute(task_runner):
 
     abstract_syntax_tree = parser.suite(edited_source)
     exec(parser.compilest(abstract_syntax_tree))
-    return await dataflow_func[0](task_runner)
+    return await dataflow_func[0](task_executor)
 
 
 # this is an example dataflow for pearson, this function is not called in the current source, to run pearson you should rename this function
 # to dataflow and rename the below dataflow function to something different
-async def dataflow2(task_runner):
+async def dataflow2(task_executor):
     iternum = 0
-    await task_runner._local(iternum)
-    return await task_runner._global(iternum)
+    await task_executor._local(iternum)
+    return await task_executor._global(iternum)
 
 
-async def dataflow(task_runner):    #### this  is an example dataflow for countiter
+async def dataflow(task_executor):    #### this  is an example dataflow for countiter
         res = 0
         for iternum in range(100):
-            await task_runner._local(iternum)
-            res = await task_runner._global(iternum)
+            await task_executor._local(iternum)
+            res = await task_executor._global(iternum)
             if res[0][0] > 1000000:
                 break
         return res
@@ -107,12 +107,12 @@ async def run(algorithm, params, db_objects):
     module = get_package(algorithm)
     algorithm_instance = module.Algorithm()
     unique_id = get_uniquetableid()
-    task_runner = task.Task(db_objects, unique_id, algorithm_instance, params)
+    task_executor = task.Task(db_objects, unique_id, algorithm_instance, params)
     transfer_runner = transfer.Transfer(db_objects, unique_id)
 
     # create database views on local databases - each view processes the filters and the selected attributes on the requested table
     # the algorithm won't run directly on the local dataset but on the view
-    await task_runner.createlocalviews()
+    await task_executor.createlocalviews()
 
     ##### schema.json contains info about each algorithm: the name and the intermediate result schema
     with open("schema.json") as properties:
@@ -132,18 +132,19 @@ async def run(algorithm, params, db_objects):
                     algorithm_metadata["algorithms"][c]["global_schema"],
                 )
                 #### initialize database tables
-                await task_runner.initialize(
+                await task_executor.initialize(
                     algorithm_metadata["algorithms"][c]["local_schema"],
                     algorithm_metadata["algorithms"][c]["global_schema"],
                 )
                 #### run the algorithm dataflow
-                result = await dataflow(task_runner)
+                result = await dataflow(task_executor)
+                #result =  await dataflow_parse_and_execute(algorithm_instance.dataflow, task_executor)
             except:
 
                 #### clean unused tables
-                await task_runner.clean_up()
+                await task_executor.clean_up()
                 raise
     ### clean up tables that are created during the execution
-    await task_runner.clean_up()
+    await task_executor.clean_up()
     return result
 
