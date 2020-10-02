@@ -2,7 +2,7 @@ class Algorithm:
     def __init__(self):
         pass
 
-    ### this function is not in the current execution flow - if it is, it is an input to run_algorithm.dataflow_parse_and_execute
+    ### this function is not in the current execution flow - if it is, it works as an input to run_algorithm.dataflow_parse_and_execute
     def dataflow(self, viewlocaltable, parameters, globaltable, attributes, globalresulttable):
         iternum = 0
         self._local(iternum, viewlocaltable, parameters, attributes, globalresulttable)
