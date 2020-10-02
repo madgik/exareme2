@@ -1,13 +1,14 @@
 # Exareme2
 <b>Important note</b>
 This branch is build on top of the postgres branch. It contains some clean up of the code and removal of redudant steps.
-All the algorithms are considered to be iterative, and the dataflow definition has been moved to the algorithm.py file.
+From now, all the algorithms do not have to define their type (simple, iterative) in the schema.json, and a dataflow definition example has been added to the [algorithm].py file. (The final goal is to remove schema.json file at all)
 The way this has been done for now is the worst (using regular expressions to parse the dataflow). 
 Python's parser module is much much more appropriate to do this job correcty, but it also requires more time.
 The idea behind this is to describe the dataflow in the algorithms file without having to deal with the system's internals. 
-The system then (file run_algorithm.py, function dataflow) reads the dataflow that has been defined by the algorithm's developer and replaces the calls to 
-local and global steps with the appropriate calls that actually submit these jobs and handle the database connections and the concurrency.
+The system then (file run_algorithm.py, function dataflow_parse_and_execute) reads the dataflow that has been defined by the algorithm's developer and replaces the calls to local and global steps with the appropriate calls that actually submit these jobs and handle the database connections and the concurrency.
 After that, the developer can write his algorithm as shown in the countiter.py and pearson.py examples.
+The above is not called in the current execution flow. Currently, run_algorithm.py contains 2 functions dataflow (for countiter) and dataflow2(for pearson)
+The default algorithm that runs is countiter. If you want to run pearson you have to rename `dataflow2` to `dataflow`.
 
 
 <b>Installation</b>
