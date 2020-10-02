@@ -17,7 +17,7 @@ def get_package(algorithm):
     return algo
 
 
-def get_uniquetablename():
+def get_uniquetableid():
     return "user{0}".format(
         datetime.datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
     )
@@ -34,9 +34,8 @@ def get_uniquetablename():
 # globalresulttable: the name of the result table in globalnode
 ###########
 # this function gets the dataflow definition from the [algorithm].py file and replaces local and global calls with the corrresponding calls that are implemented by the system
-# which handle the database objects and the parallelism
-
-### Currently it is done with regular expression and this is the bad way. I keep it only to describe the logic with a running example.
+# which handle the database objects and the parallelism. This is not called in the current implementation but it gives only a description of  the logic.
+### Currently it is done with regular expression and this is the bad way.
 ### Other options are using Python's parser module to edit the byte code but this is monkey patching and requires a lot of attention, or using classes and decorators
 ## but in this case several issues occur (e.g., should an algorithm developed outside the system be able to have access to the system's objects like the connection objects of the DBs?)
 ## Another perhaps cleaner option is to support a subset of Python or any other dataflow language which is enough for a developer to use the system defined tasks and produce any possible dataflow.
@@ -44,53 +43,50 @@ def get_uniquetablename():
 ## Other system defined tasks should be added (e.g., run a task to 1 or N local nodes) so that the algorithm developer is able to define any kind of data flow.
 ## When in production this function probably will act as a parser of a user defined dataflow and an interpreter that interprets this dataflow to the system's internal flow of tasks.
 ## In this way, we are able to separate the algorithm from the system's internals, so that it is simply an input to the system and agnostic to the techniques  the system uses to implement the dataflows.
-
-
-async def dataflow(
-    algorithm,
-    parameters,
-    attributes,
-    db_objects,
-    localtable,
-    globaltable,
-    viewlocaltable,
-    globalresulttable=None,
-):
-    src = inspect.getsource(algorithm.dataflow)
-    func = [0]
+async def dataflow_parse_and_execute(task_runner):
+    dataflow_source_input = inspect.getsource(task_runner.algorithm.dataflow)
+    dataflow_func = [0]
 
     ###### of course this MUST change ########################
-    src = re.sub(
-        "\_global\(iternum(?:\s)*\,(?:\s)*globaltable(?:\s)*\,(?:\s)*parameters(?:\s)*\,(?:\s)*attributes(?:\s)*\)",
-        "await task._global(iternum, globaltable, parameters, attributes, db_objects, localtable, globalresulttable, algorithm, viewlocaltable)",
-        src,
+    edited_source = re.sub(
+        "self\.\_global\(iternum(?:\s)*\,(?:\s)*globaltable(?:\s)*\,(?:\s)*parameters(?:\s)*\,(?:\s)*attributes(?:\s)*\)",
+        "await task_runner._global(iternum)",
+        dataflow_source_input,
     )
-    src = re.sub(
-        "\_local\(iternum(?:\s)*\,(?:\s)*viewlocaltable(?:\s)*\,(?:\s)*parameters(?:\s)*\,(?:\s)*attributes(?:\s)*,(?:\s)*globalresulttable\)",
-        "await task._local(iternum, globalresulttable, parameters, attributes, db_objects,localtable, algorithm, viewlocaltable)",
-        src,
+    edited_source = re.sub(
+        "self\.\_local\(iternum(?:\s)*\,(?:\s)*viewlocaltable(?:\s)*\,(?:\s)*parameters(?:\s)*\,(?:\s)*attributes(?:\s)*,(?:\s)*globalresulttable\)",
+        "await task_runner._local(iternum)",
+        edited_source,
     )
-    src = src.split("\n", 1)[-1]
-    src = (
-        "async def dataflow(algorithm, parameters, attributes, db_objects, localtable, globaltable,  viewlocaltable, globalresulttable = None):\n"
-        + src
-        + "\nfunc[0] = dataflow"
+    edited_source = edited_source.split("\n", 1)[-1]
+    edited_source = (
+        "async def dataflow(task_runner):\n"
+        + edited_source
+        + "\ndataflow_func[0] = dataflow"
     )
     #########################################################################################
 
-    ast = parser.suite(src)
-    exec(parser.compilest(ast))
-    return await func[0](
-        algorithm,
-        parameters,
-        attributes,
-        db_objects,
-        localtable,
-        globaltable,
-        viewlocaltable,
-        globalresulttable,
-    )
+    abstract_syntax_tree = parser.suite(edited_source)
+    exec(parser.compilest(abstract_syntax_tree))
+    return await dataflow_func[0](task_runner)
 
+
+# this is an example dataflow for pearson, this function is not called in the current source, to run pearson you should rename this function
+# to dataflow and rename the below dataflow function to something different
+async def dataflow2(task_runner):
+    iternum = 0
+    await task_runner._local(iternum)
+    return await task_runner._global(iternum)
+
+
+async def dataflow(task_runner):    #### this  is an example dataflow for countiter
+        res = 0
+        for iternum in range(100):
+            await task_runner._local(iternum)
+            res = await task_runner._global(iternum)
+            if res[0][0] > 1000000:
+                break
+        return res
 
 #### run function:
 # creates unique table names
@@ -103,21 +99,20 @@ async def dataflow(
 
 
 async def run(algorithm, params, db_objects):
-    #### create unique table names
-    table_id = get_uniquetablename()
-    localtable = "local" + table_id
-    globaltable = "global" + table_id
-    viewlocaltable = "localview" + table_id
-    globalresulttable = "globalres" + table_id
     result = []
     params = json.loads(params)
 
     ### get the corresponding algorithm python module using algorithm name
+
     module = get_package(algorithm)
+    algorithm_instance = module.Algorithm()
+    unique_id = get_uniquetableid()
+    task_runner = task.Task(db_objects, unique_id, algorithm_instance, params)
+    transfer_runner = transfer.Transfer(db_objects, unique_id)
 
     # create database views on local databases - each view processes the filters and the selected attributes on the requested table
     # the algorithm won't run directly on the local dataset but on the view
-    await task.createlocalviews(db_objects, viewlocaltable, params)
+    await task_runner.createlocalviews()
 
     ##### schema.json contains info about each algorithm: the name and the intermediate result schema
     with open("schema.json") as properties:
@@ -132,47 +127,23 @@ async def run(algorithm, params, db_objects):
         if algorithm == algo:
             try:
                 ### initialize the connections between the databases, this runs only with postgres at the time, in case of monetdb it has no impact
-                await transfer.initialize(
-                    db_objects,
-                    localtable,
-                    globaltable,
-                    globalresulttable,
+                await transfer_runner.initialize(
                     algorithm_metadata["algorithms"][c]["local_schema"],
                     algorithm_metadata["algorithms"][c]["global_schema"],
                 )
                 #### initialize database tables
-                await task.initialize(
-                    db_objects,
-                    localtable,
+                await task_runner.initialize(
                     algorithm_metadata["algorithms"][c]["local_schema"],
-                    globalresulttable,
                     algorithm_metadata["algorithms"][c]["global_schema"],
                 )
                 #### run the algorithm dataflow
-                result = await dataflow(
-                    module,
-                    params["parameters"],
-                    params["attributes"],
-                    db_objects,
-                    localtable,
-                    globaltable,
-                    viewlocaltable,
-                    globalresulttable,
-                )
+                result = await dataflow(task_runner)
             except:
 
                 #### clean unused tables
-                await task.clean_up(
-                    db_objects,
-                    globaltable,
-                    localtable,
-                    viewlocaltable,
-                    globalresulttable,
-                )
+                await task_runner.clean_up()
                 raise
     ### clean up tables that are created during the execution
-    await task.clean_up(
-        db_objects, globaltable, localtable, viewlocaltable, globalresulttable
-    )
+    await task_runner.clean_up()
     return result
 
