@@ -35,7 +35,7 @@ class MainHandler(BaseHandler):
     # logging stuff..
     enable_pretty_logging()
     logger = logging.getLogger("MainHandler")
-    hdlr = logging.FileHandler("/var/log/MadisServer.log", "w+")
+    hdlr = logging.FileHandler("./mserver.log", "w+")
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr)
