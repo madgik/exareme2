@@ -10,7 +10,7 @@ After that, the developer can write his algorithm as shown in the countiter.py a
 The above is not called in the current execution flow. Currently, run_algorithm.py contains 2 functions dataflow (for countiter) and dataflow2(for pearson)
 The default algorithm that runs is countiter. If you want to run pearson you have to rename `dataflow2` to `dataflow`.
 
-As for Postgres integration, all the functionalities that are specific to the different DBMS have been moved to the connection objects of their aio libs.
+As for Postgres test integration, all the functionalities that are specific to the different DBMS have been moved to the connection objects of their aio libs. This is not the perfect way to implement such an abstraction but a quick and dirty solution which is simpler at this time.
 These functions contain the remote and merge tables and the cleanup (it's different to drop a monetdb remote table compared to a postgres foreign data wrapper). The other SQL functionalities (selects, create tables, create views) exist in the standard SQL and they are the same for all the DBMSes so there is no significant reason to transfer them at the time being.
 
 
