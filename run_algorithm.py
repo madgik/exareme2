@@ -71,8 +71,9 @@ async def dataflow_parse_and_execute(dataflow,  task_executor):
     return await dataflow_func[0](task_executor)
 
 
-# this is an example dataflow for pearson, this function is not called in the current source, to run pearson you should rename this function
-# to dataflow and rename the below dataflow function to something different
+# this is an example dataflow for pearson, this function is not called in the current execution flow, 
+# to run pearson you should edit the call to dataflow function in run_algorithm or rename the
+# two functions below.
 async def dataflow2(task_executor):
     iternum = 0
     await task_executor._local(iternum)
