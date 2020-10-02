@@ -18,7 +18,9 @@ class Task:
         self.parameters = params['parameters']
         self.db_objects = db_objects
 
-
+    # parameters binding is an important processing step on the parameters that will be concatenated in an SQL query
+    # to avoid SQL injection vulnerabilities. This step is not implemented for postgres yet but only for monetdb
+    # so algorithms that contain parameters (other than attribute names) will raise an exception if running with postgres 
     def bindparameters(self, parameters):
         boundparam = []
         for i in parameters:
