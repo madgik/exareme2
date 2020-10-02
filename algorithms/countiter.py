@@ -1,7 +1,8 @@
 class Algorithm:
     def __init__(self):
         pass
-
+    
+    ### this function is not in the current execution flow - if it is, it is an input to run_algorithm.dataflow_parse_and_execute
     def dataflow(self, viewlocaltable, globaltable, globalresulttable, parameters, attributes):
         res = 0
         for iternum in range(100):
