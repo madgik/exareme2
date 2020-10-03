@@ -10,11 +10,17 @@ class Algorithm:
 
 
     def _local(self, iternum, viewlocaltable, parameters, attributes, globalresulttable):
-        return "select * from pearson_local((select * from %s));" % viewlocaltable
+        #### todo convert schema to a list and not string
+        schema = "sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT"
+        sqlscript = "select * from pearson_local((select * from %s));" % viewlocaltable
+        return schema, sqlscript
 
 
     def _global(self, iternum, globaltable, parameters, attributes):
-        return "select * from pearson_global((select * from %s));" % globaltable
+        #### todo convert schema to a list and not string
+        schema = "result FLOAT"
+        sqlscript  = "select * from pearson_global((select * from %s));" % globaltable
+        return schema, sqlscript
 
 
 ## select pearson_global(sum(sx),sum(sxx),sum(sxy),sum(sy),sum(syy),sum(n)) from globaltable;

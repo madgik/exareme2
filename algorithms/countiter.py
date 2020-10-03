@@ -14,11 +14,18 @@ class Algorithm:
 
 
     def _local(self, iternum, viewlocaltable, parameters, attributes, globalresulttable):
+        #### todo convert schema to a list and not string
+        schema = "c1 BIGINT"
         if iternum == 0:
-            return "select count(%s) as c1 from %s;" % (attributes[0], viewlocaltable)
+            sqlscript = "select count(%s) as c1 from %s;" % (attributes[0], viewlocaltable)
+            return schema, sqlscript
         else:
-            return "select sum(%s) as c1 from %s;" % (attributes[0], globalresulttable)
+            sqlscript = "select sum(%s) as c1 from %s;" % (attributes[0], globalresulttable)
+            return schema, sqlscript
 
 
     def _global(self, iternum, globaltable, parameters, attributes):
-        return "select sum(%s) as c1 from %s;" % (attributes[0], globaltable)
+        #### todo convert schema to a list and not string
+        schema = "c1 BIGINT"
+        sqlscript = "select sum(%s) as c1 from %s;" % (attributes[0], globaltable)
+        return schema, sqlscript

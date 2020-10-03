@@ -313,17 +313,17 @@ class Connection:
         self, local, globalresulttable, globalschema, dbname
     ):
         await local.cursor().execute(
-            "CREATE FOREIGN TABLE %s (%s) SERVER global;"
-            % (globalresulttable, globalschema)
+            "DROP FOREIGN TABLE IF EXISTS %s; CREATE FOREIGN TABLE %s (%s) SERVER global;"
+            % (globalresulttable, globalresulttable, globalschema)
         )
 
     async def merge(self, db_objects, localtable, globaltable, localschema):
         cur = self.cursor()
-        query = "CREATE VIEW " + globaltable + " as "
+        query = "DROP VIEW IF EXISTS "+ globaltable +"; CREATE VIEW " + globaltable + " as "
         for i, local_node in enumerate(db_objects["local"]):
             await cur.execute(
-                "CREATE FOREIGN TABLE %s_%s (%s) SERVER local_%s;"
-                % (localtable, i, localschema, i)
+                "DROP FOREIGN TABLE IF EXISTS %s_%s; CREATE FOREIGN TABLE %s_%s (%s) SERVER local_%s;"
+                % (localtable, i, localtable, i, localschema, i)
             )
             if i < len(db_objects["local"]) - 1:
                 query += " select * from " + localtable + "_" + str(i) + " UNION ALL "

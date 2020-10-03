@@ -85,7 +85,6 @@ async def dataflow_countiter(task_executor):    #### this  is an example dataflo
 # get the algorithm name and accesses the corresponding python module
 # creates the local views
 # gets also db_objects: the connection objects to all the nodes of the federation
-# initializes the connections between the servers and the remote/merge tables
 # runs the dataflow
 # cleans up the servers and returns the results
 
@@ -99,44 +98,24 @@ async def run(algorithm, params, db_objects):
     module = get_package(algorithm)
     algorithm_instance = module.Algorithm()
     unique_id = get_uniquetableid()
-    task_executor = task.Task(db_objects, unique_id, algorithm_instance, params)
     transfer_runner = transfer.Transfer(db_objects, unique_id)
+    task_executor = task.Task(db_objects, unique_id, algorithm_instance, params,  transfer_runner)
 
     # create database views on local databases - each view processes the filters and the selected attributes on the requested table
     # the algorithm won't run directly on the local dataset but on the view
     await task_executor.createlocalviews()
 
     ##### schema.json contains info about each algorithm: the name and the intermediate result schema
-    with open("schema.json") as properties:
-        algorithm_metadata = json.load(properties)
 
-    for c, algo in enumerate(
-        [
-            algorithm_metadata["algorithms"][i]["name"]
-            for i, j in enumerate(algorithm_metadata["algorithms"])
-        ]
-    ):
-        if algorithm == algo:
-            try:
-                ### initialize the connections between the databases, this runs only with postgres at the time, in case of monetdb it has no impact
-                await transfer_runner.initialize(
-                    algorithm_metadata["algorithms"][c]["local_schema"],
-                    algorithm_metadata["algorithms"][c]["global_schema"],
-                )
-                #### initialize database tables
-                await task_executor.initialize(
-                    algorithm_metadata["algorithms"][c]["local_schema"],
-                    algorithm_metadata["algorithms"][c]["global_schema"],
-                )
-                #### run the algorithm dataflow
-                result = await dataflow_countiter(task_executor)
-                #result = await dataflow_pearson(task_executor)
-                #result =  await dataflow_parse_and_execute(algorithm_instance.dataflow, task_executor)
-            except:
-
-                #### clean unused tables
-                await task_executor.clean_up()
-                raise
+    try:
+        #### run the algorithm dataflow
+        result = await dataflow_countiter(task_executor)
+        #result = await dataflow_pearson(task_executor)
+        #result =  await dataflow_parse_and_execute(algorithm_instance.dataflow, task_executor)
+    except:
+        #### clean unused tables
+        await task_executor.clean_up()
+        raise
     ### clean up tables that are created during the execution
     await task_executor.clean_up()
     return result

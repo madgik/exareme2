@@ -9,10 +9,12 @@ class Transfer:
         self.db_objects = db_objects
 
 
-    async def initialize(self, localschema, globalschema):
+    async def initialize_local(self, localschema):
         await self.db_objects["global"]["async_con"].merge(self.db_objects, self.localtable, self.globaltable, localschema)
-        if globalschema:
-            await self.db_objects["global"]["async_con"].broadcast(self.db_objects, self.globalresulttable, globalschema)
+
+
+    async def initialize_global(self, globalschema):
+        await self.db_objects["global"]["async_con"].broadcast(self.db_objects, self.globalresulttable, globalschema)
 
 
     async def merge(self, localschema):
