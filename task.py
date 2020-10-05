@@ -28,7 +28,7 @@ class Task:
         boundparam = []
         for i in parameters:
             if isinstance(i, (int, float, complex)):
-                bindparam.append(i)
+                boundparam.append(i)
             else:
                 boudparam.append(self.db_objects["global"]["async_con"].bind_str(i))
         return boundparam
