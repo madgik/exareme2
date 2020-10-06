@@ -118,7 +118,7 @@ there is some code that tries to edit just the updates (and not re-init all the 
 6) Security, DB passwords etc.
 7) There is a minimal error handling but probably this will need some updates.
 8) Support for more kinds of tasks. Currently local (runs a function to all the local nodes and merge their results) and global (run a function on the merged local results and send the result back to locals) is supported. More kinds of tasks need to be implemented in order to support all kinds of dataflows, some examples:
-- nodelocal: run a function to one local node and send the result K other nodes (where K = 1...N)
+- localdirect: run a function to one local node and send the result K other nodes (where K = 1...N)
 - partitionbroadcast: run a function to global node split the result to partitions and send the partitions to the local nodes. Useful for map/reduce tasks (not for MIP but for more generic use)
 - replicate: copy a table from one node to another node (also not for MIP but for more generic use)
 
