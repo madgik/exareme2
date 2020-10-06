@@ -19,7 +19,7 @@ class Connections:
             from aiopg import pool
 
             self.user = "postgres"
-            self.password = "121084jF."
+            self.password = "mypassword"
         self.pool = pool
         self.lock = asyncio.Lock()
 

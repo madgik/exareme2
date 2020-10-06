@@ -288,14 +288,14 @@ class Connection:
             await db_objects["global"]["async_con"].cursor().execute(
                 "CREATE USER MAPPING FOR CURRENT_USER SERVER local_"
                 + str(i)
-                + " OPTIONS (user 'postgres', password '121084jF.');"
+                + " OPTIONS (user 'postgres', password '');"
             )
             await local_node["async_con"].cursor().execute(
                 "CREATE SERVER global FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host %s, dbname %s, port '%s');",
                 [glob.hostname, glob.path[1:], glob.port],
             )
             await local_node["async_con"].cursor().execute(
-                "CREATE USER MAPPING FOR CURRENT_USER SERVER global OPTIONS (user 'postgres', password '121084jF.');"
+                "CREATE USER MAPPING FOR CURRENT_USER SERVER global OPTIONS (user 'postgres', password 'mypassword');"
             )
 
     async def destroy_remote_connections(self, db_objects):
