@@ -109,9 +109,25 @@ MySQL's python async client (https://github.com/aio-libs/aiomysql)
 
 <b>Todo:</b> <br>
 
-1) Evaluate fault tolerance and make it more robust
-2) Global node failure -> assign another global
-3) Security, monetdb passwords etc.
+1) Fault tolerance - check what happens when a node is down. Probably, a query using a connection object will raise a connection error exception, and then this node should be removed from the pool (connections.py file).
+2) Online adding/removing nodes is supported but in the current version this is done by reinitializing everything. In the commented code in connections.py file
+there is some code that tries to edit just the updates (and not re-init all the nodes) but there is a bug somewhere so this is commented. The bug happened when an update involves changing from monetdb to postgres or vice versa.  This should consider also concurrent requests in case of node updates, since there may be a living connection from another concurrent request during the update. This issue is not addressed in the current version.
+3) Global node failure -> assign another global
+4) clean the databases when the server is abnormaly shut down (e.g., ctrl-c). Currently, the tables are dropped only when the request returns some result or some error.
+5) Set the way that the developer defines the flow of the tasks. The algorithm developer should not have direct access to the internal methods and objects of the system.
+6) Security, DB passwords etc.
+7) There is a minimal error handling but probably this will need some updates.
+8) Support for more kinds of tasks. Currently local (runs a function to all the local nodes and merge their results) and global (run a function on the merged local results and send the result back to locals) is supported. More kinds of tasks need to be implemented in order to support all kinds of dataflows, some examples:
+- nodelocal: run a function to one local node and send the result K other nodes (where K = 1...N)
+- partitionbroadcast: run a function to global node split the result to partitions and send the partitions to the local nodes. Useful for map/reduce tasks (not for MIP but for more generic use)
+- replicate: copy a dataset from one node to another node (also not for MIP but for more generic use)
+
+9) Solve monetdb issues mentioned here at page 3 https://docs.google.com/document/d/1rgYoajy3LqJ5ogK8Dejkix-g6lqPwEZdLGOHvCidr9Q/edit. The most important issues are the following 2:
+- Monetdb remote tables reconnect to the remote database each time the remote table is used in one or more queries and this is very time-consuming. Initializing the connections a-priori like in Postgres fdw solves this issue and also enhances concurrency (connecting to the DB is a blocking task)
+- Create tables concurrently. Currently, this does not work and we have either to keep 2 connection objects per db (one concurrent and one blocking) or adding expensive locks. Monetdb should not just run them sequentially because in case we have a query like "create table glob as select pythonudf(col1) from table", we don't want the full query to run sequentially. We want the select part to run concurrently and the create part to run sequentially inside the db. This way the algorithm developer is able to avoid to define and return a static schema for each execution step and each step is able to return dynamic schemata.
+10) Code clean-up
+11) Dockers
+
 
 <b>Research issues (probably not part of mvp):</b><br>
 Monetdb:<br>
