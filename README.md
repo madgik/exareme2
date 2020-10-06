@@ -134,14 +134,16 @@ there is some code that tries to edit just the updates (and not re-init all the 
 Monetdb:<br>
 1) What happens if data is bigger than memory (e.g., chunking)
 2) Balance between SQL and python
-3) Avoid copies of data in python udfs
-4) Support of PyPy UDFs (in some aggregations with group by, pypy seems to be the only solution to avoid data copies and still run fast while writing python)
-5) Languge issues (e.g., dynamic schema, yesql)
+3) Languge issues (e.g., dynamic schema, yesql, how a udf is defined, how is it called and integrated in a python algorithm)
+4) Avoid copies of data in python udfs
+5) Support of PyPy UDFs (in some aggregations with group by, pypy seems to be the only solution to avoid data copies and still run fast while writing python)
+
 
 
 Federation:<br>
 1) Dataflow language. Define a language to produce easy dataflows.
 2) An abstraction to implement an understandable federated algorithm, both local/global calculations and dataflow in one script.
+3) Support of more generic functionalities for distributed OLAP
 
 
 
