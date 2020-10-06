@@ -120,7 +120,7 @@ there is some code that tries to edit just the updates (and not re-init all the 
 8) Support for more kinds of tasks. Currently local (runs a function to all the local nodes and merge their results) and global (run a function on the merged local results and send the result back to locals) is supported. More kinds of tasks need to be implemented in order to support all kinds of dataflows, some examples:
 - nodelocal: run a function to one local node and send the result K other nodes (where K = 1...N)
 - partitionbroadcast: run a function to global node split the result to partitions and send the partitions to the local nodes. Useful for map/reduce tasks (not for MIP but for more generic use)
-- replicate: copy a dataset from one node to another node (also not for MIP but for more generic use)
+- replicate: copy a table from one node to another node (also not for MIP but for more generic use)
 
 9) Solve monetdb issues mentioned here at page 3 https://docs.google.com/document/d/1rgYoajy3LqJ5ogK8Dejkix-g6lqPwEZdLGOHvCidr9Q/edit. The most important issues are the following 2:
 - Monetdb remote tables reconnect to the remote database each time the remote table is used in one or more queries and this is very time-consuming. Initializing the connections a-priori like in Postgres fdw solves this issue and also enhances concurrency (connecting to the DB is a blocking task)
