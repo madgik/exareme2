@@ -126,7 +126,7 @@ there is some code that tries to edit just the updates (and not re-init all the 
 - Monetdb remote tables reconnect to the remote database each time the remote table is used in one or more queries and this is very time-consuming. Initializing the connections a-priori like in Postgres fdw solves this issue and also enhances concurrency (connecting to the DB is a blocking task)
 - Create tables concurrently. Currently, this does not work and we have either to keep 2 connection objects per db (one concurrent and one blocking) or adding expensive locks. Monetdb should not just run them sequentially because in case we have a query like "create table glob as select pythonudf(col1) from table", we don't want the full query to run sequentially. We want the select part to run concurrently and the create part to run sequentially inside the db. This way the algorithm developer is able to avoid to define and return a static schema for each execution step and each step is able to return dynamic schemata.
 10) Authentication? unique session/user ids?
-11) Code clean-up
+11) Code clean-up (e.g., revisit the way that dbms specific functions are implemented - currently in the connection object of global node)
 12) Dockers
 
 
