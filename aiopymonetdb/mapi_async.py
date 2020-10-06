@@ -283,7 +283,7 @@ class Connection:
             if any([l.startswith(MSG_ERROR) for l in lines]):
                 index = next(i for i, v in enumerate(lines) if v.startswith(MSG_ERROR))
                 exception, msg = handle_error(lines[index][1:])
-                raise exception(msg)
+                raise exception('\n'.join(lines))
 
         if response[0] in [MSG_Q, MSG_HEADER, MSG_TUPLE]:
             return response
