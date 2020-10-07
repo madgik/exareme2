@@ -50,9 +50,8 @@ monetdb start voc
 </code></pre>
 
 5) Python libraries for algorithms are in `algorithms` folder. Set this to path and update udfs.sql file that appends the path hard-coded.
-6) Run udfs.sql file in `mclient` in all the monetdb databases.
-7) Include in servers.py file all the global/local nodes (as in the already existing example). The first node is the global.
-8) Default port for mserver is hard-coded in mserver.py file.
+6) Include in servers.py file all the global/local nodes (as in the already existing example). The first node is the global.
+7) Default port for mserver is hard-coded in mserver.py file.
 
 <b>Usage:</b> 
 Run server: <br>
@@ -72,7 +71,7 @@ The innermost tuples each describe a single column predicate. The list of inner 
 <br>
 <b>Implement a new algorithm:</b> <br>
 
-1) Add its UDFs to udf.sql file
+1) Add its UDFs to udf.py file
 2) Add its lib to algorithms folder
 3) Add an [algorithm name].py file to algorithms folder which returns the returned schema and the sql query 
 for each step of the algorithm and defines the dataflows. Note that
