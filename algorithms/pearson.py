@@ -12,7 +12,7 @@ class Algorithm:
     def _local(self, iternum, viewlocaltable, parameters, attributes, globalresulttable):
         #### todo convert schema to a list and not string
         schema = "sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT"
-        sqlscript = "select * from pearson_local((select * from %s));" % viewlocaltable
+        sqlscript = "select * from pearson_loc((select * from %s));" % viewlocaltable
         return schema, sqlscript
 
 

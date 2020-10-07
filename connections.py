@@ -1,6 +1,7 @@
 import asyncio
 from urllib.parse import urlparse
 import servers
+from algorithms import udfs
 
 
 class Connections:
@@ -56,6 +57,12 @@ class Connections:
 
             con = await self.acquire()
             await con["global"]["async_con"].init_remote_connections(con)
+
+            for udf in udfs.udf_list:
+                await con["global"]["async_con"].cursor().execute(udf)
+                for local in con["local"]:
+                    await local['async_con'].cursor().execute(udf)
+
             await self.release(con)
 
     async def acquire(self):  #### get connection objects
