@@ -50,9 +50,8 @@ monetdb start voc
 </code></pre>
 
 5) Python libraries for algorithms are in `algorithms` folder. Set this to path and update udfs.sql file that appends the path hard-coded.
-6) Run udfs.sql file in `mclient` in all the monetdb databases.
-7) Include in servers.py file all the global/local nodes (as in the already existing example). The first node is the global.
-8) Default port for mserver is hard-coded in mserver.py file.
+6) Include in servers.py file all the global/local nodes (as in the already existing example). The first node is the global.
+7) Default port for mserver is hard-coded in mserver.py file.
 
 <b>Usage:</b> 
 Run server: <br>
@@ -72,7 +71,7 @@ The innermost tuples each describe a single column predicate. The list of inner 
 <br>
 <b>Implement a new algorithm:</b> <br>
 
-1) Add its UDFs to udf.sql file
+1) Add its UDFs to udf.py file
 2) Add its lib to algorithms folder
 3) Add an [algorithm name].py file to algorithms folder which returns the returned schema and the sql query 
 for each step of the algorithm and defines the dataflows. Note that
@@ -124,10 +123,12 @@ there is some code that tries to edit just the updates (and not re-init all the 
 
 9) Solve monetdb issues mentioned here at page 3 https://docs.google.com/document/d/1rgYoajy3LqJ5ogK8Dejkix-g6lqPwEZdLGOHvCidr9Q/edit. The most important issues are the following 2:
 - Monetdb remote tables reconnect to the remote database each time the remote table is used in one or more queries and this is very time-consuming. Initializing the connections a-priori like in Postgres fdw solves this issue and also enhances concurrency (connecting to the DB is a blocking task)
-- Create tables concurrently. Currently, this does not work and we have either to keep 2 connection objects per db (one concurrent and one blocking) or adding expensive locks. Monetdb should not just run them sequentially because in case we have a query like "create table glob as select pythonudf(col1) from table", we don't want the full query to run sequentially. We want the select part to run concurrently and the create part to run sequentially inside the db. This way the algorithm developer is able to avoid to define and return a static schema for each execution step and each step is able to return dynamic schemata.
-10) Authentication? unique session/user ids?
-11) Code clean-up (e.g., revisit the way that dbms specific functions are implemented - currently in the connection object of global node)
-12) Dockers
+- Create tables concurrently. Currently, this does not work and we have either to keep 2 connection objects per db (one concurrent and one blocking) or adding expensive locks. Monetdb should not just run them sequentially because in case we have a query like "create table glob as select pythonudf(col1) from table", we don't want the full query to run sequentially. We want the select part to run concurrently and the create part to run sequentially inside the db. This way the algorithm developer is able to avoid to define and return a static schema for each execution step and each step is able to return dynamic schemata. Concurrent create table also would lead to much simpler code, since there will be no need in waiting to get the schema in order to define/initialize the remote/merge tables creation and given that the code does not care about the returned schema this will lead to smaller and more readable code.
+
+10) Read the UDFs that are defined to the database via cursor.execute() to assure that they are indeed written as expected for security reasons.
+11) Authentication? unique session/user ids?
+12) Code clean-up (e.g., revisit the way that dbms specific functions are implemented - currently in the connection object of global node)
+13) Dockers
 
 
 <b>Research issues (probably not part of mvp):</b><br>
