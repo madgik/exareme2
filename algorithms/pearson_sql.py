@@ -14,11 +14,11 @@ class Algorithm:
         schema = "sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT"
         sqlscript = f'''
         SELECT
-            sum(x) as sx, 
-            sum(x*x) as sxx, 
-            sum(x*y) as sxy, 
-            sum(y) as sy, sum(y*y) as syy, 
-            count(x) as n 
+            SUM(x) as sx, 
+            SUM(x*x) as sxx, 
+            SUM(x*y) as sxy, 
+            SUM(y) as sy, SUM(y*y) as syy, 
+            COUNT(x) as n 
         FROM (
                 SELECT 
                     {attributes[0]} as x, 
@@ -37,18 +37,18 @@ class Algorithm:
         sqlscript  = f'''
         SELECT  
             CAST((n * sxy - sx * sy) AS float)/
-            (sqrt(n * sxx - sx * sx) * sqrt(n * syy - sy * sy))
+            (SQRT(n * sxx - sx * sx) * SQRT(n * syy - sy * sy))
         FROM (
-                SELECT sum(n) as n,
-                       sum(sx) as sx,
-                       sum(sxx) as sxx,
-                       sum(sxy) as sxy,
-                       sum(sy) as sy,
-                       sum(syy) as syy 
+                SELECT SUM(n) as n,
+                       SUM(sx) as sx,
+                       SUM(sxx) as sxx,
+                       SUM(sxy) as sxy,
+                       SUM(sy) as sy,
+                       SUM(syy) as syy 
                 FROM {globaltable} 
              )  pearson_sums;
         '''
         return schema, sqlscript
 
 
-## select pearson_global(sum(sx),sum(sxx),sum(sxy),sum(sy),sum(syy),sum(n)) from globaltable;
+## select pearson_global(SUM(sx),SUM(sxx),SUM(sxy),SUM(sy),SUM(syy),SUM(n)) from globaltable;
