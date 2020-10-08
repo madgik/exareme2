@@ -1,51 +1,45 @@
-udf_list = []
+udf_info = {}
 
-numpy_sum = '''
-CREATE or replace AGGREGATE numpy_sum(val BIGINT)
-RETURNS BIGINT
-LANGUAGE PYTHON {
-    return numpy.sum(val)
-};
-'''
-udf_list.append(numpy_sum)
-
-
-
-numpy_count = '''
-CREATE or replace AGGREGATE numpy_count(val BIGINT) 
-RETURNS BIGINT
-LANGUAGE PYTHON {
-    import time
-    time.sleep(4)
-    return val.size
-};
-'''
-udf_list.append(numpy_count)
-
-
-pearson_local = '''
-CREATE or replace FUNCTION pearson_local(val1 FLOAT, val2 FLOAT) 
+local_pearson_udf_declaration = '''
+CREATE or replace FUNCTION local_pearson(val1 FLOAT, val2 FLOAT) 
 RETURNS TABLE(sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT) 
 LANGUAGE PYTHON {
-    import sys
-    sys.path.append("/home/openaire/monetdb_federated_poc/algorithms")
-    import pearson_lib
-    return pearson_lib.local(val1,val2)
-
+    import math
+    import numpy
+    result = {}
+    X = val1
+    Y = val2
+    result["sx"] = X.sum(axis=0)
+    result["sxx"] = (X ** 2).sum(axis=0)
+    result["sxy"] = (X * Y).sum(axis=0)
+    result["sy"] = Y.sum(axis=0)
+    result["syy"] = (Y ** 2).sum(axis=0)
+    result["n"] = X.size
+    return result
 };
 '''
-udf_list.append(pearson_local)
+local_pearson_return_schema = "sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT"
 
+local_pearson = {"declaration": local_pearson_udf_declaration, "return_schema": local_pearson_return_schema}
+udf_info["local_pearson"] = local_pearson
 
-pearson_global = '''
-CREATE or replace FUNCTION pearson_global(sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT) 
+global_pearson_udf_declaration = '''
+CREATE or replace FUNCTION global_pearson(sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT) 
 RETURNS TABLE(res FLOAT)
 LANGUAGE PYTHON {
-        import sys
-        sys.path.append("/home/openaire/monetdb_federated_poc/algorithms")
-        import pearson_lib
-        return pearson_lib.merge(sx,sxx,sxy,sy,syy,n)
-   
+    import math
+    import numpy
+    n = numpy.sum(n)
+    sx = numpy.sum(sx)
+    sxx = numpy.sum(sxx)
+    sxy = numpy.sum(sxy)
+    sy = numpy.sum(sy)
+    syy = numpy.sum(syy)
+    d = math.sqrt(n * sxx - sx * sx) * math.sqrt(n * syy - sy * sy)
+    return float((n * sxy - sx * sy) / d)
 };
 '''
-udf_list.append(pearson_global)
+global_pearson_return_schema = "result FLOAT"
+
+global_pearson = {"declaration": global_pearson_udf_declaration, "return_schema": global_pearson_return_schema}
+udf_info["global_pearson"] = global_pearson
