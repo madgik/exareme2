@@ -38,6 +38,7 @@ class Algorithm:
         SELECT  
             CAST((n * sxy - sx * sy) AS float)/
             (SQRT(n * sxx - sx * sx) * SQRT(n * syy - sy * sy))
+            AS result
         FROM (
                 SELECT SUM(n) as n,
                        SUM(sx) as sx,
