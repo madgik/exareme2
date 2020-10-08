@@ -1,26 +1,19 @@
+from db_data import Data
+
+
 class Algorithm:
-    def __init__(self):
-        pass
+    async def run(self, data: Data) -> list:
 
-    ### this function is not in the current execution flow - if it is, it works as an input to run_algorithm.dataflow_parse_and_execute
-    def dataflow(self, viewlocaltable, parameters, globaltable, attributes, globalresulttable):
-        iternum = 0
-        self._local(iternum, viewlocaltable, parameters, attributes, globalresulttable)
-        return self._global(iternum, globaltable, parameters, attributes)
+        data2 = await data.run_udf("local_pearson")
 
+        #data4 = await data.run_udf("local_udf")
 
-    def _local(self, iternum, viewlocaltable, parameters, attributes, globalresulttable):
-        #### todo convert schema to a list and not string
-        schema = "sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT"
-        sqlscript = "select * from pearson_local((select * from %s));" % viewlocaltable
-        return schema, sqlscript
+        data3 = await data2.run_udf("global_pearson")
 
+        #data5 = await data.run_udf("global_udf")
 
-    def _global(self, iternum, globaltable, parameters, attributes):
-        #### todo convert schema to a list and not string
-        schema = "result FLOAT"
-        sqlscript  = "select * from pearson_global((select * from %s));" % globaltable
-        return schema, sqlscript
+        #result1 = await data5.get_value()
 
+        #result2 = await data3.get_value()
 
-## select pearson_global(sum(sx),sum(sxx),sum(sxy),sum(sy),sum(syy),sum(n)) from globaltable;
+        return data3.get_value()

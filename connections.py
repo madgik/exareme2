@@ -58,10 +58,10 @@ class Connections:
             con = await self.acquire()
             await con["global"]["async_con"].init_remote_connections(con)
 
-            for udf in udfs.udf_list:
-                await con["global"]["async_con"].cursor().execute(udf)
+            for udf in udfs.udf_info.values():
+                await con["global"]["async_con"].cursor().execute(udf.get("declaration"))
                 for local in con["local"]:
-                    await local['async_con'].cursor().execute(udf)
+                    await local['async_con'].cursor().execute(udf.get("declaration"))
 
             await self.release(con)
 
@@ -125,64 +125,3 @@ class Connections:
         await self.db_objects["global"]["pool"].clear()
         for i in self.db_objects["local"]:
             await i["pool"].clear()
-
-
-#   #### this function calculates the updates to the servers files (new nodes and deleted nodes)
-#   def serversdiff(self,first, second):
-#       second = set(second)
-#       return [item for item in first if item not in second]
-
-# async def _update_global(self, server):  #### update global server if servers file is reloaded
-#    await
-#    self.db_objects['global']['pool'].clear()
-#    self.glob = urlparse(server)
-#    if self.glob.scheme == 'monetdb':
-#        from aiopymonetdb import pool
-#        self.db_objects['global']['pool'] = await
-#        pool.create_pool(host=self.glob.hostname, port=self.glob.port, user="monetdb",
-#                         password="monetdb", database=self.glob.path[1:])
-#    if self.glob.scheme == 'postgres':
-#        from aiopg import pool
-#        self.db_objects['global']['pool'] = await
-#        pool.create_pool(host=self.glob.hostname, port=self.glob.port, user="postgres",
-#                         password="mypostgres", database=self.glob.path[1:])
-#    self.pool = pool
-
-
-# async def _update_local(self, added, removed):  #### update local servers if servers file is reloaded
-#    for local in removed:
-#        c = 0
-#        for i in self.db_objects['local']:
-
-#            if i['dbname'] == local:
-#               await
-#                i['pool'].clear()
-#                del self.db_objects['local'][c]
-#                break
-#            c += 1
-# await self.db_objects['local'][c]['pool'].clear()
-
-#    for local in added:
-#        loc = urlparse(local)
-#        if loc.scheme == 'monetdb':
-#            from aiopymonetdb import pool
-#            pol = await
-#            pool.create_pool(host=loc.hostname, port=loc.port, user="monetdb",
-#                             password="monetdb", database=loc.path[1:])
-#        if loc.scheme == 'postgres':
-#            from aiopg import pool
-#            pol = await
-#            pool.create_pool(host=loc.hostname, port=loc.port, user="postgres",
-#                             password="mypassword", database=loc.path[1:])
-
-#        local_node = {}
-#        local_node['pool'] = pol
-#        local_node['dbname'] = local
-#        self.db_objects['local'].append(local_node)
-
-#    await  db_objects['global']['async_con'].disconnect()
-#    db_objects['global']['con'].disconnect()
-#    for local in db_objects['local']:
-#        await local['async_con'].disconnect()
-#        local['con'].disconnect()
-#    db_objects = {}

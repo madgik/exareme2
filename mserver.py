@@ -1,15 +1,12 @@
 import logging
 import sys
-import connections
-import json
-import asyncio
-import run_algorithm
+
 import tornado.web
-from threading import Thread
-from tornado import gen
 from tornado.log import enable_pretty_logging
 from tornado.options import define, options
-import time
+
+import connections
+import run_algorithm
 
 WEB_SERVER_PORT = 7779
 define("port", default=WEB_SERVER_PORT, help="run on the given port", type=int)

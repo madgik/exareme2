@@ -1,13 +1,12 @@
 import datetime
-import random
-import task
-import transfer
-import json
 import importlib
-import parser
-import symbol, token
 import inspect
+import json
+import parser
+import random
 import re
+
+from db_data import LocalData
 
 
 def get_package(algorithm):
@@ -15,14 +14,6 @@ def get_package(algorithm):
     importlib.import_module(mpackage)
     algo = importlib.import_module("." + algorithm, mpackage)
     return algo
-
-
-def get_uniquetableid():
-    return "user{0}".format(
-        datetime.datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
-    )
-
-
 
 ###########
 # this function gets the dataflow definition from the [algorithm].py file and replaces local and global calls with the corrresponding calls that 
@@ -35,7 +26,7 @@ def get_uniquetableid():
 # Other system defined tasks should be added (e.g., run a task to 1 or N local nodes) so that the algorithm developer is able to define any kind of data flow.
 # When in production this function probably will act as a parser of a user defined dataflow and an interpreter that interprets this dataflow to the system's internal flow of tasks.
 # In this way, we are able to separate the algorithm from the system's internals, so that it is simply an input to the system and agnostic to the techniques  the system uses to implement the dataflows.
-async def dataflow_parse_and_execute(dataflow,  task_executor):
+async def dataflow_parse_and_execute(dataflow, task_executor):
     dataflow_source_input = inspect.getsource(dataflow)
     dataflow_func = [0]
 
@@ -52,9 +43,9 @@ async def dataflow_parse_and_execute(dataflow,  task_executor):
     )
     edited_source = edited_source.split("\n", 1)[-1]
     edited_source = (
-        "async def dataflow(task_executor):\n"
-        + edited_source
-        + "\ndataflow_func[0] = dataflow"
+            "async def dataflow(task_executor):\n"
+            + edited_source
+            + "\ndataflow_func[0] = dataflow"
     )
     #########################################################################################
 
@@ -71,14 +62,15 @@ async def dataflow_pearson(task_executor):
     return await task_executor._global(iternum)
 
 
-async def dataflow_countiter(task_executor):    #### this  is an example dataflow for countiter
-        res = 0
-        for iternum in range(100):
-            await task_executor._local(iternum)
-            res = await task_executor._global(iternum)
-            if res[0][0] > 1000000:
-                break
-        return res
+async def dataflow_countiter(task_executor):  #### this  is an example dataflow for countiter
+    res = 0
+    for iternum in range(100):
+        await task_executor._local(iternum)
+        res = await task_executor._global(iternum)
+        if res[0][0] > 1000000:
+            break
+    return res
+
 
 #### run function:
 # creates unique table names
@@ -89,10 +81,23 @@ async def dataflow_countiter(task_executor):    #### this  is an example dataflo
 # cleans up the servers and returns the results
 
 
-async def run(algorithm, params, db_objects):
+async def run(algorithm_name, params, db_objects):
     result = []
     params = json.loads(params)
 
+    # Create the data object
+    data: LocalData = LocalData()
+    await data.initialize_from_params(params, db_objects)
+
+    # Get the algorithm class
+    algorithm = get_package(algorithm_name).Algorithm()
+
+    # TODO Check if algorithm exists
+    result = await algorithm.run(data)
+    return result
+
+
+    '''
     ### get the corresponding algorithm python module using algorithm name
 
     module = get_package(algorithm)
@@ -109,8 +114,8 @@ async def run(algorithm, params, db_objects):
 
     try:
         #### run the algorithm dataflow
-        result = await dataflow_countiter(task_executor)
-        #result = await dataflow_pearson(task_executor)
+        #result = await dataflow_countiter(task_executor)
+        result = await dataflow_pearson(task_executor)
         #result =  await dataflow_parse_and_execute(algorithm_instance.dataflow, task_executor)
     except:
         #### clean unused tables
@@ -119,4 +124,4 @@ async def run(algorithm, params, db_objects):
     ### clean up tables that are created during the execution
     await task_executor.clean_up()
     return result
-
+    '''

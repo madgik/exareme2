@@ -26,28 +26,6 @@ THE SOFTWARE.
 VERSION = (0, 5, None)
 
 from constants import FIELD_TYPE
-from converters import escape_dict, escape_sequence, escape_string
-from err import (
-    Warning,
-    Error,
-    InterfaceError,
-    DataError,
-    DatabaseError,
-    OperationalError,
-    IntegrityError,
-    InternalError,
-    NotSupportedError,
-    ProgrammingError,
-    MySQLError,
-)
-from times import (
-    Date,
-    Time,
-    Timestamp,
-    DateFromTicks,
-    TimeFromTicks,
-    TimestampFromTicks,
-)
 
 import sys
 
@@ -121,16 +99,13 @@ def Connect(*args, **kwargs):
     Connect to the database; see connections.Connection.__init__() for
     more information.
     """
-    from connections import Connection
 
     return Connection(*args, **kwargs)
 
 
-from pymysql import connections as _orig_conn
-
 Connect.__doc__ = (
-    _orig_conn.Connection.__init__.__doc__
-    + """\nSee connections.Connection.__init__() for
+        _orig_conn.Connection.__init__.__doc__
+        + """\nSee connections.Connection.__init__() for
     information about defaults."""
 )
 del _orig_conn
