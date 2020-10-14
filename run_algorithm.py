@@ -39,7 +39,7 @@ async def dataflow(task_executor, algorithm, params, table_id):
     result = await task_executor._global(*next(queries))
     while True:
         try:
-            queries.send(None)
+            next(queries)
             await task_executor._local(*queries.send(result))
             result = await task_executor._global(*next(queries))
         except StopIteration:
