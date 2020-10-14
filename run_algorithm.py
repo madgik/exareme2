@@ -73,7 +73,7 @@ async def dataflow_pearson(task_executor):
 
 async def dataflow_countiter(task_executor):    #### this  is an example dataflow for countiter
         res = 0
-        for iternum in range(100):
+        for iternum in range(200):
             await task_executor._local(iternum)
             res = await task_executor._global(iternum)
             if res[0][0] > 1000000:
@@ -87,6 +87,28 @@ async def dataflow_countiter(task_executor):    #### this  is an example dataflo
 # gets also db_objects: the connection objects to all the nodes of the federation
 # runs the dataflow
 # cleans up the servers and returns the results
+
+
+async def dataflow(task_executor, algorithm, params, table_id):
+    localtable = "local" + table_id
+    globaltable = "global" + table_id
+    viewlocaltable = "localview" + table_id
+    globalresulttable = "globalres" + table_id
+    attributes = params['attributes']
+    parameters = params['parameters']
+
+    queries = algorithm(viewlocaltable, globaltable, parameters, attributes, globalresulttable)
+    await task_executor._local(*next(queries))
+    result = await task_executor._global(*next(queries))
+    while True:
+        try:
+            queries.send(None)
+            await task_executor._local(*queries.send(result))
+            result = await task_executor._global(*next(queries))
+        except StopIteration:
+            break
+
+    return result
 
 
 async def run(algorithm, params, db_objects):
@@ -105,13 +127,8 @@ async def run(algorithm, params, db_objects):
     # the algorithm won't run directly on the local dataset but on the view
     await task_executor.createlocalviews()
 
-    ##### schema.json contains info about each algorithm: the name and the intermediate result schema
-
     try:
-        #### run the algorithm dataflow
-        result = await dataflow_countiter(task_executor)
-        #result = await dataflow_pearson(task_executor)
-        #result =  await dataflow_parse_and_execute(algorithm_instance.dataflow, task_executor)
+        result  = await dataflow(task_executor, algorithm_instance.algorithm, params, unique_id)
     except:
         #### clean unused tables
         await task_executor.clean_up()

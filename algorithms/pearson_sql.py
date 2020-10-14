@@ -21,12 +21,35 @@ class Algorithm:
             COUNT(x) as n 
         FROM (
                 SELECT 
-                    {attributes[0]} as x, 
+                    {attributes[0]} as x,
                     {attributes[1]} as y 
                 FROM {viewlocaltable}
              )  pearson_data;
         '''
 
+        f'''
+        
+            SELECT 
+                SUM(x) as x,
+                SUM(xx) as sxx,
+                SUM(xy) as sxy
+                SUM(y) as sy,
+                SUM(yy) as syy,
+                COUNT(x) as n
+            FROM
+                    (SELECT
+                        pow(x,2) as xx, 
+                        x*y as xy, 
+                        pow(y,2) as syy, 
+                        COUNT(x) as n 
+                    FROM (
+                            SELECT 
+                                {attributes[0]} as x,
+                                {attributes[1]} as y 
+                            FROM {viewlocaltable}
+                         )  pearson_data
+                    ) operations;
+                    '''
 
         return schema, sqlscript
 

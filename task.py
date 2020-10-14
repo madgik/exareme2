@@ -143,11 +143,8 @@ class Task:
         await self.db_objects["global"]["async_con"].cursor().execute(query)
 
     #### run a task on all local nodes and sets up the transfer of the results to global node
-    async def _local(self, iternum):
+    async def _local(self, schema, sqlscript):
         t1 = current_time()
-        schema, sqlscript = self.algorithm._local(
-            iternum, self.viewlocaltable, self.bindparameters(self.parameters), self.attributes, self.globalresulttable
-        )
 
         if self.local_schema == None or self.local_schema != schema:
             self.local_schema = schema
@@ -161,11 +158,9 @@ class Task:
         print("time " + str(current_time() - t1))
 
     ### runs a task on global node using data received by the local nodes
-    async def _global(self, iternum):
+    async def _global(self, schema, sqlscript):
         t1 = current_time()
-        schema, sqlscript = self.algorithm._global(
-            iternum, self.globaltable, self.bindparameters(self.parameters), self.attributes
-        )
+
 
         if self.global_schema == None or self.global_schema != schema:
             self.global_schema = schema
