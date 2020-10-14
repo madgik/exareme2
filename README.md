@@ -1,14 +1,11 @@
 # Exareme2
 <b>Important note</b>
 This branch is build on top of the postgres branch. It contains some clean up of the code and removal of redudant steps.
-From now, all the algorithms do not have to define their type (simple, iterative) in the schema.json, and a dataflow definition example has been added to the [algorithm].py file. (The final goal is to remove schema.json file at all)
-The way this has been done for now is the worst (using regular expressions to parse the dataflow). 
-Python's parser module is much much more appropriate to do this job correcty, but it also requires more time to do it actually correctly and not as a monkey patching.
-The idea behind this is to describe the dataflow in the algorithms file without having to deal with the system's internals. 
-The system then (file run_algorithm.py, function dataflow_parse_and_execute) reads the dataflow that has been defined by the algorithm's developer and replaces the calls to local and global steps with the appropriate calls that actually submit these jobs and handle the database connections and the concurrency.
-After that, the developer can write his algorithm as shown in the countiter.py and pearson.py examples.
-The above is not called in the current execution flow. Currently, run_algorithm.py contains 2 functions dataflow_countiter (for countiter) and dataflow_pearson(for pearson)
-The default algorithm that runs is countiter. If you want to run pearson you have to edit the function call in function `run`.
+From now, all the algorithms do not have to define their type (simple, iterative) in the schema.json, and dataflow definition is moved [algorithm].py file. 
+The way this has been done is using Python's generator functions. The algorithm yields the queries one after the other to the system and while also receives the
+global results. The system (run_algorithm.py) file calls the algorithm module, gets the queries runs them with task executor and sends back the intermediate results. In this way, the algorithm developer constructs his flow without having access and knowledge to system's internals, but by using the well-established
+python's generators to generate the flow of the queries and get the intermediate results. With using python's generators for the communication between the algorithm and the system we achieve security and solve the issue with predefined dataflows using a popular python's feature.  
+Probably, due to this update some refactoring is required.
 
 As for Postgres test integration, all the functionalities that are specific to the different DBMS have been moved to the connection objects of their aio libs and executed by the connection instance of the global node. This is not the perfect way to implement such an abstraction but a quick and dirty solution which is simpler at this time.
 These functions contain the remote and merge tables and the cleanup (it's different to drop a monetdb remote table compared to a postgres foreign data wrapper). The other SQL functionalities (selects, create tables, create views) exist in the standard SQL and they are the same for all the DBMSes so there is no significant reason to transfer them at the time being.
