@@ -23,16 +23,27 @@ def get_uniquetableid():
     )
 
 
+def bindparameters(parameters, db_objects):
+    boundparam = []
+    for i in parameters:
+        if isinstance(i, (int, float, complex)):
+            boundparam.append(i)
+        else:
+            boudparam.append(db_objects["global"]["async_con"].bind_str(i))
+    return boundparam
 
 
+async def dataflow(task_executor, algorithm):
 
-async def dataflow(task_executor, algorithm, params, table_id):
-    localtable = "local" + table_id
-    globaltable = "global" + table_id
-    viewlocaltable = "localview" + table_id
-    globalresulttable = "globalres" + table_id
-    attributes = params['attributes']
-    parameters = params['parameters']
+    localtable = task_executor.localtable
+    globaltable = task_executor.globaltable
+    viewlocaltable = task_executor.viewlocaltable
+    globalresulttable = task_executor.globalresulttable
+    attributes = task_executor.attributes
+
+    ## bind parameters before pushing them to the algorithm - necessary step to avoid sql injections
+    parameters = task_executor.parameters
+    parameters = task_executor.bindparameters(parameters)
 
     queries = algorithm(viewlocaltable, globaltable, parameters, attributes, globalresulttable)
     await task_executor._local(*next(queries))
@@ -58,14 +69,14 @@ async def run(algorithm, params, db_objects):
     algorithm_instance = module.Algorithm()
     table_id = get_uniquetableid()
     transfer_runner = transfer.Transfer(db_objects, table_id)
-    task_executor = task.Task(db_objects, table_id, algorithm_instance, params,  transfer_runner)
+    task_executor = task.Task(db_objects, table_id, algorithm_instance, params, transfer_runner)
 
     # create database views on local databases - each view processes the filters and the selected attributes on the requested table
     # the algorithm won't run directly on the local dataset but on the view
     await task_executor.createlocalviews()
 
     try:
-        result  = await dataflow(task_executor, algorithm_instance.algorithm, params, table_id)
+        result  = await dataflow(task_executor, algorithm_instance.algorithm)
     except:
         #### clean unused tables
         await task_executor.clean_up()

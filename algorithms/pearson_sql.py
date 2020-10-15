@@ -4,11 +4,10 @@ class Algorithm:
         pass
 
     ### this function is not in the current execution flow - if it is, it works as an input to run_algorithm.dataflow_parse_and_execute
-    def dataflow(self, viewlocaltable, parameters, globaltable, attributes, globalresulttable):
+    def algorithm(self, viewlocaltable,globaltable,  parameters, attributes, globalresulttable):
         iternum = 0
-        self._local(iternum, viewlocaltable, parameters, attributes, globalresulttable)
-        return self._global(iternum, globaltable, parameters, attributes)
-
+        yield self._local(iternum, viewlocaltable, parameters, attributes, globalresulttable)
+        yield self._global(iternum, globaltable, parameters, attributes)
 
     def _local(self, iternum, viewlocaltable, parameters, attributes, globalresulttable):
         #### todo convert schema to a list and not string
