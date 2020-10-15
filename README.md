@@ -2,7 +2,7 @@
 <b>Important note</b>
 This branch is build on top of the postgres branch. It contains some clean up of the code and removal of redudant steps.
 From now, all the algorithms do not have to define their type (simple, iterative) in the schema.json, and dataflow definition is moved in the [algorithm].py file. 
-The way this has been done is using Python's generator coroutines. The algorithm coroutine yields the queries one after the other to the system's coroutine while also receives the
+The way this has been done is using Python's generator coroutines. The algorithm coroutine yields the queries one after the other to the system's coroutine (dataflow) while also receives the
 global results. The system (run_algorithm.py) calls the algorithm module, gets the queries runs them with the task executor's instance and sends back the intermediate results. In this way, the algorithm developer constructs the flow without having access and knowledge to system's internals, but by using the well-established python's generators to generate the flow of the queries and get the intermediate results. With using python's generators for the communication between the algorithm and the system we achieve security and solve the issue with predefined dataflows using a popular python's feature.  
 Moreover, since the algorithm code does not contain any network IO there is no need the algorithm
 developer to write asynchronous code with async/await. 
