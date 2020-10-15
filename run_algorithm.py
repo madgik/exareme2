@@ -23,16 +23,6 @@ def get_uniquetableid():
     )
 
 
-def bindparameters(parameters, db_objects):
-    boundparam = []
-    for i in parameters:
-        if isinstance(i, (int, float, complex)):
-            boundparam.append(i)
-        else:
-            boudparam.append(db_objects["global"]["async_con"].bind_str(i))
-    return boundparam
-
-
 async def dataflow(task_executor, algorithm):
 
     localtable = task_executor.localtable
