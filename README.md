@@ -12,8 +12,6 @@ developer to write asynchronous code with async/await.
 This update is also compatible with using abstractions to produce the yielded SQL scripts and wrappers to define UDFs in Python and register them to the DB automatically via the ODBC. So, that the full implementation of an algorithm can be in one place in [algorithm].py file.
 The main purpose of these generator coroutines is to isolate the algorithm from the federated system so that the algorithm developer needs only to know standard Python (to produce the flow) and standard SQL (or an abstraction, to produce the processing steps), and does not depend in any way on the system's internals and possible big changes that there may take place on these internals (e.g., concurrency support with async await) for any reason.
 
-Probably, due to this update some refactoring is required. 
-
 As for Postgres test integration, all the functionalities that are specific to the different DBMS have been moved to the connection objects of their aio libs and executed by the connection instance of the global node. This is not the perfect way to implement such an abstraction but a quick and dirty solution which is simpler at this time.
 These functions contain the remote and merge tables and the cleanup (it's different to drop a monetdb remote table compared to a postgres foreign data wrapper). The other SQL functionalities (selects, create tables, create views) exist in the standard SQL and they are the same for all the DBMSes so there is no significant reason to transfer them at the time being.
 
