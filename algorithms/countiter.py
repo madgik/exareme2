@@ -3,29 +3,29 @@ class Algorithm:
         pass
     
     ### this function is not in the current execution flow - if it is, it works as an input to run_algorithm.dataflow_parse_and_execute
-    def algorithm(self, viewlocaltable, globaltable,  parameters, attributes, globalresulttable):
+    def algorithm(self, data_table, merged_local_results,  parameters, attributes, result_table):
         res = 0
         for iternum in range(60):
-            yield self._local(iternum, viewlocaltable, parameters, attributes, globalresulttable)
-            yield self._global(iternum, globaltable, parameters, attributes)
+            yield self._local(iternum, data_table, parameters, attributes, result_table)
+            yield self._global(iternum, merged_local_results, parameters, attributes)
             res = (yield)
             if res[0][0] > 1000000:
                 break
 
 
-    def _local(self, iternum, viewlocaltable, parameters, attributes, globalresulttable):
+    def _local(self, iternum, data_table, parameters, attributes, result_table):
         #### todo convert schema to a list and not string
         schema = "c1 BIGINT"
         if iternum == 0:
-            sqlscript = "select count(%s) as c1 from %s;" % (attributes[0], viewlocaltable)
+            sqlscript = "select count(%s) as c1 from %s;" % (attributes[0], data_table)
             return schema, sqlscript
         else:
-            sqlscript = "select sum(%s) as c1 from %s;" % (attributes[0], globalresulttable)
+            sqlscript = "select sum(%s) as c1 from %s;" % (attributes[0], result_table)
             return schema, sqlscript
 
 
-    def _global(self, iternum, globaltable, parameters, attributes):
+    def _global(self, iternum, merged_local_results, parameters, attributes):
         #### todo convert schema to a list and not string
         schema = "c1 BIGINT"
-        sqlscript = "select sum(%s) as c1 from %s;" % (attributes[0], globaltable)
+        sqlscript = "select sum(%s) as c1 from %s;" % (attributes[0], merged_local_results)
         return schema, sqlscript
