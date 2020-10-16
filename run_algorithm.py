@@ -35,14 +35,17 @@ async def dataflow(task_executor, algorithm):
     parameters = task_executor.parameters
     parameters = task_executor.bindparameters(parameters)
 
-    queries = algorithm(viewlocaltable, globaltable, parameters, attributes, globalresulttable)
-    await task_executor._local(*next(queries))
-    result = await task_executor._global(*next(queries))
+    query_generator = algorithm(viewlocaltable, globaltable, parameters, attributes, globalresulttable)
+
+    schema, sqlscript = next(query_generator)
+    await task_executor._local(schema, sqlscript)
     while True:
         try:
-            next(queries)
-            await task_executor._local(*queries.send(result))
-            result = await task_executor._global(*next(queries))
+            schema, sqlscript = next(query_generator)
+            result = await task_executor._global(schema, sqlscript)
+            next(query_generator)
+            schema, sqlscript = query_generator.send(result)
+            await task_executor._local(schema, sqlscript)
         except StopIteration:
             break
 
