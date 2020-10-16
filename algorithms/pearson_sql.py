@@ -1,7 +1,5 @@
 ## 5% faster than with numpy UDFs in a dataset which contains 5 rows (3 in one local and 2 in the other).
 class Algorithm:
-    def __init__(self):
-        pass
 
     def algorithm(self, data_table, merged_local_results, parameters, attributes, result_table):
         iternum = 0

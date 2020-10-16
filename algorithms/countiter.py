@@ -1,6 +1,4 @@
 class Algorithm:
-    def __init__(self):
-        pass
 
     def algorithm(self, data_table, merged_local_results,  parameters, attributes, result_table):
         res = 0
