@@ -3,7 +3,6 @@ class Algorithm:
     def __init__(self):
         pass
 
-    ### this function is not in the current execution flow - if it is, it works as an input to run_algorithm.dataflow_parse_and_execute
     def algorithm(self, data_table, merged_local_results, parameters, attributes, result_table):
         iternum = 0
         yield self._local(iternum, data_table, parameters, attributes, result_table)
