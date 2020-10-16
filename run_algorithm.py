@@ -9,22 +9,18 @@ import symbol, token
 import inspect
 import re
 
-
 def get_package(algorithm):
     mpackage = "algorithms"
     importlib.import_module(mpackage)
     algo = importlib.import_module("." + algorithm, mpackage)
     return algo
 
-
 def get_uniquetableid():
     return "user{0}".format(
         datetime.datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
     )
 
-
 async def dataflow(task_executor, algorithm):
-
     localtable = task_executor.localtable
     globaltable = task_executor.globaltable
     viewlocaltable = task_executor.viewlocaltable
@@ -47,25 +43,21 @@ async def dataflow(task_executor, algorithm):
             await task_executor.task_local(schema, sqlscript)
         except StopIteration:
             break
-
     return result
 
 
 async def run(algorithm, params, db_objects):
     result = []
     params = json.loads(params)
-
     ### get the corresponding algorithm python module using algorithm name
     module = get_package(algorithm)
     algorithm_instance = module.Algorithm()
     table_id = get_uniquetableid()
     transfer_runner = transfer.Transfer(db_objects, table_id)
     task_executor = task.Task(db_objects, table_id, algorithm_instance, params, transfer_runner)
-
     # create database views on local databases - each view processes the filters and the selected attributes on the requested table
     # the algorithm won't run directly on the local dataset but on the view
     await task_executor.createlocalviews()
-
     try:
         result  = await dataflow(task_executor, algorithm_instance.algorithm)
     except:
@@ -73,4 +65,3 @@ async def run(algorithm, params, db_objects):
         raise
     await task_executor.clean_up()
     return result
-

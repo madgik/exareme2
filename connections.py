@@ -2,7 +2,7 @@ import asyncio
 from urllib.parse import urlparse
 import servers
 from algorithms import udfs
-
+import importlib
 
 class Connections:
     def __init__(self):
@@ -111,8 +111,6 @@ class Connections:
 
     ###### reload federation nodes
     async def _reload(self):
-        import importlib
-
         importlib.reload(servers)
         if self.mservers != servers.servers:
             await self.clearall()  #### re-init all the connections

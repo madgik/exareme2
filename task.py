@@ -21,7 +21,6 @@ class Task:
         self.local_schema = None
         self.global_schema = None
 
-
     async def _local_execute(self, local,  id, sqlscript):
         query = (
             "delete from "
@@ -36,7 +35,6 @@ class Task:
             + sqlscript
         )
         await local.cursor().execute(query)
-
 
     async def _create_view(self, local, attributes, table, filterpart, vals):
         if filterpart == " ":
@@ -73,7 +71,6 @@ class Task:
             )
             await local["async_con"].cursor().execute(query)
 
-
     async def _initialize_global_schema(self):
         query = "drop table if exists %s; create table if not exists %s (%s);" % (
             self.globalresulttable,
@@ -82,10 +79,9 @@ class Task:
         )
         await self.db_objects["global"]["async_con"].cursor().execute(query)
 
-        # parameters binding is an important processing step on the parameters that will be concatenated in an SQL query
-        # to avoid SQL injection vulnerabilities. This step is not implemented for postgres yet but only for monetdb
-        # so algorithms that contain parameters (other than attribute names) will raise an exception if running with postgres
-
+    # parameters binding is an important processing step on the parameters that will be concatenated in an SQL query
+    # to avoid SQL injection vulnerabilities. This step is not implemented for postgres yet but only for monetdb
+    # so algorithms that contain parameters (other than attribute names) will raise an exception if running with postgres
     def bindparameters(self, parameters):
         boundparam = []
         for i in parameters:
@@ -95,10 +91,8 @@ class Task:
                 boudparam.append(self.db_objects["global"]["async_con"].bind_str(i))
         return boundparam
 
-
     async def createlocalviews(self):
         t1 = current_time()
-
         table = self.params["table"]
         attributes = []
         for attribute in self.params["attributes"]:
@@ -142,12 +136,9 @@ class Task:
         await asyncio.gather(*_create_view_calls)
         print("time " + str(current_time() - t1))
 
-
-
     #### run a task on all local nodes and sets up the transfer of the results to global node
     async def task_local(self, schema, sqlscript):
         t1 = current_time()
-
         if self.local_schema == None or self.local_schema != schema:
             self.local_schema = schema
             await self._initialize_local_schema()
@@ -162,8 +153,6 @@ class Task:
     ### runs a task on global node using data received by the local nodes
     async def task_global(self, schema, sqlscript):
         t1 = current_time()
-
-
         if self.global_schema == None or self.global_schema != schema:
             self.global_schema = schema
             await self._initialize_global_schema()
@@ -182,7 +171,6 @@ class Task:
         result = await cur.execute("select * from %s;" % self.globalresulttable)
         print("time " + str(current_time() - t1))
         return cur.fetchall()
-
 
     async def clean_up(self):
         await self.db_objects["global"]["async_con"].clean_tables(
