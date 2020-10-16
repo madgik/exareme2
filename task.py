@@ -5,7 +5,6 @@ import time
 
 current_time = lambda: int(round(time.time() * 1000))
 
-
 class Task:
     def __init__(self, db_objects, table_id, module, params, transfer_runner):
         self.localtable = "local" + table_id

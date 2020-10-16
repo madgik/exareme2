@@ -45,7 +45,6 @@ async def dataflow(task_executor, algorithm):
             break
     return result
 
-
 async def run(algorithm, params, db_objects):
     result = []
     params = json.loads(params)
