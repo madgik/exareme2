@@ -34,18 +34,17 @@ async def dataflow(task_executor, algorithm):
     ## bind parameters before pushing them to the algorithm - necessary step to avoid sql injections
     parameters = task_executor.parameters
     parameters = task_executor.bindparameters(parameters)
-
     query_generator = algorithm(viewlocaltable, globaltable, parameters, attributes, globalresulttable)
 
     schema, sqlscript = next(query_generator)
-    await task_executor._local(schema, sqlscript)
+    await task_executor.task_local(schema, sqlscript)
     while True:
         try:
             schema, sqlscript = next(query_generator)
-            result = await task_executor._global(schema, sqlscript)
+            result = await task_executor.task_global(schema, sqlscript)
             next(query_generator)
             schema, sqlscript = query_generator.send(result)
-            await task_executor._local(schema, sqlscript)
+            await task_executor.task_local(schema, sqlscript)
         except StopIteration:
             break
 
@@ -57,7 +56,6 @@ async def run(algorithm, params, db_objects):
     params = json.loads(params)
 
     ### get the corresponding algorithm python module using algorithm name
-
     module = get_package(algorithm)
     algorithm_instance = module.Algorithm()
     table_id = get_uniquetableid()
@@ -71,10 +69,8 @@ async def run(algorithm, params, db_objects):
     try:
         result  = await dataflow(task_executor, algorithm_instance.algorithm)
     except:
-        #### clean unused tables
         await task_executor.clean_up()
         raise
-    ### clean up tables that are created during the execution
     await task_executor.clean_up()
     return result
 

@@ -21,20 +21,8 @@ class Task:
         self.local_schema = None
         self.global_schema = None
 
-    # parameters binding is an important processing step on the parameters that will be concatenated in an SQL query
-    # to avoid SQL injection vulnerabilities. This step is not implemented for postgres yet but only for monetdb
-    # so algorithms that contain parameters (other than attribute names) will raise an exception if running with postgres 
-    def bindparameters(self, parameters):
-        boundparam = []
-        for i in parameters:
-            if isinstance(i, (int, float, complex)):
-                boundparam.append(i)
-            else:
-                boudparam.append(self.db_objects["global"]["async_con"].bind_str(i))
-        return boundparam
 
-
-    async def local_execute(self, local,  id, sqlscript):
+    async def _local_execute(self, local,  id, sqlscript):
         query = (
             "delete from "
             + self.localtable
@@ -50,7 +38,7 @@ class Task:
         await local.cursor().execute(query)
 
 
-    async def create_view(self, local, attributes, table, filterpart, vals):
+    async def _create_view(self, local, attributes, table, filterpart, vals):
         if filterpart == " ":
             query = (
                 "CREATE VIEW "
@@ -75,6 +63,37 @@ class Task:
                 + ";"
             )
             await local.cursor().execute(query, vals)
+
+    async def _initialize_local_schema(self):
+        for i, local in enumerate(self.db_objects["local"]):
+            query = "drop table if exists %s; create table %s (%s);" % (
+                self.localtable + "_" + str(i),
+                self.localtable + "_" + str(i),
+                self.local_schema,
+            )
+            await local["async_con"].cursor().execute(query)
+
+
+    async def _initialize_global_schema(self):
+        query = "drop table if exists %s; create table if not exists %s (%s);" % (
+            self.globalresulttable,
+            self.globalresulttable,
+            self.global_schema,
+        )
+        await self.db_objects["global"]["async_con"].cursor().execute(query)
+
+        # parameters binding is an important processing step on the parameters that will be concatenated in an SQL query
+        # to avoid SQL injection vulnerabilities. This step is not implemented for postgres yet but only for monetdb
+        # so algorithms that contain parameters (other than attribute names) will raise an exception if running with postgres
+
+    def bindparameters(self, parameters):
+        boundparam = []
+        for i in parameters:
+            if isinstance(i, (int, float, complex)):
+                boundparam.append(i)
+            else:
+                boudparam.append(self.db_objects["global"]["async_con"].bind_str(i))
+        return boundparam
 
 
     async def createlocalviews(self):
@@ -110,8 +129,8 @@ class Task:
             if j < len(self.params["filters"]) - 1:
                 filterpart += " or "
 
-        create_view_calls = [
-            self.create_view(
+        _create_view_calls = [
+            self._create_view(
                 local["async_con"],
                 self.params["attributes"],
                 self.params["table"],
@@ -120,51 +139,34 @@ class Task:
             )
             for local in self.db_objects["local"]
         ]
-        await asyncio.gather(*create_view_calls)
+        await asyncio.gather(*_create_view_calls)
         print("time " + str(current_time() - t1))
 
 
-    async def initialize_local_schema(self):
-        for i, local in enumerate(self.db_objects["local"]):
-            query = "drop table if exists %s; create table %s (%s);" % (
-                self.localtable + "_" + str(i),
-                self.localtable + "_" + str(i),
-                self.local_schema,
-            )
-            await local["async_con"].cursor().execute(query)
-
-
-    async def initialize_global_schema(self):
-        query = "drop table if exists %s; create table if not exists %s (%s);" % (
-            self.globalresulttable,
-            self.globalresulttable,
-            self.global_schema,
-        )
-        await self.db_objects["global"]["async_con"].cursor().execute(query)
 
     #### run a task on all local nodes and sets up the transfer of the results to global node
-    async def _local(self, schema, sqlscript):
+    async def task_local(self, schema, sqlscript):
         t1 = current_time()
 
         if self.local_schema == None or self.local_schema != schema:
             self.local_schema = schema
-            await self.initialize_local_schema()
+            await self._initialize_local_schema()
             await self.transfer_runner.initialize_local(self.local_schema)
-        local_execute_calls = [
-            self.local_execute(local["async_con"], id, sqlscript)
+        _local_execute_calls = [
+            self._local_execute(local["async_con"], id, sqlscript)
             for id, local in enumerate(self.db_objects["local"])
         ]
-        await asyncio.gather(*local_execute_calls)
+        await asyncio.gather(*_local_execute_calls)
         print("time " + str(current_time() - t1))
 
     ### runs a task on global node using data received by the local nodes
-    async def _global(self, schema, sqlscript):
+    async def task_global(self, schema, sqlscript):
         t1 = current_time()
 
 
         if self.global_schema == None or self.global_schema != schema:
             self.global_schema = schema
-            await self.initialize_global_schema()
+            await self._initialize_global_schema()
             await self.transfer_runner.initialize_global(self.global_schema)
 
         query = (
