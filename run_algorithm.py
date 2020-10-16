@@ -10,9 +10,12 @@ import inspect
 import re
 
 def get_package(algorithm):
-    mpackage = "algorithms"
-    importlib.import_module(mpackage)
-    algo = importlib.import_module("." + algorithm, mpackage)
+    try:
+        mpackage = "algorithms"
+        importlib.import_module(mpackage)
+        algo = importlib.import_module("." + algorithm, mpackage)
+    except ModuleNotFoundError:
+        raise Exception(f"`{algorithm}` does not exist in the algorithms library")
     return algo
 
 def get_uniquetableid():
