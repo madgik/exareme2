@@ -78,8 +78,7 @@ The innermost tuples each describe a single column predicate. The list of inner 
 1) Add its UDFs to udf.py file
 2) Add its lib to algorithms folder
 3) Add an [algorithm name].py file to algorithms folder which returns the returned schema and the sql query 
-for each step of the algorithm and defines the dataflows. Note that
-since the way that the dataflow is imported into the system is the worse for the time, the functions calls in dataflow function have to be exactly the same as in the examples (the name of the parameters).
+for each step of the algorithm and defines the dataflows. 
 
 <br>
 <b>Other features:</b> <br>
@@ -117,7 +116,7 @@ MySQL's python async client (https://github.com/aio-libs/aiomysql)
 there is some code that tries to edit just the updates (and not re-init all the nodes) but there is a bug somewhere so this is commented. The bug happened when an update involves changing from monetdb to postgres or vice versa.  This should consider also concurrent requests in case of node updates, since there may be a living connection from another concurrent request during the update. This issue is not addressed in the current version.
 3) Global node failure -> assign another global
 4) clean the databases when the server is abnormaly shut down (e.g., ctrl-c). Currently, the tables are dropped only when the request returns some result or some error.
-5) Set the way that the developer defines the flow of the tasks. The algorithm developer should not have direct access to the internal methods and objects of the system.
+5) Set the way that the developer defines the flow of the tasks. The algorithm developer should not have direct access to the internal methods and objects of the system. - DONE with python's generators
 6) Security, DB passwords etc.
 7) There is a minimal error handling but probably this will need some updates.
 8) Support for more kinds of tasks. Currently local (runs a function to all the local nodes and merge their results) and global (run a function on the merged local results and send the result back to locals) is supported. More kinds of tasks need to be implemented in order to support all kinds of dataflows, some examples:
