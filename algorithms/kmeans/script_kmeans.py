@@ -8,13 +8,13 @@ num_of_datapoints_per_node_per_region=20
 #3 Nodes
 #Generate datapoints for the nodes
 #For each node, random datapoints will be ghenerated in 3 regions
-#region1: x in [10,15), y in [10,15)
+#region1: x in [10,55), y in [10,55)
 r1_min_x=10;r1_max_x=55;
 r1_min_y=10;r1_max_y=55;
-#region2: x in [-10,-5), y in [10,15)
+#region2: x in [-50,-10), y in [10,55)
 r2_min_x=-50;r2_max_x=-10;
 r2_min_y=10;r2_max_y=55;
-#region3: x in [-10,-5), y in [-10,-5)
+#region3: x in [-50,-10), y in [-50,-10)
 r3_min_x=-50;r3_max_x=-10;
 r3_min_y=-50;r3_max_y=-10;
 
