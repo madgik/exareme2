@@ -7,9 +7,12 @@ global results. The system (run_algorithm.py) calls the algorithm module, gets t
 Moreover, since the algorithm code does not contain any network IO there is no need the algorithm
 developer to write asynchronous code with async/await. 
 
-Το specify, the algorithm developer only yields sql queries one after another using standard Python. After a global query an extra yield is required to receive the result of the global query and continue the flow (e.g., countiter.py). This needs discussion, Lefteris disagrees with giving the result to python's code and prefers that the global sql query by itself defines the end of the iteration without passing result data (which can be bigger in another application) to python. Currently, the system supposes that always a global step comes after a local step and vice versa. If this is not always the case, the algorithm developer could yield not only the query and the schema but also instructions/definitions about the task (if it is a local or a global task (at the time) or anyother kind of task that will be supported in the future to cover all the types of distributed dataflows)
+Το specify, the algorithm developer only yields sql queries one after another using standard Python. After a global query an extra yield is required to receive the result of the global query and continue the flow (e.g., countiter.py). This needs discussion, Lefteris disagrees with giving the result to python's algorithm developer code and prefers that the global sql query by itself defines the end of the iteration without passing result data (which can be bigger in another application) to python. This can be easily done relationally (i.e., one extra attribute in the global table which returns the result and one bool column that indicates if the iteration has finished), countiter_full_sql is an example with termination condition implemented in SQL using SQL conditional expressions. 
 
-Probably, due to this update some refactoring is required. 
+Currently, the system supposes that always a global step comes after a local step and vice versa. If this is not always the case, the algorithm developer could yield not only the query and the schema but also instructions/definitions about the task (if it is a local or a global task (at the time) or anyother kind of task that will be supported in the future to cover all the types of distributed dataflows). Another task could be the createudf task. In this case, the algorithm developer defines a function in python, yields the function object and then the system passes it to the task executor which registers it to the dbs. In this case, Jason's wrapper is placed in the ODBC as a connection.create_function(func) which gets a python function, wraps and registers it to the db (as already exists in other databases, duckdb, sqlite etc.) 
+
+So, this update is also compatible with using abstractions to produce the yielded SQL scripts and wrappers to define UDFs in Python and register them to the DB automatically via the ODBC. The full implementation of an algorithm can be in one place in [algorithm].py file.
+The main purpose of these generator coroutines is to isolate the algorithm from the federated system so that the algorithm developer needs only to know standard Python (to produce the flow) and standard SQL (or an abstraction, to produce the processing steps), and does not depend in any way on the system's internals and possible big changes that there may take place on these internals (e.g., concurrency support with async await) for any reason.
 
 As for Postgres test integration, all the functionalities that are specific to the different DBMS have been moved to the connection objects of their aio libs and executed by the connection instance of the global node. This is not the perfect way to implement such an abstraction but a quick and dirty solution which is simpler at this time.
 These functions contain the remote and merge tables and the cleanup (it's different to drop a monetdb remote table compared to a postgres foreign data wrapper). The other SQL functionalities (selects, create tables, create views) exist in the standard SQL and they are the same for all the DBMSes so there is no significant reason to transfer them at the time being.
@@ -75,8 +78,7 @@ The innermost tuples each describe a single column predicate. The list of inner 
 1) Add its UDFs to udf.py file
 2) Add its lib to algorithms folder
 3) Add an [algorithm name].py file to algorithms folder which returns the returned schema and the sql query 
-for each step of the algorithm and defines the dataflows. Note that
-since the way that the dataflow is imported into the system is the worse for the time, the functions calls in dataflow function have to be exactly the same as in the examples (the name of the parameters).
+for each step of the algorithm and defines the dataflows. 
 
 <br>
 <b>Other features:</b> <br>
@@ -114,7 +116,7 @@ MySQL's python async client (https://github.com/aio-libs/aiomysql)
 there is some code that tries to edit just the updates (and not re-init all the nodes) but there is a bug somewhere so this is commented. The bug happened when an update involves changing from monetdb to postgres or vice versa.  This should consider also concurrent requests in case of node updates, since there may be a living connection from another concurrent request during the update. This issue is not addressed in the current version.
 3) Global node failure -> assign another global
 4) clean the databases when the server is abnormaly shut down (e.g., ctrl-c). Currently, the tables are dropped only when the request returns some result or some error.
-5) Set the way that the developer defines the flow of the tasks. The algorithm developer should not have direct access to the internal methods and objects of the system.
+5) Set the way that the developer defines the flow of the tasks. The algorithm developer should not have direct access to the internal methods and objects of the system. - DONE with python's generators
 6) Security, DB passwords etc.
 7) There is a minimal error handling but probably this will need some updates.
 8) Support for more kinds of tasks. Currently local (runs a function to all the local nodes and merge their results) and global (run a function on the merged local results and send the result back to locals) is supported. More kinds of tasks need to be implemented in order to support all kinds of dataflows, some examples:

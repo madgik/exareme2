@@ -14,22 +14,18 @@ import time
 WEB_SERVER_PORT = 7779
 define("port", default=WEB_SERVER_PORT, help="run on the given port", type=int)
 
-
 class AlgorithmException(Exception):
     def __init__(self, message):
         super(AlgorithmException, self).__init__(message)
-
 
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [(r"/", MainHandler)]
         tornado.web.Application.__init__(self, handlers)
 
-
 class BaseHandler(tornado.web.RequestHandler):
     def __init__(self, *args):
         tornado.web.RequestHandler.__init__(self, *args)
-
 
 class MainHandler(BaseHandler):
     # logging stuff..
@@ -40,7 +36,6 @@ class MainHandler(BaseHandler):
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr)
     logger.setLevel(logging.DEBUG)
-
     access_log = logging.getLogger("tornado.access")
     app_log = logging.getLogger("tornado.application")
     gen_log = logging.getLogger("tornado.general")
@@ -53,7 +48,6 @@ class MainHandler(BaseHandler):
         ## get params, algorithm contains the name of the algorithm, params is a valid json file
         algorithm = self.get_argument("algorithm")
         params = self.get_argument("params")
-
         #### new connection per request - required since connection objects are not thread safe at the time
         await self.dbs.initialize()
         db_objects = await self.dbs.acquire()
@@ -61,7 +55,6 @@ class MainHandler(BaseHandler):
         try:
             result = await run_algorithm.run(algorithm, params, db_objects)
             self.write("{}".format(result))
-
         except Exception as e:
             # raise tornado.web.HTTPError(status_code=500,log_message="...the log message??")
             self.logger.debug(
@@ -78,13 +71,11 @@ class MainHandler(BaseHandler):
         # self.write("{}".format(result))
         self.finish()
 
-
 def main(args):
     sockets = tornado.netutil.bind_sockets(options.port)
     server = tornado.httpserver.HTTPServer(Application())
     server.add_sockets(sockets)
     tornado.ioloop.IOLoop.instance().start()
-
 
 if __name__ == "__main__":
     main(sys.argv)

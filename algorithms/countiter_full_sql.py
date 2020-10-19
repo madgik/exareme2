@@ -1,13 +1,9 @@
 class Algorithm:
 
     def algorithm(self, data_table, merged_local_results, parameters, attributes, result_table):
-        res = 0
         for iternum in range(60):
             yield self._local(iternum, data_table, parameters, attributes, result_table)
             yield self._global(iternum, merged_local_results, parameters, attributes)
-            res = yield
-            if res[0][0] > 1000000:
-                break
 
 
     def _local(self, iternum, data_table, parameters, attributes, result_table):
@@ -31,10 +27,17 @@ class Algorithm:
 
     def _global(self, iternum, merged_local_results, parameters, attributes):
         #### todo convert schema to a list and not string
-        schema = "c1 BIGINT"
-        sqlscript = f'''
-                        SELECT 
-                            SUM({attributes[0]}) as c1 
-                        FROM {merged_local_results};
+        schema = "termination BOOL, c1 BIGINT"
+        sqlscript = f'''SELECT
+                            CASE WHEN c1 > 1000000 
+                                     THEN TRUE
+                                 ELSE FALSE
+                            END AS termination, 
+                            c1 
+                        FROM 
+                            (
+                              SELECT SUM({attributes[0]}) as c1 
+                              FROM {merged_local_results} 
+                            ) AS globalcalculation;
                     '''
         return schema, sqlscript

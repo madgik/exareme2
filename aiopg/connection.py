@@ -288,7 +288,7 @@ class Connection:
             await db_objects["global"]["async_con"].cursor().execute(
                 "CREATE USER MAPPING FOR CURRENT_USER SERVER local_"
                 + str(i)
-                + " OPTIONS (user 'postgres', password '');"
+                + " OPTIONS (user 'postgres', password 'mypassword');"
             )
             await local_node["async_con"].cursor().execute(
                 "CREATE SERVER global FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host %s, dbname %s, port '%s');",
