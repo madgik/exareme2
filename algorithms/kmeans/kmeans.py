@@ -13,30 +13,38 @@ def _global(num_of_clusters,local_centroids=[]):
             new_centroids.append([np.random.randint(100),np.random.randint(100)])
         return new_centroids
 
-    #The calculated centroids from the local nodes have to be averaged out, in order to have a single of centroids to continue with the algorithm
-    #Nevertheless, they have to be averaged out in some structured way in order to end up with a new set of centroids and not just one centroid as the result of 
-    #all local centroids averaged together. The approach here is to handle one of the centroids sets returned by a node as the refference set of centroids and apply again
-    #one step of the kmeans clustering on it, with the datapoints beeing the centroids returned from the other nodes. 
-    num_of_centroids_returned_per_node=[ len(centroids) for centroids in local_centroids]
+    if len(local_centroids)>1:
 
-    #...one of the centroids sets (returned by the local step of the algorithm) with the most centroids is chosen as the refference centroids set 
-    m=max(num_of_centroids_returned_per_node)
-    index_of_node_with_max_number_of_centroids=num_of_centroids_returned_per_node.index(max(num_of_centroids_returned_per_node))
-    centroids=local_centroids[index_of_node_with_max_number_of_centroids]
+        #The calculated centroids from the local nodes have to be averaged out, in order to have a single of centroids to continue with the algorithm
+        #Nevertheless, they have to be averaged out in some structured way in order to end up with a new set of centroids and not just one centroid as the result of 
+        #all local centroids averaged together. The approach here is to handle one of the centroids sets returned by a node as the refference set of centroids and apply again
+        #one step of the kmeans clustering on it, with the datapoints beeing the centroids returned from the other nodes. 
+        num_of_centroids_returned_per_node=[ len(centroids) for centroids in local_centroids]
 
-    #...with the datapoints beeing the centroids returned from the other nodes
-    local_centroids.pop(index_of_node_with_max_number_of_centroids)
-    data_points=local_centroids
+        #...one of the centroids sets (returned by the local step of the algorithm) with the most centroids is chosen as the refference centroids set 
+        m=max(num_of_centroids_returned_per_node)
+        index_of_node_with_max_number_of_centroids=num_of_centroids_returned_per_node.index(max(num_of_centroids_returned_per_node))
+        centroids=local_centroids[index_of_node_with_max_number_of_centroids]
 
-    flatten=list(chain.from_iterable(data_points))
-    colx=[x[0] for x in flatten]
-    coly=[x[1] for x in flatten]
+        #...with the datapoints beeing the centroids returned from the other nodes
+        local_centroids.pop(index_of_node_with_max_number_of_centroids)
+        data_points=local_centroids
 
-    #... apply again one step of the kmeans clustering on it, with the datapoints beeing the centroids returned from the other nodes. 
-    new_centroids=kmeans_one_step(centroids,colx,coly)
+        flatten=list(chain.from_iterable(data_points))
+        colx=[x[0] for x in flatten]
+        coly=[x[1] for x in flatten]
+
+        #... apply again one step of the kmeans clustering on it, with the datapoints beeing the centroids returned from the other nodes. 
+        new_centroids=kmeans_one_step(centroids,colx,coly)
+
+    else:
+        flatten=list(chain.from_iterable(local_centroids))
+        new_centroids=flatten
+        colx=[x[0] for x in flatten]
+        coly=[x[1] for x in flatten]
 
     #The kmeans_one_step MIGHT return less number of centroids than the length of the centroids which it was called with, when zero datapoints are assigned to certain centroids(clusters)
-    #In that case we generate a random new centroid to proceed with the algorithm
+    #In that case we generate some random new centroids to proceed with the algorithm
     if len(new_centroids)<num_of_clusters:
         num_of_centroids_missing=num_of_clusters-len(new_centroids)
         min_x=min(colx)
@@ -53,7 +61,7 @@ def _global(num_of_clusters,local_centroids=[]):
             else:
                 y_random=np.random.uniform()
             new_centroids.append([x_random,y_random])
-            
+
     return new_centroids
 
 #NOTE: The kmeans_one_step MIGHT return less number of centroids than the length of the centroids which it was called with, when zero datapoints are assigned to certain centroids(clusters)
