@@ -40,13 +40,30 @@ async def dataflow(task_executor, algorithm):
     while True:
         try:
             schema, sqlscript = next(query_generator)
-            result = await task_executor.task_global(schema, sqlscript)
-            next(query_generator)
-            schema, sqlscript = query_generator.send(result)
-            await task_executor.task_local(schema, sqlscript)
+            #####  the following runs only when termination condition is evaluated in SQL
+            if 'termination' in schema:
+                ##  TODO: this is quick and dirty - rewrite efficiently
+                result = await task_executor.task_global(schema, sqlscript)
+                if 'iternum' in schema:
+                    if result[len(result)-1][0] == True:
+                        return [x[2:] for x in result if x[1] == result[len(result)-1][1]]
+                else:
+                    if result[0][0] == True:
+                        return [x[1:] for x in result]
+                schema, sqlscript = next(query_generator)
+                await task_executor.task_local(schema, sqlscript)
+            ######################################################################
+            else:
+                result = await task_executor.task_global(schema, sqlscript)
+                next(query_generator)
+                schema, sqlscript = query_generator.send(result)
+                await task_executor.task_local(schema, sqlscript)
         except StopIteration:
             break
-    return result
+    if 'termination' in schema:
+        return [x[1:] for x in result]
+    else:
+        return result
 
 async def run(algorithm, params, db_objects):
     result = []

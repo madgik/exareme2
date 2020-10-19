@@ -20,19 +20,29 @@ class Task:
         self.local_schema = None
         self.global_schema = None
 
-    async def _local_execute(self, local,  id, sqlscript):
-        query = (
-            "delete from "
-            + self.localtable
-            + "_"
-            + str(id)
-            + "; insert into "
-            + self.localtable
-            + "_"
-            + str(id)
-            + " "
-            + sqlscript
-        )
+    async def _local_execute(self, local,  id, sqlscript, insert):
+        if not insert:
+            query = (
+                "delete from "
+                + self.localtable
+                + "_"
+                + str(id)
+                + "; insert into "
+                + self.localtable
+                + "_"
+                + str(id)
+                + " "
+                + sqlscript
+            )
+        else:
+            query = (
+                    "insert into "
+                    + self.localtable
+                    + "_"
+                    + str(id)
+                    + " "
+                    + sqlscript
+            )
         await local.cursor().execute(query)
 
     async def _create_view(self, local, attributes, table, filterpart, vals):
@@ -138,12 +148,15 @@ class Task:
     #### run a task on all local nodes and sets up the transfer of the results to global node
     async def task_local(self, schema, sqlscript):
         t1 = current_time()
+        insert = False
+        if 'iternum'  in  schema:
+            insert = True
         if self.local_schema == None or self.local_schema != schema:
             self.local_schema = schema
             await self._initialize_local_schema()
             await self.transfer_runner.initialize_local(self.local_schema)
         _local_execute_calls = [
-            self._local_execute(local["async_con"], id, sqlscript)
+            self._local_execute(local["async_con"], id, sqlscript, insert)
             for id, local in enumerate(self.db_objects["local"])
         ]
         await asyncio.gather(*_local_execute_calls)
@@ -156,15 +169,22 @@ class Task:
             self.global_schema = schema
             await self._initialize_global_schema()
             await self.transfer_runner.initialize_global(self.global_schema)
-
-        query = (
-            "delete from "
-            + self.globalresulttable
-            + "; insert into "
-            + self.globalresulttable
-            + " "
-            + sqlscript
-        )
+        if 'iternum' not in schema:
+            query = (
+                "delete from "
+                + self.globalresulttable
+                + "; insert into "
+                + self.globalresulttable
+                + " "
+                + sqlscript
+            )
+        else:
+            query = (
+                    "insert into "
+                    + self.globalresulttable
+                    + " "
+                    + sqlscript
+            )
         await self.db_objects["global"]["async_con"].cursor().execute(query)
         cur = self.db_objects["global"]["async_con"].cursor()
         result = await cur.execute("select * from %s;" % self.globalresulttable)
