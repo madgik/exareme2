@@ -39,3 +39,10 @@ class Algorithm:
         select kmeans_global({parameters[0]}, node_id, c1, c2) from {merged_local_results};
         '''
         return schema, sqlscript
+
+
+## to test, you need one table in each local node containing 2 float attributes
+## and send a pull request with 2 attributes and one int parameter (this param defines the number of clusters)
+## or run sqlterm/mfederate.py and run `select kmeans(c1,c2,3) from data;`
+## If using the existing servers in servers.py file there is already a table `data4`
+## and kmeans can run with `select kmeans(c1,c2,3) from data4;`
