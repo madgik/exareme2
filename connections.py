@@ -57,13 +57,18 @@ class Connections:
 
             con = await self.acquire()
             await con["global"]["async_con"].init_remote_connections(con)
-            try:
-                for udf in udfs.udf_list:
-                    await con["global"]["async_con"].cursor().execute(udf)
+
+            for udf in udfs.udf_list:
+                    try:
+                        await con["global"]["async_con"].cursor().execute(udf)
+                    except:
+                        pass
                     for local in con["local"]:
-                        await local['async_con'].cursor().execute(udf)
-            except:
-                pass
+                        try:
+                            await local['async_con'].cursor().execute(udf)
+                        except:
+                            pass
+
                     # at this time due to minimal error handling and due to testing there may be tables in the DB which
                     #  are not dropped and are dependent on some UDFs, so their recreation may fail
                     # (You cannot replace a UDF which is in use)

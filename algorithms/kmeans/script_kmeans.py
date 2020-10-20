@@ -59,7 +59,7 @@ for i in range(num_of_iterations):
     new_centroids_node1=_local(centroids,colx_node1,coly_node1)
     new_centroids_node2=_local(centroids,colx_node1,coly_node2)
     new_centroids_node3=_local(centroids,colx_node1,coly_node3)
-    centroids=_global(num_of_clusters,[new_centroids_node1,new_centroids_node2,new_centroids_node3])
+    centroids=_global(num_of_clusters,[new_centroids_node1,new_centroids_node2, new_centroids_node3])
 print(f"FINAL centroids->{centroids}")
 
 #plottinng--------------------------------------------------------------------------------------

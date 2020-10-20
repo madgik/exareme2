@@ -9,14 +9,14 @@ class Algorithm:
     def _local(self, iternum, data_table, parameters, attributes, result_table):
         #### todo convert schema to a list and not string
         schema = "sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT"
-        sqlscript = "select * from pearson_local((select * from %s));" % data_table
+        sqlscript = "select * from pearson_local((select * from %s))" % data_table
         return schema, sqlscript
 
 
     def _global(self, iternum, merged_local_results, parameters, attributes):
         #### todo convert schema to a list and not string
         schema = "result FLOAT"
-        sqlscript  = "select * from pearson_global((select * from %s));" % merged_local_results
+        sqlscript  = "select * from pearson_global((select * from %s))" % merged_local_results
         return schema, sqlscript
 
 

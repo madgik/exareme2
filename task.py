@@ -31,8 +31,9 @@ class Task:
                 + self.localtable
                 + "_"
                 + str(id)
-                + " "
+                + " select "+str(id)+" as node_id, * from ("
                 + sqlscript
+                + ") inputquery;"
             )
         else:
             query = (
@@ -40,8 +41,9 @@ class Task:
                     + self.localtable
                     + "_"
                     + str(id)
-                    + " "
+                    + " select "+str(id)+" as node_id, * from ("
                     + sqlscript
+                    + ") inputquery;"
             )
         await local.cursor().execute(query)
 
@@ -73,7 +75,8 @@ class Task:
 
     async def _initialize_local_schema(self):
         for i, local in enumerate(self.db_objects["local"]):
-            query = "drop table if exists %s; create table %s (%s);" % (
+            query = "drop table if exists %s; create table %s (node_id INT, %s);" % (
+
                 self.localtable + "_" + str(i),
                 self.localtable + "_" + str(i),
                 self.local_schema,

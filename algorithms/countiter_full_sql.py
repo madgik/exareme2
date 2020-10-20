@@ -38,6 +38,6 @@ class Algorithm:
                             (
                               SELECT SUM({attributes[0]}) as c1 
                               FROM {merged_local_results} 
-                            ) AS globalcalculation;
+                            ) AS globalcalculation
                     '''
         return schema, sqlscript

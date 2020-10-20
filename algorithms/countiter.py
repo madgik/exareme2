@@ -35,6 +35,6 @@ class Algorithm:
         sqlscript = f'''
                         SELECT 
                             SUM({attributes[0]}) as c1 
-                        FROM {merged_local_results};
+                        FROM {merged_local_results}
                     '''
         return schema, sqlscript
