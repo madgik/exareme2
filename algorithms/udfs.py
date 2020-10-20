@@ -92,7 +92,7 @@ LANGUAGE PYTHON {
 udf_list.append(kmeans_local)
 
 kmeans_global = '''
-CREATE or replace AGGREGATE sys.kmeans_global(num_of_clusters INT, node_id INT, colx FLOAT, coly FLOAT) 
+CREATE or replace AGGREGATE kmeans_global(num_of_clusters INT, node_id INT, colx FLOAT, coly FLOAT) 
 RETURNS STRING
 LANGUAGE PYTHON {
     import numpy as np
