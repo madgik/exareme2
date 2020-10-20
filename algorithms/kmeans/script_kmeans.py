@@ -8,13 +8,13 @@ num_of_datapoints_per_node_per_region=20
 #3 Nodes
 #Generate datapoints for the nodes
 #For each node, random datapoints will be ghenerated in 3 regions
-#region1: x in [10,55), y in [10,55)
+#region1: x in [10,15), y in [10,15)
 r1_min_x=10;r1_max_x=55;
 r1_min_y=10;r1_max_y=55;
-#region2: x in [-50,-10), y in [10,55)
+#region2: x in [-10,-5), y in [10,15)
 r2_min_x=-50;r2_max_x=-10;
 r2_min_y=10;r2_max_y=55;
-#region3: x in [-50,-10), y in [-50,-10)
+#region3: x in [-10,-5), y in [-10,-5)
 r3_min_x=-50;r3_max_x=-10;
 r3_min_y=-50;r3_max_y=-10;
 
@@ -59,7 +59,7 @@ for i in range(num_of_iterations):
     new_centroids_node1=_local(centroids,colx_node1,coly_node1)
     new_centroids_node2=_local(centroids,colx_node1,coly_node2)
     new_centroids_node3=_local(centroids,colx_node1,coly_node3)
-    centroids=_global(num_of_clusters,[new_centroids_node1,new_centroids_node2, new_centroids_node3])
+    centroids=_global(num_of_clusters,[new_centroids_node1,new_centroids_node2,new_centroids_node3])
 print(f"FINAL centroids->{centroids}")
 
 #plottinng--------------------------------------------------------------------------------------
