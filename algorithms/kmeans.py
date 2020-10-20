@@ -36,6 +36,6 @@ class Algorithm:
         #### todo convert schema to a list and not string
         schema = "centroids STRING"
         sqlscript  = f'''
-        select kmeans_global(3, node_id, c1, c2) from {merged_local_results};
+        select kmeans_global({parameters[0]}, node_id, c1, c2) from {merged_local_results};
         '''
         return schema, sqlscript
