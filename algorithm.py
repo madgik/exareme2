@@ -6,8 +6,6 @@ from typing import get_origin
 from typing import get_type_hints
 
 
-import numpy as np
-
 FUNC_DEFS = []
 PY_TO_SQL_TYPES = {int: "INT", float: "REAL"}
 
@@ -93,6 +91,7 @@ class Pearson(Algorithm):
     def global_(
         sx: float, sxx: float, sxy: float, sy: float, syy: float, n: int
     ) -> float:
+        import numpy as np
         n = np.sum(n)
         sx = np.sum(sx)
         sxx = np.sum(sxx)
@@ -101,3 +100,6 @@ class Pearson(Algorithm):
         syy = np.sum(syy)
         d = np.sqrt(n * sxx - sx * sx) * np.sqrt(n * syy - sy * sy)
         return (n * sxy - sx * sy) / d
+
+
+[print(f) for f in FUNC_DEFS]
