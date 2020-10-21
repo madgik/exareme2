@@ -17,13 +17,14 @@ from basic to expert-level.
   some medical center or whose medical record is inputted manually by the user,
   find other medical centers hosting *similar* cases. Similarity can have
   multiple definitions.
-* A *medical researcher* wants to **cross-validate** her models using a
-  variety of CV. The user wants to choose among multiple CV strategies.
-    * *k-fold* CV Medical-center-agnostic.
-    * *Cluster* CV where a cluster here is a medical center.
+* A *medical researcher* wants to **cross-validate** her models in order to
+  asses the quality of fit. The user wants to choose among multiple CV
+  strategies.
+    * *k-fold* CV, medical-center-agnostic.
+    * *Cluster* CV where a cluster here corresponds a medical center.
     * Leave Observation Out from each Cluster *(Wu and Zhang, 2002)*.
 * A *medical researcher* wants to perform formalized **model selection**. After
-  training multiple models on the same dataset, she wants to select the *best*
+  training multiple models on the same dataset, the user wants to select the *best*
   one according to criteria usually related to the model's
   prediction/cross-validation performance.
 * A *medical researcher* wants to be able to **pre-process data** using a variety
@@ -59,6 +60,6 @@ well as some computing power. It is potentially geographically distinct from
 other medical centers.[↩](#a1) 
 
 <b id="f2">2</b> An **algorithm** is understood as being a **statistics/machine
-learning** algorithm which typically excepts some data table as input and
+learning** algorithm which typically expects some data table as input and
 outputs a **model**, *i.e.* a bunch of parameters. This model can be of interest
 to the user on its own, or can be used in further computations.[↩](#a2) 
