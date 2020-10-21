@@ -115,7 +115,13 @@ LANGUAGE PYTHON {
         local_centroids.append(d[i])
     #####################################
     
-    if np.amax(a)>1:
+    if not local_centroids:
+        new_centroids=[]
+        for i in range(num_of_clusters):
+            new_centroids.append([np.random.randint(100),np.random.randint(100)])
+        return new_centroids
+
+    if len(local_centroids)>1:
 
         num_of_centroids_returned_per_node=[ len(centroids) for centroids in local_centroids]
 

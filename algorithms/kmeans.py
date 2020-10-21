@@ -11,8 +11,8 @@ class Algorithm:
         for iternum in range(10):
             if iternum == 0:
                 for i in range(parameters[0]):
-                    new_centroids.append([random.randint(1, 100), random.randint(1, 100)])
-                init_centroids = json.dumps(new_centroids)
+                    init_centroids.append([random.randint(1, 100), random.randint(1, 100)])
+                init_centroids = json.dumps(init_centroids)
 
                 init_sqlscript = f'''
                             select * from
@@ -26,7 +26,7 @@ class Algorithm:
                                     kmeans_local((select centroids, {attributes[0]}, {attributes[1]} from {result_table},{data_table}))
                                     '''
                 yield local_schema, local_sqlscript
-                
+
             global_sqlscript = f'''
                     select kmeans_global({parameters[0]}, node_id, c1, c2) from {merged_local_results};
                     '''
