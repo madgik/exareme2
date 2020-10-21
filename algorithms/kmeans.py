@@ -72,7 +72,7 @@ class Algorithm:
             yield global_schema, global_sqlscript
             result = yield
 
-            
+
 ## to test, you need one table in each local node containing 2 float attributes
 ## and send a pull request with 2 attributes and one int parameter (this param defines the number of clusters)
 ## or run sqlterm/mfederate.py and run `select kmeans(c1,c2,3) from data;`
