@@ -21,7 +21,7 @@ class Algorithm:
                     {attributes[0]} as x,
                     {attributes[1]} as y 
                 FROM {data_table}
-             )  pearson_data;
+             )  pearson_data
         '''
         return schema, sqlscript
 
@@ -42,7 +42,7 @@ class Algorithm:
                        SUM(sy) as sy,
                        SUM(syy) as syy 
                 FROM {merged_local_results} 
-             )  pearson_sums;
+             )  pearson_sums
         '''
         return schema, sqlscript
 

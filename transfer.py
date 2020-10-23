@@ -8,7 +8,7 @@ class Transfer:
         self.db_objects = db_objects
 
     async def initialize_local(self, localschema):
-        await self.db_objects["global"]["async_con"].merge(self.db_objects, self.localtable, self.globaltable, localschema)
+        await self.db_objects["global"]["async_con"].merge(self.db_objects, self.localtable, self.globaltable, "node_id INT, " + localschema)
 
     async def initialize_global(self, globalschema):
         await self.db_objects["global"]["async_con"].broadcast(self.db_objects, self.globalresulttable, globalschema)
