@@ -26,6 +26,7 @@ coly_node1_region1=[random.uniform(r1_min_y,r1_max_y) for i in range(num_of_data
 coly_node1_region2=[random.uniform(r2_min_y,r2_max_y) for i in range(num_of_datapoints_per_node_per_region)]
 coly_node1_region3=[random.uniform(r3_min_y,r3_max_y) for i in range(num_of_datapoints_per_node_per_region)]
 coly_node1=coly_node1_region1+coly_node1_region2+coly_node1_region3
+node1_datapoints=np.array([colx_node1,coly_node1]).T
 
 colx_node2_region1=[random.uniform(r1_min_x,r1_max_x) for i in range(num_of_datapoints_per_node_per_region)]
 colx_node2_region2=[random.uniform(r2_min_x,r2_max_x) for i in range(num_of_datapoints_per_node_per_region)]
@@ -35,6 +36,7 @@ coly_node2_region1=[random.uniform(r1_min_y,r1_max_y) for i in range(num_of_data
 coly_node2_region2=[random.uniform(r2_min_y,r2_max_y) for i in range(num_of_datapoints_per_node_per_region)]
 coly_node2_region3=[random.uniform(r3_min_y,r3_max_y) for i in range(num_of_datapoints_per_node_per_region)]
 coly_node2=coly_node2_region1+coly_node2_region2+coly_node2_region3
+node2_datapoints=np.array([colx_node2,coly_node2]).T
 
 colx_node3_region1=[random.uniform(r1_min_x,r1_max_x) for i in range(num_of_datapoints_per_node_per_region)]
 colx_node3_region2=[random.uniform(r2_min_x,r2_max_x) for i in range(num_of_datapoints_per_node_per_region)]
@@ -44,6 +46,7 @@ coly_node3_region1=[random.uniform(r1_min_y,r1_max_y) for i in range(num_of_data
 coly_node3_region2=[random.uniform(r2_min_y,r2_max_y) for i in range(num_of_datapoints_per_node_per_region)]
 coly_node3_region3=[random.uniform(r3_min_y,r3_max_y) for i in range(num_of_datapoints_per_node_per_region)]
 coly_node3=coly_node3_region1+coly_node3_region2+coly_node3_region3
+node3_datapoints=np.array([colx_node3,coly_node3]).T
 
 #print(f"colx_node1->{colx_node1}\n")
 #print(f"colx_node2->{colx_node2}\n")
@@ -51,22 +54,22 @@ coly_node3=coly_node3_region1+coly_node3_region2+coly_node3_region3
 
 num_of_clusters=3
 initial_centroids=_global(num_of_clusters,[])
-
+print(f"initial centroids->{initial_centroids}")
 
 num_of_iterations=10
 centroids=initial_centroids
 for i in range(num_of_iterations):
-    new_centroids_node1=_local(centroids,colx_node1,coly_node1)
-    new_centroids_node2=_local(centroids,colx_node1,coly_node2)
-    new_centroids_node3=_local(centroids,colx_node1,coly_node3)
+    new_centroids_node1=_local(centroids,node1_datapoints)
+    new_centroids_node2=_local(centroids,node1_datapoints)
+    new_centroids_node3=_local(centroids,node1_datapoints)
     centroids=_global(num_of_clusters,[new_centroids_node1,new_centroids_node2,new_centroids_node3])
 print(f"FINAL centroids->{centroids}")
 
 #plottinng--------------------------------------------------------------------------------------
 
-plt.plot(colx_node1_region1,coly_node1_region1,'cd',label="node1 datapoints");plt.plot(colx_node1_region2,coly_node1_region2,'cd');plt.plot(colx_node1_region3,coly_node1_region3,'cd')
-plt.plot(colx_node2_region1,coly_node2_region1,'ms',label="node2 datapoints");plt.plot(colx_node2_region2,coly_node2_region2,'ms');plt.plot(colx_node2_region3,coly_node2_region3,'ms')
-plt.plot(colx_node3_region1,coly_node3_region1,'yo',label="node3 datapoints");plt.plot(colx_node3_region2,coly_node3_region2,'yo');plt.plot(colx_node3_region3,coly_node3_region3,'yo')
+plt.plot(node1_datapoints[:,0],node1_datapoints[:,1],'cd',label="node1 datapoints");
+plt.plot(node2_datapoints[:,0],node2_datapoints[:,1],'ms',label="node2 datapoints");
+plt.plot(node3_datapoints[:,0],node3_datapoints[:,1],'yo',label="node3 datapoints");
 
 c=np.array(initial_centroids)
 plt.plot(c[:,0],c[:,1],'rx',markersize=10,label="initial centroids")
