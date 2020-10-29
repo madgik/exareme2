@@ -20,7 +20,8 @@ PY_TO_SQL_TYPES = {
 
 class MetaAlgorithm(type):
     """Metaclass for Algorithm base class. Every time a subclass of Algorithm
-    is defined, all its methods become MonetDB UDFs.
+    is defined, all its methods are decorated with make_udf. Then, they can
+    emit a UDF code on call time.
     """
 
     def __new__(mcs, name, bases, attrs):
@@ -47,14 +48,14 @@ def make_udf(func):
 
 
 def verify_annotations(func):
-    """Verifies that func is well annotated. All methods should be fully
-    annotated (parameters and return val) in order to become UDFs.
+    """Verifies that func is well annotated. All algorithm methods should be
+    fully annotated (parameters and return val) in order to become UDFs.
     """
     parameters = inspect.signature(func).parameters
     annotations = func.__annotations__
     parameters = dict(parameters)
     del parameters["self"]
-    if len(parameters) != len(annotations) - 1:  # subtrack return annotation
+    if len(parameters) != len(annotations) - 1:  # subtract return annotation
         msg = "This method should be fully annotated. "
         msg += f"Some annotations are missing: {annotations}"
         raise SyntaxError(msg)
@@ -62,7 +63,7 @@ def verify_annotations(func):
 
 def get_udf_params(func, args):
     """Extracts UDF parameters from python parameters dynamically.  Since
-    python method accept multidimensional arrays whereas MonetDB UDFs only work
+    python methods accept multidimensional arrays whereas MonetDB UDFs only work
     with one-dimensional ones, we need to create the UDF at call time.
 
     Args:
@@ -70,8 +71,8 @@ def get_udf_params(func, args):
       args:
 
     Returns:
-        Counts the number of columns in python parameters and outputs a list of
-        formated SQL parameters of appropriate length
+        This method counts the number of columns in python parameters and
+        outputs a list of formatted SQL parameters of appropriate length
 
     """
     signature = inspect.signature(func)
@@ -152,7 +153,7 @@ if __name__ == "__main__":
     alg.the_method(X, Y)
     print(FUNC_DEFS[0])
 
-    X = np.array([[1, 2], [10, 20]])
+    X = np.array([[1.5, 2], [10, 20]])
     Y = np.array([[5, 6, 7], [50, 60, 70]])
     alg.the_method(X, Y)
     print(FUNC_DEFS[1])
