@@ -36,7 +36,8 @@ class MetaAlgorithm(type):
 
 
 def register(func):
-    """Registers a function as MonetDB UDF."""
+    """Registers a function as MonetDB UDF.
+    """
     types = get_type_hints(func)
     name = func.__qualname__
     params = [
@@ -58,8 +59,13 @@ def register(func):
 
 def get_body(sourcelines):
     """
-    :sourcelines: result of inspect.getsourcelines on a function
-    :returns: body of function as a single long string
+
+    Args:
+      sourcelines: result of inspect.getsourcelines on a function
+
+    Returns:
+      body of function as a single long string
+
     """
     iterlines = iter(sourcelines)
     next(line for line in iterlines if "->" in line)  # hack to remove func definition
