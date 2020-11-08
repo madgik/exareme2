@@ -1,0 +1,32 @@
+@startuml
+actor App 
+box "Runtime"
+participant Orchestrator
+database GlobalNode
+database LocalNodes
+end box
+
+App -[#green]> Orchestrator: Request:\nModel list (different algorithms and/or hyper-parameters),\ndata, filters, transformation
+
+== Training phase==
+Orchestrator -[#blue]-> Orchestrator: Control:\nTrain model 1
+ref over Orchestrator, LocalNodes, GlobalNode :Training algorithm for model 1
+GlobalNode -[#red]> GlobalNode: Store:\nModel 1
+
+Orchestrator -[#blue]-> Orchestrator: Control:\nTrain model 2
+ref over Orchestrator, LocalNodes, GlobalNode :Training algorithm for model 2
+GlobalNode -[#red]> GlobalNode: Store:\nModel 2
+... Repeat ...
+
+== Testing phase==
+Orchestrator -[#blue]-> Orchestrator: Control:\nTest model 1
+ref over Orchestrator, LocalNodes, GlobalNode :Prediction algorithm for model 1
+GlobalNode -[#red]> GlobalNode: Store:\nMetrics for model 1
+
+Orchestrator -[#blue]-> Orchestrator: Control:\nTest model 2
+ref over Orchestrator, LocalNodes, GlobalNode :Prediction algorithm for model 2
+GlobalNode -[#red]> GlobalNode: Store:\nMetrics for model 2
+... Repeat ...
+
+Orchestrator -[#green]> App: Response:\nFinal result
+@enduml
