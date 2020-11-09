@@ -23,8 +23,10 @@ repeated any number of times.
 #### Sequence diagrams
 In what follows we present a number of sequence diagrams to accompany the user
 stories. These diagrams represent the sequence of events for each setting where
-time flows from top to bottom. The color coding is *green*: remote invocations,
-*red*: data transfer and *blue* local transformation of data.
+time flows from top to bottom. The color coding is 
+<span style="color:green">*green*: remote invocations</span>, 
+<span style="color:red">*red*: data transfer</span> and 
+<span style="color:blue">*blue*: local transformation of data</span>.
 
 ## User persona: Medical Researcher
 Might be a doctor, a neuroscientist, a biologist, a pharmaceutical researcher or
@@ -48,7 +50,7 @@ setting.
   
 #### Prediction
 A *medical researcher* wants to use a previously trained model to perform
-  **prediction** on some new medical records.
+**prediction** on some new medical records.
   
 ![prediction diagram](5-predict.png)
 *Prediction/Testing*
@@ -104,6 +106,9 @@ medical centers. Given a small number (possibly one) of patients located in some
 medical center or whose medical record is inputted manually by the user, find
 other medical centers hosting *similar* cases. Similarity can have multiple
 definitions.
+
+![similarity search diagram](10-similarity.png)
+*Similarity search*
   
 #### Saving
 A *medical researcher* wants to **save elements of her computations** for later
