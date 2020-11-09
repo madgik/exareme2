@@ -1,9 +1,9 @@
 # User stories
 
-##### Definitions
+#### Definitions
 * In what follows, an **algorithm** is understood as being a *statistics* or
   *machine learning* algorithm which typically expects some data tables as
-  input and outputs a *model* or some *statistics*. This model can be of
+  input and outputs a *model* and/or some *statistics*. This model can be of
   interest to the user on its own, or can be used in further computations.
 * **Federated** algorithm means that the work is divided into smaller tasks,
   each executed on a different **node** of the federation. The primary
@@ -20,7 +20,7 @@ The horizontal bars represent synchronization points. The number of local tasks
 can vary depending on the context. The whole `local`/`global` step can be
 repeated any number of times.
 
-##### Sequence diagrams
+#### Sequence diagrams
 In what follows we present a number of sequence diagrams to accompany the user
 stories. These diagrams represent the sequence of events for each setting where
 time flows from top to bottom. The color coding is *green*: remote invocations,
@@ -63,7 +63,7 @@ the quality of fit. The user wants to choose among multiple CV strategies.
 *k-fold cross-validation*
 
 ![cluster dv diagram](8-cvcluster.png)
-*cluster cross-validation*
+*Cluster cross-validation*
     
 #### Model selection
 A *medical researcher* wants to perform formalized **model selection**. After

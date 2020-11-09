@@ -14,7 +14,7 @@ loop for Model in Models
     GlobalNode -[#red]> GlobalNode: Store:\nMetrics for model
 end
 Orchestrator -[#green]-> GlobalNode: Control:\nCall model selection method
-GlobalNode -[#red]> Orchestrator: Transfer:'\nBest model
+GlobalNode -[#red]> Orchestrator: Transfer:\nBest model
 
 Orchestrator -[#gray]> App: Response:\nFinal result
 @enduml
