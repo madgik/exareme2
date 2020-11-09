@@ -1,0 +1,17 @@
+@startuml
+
+start
+
+repeat
+    fork
+        :Local task 1;
+    fork again
+        :Local task 2;
+    end fork
+    :Global task;
+repeat while (continue?) is (yes)
+->no;
+
+stop
+
+@enduml
