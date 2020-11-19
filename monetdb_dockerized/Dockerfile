@@ -25,11 +25,15 @@ WORKDIR /home/MonetDB-11.37.11
 
 RUN apt install -y software-properties-common
 RUN add-apt-repository -y ppa:deadsnakes/ppa
-RUN apt install -y python3.7-dev
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 1
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.7 1
+RUN apt install -y python3.8-dev
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
 
 RUN apt install -y libssl-dev libpcre3 libpcre3-dev pkg-config uuid-dev libxml2 libxml2-dev unixodbc-dev build-essential
+
+RUN apt update && apt install -y python3-pip
+
+RUN pip3 install numpy scipy matplotlib ipython jupyter pandas sympy nose
 
 #######################################################
 # Install monetdb
