@@ -16,4 +16,4 @@ class Algorithm:
 
         #result2 = await data3.get_value()
 
-        return data3.get_value()
+        return await data3.get_value()
