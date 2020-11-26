@@ -1,18 +1,32 @@
-import numbers
+from numbers import Number
 
 import numpy as np
+
+from dispatcher import dispatch
+
+# TODO make ArrayBundle.transpose lazy and take advantage of lazyness in X.T @ X
+
+BOOLEAN_UFUNCS = (
+    "greater",
+    "greater_equal",
+    "less",
+    "less_equal",
+    "not_equal",
+    "equal",
+    "logical_or",
+    "logical_and",
+    "logical_xor",
+    "logical_not",
+)
 
 
 class ArrayBundle(np.lib.mixins.NDArrayOperatorsMixin):
     """Container class for a list of 1-dimensional numpy arrays. Objects of
     this class behave as if the 1-dimensional arrays were columns in a
-    2-dimensional numpy array. To reduce memory load all in-place operations
-    keep the 1-dimensional arrays in their original locations.  However, for
-    all operations that would return a copy anyway, the object is cast into a
-    2-dimensional numpy array to simplify things.
-
-    The example below shows how __add__ returns a new numpy array whereas
-    np.log.at takes the log elementwise and in-place.
+    2-dimensional numpy array. All ufuncs implementations sacrifice performance
+    to save memory, as we keep the ArrayBundle structure (python list of numpy
+    arrays) durring the computation instead of copying everything to a new
+    array and then do the computation.
 
     Examples:
     ---------
@@ -21,14 +35,12 @@ class ArrayBundle(np.lib.mixins.NDArrayOperatorsMixin):
         >>> X + 1
         array([[ 2.,  3.,  4.],
                [11., 21., 31.]])
-        >>> np.log.at(X, True)
-        >>> X
-        ArrayBundle(array([0.        , 0.69314718, 1.09861229])
-                    array([2.30258509, 2.99573227, 3.40119738]))
-
+        >>> X.T @ X
+        array([[  14.,  140.],
+               [ 140., 1400.]])
     """
 
-    _HANDLED_TYPES = (np.ndarray, numbers.Number)
+    _HANDLED_TYPES = (np.ndarray, Number)
 
     def __init__(self, arrays):
         shape = arrays[0].shape
@@ -41,7 +53,7 @@ class ArrayBundle(np.lib.mixins.NDArrayOperatorsMixin):
         self._HANDLED_TYPES += (self.__class__,)
 
     @property
-    def transpose(self):
+    def transpose(self):  # TODO make lazy
         self_as_array = np.array(self)
         return self_as_array.T
 
@@ -87,37 +99,33 @@ class ArrayBundle(np.lib.mixins.NDArrayOperatorsMixin):
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         """Most important method of the class. Here we implement the logic
-        behind ufunc calls to ArrayBundle objects. All ufunc method types
-        except `at` have a simple implementation where the current object is
-        cast into a numpy ndarray and the ufunc is called afrerwards.  `at`
-        methods are more involved since they have to apply the ufunc in-place
-        to avoid memory load. Currently only unary `at` methods are supported.
+        behind ufunc calls to ArrayBundle objects. All ufunc methods are
+        implemented except inplace ones. In all cases, memory load is minimized
+        by only allocating a new numpy array for the result.
+
+        For all binary ufuncs, all operand type combinations are handled by a
+        multiple dispatch mechanism.
         """
         out = kwargs.get("out", ())
         if out:
-            raise ValueError(f'`out` cannot be used with {type(self).__name__}')
+            raise ValueError(f"`out` cannot be used with {type(self).__name__}")
         for x in inputs + out:
             if not isinstance(x, self._HANDLED_TYPES):
                 return NotImplemented
         if method in ("__call__", "reduce", "accumulate", "outer"):
-            # all these methods return a copy anyway so we cast all
-            # ArrayBundles as numpy ndarrays and then call the ufunc
-            inputs = tuple(
-                np.array(x) if isinstance(x, self.__class__) else x for x in inputs
-            )
-            return getattr(ufunc, method)(*inputs, **kwargs)
-        elif method == "at":
-            # `at` methods perform in place processing so are treated
-            # differently
-            if len(inputs) == 2:
-                _, indices = inputs
-                for array in self._itercolumns():
-                    getattr(ufunc, method)(array, indices)
-                return None
-            elif len(inputs) == 3:
-                raise NotImplementedError
-        else:
-            # `reduceat` not implemented
+            if len(inputs) == 1:
+                operand = inputs[0]
+                out = np.empty(operand.shape)
+                for i, column in enumerate(self._itercolumns()):
+                    getattr(ufunc, method)(column, out=out[:, i], **kwargs)
+                return out
+            elif len(inputs) == 2 and ufunc.__name__ != "matmul":
+                return _ufunc_binary(inputs, ufunc, method, **kwargs)
+            elif len(inputs) == 2 and ufunc.__name__ == "matmul":
+                return _ufunc_matmul(inputs, ufunc, method, **kwargs)
+            else:
+                raise ValueError("проблема!")
+        elif method in ("at", "reduceat"):
             raise NotImplementedError
 
     def __getitem__(self, index):
@@ -154,25 +162,156 @@ class ArrayBundle(np.lib.mixins.NDArrayOperatorsMixin):
         raise TypeError(f"{class_name} objects don't support deletion")
 
 
+# -------------------------------------------------------------------------------- #
+# Dispatch methods                                                                 #
+# -------------------------------------------------------------------------------- #
+@dispatch
+def _ufunc_binary(inputs, ufunc, method, **kwargs):
+    raise NotImplementedError
+
+
+@_ufunc_binary.register(Number, ArrayBundle)
+def _(inputs, ufunc, method, **kwargs):
+    num, arrb = inputs
+    out_type = comput_out_type(ufunc, *inputs)
+    out = np.empty(arrb.shape, dtype=out_type)
+    for i, column in enumerate(arrb._itercolumns()):
+        getattr(ufunc, method)(num, column, out=out[:, i], **kwargs)
+    return out
+
+
+@_ufunc_binary.register(ArrayBundle, Number)
+def _(inputs, ufunc, method, **kwargs):
+    arrb, num = inputs
+    out_type = comput_out_type(ufunc, *inputs)
+    out = np.empty(arrb.shape, dtype=out_type)
+    for i, column in enumerate(arrb._itercolumns()):
+        getattr(ufunc, method)(column, num, out=out[:, i], **kwargs)
+    return out
+
+
+@_ufunc_binary.register(np.ndarray, ArrayBundle)
+def _(inputs, ufunc, method, **kwargs):
+    arr, arrb = inputs
+    assert arr.shape == arrb.shape, "For now no broadcasting"
+    out_type = comput_out_type(ufunc, *inputs)
+    out = np.empty(arr.shape, dtype=out_type)
+    for i, column in enumerate(arrb._itercolumns()):
+        getattr(ufunc, method)(arr[:, i], column, out=out[:, i], **kwargs)
+    return out
+
+
+@_ufunc_binary.register(ArrayBundle, np.ndarray)
+def _(inputs, ufunc, method, **kwargs):
+    arrb, arr = inputs
+    assert arr.shape == arrb.shape, "For now no broadcasting"
+    out_type = comput_out_type(ufunc, *inputs)
+    out = np.empty(arr.shape, dtype=out_type)
+    for i, column in enumerate(arrb._itercolumns()):
+        getattr(ufunc, method)(column, arr[:, i], out=out[:, i], **kwargs)
+    return out
+
+
+@_ufunc_binary.register(ArrayBundle, ArrayBundle)
+def _(inputs, ufunc, method, **kwargs):
+    arrb_1, arrb_2 = inputs
+    assert arrb_1.shape == arrb_2.shape, "For now no broadcasting"
+    out_type = comput_out_type(ufunc, *inputs)
+    out = np.empty(arrb_1.shape, dtype=out_type)
+    columns_1, columns_2 = arrb_1._itercolumns(), arrb_2._itercolumns()
+    for i, (col_1, col_2) in enumerate(zip(columns_1, columns_2)):
+        getattr(ufunc, method)(col_1, col_2, out=out[:, i], **kwargs)
+    return out
+
+
+def comput_out_type(ufunc, op_1, op_2):
+    if ufunc.__name__ in BOOLEAN_UFUNCS:
+        return bool
+    if type(op_1) == int and type(op_2) == int:
+        return int
+    return float
+
+
+@dispatch
+def _ufunc_matmul(inputs, ufunc, method, **kwargs):
+    raise NotImplementedError
+
+
+@_ufunc_matmul.register(ArrayBundle, np.ndarray)
+def _(inputs, ufunc, method, **kwargs):
+    arrb_l, arr_r = inputs
+    if arrb_l.shape[1] != arr_r.shape[0]:
+        raise ValueError("matmul: operand dimension mismatch")
+    out_type = comput_out_type(ufunc, *inputs)
+    out = np.empty((arrb_l.shape[0], arr_r.shape[1]), dtype=out_type)
+    dimleft = arrb_l.shape[0]
+    dimmid = arrb_l.shape[1]
+    dimright = arr_r.shape[1]
+    for i in range(dimleft):
+        for j in range(dimright):
+            out[i, j] = sum(arrb_l[i, k] * arr_r[k, j] for k in range(dimmid))
+    return out
+
+
+@_ufunc_matmul.register(np.ndarray, ArrayBundle)
+def _(inputs, ufunc, method, **kwargs):
+    arr_l, arr_bund_r = inputs
+    if arr_l.shape[1] != arr_bund_r.shape[0]:
+        raise ValueError("matmul: operand dimension mismatch")
+    out_type = comput_out_type(ufunc, *inputs)
+    out = np.empty((arr_l.shape[0], arr_bund_r.shape[1]), dtype=out_type)
+    dimleft = arr_l.shape[0]
+    dimright = arr_bund_r.shape[1]
+    for i in range(dimleft):
+        for j in range(dimright):
+            out[i, j] = arr_l[i] @ arr_bund_r[:, j]
+    return out
+
+
+@_ufunc_matmul.register(ArrayBundle, ArrayBundle)
+def _(inputs, ufunc, method, **kwargs):
+    arrb_l, arrb_r = inputs
+    if arrb_l.shape[1] != arrb_r.shape[0]:
+        raise ValueError("matmul: operand dimension mismatch")
+    out_type = comput_out_type(ufunc, *inputs)
+    out = np.empty((arrb_l.shape[0], arrb_r.shape[1]), dtype=out_type)
+    dimleft = arrb_l.shape[0]
+    dimmid = arrb_l.shape[1]
+    dimright = arrb_r.shape[1]
+    for i in range(dimleft):
+        for j in range(dimright):
+            out[i, j] = sum(arrb_l[i, k] * arrb_r[k, j] for k in range(dimmid))
+    return out
+
+
 if __name__ == "__main__":
-    xb = ArrayBundle([np.array([1., 2., 3.]), np.array([10., 20., 30.])])
-    print('repr:')
-    print(repr(xb), end='\n\n')
+    xb = ArrayBundle([np.array([1.0, 2.0, 3.0]), np.array([10.0, 20.0, 30.0])])
+    print("repr:")
+    print(repr(xb), end="\n\n")
 
-    print('str:')
-    print(xb, end='\n\n')
+    print("str:")
+    print(xb, end="\n\n")
 
-    print('op with ndarray:')
+    print("unary ufunc")
+    print(np.sin(xb), end="\n\n")
+
+    print("op with ndarray:")
     x = np.array([[1, 2], [10, 20], [100, 200]])
-    print(xb * x, end='\n\n')
+    print(xb * x)
+    print(x * xb, end="\n\n")
 
-    print('fancy indexing:')
-    print(xb[xb > 0], end='\n\n')
+    print("fancy indexing:")
+    print(xb[xb > 3], end="\n\n")
 
-    print('op with other ArrayBundle:')
+    print("op with other ArrayBundle:")
     yb = ArrayBundle([np.array([1, 2, 3]), np.array([10, 20, 30])])
-    print(xb.T @ yb, end='\n\n')
+    print(xb * yb, end="\n\n")
+    print(yb * xb, end="\n\n")
 
-    print('inplace op:')
-    np.sin.at(xb, True)
-    print(repr(xb), end='\n\n')
+    print("matmul with ndarray:")
+    print(xb.T @ x, end="\n\n")
+    print(x.T @ xb, end="\n\n")
+
+    print("matmul with ArrayBundle:")
+    print(xb.T @ yb, end="\n\n")
+    print(yb.T @ xb, end="\n\n")
