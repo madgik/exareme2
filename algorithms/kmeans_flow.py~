@@ -1,0 +1,46 @@
+#import run_algorithm #yeah... fix those names...
+from run_algorithm import Algorithm_abstract
+
+class Algorithm(Algorithm_abstract):
+    
+    async def run(self,algorithmParams,dataParams):
+        print(f"(kmeans_my::Algorithm::run) I M IN HERE MOTHAFUCKAZ algorithmParams->{algorithmParams} dataParams->{dataParams}")
+        
+        
+        print(f'(kmeans_my::Algorithm::run) calling->  self.algorithm_orchestrator.execute_udf_on_global_node("kmeans._global",num_of_clusters,None)')
+        #async def execute_udf_on_global_node(self,udf_name,udf_result_schema,input_table_name):#,nodes_list):
+        num_of_clusters=algorithmParams["numOfClusters"]
+        
+        #centroids_table_name=await  self.algorithm_orchestrator.execute_udf_on_global_node("kmeans._global",num_of_clusters,None)
+        centroids_table_name=await  self.algorithm_orchestrator.execute_udf_on_global_node("kmeans._global",num_of_clusters,None)
+        async def execute_udf(self,udf_name,input_args,return_args):#more than one input tables?
+###        for i in range(1,10):
+
+###            local_centroids=await self.algorithm_orchestrator.execute_udf_on_all_local_nodes("kmeans._local",result_table_schema,self.data_table_name)
+
+###            merged_table_name=await self.algorithm_orchestrator.create_remote_and_merge_on_global_node(local_centroids):
+
+###            centroids_table_name=await  self.algorithm_orchestrator.execute_udf_on_global_node("kmeans._global",num_of_clusters,merged_table_name)
+###            create_remote_on_locals
+###            
+        result_table_schema= "sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT"
+        #TODO:async stuff should not(?) be on the alg dev?        
+        result1=await self.algorithm_orchestrator.execute_udf_on_all_local_nodes("local_pearson",result_table_schema,self.data_table_name)
+        print(f"(kmeans_my::Algorithm::run) just after local_pearson result1->{result1}") 
+
+        result_table_schema = "result FLOAT"
+        result2=await self.algorithm_orchestrator.execute_udf_on_global_node("global_pearson",result_table_schema,result1)
+        print(f"(kmeans_my::Algorithm::run) just after global_pearson result2->{result2}") 
+
+        return result2
+
+
+#nodes_aliases=orchestrator.get_nodes_aliases()
+#global_node_alias=nodes_aliases["global"]
+#local_nodes_aliases=nodes_aliases["local"]
+
+#create_data_views_on_all_local_nodes()
+
+#---------------
+#def _global(num_of_clusters,local_centroids=None)
+#def _local(centroids,data_points)

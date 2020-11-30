@@ -1,0 +1,99 @@
+$ python script_kmeans_mult_dim_test.py 
+initial centroids->
+array([[ 9,  5, 16],
+       [12,  3,  2],
+       [ 1, 15, 15]])
+num_of_iterations=100 num_of_datapoints_per_node_per_region=20 TIME---> 2.547682046890259 seconds
+FINAL centroids->
+array([[ 35.0507445 ,  29.62483406,   2.26043154],
+       [-23.08692094, -32.42897918,  -2.49702665],
+       [-31.88338979,  30.93105911,   7.71688924]])
+
+$ python script_kmeans_mult_dim.py 
+initial centroids->
+array([[ 7, 16,  8],
+       [ 0, 10,  6],
+       [12,  0, 18]])
+num_of_iterations=10 num_of_datapoints_per_node_per_region=20 TIME---> 0.18150806427001953 seconds
+FINAL centroids->
+array([[ 31.37592954,  41.57899245,   2.68089465],
+       [-30.98453499,  -0.05180295,   2.13447205],
+       [ 39.70134979,  20.22456081,   2.76573286]])
+
+$ python script_kmeans_mult_dim.py 
+initial centroids->
+array([[ 2,  4,  3],
+       [15, 18,  0],
+       [ 1,  5, 11]])
+num_of_iterations=100 num_of_datapoints_per_node_per_region=20 TIME---> 1.6389193534851074 seconds
+FINAL centroids->
+array([[-27.76433144, -29.30414167,  -2.55895491],
+       [ 37.51697161,  33.46533345,   2.31591496],
+       [-30.77467282,  31.56599443,   7.67668112]])
+
+$ python script_kmeans_mult_dim.py 
+initial centroids->
+array([[ 6,  8, 16],
+       [16,  4,  3],
+       [ 3,  5, 15]])
+num_of_iterations=500 num_of_datapoints_per_node_per_region=100 TIME---> 39.233601808547974 seconds
+FINAL centroids->
+array([[-29.66545272,  32.74107577,   7.60482335],
+       [ 37.31487796,  32.02259722,   2.41877751],
+       [-29.7189602 , -29.41302173,  -2.50652336]])
+
+$ python script_kmeans_mult_dim_test.py 
+initial centroids->
+array([[12, 10,  3],
+       [ 4, 14, 11],
+       [ 4,  1,  6]])
+num_of_iterations=500 num_of_datapoints_per_node_per_region=100 TIME---> 59.50465631484985 seconds
+FINAL centroids->
+array([[ 37.61773739,  32.880687  ,   2.51485764],
+       [-30.43553409,  32.64717598,   7.50895891],
+       [-29.08767078, -27.88563964,  -2.32401756]])
+
+$ python script_kmeans_mult_dim_test.py 
+initial centroids->
+array([[ 0, 17, 15],
+       [ 9, 16, 13],
+       [17,  5,  2]])
+num_of_iterations=500 num_of_datapoints_per_node_per_region=100 TIME---> 57.08681654930115 seconds
+FINAL centroids->
+array([[-30.17750892,  32.91134026,   7.60947858],
+       [ 38.13872833,  34.00996322,   2.64978967],
+       [-30.18309382, -30.60779479,  -2.38421783]])
+
+$ python script_kmeans_mult_dim.py 
+initial centroids->
+array([[14, 10,  2],
+       [13, 14, 11],
+       [14,  5, 12]])
+num_of_iterations=500 num_of_datapoints_per_node_per_region=100 TIME---> 39.290332317352295 seconds
+FINAL centroids->
+array([[ 38.41205832,  31.79841311,   2.46839914],
+       [-29.91604064,  32.64358158,   7.63985089],
+       [-30.25125   , -30.53499713,  -2.47377335]])
+
+$ python script_kmeans_mult_dim.py 
+initial centroids->
+array([[17, 17,  6],
+       [15, 17,  7],
+       [ 9, 19, 10]])
+num_of_iterations=1000 num_of_datapoints_per_node_per_region=200 TIME---> 162.88361954689026 seconds
+FINAL centroids->
+array([[ 37.30769085,  32.41430094,   2.44691342],
+       [-30.50298177, -30.0834716 ,  -2.61904129],
+       [-30.28441409,  32.70044774,   7.55992767]])
+
+$ python script_kmeans_mult_dim_test.py 
+initial centroids->
+array([[14, 19, 15],
+       [18,  0,  9],
+       [17,  6,  2]])
+num_of_iterations=1000 num_of_datapoints_per_node_per_region=200 TIME---> 238.9355752468109 seconds
+FINAL centroids->
+array([[-30.39814878,  32.57644062,   7.57501335],
+       [-29.8695076 , -28.93679725,  -2.34338927],
+       [ 38.71159724,  33.57050871,   2.41182286]])
+

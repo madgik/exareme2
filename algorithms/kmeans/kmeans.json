@@ -1,0 +1,51 @@
+{
+    "name": "kmeans",
+    "functions": {
+        "_global": {
+            "input0": {
+                "name": "num_of_dimensions",
+                "scalar": true,
+                "type": "Integer"
+            },
+            "input1": {
+                "name": "num_of_centroids",
+                "scalar": true,
+                "type": "Integer"
+            },
+            "input2": {
+                "name": "local_centroids",
+                "scalar": false,
+                "length": "Variable",
+                "type": ["Float", "Double"],
+                "asLoopback": true
+            },
+            "return": {
+                "name": "new_centroids",
+                "scalar": false,
+                "length": "Variable",
+                "type": ["Float", "Double"]
+            }
+        },
+        "_local": {
+            "input0": {
+                "name": "centroids",
+                "scalar": false,
+                "length": "Variable",
+                "type": ["Float", "Double"],
+                "asLoopback": true
+            },
+            "input1": {
+                "name": "datapoints",
+                "scalar": false,
+                "length": "Variable",
+                "type": ["Float", "Double"]
+            },
+            "return": {
+                "name": "new_centroids",
+                "scalar": false,
+                "length": "Variable",
+                "type": ["Float", "Double"]
+            }
+        }
+    }
+}

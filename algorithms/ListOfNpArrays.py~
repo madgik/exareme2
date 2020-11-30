@@ -1,0 +1,144 @@
+import numpy as np
+
+import numbers
+import numpy as np
+import numpy.lib.mixins
+from numbers import Number
+from pprint import pformat
+
+from pprint import pprint
+import pdb
+class ListOfNpArrays(numpy.lib.mixins.NDArrayOperatorsMixin):
+
+    def __init__(self,np_arrays_list):
+        #print(f"(ListOfNpArrays::__init__) np_arrays_list-> {np_arrays_list}")
+        #TODO check arrays same size
+        s=np_arrays_list[0].size
+        for a in np_arrays_list:
+            if a.size!=s:
+                raise Exception("(ListOfNpArrays::__init__) All numpy arrays should have the same length")
+
+        self.array=np_arrays_list
+
+#    def __setitem__(self, idx, value):
+#        self.data[idx] = value
+    def as_numpy_array(self):
+        return np.array([i for i in self.array])#.T
+
+    def __getitem__(self,key):
+        def flatten(l):
+            flat_list = []
+            for sublist in l:
+                for item in sublist:
+                    flat_list.append(item)
+            return flat_list
+        return self.array[key]
+
+    def get_row(self,index):
+        to_return=[]
+        for c in self.array:
+#            #pdb.set_trace()
+#            print(f"c-> {c}")
+#            print(f"c[{index}]-> {c[index]}")
+            to_return.append(c[index])
+        return to_return
+        #return np.array([item[index] for item in self.array])
+
+    def get_num_rows(self):
+        return len(self.array[0])
+
+    def get_num_cols(self):
+        return len(self.array)
+
+    def __len__(self):
+        return len(self.array)
+
+    def __iter__(self):
+        return ListOfNpArraysIterator(self)
+
+    def __add__(self,o):
+#        print("***********************")
+#        pdb.set_trace()
+        if isinstance(o, Number):
+            return [row+o for row in self.array]
+        if isinstance(o,ListOfNpArrays):
+            #TODO: check same dimension
+            return [self.array[i]+o.array[i] for i in range(len(self.array))]
+
+    def __sub__(self,o):
+        if isinstance(o, Number):
+            return [row-o for row in self.array]
+        if isinstance(o,ListOfNpArrays):
+            return [self.array[i]-o.array[i] for i in range(len(self.array))]
+
+    def __repr__(self):
+        #print(f"(ListOfNpArrays::__repr__) str(self.array)-> {str(self.array)}")
+        return str(self.array)
+
+    def __array__(self):
+        return np.array([row for row in self.array]).T
+
+    def __array_ufunc__(self,ufunc,method,*inputs,**kwargs):
+        if method=='__call__':
+            operands=[]
+            for input in inputs:
+                if isinstance(input,Number):
+                    operands.append(input)
+                elif isinstance(input,self.__class__):
+                    operands.append(self.array)
+            return self.__class__(ufunc(*operands, **kwargs))
+
+    def extend(self,l:'ListOfNpArrays'):#concat cols
+        r=[a for a in self.array]
+        r+=[a for a in l]
+        return r
+
+    def union(self,l:'ListOfNpArrays'):#concat rows
+        #TODO needs to check both have same number of cols
+        #r=zeros(self.array.get_num_rows+l.get_num_rows,self.array.get_num_cols)
+        for i in range(len(self.array)):
+                numpy.append(self.array[i],l[i])
+
+class ListOfNpArraysIterator:
+    def __init__(self,custom_array):
+        self.custom_array=custom_array
+        self._index=0
+    def __next__(self):
+        if self._index<len(self.custom_array):
+            item=self.custom_array[self._index]
+            self._index=self._index+1
+            return item 
+        raise StopIteration
+#    def __next__(self):
+#        if self._index<len(self.custom_array.array[0]):
+#            item=self.custom_array[self._index]
+#            self._index=self._index+1
+#            return item 
+#        raise StopIteration
+
+def zeros(num_of_rows,num_of_cols,dtype=float):
+    a=[np.zeros((num_of_cols,1),dtype=dtype) for i in range(num_of_rows)]
+    l=ListOfNpArrays(a)
+    return l
+
+def sum_cols(l):
+    return ListOfNpArrays(sum(l))
+        
+def sum_rows(l):
+    num_of_cols=l.get_num_cols()
+    r=np.zeros((num_of_cols,1))
+    for i in range(num_of_cols):
+        r[i]=sum(l[i])
+    return ListOfNpArrays(r)
+
+def to_ListOfNpArrays(l:np.array):
+#    print(f"(ListOfNpArrays::to_ListOfNpArrays) l-> {l}")
+#    print(f"(ListOfNpArrays::to_ListOfNpArrays) l[:,0]-> {l[:,0]}")
+    transformed=[]
+    for col_index in range(l.shape[1]):
+        transformed.append(l[:,col_index])
+    return ListOfNpArrays(transformed)
+    #pdb.set_trace()
+
+
+

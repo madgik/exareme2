@@ -1,0 +1,55 @@
+class ListOfArrays(numpy.lib.mixins.NDArrayOperatorsMixin):
+
+    def __init__(self,np_arrays_list):
+        #TODO check arrays same size
+        self.array=np_arrays_list
+
+    def __getitem__(self,key):
+        item=np.array([row[key] for row in self.array])
+        return item
+
+    def __len__(self):
+        return len(self.array)
+
+    def __iter__(self):
+        return CustomArrayIterator(self)
+
+    def __add__(self,o):
+        if isinstance(o, Number):
+            return [row+o for row in self.array]
+        if isinstance(o,CustomArray):
+            #TODO: check same dimension
+            return [self.array[i]+o.array[i] for i in range(len(self.array))]
+
+    def __sub__(self,o):
+        if isinstance(o, Number):
+            return [row-o for row in self.array]
+        if isinstance(o,CustomArray):
+            return [self.array[i]-o.array[i] for i in range(len(self.array))]
+
+    def __repr__(self):
+        return str(self.array)
+
+    def __array__(self):
+        return np.array([row for row in self.array]).T
+
+    def __array_ufunc__(self,ufunc,method,*inputs,**kwargs):
+        if method=='__call__':
+            operands=[]
+            for input in inputs:
+                if isinstance(input,Number):
+                    operands.append(input)
+                elif isinstance(input,self.__class__):
+                    operands.append(self.array)
+            return self.__class__(ufunc(*operands, **kwargs))
+
+class CustomArrayIterator:
+    def __init__(self,custom_array):
+        self.custom_array=custom_array
+        self._index=0
+    def __next__(self):
+        if self._index<len(self.custom_array.array[0]):
+            item=self.custom_array[self._index]
+            self._index=self._index+1
+            return item 
+        raise StopIteration

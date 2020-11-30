@@ -1,0 +1,211 @@
+import numpy as np
+import numpy.lib.mixins
+from numbers import Number
+from pprint import pformat
+
+class CustomArray(numpy.lib.mixins.NDArrayOperatorsMixin):
+    def __init__(self,np_arrays_list):
+        #TODO check arrays same size
+        self.array=np_arrays_list
+    def __getitem__(self,key):
+        item=[row[key] for row in self.array]
+        #print(f"item->{item} ")
+        return item
+    def __len__(self):
+        return len(self.array)
+    def __iter__(self):
+        #return iter(self.array)
+        return CustomArrayIterator(self)
+#    def __next__(self):
+#        pass
+    def __add__(self,o):
+        if isinstance(o, Number):
+            return [row+o for row in self.array]
+        if isinstance(o,CustomArray):
+            #TODO: check same dimension
+            #print(f"self.array[0]->{self.array[0]}")
+            #print(f"o[0]->{o[0]}")
+#            items=[]
+#            for i in range(len(self.array[0])):
+#                print(f"(in for) self[i]->{self[i]}  o[i]->{o[i]}  self[i]+o[i]->{self[i][0]+o[i][0]}")
+#                items.append(self[i]+o[i]) 
+            return [self.array[i]+o.array[i] for i in range(len(self.array))]
+    
+    def __sub__(self,o):
+        if isinstance(o, Number):
+            return [row-o for row in self.array]
+        if isinstance(o,CustomArray):
+            return [self.array[i]-o.array[i] for i in range(len(self.array))]
+#    def __str__(self):
+#        return str(self.array)#pformat(self.array,indent=5)
+    def __repr__(self):
+        return str(self.array)#f"{self.__class__.__name__}(N={self._N}, value={self._i})"
+    def __array__(self):
+        return np.array([row for row in self.array]).T
+#    def __array_ufunc__(self, *args, **kwargs):
+#        print(f"args->{args}")
+#        print(f"kwargs->{kwargs}")
+    def __array_ufunc__(self,ufunc,method,*inputs,**kwargs):
+        if method=='__call__':
+            operands=[]
+            for input in inputs:
+                if isinstance(input,Number):
+                    operands.append(input)
+                elif isinstance(input,self.__class__):
+                    operands.append(self.array)
+            #to_return=self.__class__(ufunc(*operands, **kwargs))
+            #print(f"to_return->{to_return}")
+            return self.__class__(ufunc(*operands, **kwargs))#to_return
+    
+#    def __array_function__(self, func, types, args, kwargs):
+#       if func not in HANDLED_FUNCTIONS:
+#           return NotImplemented
+#       # Note: this allows subclasses that don't override
+#       # __array_function__ to handle DiagonalArray objects.
+#       if not all(issubclass(t, self.__class__) for t in types):
+#           return NotImplemented
+#       return HANDLED_FUNCTIONS[func](*args, **kwargs)
+
+class CustomArrayIterator:
+    def __init__(self,custom_array):
+        self.custom_array=custom_array
+        self._index=0
+    def __next__(self):
+        if self._index<len(self.custom_array.array[0]):
+            item=self.custom_array[self._index]
+            print(f"here self._index->{self._index} item->{item}")
+            self._index=self._index+1
+            return item 
+        raise StopIteration
+        
+
+a=np.array([1,2,3,4])
+b=np.array([5,6,7,8])
+c=CustomArray([a,b])
+
+print(c)
+for i in c:
+    print(i)
+print()
+print(c[0][0])
+print(type(c[0]))
+#print(c)
+#print(f"type(c[0])->{type(c[0])}")
+
+#d=np.add(c,5)
+#print(f"d->{d}")
+#print(f"d.array->{d.array}")
+#print(f"type(d)->{type(d)}")
+#print(f"type(d[0])->{type(d[0])}")
+#print(f"type(d[:][0])->{type(d[:][0])}")
+#print(f"d[:][0]->{d[:][0]}\n\n")
+
+#e=np.multiply(c,5)
+#print(f"e->{e}")
+#print(f"e.array->{e.array}")
+#print(f"type(e)->{type(e)}")
+#print(f"type(e[0])->{type(e[0])}")
+#print(f"type(e[:][0])->{type(e[:][0])}")
+#print(f"e[:][0]->{e[:][0]}\n\n")
+
+#print(f"d->{d}")
+#print(f"e->{e}")
+#print(f"e+d->{e+d}")
+#print(f"e+3->{e+3}\n\n")
+
+#print(f"d->{d}")
+#print(f"e->{e}")
+#print(f"e-d->{e-d}")
+#print(f"e-3->{e-3}\n\n")
+
+#print(f"type(c[0])->{type(c[0])}")
+#print(f"c->{c}")
+#print(f"c+c->{c+c}")
+#print(f"c[0]+c[0]->{c[0]+c[0]}")
+#SUB array----------------------------------------------------------------------------------------
+#import time
+#num_of_samples=50000000
+#np_array_1=np.random.randint(0,10, size=(num_of_samples, 2))
+##np_array_2=np.random.randint(0,10, size=(num_of_samples, 2))
+#custom_array_1=CustomArray([np.random.randint(0,10, size=(num_of_samples, 1)),np.random.randint(0,10, size=(num_of_samples, 1)) ])
+##custom_array_2=CustomArray([np.random.randint(0,10, size=(num_of_samples, 1)),np.random.randint(0,10, size=(num_of_samples, 1)) ])
+##print(f"np_array_1->{np_array_1}")
+##print(f"custom_array_1->{custom_array_1}")
+##print(f"custom_array_2->{custom_array_2}")
+
+#start_time=time.time()
+#c_np=np_array_1-np_array_1
+#print(f"np_array--- {time.time() - start_time} seconds")# --- c_np->{c_np}")
+
+#start_time=time.time()
+#c_custom=custom_array_1-custom_array_1
+#print(f"custom_array--- {time.time() - start_time} seconds")# --- c_custom->{c_custom}")
+
+
+#ADD array----------------------------------------------------------------------------------------
+#import time
+#num_of_samples=50000000
+#np_array_1=np.random.randint(0,10, size=(num_of_samples, 2))
+##np_array_2=np.random.randint(0,10, size=(num_of_samples, 2))
+#custom_array_1=CustomArray([np.random.randint(0,10, size=(num_of_samples, 1)),np.random.randint(0,10, size=(num_of_samples, 1)) ])
+##custom_array_2=CustomArray([np.random.randint(0,10, size=(num_of_samples, 1)),np.random.randint(0,10, size=(num_of_samples, 1)) ])
+##print(f"np_array_1->{np_array_1}")
+##print(f"custom_array_1->{custom_array_1}")
+##print(f"custom_array_2->{custom_array_2}")
+
+#start_time=time.time()
+#c_np=np_array_1+np_array_1
+#print(f"np_array--- {time.time() - start_time} seconds")# --- c_np->{c_np}")
+
+#start_time=time.time()
+#c_custom=custom_array_1+custom_array_1
+#print(f"custom_array--- {time.time() - start_time} seconds")# --- c_custom->{c_custom}")
+
+
+#ADD number------------------------------------------------------------------------------------------
+#import time
+#num_of_samples=10000000
+#np_array=np.random.randint(0,10, size=(num_of_samples, 2))
+#custom_array=CustomArray([np.random.randint(0,10, size=(num_of_samples, 1)),np.random.randint(0,10, size=(num_of_samples, 1)) ])
+##np_array=np.random.randint(0,10, size=(10, 2))
+##custom_array=CustomArray([np.random.randint(0,10, size=(10, 1)),np.random.randint(0,10, size=(10, 1)) ])
+
+#start_time=time.time()
+#np_array+123
+#print(f"np_array--- {time.time() - start_time} seconds")
+
+#start_time=time.time()
+#custom_array+123
+#print(f"custom_array--- {time.time() - start_time} seconds")
+
+#--------------------------------------------------------------------------------------------
+#for i in c:
+#    print(f"i->{i}  i[0]->{i[0]} id(i[0])->{id(i[0])}   i[1]->{i[1]} id(i[1])->{id(i[1])}")
+#print()
+#for i in a:
+#    print(f"a  i->{i}   id(i)->{id(i)}")
+#print()
+#for i in b:
+#    print(f"b  i->{i}   id(i)->{id(i)}")
+#-------------------------------------------------------------------------------------------
+
+#print(f"np_array->{np_array} np_array+123->{np_array+123}")
+#print(f"custom_array->{custom_array} custom_array_array+123->{custom_array+123}")
+
+#print(f"c->{c}")
+#print(f"c[0]->{c[0]}")
+#print(f"c[1]->{c[0]}")
+#print(f"c[2]->{c[0]}")
+#print(f"c[3]->{c[0]}")
+#print(f"c[0][0]->{c[0][0]}")
+#print(f"c[:][0]->{c[:][0]}")
+#print(f"id(c[0][0])->{id(c[0][0])}")
+#print(f"id(a[0])->{id(a[0])}")
+#print()
+#print(f"id(c[0][1])->{id(c[0][1])}")
+#print(f"id(a[1])->{id(a[1])}")
+
+#print(f"len(c)->{len(c)}")
+#print()
+#for i in c:
+#    print(i)

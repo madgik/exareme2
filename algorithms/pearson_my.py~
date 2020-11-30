@@ -1,0 +1,25 @@
+#import run_algorithm #yeah... fix those names...
+from run_algorithm import Algorithm_abstract
+
+class Algorithm(Algorithm_abstract):
+    
+    async def run(self):
+        print(f"(pearson_my::Algorithm::run) I M IN HERE MOTHAFUCKAZ")
+        result_table_schema= "sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT"
+        #TODO:async stuff should not(?) be on the alg dev?
+        result1=await self.algorithm_orchestrator.execute_udf_on_all_local_nodes("local_pearson",result_table_schema,self.data_table_name)
+        print(f"(pearson_my::Algorithm::run) just after local_pearson result->{result}") 
+
+        result_table_schema = "result FLOAT"
+        result2=await self.algorithm_orchestrator.execute_udf_on_global_node("global_pearson",result_table_schema,result1)
+
+
+        return result2
+
+
+#nodes_aliases=orchestrator.get_nodes_aliases()
+#global_node_alias=nodes_aliases["global"]
+#local_nodes_aliases=nodes_aliases["local"]
+
+#create_data_views_on_all_local_nodes()
+
