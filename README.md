@@ -27,7 +27,6 @@ The rest of the code of the algorithm goes here. This part "orchestrates" how, w
 </li>
 </ol>
 <br>
-
 <h2>Examples</h2>
 <ul>
     <li><h3> Dummy algorithm</h3>
