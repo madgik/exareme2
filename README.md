@@ -1,11 +1,11 @@
 With Monetdb and python3 already installed
 
 <ol>
-<li> Navigate to <code>./sqlScripts</code> and execute createDBs.sh which will create <code>globaldb,localdb1,localdb2</code> databases and will also create a small "data" table in the 2 local databases. The script creates all three DBs on one Monetdb server (call the script from inside <code>./sqlScript</code> folder). <b>Pass</b>: monetdb
+<li> Navigate to <code>./sqlScripts</code> and execute createDBs.sh which will create <code>globaldb,localdb1,localdb2</code> databases and will also create a small "data" table in the 2 local databases. The script creates all three DBs on one MonetDB server (call the script from inside <code>./sqlScript</code> folder). <b>Pass</b>: monetdb
 <pre><code>$sh ./createDBs.sh</code>
 </li>
 
-<li> In <code>./servers.py</code> set the url and port of your monetdb databases
+<li> In <code>./servers.py</code> set the url and port of your MonetDB server
 </li>
 
 <li> Start the server:
