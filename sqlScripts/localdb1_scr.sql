@@ -1,0 +1,3 @@
+--DELETE FROM data;
+CREATE TABLE data(c1 FLOAT,c2 FLOAT);
+INSERT INTO data VALUES (1,2),(3,4),(5,6),(7,8),(9,10);
