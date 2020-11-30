@@ -30,7 +30,6 @@ The rest of the code of the algorithm goes here. This part "orchestrates" how, w
 <h2>Examples</h2>
 <ul>
     <li><h3> Dummy algorithm</h3>
-    
     <h4><code>dummy_udfs.py</code></h4>
     Two "dummy" UDFs implemented for demonstration purposes. Both UDFs (in <code>dummy_udfs.py</code>) just return their input. 
     <h4><code>dummy_flow.py</code></h4>
