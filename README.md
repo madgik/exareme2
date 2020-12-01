@@ -72,8 +72,28 @@ The rest of the code of the algorithm goes here. This part "orchestrates" how, w
 </li>
 </ul>
 <br>
+<h3>Missing (or partially implemented) parts...:</h3>
+<ul>
+    <li>
+        Python -> MonetDB/Python transformation mechanism, is only partially implemented. 
+    </li>
+    <ol>
+        <li>
+            an intermediate data structure that will be used in the above trasformation of the inputs. Python UDFs have only 1D numpy arrays at their disposal</li>
+        <li>
+            the data returned from the UDF is another mechanism we need to figure out, as a python UDF that returns a table has, to actually return a dictionary with keys named after the variable names defined in the <code>...RETURNS TABLE(variables names)</code> header of the UDF function
+        </li>
+     </ol>
+    </li>
+    <li>Deleting tables no more needed, kind of garbage collection mechanism</li>
+    <li>The whole concurency mechanism for querries and UDF calls. Right now all calls are sequential.
+    </li>
+    <li>much more these were just off the top of my head...</li>
+</ul>
+<br>
 <h3>NOTES:</h3>
 <ul>
 <li>Every call to a UDF produces a table on the database where it is executed. The runtime takes care of uniquely naming the tables to avoid conflicts inside the database, from tables created from queries executed in the database, as well as tables created via the <i>remote table mechanism</i></li>
+<li>The idea of aliasing the nodes identity is probably not needed, as the algorithm developper will anyway have access to the node's full data and at least for now, will complicate things even further </li>
 </ul>
 
