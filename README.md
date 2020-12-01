@@ -79,9 +79,9 @@ The rest of the code of the algorithm goes here. This part "orchestrates" how, w
     </li>
     <ol>
         <li>
-            an intermediate data structure that will be used in the above trasformation of the inputs. Python UDFs have only 1D numpy arrays at their disposal</li>
+            an intermediate data structure that will be used in the above trasformation of the inputs. Input parameters on MonetDB/Python UDFs can only be 1D numpy arrays.</li>
         <li>
-            the data returned from the UDF is another mechanism we need to figure out, as a python UDF that returns a table has, to actually return a dictionary with keys named after the variable names defined in the <code>...RETURNS TABLE(variables names)</code> header of the UDF function
+            the data returned from the UDF is another mechanism we need to figure out, as a python UDF that returns a table has, to actually return a dictionary with keys named after the variable names defined in the <code>...RETURNS TABLE(variables names)</code> header of the UDF function.
         </li>
      </ol>
     </li>
