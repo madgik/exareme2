@@ -3,17 +3,22 @@ import requests
 url="http://localhost:9999"
 
 json={
-    "algorithmParams": {
-        "algorithmFolder":"dummy",
-        "algorithmFlowFile": "dummy_flow",
-        "algorithmUDFsFile":"dummy_udfs"
+    "algorithm": {
+        "files":{
+            "algorithmFolder":"dummy",
+            "algorithmFlowFile": "dummy_flow",
+            "algorithmUDFsFile":"dummy_udfs"
+        },
+        "parameters":{
+        }
     },
-    "dataParams": {
+    "data": {
         "table": "data",
         "attributes": [],
         "filters": []
     }
 }
+
 
 result=requests.post(url,json=json)
 print(result.text)

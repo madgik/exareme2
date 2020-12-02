@@ -52,8 +52,8 @@ class MainHandler(BaseHandler):
 
         data=json.loads(json_str)
 
-        algorithmParams = data["algorithmParams"]
-        dataParams = data["dataParams"]
+        algorithmParams = data["algorithm"]
+        dataParams = data["data"]
         print(f"(mserver::post) \nalgorithmParams->{algorithmParams} \ndataParams->{dataParams}\n")
 
         #### new connection per request - required since connection objects are not thread safe at the time

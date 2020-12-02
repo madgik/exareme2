@@ -9,14 +9,16 @@ import asyncio
 
 from abc import ABC
 
+#DEBUG
+import pdb
 
-async def run(algorithmParams,dataParams,db_objects):
-    print(f"(run_algorithm.py::run) \nalgorithmParams->{algorithmParams} \ndataParams->{dataParams}\n")
+async def run(algorithm_json,data_json,db_objects):
+    print(f"(run_algorithm.py::run) \nalgorithm_json->{algorithm_json} \ndata_json->{data_json}\n")
     
-    algorithm_name=algorithmParams["algorithmFolder"]
-    algorithm_folder=algorithmParams["algorithmFolder"]
-    algorithm_flow_file=algorithmParams["algorithmFlowFile"]
-    algorithm_udfs_file=algorithmParams["algorithmUDFsFile"]
+    algorithm_name=algorithm_json["files"]["algorithmFolder"]
+    algorithm_folder=algorithm_json["files"]["algorithmFolder"]
+    algorithm_flow_file=algorithm_json["files"]["algorithmFlowFile"]
+    algorithm_udfs_file=algorithm_json["files"]["algorithmUDFsFile"]
 
     algorithm_flow_module_handle = importlib.import_module(f"algorithms.{algorithm_folder}.{algorithm_flow_file}")
     algorithm_udfs_module_handle=importlib.import_module(f"algorithms.{algorithm_folder}.{algorithm_udfs_file}")
@@ -30,9 +32,13 @@ async def run(algorithmParams,dataParams,db_objects):
 
     runtime_interface=RuntimeInterface(db_objects,algorithm_info)
 
-    data_table_name=await runtime_interface.create_data_views_on_all_local_nodes(dataParams)
+    initial_data_table_name=data_json["table"]
+    attributes=data_json["attributes"]
+    filters=data_json["filters"]
+    data_view_name=await runtime_interface.create_data_views_on_all_local_nodes(initial_data_table_name,attributes,filters)
 
-    algorithm_flow=algorithm_flow_module_handle.AlgorithmFlow(runtime_interface,data_table_name)
+    algorithm_parameters=algorithm_json["parameters"]
+    algorithm_flow=algorithm_flow_module_handle.AlgorithmFlow(runtime_interface,data_view_name,algorithm_parameters)
 
     result=await algorithm_flow.run()
 
@@ -40,9 +46,10 @@ async def run(algorithmParams,dataParams,db_objects):
 
 
 class AlgorithmFlow_abstract(ABC):
-    def __init__(self,runtime_interface,data_table_name):
+    def __init__(self,runtime_interface,data_table_name,algorithm_parameters):
         self.runtime_interface=runtime_interface
         self.data_table_name=data_table_name
+        self.algorithm_parameters=algorithm_parameters
 
 class RuntimeInterface:
     
@@ -59,10 +66,9 @@ class RuntimeInterface:
 
         self.algorithm_info=algorithm_info
 
-
-    async def create_data_views_on_all_local_nodes(self, params):
-        view_name=params["table"]+"_"+get_a_uniqueid()
-        create_view_calls = [ local_node.create_data_view(params,view_name) for local_node in self.nodes["local"] ]
+    async def create_data_views_on_all_local_nodes(self, table_name,attributes=[],filters=[]):
+        view_name=f"{table_name}_{get_a_uniqueid()}"
+        create_view_calls = [ local_node.create_data_view(view_name,table_name,attributes,filters) for local_node in self.nodes["local"] ]
         await asyncio.gather(*create_view_calls)
 
         return view_name
@@ -235,12 +241,8 @@ class RuntimeInterface:
                 query=f"ALTER TABLE {merged_table_name} ADD TABLE {table}"
                 await self._connection_obj.cursor().execute(query)
 
-        async def create_data_view(self, params,view_name):
+        async def create_data_view(self, view_name,data_table_name,attributes=[],filters=[]):
                 print(f"(run_algorithm.py::Node::create_data_view) Creating view:{view_name} on node: {self._url}")
-                data_table = params["table"]
-                attributes = []
-                for attribute in params["attributes"]:
-                    attributes.append(attribute)
 
 #                for formula in params["filters"]:
 #                    for attribute in formula:
@@ -269,13 +271,12 @@ class RuntimeInterface:
                 #TODO: filterpart is ignored...
                 filterpart=" "
 
-                query = "CREATE VIEW "+ view_name+ " AS SELECT "+ ",".join(attributes)+" FROM "+ data_table
                 if attributes:
                     attributes=",".join(attributes)
                 else:
                     attributes="*"
 
-                query_partial = f"CREATE VIEW {view_name} AS SELECT {attributes} FROM {data_table}"
+                query_partial = f"CREATE VIEW {view_name} AS SELECT {attributes} FROM {data_table_name}"
 
                 if filterpart==" ":
                     query=f"{query_partial} ;"
