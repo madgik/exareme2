@@ -1,7 +1,15 @@
+# Two different implementations follow: The difference is that the first implements the iteration condition in the database, the second in the dataflow level
+# Default is the second. There are 2 udfs, designed so that they are reusable: a udf that calculates the euclideian distance between 2 points (in any dimension)
+# and a udf that calculates a random integer in a given range
+
 udf_list = []
 udf_list.append('''
 CREATE OR REPLACE FUNCTION EUCLIDEAN_DISTANCE(*)
 RETURNS FLOAT LANGUAGE PYTHON {
+   # calculates and returns the euclideian distance between 2 points
+   # if there are N arguments the first N/2 refer to dimensions of the first point 
+   # and the rest refers to the corresponding dimensions of the second point
+   # example usage `select euclidean distance(x1,y1,x2,y2) from datax,datay`;
    sums = 0.0
    for i in range(1,int(len(_columns)/2+1)):
        sums += numpy.power(_columns['arg'+str(i)]-_columns['arg'+str(int(i+len(_columns)/2))],2)
@@ -10,6 +18,8 @@ RETURNS FLOAT LANGUAGE PYTHON {
 ''')
 
 udf_list.append('''
+# calculates a random integer in the given range (num1, num2)
+# example usage `select random(1,100);`
 CREATE OR REPLACE FUNCTION RANDOM(num integer, num2 integer)
 RETURNS FLOAT LANGUAGE PYTHON{
    return numpy.random.randint(num,num2)
