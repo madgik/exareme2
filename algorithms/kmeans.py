@@ -51,7 +51,6 @@ class Algorithm2: # full sql version
         '''
         return schema, sqlscript, 'local'
 
-
     def _global(self, iternum, merged_local_results, parameters, attributes, result_table):
         schema = "termination BOOL, iternum INT,  centx FLOAT, centy FLOAT"
         if iternum == 0:
@@ -61,9 +60,7 @@ class Algorithm2: # full sql version
         else:
         	sqlscript = f'''
         	select not exists (select centx, centy  except select centx,centy from {result_table} where iternum = {iternum-1}) as termination, {iternum}, centx, centy from (
-        	select 
-        	centx, 
-        	centy from 
+        	select centx, centy from 
              	(select sum(datax)/sum(n) as centx, 
                  	    sum(datay)/sum(n) as centy  
                     	from {merged_local_results} group by centx, centy
@@ -80,47 +77,44 @@ class Algorithm2: # full sql version
 class Algorithm: # iteration condition in python
     def algorithm(self, data_table, merged_local_results, parameters, attributes, result_table):
         centroids = []
-        for iternum in range(10000):
-            yield self._global(iternum, merged_local_results, parameters, attributes, result_table)
+        for iternum in range(200):
+            yield self.global_aggregation(iternum, merged_local_results, parameters)
             new_centroids = yield
-            if new_centroids == centroids:
-                break
-            else:
-                centroids = new_centroids
-            yield self._local(iternum, data_table, parameters, attributes, result_table)
+            if new_centroids != centroids: centroids = new_centroids
+            else: break
+            yield self.local_expectation(data_table, attributes, result_table)
 
-
-    def _local(self, iternum, data_table, parameters, attributes, result_table):
+    def local_expectation(self, data_table, attr, result_table):
         schema = "N INT, centx FLOAT, centy FLOAT, datax FLOAT, datay FLOAT"
 
         sqlscript = f'''
             select count(*) as N, centx, centy, sum(datax) as datax, sum(datay) as datay from
                 (
                 select row_number() over (
-                                          partition by {attributes[0]}, {attributes[1]} 
-                                          order by EUCLIDEAN_DISTANCE({attributes[0]}, {attributes[1]},centx,centy)
-                                         ) as id, 
-                        {attributes[0]} as datax,
-                        {attributes[1]} as datay,
-                        centx, 
-                        centy
-                from {data_table}, {result_table}
-                ) X where id=1 group by centx, centy
+                                          partition by datax, datay 
+                                          order by EUCLIDEAN_DISTANCE(datax, datay ,centx, centy)
+                                         ) as id, datax, datay, centx, centy
+                from (select {attr[0]} as datax, {attr[1]} as datay from {data_table}) as data_points, 
+                     {result_table} as centroids
+                ) expectations where id=1 group by centx, centy
         '''
         return schema, sqlscript, 'local'
 
-    def _global(self, iternum, merged_local_results, parameters, attributes, result_table):
+    def global_aggregation(self, iternum, merged_local_results, parameters):
+        centroids_n = parameters[0]
         schema = "centx FLOAT, centy FLOAT"
         if iternum == 0:
             sqlscript = f'''
-                 select random(0,100) as centx, random(0,100) as centy from generate_series(0,{parameters[0]})
+                 select random(0,100) as centx, random(0,100) as centy from generate_series(0,{centroids_n})
             '''
         else:
             sqlscript = f'''
             select sum(datax)/sum(n), sum(datay)/sum(n) from {merged_local_results} group by centx, centy
         	union all
         	select random(0,100), random(0,100) from 
-        	    generate_series(0, {parameters[0]} - 
-        	                       (select count(*) from (select distinct centx, centy from {merged_local_results}) X) )
+        	    generate_series(0, {centroids_n} - 
+        	                       (select count(*) from 
+        	                       (select distinct centx, centy from {merged_local_results}) X)
+        	                    )
         	'''
         return schema, sqlscript, 'global'

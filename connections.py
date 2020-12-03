@@ -154,7 +154,7 @@ class Connections:
                     await local['async_con'].cursor().execute(udf)
 
         self.udfs_list = udfs_list
-        
+
     ###### reload federation nodes
     async def _reload(self):
         importlib.reload(servers)
