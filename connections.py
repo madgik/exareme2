@@ -3,6 +3,34 @@ from urllib.parse import urlparse
 import servers
 from algorithms import udfs
 import importlib
+import pkgutil
+import algorithms
+import settings
+DEBUG = settings.DEBUG
+
+
+def get_udfs(reload = False):
+    modules = []
+    for importer, modname, ispkg in pkgutil.iter_modules(algorithms.__path__):
+        modules.append(modname)
+## get all statically defined udfs from algorithms package
+    mpackage = "algorithms"
+
+
+    importlib.import_module(mpackage)
+    all_udfs = []
+
+    for algorithm in modules:
+        try:
+            algo = importlib.import_module("." + algorithm, mpackage)
+            if reload:
+                importlib.reload(algo)
+            for udf in algo.udf_list:
+                all_udfs.append(udf)
+        except:
+            pass
+    return all_udfs
+
 
 class Connections:
     def __init__(self):
@@ -10,6 +38,7 @@ class Connections:
         self.db_objects["local"] = []
         self.db_objects["global"] = {}
         self.mservers = []
+        self.udfs_list = []
         self.glob = urlparse(servers.servers[0])
         if self.glob.scheme == "monetdb":
             from aiopymonetdb import pool
@@ -57,8 +86,8 @@ class Connections:
 
             con = await self.acquire()
             await con["global"]["async_con"].init_remote_connections(con)
-
-            for udf in udfs.udf_list:
+            self.udfs_list = get_udfs()
+            for udf in self.udfs_list:
                     try:
                         await con["global"]["async_con"].cursor().execute(udf)
                     except:
@@ -97,6 +126,8 @@ class Connections:
             db_conn["local"].append(
                 local_node
             )  # for each local node an asynchronous connection object, the database name
+        if DEBUG:
+            await self._reload_udfs(db_conn)
         return db_conn
 
     ### asyncio locks because there may be a reload
@@ -113,6 +144,17 @@ class Connections:
                 await local["pool"].release(db_conn["local"][i]["async_con"])
             self.lock.release()
 
+    async def _reload_udfs(self, con):
+        udfs_list = get_udfs(True)
+
+        if udfs_list != self.udfs_list:
+            for udf in list(set(udfs_list) - set(self.udfs_list)):
+                await con["global"]["async_con"].cursor().execute(udf)
+                for local in con["local"]:
+                    await local['async_con'].cursor().execute(udf)
+
+        self.udfs_list = udfs_list
+        
     ###### reload federation nodes
     async def _reload(self):
         importlib.reload(servers)
@@ -128,6 +170,7 @@ class Connections:
             # self.mservers = servers.servers
             # return 1
         return 0
+
 
     async def clearall(self):
         await self.db_objects["global"]["pool"].clear()

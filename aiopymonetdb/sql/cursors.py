@@ -282,7 +282,7 @@ class Cursor(object):
             self.rownumber = min(end, len(self._rows) + self._offset)
         return result
 
-    def fetchall(self):
+    async def fetchall(self):
         """Fetch all (remaining) rows of a query result, returning
         them as a sequence of sequences (e.g. a list of tuples).
         Note that the cursor's arraysize attribute can affect the
@@ -302,13 +302,13 @@ class Cursor(object):
         self.rownumber = len(self._rows) + self._offset
 
         # slide the window over the resultset
-        while self.nextset():
+        while await self.nextset():
             result += self._rows
             self.rownumber = len(self._rows) + self._offset
 
         return result
 
-    def nextset(self):
+    async def nextset(self):
         """This method will make the cursor skip to the next
         available set, discarding any remaining rows from the
         current set.
@@ -333,7 +333,7 @@ class Cursor(object):
         amount = end - self._offset
 
         command = "Xexport %s %s %s" % (self._query_id, self._offset, amount)
-        block = self.connection.command(command)
+        block = await self.connection.command(command)
         self._store_result(block)
         return True
 

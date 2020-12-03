@@ -163,6 +163,10 @@ class Task:
             for id, local in enumerate(self.db_objects["local"])
         ]
         await asyncio.gather(*_local_execute_calls)
+
+        ## for debug, print local contents
+        for id, local in enumerate(self.db_objects["local"]):
+            result = await local["async_con"].cursor().execute("select * from %s_%s;" % (self.localtable, str(id)))
         print("time " + str(current_time() - t1))
 
     ### runs a task on global node using data received by the local nodes
@@ -192,7 +196,7 @@ class Task:
         cur = self.db_objects["global"]["async_con"].cursor()
         result = await cur.execute("select * from %s;" % self.globalresulttable)
         print("time " + str(current_time() - t1))
-        return cur.fetchall()
+        return await cur.fetchall()
 
     async def clean_up(self):
         await self.db_objects["global"]["async_con"].clean_tables(

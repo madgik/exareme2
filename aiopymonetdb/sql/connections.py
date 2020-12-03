@@ -188,7 +188,24 @@ class Connection(object):
             % (globalresulttable, globalresulttable, globalschema, dbname)
         )
 
+
     async def merge(self, db_objects, localtable, globaltable, localschema):
+        cur = cursors.Cursor(self)
+
+        query = "DROP VIEW IF EXISTS " + globaltable + "; CREATE VIEW " + globaltable + " as "
+        for i, local_node in enumerate(db_objects["local"]):
+            await cur.execute(
+                "DROP TABLE IF EXISTS %s_%s; CREATE REMOTE TABLE %s_%s (%s) on 'mapi:%s';"
+                % (localtable, i, localtable, i, localschema, local_node["dbname"])
+            )
+            if i < len(db_objects["local"]) - 1:
+                query += " select * from " + localtable + "_" + str(i) + " UNION ALL "
+            else:
+                query += " select * from " + localtable + "_" + str(i) + " ;"
+        await cur.execute(query)
+
+
+    async def merge1(self, db_objects, localtable, globaltable, localschema):
         cur = cursors.Cursor(self)
         await cur.execute("DROP TABLE IF EXISTS %s; CREATE MERGE TABLE %s (%s);" % (globaltable, globaltable, localschema))
         for i, local_node in enumerate(db_objects["local"]):
@@ -223,7 +240,7 @@ class Connection(object):
         self, db_objects, globaltable, localtable, viewlocaltable, globalrestable
     ):
         await db_objects["global"]["async_con"].cursor().execute(
-            "drop table if exists %s;" % globaltable
+            "drop view if exists %s;" % globaltable
         )
         await db_objects["global"]["async_con"].cursor().execute(
             "drop table if exists %s;" % globalrestable

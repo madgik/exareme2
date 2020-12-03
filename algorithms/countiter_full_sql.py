@@ -15,14 +15,14 @@ class Algorithm:
                                     COUNT({attributes[0]}) AS c1 
                             FROM {data_table}
                         '''
-            return schema, sqlscript
+            return schema, sqlscript, 'local'
         else:
             sqlscript = f'''
                             SELECT
                                    SUM({attributes[0]}) AS c1 
                             FROM {result_table} 
                         '''
-            return schema, sqlscript
+            return schema, sqlscript, 'local'
 
 
     def _global(self, iternum, merged_local_results, parameters, attributes):
@@ -40,4 +40,4 @@ class Algorithm:
                               FROM {merged_local_results} 
                             ) AS globalcalculation
                     '''
-        return schema, sqlscript
+        return schema, sqlscript, 'global'
