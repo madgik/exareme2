@@ -139,7 +139,6 @@ udf = udf_wrapper  # create simpler alias
 # Table                                                    #
 # -------------------------------------------------------- #
 # Table kinds:
-PROTOTYPE = 0        # case 0 0 0
 TYPE_ANNOTATOR = 1   # case 1 0 0
 MOCK_ARRAY = 2       # case 1 1 0
 ARRAY = 3            # case 0 0 1
@@ -177,9 +176,6 @@ class _Table(np.lib.mixins.NDArrayOperatorsMixin):
         Table[int:SAME, float:SAME]  : any number of ints and the same number of floats
     """
     def __init__(self, types=None, *, ncols=None, array=None):
-        if (types, ncols) == (None, None) and array is None:  # case 0 0 0
-            self.kind = PROTOTYPE
-            return
         if types:
             self.types = types
             if (ncols, array) == (None, None):  # case 1 0 0
@@ -206,26 +202,20 @@ class _Table(np.lib.mixins.NDArrayOperatorsMixin):
             msg += "_Table(), _Table(TYPE), _Table(TYPE, NCOLS) or _Table(array=ARRAY)"
             raise ValueError(msg)
 
-    def __getitem__(self, types):
-        ALLOWED_TYPES = (int, float, str)
-        if types in ALLOWED_TYPES:
-            return _Table((types,), ncols=1)
-        elif isinstance(types, tuple):
-            if len(types) == 2 and types[1] == Ellipsis:
-                return _Table((types[0],))
-            elif all(tp in ALLOWED_TYPES for tp in types):
-                return _Table(types, ncols=len(types))
-            else:
-                raise NotImplementedError('No yet')
-        elif isinstance(types, slice):
-            tp = types.start
-            ncols = types.stop
-            return _Table((tp,) * ncols, ncols=ncols)
+    def __getitem__(self, key):
+        if isinstance(key, Number) or isinstance(key, slice):
+            raise KeyError("You shouldn't be accessing rows of Table object")
+        if self.kind in (MOCK_ARRAY, ARRAY):
+            value = self.array[key]
+            if isinstance(value, np.ndarray):
+                value = value[:, np.newaxis] if len(value.shape) == 1 else value
+                result = Table(value)
+                result.kind = self.kind
+                return result
+            elif isinstance(value, Number):
+                return value
         else:
-            raise NotImplementedError('Not yet')
-
-    def __call__(self, array):
-        return _Table(array=array)
+            raise SyntaxError('Cannot get item of TYPE_ANNOTATOR')
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         kinds = [input_.kind for input_ in inputs if isinstance(input_, type(self))]
@@ -251,9 +241,7 @@ class _Table(np.lib.mixins.NDArrayOperatorsMixin):
 
     def __repr__(self):
         cls_name = 'Table'
-        if self.kind == PROTOTYPE:
-            return cls_name
-        elif self.kind == TYPE_ANNOTATOR:
+        if self.kind == TYPE_ANNOTATOR:
             return f'{cls_name}[{self.types[0].__name__}, ...]'
         elif self.kind == MOCK_ARRAY:
             try:
@@ -278,7 +266,30 @@ class _Table(np.lib.mixins.NDArrayOperatorsMixin):
     T = transpose
 
 
-Table = _Table()
+class TableFactory:
+    def __getitem__(self, types):
+        ALLOWED_TYPES = (int, float, str)
+        if types in ALLOWED_TYPES:
+            return _Table((types,), ncols=1)
+        elif isinstance(types, tuple):
+            if len(types) == 2 and types[1] == Ellipsis:
+                return _Table((types[0],))
+            elif all(tp in ALLOWED_TYPES for tp in types):
+                return _Table(types, ncols=len(types))
+            else:
+                raise NotImplementedError('No yet')
+        elif isinstance(types, slice):
+            tp = types.start
+            ncols = types.stop
+            return _Table((tp,) * ncols, ncols=ncols)
+        else:
+            raise NotImplementedError('Not yet')
+
+    def __call__(self, array):
+        return _Table(array=array)
+
+
+Table = TableFactory()
 
 
 # -------------------------------------------------------- #
@@ -296,18 +307,17 @@ def sum_of_squares(table: Table[float, ...]) -> float:
     return sos
 
 
-# XXX not working, because I messed up the semantics of []
-# @udf
-# def half_table(table: Table[int, ...]) -> Table[int, ...]:
-#     ncols = table.shape[1]
-#     if ncols >= 2:
-#         result = table[:ncols // 2]
-#     else:
-#         result = table
-#     return result
+@udf
+def half_table(table: Table[int, ...]) -> Table[int, ...]:
+    ncols = table.shape[1]
+    if ncols >= 2:
+        result = table[:, 0:ncols // 2]
+    else:
+        result = table
+    return result
 
 
 print(compute_gramian(Table(np.array([[1, 2, 3], [10, 20, 30]]))))
 print(compute_gramian(np.array([[1, 2, 3], [10, 20, 30]])))
 print(sum_of_squares(Table[float:4]))
-# print(half_table(Table[int:6]))
+print(half_table(Table[int:6]))
