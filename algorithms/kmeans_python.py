@@ -9,7 +9,7 @@ RETURNS FLOAT LANGUAGE PYTHON {
 };
 ''')
 
-class Algorithm2: # iteration condition in python
+class Algorithm: # iteration condition in python
     def algorithm(self, data_table, merged_local_results, parameters, attributes, result_table):
         # init schemata yield
         yield ["N INT, centx FLOAT, centy FLOAT, datax FLOAT, datay FLOAT", "centx FLOAT, centy FLOAT", "schema"]
