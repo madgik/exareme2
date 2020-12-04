@@ -168,7 +168,7 @@ class Connection(object):
         )
 
         if attr != len(attributes):
-            res = cur.fetchall()
+            res = await cur.fetchall()
             if res == []:
                 raise Exception("Requested data does not exist in all local nodes")
             raise Exception(
@@ -239,26 +239,28 @@ class Connection(object):
     async def clean_tables(
         self, db_objects, globaltable, localtable, viewlocaltable, globalrestable
     ):
-        await db_objects["global"]["async_con"].cursor().execute(
-            "drop view if exists %s;" % globaltable
-        )
-        await db_objects["global"]["async_con"].cursor().execute(
-            "drop table if exists %s;" % globalrestable
-        )
-        for i, local in enumerate(db_objects["local"]):
-            await local["async_con"].cursor().execute(
-                "drop view if exists " + viewlocaltable + ";"
-            )
-            await local["async_con"].cursor().execute(
-                "drop table if exists " + globalrestable + ";"
-            )
-            await local["async_con"].cursor().execute(
-                "drop table if exists " + localtable + "_" + str(i) + ";"
+        try:
+            await db_objects["global"]["async_con"].cursor().execute(
+                "drop view if exists %s;" % globaltable
             )
             await db_objects["global"]["async_con"].cursor().execute(
-                "drop table if exists " + localtable + "_" + str(i) + ";"
+                "drop table if exists %s;" % globalrestable
             )
-
+            for i, local in enumerate(db_objects["local"]):
+                await local["async_con"].cursor().execute(
+                    "drop view if exists " + viewlocaltable + ";"
+                )
+                await local["async_con"].cursor().execute(
+                    "drop table if exists " + globalrestable + ";"
+                )
+                await local["async_con"].cursor().execute(
+                    "drop table if exists " + localtable + "_" + str(i) + ";"
+                )
+                await db_objects["global"]["async_con"].cursor().execute(
+                    "drop table if exists " + localtable + "_" + str(i) + ";"
+                )
+        except:
+            pass
     ##################### end of added code to support federation #############################
 
     def cursor(self):

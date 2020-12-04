@@ -19,6 +19,7 @@ class Task:
         self.transfer_runner = transfer_runner
         self.local_schema = None
         self.global_schema = None
+        self.iternum = 0
 
     async def _local_execute(self, local,  id, sqlscript, insert):
         if not insert:
@@ -149,6 +150,16 @@ class Task:
         print("time " + str(current_time() - t1))
 
     #### run a task on all local nodes and sets up the transfer of the results to global node
+
+    async def init_tables(self, local_schema, global_schema):
+        self.local_schema = local_schema
+        self.global_schema = global_schema
+        await self._initialize_local_schema()
+        await self.transfer_runner.initialize_local(self.local_schema)
+        await self._initialize_global_schema()
+        await self.transfer_runner.initialize_global(self.global_schema)
+
+
     async def task_local(self, schema, sqlscript):
         t1 = current_time()
         insert = False
@@ -165,18 +176,19 @@ class Task:
         await asyncio.gather(*_local_execute_calls)
 
         ## for debug, print local contents
-        for id, local in enumerate(self.db_objects["local"]):
-            result = await local["async_con"].cursor().execute("select * from %s_%s;" % (self.localtable, str(id)))
+        #for id, local in enumerate(self.db_objects["local"]):
+        #    result = await local["async_con"].cursor().execute("select * from %s_%s;" % (self.localtable, str(id)))
         print("time " + str(current_time() - t1))
 
     ### runs a task on global node using data received by the local nodes
     async def task_global(self, schema, sqlscript):
+
         t1 = current_time()
         if self.global_schema == None or self.global_schema != schema:
             self.global_schema = schema
             await self._initialize_global_schema()
             await self.transfer_runner.initialize_global(self.global_schema)
-        if 'iternum' not in schema:
+        if 'iternum' not in schema and 'history' not in schema:
             query = (
                 "delete from "
                 + self.globalresulttable
@@ -184,6 +196,17 @@ class Task:
                 + self.globalresulttable
                 + " "
                 + sqlscript
+            )
+        elif 'iternum' in schema:
+            query = (
+                    "insert into "
+                    + self.globalresulttable
+                    + " "
+                    + sqlscript
+                    +"delete from "
+                    + self.globalresulttable
+                    + " where iternum <= "+ str(self.iternum-1)
+                    + ";"
             )
         else:
             query = (
@@ -196,6 +219,8 @@ class Task:
         cur = self.db_objects["global"]["async_con"].cursor()
         result = await cur.execute("select * from %s;" % self.globalresulttable)
         print("time " + str(current_time() - t1))
+        self.iternum += 1
+
         return await cur.fetchall()
 
     async def clean_up(self):
