@@ -15,8 +15,8 @@ def dispatch(func):
     Examples:
     ---------
         >>> @dispatch
-        ... def fun(x, *args, **kwargs):
-        ...     raise NotADirectoryError
+        ... def func(x, *args, **kwargs):
+        ...     raise NotImplementedError
         ...
         >>> @func.register(int)
         ... def _(x, *args, **kwargs):
