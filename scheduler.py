@@ -47,6 +47,8 @@ class Scheduler:
                 if 'set_schema' in task:
                     await self.set_schema(task['set_schema'])
                     task = next(self.task_generator)
+                elif 'define_udf' in task:
+                    await self.define_udf(task['define_udf'])
                 elif 'run_local' in task:
                     await self.run_local(task['run_local'])
                     task = next(self.task_generator)
@@ -69,6 +71,8 @@ class Scheduler:
                 break
 
         ### remove optional additional columns from the result
+        # needs some better implementation here, as for now the scheduler assumes that
+        # termination and iternum columns are the first and second columns of the schema
         if 'termination' in  self.global_schema  and 'iternum' in  self.global_schema:
             return [x[2:] for x in result]
         elif 'termination' in  self.global_schema:
@@ -82,6 +86,9 @@ class Scheduler:
         if 'termination' in schema['global']:
             self.termination_in_dbms = True
         await self.task_executor.init_tables(schema['local'], schema['global'])
+
+    async def define_udf(self, udf):
+        pass
 
     async def run_local(self, step_local):
         if not self.static_schema and 'schema' not in step_local:
@@ -103,8 +110,6 @@ class Scheduler:
                 self.termination_in_dbms = True
 
         result = await self.task_executor.task_global(self.global_schema, step_global['sqlscript'])
-
-
         return result
 
     def termination(self, global_result):
