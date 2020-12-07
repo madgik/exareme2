@@ -40,44 +40,54 @@ class Scheduler:
         )
 
     async def schedule(self):
-        result = None
-        task = next(self.task_generator)
-        while True:
-            try:
-                if 'set_schema' in task:
-                    await self.set_schema(task['set_schema'])
-                    task = next(self.task_generator)
-                elif 'define_udf' in task:
-                    await self.define_udf(task['define_udf'])
-                elif 'run_local' in task:
-                    await self.run_local(task['run_local'])
-                    task = next(self.task_generator)
-                elif 'run_global' in task:
-                    result = await self.run_global(task['run_global'])
-                    if not self.termination_in_dbms:
-                        next(self.task_generator)
-                        task = self.task_generator.send(result)
-                    else:
-                        if self.termination(result):
-                            break
+        try:
+            result = None
+            await self.task_executor.createlocalviews()
+            task = next(self.task_generator)
+            while True:
+                try:
+                    if 'set_schema' in task:
+                        await self.set_schema(task['set_schema'])
                         task = next(self.task_generator)
-                else:
-                    raise Exception(
-                        '''Task can only be a dictionary with one key which defines the task type. 
+                    elif 'define_udf' in task:
+                        await self.define_udf(task['define_udf'])
+                    elif 'run_local' in task:
+                        await self.run_local(task['run_local'])
+                        task = next(self.task_generator)
+                    elif 'run_global' in task:
+                        result = await self.run_global(task['run_global'])
+                        if not self.termination_in_dbms:
+                            next(self.task_generator)
+                            task = self.task_generator.send(result)
+                        else:
+                            if self.termination(result):
+                                break
+                            task = next(self.task_generator)
+                    else:
+                        raise Exception(
+                        '''
+                        Task can only be a dictionary with one key which defines the task type. 
                         Currently supported task types: define_schema, run_local, run_global
                         '''
-                    )
-            except StopIteration:
-                break
+                        )
+                except StopIteration:
+                    break
 
-        ### remove optional additional columns from the result
-        # needs some better implementation here, as for now the scheduler assumes that
-        # termination and iternum columns are the first and second columns of the schema
-        if 'termination' in  self.global_schema  and 'iternum' in  self.global_schema:
-            return [x[2:] for x in result]
-        elif 'termination' in  self.global_schema:
-            return [x[1:] for x in result]
-        else: return result
+
+            ### remove optional additional columns from the result
+            # needs some better implementation here, as for now the scheduler assumes that
+            # termination and iternum columns are the first and second columns of the schema
+            if 'termination' in  self.global_schema  and 'iternum' in  self.global_schema:
+                result = [x[2:] for x in result]
+            elif 'termination' in  self.global_schema:
+                result = [x[1:] for x in result]
+
+            await self.task_executor.clean_up()
+            return result
+
+        except:
+            await self.task_executor.clean_up()
+            raise
 
 
     async def set_schema(self, schema):

@@ -38,14 +38,6 @@ async def run(algorithm, params, db_objects):
     table_id = get_uniquetableid()
     transfer_runner = transfer.Transfer(db_objects, table_id)
     task_executor_instance = task_executor.Task(db_objects, table_id, params, transfer_runner)
-    # create database views on local databases - each view processes the filters and the selected attributes on the requested table
-    # the algorithm won't run directly on the local dataset but on the view
-    await task_executor_instance.createlocalviews()
-    try:
-        scheduler_instance  = scheduler.Scheduler(task_executor_instance, algorithm_instance.algorithm)
-        result = await scheduler_instance.schedule()
-    except:
-        await task_executor_instance.clean_up()
-        raise
-    await task_executor_instance.clean_up()
+    scheduler_instance  = scheduler.Scheduler(task_executor_instance, algorithm_instance.algorithm)
+    result = await scheduler_instance.schedule()
     return result

@@ -6,8 +6,6 @@ return numpy.sqrt(numpy.power(d_x-c_x,2) + numpy.power(d_y-c_y,2))
 };
 ''')
 
-
-
 udf_list.append('''
 CREATE OR REPLACE FUNCTION expectation_sql(d_x float, d_y float, c_x float, c_y float)
 RETURNS FLOAT
