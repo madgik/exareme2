@@ -8,12 +8,20 @@ RETURNS FLOAT LANGUAGE PYTHON {
    return numpy.sqrt(sums)
 };
 ''')
+udf_list.append('''
+CREATE OR REPLACE FUNCTION expectation_sql(d_x INTEGER, d_y INTEGER, c_x INTEGER, c_y INTEGER)
+RETURNS FLOAT
+BEGIN
+ RETURN SQRT(POWER(d_x-c_x,2) + POWER(d_y-c_y,2));
+END;
+''')
 
 class Algorithm: # iteration condition in sql
     def algorithm(self, data_table, merged_local_results, parameters, attributes, result_table):
         # init local and global schemata
-        yield ["N INT, centx FLOAT, centy FLOAT, datax FLOAT, datay FLOAT", "termination BOOL, iternum INT, centx FLOAT, centy FLOAT", "schema"]
-        for iternum in range(1000):
+        yield {"set_schema": {"local": "N INT, centx FLOAT, centy FLOAT, datax FLOAT, datay FLOAT",
+                                 "global": "termination BOOL, iternum INT, centx FLOAT, centy FLOAT"}}
+        for iternum in range(70):
             yield self.global_aggregation(iternum, merged_local_results, result_table, parameters)
             yield self.local_expectation(iternum, data_table, attributes, result_table)
 
@@ -22,12 +30,13 @@ class Algorithm: # iteration condition in sql
         select count(*) as N, centx, centy, sum(datax) as datax, sum(datay) as datay from (
             select row_number() over (
                                       partition by datax, datay 
-                                      order by EUCLIDEAN_DISTANCE(datax, datay ,centx, centy) -- SQRT(POWER(datax-centx,2) + POWER(datay-centy,2))
+                                      order by EXPECTATION_SQL(datax, datay ,centx, centy) 
+                                      --SQRT(POWER(datax-centx,2) + POWER(datay-centy,2))
                                      ) as id, datax, datay, centx, centy
             from (select {attr[0]} as datax, {attr[1]} as datay from {data_table}) as data_points, {result_table}
         ) expectations where id=1 group by centx, centy
         '''
-        return [sqlscript, 'local']
+        return {'run_local': {'sqlscript': sqlscript}}
 
     def global_aggregation(self, iternum, merged_local_results, result_table, parameters):
         centroids_n = parameters[0]
@@ -41,4 +50,4 @@ class Algorithm: # iteration condition in sql
             order by points desc limit {centroids_n}
             ) global_centroids order by termination desc;
         	'''
-        return [sqlscript, 'global']
+        return {'run_global': {'sqlscript': sqlscript}}

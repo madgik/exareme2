@@ -6,12 +6,11 @@ import time
 current_time = lambda: int(round(time.time() * 1000))
 
 class Task:
-    def __init__(self, db_objects, table_id, module, params, transfer_runner):
+    def __init__(self, db_objects, table_id, params, transfer_runner):
         self.localtable = "local" + table_id
         self.globaltable = "global" + table_id
         self.viewlocaltable = "localview" + table_id
         self.globalresulttable = "globalres" + table_id
-        self.algorithm = module
         self.params = params
         self.attributes = params['attributes']
         self.parameters = params['parameters']
@@ -218,6 +217,7 @@ class Task:
         await self.db_objects["global"]["async_con"].cursor().execute(query)
         cur = self.db_objects["global"]["async_con"].cursor()
         result = await cur.execute("select * from %s;" % self.globalresulttable)
+        print("iternum: "+str(self.iternum))
         print("time " + str(current_time() - t1))
         self.iternum += 1
 

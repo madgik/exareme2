@@ -23,7 +23,7 @@ class Algorithm:
                 FROM {data_table}
              )  pearson_data
         '''
-        return schema, sqlscript, 'local'
+        return {'run_local': {'schema': schema, 'sqlscript': sqlscript}}
 
 
     def _global(self, iternum, merged_local_results, parameters, attributes):
@@ -44,6 +44,6 @@ class Algorithm:
                 FROM {merged_local_results} 
              )  pearson_sums
         '''
-        return schema, sqlscript, 'global'
+        return {'run_global': {'schema': schema, 'sqlscript': sqlscript}}
 
 ## select pearson_global(SUM(sx),SUM(sxx),SUM(sxy),SUM(sy),SUM(syy),SUM(n)) from merged_local_results;

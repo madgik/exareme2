@@ -40,13 +40,13 @@ class Algorithm:
         #### todo convert schema to a list and not string
         schema = "sx FLOAT, sxx FLOAT, sxy FLOAT, sy FLOAT, syy FLOAT, n INT"
         sqlscript = "select * from pearson_local((select * from %s))" % data_table
-        return schema, sqlscript, 'local'
+        return {'run_local': {'schema': schema, 'sqlscript': sqlscript}}
 
     def _global(self, merged_local_results):
         #### todo convert schema to a list and not string
         schema = "result FLOAT"
         sqlscript  = "select pearson_global(sx, sxx, sxy, sy, syy, n) from %s" % merged_local_results
-        return schema, sqlscript, 'global'
+        return {'run_global': {'schema': schema, 'sqlscript': sqlscript}}
 
 
 ## select pearson_global(sum(sx),sum(sxx),sum(sxy),sum(sy),sum(syy),sum(n)) from merged_local_results;
