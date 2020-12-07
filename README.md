@@ -19,7 +19,7 @@ These functions contain the remote and merge tables and the cleanup (it's differ
 
 
 <b>Installation</b>
-1) Python3 with numpy should be installed in all federation nodes. The mserver runs with Python 3.7 or newer. It does not run with python3 versions older than 3.7.
+1) Python3 with numpy should be installed in all federation nodes. The mserver runs with Python 3.7 or newer but is also compatible with JIT compiled PyPy3.  It does not run with python3 versions older than 3.7.
 2) Install monetdb from source (https://www.monetdb.org/Developers/SourceCompile) to all the nodes of the federation
    dependencies: `sudo apt-get install libssl-dev` `sudo apt-get install libpcre3 libpcre3-dev` `sudo apt-get install pkg-config` `sudo apt-get install python3-dev` `sudo apt-get install uuid-dev` `sudo apt-get install libxml2 libxml2-dev` `sudo apt-get install libstreams-dev` `sudo apt install unixodbc-dev`
 3) Install dependencies for mserver: `pip3 install tornado` , `pip3 install six`, `pip3 install pyodbc`
