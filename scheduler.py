@@ -51,12 +51,15 @@ class Scheduler:
                                 break
                             task = next(self.task_generator)
                     elif 'define_udf' in task:
-                        await self.define_udf(task['define_udf'])
+                        try:
+                            await self.define_udf(task['define_udf'])
+                        except:
+                            raise Exception('''online UDF definition is not implemented yet''')
                     else:
                         raise Exception(
                         '''
                         Task can only be a dictionary with one key which defines the task type. 
-                        Currently supported task types: define_schema, run_local, run_global
+                        Currently supported task types: set_schema, run_local, run_global, define_udf
                         '''
                         )
                 except StopIteration:
