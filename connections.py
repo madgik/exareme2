@@ -130,19 +130,15 @@ class Connections:
             await self._reload_udfs(db_conn)
         return db_conn
 
-    ### asyncio locks because there may be a reload
+    ### TODO asyncio locks are needed because there may be a reload
     async def release(self, db_conn):  ### release connection objects back to pool
-        await self.lock.acquire()
         if db_conn["global"]["dbname"] == self.db_objects["global"]["dbname"]:
             await self.db_objects["global"]["pool"].release(
                 db_conn["global"]["async_con"]
             )
-        self.lock.release()
         for i, local in enumerate(self.db_objects["local"]):
-            await self.lock.acquire()
             if db_conn["local"][i]["dbname"] == local["dbname"]:
                 await local["pool"].release(db_conn["local"][i]["async_con"])
-            self.lock.release()
 
     async def _reload_udfs(self, con):
         udfs_list = get_udfs(True)

@@ -32,7 +32,7 @@ class Algorithm: # iteration condition in python
                 (
                 select row_number() over (
                                           partition by datax, datay 
-                                          order by expectation_sql(datax, datay ,centx, centy)
+                                          order by expectation(datax, datay ,centx, centy)
                                          ) as id, datax, datay, centx, centy
                 from (select {attr[0]} as datax, {attr[1]} as datay from {data_table}) as data_points, 
                      {result_table} as centroids

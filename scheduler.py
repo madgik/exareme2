@@ -11,11 +11,6 @@
 
 class Scheduler:
     def __init__(self, task_executor, algorithm):
-        self.localtable = task_executor.localtable
-        self.globaltable = task_executor.globaltable
-        self.viewlocaltable = task_executor.viewlocaltable
-        self.globalresulttable = task_executor.globalresulttable
-        self.attributes = task_executor.attributes
         self.task_executor = task_executor
         # if static schema is False the algorithm defines dynamically the returned schema in each step.
         # otherwise the algorithm sets a static schema for local/global tasks and all the next local global tasks follow
@@ -31,13 +26,7 @@ class Scheduler:
 
         ## bind parameters before pushing them to the algorithm - necessary step to avoid sql injections
         self.parameters = task_executor.bindparameters(task_executor.parameters)
-        self.task_generator = algorithm(
-            self.viewlocaltable,
-            self.globaltable,
-            self.parameters,
-            self.attributes,
-            self.globalresulttable
-        )
+        self.task_generator = task_executor.create_task_generator(algorithm)
 
     async def schedule(self):
         try:
@@ -49,8 +38,6 @@ class Scheduler:
                     if 'set_schema' in task:
                         await self.set_schema(task['set_schema'])
                         task = next(self.task_generator)
-                    elif 'define_udf' in task:
-                        await self.define_udf(task['define_udf'])
                     elif 'run_local' in task:
                         await self.run_local(task['run_local'])
                         task = next(self.task_generator)
@@ -63,6 +50,8 @@ class Scheduler:
                             if self.termination(result):
                                 break
                             task = next(self.task_generator)
+                    elif 'define_udf' in task:
+                        await self.define_udf(task['define_udf'])
                     else:
                         raise Exception(
                         '''
@@ -98,7 +87,7 @@ class Scheduler:
         await self.task_executor.init_tables(schema['local'], schema['global'])
 
     async def define_udf(self, udf):
-        pass
+        await self.task_executor.register_udf(udf)
 
     async def run_local(self, step_local):
         if not self.static_schema and 'schema' not in step_local:

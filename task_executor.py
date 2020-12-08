@@ -73,6 +73,7 @@ class Task:
             )
             await local.cursor().execute(query, vals)
 
+
     async def _initialize_local_schema(self):
         for i, local in enumerate(self.db_objects["local"]):
             query = "drop table if exists %s; create table %s (node_id INT, %s);" % (
@@ -90,6 +91,24 @@ class Task:
             self.global_schema,
         )
         await self.db_objects["global"]["async_con"].cursor().execute(query)
+
+
+    def create_task_generator(self, algorithm):
+        return algorithm(
+            self.viewlocaltable,
+            self.globaltable,
+            self.parameters,
+            self.attributes,
+            self.globalresulttable
+        )
+
+    async def init_tables(self, local_schema, global_schema):
+        self.local_schema = local_schema
+        self.global_schema = global_schema
+        await self._initialize_local_schema()
+        await self.transfer_runner.initialize_local(self.local_schema)
+        await self._initialize_global_schema()
+        await self.transfer_runner.initialize_global(self.global_schema)
 
     # parameters binding is an important processing step on the parameters that will be concatenated in an SQL query
     # to avoid SQL injection vulnerabilities. This step is not implemented for postgres yet but only for monetdb
@@ -150,15 +169,6 @@ class Task:
 
     #### run a task on all local nodes and sets up the transfer of the results to global node
 
-    async def init_tables(self, local_schema, global_schema):
-        self.local_schema = local_schema
-        self.global_schema = global_schema
-        await self._initialize_local_schema()
-        await self.transfer_runner.initialize_local(self.local_schema)
-        await self._initialize_global_schema()
-        await self.transfer_runner.initialize_global(self.global_schema)
-
-
     async def task_local(self, schema, sqlscript):
         t1 = current_time()
         insert = False
@@ -195,6 +205,8 @@ class Task:
                 + self.globalresulttable
                 + " "
                 + sqlscript
+                + "; "
+                + f" select * from {self.globalresulttable};"
             )
         elif 'iternum' in schema:
             query = (
@@ -202,10 +214,12 @@ class Task:
                     + self.globalresulttable
                     + " "
                     + sqlscript
+                    + "; "
                     +"delete from "
                     + self.globalresulttable
                     + " where iternum <= "+ str(self.iternum-1)
                     + ";"
+                    + f" select * from {self.globalresulttable};"
             )
         else:
             query = (
@@ -213,15 +227,24 @@ class Task:
                     + self.globalresulttable
                     + " "
                     + sqlscript
+                    + "; "
+                    + f"select * from {self.globalresulttable} where iternum = {self.iternum};"
             )
-        await self.db_objects["global"]["async_con"].cursor().execute(query)
+
         cur = self.db_objects["global"]["async_con"].cursor()
-        result = await cur.execute("select * from %s;" % self.globalresulttable)
+        result = await cur.execute(query)
         print("iternum: "+str(self.iternum))
         print("time " + str(current_time() - t1))
         self.iternum += 1
 
         return await cur.fetchall()
+
+
+    async def register_udf(self, udf):
+        # this is not implemented
+        await self.db_objects["global"]["async_con"].create_function(udf)
+        # or for local udfs
+
 
     async def clean_up(self):
         await self.db_objects["global"]["async_con"].clean_tables(
