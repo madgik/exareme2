@@ -38,6 +38,11 @@ class Scheduler:
                     if 'set_schema' in task:
                         await self.set_schema(task['set_schema'])
                         task = next(self.task_generator)
+                    elif 'define_udf' in task:
+                        try:
+                            await self.define_udf(task['define_udf'])
+                        except:
+                            raise Exception('''online UDF definition is not implemented''')
                     elif 'run_local' in task:
                         await self.run_local(task['run_local'])
                         task = next(self.task_generator)
@@ -50,11 +55,6 @@ class Scheduler:
                             if self.termination(result):
                                 break
                             task = next(self.task_generator)
-                    elif 'define_udf' in task:
-                        try:
-                            await self.define_udf(task['define_udf'])
-                        except:
-                            raise Exception('''online UDF definition is not implemented yet''')
                     else:
                         raise Exception(
                         '''

@@ -20,8 +20,8 @@ class Task:
         self.global_schema = None
         self.iternum = 0
 
-    async def _local_execute(self, local,  id, sqlscript, insert):
-        if not insert:
+    async def _local_execute(self, local,  id, sqlscript, appended):
+        if not appended:
             query = (
                 "delete from "
                 + self.localtable
@@ -167,19 +167,20 @@ class Task:
         await asyncio.gather(*_create_view_calls)
         print("time " + str(current_time() - t1))
 
-    #### run a task on all local nodes and sets up the transfer of the results to global node
-
+    #### run a task on all local nodes
     async def task_local(self, schema, sqlscript):
         t1 = current_time()
-        insert = False
+        appended = False
         if 'iternum'  in  schema:
-            insert = True
+            appended = True
+        # if schema contains iternum column, the result of a local step are appended in the local result table
+        # otherwise the previous data are deleted and the new are inserted - revisit the way this is defined
         if self.local_schema == None or self.local_schema != schema:
             self.local_schema = schema
             await self._initialize_local_schema()
             await self.transfer_runner.initialize_local(self.local_schema)
         _local_execute_calls = [
-            self._local_execute(local["async_con"], id, sqlscript, insert)
+            self._local_execute(local["async_con"], id, sqlscript, appended)
             for id, local in enumerate(self.db_objects["local"])
         ]
         await asyncio.gather(*_local_execute_calls)
@@ -189,7 +190,7 @@ class Task:
         #    result = await local["async_con"].cursor().execute("select * from %s_%s;" % (self.localtable, str(id)))
         print("time " + str(current_time() - t1))
 
-    ### runs a task on global node using data received by the local nodes
+    ### runs a task on global node
     async def task_global(self, schema, sqlscript):
 
         t1 = current_time()
