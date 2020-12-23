@@ -10,15 +10,15 @@ json={
             "algorithmUDFsFile":"kmeans_udfs"
         },
         "parameters":{
-            "numOfClusters": 3,
+            "numOfClusters": 5,
             "numOfIterations":10,
             "initialMin":-10,
             "initialMax":10
         }
     },
     "data": {
-        "table": "data",
-        "attributes": ["c1", "c2"],
+        "table": "data3",
+        "attributes": ["v1","v2"],
         "filters": [
             ["c2", ">", "2"],
             ["c1", "<", "9"]
