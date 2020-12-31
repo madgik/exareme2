@@ -1,0 +1,14 @@
+# CodeOwners
+
+# Documentation
+/documentation/ @ThanKarab
+
+# Algorithms
+/algorithms/ @jassak
+
+# Controller service
+/controller/ @apmariglis @ThanKarab
+
+# Worker service
+/worker/ @johnfouf @lsidir
+/worker/udf_generator/ @jassak
