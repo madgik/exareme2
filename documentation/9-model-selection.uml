@@ -1,0 +1,20 @@
+@startuml
+actor App 
+box "Runtime"
+participant Orchestrator
+database GlobalNode
+database LocalNodes
+end box
+
+App -[#gray]> Orchestrator: Request:\nModels\n(different algorithms and/or hyper-parameters),\ndata, filters, ...
+
+loop for Model in Models
+    ref over Orchestrator, LocalNodes, GlobalNode :Training algorithm for model
+    ref over Orchestrator, LocalNodes, GlobalNode :Prediction algorithm for model
+    GlobalNode -[#red]> GlobalNode: Store:\nMetrics for model
+end
+Orchestrator -[#green]-> GlobalNode: Control:\nCall model selection method
+GlobalNode -[#red]> Orchestrator: Transfer:\nBest model
+
+Orchestrator -[#gray]> App: Response:\nFinal result
+@enduml

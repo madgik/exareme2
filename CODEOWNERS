@@ -10,5 +10,5 @@
 /controller/ @apmariglis @ThanKarab
 
 # Worker service
-/worker/ @johnfouf @lsidir
+/worker/ @apmariglis @ThanKarab
 /worker/udf_generator/ @jassak
