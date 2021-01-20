@@ -1,0 +1,19 @@
+@startuml
+actor App 
+box "Runtime"
+participant Orchestrator
+database "TrainingNodes (local)"
+database GlobalNode
+database "TestingNode (local)"
+end box
+
+
+App -[#gray]> Orchestrator: Request:\nAlgorithm, data, filters, ...
+
+loop for TestingNode in LocalNodes
+    ref over "TrainingNodes (local)", GlobalNode :Training phase
+    ref over "TestingNode (local)", GlobalNode :Testing phase
+end
+
+Orchestrator -[#gray]> App: Response:\nFinal result
+@enduml

@@ -1,0 +1,20 @@
+@startuml
+actor App 
+box "Runtime"
+participant Orchestrator
+database GlobalNode
+database LocalNodes
+end box
+
+
+App -[#gray]> Orchestrator: Request:\nMedical record
+
+group Algorithm
+    Orchestrator -[#red]> LocalNodes: Data Transfer:\nMedical record
+    LocalNodes -[#red]> GlobalNode: Data Transfer:\nLocal similarity profile
+    GlobalNode -[#red]> Orchestrator: Data Transfer:\nGlobal similarity profile
+end
+
+Orchestrator -[#gray]> App: Response:\nGlobal similarity profile
+@enduml
+
