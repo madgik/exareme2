@@ -1,7 +1,7 @@
 from typing import Tuple, List
 from celery import shared_task
 
-from tasks.dtos import TableInfo, TableData
+from tasks.tables import TableInfo, TableData
 
 
 @shared_task
