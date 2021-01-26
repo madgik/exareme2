@@ -57,22 +57,6 @@ paths:
                   $ref: '#/components/examples/TableInfo'
         '400':
           description: 'badly formatted input. The schema provided is not valid'
-
-  /tables/responses:
-     get:
-      summary: Returns a list of all local non-private tables of the worker. Returns a list of tuples [name,shema]
-      responses:
-        '200':
-          description:  A list of tuples [name,shema] for all non-private tables in the worker database
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TableInfo'
-              examples:
-                example1:
-                  $ref: '#/components/examples/TableInfoArray'
                   
   /tables/{tableName}:
     get:
