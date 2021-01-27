@@ -10,11 +10,10 @@ def get_remote_tables() -> List[TableInfo]:
 
 
 @shared_task
-def create_remote_table(table_name: str, workerAlias: str):
+def create_remote_table(table_name: str):
     pass
 
 
 @shared_task
-def get_remote_table(remote_table_name: str) -> Tuple[TableInfo, TableData]:
+def get_remote_table(remote_table_name: str) -> TableData:
     pass
-

@@ -16,7 +16,7 @@ def create_merge_table(schema: str):
 
 
 @shared_task
-def get_merge_table(merge_table_name: str) -> Tuple[TableInfo, TableData]:
+def get_merge_table(merge_table_name: str) -> TableData:
     pass
 
 

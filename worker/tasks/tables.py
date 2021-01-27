@@ -17,15 +17,10 @@ class ColumnInfo:
         self.column_type: ColumnType = column_type
 
 
-class TableSchema:
-    def __init__(self, schemas):
-        self.schemas: List[ColumnInfo] = schemas
-
-
 class TableInfo:
-    def __init__(self, table_name, schema):
-        self.table_name: str = table_name
-        self.schema: TableSchema = schema
+    def __init__(self, name, schema):
+        self.name: str = name
+        self.schema: List[ColumnInfo] = schema
 
 
 class TableView:
@@ -38,13 +33,13 @@ class TableView:
 class TableData:
     def __init__(self, data, schema):
         self.data: List[
-                        List[
-                            Union[
-                                str,
-                                int,
-                                float,
-                                bool]]] = data
-        self.schema: TableSchema = schema
+            List[
+                Union[
+                    str,
+                    int,
+                    float,
+                    bool]]] = data
+        self.schema: List[ColumnInfo] = schema
 
 
 @shared_task
@@ -53,7 +48,7 @@ def get_tables() -> List[TableInfo]:
 
 
 @shared_task
-def create_table(table_schemas: TableSchema) -> TableInfo:
+def create_table(column_infos: List[ColumnInfo], execution_id: str) -> TableInfo:
     pass
 
 
