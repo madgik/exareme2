@@ -2,7 +2,7 @@ from typing import Tuple, List
 
 from celery import shared_task
 
-from tasks.tables import ViewTable, TableData, TableInfo
+from tasks.tables import TableView, TableData, TableInfo
 
 
 @shared_task
@@ -11,12 +11,12 @@ def get_views() -> List[TableInfo]:
 
 
 @shared_task
-def create_view(view: ViewTable) -> List[TableInfo]:
+def create_view(view: TableView) -> TableInfo:
     pass
 
 
 @shared_task
-def get_view(view_name: str) -> Tuple[TableInfo, TableData]:
+def get_view(view_name: str) -> TableData:
     pass
 
 

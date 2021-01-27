@@ -11,10 +11,15 @@ class ColumnType(Enum):
     TEXT = 'TEXT'
 
 
-class TableSchema:
+class ColumnInfo:
     def __init__(self, column_name, column_type):
         self.column_name: str = column_name
-        self.type: ColumnType = column_type
+        self.column_type: ColumnType = column_type
+
+
+class TableSchema:
+    def __init__(self, schemas):
+        self.schemas: List[ColumnInfo] = schemas
 
 
 class TableInfo:
@@ -23,7 +28,7 @@ class TableInfo:
         self.schema: TableSchema = schema
 
 
-class ViewTable:
+class TableView:
     def __init__(self, datasets, columns, filters):
         self.datasets: List[str] = datasets
         self.columns: List[str] = columns
@@ -35,10 +40,10 @@ class TableData:
         self.data: List[
                         List[
                             Union[
-                                 str,
-                                 int,
-                                 float,
-                                 bool]]] = data
+                                str,
+                                int,
+                                float,
+                                bool]]] = data
         self.schema: TableSchema = schema
 
 
@@ -48,22 +53,15 @@ def get_tables() -> List[TableInfo]:
 
 
 @shared_task
-def create_table(table_schemas: List[TableSchema]) -> TableInfo:
+def create_table(table_schemas: TableSchema) -> TableInfo:
     pass
 
 
 @shared_task
-def get_local_non_private_tables() -> List[TableInfo]:
-    pass
-
-
-@shared_task
-def get_table(table_name: str) -> TableInfo:
+def get_table(table_name: str) -> TableData:
     pass
 
 
 @shared_task
 def delete_table(table_name: str):
     pass
-
-
