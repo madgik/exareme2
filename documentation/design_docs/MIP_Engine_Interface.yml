@@ -1,0 +1,511 @@
+openapi: 3.0.0
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/ThanKarab/MIP_Engine_Interface/1.0.0
+info:
+  description: The interface that the engine will have with MIP backend.
+  version: "1.0.0"
+  title: MIP Engine Interface
+
+paths:
+  /algorithms:
+    get:
+      summary: get all the available algorithms
+      description: Get the algorithm names, details and input parameters.
+      responses:
+        '200':
+          description: a list of algorithms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Algorithm'
+
+  /algorithms/{algorithmName}:
+    post:
+      summary: run an algorithm
+      description: Run an algorithm specifying the parameters.
+      parameters:
+        - in: path
+          name: algorithmName
+          description: the name of the algorithm to be executed
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Parameters for the algorithm's execution.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlgorithmRequestBody'
+      responses:
+        '200':
+          description: 'algorithm finished'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlgorithmResult'
+        '400':
+          description: 'algorithm does not exist or badly formatted input'
+      
+
+components:
+  schemas:
+    Algorithm:
+      description: All the details and properties that specify an algorithm.
+      example: {
+                    "name": "ALGORITHMNAME",
+                    "desc": "This is an example algorithm.",
+                    "label": "My Algorithm",
+                    "parameters": {
+                        "dataparams": {
+                            "pathology": {
+                                "label": "Pathology of the data.",
+                                "desc": "The pathology that the algorithm will run on.",
+                                "types": ["text"],
+                                "notblank": true,
+                                "multiple": false
+                            },
+                            "dataset": {
+                                "label": "Set of data to use.",
+                                "desc": "The set of data to run the algorithm on.",
+                                "types": ["text"],
+                                "notblank": true,
+                                "multiple": true
+                            },
+                            "filter": {
+                                "label": "Filter on the data.",
+                                "desc": "Features used in my algorithm.",
+                                "types": ["json"],
+                                "notblank": false,
+                                "multiple": false
+                            },
+                            "x": {
+                                "label": "features",
+                                "desc": "Features used in my algorithm.",
+                                "types": ["real", "int", "text"],
+                                "stattypes": ["numerical", "nomimal"],
+                                "notblank": true,
+                                "multiple": true
+                            },
+                            "y": {
+                                "label": "target",
+                                "desc": "Target variable for my algorithm.",
+                                "types": ["text", "int"],
+                                "stattypes": ["nominal"],
+                                "enumslen": 2,
+                                "notblank": true,
+                                "multiple": false
+                            }
+                        },
+                        "modelparams":{
+                            "my_enum_param": {
+                                "label": "Some param",
+                                "desc": "Example of parameter with enumerations.",
+                                "type": "text",
+                                "inputtype": "dropdown",
+                                "enums": ["a", "b", "c"],
+                                "default": "a",
+                                "notblank": true,
+                                "multiple": false
+                            },
+                            "my_int_param": {
+                                "label": "Some param",
+                                "desc": "Example of integer param.",
+                                "type": "int",
+                                "default": 4,
+                                "min": 2,
+                                "max": 4,
+                                "notblank": true,
+                                "multiple": false
+                            },
+                            "list_param": {
+                                "label": "Some param",
+                                "desc": "Example of list of floats param.",
+                                "type": "real",
+                                "default": [0.8, 0.95],
+                                "min": 0.0,
+                                "max": 1.0,
+                                "notblank": true,
+                                "multiple": true
+                            }
+                        },
+                        "formula": true,
+                        "crossvalidation": true
+                    }
+                }
+      type: object
+      required:
+        - name
+        - desc
+        - label
+        - enabled
+        - parameters
+      properties:
+        name:
+          type: string
+        desc:
+          type: string
+        label:
+          type: string
+        enabled:
+          type: boolean
+        parameters:
+          type: object
+          properties:
+            schema:
+              $ref: '#/components/schemas/AlgorithmParameters'
+          
+    AlgorithmParameters:
+      description: All the details and properties that specify an algorithm
+      example: {
+                    "dataparams": {
+                        "pathology": {
+                            "label": "Pathology of the data.",
+                            "desc": "The pathology that the algorithm will run on.",
+                            "types": ["text"],
+                            "notblank": true,
+                            "multiple": false
+                        },
+                        "dataset": {
+                            "label": "Set of data to use.",
+                            "desc": "The set of data to run the algorithm on.",
+                            "types": ["text"],
+                            "notblank": true,
+                            "multiple": true
+                        },
+                        "filter": {
+                            "label": "Filter on the data.",
+                            "desc": "Features used in my algorithm.",
+                            "types": ["json"],
+                            "notblank": false,
+                            "multiple": false
+                        },
+                        "x": {
+                            "label": "features",
+                            "desc": "Features used in my algorithm.",
+                            "types": ["real", "int", "text"],
+                            "stattypes": ["numerical", "nomimal"],
+                            "notblank": true,
+                            "multiple": true
+                        },
+                        "y": {
+                            "label": "target",
+                            "desc": "Target variable for my algorithm.",
+                            "types": ["text", "int"],
+                            "stattypes": ["nominal"],
+                            "enumslen": 2,
+                            "notblank": true,
+                            "multiple": false
+                        }
+                    },
+                    "modelparams":{
+                        "my_enum_param": {
+                            "label": "Some param",
+                            "desc": "Example of parameter with enumerations.",
+                            "type": "text",
+                            "inputtype": "dropdown",
+                            "enums": ["a", "b", "c"],
+                            "default": "a",
+                            "notblank": true,
+                            "multiple": false
+                        },
+                        "my_int_param": {
+                            "label": "Some param",
+                            "desc": "Example of integer param.",
+                            "type": "int",
+                            "default": 4,
+                            "min": 2,
+                            "max": 4,
+                            "notblank": true,
+                            "multiple": false
+                        },
+                        "list_param": {
+                            "label": "Some param",
+                            "desc": "Example of list of floats param.",
+                            "type": "real",
+                            "default": [0.8, 0.95],
+                            "min": 0.0,
+                            "max": 1.0,
+                            "notblank": true,
+                            "multiple": true
+                        }
+                    },
+                    "formula": true,
+                    "crossvalidation": true
+                }
+      type: object
+      required:
+        - dataparams
+        - modelparams
+        - formula
+        - crossvalidation
+      properties:
+        dataparams:
+          type: object
+          description: Input parameters describing the data used to fit a statistical/ML model.
+          properties:
+            schema:
+              $ref: '#/components/schemas/AlgorithmDataParameters'
+        modelparams:
+          type: object
+          description: Additional input parameters controlling the fitting process.
+          properties:
+            schema:
+              $ref: '#/components/schemas/AlgorithmModelParameters'
+        formula:
+          type: boolean
+          description: defines if the algorithm can accept formula as input
+        crossvalidation:
+          type: boolean
+          description: defines if the algorithm can be cross validated
+
+    AlgorithmDataParameters:
+      description: Input parameters describing the data used to fit a statistical/ML model.
+      example: {
+                    "pathology": {
+                        "label": "Pathology of the data.",
+                        "desc": "The pathology that the algorithm will run on.",
+                        "types": ["text"],
+                        "notblank": true,
+                        "multiple": false
+                    },
+                    "dataset": {
+                        "label": "Set of data to use.",
+                        "desc": "The set of data to run the algorithm on.",
+                        "types": ["text"],
+                        "notblank": true,
+                        "multiple": true
+                    },
+                    "filter": {
+                        "label": "Filter on the data.",
+                        "desc": "Features used in my algorithm.",
+                        "types": ["json"],
+                        "notblank": false,
+                        "multiple": false
+                    },
+                    "x": {
+                        "label": "features",
+                        "desc": "Features used in my algorithm.",
+                        "types": ["int", "real", "text"],
+                        "stattypes": ["numerical", "nomimal"],
+                        "notblank": true,
+                        "multiple": true
+                    },
+                    "y": {
+                        "label": "target",
+                        "desc": "Target variable for my algorithm.",
+                        "types": ["text", "int"],
+                        "stattypes": ["nominal"],
+                        "enumslen": 2,
+                        "notblank": true,
+                        "multiple": false
+                    }
+                }
+      type: object
+      additionalProperties:
+        type: object
+        required:
+          - label
+          - desc
+          - types
+          - notBlank
+          - multiple
+        properties:
+          label:
+            type: string
+          desc:
+            type: string
+          types:
+            type: array
+            items:
+              type: string
+              enum:
+                - 'int'
+                - 'real'
+                - 'text'
+                - 'json'
+          stattypes:
+            type: array
+            items:
+              type: string
+              enum:
+                - 'numerical'
+                - 'nominal'
+          notBlank:
+            type: boolean
+          multiple:
+            type: boolean
+          enumslen:
+            type: integer
+
+    AlgorithmModelParameters:
+      description: Additional input parameters controlling the fitting process.
+      example: {
+                    "my_enum_param": {
+                        "label": "Some param",
+                        "desc": "Example of parameter with enumerations.",
+                        "type": "text",
+                        "inputtype": "dropdown",
+                        "enums": ["a", "b", "c"],
+                        "default": "a",
+                        "notblank": true,
+                        "multiple": false
+                    },
+                    "my_int_param": {
+                        "label": "Some param",
+                        "desc": "Example of integer param.",
+                        "type": "int",
+                        "default": 4,
+                        "min": 2,
+                        "max": 4,
+                        "notblank": true,
+                        "multiple": false
+                    },
+                    "list_param": {
+                        "label": "Some param",
+                        "desc": "Example of list of floats param.",
+                        "type": "real",
+                        "default": [0.8, 0.95],
+                        "min": 0.0,
+                        "max": 1.0,
+                        "notblank": true,
+                        "multiple": true
+                    }
+                }
+      type: object
+      additionalProperties:
+        type: object
+        required:
+          - label
+          - desc
+          - type
+          - default
+          - notBlank
+          - multiple
+        properties:
+          label:
+            type: string
+          desc:
+            type: string
+          type:
+            type: string
+            enum:
+              - 'int'
+              - 'real'
+              - 'text'
+              - 'boolean'
+          default:
+            anyOf:
+              - type: string
+              - type: integer
+              - type: number
+              - type: boolean
+              - type: array
+          notBlank:
+            type: boolean
+          multiple:
+            type: boolean
+          min:
+            type: number
+          max:
+            type: number
+
+    AlgorithmRequestBody:
+      description: The request body of the call to run an algorithm.
+      example: {
+                    "dataparams": {
+                        "pathology": "dementia",
+                        "dataset": ["adni", "ppmi"],
+                        "filter": {},
+                        "x": ["lefthippocampus", "righthippocampus"],
+                        "y": ["alzheimerbroadcategory"]
+                    },
+                    "modelparams": {
+                        "my_enum_param": "a",
+                        "my_int_param": 3,
+                        "list_param": [0.8, 0.95]
+                    },
+                    "formula": "alzheimerbroadcategory ~ lefthippocampus : righthippocampus",
+                    "crossvalidation": {
+                        "my_crossvalidation_param1": "a",
+                        "my_crossvalidation_param2": 3
+                    }
+                }
+      type: object
+      required:
+        - dataparams
+      properties:
+        dataparams:    
+          description: a dictionairy of parameters relative to the datasets
+          type: object
+          properties:
+            pathology:
+              type: string
+            dataset:
+              type: array
+              items:
+                type: string
+            x:
+              type: array
+              items:
+                type: string
+            y:
+              type: array
+              items:
+                type: string
+            filter:
+              type: object
+              description: A jquery builder object, https://querybuilder.js.org/demo.html , using the x and y variables given.
+        modelparams:
+          description: a dictionairy of parameters relative to the algorithm
+          type: object
+          additionalProperties:
+            anyOf:
+              - type: string
+              - type: integer
+              - type: number
+              - type: boolean
+              - type: array
+        formula:
+          type: string
+          description: Patsy formula (https://patsy.readthedocs.io/en/v0.1.0/formulas.html)
+        crossvalidation:
+          description: a dictionairy of parameters relative to the cross validation of the algorithm
+          type: object
+
+    AlgorithmResult:
+      description: The result of an algorithm execution. A dictionairy of the available visualization types, containing a list of the different visualizations. Possible MIMETypes here https://redmine.hbpmip.link/issues/186
+      example: {
+                    "application/json": [
+                        {
+                            "single":
+                            {
+                                "num_datapoints": 45
+                
+                            }
+                        },
+                        {
+                            "double":
+                            {
+                                "num_datapoints": 437
+                
+                            }
+                        }
+                    ],
+                    "application/vnd.highcharts+json": [
+                        {
+                            "visualization": "amazing visulizaiton"
+                        },
+                        {
+                            "visualization2": "amazing visulizaiton2"
+                        }
+                    ]
+                }
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          type: object
