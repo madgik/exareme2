@@ -1,0 +1,39 @@
+{
+    "name": "crossvalidation",
+    "desc": "This is the cross validation tool.",
+    "label": "Cross Validation",
+    "enabled": true,
+    "parameters": {
+        "modelparams":{
+            "my_enum_param": {
+                "label": "Some param",
+                "desc": "Example of parameter with enumerations.",
+                "type": "text",
+                "enums": ["a", "b", "c"],
+                "default": "a",
+                "notblank": true,
+                "multiple": false
+            },
+            "my_int_param": {
+                "label": "Some param",
+                "desc": "Example of integer param.",
+                "type": "int",
+                "default": 4,
+                "min": 2,
+                "max": 4,
+                "notblank": true,
+                "multiple": false
+            },
+            "list_param": {
+                "label": "Some param",
+                "desc": "Example of list of floats param.",
+                "type": "real",
+                "default": [0.8, 0.95],
+                "min": 0.0,
+                "max": 1.0,
+                "notblank": true,
+                "multiple": true
+            }
+        }
+    }
+}
