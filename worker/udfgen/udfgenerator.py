@@ -3,11 +3,30 @@ import ast
 from textwrap import indent
 from textwrap import dedent
 from itertools import chain
+from string import Template
 
 import numpy as np
 import astor
 
 from table import Table
+
+UDFTEMPLATE = Template(
+    """CREATE OR REPLACE FUNCTION
+$func_name($input_params)
+RETURNS
+$output_expr
+LANGUAGE PYTHON
+{
+    import numpy as np
+    from arraybundle import ArrayBundle
+$table_defs
+
+    # method body
+$body
+$return_stmt
+};
+"""
+)
 
 SQLTYPES = {
     int: "BIGINT",
@@ -72,54 +91,54 @@ class UDFGenerator:
 
     def emit_code(self, inputs, output):
         tablenames = self.signature.parameters.keys()
-        input_types = [
+        input_params = [
             [
                 name + str(_) + " " + SQLTYPES[inputs[name].type]
                 for _ in range(inputs[name].shape[1])
             ]
             for name in tablenames
         ]
-        input_types = ", ".join(chain(*input_types))
+        input_params = ", ".join(chain(*input_params))
 
         if isinstance(output, Table):
-            output_types = ", ".join(
+            output_params = ", ".join(
                 [
                     self.return_name + str(_) + " " + SQLTYPES[output.type]
                     for _ in range(output.shape[1])
                 ]
             )
-            output_type = f"Table({output_types})"
+            output_expr = f"Table({output_params})"
         else:
-            output_type = SQLTYPES[type(output)]
-        prfx = " " * 4
-        code = [f"CREATE OR REPLACE FUNCTION {self.name}({input_types})"]
-        code += [f"RETURNS {output_type}"]
-        code += ["LANGUAGE PYTHON {"]
-        code += [indent("import numpy as np", prfx)]
-        code += [indent("from arraybundle import ArrayBundle", prfx)]
-        code += [indent("table = ArrayBundle(_columns)\n", prfx)]
-        code += [indent("# start method body", prfx)]
+            output_expr = SQLTYPES[type(output)]
 
-        code.extend(indent(self.body, prfx).splitlines())
         if isinstance(output, Table):
-            code += [""]
-            code += [indent(f"_colrange = range({self.return_name}.shape[1])", prfx)]
-            code += [
-                indent(
-                    f'_names = (f"{self.return_name}_{{i}}" for i in _colrange)', prfx
-                )
-            ]
-            code += [
-                indent(
-                    f"_result = {{n: c for n, c in zip(_names, {self.return_name})}}",
-                    prfx,
-                )
-            ]
-            code += [indent("return _result", prfx)]
+            return_stmt = (
+                f"_colrange = range({self.return_name}.shape[1])\n"
+                + f'_names = (f"{self.return_name}_{{i}}" for i in _colrange)\n'
+                + f"_result = {{n: c for n, c in zip(_names, {self.return_name})}}\n"
+                + "return _result\n"
+                + f"return {self.return_name}\n"
+            )
         else:
-            code += [indent(f"return {self.return_name}", prfx)]
-        code += ["};"]
-        return "\n".join(code)
+            return_stmt = f"return {self.return_name}\n"
+
+        table_defs = []
+        stop = 0
+        for name, table in inputs.items():
+            start, stop = stop, stop + table.shape[1]
+            table_defs += [f"{name} = ArrayBundle(_columns[{start}:{stop}])"]
+        table_defs = "\n".join(table_defs)
+
+        prfx = " " * 4
+        subs = dict(
+            func_name=self.name,
+            input_params=input_params,
+            output_expr=output_expr,
+            table_defs=indent(table_defs, prfx),
+            body=indent(self.body, prfx),
+            return_stmt=indent(return_stmt, prfx),
+        )
+        return UDFTEMPLATE.substitute(subs)
 
 
 def monet_udf(func):
@@ -158,9 +177,16 @@ compute_gramian(Table(tp=int, ncolumns=5))
 
 
 @monet_udf
-def log_table(data: Table):
-    result = np.log(data)
+def half_table(table: Table):
+    ncols = table.shape[1]
+    if ncols >= 2:
+        result = table  # [:, 0: (ncols // 2)]
+    else:
+        result = table
     return result
+
+
+half_table(Table(tp=float, ncolumns=12))
 
 
 @monet_udf
