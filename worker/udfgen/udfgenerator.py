@@ -2,7 +2,6 @@ import inspect
 import ast
 from textwrap import indent
 from textwrap import dedent
-from itertools import chain
 from string import Template
 
 import numpy as np
@@ -28,6 +27,15 @@ $return_stmt
 """
 )
 
+RETURNTABLE_TEMPLATE = Template(
+    """
+_colrange = range(${return_name}.shape[1])
+_names = (f"${return_name}_{i}" for i in _colrange)
+_result = {n: c for n, c in zip(_names, ${return_name})}
+return _result
+return ${return_name}"""
+)
+
 SQLTYPES = {
     int: "BIGINT",
     float: "DOUBLE",
@@ -37,11 +45,6 @@ SQLTYPES = {
     np.float32: "FLOAT",
     np.float64: "DOUBLE",
 }
-
-
-def get_delcaration(func):
-    sourcelines = inspect.getsourcelines(func)[0]
-    return sourcelines[1]
 
 
 class UDFGenerator:
@@ -55,27 +58,11 @@ class UDFGenerator:
         self.signature = inspect.signature(func)
 
     def __call__(self, *args, **kwargs):
-        mocktypes = (Table,)
-        result = self.func(*args, **kwargs)
-        args_are_mocks = [
-            type(arg) in mocktypes for arg in args + tuple(kwargs.values())
-        ]
-        if all(args_are_mocks):
-            argnames = [
-                name
-                for name in self.signature.parameters.keys()
-                if name not in kwargs.keys()
-            ]
-            inputs = dict(**dict(zip(argnames, args)), **kwargs)
-            output = result
-            print(self.emit_code(inputs, output))
-
-        return result
+        return self.func(*args, **kwargs)
 
     def _get_return_name(self):
         body_stmts = self.tree.body[0].body
-        ret_idx = [isinstance(s, ast.Return) for s in body_stmts].index(True)
-        ret_stmt = body_stmts[ret_idx]
+        ret_stmt = next(s for s in body_stmts if isinstance(s, ast.Return))
         if isinstance(ret_stmt.value, ast.Name):
             ret_name = ret_stmt.value.id
         else:
@@ -89,35 +76,42 @@ class UDFGenerator:
         body = dedent("\n".join(astor.to_source(stmt) for stmt in statemets))
         return body
 
-    def emit_code(self, inputs, output):
+    def to_sql(self, *args, **kwargs):
+        mocktypes = (Table,)
+        args_are_mocks = [type(ar) in mocktypes for ar in args + tuple(kwargs.values())]
+        if all(args_are_mocks):
+            argnames = [
+                name
+                for name in self.signature.parameters.keys()
+                if name not in kwargs.keys()
+            ]
+            inputs = dict(**dict(zip(argnames, args)), **kwargs)
+            output = self(*args, **kwargs)
+        else:
+            msg = f"Can't convert to SQL: all arguments must have types in {mocktypes}"
+            raise TypeError(msg)
+
         tablenames = self.signature.parameters.keys()
         input_params = [
-            [
-                name + str(_) + " " + SQLTYPES[inputs[name].type]
-                for _ in range(inputs[name].shape[1])
-            ]
+            f"{name}{_} {SQLTYPES[inputs[name].type]}"
             for name in tablenames
+            for _ in range(inputs[name].shape[1])
         ]
-        input_params = ", ".join(chain(*input_params))
+        input_params = ", ".join(input_params)
 
         if isinstance(output, Table):
-            output_params = ", ".join(
-                [
-                    self.return_name + str(_) + " " + SQLTYPES[output.type]
-                    for _ in range(output.shape[1])
-                ]
-            )
+            output_params = [
+                f"{self.return_name}{_} {SQLTYPES[output.type]}"
+                for _ in range(output.shape[1])
+            ]
+            output_params = ", ".join(output_params)
             output_expr = f"Table({output_params})"
         else:
             output_expr = SQLTYPES[type(output)]
 
         if isinstance(output, Table):
-            return_stmt = (
-                f"_colrange = range({self.return_name}.shape[1])\n"
-                + f'_names = (f"{self.return_name}_{{i}}" for i in _colrange)\n'
-                + f"_result = {{n: c for n, c in zip(_names, {self.return_name})}}\n"
-                + "return _result\n"
-                + f"return {self.return_name}\n"
+            return_stmt = RETURNTABLE_TEMPLATE.substitute(
+                dict(return_name=self.return_name)
             )
         else:
             return_stmt = f"return {self.return_name}\n"
@@ -148,9 +142,12 @@ def monet_udf(func):
 
 
 def verify_annotations(func):
-    mocktypes = (Table,)
+    allowed_types = (Table,)
+    sig = inspect.signature(func)
+    argnames = sig.parameters.keys()
     annotations = func.__annotations__
-    return all(tp in mocktypes for tp in annotations.values())
+    if any(annotations.get(arg, None) not in allowed_types for arg in argnames):
+        raise TypeError("Function is not properly annotated as a Monet UDF")
 
 
 # -------------------------------------------------------- #
