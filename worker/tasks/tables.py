@@ -1,62 +1,36 @@
-from enum import Enum
+from typing import List
 
-from typing import List, Union
-
+import pymonetdb
 from celery import shared_task
 
-
-class ColumnType(Enum):
-    INT = 'INT'
-    FLOAT = 'FLOAT'
-    TEXT = 'TEXT'
-
-
-class ColumnInfo:
-    def __init__(self, column_name, column_type):
-        self.column_name: str = column_name
-        self.column_type: ColumnType = column_type
-
-
-class TableInfo:
-    def __init__(self, name, schema):
-        self.name: str = name
-        self.schema: List[ColumnInfo] = schema
-
-
-class TableView:
-    def __init__(self, datasets, columns, filters):
-        self.datasets: List[str] = datasets
-        self.columns: List[str] = columns
-        self.filters = filters
-
-
-class TableData:
-    def __init__(self, data, schema):
-        self.data: List[
-            List[
-                Union[
-                    str,
-                    int,
-                    float,
-                    bool]]] = data
-        self.schema: List[ColumnInfo] = schema
+from tasks import monetdb_interface
+from tasks.data_classes import TableInfo, TableData, ColumnInfo
 
 
 @shared_task
-def get_tables() -> List[TableInfo]:
-    pass
+def get_tables_info(table_name: List[str] = None) -> List[TableInfo]:
+    list_of_tables = monetdb_interface.get_tables_info(table_name)
+    return TableInfo.schema().dumps(list_of_tables, many=True)
 
 
 @shared_task
-def create_table(column_infos: List[ColumnInfo], execution_id: str) -> TableInfo:
-    pass
+def create_table(columns_info: List[ColumnInfo], execution_id: str) -> TableInfo:
+    # TODO , a table name cannot start with number, what do we put in front?
+    table_name = 'table_' + str(pymonetdb.uuid.uuid1()).replace("-", "") + "_" + execution_id
+    table_info = TableInfo(table_name, columns_info)
+
+    monetdb_interface.create_table(table_info)
+
+    return table_info.to_json()
 
 
 @shared_task
-def get_table(table_name: str) -> TableData:
-    pass
+def get_table_data(table_name: str) -> TableData:
+    schema = monetdb_interface.get_table_schema(table_name)
+    data = monetdb_interface.get_table_data(table_name)
+    return TableData(data, schema).to_json()
 
 
 @shared_task
 def delete_table(table_name: str):
-    pass
+    monetdb_interface.delete_table(table_name)
