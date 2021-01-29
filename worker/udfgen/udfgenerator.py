@@ -93,7 +93,7 @@ class UDFGenerator:
 
         tablenames = self.signature.parameters.keys()
         input_params = [
-            f"{name}{_} {SQLTYPES[inputs[name].type]}"
+            f"{name}{_} {SQLTYPES[inputs[name].dtype]}"
             for name in tablenames
             for _ in range(inputs[name].shape[1])
         ]
@@ -101,7 +101,7 @@ class UDFGenerator:
 
         if isinstance(output, Table):
             output_params = [
-                f"{self.return_name}{_} {SQLTYPES[output.type]}"
+                f"{self.return_name}{_} {SQLTYPES[output.dtype]}"
                 for _ in range(output.shape[1])
             ]
             output_params = ", ".join(output_params)
@@ -158,9 +158,9 @@ def f(x: Table, y: Table, z: Table):
     return x
 
 
-x = Table(tp=int, ncolumns=10)
-y = Table(tp=float, ncolumns=5)
-z = Table(tp=float, ncolumns=2)
+x = Table(dtype=int, shape=(100, 10))
+y = Table(dtype=float, shape=(5, 2))
+z = Table(dtype=float, shape=(2,))
 f(x, y, z=z)
 
 
@@ -170,20 +170,20 @@ def compute_gramian(data: Table):
     return gramian
 
 
-compute_gramian(Table(tp=int, ncolumns=5))
+compute_gramian(Table(dtype=int, shape=(100, 10)))
 
 
 @monet_udf
 def half_table(table: Table):
     ncols = table.shape[1]
     if ncols >= 2:
-        result = table  # [:, 0: (ncols // 2)]
+        result = table[:, 0 : (ncols // 2)]
     else:
         result = table
     return result
 
 
-half_table(Table(tp=float, ncolumns=12))
+half_table(Table(dtype=float, shape=(50, 12)))
 
 
 @monet_udf
@@ -192,4 +192,4 @@ def ret_one(data: Table):
     return result
 
 
-ret_one(Table(tp=int, ncolumns=1))
+ret_one(Table(dtype=int, shape=(1,)))

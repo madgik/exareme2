@@ -7,27 +7,14 @@ from ufunctypes import type_conversion_table
 __all__ = ["Table"]
 
 
-class NRows:
-    def __repr__(self):
-        return "nrows"
-
-
-NROWS = NRows()
-
-
 class Table(np.lib.mixins.NDArrayOperatorsMixin):
-    def __init__(self, tp, ncolumns=None, shape=None):
-        self.type = tp
-        if ncolumns and not shape:
-            self.shape = (NROWS, ncolumns)
-        elif not ncolumns and shape:
-            self.shape = shape
-        else:
-            ValueError(f"Can't instantiate MockTable with {ncolumns} and {shape}")
+    def __init__(self, dtype, shape):
+        self.dtype = dtype
+        self.shape = shape
 
     def __repr__(self):
         clsname = type(self).__name__
-        return f"{clsname}(tp={self.type.__name__}, shape={self.shape})"
+        return f"{clsname}(dtype={self.dtype.__name__}, shape={self.shape})"
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         if not all(isinstance(inpt, (type(self), Number)) for inpt in inputs):
@@ -38,7 +25,7 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
             newshape = inputs[0].shape[0], inputs[1].shape[1]
             intypes = tuple([_typeof(inpt) for inpt in inputs])
             newtype = type_conversion_table[ufunc.__name__][intypes]
-            return Table(tp=newtype, shape=newshape)
+            return Table(dtype=newtype, shape=newshape)
         else:
             if ufunc.nin == 1:
                 shape_a = inputs[0].shape
@@ -55,11 +42,18 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
                 raise ValueError("ufuncs do not accept more than 2 operands")
             intypes = tuple([_typeof(inpt) for inpt in inputs])
             newtype = type_conversion_table[ufunc.__name__][intypes]
-            return Table(tp=newtype, shape=newshape)
+            return Table(dtype=newtype, shape=newshape)
+
+    def __getitem__(self, key):
+        mock = np.broadcast_to(np.array(0), self.shape)
+        newshape = mock[key].shape
+        if newshape == ():
+            newshape = (1,)
+        return Table(dtype=self.dtype, shape=newshape)
 
     @property
     def transpose(self):
-        return Table(tp=self.type, shape=(self.shape[1], self.shape[0]))
+        return Table(dtype=self.dtype, shape=(self.shape[1], self.shape[0]))
 
     T = transpose
 
@@ -81,7 +75,15 @@ def _broadcast_shapes(*shapes):
 
 
 def _typeof(obj):
-    if hasattr(obj, "dtype"):
+    try:
         return obj.dtype.type
-    elif hasattr(obj, "type"):
-        return obj.type
+    except AttributeError:
+        return obj.dtype
+
+
+# -------------------------------------------------------- #
+# Examples                                                 #
+# -------------------------------------------------------- #
+t = Table(dtype=int, shape=(100, 10))
+x = t[0:3]
+y = t[1, 2] + t[2, 4]
