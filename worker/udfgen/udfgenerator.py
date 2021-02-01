@@ -8,6 +8,8 @@ import numpy as np
 import astor
 
 from table import Table
+from parameters import LiteralParameter
+
 
 UDFTEMPLATE = Template(
     """CREATE OR REPLACE FUNCTION
@@ -18,7 +20,10 @@ LANGUAGE PYTHON
 {
     import numpy as np
     from arraybundle import ArrayBundle
+    ___columns = _columns
+    del _columns
 $table_defs
+$literals
 
     # method body
 $body
@@ -29,11 +34,10 @@ $return_stmt
 
 RETURNTABLE_TEMPLATE = Template(
     """
-_colrange = range(${return_name}.shape[1])
-_names = (f"${return_name}_{i}" for i in _colrange)
-_result = {n: c for n, c in zip(_names, ${return_name})}
-return _result
-return ${return_name}"""
+___colrange = range(${return_name}.shape[1])
+___names = (f"${return_name}_{i}" for i in ___colrange)
+___result = {n: c for n, c in zip(___names, ${return_name})}
+return ___result"""
 )
 
 SQLTYPES = {
@@ -45,6 +49,9 @@ SQLTYPES = {
     np.float32: "FLOAT",
     np.float64: "DOUBLE",
 }
+
+
+UDF_REGISTER = {}
 
 
 class UDFGenerator:
@@ -77,21 +84,35 @@ class UDFGenerator:
         return body
 
     def to_sql(self, *args, **kwargs):
-        mocktypes = (Table,)
-        args_are_mocks = [type(ar) in mocktypes for ar in args + tuple(kwargs.values())]
-        if all(args_are_mocks):
-            argnames = [
-                name
-                for name in self.signature.parameters.keys()
-                if name not in kwargs.keys()
-            ]
-            inputs = dict(**dict(zip(argnames, args)), **kwargs)
-            output = self(*args, **kwargs)
-        else:
-            msg = f"Can't convert to SQL: all arguments must have types in {mocktypes}"
+        # verify types
+        allowed = (Table, LiteralParameter)
+        args_are_allowed = [type(ar) in allowed for ar in args + tuple(kwargs.values())]
+        if not all(args_are_allowed):
+            msg = f"Can't convert to SQL: all arguments must have types in {allowed}"
             raise TypeError(msg)
 
-        tablenames = self.signature.parameters.keys()
+        # get inputs and output
+        argnames = [
+            name
+            for name in self.signature.parameters.keys()
+            if name not in kwargs.keys()
+        ]
+        inputs = dict(**dict(zip(argnames, args)), **kwargs)
+        output = self(*args, **kwargs)
+
+        # split input into Tables and LiteralParameters
+        tablenames = [
+            name
+            for name in self.signature.parameters.keys()
+            if isinstance(inputs[name], Table)
+        ]
+        literals = [
+            name
+            for name in self.signature.parameters.keys()
+            if isinstance(inputs[name], LiteralParameter)
+        ]
+
+        # get input params expression
         input_params = [
             f"{name}{_} {SQLTYPES[inputs[name].dtype]}"
             for name in tablenames
@@ -99,6 +120,7 @@ class UDFGenerator:
         ]
         input_params = ", ".join(input_params)
 
+        # get return statement
         if isinstance(output, Table):
             output_params = [
                 f"{self.return_name}{_} {SQLTYPES[output.dtype]}"
@@ -106,29 +128,39 @@ class UDFGenerator:
             ]
             output_params = ", ".join(output_params)
             output_expr = f"Table({output_params})"
-        else:
-            output_expr = SQLTYPES[type(output)]
-
-        if isinstance(output, Table):
             return_stmt = RETURNTABLE_TEMPLATE.substitute(
                 dict(return_name=self.return_name)
             )
         else:
+            output_expr = SQLTYPES[type(output)]
             return_stmt = f"return {self.return_name}\n"
 
+        # gen code for ArrayBundle definitions
         table_defs = []
         stop = 0
-        for name, table in inputs.items():
+        for name in tablenames:
+            table = inputs[name]
             start, stop = stop, stop + table.shape[1]
-            table_defs += [f"{name} = ArrayBundle(_columns[{start}:{stop}])"]
+            table_defs += [f"{name} = ArrayBundle(___columns[{start}:{stop}])"]
         table_defs = "\n".join(table_defs)
 
+        # gen code for literal parameters
+        literal_defs = []
+        for name in literals:
+            ltr = inputs[name]
+            if name in tablenames:
+                continue
+            literal_defs += [f"{name} = {ltr.value}"]
+        literal_defs = "\n".join(literal_defs)
+
+        # output udf code
         prfx = " " * 4
         subs = dict(
             func_name=self.name,
             input_params=input_params,
             output_expr=output_expr,
             table_defs=indent(table_defs, prfx),
+            literals=indent(literal_defs, prfx),
             body=indent(self.body, prfx),
             return_stmt=indent(return_stmt, prfx),
         )
@@ -136,13 +168,17 @@ class UDFGenerator:
 
 
 def monet_udf(func):
+    global UDF_REGISTER
+
     verify_annotations(func)
 
-    return UDFGenerator(func)
+    ugen = UDFGenerator(func)
+    UDF_REGISTER[ugen.name] = ugen
+    return ugen
 
 
 def verify_annotations(func):
-    allowed_types = (Table,)
+    allowed_types = (Table, LiteralParameter)
     sig = inspect.signature(func)
     argnames = sig.parameters.keys()
     annotations = func.__annotations__
@@ -150,18 +186,28 @@ def verify_annotations(func):
         raise TypeError("Function is not properly annotated as a Monet UDF")
 
 
+def generate_udf(udf_name, table_schema, table_rows, input_data, parameters):
+    ncols = len(table_schema)
+    dtype = table_schema[0]["type"]
+    if not all(col["type"] == dtype for col in table_schema):
+        raise TypeError("Can't have different types in columns yet")
+    table = Table(dtype, shape=(table_rows, ncols))
+    return UDF_REGISTER[udf_name].to_sql(table)
+
+
 # -------------------------------------------------------- #
 # Examples                                                 #
 # -------------------------------------------------------- #
 @monet_udf
-def f(x: Table, y: Table, z: Table):
+def f(x: Table, y: Table, z: Table, p: LiteralParameter, r: LiteralParameter):
     return x
 
 
 x = Table(dtype=int, shape=(100, 10))
-y = Table(dtype=float, shape=(5, 2))
-z = Table(dtype=float, shape=(2,))
-f(x, y, z=z)
+y = Table(dtype=float, shape=(100, 2))
+z = Table(dtype=float, shape=(100, 5))
+# f(x, y, z=z)
+print(f.to_sql(x, y, z, p=LiteralParameter(5), r=LiteralParameter([0.8, 0.95])))
 
 
 @monet_udf
@@ -193,3 +239,13 @@ def ret_one(data: Table):
 
 
 ret_one(Table(dtype=int, shape=(1,)))
+
+
+tname = "compute_gramian"
+table_schema = [
+    {"name": "asdkjg", "type": int},
+    {"name": "weori", "type": int},
+    {"name": "oihdf", "type": int},
+]
+nrows = 1234
+print(generate_udf(tname, table_schema, nrows, None, None))
