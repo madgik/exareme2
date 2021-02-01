@@ -171,7 +171,8 @@ components:
         - name
         - desc
         - label
-        - parameters
+        - notblank
+        - multiple
       properties:
         name:
           type: string
@@ -244,7 +245,7 @@ components:
           - label
           - desc
           - types
-          - notBlank
+          - notblank
           - multiple
         properties:
           label:
@@ -267,7 +268,7 @@ components:
               enum:
                 - 'numerical'
                 - 'nominal'
-          notBlank:
+          notblank:
             type: boolean
           multiple:
             type: boolean
@@ -316,7 +317,7 @@ components:
           - desc
           - type
           - default
-          - notBlank
+          - notblank
           - multiple
         properties:
           label:
@@ -337,7 +338,7 @@ components:
               - type: number
               - type: boolean
               - type: array
-          notBlank:
+          notblank:
             type: boolean
           multiple:
             type: boolean

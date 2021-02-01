@@ -8,7 +8,7 @@
             "label": "features",
             "desc": "Features used in my algorithm.",
             "types": ["real", "int", "text"],
-            "stattypes": ["numerical", "nomimal"],
+            "stattypes": ["numerical", "nominal"],
             "notblank": true,
             "multiple": true
         },
