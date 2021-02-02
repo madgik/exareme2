@@ -11,6 +11,7 @@ sudo docker run -d -p 5672:5672 --name rabbitmq-1 rabbitmq
 ```
 
 3. Configure RabbitMQ with docker. <br/>
+Wait until RabbitMQ container is up and then start the configuration
 ```
 sudo docker exec -it rabbitmq-1 rabbitmqctl add_user user password &&
 sudo docker exec -it rabbitmq-1 rabbitmqctl add_vhost user_vhost &&
@@ -20,7 +21,7 @@ sudo docker exec -it rabbitmq-1 rabbitmqctl set_permissions -p user_vhost user "
 
 4. Inside the MIP-Engine folder run the celery worker: <br/>
 ```
-export CELERY_BROKER_PORT="5672" && celery -A worker.worker worker --loglevel=info
+celery -A worker.worker worker --loglevel=info
 ```
 
 4. Run the tests <br/>
