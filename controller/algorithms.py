@@ -1,8 +1,7 @@
-import json
 import logging
 import os
-from dataclasses import dataclass, asdict
-from pprint import pprint
+import typing
+from dataclasses import dataclass
 from typing import List, Dict, Optional, Any
 
 from dataclasses_json import dataclass_json
@@ -24,23 +23,14 @@ class InputDataParameter:
     multiple: bool
     enumslen: Optional[int] = None
 
-    def __init__(self, label, desc, types, stattypes, notblank, multiple, enumslen):
-        self.label = label
-        self.desc = desc
-        self.notblank = notblank
-        self.multiple = multiple
-
+    def __post_init__(self):
         allowed_types = ["real", "int", "text", "boolean"]
-        if not all(elem in allowed_types for elem in types):
+        if not all(elem in allowed_types for elem in self.types):
             raise ValueError(f"Input data types can include: {allowed_types}")
-        self.types = types
 
         allowed_stattypes = ["numerical", "nominal"]
-        if not all(elem in allowed_stattypes for elem in stattypes):
+        if not all(elem in allowed_stattypes for elem in self.stattypes):
             raise ValueError(f"Input data stattypes can include: {allowed_stattypes}")
-        self.stattypes = stattypes
-
-        self.enumslen = enumslen
 
 
 @dataclass_json
@@ -51,26 +41,15 @@ class GenericParameter:
     type: str
     notblank: bool
     multiple: bool
-    # TODO Not working with Any directly
-    default: Any
+    default: 'typing.Any'
     enums: Optional[List[Any]] = None
     min: Optional[int] = None
     max: Optional[int] = None
 
-    def __init__(self, label, desc, type, default, notblank, multiple, enums, min, max):
-        self.label = label
-        self.desc = desc
-        self.default = default
-        self.notblank = notblank
-        self.multiple = multiple
-        self.enums = enums
-        self.min = min
-        self.max = max
-
+    def __post_init__(self):
         allowed_types = ["real", "int", "text", "boolean"]
-        if type not in allowed_types:
+        if self.type not in allowed_types:
             raise ValueError(f"Generic parameter type can be one of the following: {allowed_types}")
-        self.type = type
 
 
 @dataclass_json

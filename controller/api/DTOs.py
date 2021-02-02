@@ -1,9 +1,12 @@
 from dataclasses import dataclass
 from typing import List, Optional, Dict
 
+from dataclasses_json import dataclass_json
+
 from controller.algorithms import GenericParameter, Algorithm, CROSSVALIDATION_ALGORITHM_NAME
 
 
+@dataclass_json
 @dataclass
 class InputDataParameterDTO:
     """
@@ -56,6 +59,7 @@ def get_filter_parameter():
     )
 
 
+@dataclass_json
 @dataclass
 class CrossValidationAlgorithmDTO:
     """
@@ -67,6 +71,7 @@ class CrossValidationAlgorithmDTO:
     parameters: Optional[Dict[str, GenericParameter]] = None
 
 
+@dataclass_json
 @dataclass
 class AlgorithmDTO:
     """
