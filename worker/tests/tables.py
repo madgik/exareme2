@@ -3,12 +3,19 @@ from pprint import pprint
 from celery import Celery
 
 # TODO Convert to an actual test framework
+from worker.config.config_parser import Config
 from worker.tasks.data_classes import TableInfo
 
-node1 = Celery('tasks.tables',
-               broker='amqp://user:password@localhost:5672/user_vhost',
+config = Config().config
+ip = config["rabbitmq"]["ip"]
+port = config["rabbitmq"]["port"]
+user = config["rabbitmq"]["user"]
+password = config["rabbitmq"]["password"]
+vhost = config["rabbitmq"]["vhost"]
+node1 = Celery('worker',
+               broker=f'amqp://{user}:{password}@{ip}:{port}/{vhost}',
                backend='rpc://',
-               include=['worker.tasks.tables', 'worker.tasks.data_classes'])
+               include=['worker.tasks.tables'])
 
 create_table = node1.signature('worker.tasks.tables.create_table')
 delete_table = node1.signature('worker.tasks.tables.delete_table')

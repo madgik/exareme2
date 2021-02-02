@@ -1,5 +1,3 @@
-# TODO Create a static class that loads all config variables only once (Singleton)
-
 import configparser
 
 from controller.utils import Singleton
