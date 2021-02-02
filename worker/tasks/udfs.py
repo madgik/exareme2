@@ -2,8 +2,7 @@ from typing import List
 
 from celery import shared_task
 
-from tasks.data_classes import UDFInfo, Parameter
-from tasks.tables import TableInfo
+from worker.tasks.data_classes import UDFInfo, TableInfo, Parameter
 
 
 @shared_task

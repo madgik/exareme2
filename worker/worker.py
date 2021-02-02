@@ -4,6 +4,6 @@ from celery import Celery
 
 port = os.environ['CELERY_BROKER_PORT']
 app = Celery('worker',
-             broker=f'amqp://kostas:1234@localhost:{port}/kostas_vhost',
+             broker=f'amqp://user:password@localhost:{port}/user_vhost',
              backend='rpc://',
-             include=['tasks.tables'])
+             include=['worker.tasks.tables'])

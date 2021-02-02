@@ -2,7 +2,7 @@ from typing import List
 
 from celery import shared_task
 
-from tasks.tables import TableView, TableData, TableInfo
+from worker.tasks.data_classes import TableInfo, TableView, TableData
 
 
 @shared_task

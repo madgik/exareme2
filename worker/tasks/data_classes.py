@@ -12,15 +12,11 @@ class ColumnInfo:
 
     def __init__(self, name, type):
         self.name = name
-        print(type)
-        try:
-            self.type = {
-                "int": "int",
-                "varchar": "text",
-                "double": "float"
-            }[type]
-        except Exception:
-            raise ValueError("Column can have one of the following types: INT,FLOAT,TEXT")
+        allowed_types = {"int", "text", "float", "bool"}
+        if str.lower(type) in allowed_types:
+            self.type = str.lower(type)
+        else:
+            raise ValueError(f"Column can have one of the following types: {allowed_types}")
 
 
 @dataclass_json

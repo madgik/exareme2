@@ -3,14 +3,17 @@ from typing import List, Union
 import pymonetdb
 from pymonetdb.sql.cursors import Cursor
 
-from tasks.data_classes import TableInfo, ColumnInfo
-
+from worker.config.config_parser import Config
 # TODO What's the max text value we need?
+from worker.tasks.data_classes import ColumnInfo, TableInfo
+
 MONETDB_VARCHAR_SIZE = 50
 
 # TODO Add monetdb asyncio connection (aiopymonetdb)
 # TODO Read these from config
-connection = pymonetdb.connect(username="monetdb", password="monetdb", hostname="localhost", database="db")
+config = Config().config
+connection = pymonetdb.connect(username=config["monet_db"]["username"], password=config["monet_db"]["password"],
+                               hostname=config["monet_db"]["hostname"], database=config["monet_db"]["database"])
 cursor: Cursor = connection.cursor()
 
 
@@ -19,6 +22,7 @@ cursor: Cursor = connection.cursor()
 
 def get_table_type_enumeration_value(table_type: str) -> int:
     # TODO add view value
+    # TODO lower case first
     return {
         "normal": 0,
         "merge": 3,
@@ -26,23 +30,36 @@ def get_table_type_enumeration_value(table_type: str) -> int:
     }[table_type]
 
 
-def get_monetdb_column_type(column_type: str) -> str:
+def convert_to_monetdb_column_type(column_type: str) -> str:
+    # TODO Convert all to lower case
     """ Converts MIP Engine's INT,FLOAT,TEXT types to monetdb
     INT -> INTEGER
     FLOAT -> DOUBLE
     TEXT -> VARCHAR(???)
-    BOOLEAN -> BOOLEAN
-    Args:
-        column_type (str): INT or FLOAT or TEXT
-    Returns:
-        str:
+    BOOL -> BOOLEAN
     """
-    type_mapping = {
-        "INT": "INTEGER",
-        "FLOAT": "DOUBLE",
-        "TEXT": f"VARCHAR({MONETDB_VARCHAR_SIZE})",
-        "BOOLEAN": "BOOLEAN",
-    }
+    return {
+        "int": "INTEGER",
+        "float": "DOUBLE",
+        "text": f"VARCHAR({MONETDB_VARCHAR_SIZE})",
+        "bool": "BOOLEAN",
+    }[str.lower(column_type)]
+
+
+def convert_from_monetdb_column_type(column_type: str) -> str:
+    # TODO lower case
+    """ Converts MonetDB's INTEGER,DOUBLE,VARCHAR,BOOLEAN types to MIP Engine's types
+    INT ->  INT
+    DOUBLE  -> FLOAT
+    VARCHAR(???)  -> TEXT
+    BOOLEAN -> BOOL
+    """
+    return {
+        "int": "INT",
+        "double": "FLOAT",
+        "varchar": "TEXT",
+        "bool": "BOOL",
+    }[str.lower(column_type)]
 
     if column_type not in type_mapping.keys():
         raise TypeError(f"Type {column_type} cannot be converted to monetdb column type.")
@@ -73,19 +90,18 @@ def __get_tables_info(table_type: str = None, table_names: List[str] = None) -> 
         "RIGHT JOIN columns ON tables.id = columns.table_id "
         "WHERE " + type_clause + name_clause +
         "tables.system=false")
-    tables_query_result = cursor.fetchall()
 
-    if table_names is not None and len(table_names) != len(tables_query_result):
+    table_infos = convert_tables_query_cursor_to_tables_info(cursor)
+    if table_names is not None and len(table_names) != len(table_infos):
         raise KeyError(f"Could not find all table names: {table_names} .")
+    return table_infos
 
-    return convert_tables_query_result_to_tables_info(tables_query_result)
 
-
-def convert_tables_query_result_to_tables_info(tables_query_result: List) -> List[TableInfo]:
+def convert_tables_query_cursor_to_tables_info(tables_query_cursor: Cursor) -> List[TableInfo]:
     tables = {}
-    for table in tables_query_result:
-        table_name = table[0]
-        table_column = ColumnInfo(table[2], table[1])
+    for (table_name, column_type, column_name) in tables_query_cursor:
+
+        table_column = ColumnInfo(column_name, convert_from_monetdb_column_type(column_type))
         if table_name not in tables:
             tables[table_name] = [table_column]
         else:
@@ -97,7 +113,7 @@ def convert_tables_query_result_to_tables_info(tables_query_result: List) -> Lis
 def create_table(table_info: TableInfo):
     columns_schema = "("
     for column_info in table_info.schema:
-        columns_schema += f"{column_info.name} {get_monetdb_column_type(column_info.type)}, "
+        columns_schema += f"{column_info['name']} {convert_to_monetdb_column_type(column_info['type'])}, "
     columns_schema = columns_schema[:-2]
 
     cursor.execute(f"CREATE TABLE {table_info.name} {columns_schema} )")
@@ -122,10 +138,14 @@ def delete_remote_table(table_name: str):
 
 
 def __delete_table(table_name: str, table_type: str):
-    cursor.execute(f"SELECT type FROM tables where name = {table_name}")
+    print(f"Delete call{table_name}")
+
+    cursor.execute(f"SELECT type FROM tables where name = '{table_name}'")
     table_type_in_database = cursor.fetchall()[0][0]
     if table_type_in_database != get_table_type_enumeration_value(table_type):
         raise TypeError(f"Table {table_name} is not of type {table_type}")
 
+    print(f"DROP TABLE {table_name}")
+    print(f"TYPE {table_type_in_database}")
     cursor.execute(f"DROP TABLE {table_name}")
     connection.commit()

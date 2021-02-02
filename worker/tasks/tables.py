@@ -3,8 +3,8 @@ from typing import List
 import pymonetdb
 from celery import shared_task
 
-from tasks import monetdb_interface
-from tasks.data_classes import TableInfo, TableData, ColumnInfo
+from worker.tasks import monetdb_interface
+from worker.tasks.data_classes import TableInfo, TableData, ColumnInfo
 
 
 @shared_task
@@ -18,9 +18,7 @@ def create_table(columns_info: List[ColumnInfo], execution_id: str) -> TableInfo
     # TODO , a table name cannot start with number, what do we put in front?
     table_name = 'table_' + str(pymonetdb.uuid.uuid1()).replace("-", "") + "_" + execution_id
     table_info = TableInfo(table_name, columns_info)
-
     monetdb_interface.create_table(table_info)
-
     return table_info.to_json()
 
 
