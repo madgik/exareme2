@@ -4,6 +4,7 @@ from textwrap import indent
 from textwrap import dedent
 from string import Template
 
+import numpy as np
 import astor
 
 from worker.udfgen import Table
@@ -25,8 +26,6 @@ LANGUAGE PYTHON
 {
     import numpy as np
     from arraybundle import ArrayBundle
-    ___columns = _columns
-    del _columns
 $table_defs
 $loopbacks
 $literals
@@ -39,10 +38,10 @@ $return_stmt
     )
     _returntemplate = Template(
         """
-___colrange = range(${return_name}.shape[1])
-___names = (f"${return_name}_{i}" for i in ___colrange)
-___result = {n: c for n, c in zip(___names, ${return_name})}
-return ___result"""
+_colrange = range(${return_name}.shape[1])
+_names = (f"${return_name}_{i}" for i in _colrange)
+_result = {n: c for n, c in zip(_names, ${return_name})}
+return _result"""
     )
 
     def __init__(self, func):
@@ -127,7 +126,7 @@ return ___result"""
         for name in self.tableparams:
             table = inputs[name]
             start, stop = stop, stop + table.shape[1]
-            table_defs += [f"{name} = ArrayBundle(___columns[{start}:{stop}])"]
+            table_defs += [f"{name} = ArrayBundle(_columns[{start}:{stop}])"]
         table_defs = "\n".join(table_defs)
 
         # gen code for loopback params
@@ -178,84 +177,78 @@ def verify_annotations(func):
         raise TypeError("Function is not properly annotated as a Monet UDF")
 
 
-def generate_udf(udf_name, table_schema, table_rows, literalparams):
+def generate_udf(udf_name, table_schema, table_rows, loopback_tables, literalparams):
     gen = UDF_REGISTER[udf_name]
 
+    table = create_table(table_schema, table_rows)
+
+    loopback_tables = [
+        create_table(lp["table_schema"], lp["table_rows"], name)
+        for name, lp in loopback_tables.items()
+    ]
+
+    literals = [LiteralParameter(literalparams[name]) for name in gen.literalparams]
+    return UDF_REGISTER[udf_name].to_sql(table, *loopback_tables, *literals)
+
+
+def create_table(table_schema, table_rows, name=None):
     ncols = len(table_schema)
     dtype = table_schema[0]["type"]
     if not all(col["type"] == dtype for col in table_schema):
         raise TypeError("Can't have different types in columns yet")
-    table = Table(dtype, shape=(table_rows, ncols))
-
-    literals = [LiteralParameter(literalparams[name]) for name in gen.literalparams]
-    return UDF_REGISTER[udf_name].to_sql(table, *literals)
+    if name:
+        table = LoopbackTable(name, dtype, shape=(table_rows, ncols))
+    else:
+        table = Table(dtype, shape=(table_rows, ncols))
+    return table
 
 
 # -------------------------------------------------------- #
 # Examples                                                 #
 # -------------------------------------------------------- #
 @monet_udf
-def f(x: Table, y: Table, z: Table, p: LiteralParameter, r: LiteralParameter):
-    result = len(x)
-    return result
-
-
-x = Table(dtype=int, shape=(100, 10))
-y = Table(dtype=float, shape=(100, 2))
-z = Table(dtype=float, shape=(100, 5))
-# f(x, y, z=z)
-print(f.to_sql(x, y, z, p=LiteralParameter(5), r=LiteralParameter([0.8, 0.95])))
-
-
-@monet_udf
-def compute_gramian(data: Table, coeffs: LoopbackTable, pp: LiteralParameter):
-    gramian = coeffs.T @ data.T @ data
+def compute(data: Table, coeffs: LoopbackTable, pp: LiteralParameter):
+    gramian = coeffs.T @ data.T @ data * pp
     return gramian
 
 
+print("Test with Table:")
 print(
-    compute_gramian(
+    compute(
         Table(dtype=int, shape=(100, 10)),
         LoopbackTable("coeffs", dtype=float, shape=(10,)),
         LiteralParameter(5),
     )
 )
+print()
+print("Test with np.array:")
 print(
-    compute_gramian.to_sql(
+    compute(
+        np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+        np.array([10, 20, 30]),
+        5,
+    )
+)
+print()
+print("Test sql generation:")
+print(
+    compute.to_sql(
         Table(dtype=int, shape=(100, 10)),
         LoopbackTable("coeffs", dtype=float, shape=(10,)),
         LiteralParameter(5),
     )
 )
+print()
 
 
-@monet_udf
-def half_table(table: Table):
-    ncols = table.shape[1]
-    if ncols >= 2:
-        result = table[:, 0 : (ncols // 2)]
-    else:
-        result = table
-    return result
-
-
-half_table(Table(dtype=float, shape=(50, 12)))
-
-
-@monet_udf
-def ret_one(data: Table):
-    result = 1
-    return result
-
-
-ret_one(Table(dtype=int, shape=(1,)))
-
-
-tname = "compute_gramian"
+tname = "compute"
 table_schema = [
     {"name": "asdkjg", "type": int},
     {"name": "weori", "type": int},
     {"name": "oihdf", "type": int},
 ]
-nrows = 1234
-# print(generate_udf(tname, table_schema, nrows, {"pp": 5}))
+table_rows = 1234
+loopback_tables = {
+    "coeffs": {"table_schema": [{"name": "sdfh", "type": float}], "table_rows": 3}
+}
+print(generate_udf(tname, table_schema, table_rows, loopback_tables, {"pp": 5}))

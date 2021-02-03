@@ -27,6 +27,10 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
         return f"{clsname}(dtype={self.dtype.__name__}, shape={self.shape})"
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        inputs = [
+            inpt.value if isinstance(inpt, LiteralParameter) else inpt
+            for inpt in inputs
+        ]
         if not all(isinstance(inpt, (Table, Number)) for inpt in inputs):
             raise TypeError("Can only apply ufunc between Table and Number")
         if ufunc.__name__ == "matmul":
