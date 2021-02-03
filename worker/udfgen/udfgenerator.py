@@ -4,15 +4,20 @@ from textwrap import indent
 from textwrap import dedent
 from string import Template
 
-import numpy as np
 import astor
 
 from worker.udfgen import Table
 from worker.udfgen import LiteralParameter
+from worker.udfgen import LoopbackTable
+from worker.udfgen.udfparams import SQLTYPES
 
 
-UDFTEMPLATE = Template(
-    """CREATE OR REPLACE FUNCTION
+UDF_REGISTER = {}
+
+
+class UDFGenerator:
+    _udftemplate = Template(
+        """CREATE OR REPLACE FUNCTION
 $func_name($input_params)
 RETURNS
 $output_expr
@@ -23,6 +28,7 @@ LANGUAGE PYTHON
     ___columns = _columns
     del _columns
 $table_defs
+$loopbacks
 $literals
 
     # method body
@@ -30,31 +36,15 @@ $body
 $return_stmt
 };
 """
-)
-
-RETURNTABLE_TEMPLATE = Template(
-    """
+    )
+    _returntemplate = Template(
+        """
 ___colrange = range(${return_name}.shape[1])
 ___names = (f"${return_name}_{i}" for i in ___colrange)
 ___result = {n: c for n, c in zip(___names, ${return_name})}
 return ___result"""
-)
+    )
 
-SQLTYPES = {
-    int: "BIGINT",
-    float: "DOUBLE",
-    str: "TEXT",
-    np.int32: "INT",
-    np.int64: "BIGINT",
-    np.float32: "FLOAT",
-    np.float64: "DOUBLE",
-}
-
-
-UDF_REGISTER = {}
-
-
-class UDFGenerator:
     def __init__(self, func):
         self.func = func
         self.name = func.__name__
@@ -66,12 +56,17 @@ class UDFGenerator:
         self.tableparams = [
             name
             for name, param in self.signature.parameters.items()
-            if issubclass(param.annotation, Table)
+            if param.annotation == Table
         ]
         self.literalparams = [
             name
             for name, param in self.signature.parameters.items()
-            if issubclass(param.annotation, LiteralParameter)
+            if param.annotation == LiteralParameter
+        ]
+        self.loopbackparams = [
+            name
+            for name, param in self.signature.parameters.items()
+            if param.annotation == LoopbackTable
         ]
 
     def __call__(self, *args, **kwargs):
@@ -95,7 +90,7 @@ class UDFGenerator:
 
     def to_sql(self, *args, **kwargs):
         # verify types
-        allowed = (Table, LiteralParameter)
+        allowed = (Table, LiteralParameter, LoopbackTable)
         args_are_allowed = [type(ar) in allowed for ar in args + tuple(kwargs.values())]
         if not all(args_are_allowed):
             msg = f"Can't convert to SQL: all arguments must have types in {allowed}"
@@ -117,9 +112,9 @@ class UDFGenerator:
         input_params = ", ".join(input_params)
 
         # get return statement
-        if isinstance(output, Table):
+        if type(output) == Table:
             output_expr = output.as_sql_return_declaration(self.return_name)
-            return_stmt = RETURNTABLE_TEMPLATE.substitute(
+            return_stmt = self._returntemplate.substitute(
                 dict(return_name=self.return_name)
             )
         else:
@@ -135,6 +130,13 @@ class UDFGenerator:
             table_defs += [f"{name} = ArrayBundle(___columns[{start}:{stop}])"]
         table_defs = "\n".join(table_defs)
 
+        # gen code for loopback params
+        loopback_calls = []
+        for name in self.loopbackparams:
+            lpb = inputs[name]
+            loopback_calls += [f'{name} = _conn.execute("SELECT * FROM {lpb.name}")']
+        loopback_calls = "\n".join(loopback_calls)
+
         # gen code for literal parameters
         literal_defs = []
         for name in self.literalparams:
@@ -149,11 +151,12 @@ class UDFGenerator:
             input_params=input_params,
             output_expr=output_expr,
             table_defs=indent(table_defs, prfx),
+            loopbacks=indent(loopback_calls, prfx),
             literals=indent(literal_defs, prfx),
             body=indent(self.body, prfx),
             return_stmt=indent(return_stmt, prfx),
         )
-        return UDFTEMPLATE.substitute(subs)
+        return self._udftemplate.substitute(subs)
 
 
 def monet_udf(func):
@@ -167,7 +170,7 @@ def monet_udf(func):
 
 
 def verify_annotations(func):
-    allowed_types = (Table, LiteralParameter)
+    allowed_types = (Table, LiteralParameter, LoopbackTable)
     sig = inspect.signature(func)
     argnames = sig.parameters.keys()
     annotations = func.__annotations__
@@ -205,12 +208,25 @@ print(f.to_sql(x, y, z, p=LiteralParameter(5), r=LiteralParameter([0.8, 0.95])))
 
 
 @monet_udf
-def compute_gramian(data: Table, pp: LiteralParameter):
-    gramian = data.T @ data
+def compute_gramian(data: Table, coeffs: LoopbackTable, pp: LiteralParameter):
+    gramian = coeffs.T @ data.T @ data
     return gramian
 
 
-compute_gramian(Table(dtype=int, shape=(100, 10)), LiteralParameter(5))
+print(
+    compute_gramian(
+        Table(dtype=int, shape=(100, 10)),
+        LoopbackTable("coeffs", dtype=float, shape=(10,)),
+        LiteralParameter(5),
+    )
+)
+print(
+    compute_gramian.to_sql(
+        Table(dtype=int, shape=(100, 10)),
+        LoopbackTable("coeffs", dtype=float, shape=(10,)),
+        LiteralParameter(5),
+    )
+)
 
 
 @monet_udf
@@ -242,4 +258,4 @@ table_schema = [
     {"name": "oihdf", "type": int},
 ]
 nrows = 1234
-print(generate_udf(tname, table_schema, nrows, {"pp": 5}))
+# print(generate_udf(tname, table_schema, nrows, {"pp": 5}))

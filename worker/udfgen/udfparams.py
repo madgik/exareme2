@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from numbers import Number
 
 import numpy as np
 
-from .ufunctypes import type_conversion_table
+from worker.udfgen.ufunctypes import type_conversion_table
 
 SQLTYPES = {
     int: "BIGINT",
@@ -25,12 +27,12 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
         return f"{clsname}(dtype={self.dtype.__name__}, shape={self.shape})"
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        if not all(isinstance(inpt, (type(self), Number)) for inpt in inputs):
-            raise TypeError("Can only apply ufunc between MockTable and Number")
+        if not all(isinstance(inpt, (Table, Number)) for inpt in inputs):
+            raise TypeError("Can only apply ufunc between Table and Number")
         if ufunc.__name__ == "matmul":
-            if inputs[0].shape[1] != inputs[1].shape[0]:
+            if inputs[0].shape[-1] != inputs[1].shape[0]:
                 raise ValueError("Matrix dimensions missmatch")
-            newshape = inputs[0].shape[0], inputs[1].shape[1]
+            newshape = inputs[0].shape[:1] + inputs[1].shape[1:]
             intypes = tuple([_typeof(inpt) for inpt in inputs])
             newtype = type_conversion_table[ufunc.__name__][intypes]
             return Table(dtype=newtype, shape=newshape)
@@ -60,10 +62,14 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
         return Table(dtype=self.dtype, shape=newshape)
 
     def __len__(self):
+        if len(self.shape) == 1:
+            return self.shape[0]
         return self.shape[1]
 
     @property
     def transpose(self):
+        if len(self.shape) == 1:
+            return self
         return Table(dtype=self.dtype, shape=(self.shape[1], self.shape[0]))
 
     T = transpose
@@ -108,9 +114,12 @@ class LiteralParameter:
         self.value = value
 
 
-# -------------------------------------------------------- #
-# Examples                                                 #
-# -------------------------------------------------------- #
-t = Table(dtype=int, shape=(100, 10))
-x = t[0:3]
-y = t[1, 2] + t[2, 4]
+class LoopbackTable(Table):
+    def __init__(self, name, dtype, shape):
+        self.name = name
+        super().__init__(dtype, shape)
+
+    def __repr__(self):
+        clsname = type(self).__name__
+        dtypename = self.dtype.__name__
+        return f'{clsname}(name="{self.name}", dtype={dtypename}, shape={self.shape})'
