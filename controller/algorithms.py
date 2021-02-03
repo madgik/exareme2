@@ -8,6 +8,7 @@ from dataclasses_json import dataclass_json
 
 from controller.utils import Singleton
 
+# TODO How can we read all algorithm.json files without relative paths?
 RELATIVE_ALGORITHMS_PATH = "../../algorithms"
 CROSSVALIDATION_ALGORITHM_NAME = "crossvalidation"
 
