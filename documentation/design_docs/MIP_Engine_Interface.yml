@@ -131,7 +131,6 @@ components:
                         }
                     },
                     "crossvalidation": {
-                        "name": "crossvalidation",
                         "desc": "Module for performing cross validation on supervised learning models.",
                         "label": "Cross Validation",
                         "parameters": {

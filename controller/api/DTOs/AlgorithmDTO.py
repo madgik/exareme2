@@ -12,7 +12,7 @@ class InputDataParameterDTO:
     """
     InputDataParameterDTO is different from the InputDataParameter
     on the stattypes field.
-    It is optional on the DTO, due to the dataset and pathology parameters.
+    It is optional on the DTOs, due to the dataset and pathology parameters.
     """
     label: str
     desc: str
@@ -68,7 +68,7 @@ class CrossValidationAlgorithmDTO:
     """
     desc: str
     label: str
-    parameters: Optional[Dict[str, GenericParameter]] = None
+    parameters: Dict[str, GenericParameter]
 
 
 @dataclass_json
