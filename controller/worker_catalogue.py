@@ -11,7 +11,7 @@ from controller.utils import Singleton
 
 @dataclass_json
 @dataclass
-class Worker():
+class Worker:
     ip: str
     port: int
     data: Dict[str, List[str]]
