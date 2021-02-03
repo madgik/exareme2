@@ -2,9 +2,17 @@ from numbers import Number
 
 import numpy as np
 
-from ufunctypes import type_conversion_table
+from .ufunctypes import type_conversion_table
 
-__all__ = ["Table"]
+SQLTYPES = {
+    int: "BIGINT",
+    float: "DOUBLE",
+    str: "TEXT",
+    np.int32: "INT",
+    np.int64: "BIGINT",
+    np.float32: "FLOAT",
+    np.float64: "DOUBLE",
+}
 
 
 class Table(np.lib.mixins.NDArrayOperatorsMixin):
@@ -51,11 +59,25 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
             newshape = (1,)
         return Table(dtype=self.dtype, shape=newshape)
 
+    def __len__(self):
+        return self.shape[1]
+
     @property
     def transpose(self):
         return Table(dtype=self.dtype, shape=(self.shape[1], self.shape[0]))
 
     T = transpose
+
+    def as_sql_parameters(self, name):
+        return ", ".join(
+            [f"{name}{_} {SQLTYPES[self.dtype]}" for _ in range(self.shape[1])]
+        )
+
+    def as_sql_return_declaration(self, name):
+        if self.shape == (1,):
+            return SQLTYPES[self.dtype]
+        else:
+            return f"Table({self.as_sql_parameters(name)})"
 
 
 def _broadcast_shapes(*shapes):
@@ -79,6 +101,11 @@ def _typeof(obj):
         return obj.dtype.type
     except AttributeError:
         return obj.dtype
+
+
+class LiteralParameter:
+    def __init__(self, value):
+        self.value = value
 
 
 # -------------------------------------------------------- #
