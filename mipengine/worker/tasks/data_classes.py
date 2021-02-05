@@ -59,3 +59,11 @@ class Parameter:
 class UDFInfo:
     name: str
     header: str
+
+
+@dataclass_json
+@dataclass
+class WorkerAlias:
+    host: str
+    port: str
+    dbname: str

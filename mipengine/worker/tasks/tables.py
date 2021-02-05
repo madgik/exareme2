@@ -3,8 +3,8 @@ from typing import List
 import pymonetdb
 from celery import shared_task
 
-from worker.tasks import monetdb_interface
-from worker.tasks.data_classes import TableInfo, TableData, ColumnInfo
+from mipengine.worker import monetdb_interface
+from mipengine.worker.tasks.data_classes import TableInfo, TableData, ColumnInfo
 
 
 @shared_task

@@ -3,17 +3,19 @@ from typing import List, Union
 import pymonetdb
 from pymonetdb.sql.cursors import Cursor
 
-from worker.config.config_parser import Config
 # TODO What's the max text value we need?
-from worker.tasks.data_classes import ColumnInfo, TableInfo
+from mipengine.config.config_parser import Config
+from mipengine.worker.tasks.data_classes import TableInfo, ColumnInfo
 
 MONETDB_VARCHAR_SIZE = 50
 
 # TODO Add monetdb asyncio connection (aiopymonetdb)
-# TODO Read these from config
 config = Config().config
-connection = pymonetdb.connect(username=config["monet_db"]["username"], password=config["monet_db"]["password"],
-                               hostname=config["monet_db"]["hostname"], database=config["monet_db"]["database"])
+connection = pymonetdb.connect(username=config["monet_db"]["username"],
+                               port=config["monet_db"]["port"],
+                               password=config["monet_db"]["password"],
+                               hostname=config["monet_db"]["hostname"],
+                               database=config["monet_db"]["database"])
 cursor: Cursor = connection.cursor()
 
 
@@ -25,6 +27,7 @@ def get_table_type_enumeration_value(table_type: str) -> int:
     # TODO lower case first
     return {
         "normal": 0,
+        "view": 1,
         "merge": 3,
         "remote": 5,
     }[table_type]
@@ -67,15 +70,7 @@ def convert_from_monetdb_column_type(column_type: str) -> str:
     return type_mapping.get(column_type)
 
 
-def get_table_schema(table_name: str = None) -> List[ColumnInfo]:
-    return get_tables_info([table_name])[0].schema
-
-
-def get_tables_info(table_names: List[str] = None) -> List[TableInfo]:
-    return __get_tables_info("normal", table_names)
-
-
-def __get_tables_info(table_type: str = None, table_names: List[str] = None) -> List[TableInfo]:
+def get_tables_info(table_type: str = None, table_names: List[str] = None) -> List[TableInfo]:
     type_clause = ''
     if table_type is not None:
         type_clause = "tables.type = " + str(get_table_type_enumeration_value(table_type)) + " AND "
@@ -92,6 +87,7 @@ def __get_tables_info(table_type: str = None, table_names: List[str] = None) -> 
         "tables.system=false")
 
     table_infos = convert_tables_query_cursor_to_tables_info(cursor)
+    print(table_infos)
     if table_names is not None and len(table_names) != len(table_infos):
         raise KeyError(f"Could not find all table names: {table_names} .")
     return table_infos
@@ -110,14 +106,26 @@ def convert_tables_query_cursor_to_tables_info(tables_query_cursor: Cursor) -> L
     return [TableInfo(table_name, table_columns) for table_name, table_columns in tables.items()]
 
 
-def create_table(table_info: TableInfo):
-    columns_schema = "("
+def convert_table_info_to_sql_query_format(table_info: TableInfo):
+    columns_schema = ""
     for column_info in table_info.schema:
         columns_schema += f"{column_info['name']} {convert_to_monetdb_column_type(column_info['type'])}, "
     columns_schema = columns_schema[:-2]
+    return columns_schema
 
-    cursor.execute(f"CREATE TABLE {table_info.name} {columns_schema} )")
-    connection.commit()
+
+def add_tables_to_merge_table(merge_table_name: str, partition_tables_names: List[str]):
+    if partition_tables_names is None:
+        return
+
+    try:
+        for table in partition_tables_names:
+            cursor.execute(f"ALTER TABLE {merge_table_name} ADD TABLE {table}")
+        connection.commit()
+    except Exception as exc:
+        cursor.execute(f"DROP TABLE {merge_table_name}")
+        connection.commit()
+        raise exc
 
 
 def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
@@ -125,27 +133,6 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     return cursor.fetchall()
 
 
-def delete_table(table_name: str):
-    __delete_table(table_name, "normal")
-
-
-def delete_merge_table(table_name: str):
-    __delete_table(table_name, "merge")
-
-
-def delete_remote_table(table_name: str):
-    __delete_table(table_name, "remote")
-
-
-def __delete_table(table_name: str, table_type: str):
-    print(f"Delete call{table_name}")
-
-    cursor.execute(f"SELECT type FROM tables where name = '{table_name}'")
-    table_type_in_database = cursor.fetchall()[0][0]
-    if table_type_in_database != get_table_type_enumeration_value(table_type):
-        raise TypeError(f"Table {table_name} is not of type {table_type}")
-
-    print(f"DROP TABLE {table_name}")
-    print(f"TYPE {table_type_in_database}")
+def delete_table(table_name: str, table_type: str):
     cursor.execute(f"DROP TABLE {table_name}")
     connection.commit()

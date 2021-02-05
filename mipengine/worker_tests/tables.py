@@ -1,10 +1,11 @@
+import sys
 from pprint import pprint
 
 from celery import Celery
 
 # TODO Convert to an actual test framework
-from worker.config.config_parser import Config
-from worker.tasks.data_classes import TableInfo
+from mipengine.config.config_parser import Config
+from mipengine.worker.tasks.data_classes import TableInfo
 
 config = Config().config
 ip = config["rabbitmq"]["ip"]
@@ -12,22 +13,27 @@ port = config["rabbitmq"]["port"]
 user = config["rabbitmq"]["user"]
 password = config["rabbitmq"]["password"]
 vhost = config["rabbitmq"]["vhost"]
-node1 = Celery('worker',
+node1 = Celery('mipengine.worker',
                broker=f'amqp://{user}:{password}@{ip}:{port}/{vhost}',
                backend='rpc://',
-               include=['worker.tasks.tables'])
+               include=['mipengine.worker.tasks.tables'])
 
-create_table = node1.signature('worker.tasks.tables.create_table')
-delete_table = node1.signature('worker.tasks.tables.delete_table')
-get_table_data = node1.signature('worker.tasks.tables.get_table_data')
-get_tables_info = node1.signature('worker.tasks.tables.get_tables_info')
+config = Config().config
+config.set("monet_db", "port", sys.argv[1])
+with open("\\home\\kostas\\Desktop\\MIP-Engine\\worker\\config\\example.ini", "w") as f:
+    config.write(f)
 
-print('Running tests...')
+create_table = node1.signature('mipengine.worker.tasks.tables.create_table')
+delete_table = node1.signature('mipengine.worker.tasks.tables.delete_table')
+get_table_data = node1.signature('mipengine.worker.tasks.tables.get_table_data')
+get_tables_info = node1.signature('mipengine.worker.tasks.tables.get_tables_info')
+
+print('Running worker_tests...')
 
 # Creating a fake table and retrieve it's data and schema afterwards.
 table_1 = create_table.delay(
     [{"name": "col1", "type": "INT"}, {"name": "col2", "type": "FLOAT"},
-     {"name": "col3", "type": "TEXT"}], "regression_211232433443").get()
+     {"name": "col3", "type": "TEXT"}], "test").get()
 pprint(f"Created table1. Response: \n{table_1}")
 
 regression_table = TableInfo.from_json(table_1)
