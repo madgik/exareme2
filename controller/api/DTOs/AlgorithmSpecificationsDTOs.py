@@ -6,6 +6,12 @@ from dataclasses_json import dataclass_json
 from controller.algorithms import GenericParameter, Algorithm, CROSSVALIDATION_ALGORITHM_NAME, Algorithms
 from controller.utils import Singleton
 
+INPUTDATA_PATHOLOGY_PARAMETER_NAME = "pathology"
+INPUTDATA_DATASET_PARAMETER_NAME = "dataset"
+INPUTDATA_FILTERS_PARAMETER_NAME = "filter"
+INPUTDATA_X_PARAMETER_NAME = "x"
+INPUTDATA_Y_PARAMETER_NAME = "y"
+
 
 @dataclass_json
 @dataclass
@@ -115,9 +121,9 @@ class AlgorithmDTO:
         }
 
         # Adding the 3 "system" input data parameters
-        self.inputdata["pathology"] = get_pathology_parameter()
-        self.inputdata["dataset"] = get_dataset_parameter()
-        self.inputdata["filter"] = get_filter_parameter()
+        self.inputdata[INPUTDATA_PATHOLOGY_PARAMETER_NAME] = get_pathology_parameter()
+        self.inputdata[INPUTDATA_DATASET_PARAMETER_NAME] = get_dataset_parameter()
+        self.inputdata[INPUTDATA_FILTERS_PARAMETER_NAME] = get_filter_parameter()
 
         # Adding the crossvalidation algorithm as a nested algorithm
         if (CROSSVALIDATION_ALGORITHM_NAME in algorithm.flags.keys()

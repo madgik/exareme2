@@ -28,8 +28,8 @@ async def post_algorithm(algorithm_name: str) -> str:
 
     try:
         response = run_algorithm(algorithm_name, request_body)
-    except BadRequest as e:
-        raise e
+    except BadRequest as exc:
+        raise exc
     except:
         logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
         raise BadRequest("Something went wrong. "
