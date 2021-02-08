@@ -15,7 +15,7 @@ CROSSVALIDATION_ALGORITHM_NAME = "crossvalidation"
 
 @dataclass_json
 @dataclass
-class InputDataParameter:
+class InputData:
     label: str
     desc: str
     types: List[str]
@@ -60,7 +60,7 @@ class Algorithm:
     desc: str
     label: str
     enabled: bool
-    inputdata: Optional[Dict[str, InputDataParameter]] = None
+    inputdata: Optional[Dict[str, InputData]] = None
     parameters: Optional[Dict[str, GenericParameter]] = None
     flags: Optional[Dict[str, bool]] = None
 

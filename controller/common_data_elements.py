@@ -43,7 +43,7 @@ class MetadataGroup:
 
 
 @dataclass
-class CommonDataElement:
+class CommonDataElementMetadata:
     sql_type: str
     categorical: bool
     enumerations: Optional[Set] = None
@@ -57,14 +57,14 @@ class CommonDataElement:
 
 @dataclass
 class CommonDataElements:
-    elements: Dict[str, Dict[str, CommonDataElement]]
+    elements: Dict[str, Dict[str, CommonDataElementMetadata]]
 
     def __init__(self):
 
-        def iterate_metadata_groups(metadata_group: MetadataGroup) -> Dict[str, CommonDataElement]:
-            group_elements: Dict[str, CommonDataElement] = {}
+        def iterate_metadata_groups(metadata_group: MetadataGroup) -> Dict[str, CommonDataElementMetadata]:
+            group_elements: Dict[str, CommonDataElementMetadata] = {}
             for variable in metadata_group.variables:
-                group_elements[variable.code] = CommonDataElement(variable)
+                group_elements[variable.code] = CommonDataElementMetadata(variable)
             for sub_group in metadata_group.groups:
                 group_elements.update(iterate_metadata_groups(sub_group))
             return group_elements

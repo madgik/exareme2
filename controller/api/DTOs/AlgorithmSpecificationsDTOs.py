@@ -3,7 +3,8 @@ from typing import List, Optional, Dict
 
 from dataclasses_json import dataclass_json
 
-from controller.algorithms import GenericParameter, Algorithm, CROSSVALIDATION_ALGORITHM_NAME
+from controller.algorithms import GenericParameter, Algorithm, CROSSVALIDATION_ALGORITHM_NAME, Algorithms
+from controller.utils import Singleton
 
 
 @dataclass_json
@@ -61,10 +62,20 @@ def get_filter_parameter():
 
 @dataclass_json
 @dataclass
-class CrossValidationAlgorithmDTO:
+class GenericParameterDTO(GenericParameter):
     """
-    CrossValidationAlgorithmDTO is different from the Algorithm class
-    because it doesn't have the enabled flag and the name.
+    GenericParameterDTO is identical to the GenericParameter
+    but exists for consistency and future use if needed.
+    """
+    pass
+
+
+@dataclass_json
+@dataclass
+class CrossValidationParametersDTO:
+    """
+    CrossValidationDTO is a nested object, that contains
+    all the information need to run crossvalidation on an algorithm.
     """
     desc: str
     label: str
@@ -75,16 +86,16 @@ class CrossValidationAlgorithmDTO:
 @dataclass
 class AlgorithmDTO:
     """
-    AlgorithmDTO is different from the Algorithm class
-    because it doesn't have the enabled flag and
-    the crossvalidation algorithm is nested, not a flag.
+    AlgorithmDTO is used to provide the UI the requirements
+    of each algorithm.
+    System variables are added and unnecessary fields are removed.
     """
     name: str
     desc: str
     label: str
-    inputdata: Optional[Dict[str, InputDataParameterDTO]] = None
+    inputdata: Dict[str, InputDataParameterDTO]
     parameters: Optional[Dict[str, GenericParameter]] = None
-    crossvalidation: Optional[CrossValidationAlgorithmDTO] = None
+    crossvalidation: Optional[CrossValidationParametersDTO] = None
 
     def __init__(self, algorithm: Algorithm, crossvalidation: Algorithm):
         self.name = algorithm.name
@@ -111,8 +122,20 @@ class AlgorithmDTO:
         # Adding the crossvalidation algorithm as a nested algorithm
         if (CROSSVALIDATION_ALGORITHM_NAME in algorithm.flags.keys()
                 and algorithm.flags[CROSSVALIDATION_ALGORITHM_NAME]):
-            self.crossvalidation = CrossValidationAlgorithmDTO(
+            self.crossvalidation = CrossValidationParametersDTO(
                 crossvalidation.desc,
                 crossvalidation.label,
                 crossvalidation.parameters,
             )
+
+
+class AlgorithmSpecifications(metaclass=Singleton):
+    algorithms_list = List[AlgorithmDTO]
+    algorithms_dict = Dict[str, AlgorithmDTO]
+
+    def __init__(self):
+        self.algorithms_list = [AlgorithmDTO(algorithm, Algorithms().crossvalidation)
+                                for algorithm in Algorithms().available.values()]
+
+        self.algorithms_dict = {algorithm.name: AlgorithmDTO(algorithm, Algorithms().crossvalidation)
+                                for algorithm in Algorithms().available.values()}

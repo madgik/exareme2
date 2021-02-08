@@ -1,9 +1,11 @@
+import logging
+import traceback
+
 from quart import Quart, request
 
-from controller.algorithms import Algorithms
-from controller.api.DTOs.AlgorithmDTO import AlgorithmDTO
-from controller.api.DTOs.AlgorithmExecutionDTOs import AlgorithmRequestDTO
+from controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmDTO, AlgorithmSpecifications
 from controller.api.errors import BadRequest
+from controller.api.services.run_algorithm import run_algorithm
 
 app = Quart(__name__)
 
@@ -13,21 +15,27 @@ app = Quart(__name__)
 
 @app.route("/algorithms")
 async def get_algorithms() -> str:
-    algorithm_DTOs = [AlgorithmDTO(algorithm, Algorithms().crossvalidation)
-                      for algorithm in Algorithms().available.values()]
+    algorithm_specifications = AlgorithmSpecifications().algorithms_list
 
-    return AlgorithmDTO.schema().dumps(algorithm_DTOs, many=True)
+    return AlgorithmDTO.schema().dumps(algorithm_specifications, many=True)
 
 
 @app.route("/algorithms/<algorithm_name>", methods=['POST'])
-async def run_algorithm(algorithm_name: str) -> str:
-    algorithm_request = AlgorithmRequestDTO.from_json(await request.data)
-    print(f"Running algorithm: {algorithm_name} with body: {algorithm_request}")
+async def post_algorithm(algorithm_name: str) -> str:
+    logging.info(f"Algorithm execution with name {algorithm_name}.")
 
-    if str.lower(algorithm_name) not in Algorithms().available.keys():
-        raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
-    response = run_algorithm(algorithm_request)
-    return "Response"
+    request_body = await request.data
+
+    try:
+        response = run_algorithm(algorithm_name, request_body)
+    except BadRequest as e:
+        raise e
+    except:
+        logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
+        raise BadRequest("Something went wrong. "
+                         "Please inform the system administrator or try again later.")
+
+    return "Success!"
 
 
 @app.errorhandler(BadRequest)
