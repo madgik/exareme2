@@ -81,10 +81,9 @@ return _result"""
         return ret_name
 
     def _get_body(self):
-        statemets = [
-            stmt for stmt in self.tree.body[0].body if type(stmt) != ast.Return
-        ]
-        body = dedent("\n".join(astor.to_source(stmt) for stmt in statemets))
+        body_ast = self.tree.body[0].body
+        statemets = [stmt for stmt in body_ast if type(stmt) != ast.Return]
+        body = dedent("".join(astor.to_source(stmt) for stmt in statemets))
         return body
 
     def to_sql(self, *args, **kwargs):
@@ -113,9 +112,7 @@ return _result"""
         # get return statement
         if type(output) == Table:
             output_expr = output.as_sql_return_declaration(self.return_name)
-            return_stmt = self._returntemplate.substitute(
-                dict(return_name=self.return_name)
-            )
+            return_stmt = self._returntemplate.substitute(return_name=self.return_name)
         else:
             output_expr = SQLTYPES[type(output)]
             return_stmt = f"return {self.return_name}\n"
@@ -145,7 +142,7 @@ return _result"""
 
         # output udf code
         prfx = " " * 4
-        subs = dict(
+        return self._udftemplate.substitute(
             func_name=self.name,
             input_params=input_params,
             output_expr=output_expr,
@@ -155,7 +152,6 @@ return _result"""
             body=indent(self.body, prfx),
             return_stmt=indent(return_stmt, prfx),
         )
-        return self._udftemplate.substitute(subs)
 
 
 def monet_udf(func):
@@ -201,54 +197,3 @@ def create_table(table_schema, table_rows, name=None):
     else:
         table = Table(dtype, shape=(table_rows, ncols))
     return table
-
-
-# -------------------------------------------------------- #
-# Examples                                                 #
-# -------------------------------------------------------- #
-@monet_udf
-def compute(data: Table, coeffs: LoopbackTable, pp: LiteralParameter):
-    gramian = coeffs.T @ data.T @ data * pp
-    return gramian
-
-
-print("Test with Table:")
-print(
-    compute(
-        Table(dtype=int, shape=(100, 10)),
-        LoopbackTable("coeffs", dtype=float, shape=(10,)),
-        LiteralParameter(5),
-    )
-)
-print()
-print("Test with np.array:")
-print(
-    compute(
-        np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-        np.array([10, 20, 30]),
-        5,
-    )
-)
-print()
-print("Test sql generation:")
-print(
-    compute.to_sql(
-        Table(dtype=int, shape=(100, 10)),
-        LoopbackTable("coeffs", dtype=float, shape=(10,)),
-        LiteralParameter(5),
-    )
-)
-print()
-
-
-tname = "compute"
-table_schema = [
-    {"name": "asdkjg", "type": int},
-    {"name": "weori", "type": int},
-    {"name": "oihdf", "type": int},
-]
-table_rows = 1234
-loopback_tables = {
-    "coeffs": {"table_schema": [{"name": "sdfh", "type": float}], "table_rows": 3}
-}
-print(generate_udf(tname, table_schema, table_rows, loopback_tables, {"pp": 5}))
