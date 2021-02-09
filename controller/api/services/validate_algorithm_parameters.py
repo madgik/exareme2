@@ -6,7 +6,7 @@ from controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmDTO, \
     InputDataParameterDTO, CrossValidationParametersDTO, INPUTDATA_PATHOLOGY_PARAMETER_NAME, \
     INPUTDATA_DATASET_PARAMETER_NAME, \
     INPUTDATA_FILTERS_PARAMETER_NAME, INPUTDATA_X_PARAMETER_NAME, INPUTDATA_Y_PARAMETER_NAME
-from controller.api.errors import BadRequest, BadUserInput
+from controller.api.errors.exceptions import BadRequest, BadUserInput
 from controller.common_data_elements import CommonDataElements, CommonDataElement
 from controller.worker_catalogue import WorkerCatalogue
 

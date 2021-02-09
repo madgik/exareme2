@@ -4,7 +4,7 @@ import traceback
 from controller.algorithms import Algorithms
 from controller.api.DTOs.AlgorithmExecutionDTOs import AlgorithmRequestDTO
 from controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecifications
-from controller.api.errors import BadRequest
+from controller.api.errors.exceptions import BadRequest
 from controller.api.services.validate_algorithm_parameters import validate_algorithm_parameters
 
 
