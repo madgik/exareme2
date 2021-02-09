@@ -5,8 +5,8 @@ from typing import List, Optional, Set, Dict
 
 from dataclasses_json import dataclass_json
 
-# TODO How can we read all algorithm.json files without relative paths?
-RELATIVE_METADATA_PATH = "config/pathologies_metadata"
+# TODO How can we read the pathologies' metadata  files without relative paths?
+RELATIVE_METADATA_PATH = "../config/pathologies_metadata"
 
 
 @dataclass_json
@@ -43,7 +43,7 @@ class MetadataGroup:
 
 
 @dataclass
-class CommonDataElementMetadata:
+class CommonDataElement:
     sql_type: str
     categorical: bool
     enumerations: Optional[Set] = None
@@ -57,30 +57,31 @@ class CommonDataElementMetadata:
 
 @dataclass
 class CommonDataElements:
-    elements: Dict[str, Dict[str, CommonDataElementMetadata]]
+    pathologies: Dict[str, Dict[str, CommonDataElement]]
 
     def __init__(self):
 
-        def iterate_metadata_groups(metadata_group: MetadataGroup) -> Dict[str, CommonDataElementMetadata]:
-            group_elements: Dict[str, CommonDataElementMetadata] = {}
+        def iterate_metadata_groups(metadata_group: MetadataGroup) -> Dict[str, CommonDataElement]:
+            group_elements: Dict[str, CommonDataElement] = {}
             for variable in metadata_group.variables:
-                group_elements[variable.code] = CommonDataElementMetadata(variable)
+                group_elements[variable.code] = CommonDataElement(variable)
             for sub_group in metadata_group.groups:
                 group_elements.update(iterate_metadata_groups(sub_group))
             return group_elements
 
-        metadata_paths = [os.path.join(RELATIVE_METADATA_PATH, json_file)
-                          for json_file in os.listdir(RELATIVE_METADATA_PATH)
-                          if json_file.endswith('.json')]
+        print(os.getcwd())
+        pathology_metadata_files = [os.path.join(RELATIVE_METADATA_PATH, json_file)
+                                    for json_file in os.listdir(RELATIVE_METADATA_PATH)
+                                    if json_file.endswith('.json')]
 
-        self.elements = {}
-        for metadata_path in metadata_paths:
+        self.pathologies = {}
+        for pathology_metadata_file in pathology_metadata_files:
             try:
-                pathology_metadata = MetadataGroup.from_json(open(metadata_path).read())
-                self.elements[pathology_metadata.code] = iterate_metadata_groups(pathology_metadata)
+                pathology_metadata = MetadataGroup.from_json(open(pathology_metadata_file).read())
+                self.pathologies[pathology_metadata.code] = iterate_metadata_groups(pathology_metadata)
 
             except Exception as e:
-                logging.error(f"Parsing metadata file: {metadata_path}")
+                logging.error(f"Parsing metadata file: {pathology_metadata_file}")
                 raise e
 
 

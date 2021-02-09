@@ -4,7 +4,7 @@ import traceback
 from quart import Quart, request
 
 from controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmDTO, AlgorithmSpecifications
-from controller.api.errors import BadRequest
+from controller.api.errors import BadRequest, BadUserInput
 from controller.api.services.run_algorithm import run_algorithm
 
 app = Quart(__name__)
@@ -28,16 +28,21 @@ async def post_algorithm(algorithm_name: str) -> str:
 
     try:
         response = run_algorithm(algorithm_name, request_body)
-    except BadRequest as exc:
+    except (BadRequest, BadUserInput) as exc:
         raise exc
     except:
         logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
         raise BadRequest("Something went wrong. "
                          "Please inform the system administrator or try again later.")
 
-    return "Success!"
+    return response
 
 
 @app.errorhandler(BadRequest)
 def handle_bad_request(error: BadRequest):
+    return error.message, error.status_code
+
+
+@app.errorhandler(BadUserInput)
+def handle_bad_user_input(error: BadUserInput):
     return error.message, error.status_code

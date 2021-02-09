@@ -26,4 +26,4 @@ def run_algorithm(algorithm_name: str, request_body: str):
     validate_algorithm_parameters(algorithm_specs, algorithm_request)
 
     # TODO Trigger algorithm execution on the controller
-    pass
+    return "Success!"

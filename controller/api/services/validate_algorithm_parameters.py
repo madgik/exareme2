@@ -6,7 +6,8 @@ from controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmDTO, \
     InputDataParameterDTO, CrossValidationParametersDTO, INPUTDATA_PATHOLOGY_PARAMETER_NAME, \
     INPUTDATA_DATASET_PARAMETER_NAME, \
     INPUTDATA_FILTERS_PARAMETER_NAME, INPUTDATA_X_PARAMETER_NAME, INPUTDATA_Y_PARAMETER_NAME
-from controller.api.errors import BadRequest
+from controller.api.errors import BadRequest, BadUserInput
+from controller.common_data_elements import CommonDataElements, CommonDataElement
 from controller.worker_catalogue import WorkerCatalogue
 
 
@@ -37,38 +38,34 @@ def validate_inputdata(inputdata_specs: Dict[str, InputDataParameterDTO],
     Validates that the algorithm's input data follow the specs.
 
     """
-    validate_proper_pathology_and_dataset_values(input_data[INPUTDATA_PATHOLOGY_PARAMETER_NAME],
-                                                 input_data[INPUTDATA_DATASET_PARAMETER_NAME])
+    validate_inputdata_pathology_and_dataset_values(input_data[INPUTDATA_PATHOLOGY_PARAMETER_NAME],
+                                                    input_data[INPUTDATA_DATASET_PARAMETER_NAME])
 
-    validate_proper_filters(input_data[INPUTDATA_FILTERS_PARAMETER_NAME])
+    validate_inputdata_filters(input_data[INPUTDATA_FILTERS_PARAMETER_NAME])
 
-    validate_proper_cde_values(inputdata_specs[INPUTDATA_X_PARAMETER_NAME],
-                               input_data[INPUTDATA_X_PARAMETER_NAME])
-
-    validate_proper_cde_values(inputdata_specs[INPUTDATA_Y_PARAMETER_NAME],
-                               input_data[INPUTDATA_Y_PARAMETER_NAME])
+    validate_inputdata_cdes(inputdata_specs,
+                            input_data)
 
 
-def validate_proper_pathology_and_dataset_values(pathology: str,
-                                                 datasets: List[str]):
+def validate_inputdata_pathology_and_dataset_values(pathology: str,
+                                                    datasets: List[str]):
     """
     Validates that the pathology, dataset values exists and
     that the datasets belong in the pathology.
     """
-    # TODO Maybe change bad request to a user error???
 
     worker_catalogue = WorkerCatalogue()
     if pathology not in worker_catalogue.pathologies.keys():
-        raise BadRequest(f"Pathology '{pathology}' does not exist.")
+        raise BadUserInput(f"Pathology '{pathology}' does not exist.")
 
     if type(datasets) is not list:
         raise BadRequest(f"Datasets parameter should be a list.")
 
     if not all(dataset in worker_catalogue.pathologies[pathology] for dataset in datasets):
-        raise BadRequest(f"Datasets '{datasets}' do not belong in pathology '{pathology}'.")
+        raise BadUserInput(f"Datasets '{datasets}' do not belong in pathology '{pathology}'.")
 
 
-def validate_proper_filters(filters):
+def validate_inputdata_filters(filters):
     """
     Validates that the filters provided have the correct format
     following: https://querybuilder.js.org/
@@ -77,14 +74,102 @@ def validate_proper_filters(filters):
     pass
 
 
-def validate_proper_cde_values(cde_parameter_specs: InputDataParameterDTO,
-                               cde_parameter_value: List[str]):
+def validate_inputdata_cdes(input_data_specs: Dict[str, InputDataParameterDTO],
+                            input_data: Dict[str, Any]):
     """
-    Validates that a cde parameter follows the specs provided
-    in the algorithm properties.
+    Validates that the cdes input data (x,y) follow the specs provided
+    in the algorithm specifications.
     """
-    # TODO Next one!
-    pass
+
+    for cde_parameter_name in [INPUTDATA_X_PARAMETER_NAME, INPUTDATA_Y_PARAMETER_NAME]:
+        # Validate that the cde parameters were provided, if required.
+        cde_parameter_specs = input_data_specs[cde_parameter_name]
+        if cde_parameter_specs.notblank \
+                and cde_parameter_name not in input_data.keys():
+            raise BadUserInput(f"Inputdata '{cde_parameter_name}' should be provided.")
+
+        # Continue if the cde parameter was not provided
+        if cde_parameter_name not in input_data.keys():
+            continue
+
+        cde_parameter_value = input_data[cde_parameter_name]
+        validate_inputdata_cdes_length(cde_parameter_name, cde_parameter_value, cde_parameter_specs)
+
+        pathology = input_data[INPUTDATA_PATHOLOGY_PARAMETER_NAME]
+        for cde in cde_parameter_value:
+            validate_inputdata_cde_value(cde, cde_parameter_name, cde_parameter_specs, pathology)
+
+
+def validate_inputdata_cdes_length(cde_parameter_name: str,
+                                   cde_parameter_value: Any,
+                                   cde_parameter_specs: InputDataParameterDTO):
+    """
+    Validate that the cde inputdata has proper list length
+    """
+    if type(cde_parameter_value) is not list:
+        raise BadRequest(f"Inputdata '{cde_parameter_name}' should be a list.")
+
+    if not cde_parameter_specs.multiple and len(cde_parameter_value) > 1:
+        raise BadUserInput(f"Inputdata '{cde_parameter_name}' cannot have multiple values.")
+
+
+def validate_inputdata_cde_value(cde: str,
+                                 cde_parameter_name: str,
+                                 cde_parameter_specs: InputDataParameterDTO,
+                                 pathology: str):
+    """
+    Validation of a specific cde in a parameter for the following:
+    1) that it exists in the pathology CDEs,
+    2) that it has a type allowed from the specification,
+    3) that it has a statistical type allowed from the specification and
+    4) that it has the proper amount of enumerations.
+    """
+    pathology_cdes: Dict[str, CommonDataElement] = CommonDataElements().pathologies[pathology]
+    if cde not in pathology_cdes.keys():
+        raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_name}', "
+                           f"does not exist in pathology '{pathology}'.")
+
+    cde_metadata: CommonDataElement = pathology_cdes[cde]
+    validate_inputdata_cde_types(cde, cde_metadata, cde_parameter_name, cde_parameter_specs)
+    validate_inputdata_cde_stattypes(cde, cde_metadata, cde_parameter_name, cde_parameter_specs)
+    validate_inputdata_cde_enumerations(cde, cde_metadata, cde_parameter_name, cde_parameter_specs)
+
+
+def validate_inputdata_cde_types(cde: str,
+                                 cde_metadata: CommonDataElement,
+                                 cde_parameter_name: str,
+                                 cde_parameter_specs: InputDataParameterDTO):
+    # Validate that the cde belongs in the allowed types
+    if cde_metadata.sql_type not in cde_parameter_specs.types:
+        # If "real" is allowed, "int" is allowed as well
+        if cde_metadata.sql_type != "int" \
+                or "real" not in cde_parameter_specs.types:
+            raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_name}', "
+                               f"doesn't have one of the allowed types "
+                               f"'{cde_parameter_specs.types}'.")
+
+
+def validate_inputdata_cde_stattypes(cde: str,
+                                     cde_metadata: CommonDataElement,
+                                     cde_parameter_name: str,
+                                     cde_parameter_specs: InputDataParameterDTO):
+    if cde_metadata.categorical and "nominal" not in cde_parameter_specs.stattypes:
+        raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_name}', "
+                           f"should be categorical.")
+
+    if not cde_metadata.categorical and "numerical" not in cde_parameter_specs.stattypes:
+        raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_name}', "
+                           f"should NOT be categorical.")
+
+
+def validate_inputdata_cde_enumerations(cde: str,
+                                        cde_metadata: CommonDataElement,
+                                        cde_parameter_name: str,
+                                        cde_parameter_specs: InputDataParameterDTO):
+    if cde_parameter_specs.enumslen is not None and \
+            cde_parameter_specs.enumslen != len(cde_metadata.enumerations):
+        raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_name}', "
+                           f"should have {cde_parameter_specs.enumslen} enumerations.")
 
 
 def validate_generic_parameters(parameters_specs: Optional[Dict[str, GenericParameter]],
@@ -96,24 +181,112 @@ def validate_generic_parameters(parameters_specs: Optional[Dict[str, GenericPara
     if parameters_specs is None:
         return
 
-    if parameters is None:
-        raise BadRequest("Algorithm parameters not provided.")
-
+    # Validating that the parameters match with the notblank spec.
     for parameter_name, parameter_spec in parameters_specs.items():
+        if not parameter_spec.notblank:
+            continue
+        if not parameters:
+            raise BadRequest(f"Algorithm parameters not provided.")
         if parameter_name not in parameters.keys():
-            if parameter_spec.notblank:
-                raise BadRequest(f"Parameter '{parameter_name}' should not be blank.")
-            else:
-                continue
+            raise BadUserInput(f"Parameter '{parameter_name}' should not be blank.")
 
         parameter_value = parameters[parameter_name]
-        validate_proper_parameter_values(parameter_name,
-                                         parameter_value,
-                                         parameter_spec.type,
-                                         parameter_spec.enums,
-                                         parameter_spec.min,
-                                         parameter_spec.max,
-                                         parameter_spec.multiple)
+        validate_generic_parameter_values(parameter_name,
+                                          parameter_value,
+                                          parameter_spec.type,
+                                          parameter_spec.enums,
+                                          parameter_spec.min,
+                                          parameter_spec.max,
+                                          parameter_spec.multiple)
+
+
+def validate_generic_parameter_values(parameter_name: str,
+                                      parameter_value: Any,
+                                      parameter_type: str,
+                                      parameter_enums: Optional[List[Any]],
+                                      parameter_min_value: Optional[int],
+                                      parameter_max_value: Optional[int],
+                                      multiple_allowed: bool):
+    """
+    Validates that the parameter value follows the specs and :
+    1) has proper type,
+    2) has proper enumerations, if any,
+    3) is inside the min-max limits, if any,
+    4) and follows the multiple values rule.
+    """
+    if multiple_allowed and not isinstance(parameter_value, list):
+        raise BadUserInput(f"Parameter '{parameter_name}' should be a list.")
+
+    # If the parameter value is a list, check each elements
+    if multiple_allowed:
+        for element in parameter_value:
+            validate_generic_parameter_type(parameter_name,
+                                            element,
+                                            parameter_type)
+
+            validate_generic_parameter_enumerations(parameter_name,
+                                                    element,
+                                                    parameter_enums)
+
+            validate_generic_parameter_inside_min_max(parameter_name,
+                                                      element,
+                                                      parameter_min_value,
+                                                      parameter_max_value)
+    else:
+        validate_generic_parameter_type(parameter_name,
+                                        parameter_value,
+                                        parameter_type)
+
+        validate_generic_parameter_enumerations(parameter_name,
+                                                parameter_value,
+                                                parameter_enums)
+
+        validate_generic_parameter_inside_min_max(parameter_name,
+                                                  parameter_value,
+                                                  parameter_min_value,
+                                                  parameter_max_value)
+
+
+def validate_generic_parameter_type(parameter_name: str,
+                                    parameter_value: Any,
+                                    parameter_type: str
+                                    ):
+    mip_types_to_python_types = {
+        "text": [str],
+        "int": [int],
+        "real": [float, int],
+        "jsonObject": [dict]
+    }
+    if type(parameter_value) not in mip_types_to_python_types[parameter_type]:
+        raise BadUserInput(f"Parameter '{parameter_name}' values should be of type '{parameter_type}'.")
+
+
+def validate_generic_parameter_enumerations(parameter_name: str,
+                                            parameter_value: Any,
+                                            parameter_enums: Optional[List[Any]]):
+    if parameter_enums is None:
+        return
+
+    if parameter_value not in parameter_enums:
+        raise BadUserInput(f"Parameter '{parameter_name}' values "
+                           f"should be one of the following: '{str(parameter_enums)}'.")
+
+
+def validate_generic_parameter_inside_min_max(parameter_name: str,
+                                              parameter_value: Any,
+                                              parameter_min_value: Optional[int],
+                                              parameter_max_value: Optional[int]
+                                              ):
+    if parameter_min_value is None and parameter_max_value is None:
+        return
+
+    if parameter_min_value is not None and parameter_value < parameter_min_value:
+        raise BadUserInput(f"Parameter '{parameter_name}' values "
+                           f"should be greater than {parameter_min_value} .")
+
+    if parameter_max_value is not None and parameter_value > parameter_max_value:
+        raise BadUserInput(f"Parameter '{parameter_name}' values "
+                           f"should be lower than {parameter_max_value} .")
 
 
 def validate_crossvalidation_parameters(crossvalidation_specs: Optional[CrossValidationParametersDTO],
@@ -123,102 +296,9 @@ def validate_crossvalidation_parameters(crossvalidation_specs: Optional[CrossVal
     crossvalidation parameters follow the specs.
     """
 
-    if crossvalidation_specs is None:
+    # Cross validation is optional, if not present, do nothing
+    if crossvalidation_specs is None or crossvalidation is None:
         return
-
-    if crossvalidation is None:
-        raise BadRequest("Crossvalidation parameters not provided.")
 
     validate_generic_parameters(crossvalidation_specs.parameters,
                                 crossvalidation)
-
-
-def validate_proper_parameter_values(parameter_name: str,
-                                     parameter_value: Any,
-                                     parameter_type: str,
-                                     parameter_enums: Optional[List[Any]],
-                                     parameter_min_value: Optional[int],
-                                     parameter_max_value: Optional[int],
-                                     multiple_allowed: bool
-                                     ):
-    """
-    Validates that the parameter value follows the specs and :
-    1) has proper type,
-    2) has proper enumerations, if any,
-    3) is inside the min-max limits, if any,
-    4) and follows the multiple values rule.
-    """
-    if multiple_allowed and not isinstance(parameter_value, list):
-        raise BadRequest(f"Parameter '{parameter_name}' should be a list.")
-
-    # If the parameter value is a list, check each elements
-    if multiple_allowed:
-        for element in parameter_value:
-            validate_proper_parameter_type(parameter_name,
-                                           element,
-                                           parameter_type)
-
-            validate_proper_parameter_enumerations(parameter_name,
-                                                   element,
-                                                   parameter_enums)
-
-            validate_parameter_inside_min_max(parameter_name,
-                                              element,
-                                              parameter_min_value,
-                                              parameter_max_value)
-    else:
-        validate_proper_parameter_type(parameter_name,
-                                       parameter_value,
-                                       parameter_type)
-
-        validate_proper_parameter_enumerations(parameter_name,
-                                               parameter_value,
-                                               parameter_enums)
-
-        validate_parameter_inside_min_max(parameter_name,
-                                          parameter_value,
-                                          parameter_min_value,
-                                          parameter_max_value)
-
-
-def validate_proper_parameter_type(parameter_name: str,
-                                   parameter_value: Any,
-                                   parameter_type: str
-                                   ):
-    mip_types_to_python_types = {
-        "text": [str],
-        "int": [int],
-        "real": [float, int],
-        "jsonObject": [dict]
-    }
-    if type(parameter_value) not in mip_types_to_python_types[parameter_type]:
-        raise BadRequest(f"Parameter '{parameter_name}' values should be of type '{parameter_type}'.")
-
-
-def validate_proper_parameter_enumerations(parameter_name: str,
-                                           parameter_value: Any,
-                                           parameter_enums: Optional[List[Any]]
-                                           ):
-    if parameter_enums is None:
-        return
-
-    if parameter_value not in parameter_enums:
-        raise BadRequest(
-            f"Parameter '{parameter_name}' values should be one of the following: '{str(parameter_enums)}' .")
-
-
-def validate_parameter_inside_min_max(parameter_name: str,
-                                      parameter_value: Any,
-                                      parameter_min_value: Optional[int],
-                                      parameter_max_value: Optional[int]
-                                      ):
-    if parameter_min_value is None and parameter_max_value is None:
-        return
-
-    if parameter_min_value is not None and parameter_value < parameter_min_value:
-        raise BadRequest(
-            f"Parameter '{parameter_name}' values should be greater than {parameter_min_value} .")
-
-    if parameter_max_value is not None and parameter_value > parameter_max_value:
-        raise BadRequest(
-            f"Parameter '{parameter_name}' values should be lower than {parameter_max_value} .")
