@@ -3,8 +3,9 @@ from typing import List, Optional, Dict
 
 from dataclasses_json import dataclass_json
 
-from controller.algorithms import GenericParameter, Algorithm, CROSSVALIDATION_ALGORITHM_NAME, Algorithms
-from controller.utils import Singleton
+from mipengine.controller.algorithms_specifications import CROSSVALIDATION_ALGORITHM_NAME, \
+    GenericParameterSpecification, AlgorithmSpecifications, AlgorithmsSpecifications
+from mipengine.controller.utils import Singleton
 
 INPUTDATA_PATHOLOGY_PARAMETER_NAME = "pathology"
 INPUTDATA_DATASET_PARAMETER_NAME = "dataset"
@@ -15,7 +16,7 @@ INPUTDATA_Y_PARAMETER_NAME = "y"
 
 @dataclass_json
 @dataclass
-class InputDataParameterDTO:
+class InputDataSpecificationDTO:
     """
     InputDataParameterDTO is different from the InputDataParameter
     on the stattypes field.
@@ -31,7 +32,7 @@ class InputDataParameterDTO:
 
 
 def get_pathology_parameter():
-    return InputDataParameterDTO(
+    return InputDataSpecificationDTO(
         "Pathology of the data.",
         "The pathology that the algorithm will run on.",
         ["text"],
@@ -43,7 +44,7 @@ def get_pathology_parameter():
 
 
 def get_dataset_parameter():
-    return InputDataParameterDTO(
+    return InputDataSpecificationDTO(
         "Set of data to use.",
         "The set of data to run the algorithm on.",
         ["text"],
@@ -55,7 +56,7 @@ def get_dataset_parameter():
 
 
 def get_filter_parameter():
-    return InputDataParameterDTO(
+    return InputDataSpecificationDTO(
         "Filter on the data.",
         "Features used in my algorithm.",
         ["jsonObject"],
@@ -68,9 +69,9 @@ def get_filter_parameter():
 
 @dataclass_json
 @dataclass
-class GenericParameterDTO(GenericParameter):
+class GenericParameterSpecificationDTO(GenericParameterSpecification):
     """
-    GenericParameterDTO is identical to the GenericParameter
+    GenericParameterDTO is identical to the GenericParameterSpecification
     but exists for consistency and future use if needed.
     """
     pass
@@ -85,12 +86,12 @@ class CrossValidationParametersDTO:
     """
     desc: str
     label: str
-    parameters: Dict[str, GenericParameter]
+    parameters: Dict[str, GenericParameterSpecification]
 
 
 @dataclass_json
 @dataclass
-class AlgorithmDTO:
+class AlgorithmSpecificationDTO:
     """
     AlgorithmDTO is used to provide the UI the requirements
     of each algorithm.
@@ -99,16 +100,16 @@ class AlgorithmDTO:
     name: str
     desc: str
     label: str
-    inputdata: Dict[str, InputDataParameterDTO]
-    parameters: Optional[Dict[str, GenericParameter]] = None
+    inputdata: Dict[str, InputDataSpecificationDTO]
+    parameters: Optional[Dict[str, GenericParameterSpecification]] = None
     crossvalidation: Optional[CrossValidationParametersDTO] = None
 
-    def __init__(self, algorithm: Algorithm, crossvalidation: Algorithm):
+    def __init__(self, algorithm: AlgorithmSpecifications, crossvalidation: AlgorithmSpecifications):
         self.name = algorithm.name
         self.desc = algorithm.desc
         self.label = algorithm.label
         self.parameters = algorithm.parameters
-        self.inputdata = {name: InputDataParameterDTO(
+        self.inputdata = {name: InputDataSpecificationDTO(
             parameter.label,
             parameter.desc,
             parameter.types,
@@ -135,13 +136,15 @@ class AlgorithmDTO:
             )
 
 
-class AlgorithmSpecifications(metaclass=Singleton):
-    algorithms_list = List[AlgorithmDTO]
-    algorithms_dict = Dict[str, AlgorithmDTO]
+class AlgorithmSpecificationsDTOs(metaclass=Singleton):
+    algorithms_list = List[AlgorithmSpecificationDTO]
+    algorithms_dict = Dict[str, AlgorithmSpecificationDTO]
 
     def __init__(self):
-        self.algorithms_list = [AlgorithmDTO(algorithm, Algorithms().crossvalidation)
-                                for algorithm in Algorithms().available.values()]
+        algorithms_specifications = AlgorithmsSpecifications
+        self.algorithms_list = [AlgorithmSpecificationDTO(algorithm, algorithms_specifications.crossvalidation)
+                                for algorithm in algorithms_specifications.enabled_algorithms.values()]
 
-        self.algorithms_dict = {algorithm.name: AlgorithmDTO(algorithm, Algorithms().crossvalidation)
-                                for algorithm in Algorithms().available.values()}
+        self.algorithms_dict = {
+            algorithm.name: AlgorithmSpecificationDTO(algorithm, algorithms_specifications.crossvalidation)
+            for algorithm in algorithms_specifications.enabled_algorithms.values()}

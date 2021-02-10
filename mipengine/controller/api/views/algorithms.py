@@ -3,9 +3,9 @@ import traceback
 
 from quart import request, Blueprint
 
-from controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmDTO, AlgorithmSpecifications
-from controller.api.errors.exceptions import BadRequest, BadUserInput
-from controller.api.services.run_algorithm import run_algorithm
+from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO, AlgorithmSpecifications
+from mipengine.controller.api.errors.exceptions import BadRequest, BadUserInput
+from mipengine.controller.api.services.run_algorithm import run_algorithm
 
 algorithms = Blueprint('algorithms_endpoint', __name__)
 
@@ -14,7 +14,7 @@ algorithms = Blueprint('algorithms_endpoint', __name__)
 async def get_algorithms() -> str:
     algorithm_specifications = AlgorithmSpecifications().algorithms_list
 
-    return AlgorithmDTO.schema().dumps(algorithm_specifications, many=True)
+    return AlgorithmSpecificationDTO.schema().dumps(algorithm_specifications, many=True)
 
 
 @algorithms.route("/algorithms/<algorithm_name>", methods=['POST'])

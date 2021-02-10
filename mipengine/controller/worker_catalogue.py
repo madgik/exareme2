@@ -5,8 +5,8 @@ from typing import Dict, List
 
 from dataclasses_json import dataclass_json
 
-from controller import config
-from controller.utils import Singleton
+from mipengine.controller import config
+from mipengine.controller.utils import Singleton
 
 
 @dataclass_json

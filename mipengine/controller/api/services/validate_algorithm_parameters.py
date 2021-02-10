@@ -1,17 +1,17 @@
 from typing import Optional, Dict, Any, List
 
-from controller.algorithms import GenericParameter
-from controller.api.DTOs.AlgorithmExecutionDTOs import AlgorithmRequestDTO
-from controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmDTO, \
-    InputDataParameterDTO, CrossValidationParametersDTO, INPUTDATA_PATHOLOGY_PARAMETER_NAME, \
+from mipengine.controller.algorithms_specifications import GenericParameterSpecification
+from mipengine.controller.api.DTOs.AlgorithmExecutionDTOs import AlgorithmRequestDTO
+from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO, \
+    InputDataSpecificationDTO, CrossValidationParametersDTO, INPUTDATA_PATHOLOGY_PARAMETER_NAME, \
     INPUTDATA_DATASET_PARAMETER_NAME, \
     INPUTDATA_FILTERS_PARAMETER_NAME, INPUTDATA_X_PARAMETER_NAME, INPUTDATA_Y_PARAMETER_NAME
-from controller.api.errors.exceptions import BadRequest, BadUserInput
-from controller.common_data_elements import CommonDataElements, CommonDataElement
-from controller.worker_catalogue import WorkerCatalogue
+from mipengine.controller.api.errors.exceptions import BadRequest, BadUserInput
+from mipengine.controller.common_data_elements import CommonDataElements, CommonDataElement
+from mipengine.controller.worker_catalogue import WorkerCatalogue
 
 
-def validate_algorithm_parameters(algorithm_specs: AlgorithmDTO,
+def validate_algorithm_parameters(algorithm_specs: AlgorithmSpecificationDTO,
                                   algorithm_request: AlgorithmRequestDTO):
     # Validate inputdata
     validate_inputdata(algorithm_specs.inputdata,
@@ -26,7 +26,7 @@ def validate_algorithm_parameters(algorithm_specs: AlgorithmDTO,
                                         algorithm_request.crossvalidation)
 
 
-def validate_inputdata(inputdata_specs: Dict[str, InputDataParameterDTO],
+def validate_inputdata(inputdata_specs: Dict[str, InputDataSpecificationDTO],
                        input_data: Dict[str, Any]):
     """
     Validates that the:
@@ -74,7 +74,7 @@ def validate_inputdata_filters(filters):
     pass
 
 
-def validate_inputdata_cdes(input_data_specs: Dict[str, InputDataParameterDTO],
+def validate_inputdata_cdes(input_data_specs: Dict[str, InputDataSpecificationDTO],
                             input_data: Dict[str, Any]):
     """
     Validates that the cdes input data (x,y) follow the specs provided
@@ -102,7 +102,7 @@ def validate_inputdata_cdes(input_data_specs: Dict[str, InputDataParameterDTO],
 
 def validate_inputdata_cdes_length(cde_parameter_name: str,
                                    cde_parameter_value: Any,
-                                   cde_parameter_specs: InputDataParameterDTO):
+                                   cde_parameter_specs: InputDataSpecificationDTO):
     """
     Validate that the cde inputdata has proper list length
     """
@@ -115,7 +115,7 @@ def validate_inputdata_cdes_length(cde_parameter_name: str,
 
 def validate_inputdata_cde_value(cde: str,
                                  cde_parameter_name: str,
-                                 cde_parameter_specs: InputDataParameterDTO,
+                                 cde_parameter_specs: InputDataSpecificationDTO,
                                  pathology: str):
     """
     Validation of a specific cde in a parameter for the following:
@@ -138,7 +138,7 @@ def validate_inputdata_cde_value(cde: str,
 def validate_inputdata_cde_types(cde: str,
                                  cde_metadata: CommonDataElement,
                                  cde_parameter_name: str,
-                                 cde_parameter_specs: InputDataParameterDTO):
+                                 cde_parameter_specs: InputDataSpecificationDTO):
     # Validate that the cde belongs in the allowed types
     if cde_metadata.sql_type not in cde_parameter_specs.types:
         # If "real" is allowed, "int" is allowed as well
@@ -152,7 +152,7 @@ def validate_inputdata_cde_types(cde: str,
 def validate_inputdata_cde_stattypes(cde: str,
                                      cde_metadata: CommonDataElement,
                                      cde_parameter_name: str,
-                                     cde_parameter_specs: InputDataParameterDTO):
+                                     cde_parameter_specs: InputDataSpecificationDTO):
     if cde_metadata.categorical and "nominal" not in cde_parameter_specs.stattypes:
         raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_name}', "
                            f"should be categorical.")
@@ -165,14 +165,14 @@ def validate_inputdata_cde_stattypes(cde: str,
 def validate_inputdata_cde_enumerations(cde: str,
                                         cde_metadata: CommonDataElement,
                                         cde_parameter_name: str,
-                                        cde_parameter_specs: InputDataParameterDTO):
+                                        cde_parameter_specs: InputDataSpecificationDTO):
     if cde_parameter_specs.enumslen is not None and \
             cde_parameter_specs.enumslen != len(cde_metadata.enumerations):
         raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_name}', "
                            f"should have {cde_parameter_specs.enumslen} enumerations.")
 
 
-def validate_generic_parameters(parameters_specs: Optional[Dict[str, GenericParameter]],
+def validate_generic_parameters(parameters_specs: Optional[Dict[str, GenericParameterSpecification]],
                                 parameters: Optional[Dict[str, Any]]):
     """
     If the algorithm has generic parameters (parameters),

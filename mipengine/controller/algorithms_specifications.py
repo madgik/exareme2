@@ -6,7 +6,7 @@ from typing import List, Dict, Optional, Any
 
 from dataclasses_json import dataclass_json
 
-from controller.utils import Singleton
+from mipengine.controller.utils import Singleton
 
 # TODO How can we read all algorithm.json files without relative paths?
 RELATIVE_ALGORITHMS_PATH = "../../algorithms"
@@ -15,7 +15,7 @@ CROSSVALIDATION_ALGORITHM_NAME = "crossvalidation"
 
 @dataclass_json
 @dataclass
-class InputData:
+class InputDataSpecification:
     label: str
     desc: str
     types: List[str]
@@ -36,7 +36,7 @@ class InputData:
 
 @dataclass_json
 @dataclass
-class GenericParameter:
+class GenericParameterSpecification:
     label: str
     desc: str
     type: str
@@ -55,19 +55,19 @@ class GenericParameter:
 
 @dataclass_json
 @dataclass
-class Algorithm:
+class AlgorithmSpecifications:
     name: str
     desc: str
     label: str
     enabled: bool
-    inputdata: Optional[Dict[str, InputData]] = None
-    parameters: Optional[Dict[str, GenericParameter]] = None
+    inputdata: Optional[Dict[str, InputDataSpecification]] = None
+    parameters: Optional[Dict[str, GenericParameterSpecification]] = None
     flags: Optional[Dict[str, bool]] = None
 
 
-class Algorithms(metaclass=Singleton):
-    crossvalidation: Algorithm
-    available: Dict[str, Algorithm]
+class AlgorithmsSpecifications(metaclass=Singleton):
+    crossvalidation: AlgorithmSpecifications
+    enabled_algorithms: Dict[str, AlgorithmSpecifications]
 
     def __init__(self):
         algorithm_property_paths = [os.path.join(RELATIVE_ALGORITHMS_PATH, json_file)
@@ -77,13 +77,13 @@ class Algorithms(metaclass=Singleton):
         all_algorithms = {}
         for algorithm_property_path in algorithm_property_paths:
             try:
-                algorithm = Algorithm.from_json(open(algorithm_property_path).read())
+                algorithm = AlgorithmSpecifications.from_json(open(algorithm_property_path).read())
             except Exception as e:
                 logging.error(f"Parsing property file: {algorithm_property_path}")
                 raise e
             all_algorithms[algorithm.name] = algorithm
 
-        self.available = {
+        self.enabled_algorithms = {
             algorithm.name: algorithm
             for algorithm in all_algorithms.values()
             if algorithm.enabled and algorithm.name != CROSSVALIDATION_ALGORITHM_NAME}
@@ -94,4 +94,4 @@ class Algorithms(metaclass=Singleton):
             self.crossvalidation = all_algorithms[CROSSVALIDATION_ALGORITHM_NAME]
 
 
-Algorithms()
+AlgorithmsSpecifications()
