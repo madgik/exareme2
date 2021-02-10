@@ -4,12 +4,12 @@ from textwrap import indent
 from textwrap import dedent
 from string import Template
 
-import numpy as np
 import astor
 
 from worker.udfgen import Table
 from worker.udfgen import LiteralParameter
 from worker.udfgen import LoopbackTable
+from worker.udfgen import Tensor
 from worker.udfgen.udfparams import SQLTYPES
 
 
@@ -24,8 +24,6 @@ RETURNS
 $output_expr
 LANGUAGE PYTHON
 {
-    import numpy as np
-    from arraybundle import ArrayBundle
 $table_defs
 $loopbacks
 $literals
@@ -36,13 +34,8 @@ $return_stmt
 };
 """
     )
-    _returntemplate = Template(
-        """
-_colrange = range(${return_name}.shape[1])
-_names = (f"${return_name}_{i}" for i in _colrange)
-_result = {n: c for n, c in zip(_names, ${return_name})}
-return _result"""
-    )
+    _table_tmpl = Template("return as_relational_table($return_name)")
+    _tensor_tmpl = Template("return as_tensor_table($return_name)")
 
     def __init__(self, func):
         self.func = func
@@ -51,6 +44,7 @@ return _result"""
         self.tree = ast.parse(self.code)
         self.body = self._get_body()
         self.return_name = self._get_return_name()
+        self.return_type = func.__annotations__["return"]
         self.signature = inspect.signature(func)
         self.tableparams = [
             name
@@ -88,7 +82,7 @@ return _result"""
 
     def to_sql(self, *args, **kwargs):
         # verify types
-        allowed = (Table, LiteralParameter, LoopbackTable)
+        allowed = (Table, Tensor, LiteralParameter, LoopbackTable)
         args_are_allowed = [type(ar) in allowed for ar in args + tuple(kwargs.values())]
         if not all(args_are_allowed):
             msg = f"Can't convert to SQL: all arguments must have types in {allowed}"
@@ -112,7 +106,10 @@ return _result"""
         # get return statement
         if type(output) == Table:
             output_expr = output.as_sql_return_declaration(self.return_name)
-            return_stmt = self._returntemplate.substitute(return_name=self.return_name)
+            return_stmt = self._table_tmpl.substitute(return_name=self.return_name)
+        elif type(output) == Tensor:
+            output_expr = output.as_sql_return_declaration(self.return_name)
+            return_stmt = self._tensor_tmpl.substitute(return_name=self.return_name)
         else:
             output_expr = SQLTYPES[type(output)]
             return_stmt = f"return {self.return_name}\n"
@@ -165,11 +162,13 @@ def monet_udf(func):
 
 
 def verify_annotations(func):
-    allowed_types = (Table, LiteralParameter, LoopbackTable)
+    allowed_types = (Table, Tensor, LiteralParameter, LoopbackTable)
     sig = inspect.signature(func)
     argnames = sig.parameters.keys()
     annotations = func.__annotations__
     if any(annotations.get(arg, None) not in allowed_types for arg in argnames):
+        raise TypeError("Function is not properly annotated as a Monet UDF")
+    if annotations.get("return", None) not in allowed_types:
         raise TypeError("Function is not properly annotated as a Monet UDF")
 
 
@@ -197,3 +196,29 @@ def create_table(table_schema, table_rows, name=None):
     else:
         table = Table(dtype, shape=(table_rows, ncols))
     return table
+
+
+# -------------------------------------------------------- #
+# Examples                                                 #
+# -------------------------------------------------------- #
+
+
+@monet_udf
+def binarize_labels(y: Table, classes: LiteralParameter) -> Table:
+    from algorithms.preprocessing import LabelBinarizer
+
+    binarizer = LabelBinarizer()
+    binarizer.fit(classes)
+    binarized = binarizer.transform(y)
+    return binarized
+
+
+@monet_udf
+def zeros(shape: LiteralParameter) -> Tensor:
+    import numpy2 as np
+
+    z = np.zeros(shape)
+    return z
+
+
+print(zeros.to_sql(shape=LiteralParameter((2, 3))))

@@ -113,6 +113,10 @@ def _typeof(obj):
         return obj.dtype
 
 
+class Tensor(Table):
+    pass
+
+
 class LiteralParameter:
     def __init__(self, value):
         self.value = value
