@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any, List
 from mipengine.controller.algorithms_specifications import GenericParameterSpecification
 from mipengine.controller.api.DTOs.AlgorithmExecutionDTOs import AlgorithmRequestDTO
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO, \
-    InputDataSpecificationDTO, CrossValidationParametersDTO, INPUTDATA_PATHOLOGY_PARAMETER_NAME, \
+    InputDataSpecificationDTO, CrossValidationSpecificationsDTO, INPUTDATA_PATHOLOGY_PARAMETER_NAME, \
     INPUTDATA_DATASET_PARAMETER_NAME, \
     INPUTDATA_FILTERS_PARAMETER_NAME, INPUTDATA_X_PARAMETER_NAME, INPUTDATA_Y_PARAMETER_NAME
 from mipengine.controller.api.errors.exceptions import BadRequest, BadUserInput
@@ -289,7 +289,7 @@ def validate_generic_parameter_inside_min_max(parameter_name: str,
                            f"should be lower than {parameter_max_value} .")
 
 
-def validate_crossvalidation_parameters(crossvalidation_specs: Optional[CrossValidationParametersDTO],
+def validate_crossvalidation_parameters(crossvalidation_specs: Optional[CrossValidationSpecificationsDTO],
                                         crossvalidation: Optional[Dict[str, Any]]):
     """
     If crossvalidation is enabled, it validates that the algorithm's

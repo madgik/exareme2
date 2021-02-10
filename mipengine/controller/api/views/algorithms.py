@@ -3,7 +3,8 @@ import traceback
 
 from quart import request, Blueprint
 
-from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO, AlgorithmSpecifications
+from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO, \
+    AlgorithmSpecificationsDTOs
 from mipengine.controller.api.errors.exceptions import BadRequest, BadUserInput
 from mipengine.controller.api.services.run_algorithm import run_algorithm
 
@@ -12,7 +13,7 @@ algorithms = Blueprint('algorithms_endpoint', __name__)
 
 @algorithms.route("/algorithms")
 async def get_algorithms() -> str:
-    algorithm_specifications = AlgorithmSpecifications().algorithms_list
+    algorithm_specifications = AlgorithmSpecificationsDTOs().algorithms_list
 
     return AlgorithmSpecificationDTO.schema().dumps(algorithm_specifications, many=True)
 

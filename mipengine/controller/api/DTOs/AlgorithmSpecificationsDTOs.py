@@ -79,7 +79,7 @@ class GenericParameterSpecificationDTO(GenericParameterSpecification):
 
 @dataclass_json
 @dataclass
-class CrossValidationParametersDTO:
+class CrossValidationSpecificationsDTO:
     """
     CrossValidationDTO is a nested object, that contains
     all the information need to run crossvalidation on an algorithm.
@@ -102,7 +102,7 @@ class AlgorithmSpecificationDTO:
     label: str
     inputdata: Dict[str, InputDataSpecificationDTO]
     parameters: Optional[Dict[str, GenericParameterSpecification]] = None
-    crossvalidation: Optional[CrossValidationParametersDTO] = None
+    crossvalidation: Optional[CrossValidationSpecificationsDTO] = None
 
     def __init__(self, algorithm: AlgorithmSpecifications, crossvalidation: AlgorithmSpecifications):
         self.name = algorithm.name
@@ -129,7 +129,7 @@ class AlgorithmSpecificationDTO:
         # Adding the crossvalidation algorithm as a nested algorithm
         if (CROSSVALIDATION_ALGORITHM_NAME in algorithm.flags.keys()
                 and algorithm.flags[CROSSVALIDATION_ALGORITHM_NAME]):
-            self.crossvalidation = CrossValidationParametersDTO(
+            self.crossvalidation = CrossValidationSpecificationsDTO(
                 crossvalidation.desc,
                 crossvalidation.label,
                 crossvalidation.parameters,
@@ -141,7 +141,7 @@ class AlgorithmSpecificationsDTOs(metaclass=Singleton):
     algorithms_dict = Dict[str, AlgorithmSpecificationDTO]
 
     def __init__(self):
-        algorithms_specifications = AlgorithmsSpecifications
+        algorithms_specifications = AlgorithmsSpecifications()
         self.algorithms_list = [AlgorithmSpecificationDTO(algorithm, algorithms_specifications.crossvalidation)
                                 for algorithm in algorithms_specifications.enabled_algorithms.values()]
 

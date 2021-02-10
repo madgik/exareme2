@@ -1,7 +1,7 @@
 {
-  "name": "test",
-  "desc": "This is a test algorithm.",
-  "label": "TEST",
+  "name": "demo",
+  "desc": "This is a demo algorithm.",
+  "label": "DEMO",
   "enabled": true,
   "inputdata": {
     "x": {

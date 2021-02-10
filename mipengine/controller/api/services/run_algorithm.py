@@ -1,7 +1,7 @@
 import logging
 import traceback
 
-from mipengine.controller.algorithms_specifications import AlgorithmsSpecifications
+from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
 from mipengine.controller.api.DTOs.AlgorithmExecutionDTOs import AlgorithmRequestDTO
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecifications
 from mipengine.controller.api.errors.exceptions import BadRequest
@@ -10,7 +10,7 @@ from mipengine.controller.api.services.validate_algorithm_parameters import vali
 
 def run_algorithm(algorithm_name: str, request_body: str):
     # Check that algorithm exists
-    if str.lower(algorithm_name) not in AlgorithmsSpecifications().enabled_algorithms.keys():
+    if str.lower(algorithm_name) not in AlgorithmSpecifications().enabled_algorithms.keys():
         raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
 
     # Validate algorithm body has proper format
