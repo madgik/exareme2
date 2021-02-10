@@ -1,14 +1,42 @@
+import logging
+import traceback
 from typing import Optional, Dict, Any, List
 
 from mipengine.controller.algorithms_specifications import GenericParameterSpecification
-from mipengine.controller.api.DTOs.AlgorithmExecutionDTOs import AlgorithmRequestDTO
+from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequestDTO
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO, \
     InputDataSpecificationDTO, CrossValidationSpecificationsDTO, INPUTDATA_PATHOLOGY_PARAMETER_NAME, \
     INPUTDATA_DATASET_PARAMETER_NAME, \
-    INPUTDATA_FILTERS_PARAMETER_NAME, INPUTDATA_X_PARAMETER_NAME, INPUTDATA_Y_PARAMETER_NAME
+    INPUTDATA_FILTERS_PARAMETER_NAME, INPUTDATA_X_PARAMETER_NAME, INPUTDATA_Y_PARAMETER_NAME, \
+    AlgorithmSpecificationsDTOs
 from mipengine.controller.api.errors.exceptions import BadRequest, BadUserInput
 from mipengine.controller.common_data_elements import CommonDataElements, CommonDataElement
 from mipengine.controller.worker_catalogue import WorkerCatalogue
+
+
+def validate_algorithm(algorithm_name: str, request_body: str):
+    """
+    Validates the proper usage of the algorithm:
+    1) algorithm exists,
+    2) algorithm body has proper format and
+    3) algorithm input matches the algorithm specifications.
+    """
+
+    # Check that algorithm exists
+    if str.lower(algorithm_name) not in AlgorithmSpecificationsDTOs().algorithms_dict.keys():
+        raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
+
+    # Validate algorithm body has proper format
+    try:
+        algorithm_request = AlgorithmRequestDTO.from_json(request_body)
+    except Exception:
+        logging.error(f"Could not parse the algorithm request body. "
+                      f"Exception: \n {traceback.format_exc()}")
+        raise BadRequest(f"The algorithm body does not have the proper format.")
+
+    # Get algorithm specification and validate the algorithm input
+    algorithm_specs = AlgorithmSpecificationsDTOs().algorithms_dict[algorithm_name]
+    validate_algorithm_parameters(algorithm_specs, algorithm_request)
 
 
 def validate_algorithm_parameters(algorithm_specs: AlgorithmSpecificationDTO,

@@ -6,7 +6,7 @@ from quart import request, Blueprint
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO, \
     AlgorithmSpecificationsDTOs
 from mipengine.controller.api.errors.exceptions import BadRequest, BadUserInput
-from mipengine.controller.api.services.run_algorithm import run_algorithm
+from mipengine.controller.api.services.validate_algorithm import validate_algorithm
 
 algorithms = Blueprint('algorithms_endpoint', __name__)
 
@@ -25,12 +25,19 @@ async def post_algorithm(algorithm_name: str) -> str:
     request_body = await request.data
 
     try:
-        response = run_algorithm(algorithm_name, request_body)
+        validate_algorithm(algorithm_name, request_body)
     except (BadRequest, BadUserInput) as exc:
         raise exc
+    except:
+        logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
+        raise BadRequest("Algorithm validation failed.")
+
+    try:
+        # Execute algorithm
+        pass
     except:
         logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
         raise BadRequest("Something went wrong. "
                          "Please inform the system administrator or try again later.")
 
-    return response
+    return "Success!"

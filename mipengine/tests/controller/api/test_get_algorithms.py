@@ -4,9 +4,7 @@ import unittest
 
 import requests
 
-from mipengine.tests.controller.api import mip_engine_url
-
-algorithms_url = mip_engine_url + "/algorithms"
+from mipengine.tests.controller.api import algorithms_url
 
 demo_algorithm_path = "../../../algorithms/demo.json"
 
@@ -30,7 +28,7 @@ def test_get_demo_algorithm():
     assert found is True
 
 
-def get_demo_algorithm():
+def get_demo_algorithm() -> str:
     return '''
     {
         "name": "demo",
@@ -95,7 +93,7 @@ def get_demo_algorithm():
                 "types": ["text", "int"],
                 "stattypes": ["nominal"],
                 "multiple": false,
-                "enumslen": 2,
+                "enumslen": 4,
                 "notblank": true,
                 "label": "target",
                 "desc": "Target variable for my algorithm."

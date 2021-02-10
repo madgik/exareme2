@@ -29,7 +29,7 @@
       "stattypes": [
         "nominal"
       ],
-      "enumslen": 2,
+      "enumslen": 4,
       "notblank": true,
       "multiple": false
     }
