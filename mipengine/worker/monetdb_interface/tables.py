@@ -5,20 +5,19 @@ from mipengine.worker.monetdb_interface.common import convert_table_info_to_sql_
 from mipengine.worker.tasks.data_classes import TableInfo, ColumnInfo
 
 
-def get_table_schema(table_name: str = None) -> List[ColumnInfo]:
-    return get_tables_info([table_name])[0].schema
+def get_table_schema(table_name: str) -> List[ColumnInfo]:
+    return common.get_table_schema('normal', table_name)
 
 
-def get_tables_info(table_names: List[str] = None) -> List[TableInfo]:
-    return common.get_tables_info("normal", table_names)
+def get_tables_names(context_id: str) -> List[str]:
+    return common.get_tables_names("normal", context_id)
+
+
+def get_table_data(context_id: str) -> List[str]:
+    return common.get_table_data("normal", context_id)
 
 
 def create_table(table_info: TableInfo):
     columns_schema = convert_table_info_to_sql_query_format(table_info)
-
     cursor.execute(f"CREATE TABLE {table_info.name} ( {columns_schema} )")
     connection.commit()
-
-
-def delete_table(table_name: str):
-    common.delete_table(table_name, "normal")

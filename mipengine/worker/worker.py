@@ -1,5 +1,5 @@
 from celery import Celery
-from mipengine.config import Config
+from mipengine.config.config_parser import Config
 
 
 config = Config().config
@@ -12,4 +12,4 @@ vhost = config["rabbitmq"]["vhost"]
 app = Celery('mipengine.worker',
              broker=f'amqp://{user}:{password}@{ip}:{port}/{vhost}',
              backend='rpc://',
-             include=['mipengine.worker.tasks.tables', 'mipengine.worker.tasks.remote_tables', 'mipengine.worker.tasks.merge_tables'])
+             include=['mipengine.worker.tasks.tables', 'mipengine.worker.tasks.remote_tables', 'mipengine.worker.tasks.merge_tables', 'mipengine.worker.tasks.views'])

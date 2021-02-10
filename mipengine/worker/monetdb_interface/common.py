@@ -19,6 +19,17 @@ connection = pymonetdb.connect(username=config["monet_db"]["username"],
 cursor: Cursor = connection.cursor()
 
 
+def tables_naming_convention(table_type: str, context_Id: str, node_id: str) -> str:
+    if table_type not in {"table", "view", "merge"}:
+        raise KeyError(f"Table type is not acceptable: {table_type} .")
+    if node_id not in {"global", config["node"]["identifier"]}:
+        raise KeyError(f"Node Identifier is not acceptable: {node_id} .")
+
+    uuid = str(pymonetdb.uuid.uuid1()).replace("-", "")
+
+    return f"{table_type}_{context_Id}_{node_id}_{uuid}"
+
+
 # TODO Add SQLAlchemy if possible
 # TODO We need to add the PRIVATE/OPEN table logic
 
@@ -70,69 +81,66 @@ def convert_from_monetdb_column_type(column_type: str) -> str:
     return type_mapping.get(column_type)
 
 
-def get_tables_info(table_type: str = None, table_names: List[str] = None) -> List[TableInfo]:
-    type_clause = ''
-    if table_type is not None:
-        type_clause = "tables.type = " + str(get_table_type_enumeration_value(table_type)) + " AND "
+def get_table_schema(table_type: str, table_name: str) -> List[ColumnInfo]:
+    cursor.execute(f"SELECT columns.name, columns.type "
+                   f"FROM columns "
+                   f"RIGHT JOIN tables "
+                   f"ON tables.id = columns.table_id "
+                   f"WHERE "
+                   f"tables.type = {str(get_table_type_enumeration_value(table_type))} "
+                   f"AND "
+                   f"tables.name = '{table_name}' "
+                   f"AND "
+                   f"tables.system=false;")
 
-    name_clause = ''
-    if table_names is not None:
-        for table_name in table_names:
-            name_clause += f"tables.name = '{table_name}' AND "
+    return [ColumnInfo(table[0], convert_from_monetdb_column_type(table[1])) for table in cursor]
+
+
+def get_tables_names(table_type: str, context_id: str) -> List[str]:
+    type_clause = f"type = {str(get_table_type_enumeration_value(table_type))} AND"
+
+    context_clause = f"name LIKE '%{context_id.lower()}%' AND"
 
     cursor.execute(
-        "SELECT  tables.name, columns.type, columns.name FROM tables "
-        "RIGHT JOIN columns ON tables.id = columns.table_id "
-        "WHERE " + type_clause + name_clause +
-        "tables.system=false")
+        "SELECT name FROM tables "
+        "WHERE"
+        f" {type_clause}"
+        f" {context_clause} "
+        "system = false")
 
-    table_infos = convert_tables_query_cursor_to_tables_info(cursor)
-    print(table_infos)
-    if table_names is not None and len(table_names) != len(table_infos):
-        raise KeyError(f"Could not find all table names: {table_names} .")
-    return table_infos
-
-
-def convert_tables_query_cursor_to_tables_info(tables_query_cursor: Cursor) -> List[TableInfo]:
-    tables = {}
-    for (table_name, column_type, column_name) in tables_query_cursor:
-
-        table_column = ColumnInfo(column_name, convert_from_monetdb_column_type(column_type))
-        if table_name not in tables:
-            tables[table_name] = [table_column]
-        else:
-            tables[table_name].append(table_column)
-
-    return [TableInfo(table_name, table_columns) for table_name, table_columns in tables.items()]
+    return [table[0] for table in cursor]
 
 
 def convert_table_info_to_sql_query_format(table_info: TableInfo):
     columns_schema = ""
     for column_info in table_info.schema:
-        columns_schema += f"{column_info['name']} {convert_to_monetdb_column_type(column_info['type'])}, "
+        columns_schema += f"{column_info.name} {convert_to_monetdb_column_type(column_info.type)}, "
     columns_schema = columns_schema[:-2]
     return columns_schema
 
 
-def add_tables_to_merge_table(merge_table_name: str, partition_tables_names: List[str]):
-    if partition_tables_names is None:
-        return
-
-    try:
-        for table in partition_tables_names:
-            cursor.execute(f"ALTER TABLE {merge_table_name} ADD TABLE {table}")
-        connection.commit()
-    except Exception as exc:
-        cursor.execute(f"DROP TABLE {merge_table_name}")
-        connection.commit()
-        raise exc
-
-
-def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
-    cursor.execute(f"SELECT * FROM {table_name} ")
+def get_table_data(table_type: str, table_name: str) -> List[List[Union[str, int, float, bool]]]:
+    cursor.execute(
+        f"SELECT {table_name}.* "
+        f"FROM {table_name} "
+        f"INNER JOIN tables ON tables.name = '{table_name}' "
+        f"WHERE tables.system=false "
+        f"AND tables.type = {str(get_table_type_enumeration_value(table_type))}")
     return cursor.fetchall()
 
 
-def delete_table(table_name: str, table_type: str):
-    cursor.execute(f"DROP TABLE {table_name}")
+def clean_up(context_id: str = None):
+    context_clause = ""
+    if context_id is not None:
+        context_clause = f"name LIKE '%{context_id.lower()}%' AND"
+
+    cursor.execute(
+        "SELECT name FROM tables "
+        "WHERE"
+        f" {context_clause} "
+        "system = false")
+
+    tables_names = [table[0] for table in cursor]
+    for name in tables_names:
+        cursor.execute(f"DROP TABLE if exists {name} cascade")
     connection.commit()

@@ -1,31 +1,22 @@
+import json
 from typing import List
-
 from celery import shared_task
 
-from mipengine.worker import monetdb_interface
-from mipengine.worker.tasks.data_classes import TableInfo, TableData, ColumnInfo
+from mipengine.worker.monetdb_interface import remote_tables, common
+from mipengine.worker.tasks.data_classes import TableInfo, ColumnInfo
 
 
 @shared_task
-def get_remote_tables_info(table_name: List[str] = None) -> List[TableInfo]:
-    list_of_tables = monetdb_interface.get_remote_tables_info(table_name)
-    return TableInfo.schema().dumps(list_of_tables, many=True)
+def get_remote_tables(context_id: str) -> List[str]:
+    return json.dumps(remote_tables.get_remote_tables_names(context_id))
 
 
 @shared_task
-def create_remote_table(columns_info: List[ColumnInfo], name: str, url: str) -> TableInfo:
-    table_info = TableInfo(name, columns_info)
-    monetdb_interface.create_remote_table(table_info, url)
-    return table_info.to_json()
+def create_remote_table(table_name: str, schema: List[ColumnInfo], url: str):
+    table_info = TableInfo(table_name.lower(), schema)
+    remote_tables.create_remote_table(table_info, url)
 
 
 @shared_task
-def get_remote_table_data(table_name: str) -> TableData:
-    schema = monetdb_interface.get_remote_table_schema(table_name)
-    data = monetdb_interface.get_table_data(table_name)
-    return TableData(data, schema).to_json()
-
-
-@shared_task
-def delete_remote_table(table_name: str):
-    monetdb_interface.delete_remote_table(table_name)
+def clean_up(context_Id: str = None):
+    common.clean_up(context_Id)

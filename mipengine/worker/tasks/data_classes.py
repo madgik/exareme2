@@ -37,6 +37,7 @@ class TableView:
 @dataclass_json
 @dataclass
 class TableData:
+    schema: List[ColumnInfo]
     data: List[
         List[
             Union[
@@ -44,7 +45,6 @@ class TableData:
                 int,
                 float,
                 bool]]]
-    schema: List[ColumnInfo]
 
 
 @dataclass_json
@@ -59,11 +59,3 @@ class Parameter:
 class UDFInfo:
     name: str
     header: str
-
-
-@dataclass_json
-@dataclass
-class WorkerAlias:
-    host: str
-    port: str
-    dbname: str

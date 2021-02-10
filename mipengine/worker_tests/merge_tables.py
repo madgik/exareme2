@@ -1,8 +1,10 @@
+import time
 from pprint import pprint
 
 from celery import Celery
 
-from mipengine.config import Config
+from mipengine.config.config_parser import Config
+from mipengine.worker.monetdb_interface.common import cursor, connection
 from mipengine.worker.tasks.data_classes import TableInfo
 
 config = Config().config
@@ -11,44 +13,64 @@ port = config["rabbitmq"]["port"]
 user = config["rabbitmq"]["user"]
 password = config["rabbitmq"]["password"]
 vhost = config["rabbitmq"]["vhost"]
-node1 = Celery('worker',
+node1 = Celery('mipengine.worker',
                broker=f'amqp://{user}:{password}@{ip}:{port}/{vhost}',
                backend='rpc://',
-               include=['worker.tasks.merge_tables'])
+               include=['mipengine.worker.tasks.tables', 'mipengine.worker.tasks.remote_tables',
+                        'mipengine.worker.tasks.merge_tables'])
 
-create_merge_table = node1.signature('worker.tasks.merge_tables.create_merge_table')
-delete_merge_table = node1.signature('worker.tasks.merge_tables.delete_merge_table')
-get_merge_table_data = node1.signature('worker.tasks.merge_tables.get_merge_table_data')
-get_merge_tables_info = node1.signature('worker.tasks.merge_tables.get_merge_tables_info')
+create_table = node1.signature('mipengine.worker.tasks.tables.create_table')
+create_merge_table = node1.signature('mipengine.worker.tasks.merge_tables.create_merge_table')
+clean_up = node1.signature('mipengine.worker.tasks.merge_tables.clean_up')
+update_merge_table = node1.signature('mipengine.worker.tasks.merge_tables.update_merge_table')
+get_merge_tables = node1.signature('mipengine.worker.tasks.merge_tables.get_merge_tables')
+
+
+def setup_tables_for_merge(number_of_table: int) -> str:
+    table_name = create_table.delay(f"table{number_of_table}",
+                                    [{"name": "col1", "type": "INT"}, {"name": "col2", "type": "FLOAT"},
+                                     {"name": "col3", "type": "TEXT"}]).get()
+    connection.commit()
+    cursor.execute(
+        f"INSERT INTO {table_name} VALUES ( {number_of_table}, {number_of_table}, 'table_{number_of_table}' )")
+    connection.commit()
+    return table_name
+
+
+print('Setting up tables to merge them...')
+
+success_partition_tables = [setup_tables_for_merge(1), setup_tables_for_merge(2), setup_tables_for_merge(3),
+                            setup_tables_for_merge(4)]
 
 print('Running tests for merge tables...')
 
 # Creating a fake table and retrieve it's data and schema afterwards.
-merge_table_1 = create_merge_table.delay(
-    [{"name": "col1", "type": "INT"}, {"name": "col2", "type": "FLOAT"},
-     {"name": "col3", "type": "TEXT"}], "regression_211232433443",
-    ["table_801dab92654011eb8d1c830ae9bb4267_regression_211232433443",
-     "table_801dab93654011eb8d1c830ae9bb4267_histograms_211232433443"]).get()
-pprint(f"Created merge table1. Response: \n{merge_table_1}")
+context_id = "regression"
+success_merge_table_1_name = create_merge_table.delay(context_id, success_partition_tables).get()
+pprint(f"Created merge table1. Response: \n{success_merge_table_1_name}")
 
-regression_table = TableInfo.from_json(merge_table_1)
-table_data = get_merge_table_data.delay(regression_table.name).get()
-pprint(f"Got table data. Response: \n{table_data}")
+merge_tables = get_merge_tables.delay(context_id).get()
+pprint(f"Got merge tables. Response: \n{merge_tables}")
 
-# Creating a fake table and retrieve it's data and schema afterwards.
-merge_table_2 = create_merge_table.delay(
-    [{"name": "col1", "type": "INT"}, {"name": "col2", "type": "FLOAT"},
-     {"name": "col3", "type": "TEXT"}], "histograms_211232433443",
-    ["table_9273f292654011eb8d1c830ae9bb4267_regression_211232433443",
-     "table_9273f293654011eb8d1c830ae9bb4267_histograms_211232433443"]).get()
-pprint(f"Created table2. Response: \n{merge_table_2}")
+print('Optional empty database its important for our sanity...')
+clean_up.delay()
 
-tables = get_merge_tables_info.delay().get()
-pprint(f"Got tables. Response: \n{tables}")
+# In order to simulate IncompatibleSchemasMergeException
 
-table_1_name = TableInfo.from_json(merge_table_1).name
-table_2_name = TableInfo.from_json(merge_table_2).name
-result_1 = delete_merge_table.delay(table_1_name).get()
-pprint(f'Deleted table_1. Response: \n {result_1}')
-result_2 = delete_merge_table.delay(table_2_name).get()
-pprint(f'Deleted table_2. Response: \n {result_2}')
+# incompatible_table = setup_tables_for_merge(5)
+# cursor.execute(f"ALTER TABLE {incompatible_table} DROP {'col1'};")
+# connection.commit()
+#
+# incompatible_partition_tables = [setup_tables_for_merge(1), setup_tables_for_merge(2), setup_tables_for_merge(3),
+#                                  setup_tables_for_merge(4), incompatible_table]
+# incompatible_merge_table_1_name = create_merge_table.delay(context_id, incompatible_partition_tables).get()
+# pprint(f"Created merge table1. Response: \n{incompatible_merge_table_1_name}")
+
+
+# In order to simulate TableCannotBeFound uncomment the following
+
+# not_found_tables = [setup_tables_for_merge(1), setup_tables_for_merge(2), setup_tables_for_merge(3),
+#                     setup_tables_for_merge(4), "non_existant_table"]
+
+# not_found_merge_table_1_name = create_merge_table.delay(context_id, not_found_tables).get()
+# pprint(f"Created merge table1. Response: \n{not_found_merge_table_1_name}")
