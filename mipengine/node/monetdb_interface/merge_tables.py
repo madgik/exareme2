@@ -1,9 +1,9 @@
 from typing import List
 
 from mipengine.utils.custom_exception import IncompatibleSchemasMergeException, TableCannotBeFound
-from mipengine.worker.monetdb_interface import common, tables
-from mipengine.worker.monetdb_interface.common import convert_table_info_to_sql_query_format, cursor, connection
-from mipengine.worker.tasks.data_classes import TableInfo
+from mipengine.node.monetdb_interface import common, tables
+from mipengine.node.monetdb_interface.common import convert_table_info_to_sql_query_format, cursor, connection
+from mipengine.node.tasks.data_classes import TableInfo
 
 
 def get_merge_tables_names(context_id: str) -> List[str]:

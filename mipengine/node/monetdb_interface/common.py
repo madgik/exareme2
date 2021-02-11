@@ -5,7 +5,7 @@ from pymonetdb.sql.cursors import Cursor
 
 # TODO What's the max text value we need?
 from mipengine.config.config_parser import Config
-from mipengine.worker.tasks.data_classes import TableInfo, ColumnInfo
+from mipengine.node.tasks.data_classes import TableInfo, ColumnInfo
 
 MONETDB_VARCHAR_SIZE = 50
 

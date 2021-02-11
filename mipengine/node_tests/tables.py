@@ -4,7 +4,7 @@ from celery import Celery
 
 # TODO Convert to an actual test framework
 from mipengine.config.config_parser import Config
-from mipengine.worker.tasks.data_classes import TableInfo
+from mipengine.node.tasks.data_classes import TableInfo
 
 config = Config().config
 ip = config["rabbitmq"]["ip"]
@@ -12,18 +12,18 @@ port = config["rabbitmq"]["port"]
 user = config["rabbitmq"]["user"]
 password = config["rabbitmq"]["password"]
 vhost = config["rabbitmq"]["vhost"]
-node1 = Celery('mipengine.worker',
+node1 = Celery('mipengine.node',
                broker=f'amqp://{user}:{password}@{ip}:{port}/{vhost}',
                backend='rpc://',
-               include=['mipengine.worker.tasks.tables'])
+               include=['mipengine.node.tasks.tables'])
 
-create_table = node1.signature('mipengine.worker.tasks.tables.create_table')
-clean_up = node1.signature('mipengine.worker.tasks.tables.clean_up')
-get_table_schema = node1.signature('mipengine.worker.tasks.tables.get_table_schema')
-get_table_data = node1.signature('mipengine.worker.tasks.tables.get_table_data')
-get_tables = node1.signature('mipengine.worker.tasks.tables.get_tables')
+create_table = node1.signature('mipengine.node.tasks.tables.create_table')
+clean_up = node1.signature('mipengine.node.tasks.tables.clean_up')
+get_table_schema = node1.signature('mipengine.node.tasks.tables.get_table_schema')
+get_table_data = node1.signature('mipengine.node.tasks.tables.get_table_data')
+get_tables = node1.signature('mipengine.node.tasks.tables.get_tables')
 
-print('Running worker_tests...')
+print('Running node_tests...')
 
 # Creating a fake table and retrieve it's data and schema afterwards.
 context_id_1 = "regrEssion"

@@ -1,8 +1,8 @@
 from typing import List
 
-from mipengine.worker.monetdb_interface import common
-from mipengine.worker.monetdb_interface.common import cursor, connection
-from mipengine.worker.tasks.data_classes import ColumnInfo
+from mipengine.node.monetdb_interface import common
+from mipengine.node.monetdb_interface.common import cursor, connection
+from mipengine.node.tasks.data_classes import ColumnInfo
 
 
 def get_views_names(context_id: str) -> List[str]:

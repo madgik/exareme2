@@ -2,9 +2,9 @@ import json
 from typing import List
 from celery import shared_task
 
-from mipengine.worker.monetdb_interface import views, common
-from mipengine.worker.monetdb_interface.common import tables_naming_convention, config
-from mipengine.worker.tasks.data_classes import TableInfo, TableData, ColumnInfo
+from mipengine.node.monetdb_interface import views, common
+from mipengine.node.monetdb_interface.common import tables_naming_convention, config
+from mipengine.node.tasks.data_classes import TableInfo, TableData, ColumnInfo
 
 
 @shared_task

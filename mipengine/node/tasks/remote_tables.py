@@ -2,8 +2,8 @@ import json
 from typing import List
 from celery import shared_task
 
-from mipengine.worker.monetdb_interface import remote_tables, common
-from mipengine.worker.tasks.data_classes import TableInfo, ColumnInfo
+from mipengine.node.monetdb_interface import remote_tables, common
+from mipengine.node.tasks.data_classes import TableInfo, ColumnInfo
 
 
 @shared_task

@@ -4,8 +4,8 @@ from pprint import pprint
 from celery import Celery
 
 from mipengine.config.config_parser import Config
-from mipengine.worker.monetdb_interface.common import cursor, connection
-from mipengine.worker.tasks.data_classes import TableInfo
+from mipengine.node.monetdb_interface.common import cursor, connection
+from mipengine.node.tasks.data_classes import TableInfo
 
 config = Config().config
 ip = config["rabbitmq"]["ip"]
@@ -13,17 +13,17 @@ port = config["rabbitmq"]["port"]
 user = config["rabbitmq"]["user"]
 password = config["rabbitmq"]["password"]
 vhost = config["rabbitmq"]["vhost"]
-node1 = Celery('mipengine.worker',
+node1 = Celery('mipengine.node',
                broker=f'amqp://{user}:{password}@{ip}:{port}/{vhost}',
                backend='rpc://',
-               include=['mipengine.worker.tasks.tables', 'mipengine.worker.tasks.remote_tables',
-                        'mipengine.worker.tasks.merge_tables'])
+               include=['mipengine.node.tasks.tables', 'mipengine.node.tasks.remote_tables',
+                        'mipengine.node.tasks.merge_tables'])
 
-create_table = node1.signature('mipengine.worker.tasks.tables.create_table')
-create_merge_table = node1.signature('mipengine.worker.tasks.merge_tables.create_merge_table')
-clean_up = node1.signature('mipengine.worker.tasks.merge_tables.clean_up')
-update_merge_table = node1.signature('mipengine.worker.tasks.merge_tables.update_merge_table')
-get_merge_tables = node1.signature('mipengine.worker.tasks.merge_tables.get_merge_tables')
+create_table = node1.signature('mipengine.node.tasks.tables.create_table')
+create_merge_table = node1.signature('mipengine.node.tasks.merge_tables.create_merge_table')
+clean_up = node1.signature('mipengine.node.tasks.merge_tables.clean_up')
+update_merge_table = node1.signature('mipengine.node.tasks.merge_tables.update_merge_table')
+get_merge_tables = node1.signature('mipengine.node.tasks.merge_tables.get_merge_tables')
 
 
 def setup_tables_for_merge(number_of_table: int) -> str:

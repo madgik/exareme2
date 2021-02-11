@@ -1,8 +1,8 @@
 from typing import List
 
-from mipengine.worker.monetdb_interface import common
-from mipengine.worker.monetdb_interface.common import convert_table_info_to_sql_query_format, cursor, connection
-from mipengine.worker.tasks.data_classes import TableInfo, ColumnInfo
+from mipengine.node.monetdb_interface import common
+from mipengine.node.monetdb_interface.common import convert_table_info_to_sql_query_format, cursor, connection
+from mipengine.node.tasks.data_classes import TableInfo, ColumnInfo
 
 
 def get_table_schema(table_name: str) -> List[ColumnInfo]:
