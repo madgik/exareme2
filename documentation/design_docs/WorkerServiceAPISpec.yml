@@ -15,10 +15,10 @@ info:
 paths:
   /tables:
     get:
-      summary: Returns a list of all local non-private tables of the worker. Returns a list of tuples [name,shema]
+      summary: Returns a list of all local non-private tables of the node. Returns a list of tuples [name,shema]
       responses:
         '200':
-          description: A list of tuples [name,shema] for all non-private tables in the worker database
+          description: A list of tuples [name,shema] for all non-private tables in the node database
           content:
             application/json:
               schema:
@@ -29,9 +29,9 @@ paths:
                 example1:
                   $ref: '#/components/examples/TableInfoArray'
         '204':
-          description: The worker successfully processed the request, and is not returning any content. There aren't any non-private local tables on the worker's database
+          description: The node successfully processed the request, and is not returning any content. There aren't any non-private local tables on the node's database
     post:
-      summary: Creates a new table. The client only provides the schema, the worker will decide the name of the table and will return it in the response
+      summary: Creates a new table. The client only provides the schema, the node will decide the name of the table and will return it in the response
       requestBody:
         description: Create a table.
         content:
@@ -102,10 +102,10 @@ paths:
 
   /views:
     get:
-      summary: Returns a list of all view tables of the worker. Returns list of tuples [name,shema]
+      summary: Returns a list of all view tables of the node. Returns list of tuples [name,shema]
       responses:
         '200':
-          description: List of tuples [name,shema] for all views in the worker database
+          description: List of tuples [name,shema] for all views in the node database
           content:
             application/json:
               schema:
@@ -116,10 +116,10 @@ paths:
                 example1:
                   $ref: '#/components/examples/ViewInfoArray'
         '204':
-          description: The worker successfully processed the request, and is not returning any content. There aren't any view tables on the worker's database
+          description: The node successfully processed the request, and is not returning any content. There aren't any view tables on the node's database
     post:
       summary: Creates a new view
-      description: Creates a new view. The client only provides a TableView (datasets,columns,filters), the worker will decide the name of the table and return it on the response
+      description: Creates a new view. The client only provides a TableView (datasets,columns,filters), the node will decide the name of the table and return it on the response
       requestBody:
         description: Creates a new view
         content:
@@ -191,10 +191,10 @@ paths:
 
   /remoteTables:
     get:
-      summary: Returns a list of all the remote tables of the worker. Returns list of tuples [name,shema]
+      summary: Returns a list of all the remote tables of the node. Returns list of tuples [name,shema]
       responses:
         '200':
-          description: List of tuples [name,shema] for all remote tables in the worker database
+          description: List of tuples [name,shema] for all remote tables in the node database
           content:
             application/json:
               schema:
@@ -205,9 +205,9 @@ paths:
                 example1:
                   $ref: '#/components/examples/TableInfoArray'
         '204':
-          description: The worker successfully processed the request, and is not returning any content. There aren't any remote tables in the worker's database
+          description: The node successfully processed the request, and is not returning any content. There aren't any remote tables in the node's database
     post:
-      summary: Creates a remote table. (instead of providing the url of the worker's db,workers can be aliased and resolved by a dns type of service.for now the url will provided for simplicity)
+      summary: Creates a remote table. (instead of providing the url of the node's db,workers can be aliased and resolved by a dns type of service.for now the url will provided for simplicity)
       requestBody:
         required: true
         description: Creates a remote table
@@ -277,10 +277,10 @@ paths:
 
   /mergeTables:
     get:
-      summary: Returns a list of all the merge tables of the worker. Returns list of tuples [name,shema]
+      summary: Returns a list of all the merge tables of the node. Returns list of tuples [name,shema]
       responses:
         '200':
-          description: List of tuples [name,shema] for all remote tables in the worker database
+          description: List of tuples [name,shema] for all remote tables in the node database
           content:
             application/json:
               schema:
@@ -291,12 +291,12 @@ paths:
                 example1:
                   $ref: '#/components/examples/TableInfoArray'
         '204':
-          description: The worker successfully processed the request, and is not returning any content. There aren't any merge tables in the worker's database
+          description: The node successfully processed the request, and is not returning any content. There aren't any merge tables in the node's database
     post:
       summary: Creates a marge table.
       requestBody:
         required: true
-        description: Creates a merge table. The name of the table will be decided by the worker and returned in the response
+        description: Creates a merge table. The name of the table will be decided by the node and returned in the response
         content:
           application/json:
             schema:
@@ -389,10 +389,10 @@ paths:
 
   /udfs:
     get:
-      summary: Returns a list of all the User Defined Functions availiable to the worker. Returns list of tuples [name,udfHeader]
+      summary: Returns a list of all the User Defined Functions availiable to the node. Returns list of tuples [name,udfHeader]
       responses:
         '200':
-          description: List of tuples [name,shema] for all non-private tables in the worker database
+          description: List of tuples [name,shema] for all non-private tables in the node database
           content:
             application/json:
               schema:
@@ -403,7 +403,7 @@ paths:
                 example1:
                   $ref: '#/components/examples/UDFInfoArray'
         '204':
-          description: The worker successfully processed the request, and is not returning any content. There aren't any UDFs defined on the worker's database
+          description: The node successfully processed the request, and is not returning any content. There aren't any UDFs defined on the node's database
     post:
       summary: executes the udf, returns the name of the table containing the result
       requestBody:

@@ -5,7 +5,7 @@ from dataclasses_json import dataclass_json
 
 from mipengine.controller.common.algorithms_specifications import CROSSVALIDATION_ALGORITHM_NAME, \
     GenericParameterSpecification, AlgorithmSpecifications, AlgorithmsSpecifications
-from mipengine.controller.utils import Singleton
+from mipengine.controller.common.utils import Singleton
 
 INPUTDATA_PATHOLOGY_PARAMETER_NAME = "pathology"
 INPUTDATA_DATASET_PARAMETER_NAME = "dataset"

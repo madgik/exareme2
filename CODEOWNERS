@@ -6,6 +6,6 @@
 # Controller service
 /mipengine/controller/ @apmariglis @ThanKarab
 
-# Worker service
-/mipengine/worker/ @KFilippopolitis @ThanKarab
-/mipengine/worker/udf_generator/ @jassak
+# Node service
+/mipengine/node/ @KFilippopolitis @ThanKarab
+/mipengine/node/udf_generator/ @jassak

@@ -11,7 +11,7 @@ from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmS
     AlgorithmSpecificationsDTOs
 from mipengine.controller.api.errors.exceptions import BadRequest, BadUserInput
 from mipengine.controller.common.common_data_elements import CommonDataElements, CommonDataElement
-from mipengine.controller.common.worker_catalogue import WorkerCatalogue
+from mipengine.common.node_catalogue import NodeCatalogue
 
 
 def validate_algorithm(algorithm_name: str, request_body: str):
@@ -82,14 +82,14 @@ def validate_inputdata_pathology_and_dataset_values(pathology: str,
     that the datasets belong in the pathology.
     """
 
-    worker_catalogue = WorkerCatalogue()
-    if pathology not in worker_catalogue.pathologies.keys():
+    node_catalogue = NodeCatalogue()
+    if pathology not in node_catalogue.data.keys():
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
 
     if type(datasets) is not list:
         raise BadRequest(f"Datasets parameter should be a list.")
 
-    if not all(dataset in worker_catalogue.pathologies[pathology] for dataset in datasets):
+    if not all(dataset in node_catalogue.data[pathology] for dataset in datasets):
         raise BadUserInput(f"Datasets '{datasets}' do not belong in pathology '{pathology}'.")
 
 
