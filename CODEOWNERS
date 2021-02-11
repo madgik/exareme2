@@ -7,5 +7,5 @@
 /mipengine/controller/ @apmariglis @ThanKarab
 
 # Worker service
-/mipengine/worker/ @apmariglis @ThanKarab
+/mipengine/worker/ @KFilippopolitis @ThanKarab
 /mipengine/worker/udf_generator/ @jassak
