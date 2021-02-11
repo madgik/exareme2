@@ -18,7 +18,6 @@ def get_view_data(context_id: str) -> List[str]:
 
 
 def create_view(view_name: str, columns: List[str], datasets: List[str]):
-    print(f"CREATE VIEW {view_name} AS SELECT {', '.join(columns)} FROM data WHERE dataset IN ({str(datasets)[1:-1]})")
     cursor.execute(
         f"CREATE VIEW {view_name} AS SELECT {', '.join(columns)} FROM data WHERE dataset IN ({str(datasets)[1:-1]})")
     connection.commit()
@@ -38,6 +37,5 @@ def clean_up_views(context_id: str = None):
 
     tables_names = [table[0] for table in cursor]
     for name in tables_names:
-        print(f"DROP VIEW if exists sys.{name}")
         cursor.execute(f"DROP VIEW if exists sys.{name}")
     connection.commit()

@@ -3,7 +3,7 @@ from typing import List
 from celery import shared_task
 
 from mipengine.worker.monetdb_interface import merge_tables, common, tables
-from mipengine.worker.monetdb_interface.common import tables_naming_convention, config
+from mipengine.worker.monetdb_interface.common import tables_naming_convention, config, connection
 from mipengine.worker.tasks.data_classes import TableInfo, ColumnInfo
 
 

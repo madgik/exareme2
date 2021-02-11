@@ -1,14 +1,19 @@
+from typing import List
+
+from mipengine.worker.tasks.data_classes import TableInfo
+
+
 class TableCannotBeFound(Exception):
     """Exception raised for errors while retrieving a table from a database.
 
     Attributes:
-        table -- table which caused the error
+        tables -- tables which caused the error
         message -- explanation of the error
     """
 
-    def __init__(self, table):
-        self.table = table
-        self.message = f"no such table {table} in schema 'sys'"
+    def __init__(self, tables: List[str]):
+        self.tables = tables
+        self.message = f"The following tables were not found : {tables}"
         super().__init__(self.message)
 
 
@@ -20,7 +25,7 @@ class IncompatibleSchemasMergeException(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, table):
-        self.table = table
-        self.message = f"{table} to be added doesn't match MERGE TABLE schema"
+    def __init__(self, table_infos: List[TableInfo]):
+        self.table_infos = table_infos
+        self.message = f"Tables to be added doesn't match MERGE TABLE schema : {table_infos}"
         super().__init__(self.message)

@@ -140,7 +140,6 @@ def clean_up(context_id: str = None):
         f" {context_clause} "
         "system = false")
 
-    tables_names = [table[0] for table in cursor]
-    for name in tables_names:
-        cursor.execute(f"DROP TABLE if exists {name} cascade")
+    for table in cursor:
+        cursor.execute(f"DROP TABLE if exists {table[0]} cascade")
     connection.commit()

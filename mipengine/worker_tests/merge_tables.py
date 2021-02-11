@@ -52,25 +52,25 @@ pprint(f"Created merge table1. Response: \n{success_merge_table_1_name}")
 merge_tables = get_merge_tables.delay(context_id).get()
 pprint(f"Got merge tables. Response: \n{merge_tables}")
 
-print('Optional empty database its important for our sanity...')
-clean_up.delay()
+# print('Optional empty database its important for our sanity...')
+# clean_up.delay()
 
 # In order to simulate IncompatibleSchemasMergeException
-
-# incompatible_table = setup_tables_for_merge(5)
-# cursor.execute(f"ALTER TABLE {incompatible_table} DROP {'col1'};")
-# connection.commit()
 #
-# incompatible_partition_tables = [setup_tables_for_merge(1), setup_tables_for_merge(2), setup_tables_for_merge(3),
-#                                  setup_tables_for_merge(4), incompatible_table]
-# incompatible_merge_table_1_name = create_merge_table.delay(context_id, incompatible_partition_tables).get()
-# pprint(f"Created merge table1. Response: \n{incompatible_merge_table_1_name}")
+incompatible_table = setup_tables_for_merge(5)
+cursor.execute(f"ALTER TABLE {incompatible_table} DROP {'col1'};")
+connection.commit()
+
+incompatible_partition_tables = [setup_tables_for_merge(1), setup_tables_for_merge(2), setup_tables_for_merge(3),
+                                 setup_tables_for_merge(4), incompatible_table]
+incompatible_merge_table_1_name = create_merge_table.delay(context_id, incompatible_partition_tables).get()
+pprint(f"Created merge table1. Response: \n{incompatible_merge_table_1_name}")
 
 
 # In order to simulate TableCannotBeFound uncomment the following
-
+#
 # not_found_tables = [setup_tables_for_merge(1), setup_tables_for_merge(2), setup_tables_for_merge(3),
 #                     setup_tables_for_merge(4), "non_existant_table"]
-
+#
 # not_found_merge_table_1_name = create_merge_table.delay(context_id, not_found_tables).get()
 # pprint(f"Created merge table1. Response: \n{not_found_merge_table_1_name}")
