@@ -9,7 +9,7 @@ from dataclasses_json import dataclass_json
 from mipengine.controller.common.utils import Singleton
 
 # TODO How can we read all algorithm.json files without relative paths?
-RELATIVE_ALGORITHMS_PATH = "../../algorithms"
+RELATIVE_ALGORITHMS_PATH = "./mipengine/algorithms"
 CROSSVALIDATION_ALGORITHM_NAME = "crossvalidation"
 
 

@@ -6,7 +6,7 @@ from typing import List, Optional, Set, Dict
 from dataclasses_json import dataclass_json
 
 # TODO How can we read the pathologies' metadata  files without relative paths?
-RELATIVE_METADATA_PATH = "../resources/pathologies_metadata"
+RELATIVE_METADATA_PATH = "./mipengine/controller/resources/pathologies_metadata"
 
 
 @dataclass_json
@@ -69,7 +69,6 @@ class CommonDataElements:
                 group_elements.update(iterate_metadata_groups(sub_group))
             return group_elements
 
-        print(os.getcwd())
         pathology_metadata_files = [os.path.join(RELATIVE_METADATA_PATH, json_file)
                                     for json_file in os.listdir(RELATIVE_METADATA_PATH)
                                     if json_file.endswith('.json')]
