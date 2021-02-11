@@ -5,7 +5,7 @@ from typing import Dict, List
 
 from dataclasses_json import dataclass_json
 
-from mipengine.controller import config
+from mipengine.controller import resources
 from mipengine.controller.utils import Singleton
 
 
@@ -24,7 +24,7 @@ class WorkerCatalogue(metaclass=Singleton):
     pathologies: Dict[str, List[str]]
 
     def __init__(self):
-        worker_catalogue_str = pkg_resources.read_text(config, 'worker_catalogue.json')
+        worker_catalogue_str = pkg_resources.read_text(resources, 'worker_catalogue.json')
         workers_dict: Dict[str, Worker] = json.loads(worker_catalogue_str)
         self.workers = {worker_name: Worker.from_dict(worker_values)
                         for worker_name, worker_values in workers_dict.items()}

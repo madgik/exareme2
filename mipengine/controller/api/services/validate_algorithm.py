@@ -2,7 +2,7 @@ import logging
 import traceback
 from typing import Optional, Dict, Any, List
 
-from mipengine.controller.algorithms_specifications import GenericParameterSpecification
+from mipengine.controller.common.algorithms_specifications import GenericParameterSpecification
 from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequestDTO
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO, \
     InputDataSpecificationDTO, CrossValidationSpecificationsDTO, INPUTDATA_PATHOLOGY_PARAMETER_NAME, \
@@ -10,8 +10,8 @@ from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmS
     INPUTDATA_FILTERS_PARAMETER_NAME, INPUTDATA_X_PARAMETER_NAME, INPUTDATA_Y_PARAMETER_NAME, \
     AlgorithmSpecificationsDTOs
 from mipengine.controller.api.errors.exceptions import BadRequest, BadUserInput
-from mipengine.controller.common_data_elements import CommonDataElements, CommonDataElement
-from mipengine.controller.worker_catalogue import WorkerCatalogue
+from mipengine.controller.common.common_data_elements import CommonDataElements, CommonDataElement
+from mipengine.controller.common.worker_catalogue import WorkerCatalogue
 
 
 def validate_algorithm(algorithm_name: str, request_body: str):

@@ -3,7 +3,7 @@ from typing import List, Optional, Dict
 
 from dataclasses_json import dataclass_json
 
-from mipengine.controller.algorithms_specifications import CROSSVALIDATION_ALGORITHM_NAME, \
+from mipengine.controller.common.algorithms_specifications import CROSSVALIDATION_ALGORITHM_NAME, \
     GenericParameterSpecification, AlgorithmSpecifications, AlgorithmsSpecifications
 from mipengine.controller.utils import Singleton
 

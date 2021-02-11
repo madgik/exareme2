@@ -6,7 +6,7 @@ from typing import List, Optional, Set, Dict
 from dataclasses_json import dataclass_json
 
 # TODO How can we read the pathologies' metadata  files without relative paths?
-RELATIVE_METADATA_PATH = "../config/pathologies_metadata"
+RELATIVE_METADATA_PATH = "../resources/pathologies_metadata"
 
 
 @dataclass_json
