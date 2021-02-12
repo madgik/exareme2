@@ -2,15 +2,14 @@ import logging
 import os
 from dataclasses import dataclass
 from dataclasses import field
+from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
 
 from dataclasses_json import dataclass_json
-
-# TODO How can we read the pathologies' metadata  files without relative paths?
-RELATIVE_METADATA_PATH = "./mipengine/controller/resources/pathologies_metadata"
+from mipengine.controller.resources import pathologies_metadata
 
 
 @dataclass_json
@@ -73,12 +72,10 @@ class CommonDataElements:
                 group_elements.update(iterate_metadata_groups(sub_group))
             return group_elements
 
-        pathology_metadata_files = [os.path.join(RELATIVE_METADATA_PATH, json_file)
-                                    for json_file in os.listdir(RELATIVE_METADATA_PATH)
-                                    if json_file.endswith('.json')]
+        metadata_path = Path(pathologies_metadata.__file__).parent
 
         self.pathologies = {}
-        for pathology_metadata_file in pathology_metadata_files:
+        for pathology_metadata_file in metadata_path.glob('*.json'):
             try:
                 pathology_metadata = MetadataGroup.from_json(open(pathology_metadata_file).read())
                 self.pathologies[pathology_metadata.code] = iterate_metadata_groups(pathology_metadata)

@@ -2,6 +2,7 @@ import logging
 import os
 import typing
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
@@ -9,10 +10,9 @@ from typing import Optional
 
 from dataclasses_json import dataclass_json
 
+from mipengine import algorithms
 from mipengine.controller.common.utils import Singleton
 
-# TODO How can we read all algorithm.json files without relative paths?
-RELATIVE_ALGORITHMS_PATH = "./mipengine/algorithms"
 CROSSVALIDATION_ALGORITHM_NAME = "crossvalidation"
 
 
@@ -73,12 +73,10 @@ class AlgorithmsSpecifications(metaclass=Singleton):
     enabled_algorithms: Dict[str, AlgorithmSpecifications]
 
     def __init__(self):
-        algorithm_property_paths = [os.path.join(RELATIVE_ALGORITHMS_PATH, json_file)
-                                    for json_file in os.listdir(RELATIVE_ALGORITHMS_PATH)
-                                    if json_file.endswith('.json')]
+        algorithms_path = Path(algorithms.__file__).parent
 
         all_algorithms = {}
-        for algorithm_property_path in algorithm_property_paths:
+        for algorithm_property_path in algorithms_path.glob('*.json'):
             try:
                 algorithm = AlgorithmSpecifications.from_json(open(algorithm_property_path).read())
             except Exception as e:
