@@ -37,37 +37,37 @@ class InputDataSpecificationDTO:
 
 def get_pathology_parameter():
     return InputDataSpecificationDTO(
-        "Pathology of the data.txt.",
-        "The pathology that the algorithm will run on.",
-        ["text"],
-        True,
-        False,
-        None,
-        None,
+        label="Pathology of the data.",
+        desc="The pathology that the algorithm will run on.",
+        types=["text"],
+        notblank=True,
+        multiple=False,
+        stattypes=None,
+        enumslen=None,
     )
 
 
 def get_dataset_parameter():
     return InputDataSpecificationDTO(
-        "Set of data.txt to use.",
-        "The set of data.txt to run the algorithm on.",
-        ["text"],
-        True,
-        True,
-        None,
-        None,
+        label="Set of data to use.",
+        desc="The set of data to run the algorithm on.",
+        types=["text"],
+        notblank=True,
+        multiple=True,
+        stattypes=None,
+        enumslen=None,
     )
 
 
 def get_filter_parameter():
     return InputDataSpecificationDTO(
-        "Filter on the data.txt.",
-        "Features used in my algorithm.",
-        ["jsonObject"],
-        False,
-        False,
-        None,
-        None,
+        label="Filter on the data.",
+        desc="Features used in my algorithm.",
+        types=["jsonObject"],
+        notblank=False,
+        multiple=False,
+        stattypes=None,
+        enumslen=None,
     )
 
 
@@ -125,7 +125,7 @@ class AlgorithmSpecificationDTO:
             for name, parameter in algorithm.inputdata.items()
         }
 
-        # Adding the 3 "system" input data.txt parameters
+        # Adding the 3 "system" input data parameters
         self.inputdata[INPUTDATA_PATHOLOGY_PARAMETER_NAME] = get_pathology_parameter()
         self.inputdata[INPUTDATA_DATASET_PARAMETER_NAME] = get_dataset_parameter()
         self.inputdata[INPUTDATA_FILTERS_PARAMETER_NAME] = get_filter_parameter()

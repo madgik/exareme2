@@ -5,8 +5,6 @@ import requests
 
 from mipengine.tests.controller.api import algorithms_url
 
-demo_algorithm_path = "../../../algorithms/demo.json"
-
 
 def test_wrong_algorithm_name():
     logging.info("---------- TEST : POST non existing algorithm")

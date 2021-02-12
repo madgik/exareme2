@@ -55,116 +55,8 @@ components:
   schemas:
     Algorithm:
       description: All the details and properties that specify an algorithm.
-      example: {
-        "name": "ALGORITHMNAME",
-        "desc": "This is an example algorithm.",
-        "label": "My Algorithm",
-        "inputdata": {
-          "pathology": {
-            "label": "Pathology of the data.txt.",
-            "desc": "The pathology that the algorithm will run on.",
-            "types": [ "text" ],
-            "notblank": true,
-            "multiple": false
-          },
-          "dataset": {
-            "label": "Set of data.txt to use.",
-            "desc": "The set of data.txt to run the algorithm on.",
-            "types": [ "text" ],
-            "notblank": true,
-            "multiple": true
-          },
-          "filter": {
-            "label": "Filter on the data.txt.",
-            "desc": "Features used in my algorithm.",
-            "types": [ "json" ],
-            "notblank": false,
-            "multiple": false
-          },
-          "x": {
-            "label": "features",
-            "desc": "Features used in my algorithm.",
-            "types": [ "int", "real", "text" ],
-            "stattypes": [ "numerical", "nomimal" ],
-            "notblank": true,
-            "multiple": true
-          },
-          "y": {
-            "label": "target",
-            "desc": "Target variable for my algorithm.",
-            "types": [ "text", "int" ],
-            "stattypes": [ "nominal" ],
-            "enumslen": 2,
-            "notblank": true,
-            "multiple": false
-          }
-        },
-        "parameters": {
-          "my_enum_param": {
-            "label": "Some param",
-            "desc": "Example of parameter with enumerations.",
-            "type": "text",
-            "enums": [ "a", "b", "c" ],
-            "default": "a",
-            "notblank": true,
-            "multiple": false
-          },
-          "my_int_param": {
-            "label": "Some param",
-            "desc": "Example of integer param.",
-            "type": "int",
-            "default": 4,
-            "min": 2,
-            "max": 4,
-            "notblank": true,
-            "multiple": false
-          },
-          "list_param": {
-            "label": "Some param",
-            "desc": "Example of list of floats param.",
-            "type": "real",
-            "default": [ 0.8, 0.95 ],
-            "min": 0.0,
-            "max": 1.0,
-            "notblank": false,
-            "multiple": true
-          }
-        },
-        "crossvalidation": {
-          "desc": "Module for performing cross validation on supervised learning models.",
-          "label": "Cross Validation",
-          "parameters": {
-            "type": {
-              "label": "Type of cross-validation",
-              "desc": "Type of cross-validation",
-              "type": "text",
-              "enums": [ "k_fold", "leave_dataset_out" ],
-              "default": "k_fold",
-              "notblank": true,
-              "multiple": false
-            },
-            "nsplits": {
-              "label": "Number of splits",
-              "desc": "Number of splits",
-              "type": "int",
-              "min": 2,
-              "max": 20,
-              "default": 5,
-              "notblank": true,
-              "multiple": false
-            },
-            "metrics": {
-              "label": "Metrics",
-              "desc": "Cross-validation metrics.",
-              "type": "text",
-              "enums": [ "precision", "recall", "auc", "roc", "confusion_matrix", "f1_score" ],
-              "default": null,
-              "notblank": true,
-              "multiple": true
-            }
-          }
-        }
-      }
+      example:
+        $ref: '#/components/examples/Algorithm'
       type: object
       required:
         - name
@@ -196,47 +88,9 @@ components:
               $ref: '#/components/schemas/Algorithm'
 
     AlgorithmInputData:
-      description: Input parameters describing the data.txt used to fit a statistical/ML model.
-      example: {
-        "pathology": {
-          "label": "Pathology of the data.txt.",
-          "desc": "The pathology that the algorithm will run on.",
-          "types": [ "text" ],
-          "notblank": true,
-          "multiple": false
-        },
-        "dataset": {
-          "label": "Set of data.txt to use.",
-          "desc": "The set of data.txt to run the algorithm on.",
-          "types": [ "text" ],
-          "notblank": true,
-          "multiple": true
-        },
-        "filter": {
-          "label": "Filter on the data.txt.",
-          "desc": "Features used in my algorithm.",
-          "types": [ "jsonObject" ],
-          "notblank": false,
-          "multiple": false
-        },
-        "x": {
-          "label": "features",
-          "desc": "Features used in my algorithm.",
-          "types": [ "int", "real", "text" ],
-          "stattypes": [ "numerical", "nomimal" ],
-          "notblank": true,
-          "multiple": true
-        },
-        "y": {
-          "label": "target",
-          "desc": "Target variable for my algorithm.",
-          "types": [ "text", "int" ],
-          "stattypes": [ "nominal" ],
-          "enumslen": 2,
-          "notblank": true,
-          "multiple": false
-        }
-      }
+      description: Input parameters describing the data used to fit a statistical/ML model.
+      example:
+        $ref: '#/components/examples/AlgorithmInputData'
       type: object
       additionalProperties:
         type: object
@@ -276,38 +130,8 @@ components:
 
     AlgorithmParameters:
       description: Algorithm parameters controlling the fitting process.
-      example: {
-        "my_enum_param": {
-          "label": "Some param",
-          "desc": "Example of parameter with enumerations.",
-          "type": "text",
-          "inputtype": "dropdown",
-          "enums": [ "a", "b", "c" ],
-          "default": "a",
-          "notblank": true,
-          "multiple": false
-        },
-        "my_int_param": {
-          "label": "Some param",
-          "desc": "Example of integer param.",
-          "type": "int",
-          "default": 4,
-          "min": 2,
-          "max": 4,
-          "notblank": true,
-          "multiple": false
-        },
-        "list_param": {
-          "label": "Some param",
-          "desc": "Example of list of floats param.",
-          "type": "real",
-          "default": [ 0.8, 0.95 ],
-          "min": 0.0,
-          "max": 1.0,
-          "notblank": true,
-          "multiple": true
-        }
-      }
+      example: 
+        $ref: '#/components/examples/AlgorithmParameters'
       type: object
       additionalProperties:
         type: object
@@ -348,25 +172,8 @@ components:
 
     AlgorithmRequestBody:
       description: The request body of the call to run an algorithm.
-      example: {
-        "inputdata": {
-          "pathology": "dementia",
-          "dataset": [ "adni", "ppmi" ],
-          "filter": { },
-          "x": [ "lefthippocampus", "righthippocampus" ],
-          "y": [ "alzheimerbroadcategory" ]
-        },
-        "parameters": {
-          "my_enum_param": "a",
-          "my_int_param": 3,
-          "list_param": [ 0.8, 0.95 ]
-        },
-        "crossvalidation": {
-          "type": "k_fold",
-          "nsplits": 10,
-          "metrics": [ "precision","confusion_matrix" ]
-        }
-      }
+      example: 
+        $ref: '#/components/examples/AlgorithmRequestBody'
       type: object
       required:
         - inputdata
@@ -424,34 +231,250 @@ components:
 
     AlgorithmResult:
       description: The result of an algorithm execution. A dictionairy of the available visualization types, containing a list of the different visualizations. Possible MIMETypes here https://redmine.hbpmip.link/issues/186
-      example: {
-        "application/json": [
-          {
-            "single":
-              {
-                "num_datapoints": 45
-
-              }
-          },
-          {
-            "double":
-              {
-                "num_datapoints": 437
-
-              }
-          }
-        ],
-        "application/vnd.highcharts+json": [
-          {
-            "visualization": "amazing visulizaiton"
-          },
-          {
-            "visualization2": "amazing visulizaiton2"
-          }
-        ]
-      }
+      example: 
+        $ref: '#/components/examples/AlgorithmResult'
       type: object
       additionalProperties:
         type: array
         items:
           type: object
+
+  examples:
+    Algorithm:
+      value:
+        {
+            "name": "ALGORITHMNAME",
+            "desc": "This is an example algorithm.",
+            "label": "My Algorithm",
+            "inputdata": {
+              "pathology": {
+                "label": "Pathology of the data.",
+                "desc": "The pathology that the algorithm will run on.",
+                "types": [ "text" ],
+                "notblank": true,
+                "multiple": false
+              },
+              "dataset": {
+                "label": "Set of data to use.",
+                "desc": "The set of data to run the algorithm on.",
+                "types": [ "text" ],
+                "notblank": true,
+                "multiple": true
+              },
+              "filter": {
+                "label": "Filter on the data.",
+                "desc": "Features used in my algorithm.",
+                "types": [ "json" ],
+                "notblank": false,
+                "multiple": false
+              },
+              "x": {
+                "label": "features",
+                "desc": "Features used in my algorithm.",
+                "types": [ "int", "real", "text" ],
+                "stattypes": [ "numerical", "nomimal" ],
+                "notblank": true,
+                "multiple": true
+              },
+              "y": {
+                "label": "target",
+                "desc": "Target variable for my algorithm.",
+                "types": [ "text", "int" ],
+                "stattypes": [ "nominal" ],
+                "enumslen": 2,
+                "notblank": true,
+                "multiple": false
+              }
+            },
+            "parameters": {
+              "my_enum_param": {
+                "label": "Some param",
+                "desc": "Example of parameter with enumerations.",
+                "type": "text",
+                "enums": [ "a", "b", "c" ],
+                "default": "a",
+                "notblank": true,
+                "multiple": false
+              },
+              "my_int_param": {
+                "label": "Some param",
+                "desc": "Example of integer param.",
+                "type": "int",
+                "default": 4,
+                "min": 2,
+                "max": 4,
+                "notblank": true,
+                "multiple": false
+              },
+              "list_param": {
+                "label": "Some param",
+                "desc": "Example of list of floats param.",
+                "type": "real",
+                "default": [ 0.8, 0.95 ],
+                "min": 0.0,
+                "max": 1.0,
+                "notblank": false,
+                "multiple": true
+              }
+            },
+            "crossvalidation": {
+              "desc": "Module for performing cross validation on supervised learning models.",
+              "label": "Cross Validation",
+              "parameters": {
+                "type": {
+                  "label": "Type of cross-validation",
+                  "desc": "Type of cross-validation",
+                  "type": "text",
+                  "enums": [ "k_fold", "leave_dataset_out" ],
+                  "default": "k_fold",
+                  "notblank": true,
+                  "multiple": false
+                },
+                "nsplits": {
+                  "label": "Number of splits",
+                  "desc": "Number of splits",
+                  "type": "int",
+                  "min": 2,
+                  "max": 20,
+                  "default": 5,
+                  "notblank": true,
+                  "multiple": false
+                },
+                "metrics": {
+                  "label": "Metrics",
+                  "desc": "Cross-validation metrics.",
+                  "type": "text",
+                  "enums": [ "precision", "recall", "auc", "roc", "confusion_matrix", "f1_score" ],
+                  "default": null,
+                  "notblank": true,
+                  "multiple": true
+                }
+              }
+            }
+          }
+    AlgorithmInputData:
+      value:
+        {
+          "pathology": {
+            "label": "Pathology of the data.",
+            "desc": "The pathology that the algorithm will run on.",
+            "types": [ "text" ],
+            "notblank": true,
+            "multiple": false
+          },
+          "dataset": {
+            "label": "Set of data to use.",
+            "desc": "The set of data to run the algorithm on.",
+            "types": [ "text" ],
+            "notblank": true,
+            "multiple": true
+          },
+          "filter": {
+            "label": "Filter on the data.",
+            "desc": "Features used in my algorithm.",
+            "types": [ "jsonObject" ],
+            "notblank": false,
+            "multiple": false
+          },
+          "x": {
+            "label": "features",
+            "desc": "Features used in my algorithm.",
+            "types": [ "int", "real", "text" ],
+            "stattypes": [ "numerical", "nomimal" ],
+            "notblank": true,
+            "multiple": true
+          },
+          "y": {
+            "label": "target",
+            "desc": "Target variable for my algorithm.",
+            "types": [ "text", "int" ],
+            "stattypes": [ "nominal" ],
+            "enumslen": 2,
+            "notblank": true,
+            "multiple": false
+          }
+        }
+    AlgorithmParameters:
+      value:
+        {
+          "my_enum_param": {
+            "label": "Some param",
+            "desc": "Example of parameter with enumerations.",
+            "type": "text",
+            "inputtype": "dropdown",
+            "enums": [ "a", "b", "c" ],
+            "default": "a",
+            "notblank": true,
+            "multiple": false
+          },
+          "my_int_param": {
+            "label": "Some param",
+            "desc": "Example of integer param.",
+            "type": "int",
+            "default": 4,
+            "min": 2,
+            "max": 4,
+            "notblank": true,
+            "multiple": false
+          },
+          "list_param": {
+            "label": "Some param",
+            "desc": "Example of list of floats param.",
+            "type": "real",
+            "default": [ 0.8, 0.95 ],
+            "min": 0.0,
+            "max": 1.0,
+            "notblank": true,
+            "multiple": true
+          }
+        }
+    AlgorithmRequestBody:
+      value:
+        {
+          "inputdata": {
+            "pathology": "dementia",
+            "dataset": [ "adni", "ppmi" ],
+            "filter": { },
+            "x": [ "lefthippocampus", "righthippocampus" ],
+            "y": [ "alzheimerbroadcategory" ]
+          },
+          "parameters": {
+            "my_enum_param": "a",
+            "my_int_param": 3,
+            "list_param": [ 0.8, 0.95 ]
+          },
+          "crossvalidation": {
+            "type": "k_fold",
+            "nsplits": 10,
+            "metrics": [ "precision","confusion_matrix" ]
+          }
+        }
+    AlgorithmResult:
+      value:
+        {
+          "application/json": [
+            {
+              "single":
+                {
+                  "num_datapoints": 45
+  
+                }
+            },
+            {
+              "double":
+                {
+                  "num_datapoints": 437
+  
+                }
+            }
+          ],
+          "application/vnd.highcharts+json": [
+            {
+              "visualization": "amazing visulizaiton"
+            },
+            {
+              "visualization2": "amazing visulizaiton2"
+            }
+          ]
+        }
+        

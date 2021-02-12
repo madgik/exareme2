@@ -28,8 +28,8 @@ class NodeCatalogue(metaclass=Singleton):
     data: Dict[str, List[str]]
 
     def __init__(self):
-        node_catalogue_str = pkg_resources.read_text(resources, 'node_catalogue.json')
-        node_catalogue: Dict[str, Any] = json.loads(node_catalogue_str)
+        node_catalogue_content = pkg_resources.read_text(resources, 'node_catalogue.json')
+        node_catalogue: Dict[str, Any] = json.loads(node_catalogue_content)
         self.global_node = node_catalogue["globalNode"]
         self.local_nodes = {(Node.from_dict(local_node)).nodeId: Node.from_dict(local_node)
                             for local_node in node_catalogue["localNodes"]}
