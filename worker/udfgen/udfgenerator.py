@@ -17,25 +17,28 @@ UDF_REGISTER = {}
 
 
 class UDFGenerator:
-    _udftemplate = Template(
-        """CREATE OR REPLACE FUNCTION
-$func_name($input_params)
-RETURNS
-$output_expr
-LANGUAGE PYTHON
-{
-$table_defs
-$loopbacks
-$literals
+    _udf_template = Template(
+        dedent(
+            """
+            CREATE OR REPLACE FUNCTION
+            $func_name($input_params)
+            RETURNS
+            $output_expr
+            LANGUAGE PYTHON
+            {
+            $table_defs
+            $tensor_defs
+            $loopbacks
+            $literals
 
-    # method body
-$body
-$return_stmt
-};
-"""
+                # method body
+            $body
+            $return_stmt
+            };"""
+        )
     )
-    _table_tmpl = Template("return as_relational_table($return_name)")
-    _tensor_tmpl = Template("return as_tensor_table($return_name)")
+    _table_template = Template("return as_relational_table($return_name)")
+    _tensor_template = Template("return as_tensor_table($return_name)")
 
     def __init__(self, func):
         self.func = func
@@ -50,6 +53,11 @@ $return_stmt
             name
             for name, param in self.signature.parameters.items()
             if param.annotation == Table
+        ]
+        self.tensorparams = [
+            name
+            for name, param in self.signature.parameters.items()
+            if param.annotation == Tensor
         ]
         self.literalparams = [
             name
@@ -81,72 +89,113 @@ $return_stmt
         return body
 
     def to_sql(self, *args, **kwargs):
-        # verify types
-        allowed = (Table, Tensor, LiteralParameter, LoopbackTable)
-        args_are_allowed = [type(ar) in allowed for ar in args + tuple(kwargs.values())]
-        if not all(args_are_allowed):
-            msg = f"Can't convert to SQL: all arguments must have types in {allowed}"
-            raise TypeError(msg)
+        def verify_types(args, kwargs):
+            allowed = (Table, Tensor, LiteralParameter, LoopbackTable)
+            args_are_allowed = [
+                type(ar) in allowed for ar in args + tuple(kwargs.values())
+            ]
+            if not all(args_are_allowed):
+                msg = f"Can't convert to SQL: arguments must have types in {allowed}"
+                raise TypeError(msg)
 
-        # get inputs and output
-        argnames = [
-            name
-            for name in self.signature.parameters.keys()
-            if name not in kwargs.keys()
-        ]
-        inputs = dict(**dict(zip(argnames, args)), **kwargs)
+        def gather_inputs(args, kwargs):
+            argnames = [
+                name
+                for name in self.signature.parameters.keys()
+                if name not in kwargs.keys()
+            ]
+            inputs = dict(**dict(zip(argnames, args)), **kwargs)
+            return inputs
+
+        def make_declaration_input_params(inputs):
+            input_params = [
+                inputs[name].as_sql_parameters(name)
+                for name in self.tableparams + self.tensorparams
+            ]
+            input_params = ", ".join(input_params)
+            return input_params
+
+        def get_return_statement(output):
+            if type(output) == Table:
+                return_stmt = self._table_template.substitute(
+                    return_name=self.return_name
+                )
+            elif type(output) == Tensor:
+                return_stmt = self._tensor_template.substitute(
+                    return_name=self.return_name
+                )
+            else:
+                return_stmt = f"return {self.return_name}\n"
+            return return_stmt
+
+        def get_output_expression(output):
+            if type(output) == Table:
+                output_expr = output.as_sql_return_declaration(self.return_name)
+            elif type(output) == Tensor:
+                output_expr = output.as_sql_return_declaration(self.return_name)
+            else:
+                output_expr = SQLTYPES[type(output)]
+            return output_expr
+
+        def gen_table_def_code(inputs):
+            table_defs = []
+            stop = 0
+            for name in self.tableparams:
+                table = inputs[name]
+                start, stop = stop, stop + table.shape[1]
+                table_defs += [f"{name} = ArrayBundle(_columns[{start}:{stop}])"]
+            table_defs = "\n".join(table_defs)
+            return table_defs
+
+        def gen_tensor_def_code(inputs):
+            tensor_defs = []
+            stop = 0
+            for name in self.tensorparams:
+                tensor = inputs[name]
+                start, stop = stop, stop + tensor.shape[1]
+                tensor_defs += [f"{name} = from_tensor_table(_columns[{start}:{stop}])"]
+            tensor_defs = "\n".join(tensor_defs)
+            return tensor_defs
+
+        def gen_loopback_calls_code(inputs):
+            loopback_calls = []
+            for name in self.loopbackparams:
+                lpb = inputs[name]
+                loopback_calls += [
+                    f'{name} = _conn.execute("SELECT * FROM {lpb.name}")'
+                ]
+            loopback_calls = "\n".join(loopback_calls)
+            return loopback_calls
+
+        def gen_literal_def_code(inputs):
+            literal_defs = []
+            for name in self.literalparams:
+                ltr = inputs[name]
+                literal_defs += [f"{name} = {ltr.value}"]
+            literal_defs = "\n".join(literal_defs)
+            return literal_defs
+
+        verify_types(args, kwargs)
+        inputs = gather_inputs(args, kwargs)
         output = self(*args, **kwargs)
+        input_params = make_declaration_input_params(inputs)
+        return_stmt = get_return_statement(output)
+        output_expr = get_output_expression(output)
+        table_defs = gen_table_def_code(inputs)
+        tensor_defs = gen_tensor_def_code(inputs)
+        loopback_calls = gen_loopback_calls_code(inputs)
+        literal_defs = gen_literal_def_code(inputs)
 
-        # get input params expression
-        input_params = [
-            inputs[name].as_sql_parameters(name) for name in self.tableparams
-        ]
-        input_params = ", ".join(input_params)
-
-        # get return statement
-        if type(output) == Table:
-            output_expr = output.as_sql_return_declaration(self.return_name)
-            return_stmt = self._table_tmpl.substitute(return_name=self.return_name)
-        elif type(output) == Tensor:
-            output_expr = output.as_sql_return_declaration(self.return_name)
-            return_stmt = self._tensor_tmpl.substitute(return_name=self.return_name)
-        else:
-            output_expr = SQLTYPES[type(output)]
-            return_stmt = f"return {self.return_name}\n"
-
-        # gen code for ArrayBundle definitions
-        table_defs = []
-        stop = 0
-        for name in self.tableparams:
-            table = inputs[name]
-            start, stop = stop, stop + table.shape[1]
-            table_defs += [f"{name} = ArrayBundle(_columns[{start}:{stop}])"]
-        table_defs = "\n".join(table_defs)
-
-        # gen code for loopback params
-        loopback_calls = []
-        for name in self.loopbackparams:
-            lpb = inputs[name]
-            loopback_calls += [f'{name} = _conn.execute("SELECT * FROM {lpb.name}")']
-        loopback_calls = "\n".join(loopback_calls)
-
-        # gen code for literal parameters
-        literal_defs = []
-        for name in self.literalparams:
-            ltr = inputs[name]
-            literal_defs += [f"{name} = {ltr.value}"]
-        literal_defs = "\n".join(literal_defs)
-
-        # output udf code
         prfx = " " * 4
-        return self._udftemplate.substitute(
+        return self._udf_template.substitute(
             func_name=self.name,
             input_params=input_params,
             output_expr=output_expr,
-            table_defs=indent(table_defs, prfx),
-            loopbacks=indent(loopback_calls, prfx),
-            literals=indent(literal_defs, prfx),
-            body=indent(self.body, prfx),
+            table_defs=indent(table_defs or "", prfx),
+            tensor_defs=indent(tensor_defs or "", prfx),
+            loopbacks=indent(loopback_calls or "", prfx),
+            literals=indent(literal_defs or "", prfx),
+            body=indent(self.body or "", prfx),
             return_stmt=indent(return_stmt, prfx),
         )
 
@@ -204,13 +253,16 @@ def create_table(table_schema, table_rows, name=None):
 
 
 @monet_udf
-def binarize_labels(y: Table, classes: LiteralParameter) -> Table:
+def binarize_labels(y: Tensor, classes: LiteralParameter) -> Table:
     from algorithms.preprocessing import LabelBinarizer
 
     binarizer = LabelBinarizer()
     binarizer.fit(classes)
     binarized = binarizer.transform(y)
     return binarized
+
+
+print(binarize_labels.to_sql(Table(int, (10, 1)), LiteralParameter([1, 2])))
 
 
 @monet_udf
