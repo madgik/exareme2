@@ -19,3 +19,19 @@ def _(shape: tuple):
 @zeros.register
 def _(shape: LiteralParameter):
     return Tensor(dtype=float, shape=shape.value)
+
+
+@singledispatch
+def diag(vec):
+    raise NotImplementedError
+
+
+@diag.register
+def _(vec: np.ndarray):
+    return np.diag(vec)
+
+
+@diag.register
+def _(vec: Tensor):
+    assert len(vec.shape) == 1
+    return Tensor(dtype=vec.dtype, shape=(vec.shape[0], vec.shape[0]))
