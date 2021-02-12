@@ -6,16 +6,13 @@ from typing import List
 from typing import Optional
 
 from mipengine.common.node_catalogue import NodeCatalogue
+from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmInputDataDTO
 from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequestDTO
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationsDTOs
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import CrossValidationSpecificationsDTO
-from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import INPUTDATA_DATASET_PARAMETER_NAME
-from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import INPUTDATA_FILTERS_PARAMETER_NAME
-from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import INPUTDATA_PATHOLOGY_PARAMETER_NAME
-from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import INPUTDATA_X_PARAMETER_NAME
-from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import INPUTDATA_Y_PARAMETER_NAME
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import InputDataSpecificationDTO
+from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import InputDataSpecificationsDTO
 from mipengine.controller.api.errors.exceptions import BadRequest
 from mipengine.controller.api.errors.exceptions import BadUserInput
 from mipengine.controller.common.algorithms_specifications import GenericParameterSpecification
@@ -63,8 +60,8 @@ def validate_algorithm_parameters(algorithm_specs: AlgorithmSpecificationDTO,
                                         algorithm_request.crossvalidation)
 
 
-def validate_inputdata(inputdata_specs: Dict[str, InputDataSpecificationDTO],
-                       input_data: Dict[str, Any]):
+def validate_inputdata(inputdata_specs: InputDataSpecificationsDTO,
+                       input_data: AlgorithmInputDataDTO):
     """
     Validates that the:
     1) datasets/pathology exist,
@@ -75,10 +72,10 @@ def validate_inputdata(inputdata_specs: Dict[str, InputDataSpecificationDTO],
     Validates that the algorithm's input data follow the specs.
 
     """
-    validate_inputdata_pathology_and_dataset_values(input_data[INPUTDATA_PATHOLOGY_PARAMETER_NAME],
-                                                    input_data[INPUTDATA_DATASET_PARAMETER_NAME])
+    validate_inputdata_pathology_and_dataset_values(input_data.pathology,
+                                                    input_data.dataset)
 
-    validate_inputdata_filters(input_data[INPUTDATA_FILTERS_PARAMETER_NAME])
+    validate_inputdata_filters(input_data.filters)
 
     validate_inputdata_cdes(inputdata_specs,
                             input_data)
@@ -111,47 +108,52 @@ def validate_inputdata_filters(filters):
     pass
 
 
-def validate_inputdata_cdes(input_data_specs: Dict[str, InputDataSpecificationDTO],
-                            input_data: Dict[str, Any]):
+def validate_inputdata_cdes(input_data_specs: InputDataSpecificationsDTO,
+                            input_data: AlgorithmInputDataDTO):
     """
     Validates that the cdes input data (x,y) follow the specs provided
     in the algorithm specifications.
     """
 
-    for cde_parameter_name in [INPUTDATA_X_PARAMETER_NAME, INPUTDATA_Y_PARAMETER_NAME]:
-        # Validate that the cde parameters were provided, if required.
-        cde_parameter_specs = input_data_specs[cde_parameter_name]
-        if cde_parameter_specs.notblank \
-                and cde_parameter_name not in input_data.keys():
-            raise BadUserInput(f"Inputdata '{cde_parameter_name}' should be provided.")
-
-        # Continue if the cde parameter was not provided
-        if cde_parameter_name not in input_data.keys():
-            continue
-
-        cde_parameter_value = input_data[cde_parameter_name]
-        validate_inputdata_cdes_length(cde_parameter_name, cde_parameter_value, cde_parameter_specs)
-
-        pathology = input_data[INPUTDATA_PATHOLOGY_PARAMETER_NAME]
-        for cde in cde_parameter_value:
-            validate_inputdata_cde_value(cde, cde_parameter_name, cde_parameter_specs, pathology)
+    validate_inputdata_cde(input_data_specs.x, input_data.x, input_data.pathology)
+    validate_inputdata_cde(input_data_specs.y, input_data.y, input_data.pathology)
 
 
-def validate_inputdata_cdes_length(cde_parameter_name: str,
-                                   cde_parameter_value: Any,
+def validate_inputdata_cde(cde_parameter_specs: InputDataSpecificationDTO,
+                           cde_parameter_value: Optional[List[str]],
+                           pathology: str):
+    """
+    Validates that the cde, x or y,  follows the specs provided
+    in the algorithm specification.
+    """
+
+    # Validate that the cde parameters were provided, if required.
+    if cde_parameter_specs.notblank and cde_parameter_value is None:
+        raise BadUserInput(f"Inputdata '{cde_parameter_specs.label}' should be provided.")
+
+    # Continue if the cde parameter was not provided
+    if cde_parameter_value is None:
+        return
+
+    validate_inputdata_cdes_length(cde_parameter_value, cde_parameter_specs)
+
+    for cde in cde_parameter_value:
+        validate_inputdata_cde_value(cde, cde_parameter_specs, pathology)
+
+
+def validate_inputdata_cdes_length(cde_parameter_value: Any,
                                    cde_parameter_specs: InputDataSpecificationDTO):
     """
     Validate that the cde inputdata has proper list length
     """
     if type(cde_parameter_value) is not list:
-        raise BadRequest(f"Inputdata '{cde_parameter_name}' should be a list.")
+        raise BadRequest(f"Inputdata '{cde_parameter_specs.label}' should be a list.")
 
     if not cde_parameter_specs.multiple and len(cde_parameter_value) > 1:
-        raise BadUserInput(f"Inputdata '{cde_parameter_name}' cannot have multiple values.")
+        raise BadUserInput(f"Inputdata '{cde_parameter_specs.label}' cannot have multiple values.")
 
 
 def validate_inputdata_cde_value(cde: str,
-                                 cde_parameter_name: str,
                                  cde_parameter_specs: InputDataSpecificationDTO,
                                  pathology: str):
     """
@@ -163,49 +165,46 @@ def validate_inputdata_cde_value(cde: str,
     """
     pathology_cdes: Dict[str, CommonDataElement] = CommonDataElements().pathologies[pathology]
     if cde not in pathology_cdes.keys():
-        raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_name}', "
+        raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
                            f"does not exist in pathology '{pathology}'.")
 
     cde_metadata: CommonDataElement = pathology_cdes[cde]
-    validate_inputdata_cde_types(cde, cde_metadata, cde_parameter_name, cde_parameter_specs)
-    validate_inputdata_cde_stattypes(cde, cde_metadata, cde_parameter_name, cde_parameter_specs)
-    validate_inputdata_cde_enumerations(cde, cde_metadata, cde_parameter_name, cde_parameter_specs)
+    validate_inputdata_cde_types(cde, cde_metadata, cde_parameter_specs)
+    validate_inputdata_cde_stattypes(cde, cde_metadata, cde_parameter_specs)
+    validate_inputdata_cde_enumerations(cde, cde_metadata, cde_parameter_specs)
 
 
 def validate_inputdata_cde_types(cde: str,
                                  cde_metadata: CommonDataElement,
-                                 cde_parameter_name: str,
                                  cde_parameter_specs: InputDataSpecificationDTO):
     # Validate that the cde belongs in the allowed types
     if cde_metadata.sql_type not in cde_parameter_specs.types:
         # If "real" is allowed, "int" is allowed as well
         if cde_metadata.sql_type != "int" \
                 or "real" not in cde_parameter_specs.types:
-            raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_name}', "
+            raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
                                f"doesn't have one of the allowed types "
                                f"'{cde_parameter_specs.types}'.")
 
 
 def validate_inputdata_cde_stattypes(cde: str,
                                      cde_metadata: CommonDataElement,
-                                     cde_parameter_name: str,
                                      cde_parameter_specs: InputDataSpecificationDTO):
     if cde_metadata.categorical and "nominal" not in cde_parameter_specs.stattypes:
-        raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_name}', "
+        raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
                            f"should be categorical.")
 
     if not cde_metadata.categorical and "numerical" not in cde_parameter_specs.stattypes:
-        raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_name}', "
+        raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
                            f"should NOT be categorical.")
 
 
 def validate_inputdata_cde_enumerations(cde: str,
                                         cde_metadata: CommonDataElement,
-                                        cde_parameter_name: str,
                                         cde_parameter_specs: InputDataSpecificationDTO):
     if cde_parameter_specs.enumslen is not None and \
             cde_parameter_specs.enumslen != len(cde_metadata.enumerations):
-        raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_name}', "
+        raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
                            f"should have {cde_parameter_specs.enumslen} enumerations.")
 
 
