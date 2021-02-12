@@ -1,12 +1,9 @@
 import json
 import logging
-import unittest
 
 import requests
 
 from mipengine.tests.controller.api import algorithms_url
-
-demo_algorithm_path = "../../../algorithms/demo.json"
 
 
 def test_get_algorithms():
@@ -172,7 +169,3 @@ def get_demo_algorithm() -> str:
         "desc": "This is a demo algorithm."
     }
     '''
-
-
-if __name__ == "__main__":
-    unittest.main()
