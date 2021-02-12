@@ -2,7 +2,9 @@ from typing import List
 
 from celery import shared_task
 
-from mipengine.node.tasks.data_classes import UDFInfo, TableInfo, Parameter
+from mipengine.node.tasks.data_classes import Parameter
+from mipengine.node.tasks.data_classes import TableInfo
+from mipengine.node.tasks.data_classes import UDFInfo
 
 
 @shared_task

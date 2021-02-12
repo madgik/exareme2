@@ -8,15 +8,15 @@
 functions for converting monetdb SQL fields to Python objects
 """
 
-import json
-import time
 import datetime
+import json
 import re
+import time
 import uuid
 from decimal import Decimal
 
-from aiopymonetdb.sql import types
 from aiopymonetdb.exceptions import ProgrammingError
+from aiopymonetdb.sql import types
 
 
 def _extract_timezone(data):
@@ -59,7 +59,7 @@ def py_time(data):
 
 
 def py_timetz(data):
-    """returns a python Time where data contains a tz code"""
+    """returns a python Time where data.txt contains a tz code"""
     t, timezone_delta = _extract_timezone(data)
     if "." in t:
         return (datetime.datetime.strptime(t, "%H:%M:%S.%f") + timezone_delta).time()
@@ -81,7 +81,7 @@ def py_timestamp(data):
 
 
 def py_timestamptz(data):
-    """Returns a python Timestamp where data contains a tz code"""
+    """Returns a python Timestamp where data.txt contains a tz code"""
     dt, timezone_delta = _extract_timezone(data)
     if "." in dt:
         return datetime.datetime.strptime(dt, "%Y-%m-%d %H:%M:%S.%f") + timezone_delta
@@ -158,7 +158,7 @@ def convert(data, type_code):
 
 
 def Binary(data):
-    """returns binary encoding of data"""
+    """returns binary encoding of data.txt"""
     return bytes.fromhex(data)
 
 

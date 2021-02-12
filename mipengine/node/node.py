@@ -1,6 +1,6 @@
 from celery import Celery
-from mipengine.config.config_parser import Config
 
+from mipengine.node.config.config_parser import Config
 
 config = Config().config
 ip = config["rabbitmq"]["ip"]

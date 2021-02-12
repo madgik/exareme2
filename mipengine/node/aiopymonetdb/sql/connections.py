@@ -4,12 +4,13 @@
 #
 # Copyright 1997 - July 2008 CWI, August 2008 - 2016 MonetDB B.V.
 
+import asyncio
 import logging
 import platform
-import asyncio
-from aiopymonetdb.sql import cursors
+
 from aiopymonetdb import exceptions
 from aiopymonetdb import mapi_async as mapi
+from aiopymonetdb.sql import cursors
 
 logger = logging.getLogger("pymonetdb")
 
@@ -161,7 +162,7 @@ class Connection(object):
         cur = cursors.Cursor(self)
         params = [table] + attributes
         attr = await cur.execute(
-            "select columns.name from tables,columns where tables.id = columns.table_id and tables.system = false and tables.name = %s and columns.name in ("
+            "select columns.txt.name from tables,columns.txt where tables.id = columns.txt.table_id and tables.system = false and tables.name = %s and columns.txt.name in ("
             + ",".join(["%s" for x in set(attributes)])
             + ");",
             [(*params)],
@@ -170,7 +171,7 @@ class Connection(object):
         if attr != len(attributes):
             res = await cur.fetchall()
             if res == []:
-                raise Exception("Requested data does not exist in all local nodes")
+                raise Exception("Requested data.txt does not exist in all local nodes")
             raise Exception(
                 "Attributes other than "
                 + str(res)

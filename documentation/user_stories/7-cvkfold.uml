@@ -1,0 +1,22 @@
+@startuml
+actor App 
+box "Runtime"
+participant Orchestrator
+database GlobalNode
+database LocalNodes
+end box
+
+
+App -[#gray]> Orchestrator: Request:\nAlgorithm, data, filters, ...
+
+Orchestrator -[#green]-> LocalNodes: Control:\nSplit data into k batches
+loop over batches
+    ref over Orchestrator, LocalNodes, GlobalNode :Training phase using remaining k-1 batches
+    ref over Orchestrator, LocalNodes, GlobalNode :Testing phase using current batch
+end
+Orchestrator -[#green]-> GlobalNode: Control:\nCall global method for computing CV metrics
+GlobalNode -[#red]> Orchestrator: Data Transfer:\nCV metrics
+
+Orchestrator -[#gray]> App: Response:\nFinal result
+@enduml
+

@@ -12,7 +12,7 @@ http://www.monetdb.org/Documentation/Manuals/SQLreference/Datatypes
 CHAR = "char"  # (L) character string with length L
 VARCHAR = "varchar"  # (L) string with atmost length L
 CLOB = "clob"  # string with no limit on size
-BLOB = "blob"  # binary data
+BLOB = "blob"  # binary data.txt
 
 TINYINT = "tinyint"  # 8 bit integer
 SMALLINT = "smallint"  # 16 bit integer

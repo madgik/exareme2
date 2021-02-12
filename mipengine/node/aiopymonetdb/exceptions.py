@@ -12,7 +12,7 @@ StandardError = Exception
 
 
 class Warning(StandardError):
-    """Exception raised for important warnings like data
+    """Exception raised for important warnings like data.txt
     truncations while inserting, etc. It must be a subclass of
     the Python StandardError (defined in the module
     exceptions)."""
@@ -48,7 +48,7 @@ class DatabaseError(Error):
 
 class DataError(DatabaseError):
     """Exception raised for errors that are due to problems with
-    the processed data like division by zero, numeric value
+    the processed data.txt like division by zero, numeric value
     out of range, etc. It must be a subclass of DatabaseError."""
 
     pass
@@ -58,7 +58,7 @@ class OperationalError(DatabaseError):
     """Exception raised for errors that are related to the
     database's operation and not necessarily under the control
     of the programmer, e.g. an unexpected disconnect occurs,
-    the data source name is not found, a transaction could not
+    the data.txt source name is not found, a transaction could not
     be processed, a memory allocation error occurred during
     processing, etc.  It must be a subclass of DatabaseError."""
 

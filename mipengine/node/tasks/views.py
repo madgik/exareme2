@@ -1,10 +1,13 @@
 import json
 from typing import List
+
 from celery import shared_task
 
-from mipengine.node.monetdb_interface import views, common
-from mipengine.node.monetdb_interface.common import tables_naming_convention, config
-from mipengine.node.tasks.data_classes import TableInfo, TableData, ColumnInfo
+from mipengine.node.monetdb_interface import views
+from mipengine.node.monetdb_interface.common import config
+from mipengine.node.monetdb_interface.common import tables_naming_convention
+from mipengine.node.tasks.data_classes import ColumnInfo
+from mipengine.node.tasks.data_classes import TableData
 
 
 @shared_task
@@ -26,12 +29,13 @@ def get_view_data(view_name: str) -> TableData:
 
 
 @shared_task
-def create_view(context_Id: str, columns: List[str], datasets: List[str]) -> str:
+def create_view(context_Id: str, columns: str, datasets: str) -> str:
     view_name = tables_naming_convention("view", context_Id, config["node"]["identifier"])
-    views.create_view(view_name, columns, datasets)
+    views.create_view(view_name, json.loads(columns), json.loads(datasets))
     return view_name.lower()
 
 
 @shared_task
 def clean_up(context_Id: str = None):
     views.clean_up_views(context_Id)
+    return 0

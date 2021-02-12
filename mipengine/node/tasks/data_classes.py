@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import List, Union
+from typing import List
+from typing import Union
 
 from dataclasses_json import dataclass_json
 
@@ -12,7 +13,7 @@ class ColumnInfo:
 
     def __init__(self, name, type):
         self.name = name
-        allowed_types = {"int", "text", "float", "bool"}
+        allowed_types = {"int", "text", "float", "bool", "clob"}
         if str.lower(type) in allowed_types:
             self.type = str.lower(type)
         else:

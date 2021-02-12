@@ -1,10 +1,14 @@
 import json
 from typing import List
+
 from celery import shared_task
 
-from mipengine.node.monetdb_interface import merge_tables, common, tables
-from mipengine.node.monetdb_interface.common import tables_naming_convention, config, connection
-from mipengine.node.tasks.data_classes import TableInfo, ColumnInfo
+from mipengine.node.monetdb_interface import common
+from mipengine.node.monetdb_interface import merge_tables
+from mipengine.node.monetdb_interface import tables
+from mipengine.node.monetdb_interface.common import config
+from mipengine.node.monetdb_interface.common import tables_naming_convention
+from mipengine.node.tasks.data_classes import TableInfo
 
 
 @shared_task
@@ -13,7 +17,8 @@ def get_merge_tables(context_id: str) -> List[str]:
 
 
 @shared_task
-def create_merge_table(context_Id: str, partition_tables_names: List[str]) -> str:
+def create_merge_table(context_Id: str, partition_tables_names_json: str) -> str:
+    partition_tables_names = json.loads(partition_tables_names_json)
     merge_table_name = tables_naming_convention("merge", context_Id, config["node"]["identifier"])
     schema = tables.get_table_schema(partition_tables_names[0])
     table_info = TableInfo(merge_table_name.lower(), schema)
@@ -25,3 +30,4 @@ def create_merge_table(context_Id: str, partition_tables_names: List[str]) -> st
 @shared_task
 def clean_up(context_Id: str = None):
     common.clean_up(context_Id)
+    return 0

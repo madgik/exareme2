@@ -6,11 +6,16 @@
 
 import logging
 from collections import namedtuple
-from typing import Optional, Dict
-from aiopymonetdb.sql.debug import debug, export
-from aiopymonetdb.sql import monetize, pythonize
-from aiopymonetdb.exceptions import ProgrammingError, InterfaceError
+from typing import Dict
+from typing import Optional
+
 from aiopymonetdb import mapi_async
+from aiopymonetdb.exceptions import InterfaceError
+from aiopymonetdb.exceptions import ProgrammingError
+from aiopymonetdb.sql import monetize
+from aiopymonetdb.sql import pythonize
+from aiopymonetdb.sql.debug import debug
+from aiopymonetdb.sql.debug import export
 
 logger = logging.getLogger("pymonetdb")
 
@@ -216,7 +221,7 @@ class Cursor(object):
     def debug(self, query, fname, sample=-1):
         """Locally debug a given Python UDF function in a SQL query
         using the PDB debugger. Optionally can run on only a
-        sample of the input data, for faster data export.
+        sample of the input data.txt, for faster data.txt export.
         """
         debug(self, query, fname, sample)
 
@@ -225,7 +230,7 @@ class Cursor(object):
 
     def fetchone(self):
         """Fetch the next row of a query result set, returning a
-        single sequence, or None when no more data is available."""
+        single sequence, or None when no more data.txt is available."""
 
         self._check_executed()
 
@@ -349,7 +354,7 @@ class Cursor(object):
 
     def setoutputsize(self, size, column=None):
         """
-        Set a column buffer size for fetches of large columns
+        Set a column buffer size for fetches of large columns.txt
         This implementation doesn't use this
         """
         pass
@@ -386,13 +391,13 @@ class Cursor(object):
             elif line.startswith(mapi_async.MSG_QTABLE):
                 self._query_id, rowcount, columns, tuples = line[2:].split()[:4]
 
-                columns = int(columns)  # number of columns in result
+                columns = int(columns)  # number of columns.txt in result
                 self.rowcount = int(rowcount)  # total number of rows
                 # tuples = int(tuples)     # number of rows in this set
                 self._rows = []
 
                 # set up fields for description
-                # table_name = [None] * columns
+                # table_name = [None] * columns.txt
                 column_name = [None] * columns
                 type_ = [None] * columns
                 display_size = [None] * columns
@@ -400,7 +405,7 @@ class Cursor(object):
                 precision = [None] * columns
                 scale = [None] * columns
                 null_ok = [None] * columns
-                # typesizes = [(0, 0)] * columns
+                # typesizes = [(0, 0)] * columns.txt
 
                 self._offset = 0
                 self.lastrowid = None
@@ -490,7 +495,7 @@ class Cursor(object):
 
     def _parse_tuple(self, line):
         """
-        parses a mapi data tuple, and returns a list of python types
+        parses a mapi data.txt tuple, and returns a list of python types
         """
         elements = line[1:-1].split(",\t")
         if len(elements) == len(self.description):

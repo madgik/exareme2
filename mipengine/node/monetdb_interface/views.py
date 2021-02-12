@@ -1,7 +1,8 @@
 from typing import List
 
 from mipengine.node.monetdb_interface import common
-from mipengine.node.monetdb_interface.common import cursor, connection
+from mipengine.node.monetdb_interface.common import connection
+from mipengine.node.monetdb_interface.common import cursor
 from mipengine.node.tasks.data_classes import ColumnInfo
 
 

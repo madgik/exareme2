@@ -7,25 +7,22 @@ This is the python implementation of the mapi protocol.
 #
 # Copyright 1997 - July 2008 CWI, August 2008 - 2016 MonetDB B.V.
 
-import socket
 import asyncio
-import logging
-import struct
-from aiopymonetdb.sql import monetize, pythonize
 import hashlib
+import logging
 import re
-
-import os
-from six import BytesIO, PY3
+import socket
+import struct
 from typing import Optional
 
-from pymonetdb.exceptions import (
-    OperationalError,
-    DatabaseError,
-    ProgrammingError,
-    NotSupportedError,
-    IntegrityError,
-)
+from aiopymonetdb.sql import monetize
+from pymonetdb.exceptions import DatabaseError
+from pymonetdb.exceptions import IntegrityError
+from pymonetdb.exceptions import NotSupportedError
+from pymonetdb.exceptions import OperationalError
+from pymonetdb.exceptions import ProgrammingError
+from six import BytesIO
+from six import PY3
 
 lock = asyncio.Lock()
 logger = logging.getLogger(__name__)

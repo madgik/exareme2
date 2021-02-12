@@ -1,10 +1,11 @@
-import pickle
-import tempfile
-import re
 import pdb
-from past.builtins import execfile  # type: ignore
-from typing import Any, TYPE_CHECKING
+import pickle
+import re
+import tempfile
+from typing import Any
+from typing import TYPE_CHECKING
 
+from past.builtins import execfile  # type: ignore
 
 if TYPE_CHECKING:
     from pymonetdb.sql.cursors import Cursor
@@ -61,7 +62,7 @@ def debug(cursor, query, fname, sample=-1):
     # type: (Cursor, str, str, int) -> Any
     """Locally debug a given Python UDF function in a SQL query
     using the PDB debugger. Optionally can run on only a
-    sample of the input data, for faster data export.
+    sample of the input data.txt, for faster data.txt export.
     """
 
     # first gather information about the function
@@ -91,7 +92,7 @@ def debug(cursor, query, fname, sample=-1):
     fcode = data[0][0]
     ftype = data[0][1]
 
-    # now obtain the input columns
+    # now obtain the input columns.txt
     arguments = exportparameters(cursor, ftype, fname, query, len(input_types), sample)
 
     arglist = "_columns, _column_types, _conn"
@@ -199,7 +200,7 @@ def exportparameters(cursor, ftype, fname, query, quantity_parameters, sample):
     input_data = cursor.fetchall()
     cursor.execute("DROP FUNCTION export_parameters;")
     if len(input_data) <= 0:
-        raise Exception("Could not load input data!")
+        raise Exception("Could not load input data.txt!")
 
     arguments = pickle.loads(input_data[0][0])
 
@@ -233,7 +234,7 @@ def export(cursor, query, fname, sample=-1, filespath="./"):
     )
     input_names = cursor.fetchall()
     quantity_parameters = len(input_names)
-    # fcode = data[0][0]
+    # fcode = data.txt[0][0]
     ftype = data[0][1]
     parameter_list = []
     # exporting Python UDF Function

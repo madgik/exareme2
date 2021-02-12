@@ -1,0 +1,46 @@
+{
+  "name": "crossvalidation",
+  "desc": "Module for performing cross validation on supervised learning models.",
+  "label": "Cross Validation",
+  "enabled": true,
+  "parameters": {
+    "type": {
+      "label": "Type of cross-validation",
+      "desc": "Type of cross-validation",
+      "type": "text",
+      "enums": [
+        "k_fold",
+        "leave_dataset_out"
+      ],
+      "default": "k_fold",
+      "notblank": true,
+      "multiple": false
+    },
+    "nsplits": {
+      "label": "Number of splits",
+      "desc": "Number of splits",
+      "type": "int",
+      "min": 2,
+      "max": 20,
+      "default": 5,
+      "notblank": true,
+      "multiple": false
+    },
+    "metrics": {
+      "label": "Metrics",
+      "desc": "Cross-validation metrics.",
+      "type": "text",
+      "enums": [
+        "precision",
+        "recall",
+        "auc",
+        "roc",
+        "confusion_matrix",
+        "f1_score"
+      ],
+      "default": null,
+      "notblank": true,
+      "multiple": true
+    }
+  }
+}

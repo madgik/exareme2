@@ -1,10 +1,15 @@
 import json
 from typing import List
+
 from celery import shared_task
 
-from mipengine.node.monetdb_interface import tables, common
-from mipengine.node.monetdb_interface.common import tables_naming_convention, config
-from mipengine.node.tasks.data_classes import TableInfo, TableData, ColumnInfo
+from mipengine.node.monetdb_interface import common
+from mipengine.node.monetdb_interface import tables
+from mipengine.node.monetdb_interface.common import config
+from mipengine.node.monetdb_interface.common import tables_naming_convention
+from mipengine.node.tasks.data_classes import ColumnInfo
+from mipengine.node.tasks.data_classes import TableData
+from mipengine.node.tasks.data_classes import TableInfo
 
 
 @shared_task
@@ -26,8 +31,8 @@ def get_table_data(table_name: str) -> TableData:
 
 
 @shared_task
-def create_table(context_Id: str, schema: List[ColumnInfo]) -> str:
-    schema_object = ColumnInfo.schema().load(schema, many=True)
+def create_table(context_Id: str, schema: str) -> str:
+    schema_object = ColumnInfo.schema().loads(schema, many=True)
     table_name = tables_naming_convention("table", context_Id, config["node"]["identifier"])
     table_info = TableInfo(table_name.lower(), schema_object)
     tables.create_table(table_info)
@@ -37,3 +42,4 @@ def create_table(context_Id: str, schema: List[ColumnInfo]) -> str:
 @shared_task
 def clean_up(context_Id: str = None):
     common.clean_up(context_Id)
+    return 0

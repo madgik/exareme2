@@ -1,0 +1,21 @@
+@startuml
+actor App 
+box "Runtime"
+participant Orchestrator
+database GlobalNode
+database LocalNodes
+end box
+
+App -[#gray]> Orchestrator: Request:\nAlgorithm, data,\nfilters, transformation
+
+Orchestrator -[#green]-> LocalNodes: Control:\nTransformation: local step
+LocalNodes -[#red]> GlobalNode: Transfer:\nLocal transformation output
+Orchestrator -[#green]-> GlobalNode: Control:\nTransformation: global step
+GlobalNode -[#red]> LocalNodes: Transfer:\nGlobal transformation
+LocalNodes -[#blue]> LocalNodes: Transform:\nCreate new table,\n\tview, ...
+ref over Orchestrator, LocalNodes, GlobalNode : Algorithm
+
+Orchestrator -[#gray]> App: Response:\nFinal result
+@enduml
+
+

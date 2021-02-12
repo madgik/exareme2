@@ -1,11 +1,13 @@
-from typing import List, Union
+from typing import List
+from typing import Union
 
 import pymonetdb
 from pymonetdb.sql.cursors import Cursor
 
 # TODO What's the max text value we need?
-from mipengine.config.config_parser import Config
-from mipengine.node.tasks.data_classes import TableInfo, ColumnInfo
+from mipengine.node.config.config_parser import Config
+from mipengine.node.tasks.data_classes import ColumnInfo
+from mipengine.node.tasks.data_classes import TableInfo
 
 MONETDB_VARCHAR_SIZE = 50
 
@@ -73,6 +75,7 @@ def convert_from_monetdb_column_type(column_type: str) -> str:
         "double": "FLOAT",
         "varchar": "TEXT",
         "bool": "BOOL",
+        "clob": "CLOB",
     }[str.lower(column_type)]
 
     if column_type not in type_mapping.keys():
@@ -120,6 +123,12 @@ def convert_table_info_to_sql_query_format(table_info: TableInfo):
 
 
 def get_table_data(table_type: str, table_name: str) -> List[List[Union[str, int, float, bool]]]:
+    print(
+        f"SELECT {table_name}.* "
+        f"FROM {table_name} "
+        f"INNER JOIN tables ON tables.name = '{table_name}' "
+        f"WHERE tables.system=false "
+        f"AND tables.type = {str(get_table_type_enumeration_value(table_type))}")
     cursor.execute(
         f"SELECT {table_name}.* "
         f"FROM {table_name} "

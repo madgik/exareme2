@@ -3,8 +3,11 @@
 
 import asyncio
 import collections
+
 from aiopymonetdb import connect
-from .utils import _PoolContextManager, _PoolConnectionContextManager
+
+from .utils import _PoolConnectionContextManager
+from .utils import _PoolContextManager
 
 __all__ = ["create_pool", "Pool"]
 
