@@ -1,6 +1,6 @@
 {
   "globalNode": {
-    "nodeId": "global",
+    "nodeId": "global_node",
     "rabbitmqURL": "127.0.0.1:5672",
     "monetdbURL": "127.0.0.1:50000"
   },
@@ -10,8 +10,13 @@
       "rabbitmqURL": "127.0.0.1:5672",
       "monetdbURL": "127.0.0.1:50000",
       "data": {
-        "dementia": [
-          "adni"
+        "pathologies": [
+          {
+            "name": "dementia",
+            "datasets": [
+              "adni"
+            ]
+          }
         ]
       }
     },
@@ -20,11 +25,19 @@
       "rabbitmqURL": "127.0.0.1:5672",
       "monetdbURL": "127.0.0.1:50000",
       "data": {
-        "mentalhealth": [
-          "mentalhealth_demo"
-        ],
-        "tbi": [
-          "tbi_demo2"
+        "pathologies": [
+          {
+            "name": "mentalhealth",
+            "datasets": [
+              "mentalhealth_demo"
+            ]
+          },
+          {
+            "name": "tbi",
+            "datasets": [
+              "tbi_demo2"
+            ]
+          }
         ]
       }
     },
@@ -33,12 +46,20 @@
       "rabbitmqURL": "127.0.0.1:5672",
       "monetdbURL": "127.0.0.1:50000",
       "data": {
-        "tbi": [
-          "demo1"
-        ],
-        "dementia_longitudinal": [
-          "fake_longitudinal",
-          "alzheimer_fake_cohort"
+        "pathologies": [
+          {
+            "name": "tbi",
+            "datasets": [
+              "demo1"
+            ]
+          },
+          {
+            "name": "dementia_longitudinal",
+            "datasets": [
+              "fake_longitudinal",
+              "alzheimer_fake_cohort"
+            ]
+          }
         ]
       }
     }
