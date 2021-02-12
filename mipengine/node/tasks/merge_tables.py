@@ -1,8 +1,8 @@
-from typing import Tuple, List
+from typing import List
 
 from celery import shared_task
-
-from tasks.tables import TableInfo, TableData
+from tasks.tables import TableData
+from tasks.tables import TableInfo
 
 
 @shared_task

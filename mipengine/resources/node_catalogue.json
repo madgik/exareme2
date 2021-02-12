@@ -1,0 +1,46 @@
+{
+  "globalNode": {
+    "nodeId": "global",
+    "rabbitmqURL": "127.0.0.1:5672",
+    "monetdbURL": "127.0.0.1:50000"
+  },
+  "localNodes": [
+    {
+      "nodeId": "local_node_1",
+      "rabbitmqURL": "127.0.0.1:5672",
+      "monetdbURL": "127.0.0.1:50000",
+      "data": {
+        "dementia": [
+          "adni"
+        ]
+      }
+    },
+    {
+      "nodeId": "local_node_2",
+      "rabbitmqURL": "127.0.0.1:5672",
+      "monetdbURL": "127.0.0.1:50000",
+      "data": {
+        "mentalhealth": [
+          "mentalhealth_demo"
+        ],
+        "tbi": [
+          "tbi_demo2"
+        ]
+      }
+    },
+    {
+      "nodeId": "local_node_3",
+      "rabbitmqURL": "127.0.0.1:5672",
+      "monetdbURL": "127.0.0.1:50000",
+      "data": {
+        "tbi": [
+          "demo1"
+        ],
+        "dementia_longitudinal": [
+          "fake_longitudinal",
+          "alzheimer_fake_cohort"
+        ]
+      }
+    }
+  ]
+}

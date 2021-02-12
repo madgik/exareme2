@@ -1,11 +1,11 @@
 # CodeOwners
 
 # Algorithms
-/algorithms/ @jassak
+/mipengine/algorithms/ @jassak
 
 # Controller service
-/controller/ @apmariglis @ThanKarab
+/mipengine/controller/ @apmariglis @ThanKarab
 
-# Worker service
-/worker/ @apmariglis @ThanKarab
-/worker/udf_generator/ @jassak
+# Node service
+/mipengine/node/ @KFilippopolitis @ThanKarab
+/mipengine/node/udf_generator/ @jassak

@@ -1,6 +1,6 @@
 from enum import Enum
-
-from typing import List, Union
+from typing import List
+from typing import Union
 
 from celery import shared_task
 
