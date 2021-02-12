@@ -2,7 +2,10 @@ import logging
 import os
 import typing
 from dataclasses import dataclass
-from typing import List, Dict, Optional, Any
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
 
 from dataclasses_json import dataclass_json
 

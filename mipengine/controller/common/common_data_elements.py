@@ -1,7 +1,11 @@
 import logging
 import os
-from dataclasses import dataclass, field
-from typing import List, Optional, Set, Dict
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Set
 
 from dataclasses_json import dataclass_json
 

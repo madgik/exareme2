@@ -1,11 +1,13 @@
 import logging
 import traceback
 
-from quart import request, Blueprint
+from quart import Blueprint
+from quart import request
 
-from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO, \
-    AlgorithmSpecificationsDTOs
-from mipengine.controller.api.errors.exceptions import BadRequest, BadUserInput
+from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO
+from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationsDTOs
+from mipengine.controller.api.errors.exceptions import BadRequest
+from mipengine.controller.api.errors.exceptions import BadUserInput
 from mipengine.controller.api.services.validate_algorithm import validate_algorithm
 
 algorithms = Blueprint('algorithms_endpoint', __name__)

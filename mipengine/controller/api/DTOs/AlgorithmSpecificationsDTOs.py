@@ -1,10 +1,14 @@
 from dataclasses import dataclass
-from typing import List, Optional, Dict
+from typing import Dict
+from typing import List
+from typing import Optional
 
 from dataclasses_json import dataclass_json
 
-from mipengine.controller.common.algorithms_specifications import CROSSVALIDATION_ALGORITHM_NAME, \
-    GenericParameterSpecification, AlgorithmSpecifications, AlgorithmsSpecifications
+from mipengine.controller.common.algorithms_specifications import AlgorithmSpecifications
+from mipengine.controller.common.algorithms_specifications import AlgorithmsSpecifications
+from mipengine.controller.common.algorithms_specifications import CROSSVALIDATION_ALGORITHM_NAME
+from mipengine.controller.common.algorithms_specifications import GenericParameterSpecification
 from mipengine.controller.common.utils import Singleton
 
 INPUTDATA_PATHOLOGY_PARAMETER_NAME = "pathology"
