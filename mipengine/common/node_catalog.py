@@ -45,14 +45,14 @@ class Nodes:
 
 @dataclass_json
 @dataclass
-class NodeCatalogue(metaclass=Singleton):
+class NodeCatalog(metaclass=Singleton):
     _nodes: Nodes
     _datasets: Dict[str, List[str]]
     _nodes_per_dataset: Dict[str, List[LocalNode]]
 
     def __init__(self):
-        node_catalogue_content = pkg_resources.read_text(resources, 'node_catalogue.json')
-        self._nodes: Nodes = Nodes.from_json(node_catalogue_content)
+        node_catalog_content = pkg_resources.read_text(resources, 'node_catalog.json')
+        self._nodes: Nodes = Nodes.from_json(node_catalog_content)
 
         self._datasets = {}
         for local_node in self._nodes.localNodes:
@@ -71,14 +71,24 @@ class NodeCatalogue(metaclass=Singleton):
                     else:
                         self._nodes_per_dataset[dataset].append(local_node)
 
-    def pathology_exists(self, pathology: str):
+    def pathology_exists(self, pathology: str) -> bool:
         return pathology in self._datasets.keys()
 
-    def dataset_exists(self, pathology: str, dataset: str):
+    def dataset_exists(self, pathology: str, dataset: str) -> bool:
         return dataset in self._datasets[pathology]
 
-    def get_nodes_with_datasets(self, datasets: List[str]):
+    def get_nodes_with_datasets(self, datasets: List[str]) -> List[List[LocalNode]]:
+        """
+        Returns a List containing the LocalNodes ( List[LocalNode] ) that each
+        dataset exists in.
+        """
         return [self._nodes_per_dataset[dataset] for dataset in datasets]
 
+    def get_global_node(self) -> GlobalNode:
+        return self._nodes.globalNode
 
-NodeCatalogue()
+    def get_local_nodes(self) -> List[LocalNode]:
+        return self._nodes.localNodes
+
+
+NodeCatalog()

@@ -5,7 +5,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.common.node_catalogue import NodeCatalogue
+from mipengine.common.node_catalog import NodeCatalog
 from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmInputDataDTO
 from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequestDTO
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO
@@ -88,14 +88,14 @@ def validate_inputdata_pathology_and_dataset_values(pathology: str,
     that the datasets belong in the pathology.
     """
 
-    node_catalogue = NodeCatalogue()
-    if not node_catalogue.pathology_exists(pathology):
+    node_catalog = NodeCatalog()
+    if not node_catalog.pathology_exists(pathology):
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
 
     if type(datasets) is not list:
         raise BadRequest(f"Datasets parameter should be a list.")
 
-    if not all(node_catalogue.dataset_exists(pathology, dataset) for dataset in datasets):
+    if not all(node_catalog.dataset_exists(pathology, dataset) for dataset in datasets):
         raise BadUserInput(f"Datasets '{datasets}' do not belong in pathology '{pathology}'.")
 
 
