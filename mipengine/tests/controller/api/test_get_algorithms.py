@@ -105,7 +105,7 @@ def get_demo_algorithm() -> str:
                 "label": "Pathology of the data.",
                 "desc": "The pathology that the algorithm will run on."
             },
-            "dataset":
+            "datasets":
             {
                 "types": ["text"],
                 "stattypes": null,
@@ -122,7 +122,7 @@ def get_demo_algorithm() -> str:
                 "multiple": false,
                 "enumslen": null,
                 "notblank": false,
-                "label": "Filter on the data.",
+                "label": "filter on the data.",
                 "desc": "Features used in my algorithm."
             }
         },

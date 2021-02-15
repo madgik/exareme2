@@ -119,7 +119,7 @@ paths:
           description: The node successfully processed the request, and is not returning any content. There aren't any view tables on the node's database
     post:
       summary: Creates a new view
-      description: Creates a new view. The client only provides a TableView (datasets,columns,filters), the node will decide the name of the table and return it on the response
+      description: Creates a new view. The client only provides a TableView (datasets,columns,filter), the node will decide the name of the table and return it on the response
       requestBody:
         description: Creates a new view
         content:
@@ -549,9 +549,9 @@ components:
           example: [ 'lefthippocampus', 'righthippocampus' ]
           items:
             type: string
-        filters:
+        filter:
           description: |
-            'Some filters to limit the view'
+            'Some filter to limit the view'
             'Follows the jquery builder model: https://querybuilder.js.org/demo.html'
           type: object
 
@@ -590,7 +590,7 @@ components:
       value: [ { "name": "tableName8","schema": [ "c1 INT", "c2 TEXT" ] }, { "name": "tableName4","schema": [ "c1 FLOAT","c2 BOOLEAN","c3 FLOAT" ] }, { "name": "tableName34","schema": [ "c1 TEXT","c2 BOOLEAN" ] } ]
 
     ViewTable:
-      value: { "datasets": [ "adni", "ppmi" ], "columns": [ "lefthippocampus", "righthippocampus" ], "filters": [ "righthippocampus>1.6" ] }
+      value: { "datasets": [ "adni", "ppmi" ], "columns": [ "lefthippocampus", "righthippocampus" ], "filter": [ "righthippocampus>1.6" ] }
     ViewInfo:
       value: { "name": "viewName1","schema": [ "lefthippocampus FLOAT","righthippocampus FLOAT" ] }
     ViewData:

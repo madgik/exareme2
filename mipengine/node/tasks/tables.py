@@ -24,10 +24,10 @@ class TableInfo:
 
 
 class TableView:
-    def __init__(self, datasets, columns, filters):
+    def __init__(self, datasets, columns, filter):
         self.datasets: List[str] = datasets
         self.columns: List[str] = columns
-        self.filters = filters
+        self.filter = filter
 
 
 class TableData:

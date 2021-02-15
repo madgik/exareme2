@@ -183,11 +183,11 @@ components:
           type: object
           required:
             - pathology
-            - dataset
+            - datasets
           properties:
             pathology:
               type: string
-            dataset:
+            datasets:
               type: array
               items:
                 type: string
@@ -254,7 +254,7 @@ components:
                 "notblank": true,
                 "multiple": false
               },
-              "dataset": {
+              "datasets": {
                 "label": "Set of data to use.",
                 "desc": "The set of data to run the algorithm on.",
                 "types": [ "text" ],
@@ -262,7 +262,7 @@ components:
                 "multiple": true
               },
               "filter": {
-                "label": "Filter on the data.",
+                "label": "filter on the data.",
                 "desc": "Features used in my algorithm.",
                 "types": [ "json" ],
                 "notblank": false,
@@ -362,7 +362,7 @@ components:
             "notblank": true,
             "multiple": false
           },
-          "dataset": {
+          "datasets": {
             "label": "Set of data to use.",
             "desc": "The set of data to run the algorithm on.",
             "types": [ "text" ],
@@ -370,7 +370,7 @@ components:
             "multiple": true
           },
           "filter": {
-            "label": "Filter on the data.",
+            "label": "filter on the data.",
             "desc": "Features used in my algorithm.",
             "types": [ "jsonObject" ],
             "notblank": false,
@@ -433,7 +433,7 @@ components:
         {
           "inputdata": {
             "pathology": "dementia",
-            "dataset": [ "adni", "ppmi" ],
+            "datasets": [ "adni", "ppmi" ],
             "filter": { },
             "x": [ "lefthippocampus", "righthippocampus" ],
             "y": [ "alzheimerbroadcategory" ]

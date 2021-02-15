@@ -4,8 +4,8 @@
 /mipengine/algorithms/ @jassak
 
 # Controller service
-/mipengine/controller/ @apmariglis @ThanKarab
+/mipengine/controller/ @apmariglis @ThanKarab @jassak
 
 # Node service
-/mipengine/node/ @KFilippopolitis @ThanKarab
+/mipengine/node/ @KFilippopolitis @ThanKarab @jassak
 /mipengine/node/udf_generator/ @jassak
