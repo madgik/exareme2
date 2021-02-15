@@ -199,7 +199,7 @@ components:
               type: array
               items:
                 type: string
-            filters:
+            filter:
               type: object
               description: A jquery builder object, https://querybuilder.js.org/demo.html , using the x and y variables given.
         parameters:
@@ -261,8 +261,8 @@ components:
                 "notblank": true,
                 "multiple": true
               },
-              "filters": {
-                "label": "Filters on the data.",
+              "filter": {
+                "label": "filter on the data.",
                 "desc": "Features used in my algorithm.",
                 "types": [ "json" ],
                 "notblank": false,
@@ -369,8 +369,8 @@ components:
             "notblank": true,
             "multiple": true
           },
-          "filters": {
-            "label": "Filters on the data.",
+          "filter": {
+            "label": "filter on the data.",
             "desc": "Features used in my algorithm.",
             "types": [ "jsonObject" ],
             "notblank": false,
@@ -434,7 +434,7 @@ components:
           "inputdata": {
             "pathology": "dementia",
             "datasets": [ "adni", "ppmi" ],
-            "filters": { },
+            "filter": { },
             "x": [ "lefthippocampus", "righthippocampus" ],
             "y": [ "alzheimerbroadcategory" ]
           },

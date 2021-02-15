@@ -39,7 +39,7 @@ class InputDataSpecificationsDTO:
     """
     pathology: InputDataSpecificationDTO
     datasets: InputDataSpecificationDTO
-    filters: InputDataSpecificationDTO
+    filter: InputDataSpecificationDTO
     x: Optional[InputDataSpecificationDTO] = None
     y: Optional[InputDataSpecificationDTO] = None
 
@@ -80,8 +80,8 @@ class InputDataSpecificationsDTO:
             stattypes=None,
             enumslen=None,
         )
-        self.filters = InputDataSpecificationDTO(
-            label="Filters on the data.",
+        self.filter = InputDataSpecificationDTO(
+            label="filter on the data.",
             desc="Features used in my algorithm.",
             types=["jsonObject"],
             notblank=False,

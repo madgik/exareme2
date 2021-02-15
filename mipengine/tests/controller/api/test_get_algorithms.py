@@ -115,14 +115,14 @@ def get_demo_algorithm() -> str:
                 "label": "Set of data to use.",
                 "desc": "The set of data to run the algorithm on."
             },
-            "filters":
+            "filter":
             {
                 "types": ["jsonObject"],
                 "stattypes": null,
                 "multiple": false,
                 "enumslen": null,
                 "notblank": false,
-                "label": "Filters on the data.",
+                "label": "filter on the data.",
                 "desc": "Features used in my algorithm."
             }
         },

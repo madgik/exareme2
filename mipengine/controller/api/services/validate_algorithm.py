@@ -66,7 +66,7 @@ def validate_inputdata(inputdata_specs: InputDataSpecificationsDTO,
     Validates that the:
     1) datasets/pathology exist,
     2) datasets belong in the pathology,
-    3) filters have proper format
+    3) filter have proper format
     4) and the cdes parameters have proper values.
 
     Validates that the algorithm's input data follow the specs.
@@ -75,7 +75,7 @@ def validate_inputdata(inputdata_specs: InputDataSpecificationsDTO,
     validate_inputdata_pathology_and_dataset_values(input_data.pathology,
                                                     input_data.datasets)
 
-    validate_inputdata_filters(input_data.filters)
+    validate_inputdata_filter(input_data.filter)
 
     validate_inputdata_cdes(inputdata_specs,
                             input_data)
@@ -99,12 +99,12 @@ def validate_inputdata_pathology_and_dataset_values(pathology: str,
         raise BadUserInput(f"Datasets '{datasets}' do not belong in pathology '{pathology}'.")
 
 
-def validate_inputdata_filters(filters):
+def validate_inputdata_filter(filter):
     """
-    Validates that the filters provided have the correct format
+    Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
     """
-    # TODO Add filters
+    # TODO Add filter
     pass
 
 
