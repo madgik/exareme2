@@ -25,7 +25,7 @@ def test_wrong_pathology():
     request_body = {
         "inputdata": {
             "pathology": "wrong",
-            "dataset": ["adni"],
+            "datasets": ["adni"],
             "filter": {},
             "x": ["lefthippocampus", "righthippocampus"],
             "y": ["alzheimerbroadcategory"]
@@ -57,7 +57,7 @@ def test_wrong_dataset():
     request_body = {
         "inputdata": {
             "pathology": "dementia",
-            "dataset": ["wrong"],
+            "datasets": ["wrong"],
             "filter": {},
             "x": ["lefthippocampus", "righthippocampus"],
             "y": ["alzheimerbroadcategory"]
@@ -90,7 +90,7 @@ def test_proper_algorithm():
     request_body = {
         "inputdata": {
             "pathology": "dementia",
-            "dataset": ["adni"],
+            "datasets": ["adni"],
             "filter": {},
             "x": ["lefthippocampus", "righthippocampus"],
             "y": ["alzheimerbroadcategory"]

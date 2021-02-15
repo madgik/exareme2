@@ -9,22 +9,17 @@ from mipengine.controller.common.algorithms_specifications import AlgorithmSpeci
 from mipengine.controller.common.algorithms_specifications import AlgorithmsSpecifications
 from mipengine.controller.common.algorithms_specifications import CROSSVALIDATION_ALGORITHM_NAME
 from mipengine.controller.common.algorithms_specifications import GenericParameterSpecification
+from mipengine.controller.common.algorithms_specifications import InputDataSpecifications
 from mipengine.controller.common.utils import Singleton
-
-INPUTDATA_PATHOLOGY_PARAMETER_NAME = "pathology"
-INPUTDATA_DATASET_PARAMETER_NAME = "dataset"
-INPUTDATA_FILTERS_PARAMETER_NAME = "filter"
-INPUTDATA_X_PARAMETER_NAME = "x"
-INPUTDATA_Y_PARAMETER_NAME = "y"
 
 
 @dataclass_json
 @dataclass
 class InputDataSpecificationDTO:
     """
-    InputDataParameterDTO is different from the InputDataParameter
+    InputDataSpecificationDTO is different from the InputDataSpecification
     on the stattypes field.
-    It is optional on the DTOs, due to the dataset and pathology parameters.
+    It is optional on the DTOs, due to the datasets and pathology parameters.
     """
     label: str
     desc: str
@@ -35,40 +30,65 @@ class InputDataSpecificationDTO:
     enumslen: Optional[int] = None
 
 
-def get_pathology_parameter():
-    return InputDataSpecificationDTO(
-        label="Pathology of the data.",
-        desc="The pathology that the algorithm will run on.",
-        types=["text"],
-        notblank=True,
-        multiple=False,
-        stattypes=None,
-        enumslen=None,
-    )
+@dataclass_json
+@dataclass
+class InputDataSpecificationsDTO:
+    """
+    InputDataSpecificationsDTO is a superset of InputDataSpecifications
+    containing pathology, dataset and filter.
+    """
+    pathology: InputDataSpecificationDTO
+    datasets: InputDataSpecificationDTO
+    filter: InputDataSpecificationDTO
+    x: Optional[InputDataSpecificationDTO] = None
+    y: Optional[InputDataSpecificationDTO] = None
 
-
-def get_dataset_parameter():
-    return InputDataSpecificationDTO(
-        label="Set of data to use.",
-        desc="The set of data to run the algorithm on.",
-        types=["text"],
-        notblank=True,
-        multiple=True,
-        stattypes=None,
-        enumslen=None,
-    )
-
-
-def get_filter_parameter():
-    return InputDataSpecificationDTO(
-        label="Filter on the data.",
-        desc="Features used in my algorithm.",
-        types=["jsonObject"],
-        notblank=False,
-        multiple=False,
-        stattypes=None,
-        enumslen=None,
-    )
+    def __init__(self, input_data_spec: InputDataSpecifications):
+        self.x = InputDataSpecificationDTO(
+            label=input_data_spec.x.label,
+            desc=input_data_spec.x.desc,
+            types=input_data_spec.x.types,
+            notblank=input_data_spec.x.notblank,
+            multiple=input_data_spec.x.multiple,
+            stattypes=input_data_spec.x.stattypes,
+            enumslen=input_data_spec.x.enumslen,
+        )
+        self.y = InputDataSpecificationDTO(
+            label=input_data_spec.y.label,
+            desc=input_data_spec.y.desc,
+            types=input_data_spec.y.types,
+            notblank=input_data_spec.y.notblank,
+            multiple=input_data_spec.y.multiple,
+            stattypes=input_data_spec.y.stattypes,
+            enumslen=input_data_spec.y.enumslen,
+        )
+        self.pathology = InputDataSpecificationDTO(
+            label="Pathology of the data.",
+            desc="The pathology that the algorithm will run on.",
+            types=["text"],
+            notblank=True,
+            multiple=False,
+            stattypes=None,
+            enumslen=None,
+        )
+        self.datasets = InputDataSpecificationDTO(
+            label="Set of data to use.",
+            desc="The set of data to run the algorithm on.",
+            types=["text"],
+            notblank=True,
+            multiple=True,
+            stattypes=None,
+            enumslen=None,
+        )
+        self.filter = InputDataSpecificationDTO(
+            label="filter on the data.",
+            desc="Features used in my algorithm.",
+            types=["jsonObject"],
+            notblank=False,
+            multiple=False,
+            stattypes=None,
+            enumslen=None,
+        )
 
 
 @dataclass_json
@@ -104,7 +124,7 @@ class AlgorithmSpecificationDTO:
     name: str
     desc: str
     label: str
-    inputdata: Dict[str, InputDataSpecificationDTO]
+    inputdata: InputDataSpecificationsDTO
     parameters: Optional[Dict[str, GenericParameterSpecification]] = None
     crossvalidation: Optional[CrossValidationSpecificationsDTO] = None
 
@@ -113,22 +133,7 @@ class AlgorithmSpecificationDTO:
         self.desc = algorithm.desc
         self.label = algorithm.label
         self.parameters = algorithm.parameters
-        self.inputdata = {name: InputDataSpecificationDTO(
-            parameter.label,
-            parameter.desc,
-            parameter.types,
-            parameter.notblank,
-            parameter.multiple,
-            parameter.stattypes,
-            parameter.enumslen,
-        )
-            for name, parameter in algorithm.inputdata.items()
-        }
-
-        # Adding the 3 "system" input data parameters
-        self.inputdata[INPUTDATA_PATHOLOGY_PARAMETER_NAME] = get_pathology_parameter()
-        self.inputdata[INPUTDATA_DATASET_PARAMETER_NAME] = get_dataset_parameter()
-        self.inputdata[INPUTDATA_FILTERS_PARAMETER_NAME] = get_filter_parameter()
+        self.inputdata = InputDataSpecificationsDTO(algorithm.inputdata)
 
         # Adding the crossvalidation algorithm as a nested algorithm
         if (CROSSVALIDATION_ALGORITHM_NAME in algorithm.flags.keys()

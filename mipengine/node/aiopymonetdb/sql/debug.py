@@ -62,7 +62,7 @@ def debug(cursor, query, fname, sample=-1):
     # type: (Cursor, str, str, int) -> Any
     """Locally debug a given Python UDF function in a SQL query
     using the PDB debugger. Optionally can run on only a
-    sample of the input data.txt, for faster data.txt export.
+    sample of the input data, for faster data export.
     """
 
     # first gather information about the function
@@ -200,7 +200,7 @@ def exportparameters(cursor, ftype, fname, query, quantity_parameters, sample):
     input_data = cursor.fetchall()
     cursor.execute("DROP FUNCTION export_parameters;")
     if len(input_data) <= 0:
-        raise Exception("Could not load input data.txt!")
+        raise Exception("Could not load input data!")
 
     arguments = pickle.loads(input_data[0][0])
 
@@ -234,7 +234,7 @@ def export(cursor, query, fname, sample=-1, filespath="./"):
     )
     input_names = cursor.fetchall()
     quantity_parameters = len(input_names)
-    # fcode = data.txt[0][0]
+    # fcode = data[0][0]
     ftype = data[0][1]
     parameter_list = []
     # exporting Python UDF Function

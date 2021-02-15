@@ -18,7 +18,6 @@ connection = pymonetdb.connect(username=config["monet_db"]["username"],
                                password=config["monet_db"]["password"],
                                hostname=config["monet_db"]["hostname"],
                                database=config["monet_db"]["database"])
-connection.rollback()
 cursor: Cursor = connection.cursor()
 
 

@@ -102,18 +102,18 @@ def get_demo_algorithm() -> str:
                 "multiple": false,
                 "enumslen": null,
                 "notblank": true,
-                "label": "Pathology of the data.txt.",
+                "label": "Pathology of the data.",
                 "desc": "The pathology that the algorithm will run on."
             },
-            "dataset":
+            "datasets":
             {
                 "types": ["text"],
                 "stattypes": null,
                 "multiple": true,
                 "enumslen": null,
                 "notblank": true,
-                "label": "Set of data.txt to use.",
-                "desc": "The set of data.txt to run the algorithm on."
+                "label": "Set of data to use.",
+                "desc": "The set of data to run the algorithm on."
             },
             "filter":
             {
@@ -122,7 +122,7 @@ def get_demo_algorithm() -> str:
                 "multiple": false,
                 "enumslen": null,
                 "notblank": false,
-                "label": "Filter on the data.txt.",
+                "label": "filter on the data.",
                 "desc": "Features used in my algorithm."
             }
         },

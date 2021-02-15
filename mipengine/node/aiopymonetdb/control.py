@@ -137,8 +137,8 @@ class Control:
 
     def destroy(self, database_name):
         """
-        Removes the given database, including all its data.txt and
-        logfiles.  Once destroy has completed, all data.txt is lost.
+        Removes the given database, including all its data and
+        logfiles.  Once destroy has completed, all data is lost.
         Be careful when using this command.
         """
         return isempty(self._send_command(database_name, "destroy"))
@@ -193,7 +193,7 @@ class Control:
         Kills the given database, if the MonetDB Database Server
         is running.  Note: killing a database should only be done
         as last resort to stop a database.  A database being
-        killed may end up with data.txt loss.
+        killed may end up with data loss.
         """
         return isempty(self._send_command(database_name, "kill"))
 

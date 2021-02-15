@@ -221,7 +221,7 @@ class Cursor(object):
     def debug(self, query, fname, sample=-1):
         """Locally debug a given Python UDF function in a SQL query
         using the PDB debugger. Optionally can run on only a
-        sample of the input data.txt, for faster data.txt export.
+        sample of the input data, for faster data export.
         """
         debug(self, query, fname, sample)
 
@@ -230,7 +230,7 @@ class Cursor(object):
 
     def fetchone(self):
         """Fetch the next row of a query result set, returning a
-        single sequence, or None when no more data.txt is available."""
+        single sequence, or None when no more data is available."""
 
         self._check_executed()
 
@@ -495,7 +495,7 @@ class Cursor(object):
 
     def _parse_tuple(self, line):
         """
-        parses a mapi data.txt tuple, and returns a list of python types
+        parses a mapi data tuple, and returns a list of python types
         """
         elements = line[1:-1].split(",\t")
         if len(elements) == len(self.description):

@@ -60,7 +60,7 @@ paths:
 
   /tables/{tableName}:
     get:
-      summary: fetch table data.txt
+      summary: fetch table data
       parameters:
         - in: path
           name: tableName
@@ -71,7 +71,7 @@ paths:
           example: 'tableName1'
       responses:
         '200':
-          description: The schema and data.txt of the specified table.
+          description: The schema and data of the specified table.
           content:
             application/json:
               schema:
@@ -119,7 +119,7 @@ paths:
           description: The node successfully processed the request, and is not returning any content. There aren't any view tables on the node's database
     post:
       summary: Creates a new view
-      description: Creates a new view. The client only provides a TableView (datasets,columns.txt,filters), the node will decide the name of the table and return it on the response
+      description: Creates a new view. The client only provides a TableView (datasets,columns,filter), the node will decide the name of the table and return it on the response
       requestBody:
         description: Creates a new view
         content:
@@ -148,7 +148,7 @@ paths:
 
   /views/{viewName}:
     get:
-      summary: fetch view data.txt
+      summary: fetch view data
       parameters:
         - in: path
           name: viewName
@@ -160,7 +160,7 @@ paths:
 
       responses:
         '200':
-          description: The name and schema of the view along with the data.txt of the view.
+          description: The name and schema of the view along with the data of the view.
           content:
             application/json:
               schema:
@@ -234,7 +234,7 @@ paths:
 
   /remoteTables/{remoteTableName}:
     get:
-      summary: fetch remote table data.txt
+      summary: fetch remote table data
       parameters:
         - in: path
           name: remoteTableName
@@ -246,7 +246,7 @@ paths:
 
       responses:
         '200':
-          description: The name and schema of the remote table along with the data.txt.
+          description: The name and schema of the remote table along with the data.
           content:
             application/json:
               schema:
@@ -317,7 +317,7 @@ paths:
 
   /mergeTables/{mergeTableName}:
     get:
-      summary: fetch merge table data.txt
+      summary: fetch merge table data
       parameters:
         - in: path
           name: mergeTableName
@@ -329,7 +329,7 @@ paths:
 
       responses:
         '200':
-          description: The name and schema of the merge table along with the data.txt.
+          description: The name and schema of the merge table along with the data.
           content:
             application/json:
               schema:
@@ -497,7 +497,7 @@ components:
       type: object
       required:
         - schema
-        - data.txt
+        - data
       properties:
         schema:
           $ref: '#/components/schemas/TableSchema'
@@ -544,14 +544,14 @@ components:
           items:
             type: string
         columns:
-          description: 'The columns.txt to select from the table.'
+          description: 'The columns to select from the table.'
           type: array
           example: [ 'lefthippocampus', 'righthippocampus' ]
           items:
             type: string
-        filters:
+        filter:
           description: |
-            'Some filters to limit the view'
+            'Some filter to limit the view'
             'Follows the jquery builder model: https://querybuilder.js.org/demo.html'
           type: object
 
@@ -590,7 +590,7 @@ components:
       value: [ { "name": "tableName8","schema": [ "c1 INT", "c2 TEXT" ] }, { "name": "tableName4","schema": [ "c1 FLOAT","c2 BOOLEAN","c3 FLOAT" ] }, { "name": "tableName34","schema": [ "c1 TEXT","c2 BOOLEAN" ] } ]
 
     ViewTable:
-      value: { "datasets": [ "adni", "ppmi" ], "columns": [ "lefthippocampus", "righthippocampus" ], "filters": [ "righthippocampus>1.6" ] }
+      value: { "datasets": [ "adni", "ppmi" ], "columns": [ "lefthippocampus", "righthippocampus" ], "filter": [ "righthippocampus>1.6" ] }
     ViewInfo:
       value: { "name": "viewName1","schema": [ "lefthippocampus FLOAT","righthippocampus FLOAT" ] }
     ViewData:

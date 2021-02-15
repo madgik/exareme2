@@ -171,7 +171,7 @@ class Connection(object):
         if attr != len(attributes):
             res = await cur.fetchall()
             if res == []:
-                raise Exception("Requested data.txt does not exist in all local nodes")
+                raise Exception("Requested data does not exist in all local nodes")
             raise Exception(
                 "Attributes other than "
                 + str(res)
