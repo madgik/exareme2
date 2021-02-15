@@ -19,7 +19,7 @@ class InputDataSpecificationDTO:
     """
     InputDataSpecificationDTO is different from the InputDataSpecification
     on the stattypes field.
-    It is optional on the DTOs, due to the dataset and pathology parameters.
+    It is optional on the DTOs, due to the datasets and pathology parameters.
     """
     label: str
     desc: str
@@ -38,8 +38,8 @@ class InputDataSpecificationsDTO:
     containing pathology, dataset and filter.
     """
     pathology: InputDataSpecificationDTO
-    dataset: InputDataSpecificationDTO
-    filter: InputDataSpecificationDTO
+    datasets: InputDataSpecificationDTO
+    filters: InputDataSpecificationDTO
     x: Optional[InputDataSpecificationDTO] = None
     y: Optional[InputDataSpecificationDTO] = None
 
@@ -71,7 +71,7 @@ class InputDataSpecificationsDTO:
             stattypes=None,
             enumslen=None,
         )
-        self.dataset = InputDataSpecificationDTO(
+        self.datasets = InputDataSpecificationDTO(
             label="Set of data to use.",
             desc="The set of data to run the algorithm on.",
             types=["text"],
@@ -80,8 +80,8 @@ class InputDataSpecificationsDTO:
             stattypes=None,
             enumslen=None,
         )
-        self.filter = InputDataSpecificationDTO(
-            label="Filter on the data.",
+        self.filters = InputDataSpecificationDTO(
+            label="Filters on the data.",
             desc="Features used in my algorithm.",
             types=["jsonObject"],
             notblank=False,

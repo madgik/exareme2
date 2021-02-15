@@ -12,7 +12,7 @@ from dataclasses_json import dataclass_json
 @dataclass
 class AlgorithmInputDataDTO:
     pathology: str
-    dataset: List[str]
+    datasets: List[str]
     filters: Optional[Any] = None
     x: Optional[List[str]] = field(default_factory=list)
     y: Optional[List[str]] = field(default_factory=list)

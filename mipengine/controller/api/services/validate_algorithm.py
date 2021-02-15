@@ -73,7 +73,7 @@ def validate_inputdata(inputdata_specs: InputDataSpecificationsDTO,
 
     """
     validate_inputdata_pathology_and_dataset_values(input_data.pathology,
-                                                    input_data.dataset)
+                                                    input_data.datasets)
 
     validate_inputdata_filters(input_data.filters)
 

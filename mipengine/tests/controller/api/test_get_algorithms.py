@@ -105,7 +105,7 @@ def get_demo_algorithm() -> str:
                 "label": "Pathology of the data.",
                 "desc": "The pathology that the algorithm will run on."
             },
-            "dataset":
+            "datasets":
             {
                 "types": ["text"],
                 "stattypes": null,
