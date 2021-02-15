@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from numbers import Number
 
 import numpy as np
@@ -131,3 +130,7 @@ class LoopbackTable(Table):
         clsname = type(self).__name__
         dtypename = self.dtype.__name__
         return f'{clsname}(name="{self.name}", dtype={dtypename}, shape={self.shape})'
+
+
+class Scalar:
+    pass

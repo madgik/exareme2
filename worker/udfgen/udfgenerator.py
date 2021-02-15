@@ -1,8 +1,8 @@
-import inspect
 import ast
+import inspect
+from string import Template
 from textwrap import indent
 from textwrap import dedent
-from string import Template
 
 import astor
 
@@ -10,6 +10,7 @@ from worker.udfgen import Table
 from worker.udfgen import LiteralParameter
 from worker.udfgen import LoopbackTable
 from worker.udfgen import Tensor
+from worker.udfgen import Scalar
 from worker.udfgen.udfparams import SQLTYPES
 
 
@@ -217,7 +218,7 @@ def verify_annotations(func):
     annotations = func.__annotations__
     if any(annotations.get(arg, None) not in allowed_types for arg in argnames):
         raise TypeError("Function is not properly annotated as a Monet UDF")
-    if annotations.get("return", None) not in allowed_types:
+    if annotations.get("return", None) not in allowed_types + (Scalar,):
         raise TypeError("Function is not properly annotated as a Monet UDF")
 
 

@@ -1,15 +1,18 @@
+from typing import DefaultDict
+
 import numpy as np
 
-from worker.udfgen.udfgenerator import monet_udf
-from worker.udfgen.udfparams import Table
-from worker.udfgen.udfparams import Tensor
-from worker.udfgen.udfparams import LoopbackTable
-from worker.udfgen.udfparams import LiteralParameter
 from algorithms.preprocessing import LabelBinarizer
 from algorithms.specialfuncs import expit
 from algorithms.specialfuncs import xlogy
 from worker.udfgen.numpy2 import diag
 from worker.udfgen.numpy2 import zeros
+from worker.udfgen.udfgenerator import monet_udf
+from worker.udfgen.udfparams import Table
+from worker.udfgen.udfparams import Tensor
+from worker.udfgen.udfparams import LoopbackTable
+from worker.udfgen.udfparams import LiteralParameter
+from worker.udfgen.udfparams import Scalar
 
 PREC = 1e-6
 
@@ -110,13 +113,13 @@ def mat_transp_dot_diag_dot_vec(M: Tensor, d: Tensor, v: Tensor) -> Tensor:
 
 
 @monet_udf
-def logistic_loss(v1: Tensor, v2: Tensor) -> float:
+def logistic_loss(v1: Tensor, v2: Tensor) -> Scalar:
     ll = np.sum(xlogy(v1, v2) + xlogy(1 - v1, 1 - v2))
     return ll
 
 
 @monet_udf
-def tensor_max_abs_diff(t1: Tensor, t2: Tensor) -> float:
+def tensor_max_abs_diff(t1: Tensor, t2: Tensor) -> Scalar:
     result = np.max(np.abs(t1 - t2))
     return result
 
