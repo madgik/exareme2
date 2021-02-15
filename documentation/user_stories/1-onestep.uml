@@ -1,0 +1,20 @@
+@startuml
+actor App 
+box "Runtime"
+participant Orchestrator
+database GlobalNode
+database LocalNodes
+end box
+
+
+App -[#gray]> Orchestrator: Request:\nAlgorithm, data, filters, ...
+
+group Algorithm
+    Orchestrator -[#green]-> LocalNodes: Control:\nCall local method
+    LocalNodes -[#red]> GlobalNode: Data Transfer:\nLocal output
+    Orchestrator -[#green]-> GlobalNode: Control:\nCall global method
+    GlobalNode -[#red]> Orchestrator: Data Transfer:\nGlobal output
+end
+
+Orchestrator -[#gray]> App: Response:\nFinal result
+@enduml

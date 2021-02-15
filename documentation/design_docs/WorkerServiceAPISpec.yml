@@ -1,0 +1,615 @@
+openapi: 3.0.0
+servers:
+  # Added by API Auto Mocking Plugin
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/apmar/WorkerServiceAPI/1.0.0
+  - description: SwaggerHub API Auto Mocking
+    url: https://app.swaggerhub.com/apis/apmar/WorkerServiceAPI/1.0.0
+
+info:
+  description: API for the Worker Service
+  version: "1.0.0"
+  title: Worker Service API
+
+paths:
+  /tables:
+    get:
+      summary: Returns a list of all local non-private tables of the node. Returns a list of tuples [name,shema]
+      responses:
+        '200':
+          description: A list of tuples [name,shema] for all non-private tables in the node database
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TableInfo'
+              examples:
+                example1:
+                  $ref: '#/components/examples/TableInfoArray'
+        '204':
+          description: The node successfully processed the request, and is not returning any content. There aren't any non-private local tables on the node's database
+    post:
+      summary: Creates a new table. The client only provides the schema, the node will decide the name of the table and will return it in the response
+      requestBody:
+        description: Create a table.
+        content:
+          application/json:
+            schema:
+              type: object
+              items:
+                $ref: '#/components/schemas/TableSchema'
+            examples:
+              example1:
+                $ref: '#/components/examples/TableSchema'
+      responses:
+        '201':
+          description: 'table created'
+          content:
+            application/json:
+              schema:
+                type: object
+                items:
+                  $ref: '#/components/schemas/TableInfo'
+              examples:
+                example1:
+                  $ref: '#/components/examples/TableInfo'
+        '400':
+          description: 'badly formatted input. The schema provided is not valid'
+
+  /tables/{tableName}:
+    get:
+      summary: fetch table data
+      parameters:
+        - in: path
+          name: tableName
+          description: the name of the table to read from the database
+          required: true
+          schema:
+            type: string
+          example: 'tableName1'
+      responses:
+        '200':
+          description: The schema and data of the specified table.
+          content:
+            application/json:
+              schema:
+                properties:
+                  tableInfo:
+                    $ref: '#/components/schemas/TableInfo'
+                  tableData:
+                    $ref: '#/components/schemas/TableData'
+              examples:
+                example1:
+                  $ref: '#/components/examples/TableData'
+        '404':
+          description: table not found
+
+    delete:
+      summary: delete the table
+      parameters:
+        - in: path
+          name: tableName
+          description: the name of the table to delete from the database
+          required: true
+          schema:
+            type: string
+          example: 'tableName1'
+      responses:
+        '204':
+          description: 'table deleted'
+
+  /views:
+    get:
+      summary: Returns a list of all view tables of the node. Returns list of tuples [name,shema]
+      responses:
+        '200':
+          description: List of tuples [name,shema] for all views in the node database
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TableInfo'
+              examples:
+                example1:
+                  $ref: '#/components/examples/ViewInfoArray'
+        '204':
+          description: The node successfully processed the request, and is not returning any content. There aren't any view tables on the node's database
+    post:
+      summary: Creates a new view
+      description: Creates a new view. The client only provides a TableView (datasets,columns,filter), the node will decide the name of the table and return it on the response
+      requestBody:
+        description: Creates a new view
+        content:
+          application/json:
+            schema:
+              type: object
+              items:
+                $ref: '#/components/schemas/ViewTable'
+            examples:
+              example1:
+                $ref: '#/components/examples/ViewTable'
+      responses:
+        '201':
+          description: 'view created'
+          content:
+            application/json:
+              schema:
+                type: object
+                items:
+                  $ref: '#/components/schemas/TableInfo'
+              examples:
+                example1:
+                  $ref: '#/components/examples/ViewInfo'
+        '400':
+          description: 'badly formatted input'
+
+  /views/{viewName}:
+    get:
+      summary: fetch view data
+      parameters:
+        - in: path
+          name: viewName
+          description: the name of the view
+          required: true
+          schema:
+            type: string
+          example: viewName1
+
+      responses:
+        '200':
+          description: The name and schema of the view along with the data of the view.
+          content:
+            application/json:
+              schema:
+                properties:
+                  tableInfo:
+                    $ref: '#/components/schemas/TableInfo'
+                  tableData:
+                    $ref: '#/components/schemas/TableData'
+              examples:
+                example1:
+                  $ref: '#/components/examples/ViewData'
+        '404':
+          description: view not found
+
+    delete:
+      summary: deletes a view
+      parameters:
+        - in: path
+          name: viewName
+          description: the name of the view to delete from the database
+          required: true
+          schema:
+            type: string
+          example: viewName1
+      responses:
+        '204':
+          description: 'view deleted'
+
+  /remoteTables:
+    get:
+      summary: Returns a list of all the remote tables of the node. Returns list of tuples [name,shema]
+      responses:
+        '200':
+          description: List of tuples [name,shema] for all remote tables in the node database
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TableInfo'
+              examples:
+                example1:
+                  $ref: '#/components/examples/TableInfoArray'
+        '204':
+          description: The node successfully processed the request, and is not returning any content. There aren't any remote tables in the node's database
+    post:
+      summary: Creates a remote table. (instead of providing the url of the node's db,workers can be aliased and resolved by a dns type of service.for now the url will provided for simplicity)
+      requestBody:
+        required: true
+        description: Creates a remote table
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tableName
+                - workerAlias
+              properties:
+                tableName:
+                  type: string
+                workerAlias:
+                  type: string
+            examples:
+              example1:
+                $ref: '#/components/examples/RemoteTableParams'
+      responses:
+        '201':
+          description: 'remote table created'
+        '400':
+          description: 'remote table does not exist or db on that url is unreachable....'
+
+  /remoteTables/{remoteTableName}:
+    get:
+      summary: fetch remote table data
+      parameters:
+        - in: path
+          name: remoteTableName
+          description: the name of the remote table
+          required: true
+          schema:
+            type: string
+          example: remoteTableName1
+
+      responses:
+        '200':
+          description: The name and schema of the remote table along with the data.
+          content:
+            application/json:
+              schema:
+                properties:
+                  tableInfo:
+                    $ref: '#/components/schemas/TableInfo'
+                  tableData:
+                    $ref: '#/components/schemas/TableData'
+              examples:
+                example1:
+                  $ref: '#/components/examples/TableData'
+        '404':
+          description: remote table not found
+
+    delete:
+      summary: delete the remote table
+      parameters:
+        - in: path
+          name: tableName
+          description: the name of the remote table to delete from the database
+          required: true
+          schema:
+            type: string
+          example: 'remoteTableName1'
+      responses:
+        '204':
+          description: 'remote table deleted'
+
+  /mergeTables:
+    get:
+      summary: Returns a list of all the merge tables of the node. Returns list of tuples [name,shema]
+      responses:
+        '200':
+          description: List of tuples [name,shema] for all remote tables in the node database
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TableInfo'
+              examples:
+                example1:
+                  $ref: '#/components/examples/TableInfoArray'
+        '204':
+          description: The node successfully processed the request, and is not returning any content. There aren't any merge tables in the node's database
+    post:
+      summary: Creates a marge table.
+      requestBody:
+        required: true
+        description: Creates a merge table. The name of the table will be decided by the node and returned in the response
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - schema
+              properties:
+                schema:
+                  type: string
+            examples:
+              example1:
+                $ref: '#/components/examples/TableSchema'
+      responses:
+        '201':
+          description: 'remote table created'
+        '400':
+          description: 'badly formatted input. The schema provided is not valid'
+
+  /mergeTables/{mergeTableName}:
+    get:
+      summary: fetch merge table data
+      parameters:
+        - in: path
+          name: mergeTableName
+          description: the name of the merge table
+          required: true
+          schema:
+            type: string
+          example: mergeTableName1
+
+      responses:
+        '200':
+          description: The name and schema of the merge table along with the data.
+          content:
+            application/json:
+              schema:
+                properties:
+                  tableInfo:
+                    $ref: '#/components/schemas/TableInfo'
+                  tableData:
+                    $ref: '#/components/schemas/TableData'
+              examples:
+                example1:
+                  $ref: '#/components/examples/TableData'
+        '404':
+          description: merge table not found
+
+    patch:
+      summary: adds a table to the merge table.
+      parameters:
+        - in: path
+          name: mergeTableName
+          description: the name of the merge table
+          required: true
+          schema:
+            type: string
+          example: mergeTableName1
+      requestBody:
+        required: true
+        description: adds a table to the merge table
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tableName
+              properties:
+                schema:
+                  type: string
+            example: 'tableName1'
+      responses:
+        '200':
+          description: 'table added to the merged table'
+        '400':
+          description: 'the table or the merge table provided do not exist....'
+
+    delete:
+      summary: delete the merge table
+      parameters:
+        - in: path
+          name: tableName
+          description: the name of the merge table to delete from the database
+          required: true
+          schema:
+            type: string
+          example: 'mergeTableName1'
+      responses:
+        '204':
+          description: 'merge table deleted'
+
+  /udfs:
+    get:
+      summary: Returns a list of all the User Defined Functions availiable to the node. Returns list of tuples [name,udfHeader]
+      responses:
+        '200':
+          description: List of tuples [name,shema] for all non-private tables in the node database
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UDFInfo'
+              examples:
+                example1:
+                  $ref: '#/components/examples/UDFInfoArray'
+        '204':
+          description: The node successfully processed the request, and is not returning any content. There aren't any UDFs defined on the node's database
+    post:
+      summary: executes the udf, returns the name of the table containing the result
+      requestBody:
+        description: execute udf.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - udfName
+                - input
+              properties:
+                udfName:
+                  type: string
+                input:
+                  $ref: '#/components/schemas/TableNamesArray'
+            examples:
+              example1:
+                $ref: '#/components/examples/UDFInput'
+      responses:
+        '201':
+          description: 'A table containing the result of the udf has been created'
+          content:
+            application/json:
+              schema:
+                type: object
+                items:
+                  $ref: '#/components/schemas/TableInfo'
+              examples:
+                example1:
+                  $ref: '#/components/examples/TableInfo'
+        '400':
+          description: 'badly formatted input. The schema provided is not valid'
+
+  /udfs/{udfName}:
+    get:
+      summary: Info about the UDF.
+      parameters:
+        - in: path
+          name: udfName
+          description: the name of the udf to get info about
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Info about the UDF.
+          content:
+            application/json:
+              schema:
+                type: object
+                items:
+                  $ref: '#/components/schemas/UDFInfo'
+              examples:
+                example1:
+                  $ref: '#/components/examples/UDFInfo'
+
+        '404':
+          description: udf not found
+
+    delete:
+      summary: delete the udf
+      parameters:
+        - in: path
+          name: udfName
+          description: the name of the udf to delete
+          required: true
+          schema:
+            type: string
+          example: 'udf1'
+      responses:
+        '204':
+          description: 'udf deleted'
+
+components:
+  schemas:
+    TableInfo:
+      description: 'The table information '
+      type: object
+      required:
+        - name
+        - schema
+      properties:
+        name:
+          type: string
+          example: 'table_3_kmeans'
+        schema:
+          $ref: '#/components/schemas/TableSchema'
+
+    TableData:
+      type: object
+      required:
+        - schema
+        - data
+      properties:
+        schema:
+          $ref: '#/components/schemas/TableSchema'
+        data:
+          type: array
+          example: [ [ 3,4.3,'male',False ],[ 5,6.4,'female',True ] ]
+          items:
+            type: array
+            items:
+              anyOf:
+                - type: string
+                - type: integer
+                - type: number
+                - type: boolean
+
+    TableSchema:
+      description: the schema of a database table
+      type: array
+      items:
+        $ref: '#/components/schemas/NameTypeTuple'
+      example:
+        $ref: '#/components/examples/TableSchema'
+
+
+    NameTypeTuple:
+      type: object
+      properties:
+        columnName:
+          type: string
+        columnType:
+          type: string
+          enum:
+            - 'INT'
+            - 'FLOAT'
+            - 'TEXT'
+
+    ViewTable:
+      type: object
+      properties:
+        datasets:
+          description: 'The datasets on which to create the view.'
+          type: array
+          example: [ 'adni', 'ppmi' ]
+          items:
+            type: string
+        columns:
+          description: 'The columns to select from the table.'
+          type: array
+          example: [ 'lefthippocampus', 'righthippocampus' ]
+          items:
+            type: string
+        filter:
+          description: |
+            'Some filter to limit the view'
+            'Follows the jquery builder model: https://querybuilder.js.org/demo.html'
+          type: object
+
+    TableNamesArray:
+      type: object
+      description: A list of table names
+      required:
+        - tableNames
+      properties:
+        tableNames:
+          type: array
+          items:
+            type: string
+
+    UDFInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        header:
+          type: string
+
+
+  examples:
+    TableInfo:
+      value: { "name": "tableName1","schema": [ "col1 INT","col2 FLOAT","col3 TEXT","col4 BOOLEAN" ] }
+    TableData:
+      value: { "schema": [ "col1 INT","col2 FLOAT","col3 TEXT","col4 BOOLEAN" ],"data": [ [ 3,4.3,'male',False ],[ 5,6.4,'female',True ] ] }
+    TableSchema:
+      value: [ { "columnName": "col1","columnType": "INT" },{ "columnName": "col2", "columnType": "FLOAT" },{ "columnName": "col3","columnType": "TEXT" } ]
+    NameTypeTuple:
+      value: { "columnName": "col1","columnType": "INT" }
+    TableNamesArray:
+      value: [ "tableName8","tableName4","tableName34" ]
+    TableInfoArray:
+      value: [ { "name": "tableName8","schema": [ "c1 INT", "c2 TEXT" ] }, { "name": "tableName4","schema": [ "c1 FLOAT","c2 BOOLEAN","c3 FLOAT" ] }, { "name": "tableName34","schema": [ "c1 TEXT","c2 BOOLEAN" ] } ]
+
+    ViewTable:
+      value: { "datasets": [ "adni", "ppmi" ], "columns": [ "lefthippocampus", "righthippocampus" ], "filter": [ "righthippocampus>1.6" ] }
+    ViewInfo:
+      value: { "name": "viewName1","schema": [ "lefthippocampus FLOAT","righthippocampus FLOAT" ] }
+    ViewData:
+      value: { "schema": [ "lefthippocampus FLOAT","righthippocampus FLOAT" ],"data": [ [ 3.54,4.6 ],[ 8.8,7.3 ],[ 9.8,5.3 ],[ 9.4,4.7 ] ] }
+    ViewSchema:
+      value: [ { "columnName": "col1","columnType": "INT" },{ "columnName": "col2", "columnType": "FLOAT" },{ "columnName": "col3","columnType": "TEXT" } ]
+    ViewNamesArray:
+      value: [ "ViewName8","ViewName4","ViewName34" ]
+    ViewInfoArray:
+      value: [ { "name": "viewName8","schema": [ "c1 INT", "c2 TEXT" ] }, { "name": "viewName4","schema": [ "c1 FLOAT","c2 BOOLEAN","c3 FLOAT" ] }, { "name": "viewName34","schema": [ "c1 TEXT","c2 BOOLEAN" ] } ]
+
+    RemoteTableParams:
+      value: { "tableName": "remoteTable123","workerAlias": "workerAlias1234" }
+
+    UDFInfo:
+      value: { "name": "kmeans_local1","code": "CREATE FUNCTION <udfName1>(var1 FLOAT,var2 INT) RETURNS TABLE(r1 FLOAT,r2 FLOAT) LANGUAGE PYTHON" }
+    UDFCode:
+      value: { "code": "CREATE FUNCTION kmeans_local1(var1 FLOAT,var2 FLOAT) RETURNS TABLE(r1 FLOAT,r2 FLOAT) LANGUAGE PYTHON{ ... return result}" }
+    UDFInput:
+      value: { "udfName": "kmeans_local1","input": [ "viewName5","viewName12" ] }
+    UDFInfoArray:
+      value: [ { "name": "kmeans_local_1","code": "CREATE FUNCTION kmeans_local_1(var1 FLOAT,var2 FLOAT) RETURNS TABLE(r1 FLOAT,r2 FLOAT) LANGUAGE PYTHON" },{ "name": "kmeans_local_2","code": "CREATE FUNCTION kmeans_local_2(var1 FLOAT,var2 FLOAT,var3 FLOAT) RETURNS TABLE(r1 FLOAT,r2 FLOAT,r3 FLOAT) LANGUAGE PYTHON" },{ "name": "pearson_local1","code": "CREATE FUNCTION pearson_local1(var1 FLOAT,var2 FLOAT) RETURNS TABLE(r1 FLOAT,r2 FLOAT) LANGUAGE PYTHON" },{ "name": "logreg_local1","code": "CREATE FUNCTION logreg_local1(var1 FLOAT,var2 FLOAT) RETURNS TABLE(r1 FLOAT,r2 FLOAT) LANGUAGE PYTHON" } ]

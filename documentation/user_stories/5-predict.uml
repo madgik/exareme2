@@ -1,0 +1,21 @@
+@startuml
+actor App 
+box "Runtime"
+participant Orchestrator
+database GlobalNode
+database LocalNodes
+end box
+
+App -[#gray]> Orchestrator: Request:\nAlgorithm,\ntest data, filters, ...
+
+ref over Orchestrator, LocalNodes, GlobalNode : Run training algorithm or load saved model
+==Prediction/Testing phase==
+GlobalNode -[#red]> LocalNodes: Data Transfer:\nModel
+LocalNodes -[#blue]> LocalNodes: Transform:\nCall Model.predict() on test data
+LocalNodes -[#red]> GlobalNode: Data Transfer:\nLocal prediction metrics
+GlobalNode -[#red]> Orchestrator: Data Transfer:\nGlobal prediction metrics
+== ==
+
+Orchestrator -[#gray]> App: Response:\nFinal result
+@enduml
+
