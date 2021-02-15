@@ -12,4 +12,4 @@ vhost = config["rabbitmq"]["vhost"]
 app = Celery('mipengine.node',
              broker=f'amqp://{user}:{password}@{ip}:{port}/{vhost}',
              backend='rpc://',
-             include=['mipengine.node.tasks.tables', 'mipengine.node.tasks.remote_tables', 'mipengine.node.tasks.merge_tables', 'mipengine.node.tasks.views'])
+             include=['mipengine.node.tasks.tables', 'mipengine.node.tasks.remote_tables', 'mipengine.node.tasks.merge_tables', 'mipengine.node.tasks.views', 'mipengine.node.tasks.common'])

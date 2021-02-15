@@ -1,4 +1,5 @@
-CREATE TABLE DATA (subjectcode	text,
+CREATE TABLE data
+(subjectcode	text,
 dataset	text,
 subjectvisitid	text,
 subjectvisitdate	text,

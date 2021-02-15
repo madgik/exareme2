@@ -32,7 +32,7 @@ class TableInfo:
 class TableView:
     datasets: List[str]
     columns: List[str]
-    filters: str
+    filter: str
 
 
 @dataclass_json

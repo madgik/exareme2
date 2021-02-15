@@ -1,18 +1,13 @@
-import unittest
-
-from celery import Celery
-
 from mipengine.node.node import app
 from mipengine.node.tasks.data_classes import ColumnInfo
 from mipengine.node.tasks.data_classes import TableData
-
 
 create_table = app.signature('mipengine.node.tasks.tables.create_table')
 get_tables = app.signature('mipengine.node.tasks.tables.get_tables')
 get_table_data = app.signature('mipengine.node.tasks.tables.get_table_data')
 get_table_schema = app.signature('mipengine.node.tasks.tables.get_table_schema')
 get_table_schema = app.signature('mipengine.node.tasks.tables.get_table_schema')
-clean_up = app.signature('mipengine.node.tasks.remote_tables.clean_up')
+clean_up = app.signature('mipengine.node.tasks.common.clean_up')
 
 
 def test_tables():
@@ -37,9 +32,5 @@ def test_tables():
     object_schema_result = ColumnInfo.schema().loads(schema_result, many=True)
     assert object_schema_result == schema
 
-    assert clean_up.delay(context_id_1).get() == 0
-    assert clean_up.delay(context_id_2).get() == 0
-
-
-if __name__ == "__main__":
-    unittest.main()
+    clean_up.delay(context_id_1).get()
+    clean_up.delay(context_id_2).get()
