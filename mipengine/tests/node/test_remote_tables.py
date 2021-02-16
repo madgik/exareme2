@@ -5,19 +5,17 @@ from mipengine.node.tasks.data_classes import ColumnInfo
 from mipengine.node.tasks.data_classes import TableInfo
 
 config = Config().config
-ip = config["rabbitmq"]["ip"]
-port = config["rabbitmq"]["port"]
 user = config["rabbitmq"]["user"]
 password = config["rabbitmq"]["password"]
 vhost = config["rabbitmq"]["vhost"]
 node1 = Celery('mipengine.node',
-               broker=f'amqp://{user}:{password}@{ip}:{5672}/{vhost}',
+               broker=f'amqp://{user}:{password}@{"127.0.0.1"}:{5672}/{vhost}',
                backend='rpc://',
                include=['mipengine.node.tasks.tables', 'mipengine.node.tasks.remote_tables',
                         'mipengine.node.tasks.merge_tables', 'mipengine.node.tasks.common'])
 
 node2 = Celery('mipengine.node',
-               broker=f'amqp://{user}:{password}@{ip}:{5673}/{vhost}',
+               broker=f'amqp://{user}:{password}@{"127.0.0.1"}:{5673}/{vhost}',
                backend='rpc://',
                include=['mipengine.node.tasks.tables', 'mipengine.node.tasks.remote_tables',
                         'mipengine.node.tasks.merge_tables', 'mipengine.node.tasks.common'])

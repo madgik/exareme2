@@ -62,6 +62,10 @@ def get_view_data(view_name: str) -> TableData:
 
 @shared_task
 def create_view(context_id: str, columns: str, datasets: str) -> str:
+    # TODO The parameters should be context_id, pathology:str, datasets:List[str],
+    #  filter: str, x: Optional[List[str]], y: Optional[List[str]]
+    # We need to refactor that
+    # pathology and filter will not be used for now, but should exist on the interface
     """
         Parameters
         ----------

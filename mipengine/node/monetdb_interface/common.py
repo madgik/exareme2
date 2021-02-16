@@ -4,19 +4,23 @@ from typing import Union
 import pymonetdb
 from pymonetdb.sql.cursors import Cursor
 
-# TODO What's the max text value we need?
+from mipengine.common.node_catalog import NodeCatalog
 from mipengine.node.config.config_parser import Config
+from mipengine.node.node import config
 from mipengine.node.tasks.data_classes import ColumnInfo
-from mipengine.node.tasks.data_classes import TableInfo
 
 MONETDB_VARCHAR_SIZE = 50
 
 # TODO Add monetdb asyncio connection (aiopymonetdb)
 config = Config().config
+node_catalog = NodeCatalog()
+local_node = node_catalog.get_local_node_data(config["node"]["identifier"])
+monetdb_hostname = local_node.monetdbHostname
+monetdb_port = local_node.monetdbPort
 connection = pymonetdb.connect(username=config["monet_db"]["username"],
-                               port=config["monet_db"]["port"],
+                               port=monetdb_port,
                                password=config["monet_db"]["password"],
-                               hostname=config["monet_db"]["hostname"],
+                               hostname=monetdb_hostname,
                                database=config["monet_db"]["database"])
 cursor: Cursor = connection.cursor()
 
@@ -57,7 +61,7 @@ def convert_to_monetdb_column_type(column_type: str) -> str:
     """ Converts MIP Engine's int,float,text types to monetdb
     int -> integer
     float -> double
-    text -> varchar(???)
+    text -> varchar(50s)
     bool -> boolean
     clob -> clob
     """
@@ -74,7 +78,7 @@ def convert_from_monetdb_column_type(column_type: str) -> str:
     """ Converts MonetDB's types to MIP Engine's types
     int ->  int
     double  -> float
-    varchar(???)  -> text
+    varchar(50)  -> text
     boolean -> bool
     clob -> clob
     """
