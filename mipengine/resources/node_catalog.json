@@ -16,7 +16,7 @@
           {
             "name": "dementia",
             "datasets": [
-              "adni"
+              "edsd"
             ]
           }
         ]
@@ -30,38 +30,9 @@
       "data": {
         "pathologies": [
           {
-            "name": "mentalhealth",
+            "name": "dementia",
             "datasets": [
-              "mentalhealth_demo"
-            ]
-          },
-          {
-            "name": "tbi",
-            "datasets": [
-              "tbi_demo2"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "nodeId": "local_node_3",
-      "rabbitmqURL": "127.0.0.1:5672",
-      "monetdbHostname": "127.0.0.1",
-      "monetdbPort": "50000",
-      "data": {
-        "pathologies": [
-          {
-            "name": "tbi",
-            "datasets": [
-              "demo1"
-            ]
-          },
-          {
-            "name": "dementia_longitudinal",
-            "datasets": [
-              "fake_longitudinal",
-              "alzheimer_fake_cohort"
+              "adni"
             ]
           }
         ]

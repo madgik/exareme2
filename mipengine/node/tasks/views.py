@@ -11,7 +11,7 @@ from mipengine.node.tasks.data_classes import TableData
 
 
 @shared_task
-def get_views(context_id: str) -> List[str]:
+def get_views(context_id: str) -> str:
     """
         Parameters
         ----------
@@ -27,7 +27,7 @@ def get_views(context_id: str) -> List[str]:
 
 
 @shared_task
-def get_view_schema(view_name: str) -> List[ColumnInfo]:
+def get_view_schema(view_name: str) -> str:
     """
         Parameters
         ----------
@@ -43,7 +43,7 @@ def get_view_schema(view_name: str) -> List[ColumnInfo]:
 
 
 @shared_task
-def get_view_data(view_name: str) -> TableData:
+def get_view_data(view_name: str) -> str:
     """
         Parameters
         ----------

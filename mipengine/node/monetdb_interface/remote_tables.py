@@ -13,5 +13,5 @@ def get_remote_tables_names(context_id: str) -> List[str]:
 
 def create_remote_table(table_info: TableInfo, url: str):
     columns_schema = convert_schema_to_sql_query_format(table_info.schema)
-    cursor.execute(f"CREATE REMOTE TABLE {table_info.name} ( {columns_schema}) on '{url}'")
+    cursor.execute(f"CREATE REMOTE TABLE {table_info.name} ( {columns_schema}) on '{url}' WITH USER 'monetdb' PASSWORD 'monetdb'")
     connection.commit()

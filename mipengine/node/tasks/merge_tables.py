@@ -11,7 +11,7 @@ from mipengine.node.tasks.data_classes import TableInfo
 
 
 @shared_task
-def get_merge_tables(context_id: str) -> List[str]:
+def get_merge_tables(context_id: str) -> str:
     """
         Parameters
         ----------

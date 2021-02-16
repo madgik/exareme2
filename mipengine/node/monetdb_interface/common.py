@@ -207,17 +207,34 @@ def clean_up(context_id: str):
             The id of the experiment
     """
     context_clause = f"name LIKE '%{context_id.lower()}%' AND"
-    context_clause = ""
+
     cursor.execute(
-        "SELECT name FROM tables "
+        "SELECT name, type FROM tables "
         "WHERE"
-        f" {context_clause} "
-        "system = false")
+        f" {context_clause}"
+        " system = false")
+    # TODO to refactor to be more pythonic.
+    # TODO Bug when database is full
+    remote_names = []
+    merge_names = []
+    table_names = []
+    view_names = []
+    for table in cursor.fetchall():
+        if table[1] == 0:
+            table_names.append(table[0])
+        elif table[1] == 1:
+            view_names.append(table[0])
+        elif table[1] == 3:
+            merge_names.append(table[0])
+        elif table[1] == 5:
+            remote_names.append(table[0])
 
-    for table in cursor:
-        if "view" in table[0]:
-            cursor.execute(f"DROP VIEW if exists sys.{table[0]}")
-        else:
-            cursor.execute(f"DROP TABLE if exists {table[0]} cascade")
-
+    for name in merge_names:
+        cursor.execute(f"DROP TABLE {name}")
+    for name in remote_names:
+        cursor.execute(f"DROP TABLE {name}")
+    for name in view_names:
+        cursor.execute(f"DROP VIEW {name}")
+    for name in table_names:
+        cursor.execute(f"DROP TABLE {name}")
     connection.commit()

@@ -12,7 +12,7 @@ from mipengine.node.tasks.data_classes import TableInfo
 
 
 @shared_task
-def get_tables(context_id: str) -> List[str]:
+def get_tables(context_id: str) -> str:
     """
         Parameters
         ----------
@@ -28,7 +28,7 @@ def get_tables(context_id: str) -> List[str]:
 
 
 @shared_task
-def get_table_schema(table_name: str) -> List[ColumnInfo]:
+def get_table_schema(table_name: str) -> str:
     """
         Parameters
         ----------
@@ -44,7 +44,7 @@ def get_table_schema(table_name: str) -> List[ColumnInfo]:
 
 
 @shared_task
-def get_table_data(table_name: str) -> TableData:
+def get_table_data(table_name: str) -> str:
     """
         Parameters
         ----------

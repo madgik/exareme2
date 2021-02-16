@@ -8,7 +8,7 @@ from mipengine.node.tasks.data_classes import TableInfo
 
 
 @shared_task
-def get_remote_tables(context_id: str) -> List[str]:
+def get_remote_tables(context_id: str) -> str:
     """
         Parameters
         ----------

@@ -57,3 +57,4 @@ def test_table_cannot_be_found():
 
         return create_merge_table.delay(context_id, json.dumps(not_found_tables)).get()
 
+test_merge_tables()
