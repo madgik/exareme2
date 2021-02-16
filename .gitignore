@@ -135,3 +135,7 @@ dmypy.json
 # vim stuff
 .vim/
 pyrightconfig.json
+.vimspector.json
+
+# macos
+**/.DS_Store
