@@ -2,8 +2,8 @@ from functools import singledispatch
 
 import numpy as np
 
-from worker.udfgen import LiteralParameter
-from worker.udfgen import Tensor
+from mipengine.node.udfgen import LiteralParameter
+from mipengine.node.udfgen import Tensor
 
 
 @singledispatch

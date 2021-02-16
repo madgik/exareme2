@@ -2,7 +2,7 @@ from numbers import Number
 
 import numpy as np
 
-from worker.udfgen.dispatcher import dispatch
+from mipengine.algorithms.dispatcher import dispatch
 
 # TODO make ArrayBundle.transpose lazy and take advantage of lazyness in X.T @ X
 

@@ -3,8 +3,8 @@ from functools import singledispatchmethod
 import numpy as np
 from sklearn import preprocessing
 
-from worker.udfgen.udfparams import Table
-from worker.udfgen.udfparams import LiteralParameter
+from mipengine.node.udfgen.udfparams import Table
+from mipengine.node.udfgen.udfparams import LiteralParameter
 
 
 class LabelBinarizer(preprocessing.LabelBinarizer):

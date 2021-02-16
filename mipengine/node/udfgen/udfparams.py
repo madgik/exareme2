@@ -3,7 +3,7 @@ from numbers import Number
 
 import numpy as np
 
-from worker.udfgen.ufunctypes import type_conversion_table
+from mipengine.node.udfgen.ufunctypes import type_conversion_table
 
 SQLTYPES = {
     int: "BIGINT",

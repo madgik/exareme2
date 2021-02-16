@@ -6,12 +6,12 @@ from textwrap import dedent
 
 import astor
 
-from worker.udfgen import Table
-from worker.udfgen import LiteralParameter
-from worker.udfgen import LoopbackTable
-from worker.udfgen import Tensor
-from worker.udfgen import Scalar
-from worker.udfgen.udfparams import SQLTYPES
+from mipengine.node.udfgen import Table
+from mipengine.node.udfgen import LiteralParameter
+from mipengine.node.udfgen import LoopbackTable
+from mipengine.node.udfgen import Tensor
+from mipengine.node.udfgen import Scalar
+from mipengine.node.udfgen.udfparams import SQLTYPES
 
 
 UDF_REGISTER = {}

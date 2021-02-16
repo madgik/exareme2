@@ -1,10 +1,10 @@
-from functools import singledispatch
 from copy import copy
+from functools import singledispatch
 
-from scipy import special
 import numpy as np
+from scipy import special
 
-from worker.udfgen.udfparams import Tensor
+from mipengine.node.udfgen.udfparams import Tensor
 
 
 @singledispatch

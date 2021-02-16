@@ -2,17 +2,17 @@ from typing import DefaultDict
 
 import numpy as np
 
-from algorithms.preprocessing import LabelBinarizer
-from algorithms.specialfuncs import expit
-from algorithms.specialfuncs import xlogy
-from worker.udfgen.numpy2 import diag
-from worker.udfgen.numpy2 import zeros
-from worker.udfgen.udfgenerator import monet_udf
-from worker.udfgen.udfparams import Table
-from worker.udfgen.udfparams import Tensor
-from worker.udfgen.udfparams import LoopbackTable
-from worker.udfgen.udfparams import LiteralParameter
-from worker.udfgen.udfparams import Scalar
+from mipengine.algorithms.numpy2 import diag
+from mipengine.algorithms.numpy2 import zeros
+from mipengine.algorithms.preprocessing import LabelBinarizer
+from mipengine.algorithms.specialfuncs import expit
+from mipengine.algorithms.specialfuncs import xlogy
+from mipengine.node.udfgen.udfgenerator import monet_udf
+from mipengine.node.udfgen.udfparams import Table
+from mipengine.node.udfgen.udfparams import Tensor
+from mipengine.node.udfgen.udfparams import LoopbackTable
+from mipengine.node.udfgen.udfparams import LiteralParameter
+from mipengine.node.udfgen.udfparams import Scalar
 
 PREC = 1e-6
 
