@@ -1,5 +1,4 @@
 import json
-from typing import List
 
 from celery import shared_task
 
@@ -61,7 +60,7 @@ def get_view_data(view_name: str) -> str:
 
 
 @shared_task
-def create_view(context_id: str, columns: str, datasets: str) -> str:
+def create_view(context_id: str, columns_json: str, datasets_json: str) -> str:
     # TODO The parameters should be context_id, pathology:str, datasets:List[str],
     #  filter: str, x: Optional[List[str]], y: Optional[List[str]]
     # We need to refactor that
@@ -71,9 +70,9 @@ def create_view(context_id: str, columns: str, datasets: str) -> str:
         ----------
         context_id : str
             The id of the experiment
-        columns : str
+        columns_json : str
             A list of column names in a jsonified format
-        datasets : str
+        datasets_json : str
             A list of dataset names in a jsonified format
 
         Returns
@@ -82,5 +81,5 @@ def create_view(context_id: str, columns: str, datasets: str) -> str:
             The name of the created view in lower case
     """
     view_name = create_table_name("view", context_id, config["node"]["identifier"])
-    views.create_view(view_name, json.loads(columns), json.loads(datasets))
+    views.create_view(view_name, json.loads(columns_json), json.loads(datasets_json))
     return view_name.lower()

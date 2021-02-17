@@ -1,6 +1,4 @@
 import json
-from typing import List
-
 from celery import shared_task
 
 from mipengine.node.monetdb_interface import merge_tables
@@ -20,7 +18,7 @@ def get_merge_tables(context_id: str) -> str:
 
         Returns
         ------
-        str
+        str --> (jsonified List[str])
             A list of merged table names in a jsonified format
     """
     return json.dumps(merge_tables.get_merge_tables_names(context_id))
@@ -34,7 +32,7 @@ def create_merge_table(context_id: str, partition_table_names_json: str) -> str:
         ----------
         context_id : str
             The id of the experiment
-        partition_table_names_json : str
+        partition_table_names_json : str --> (jsonified List[str])
             Its a list of names of the tables to be merged in a jsonified format
 
         Returns

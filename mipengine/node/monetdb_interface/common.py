@@ -154,7 +154,7 @@ def get_tables_names(table_type: str, context_id: str) -> List[str]:
     return [table[0] for table in cursor]
 
 
-def convert_schema_to_sql_query_format(schema: List[ColumnInfo]):
+def convert_schema_to_sql_query_format(schema: List[ColumnInfo]) -> str:
     """Converts a table's schema to a sql query.
 
         Parameters
@@ -206,35 +206,36 @@ def clean_up(context_id: str):
         context_id : str
             The id of the experiment
     """
+    delete_table_by_type_and_context_id("merge", context_id)
+    delete_table_by_type_and_context_id("remote", context_id)
+    delete_table_by_type_and_context_id("view", context_id)
+    delete_table_by_type_and_context_id("normal", context_id)
+    connection.commit()
+
+
+def delete_table_by_type_and_context_id(table_type: str, context_id: str):
+    """Deletes all tables of specific type with name that contain a specific context_id from the monetdb.
+
+        Parameters
+        ----------
+        table_type : str
+            The type of the table
+        context_id : str
+            The id of the experiment
+    """
+
     context_clause = f"name LIKE '%{context_id.lower()}%' AND"
+    type_clause = f"tables.type = {str(get_table_type_enumeration_value(table_type))} AND"
 
     cursor.execute(
         "SELECT name, type FROM tables "
         "WHERE"
         f" {context_clause}"
+        f" {type_clause}"
         " system = false")
-    # TODO to refactor to be more pythonic.
-    # TODO Bug when database is full
-    remote_names = []
-    merge_names = []
-    table_names = []
-    view_names = []
     for table in cursor.fetchall():
-        if table[1] == 0:
-            table_names.append(table[0])
-        elif table[1] == 1:
-            view_names.append(table[0])
-        elif table[1] == 3:
-            merge_names.append(table[0])
-        elif table[1] == 5:
-            remote_names.append(table[0])
+        if table[1] == 1:
+            cursor.execute(f"DROP VIEW {table[0]}")
+        else:
+            cursor.execute(f"DROP TABLE {table[0]}")
 
-    for name in merge_names:
-        cursor.execute(f"DROP TABLE {name}")
-    for name in remote_names:
-        cursor.execute(f"DROP TABLE {name}")
-    for name in view_names:
-        cursor.execute(f"DROP VIEW {name}")
-    for name in table_names:
-        cursor.execute(f"DROP TABLE {name}")
-    connection.commit()

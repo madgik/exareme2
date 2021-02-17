@@ -1,6 +1,4 @@
 import json
-from typing import List
-
 from celery import shared_task
 
 from mipengine.node.monetdb_interface import tables
@@ -21,7 +19,7 @@ def get_tables(context_id: str) -> str:
 
         Returns
         ------
-        str
+        str --> (jsonified List[str])
             A list of table names in a jsonified format
     """
     return json.dumps(tables.get_tables_names(context_id))
@@ -37,7 +35,8 @@ def get_table_schema(table_name: str) -> str:
 
         Returns
         ------
-        A schema(list of ColumnInfo's objects) in a jsonified format
+        str --> (jsonified List[ColumnInfo])
+            A schema(list of ColumnInfo's objects) in a jsonified format
     """
     schema = tables.get_table_schema(table_name)
     return ColumnInfo.schema().dumps(schema, many=True)
@@ -53,7 +52,7 @@ def get_table_data(table_name: str) -> str:
 
         Returns
         ------
-        str
+        str --> (jsonified TableData)
             An object of TableData in a jsonified format
     """
     schema = tables.get_table_schema(table_name)
@@ -62,13 +61,13 @@ def get_table_data(table_name: str) -> str:
 
 
 @shared_task
-def create_table(context_id: str, schema: str) -> str:
+def create_table(context_id: str, schema_json: str) -> str:
     """
         Parameters
         ----------
         context_id : str
             The id of the experiment
-        schema : str
+        schema_json : str --> (jsonified List[ColumnInfo])
             A schema(list of ColumnInfo's objects) in a jsonified format
 
         Returns
@@ -76,7 +75,7 @@ def create_table(context_id: str, schema: str) -> str:
         str
             The name of the created table in lower case
     """
-    schema_object = ColumnInfo.schema().loads(schema, many=True)
+    schema_object = ColumnInfo.schema().loads(schema_json, many=True)
     table_name = create_table_name("table", context_id, config["node"]["identifier"])
     table_info = TableInfo(table_name.lower(), schema_object)
     tables.create_table(table_info)
