@@ -1,25 +1,5 @@
-# MIP-Engine
+## Procedure
 
-## Installation
-1. Install python <br/>
-```
-sudo apt install python3.8
-
-sudo apt install python3-pip
-```
-
-### Controller API
-1. Install requirements. <br/>
-```
-python3.8 -m pip install -r ./requirements/controller.txt 
-```
-
-2. Run the controller API. <br/>
-```
-export QUART_APP=mipengine/controller/api/app:app; python3.8 -m quart run
-```
-
-### Nodes setup
 1. Run MonetDB with docker. <br/>
 ```
 docker run -d -P -p 50000:50000 --name monetdb-1 thanasulas/monetdb:11.37.11
@@ -44,17 +24,7 @@ sudo docker exec -it rabbitmq-2 rabbitmqctl set_user_tags user user_tag &&
 sudo docker exec -it rabbitmq-2 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*"
 ```
 
-4. Install requirements. <br/>
-```
-python3.8 -m pip install -r ./requirements/node.txt
-```
-
-5. Inside the MIP-Engine folder setup the data tables: <br/>
-```
-python3 mipengine/tests/node/data/setup_data_tables.py
-```
-
-6. Inside the MIP-Engine folder run the celery workers: <br/>
+4. Inside the MIP-Engine folder run the celery workers: <br/>
 ```
 python3 mipengine/tests/node/set_node_identifier.py local_node_1 && celery -A mipengine.node.node worker --loglevel=info
 python3 mipengine/tests/node/set_node_identifier.py local_node_2 && celery -A mipengine.node.node worker --loglevel=info
