@@ -16,8 +16,8 @@ from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import InputDataS
 from mipengine.controller.api.errors.exceptions import BadRequest
 from mipengine.controller.api.errors.exceptions import BadUserInput
 from mipengine.controller.common.algorithms_specifications import GenericParameterSpecification
-from mipengine.controller.common.common_data_elements import CommonDataElement
-from mipengine.controller.common.common_data_elements import CommonDataElements
+from mipengine.common.common_data_elements import CommonDataElement
+from mipengine.common.common_data_elements import CommonDataElements
 
 
 def validate_algorithm(algorithm_name: str, request_body: str):
