@@ -18,7 +18,7 @@ context_id = "regression"
 def setup_tables_for_merge(number_of_table: int) -> str:
     schema = [ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")]
     json_schema = ColumnInfo.schema().dumps(schema, many=True)
-    table_name = create_table.delay(f"table{number_of_table}", json_schema).get()
+    table_name = create_table.delay(f"{context_id}_table{number_of_table}", json_schema).get()
     connection.commit()
     cursor.execute(
         f"INSERT INTO {table_name} VALUES ( {number_of_table}, {number_of_table}, 'table_{number_of_table}' )")
@@ -57,4 +57,3 @@ def test_table_cannot_be_found():
 
         return create_merge_table.delay(context_id, json.dumps(not_found_tables)).get()
 
-test_merge_tables()
