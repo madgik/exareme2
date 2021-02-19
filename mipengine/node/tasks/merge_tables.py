@@ -18,7 +18,7 @@ def get_merge_tables(context_id: str) -> str:
 
         Returns
         ------
-        str --> (jsonified List[str])
+        str(List[str])
             A list of merged table names in a jsonified format
     """
     return json.dumps(merge_tables.get_merge_tables_names(context_id))
@@ -26,13 +26,15 @@ def get_merge_tables(context_id: str) -> str:
 
 # TODO Add in method description the jsonified input types
 @shared_task
-def create_merge_table(context_id: str, partition_table_names_json: str) -> str:
+def create_merge_table(context_id: str, command_id: str, partition_table_names_json: str) -> str:
     """
         Parameters
         ----------
         context_id : str
             The id of the experiment
-        partition_table_names_json : str --> (jsonified List[str])
+        command_id : str
+            The id of the command that the merge table
+        partition_table_names_json : str(List[str])
             Its a list of names of the tables to be merged in a jsonified format
 
         Returns
@@ -41,7 +43,7 @@ def create_merge_table(context_id: str, partition_table_names_json: str) -> str:
             The name(string) of the created merge table in lower case.
     """
     partition_table_names = json.loads(partition_table_names_json)
-    merge_table_name = create_table_name("merge", context_id, config["node"]["identifier"])
+    merge_table_name = create_table_name("merge", command_id, context_id, config["node"]["identifier"])
     schema = tables.get_table_schema(partition_table_names[0])
     table_info = TableInfo(merge_table_name.lower(), schema)
     merge_tables.create_merge_table(table_info)

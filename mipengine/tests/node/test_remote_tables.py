@@ -1,10 +1,11 @@
+import pymonetdb
 from celery import Celery
 
-from mipengine.node.config.config_parser import Config
+from mipengine.node.config.config_parser import config
 from mipengine.node.tasks.data_classes import ColumnInfo
 from mipengine.node.tasks.data_classes import TableInfo
+from mipengine.node.tasks.data_classes import TableSchema
 
-config = Config().config
 user = config["rabbitmq"]["user"]
 password = config["rabbitmq"]["password"]
 vhost = config["rabbitmq"]["vhost"]
@@ -27,11 +28,12 @@ clean_up_node1 = node1.signature('mipengine.node.tasks.common.clean_up')
 clean_up_node2 = node2.signature('mipengine.node.tasks.common.clean_up')
 
 
+# TODO: SQL Injection cases
 def test_remote_tables():
     context_id = "regrEssion"
-    schema = [ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")]
-    json_schema = ColumnInfo.schema().dumps(schema, many=True)
-    test_table_name = create_table.delay(context_id, json_schema).get()
+    schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])
+    json_schema = schema.to_json()
+    test_table_name = create_table.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), json_schema).get()
     url = 'mapi:monetdb://192.168.1.147:50000/db'
     table_info = TableInfo(test_table_name, schema)
     table_info_json = table_info.to_json()
@@ -39,5 +41,5 @@ def test_remote_tables():
     tables = get_remote_tables.delay(context_id).get()
     assert test_table_name in tables
 
-    clean_up_node1.delay(context_id).get()
-    clean_up_node2.delay(context_id).get()
+    clean_up_node1.delay(context_id.lower()).get()
+    clean_up_node2.delay(context_id.lower()).get()

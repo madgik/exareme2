@@ -2,7 +2,6 @@ import os
 
 import pymonetdb
 from pymonetdb import Connection
-from pymonetdb.sql.cursors import Cursor
 
 from mipengine.common.node_catalog import LocalNode
 from mipengine.common.node_catalog import NodeCatalog
@@ -12,7 +11,7 @@ config = Config().config
 node_catalog = NodeCatalog()
 
 
-def setup_data_table(connection: Connection, cursor: Cursor, node_id: str):
+def setup_data_table(connection: Connection, cursor, node_id: str):
     script_dir = os.path.dirname(__file__)
     data_table_creation_path = os.path.join(script_dir, "create_data_table.sql")
     columns = open(data_table_creation_path, "r")
@@ -35,5 +34,5 @@ def setup_database_for_node(local_node: LocalNode):
 local_nodes = node_catalog.get_local_nodes()
 for local_node in local_nodes:
     current_connection = setup_database_for_node(local_node)
-    current_cursor: Cursor = current_connection.cursor()
+    current_cursor = current_connection.cursor()
     setup_data_table(current_connection, current_cursor, local_node.nodeId)
