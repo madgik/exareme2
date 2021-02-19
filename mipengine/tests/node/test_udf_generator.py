@@ -119,5 +119,5 @@ test_cases = [
 
 
 @pytest.mark.parametrize("test_input,expected", test_cases)
-def test_two_tables_in_table_out(test_input, expected):
+def test_udf_generator(test_input, expected):
     assert test_input == expected
