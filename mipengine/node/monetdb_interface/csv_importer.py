@@ -6,7 +6,6 @@ from typing import Dict
 from typing import List
 
 from sqlalchemy import Boolean
-from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
 from sqlalchemy import Float
 from sqlalchemy import Integer
@@ -25,9 +24,8 @@ AMOUNT_OF_ROWS_TO_INSERT_INTO_SQL_PER_CALL = 100
 
 def create_pathology_metadata_table(pathology: str,
                                     pathology_common_data_elements: Dict[str, CommonDataElement]):
-    metadata = MetaData()
     metadata_table_name = pathology + "_metadata"
-    metadata_table = Table(metadata_table_name, metadata,
+    metadata_table = Table(metadata_table_name, db_engine_metadata,
                            Column('code', String(100), primary_key=True),
                            Column('label', String(255)),
                            Column('sql_type', String(10)),
@@ -36,8 +34,8 @@ def create_pathology_metadata_table(pathology: str,
                            Column('min', Integer),
                            Column('max', Integer),
                            )
-    metadata.drop_all(db_engine, checkfirst=True)
-    metadata.create_all(db_engine)
+    db_engine_metadata.drop_all(db_engine, checkfirst=True)
+    db_engine_metadata.create_all(db_engine)
 
     for common_data_element_code, common_data_element in pathology_common_data_elements.items():
         # Parse the special values (Optional, Enumerations) to sql format
@@ -72,9 +70,9 @@ def create_pathology_metadata_table(pathology: str,
 
 def convert_sql_type_to_monetdb_type(sql_type: str):
     """ Converts metadata sql type to monetdb sqlalchemy type
-    int -> integer
-    real -> double
-    text -> varchar(100)
+    int -> Integer
+    real -> Float
+    text -> String(100)
     """
     return {
         "int": Integer,
@@ -86,85 +84,102 @@ def convert_sql_type_to_monetdb_type(sql_type: str):
 def create_pathology_data_table(pathology: str,
                                 pathology_common_data_elements: Dict[str, CommonDataElement]):
     column_names = [cde_code for cde_code, cde in pathology_common_data_elements.items()]
-    column_names.append('subjectcode')
+    column_names.append('subjectcode')  # subjectcode is not part of the metadata
+
     column_types = [convert_sql_type_to_monetdb_type(cde.sql_type)
                     for cde_code, cde in pathology_common_data_elements.items()]
-    column_types.append(convert_sql_type_to_monetdb_type("text"))
+    column_types.append(convert_sql_type_to_monetdb_type("text"))  # subjectcode type is added as well
 
-    metadata = MetaData()
     data_table_name = pathology + "_data"
 
-    Table(data_table_name, metadata,
+    Table(data_table_name, db_engine_metadata,
           *(Column(column_name.lower(), column_type)
             for column_name, column_type in zip(column_names, column_types)))
 
-    metadata.drop_all(db_engine, checkfirst=True)
-    metadata.create_all(db_engine)
+    db_engine_metadata.drop_all(db_engine, checkfirst=True)
+    db_engine_metadata.create_all(db_engine)
 
 
 def import_dataset_csv_into_data_table(csv_file_path: Path,
                                        pathology: str,
                                        pathology_common_data_elements: Dict[str, CommonDataElement]):
+    data_table_name = pathology + "_data"
+
     # Open the csv
     dataset_csv_content = open(csv_file_path, "r", encoding="utf-8")
     dataset_csv_reader = csv.reader(dataset_csv_content)
 
-    # Create the csv INSERT statement
+    # Validate that all columns exist
     csv_header = next(dataset_csv_reader)
     for column in csv_header:
         if column not in pathology_common_data_elements.keys():
             raise KeyError('Column ' + column + ' does not exist in the metadata!')
 
-    data_table_name = pathology + "_data"
+    # Create the prefix for the INSERT statement ("INSERT INTO ... ( COLUMN_A, ... )
     insert_query_columns = ','.join(csv_header)
-    # insert_query_columns = ','.join([f"'{column}'" for column in csv_header])
     insert_query_prefix = f"INSERT INTO {data_table_name} ({insert_query_columns}) VALUES "
 
     # Insert data
     row_counter = 0
-    bulk_insert_query = "("
+    bulk_insert_query_values = "("
     for row in dataset_csv_reader:
         row_counter += 1
 
-        # Add all row_values to the insert query
         for (value, column) in zip(row, csv_header):
-            if value.strip() == '':
-                bulk_insert_query += 'null, '
-            elif pathology_common_data_elements[column].sql_type == 'text':
-                bulk_insert_query += "'" + value.strip() + "', "
-            else:
-                bulk_insert_query += value.strip() + ", "
+            # Validate the value enumerations
+            column_enumerations = pathology_common_data_elements[column].enumerations
+            if column_enumerations and value and value not in column_enumerations:
+                raise ValueError(f"Value {value} in column {column} does not "
+                                 f"have one of the allowed enumerations: {column_enumerations}")
 
-        # Insert rows every AMOUNT_OF_ROWS_TO_INSERT_INTO_SQL_PER_CALL
+            # Validate the value, min limit
+            column_min_value = pathology_common_data_elements[column].min
+            if column_min_value and value and value < column_min_value:
+                raise ValueError(f"Value {value} in column {column} should be less than {column_min_value}")
+
+            # Validate the value, max limit
+            column_max_value = pathology_common_data_elements[column].max
+            if column_max_value and value and value > column_max_value:
+                raise ValueError(f"Value {value} in column {column} should be greater than {column_max_value}")
+
+            # Add the value to the insert query
+            if value.strip() == '':
+                bulk_insert_query_values += 'null, '
+            elif pathology_common_data_elements[column].sql_type == 'text':
+                bulk_insert_query_values += "'" + value.strip() + "', "
+            else:
+                bulk_insert_query_values += value.strip() + ", "
+
+        # Execute insert query every AMOUNT_OF_ROWS_TO_INSERT_INTO_SQL_PER_CALL rows
         if row_counter % AMOUNT_OF_ROWS_TO_INSERT_INTO_SQL_PER_CALL == 0:
-            bulk_insert_query = bulk_insert_query[:-2]
-            bulk_insert_query += ');'
+            bulk_insert_query_values = bulk_insert_query_values[:-2]
+            bulk_insert_query_values += ');'
 
             try:
-                db_engine.execute(insert_query_prefix + bulk_insert_query)
+                db_engine.execute(insert_query_prefix + bulk_insert_query_values)
             except OperationalError:
                 find_error_on_bulk_insert_query(data_table_name,
-                                                bulk_insert_query,
+                                                bulk_insert_query_values,
                                                 csv_header,
                                                 pathology_common_data_elements,
                                                 csv_file_path)
                 raise ValueError("Error inserting the CSV to the database.")
 
-            bulk_insert_query = "("
+            bulk_insert_query_values = "("
         else:
-            bulk_insert_query = bulk_insert_query[:-2]
-            bulk_insert_query += '),('
+            bulk_insert_query_values = bulk_insert_query_values[:-2]
+            bulk_insert_query_values += '),('
 
     # Insertion of the last rows
     if row_counter % AMOUNT_OF_ROWS_TO_INSERT_INTO_SQL_PER_CALL != 0:
-        bulk_insert_query = bulk_insert_query[:-3]
-        bulk_insert_query += ');'
+        bulk_insert_query_values = bulk_insert_query_values[:-3]
+        bulk_insert_query_values += ');'
 
         try:
-            db_engine.execute(insert_query_prefix + bulk_insert_query)
+            db_engine.execute(insert_query_prefix + bulk_insert_query_values)
         except OperationalError:
             find_error_on_bulk_insert_query(data_table_name,
-                                            bulk_insert_query,
+                                            bulk_insert_query_values,
                                             csv_header,
                                             pathology_common_data_elements,
                                             csv_file_path)
@@ -257,6 +272,7 @@ monetdb_password = args.monetdb_password
 monetdb_url = args.monetdb_url
 monetdb_farm = args.monetdb_farm
 
+db_engine_metadata = MetaData()
 db_engine = create_engine(f'monetdb://{monetdb_username}:{monetdb_password}@'
                           f'{monetdb_url}/{monetdb_farm}:')
 
@@ -266,7 +282,7 @@ pathology_names = next(os.walk(data_abs_path))[1]
 if pathologies_to_parse is not None:
     pathologies_to_convert = pathologies_to_parse.split(",")
     pathology_names = [pathology_name for pathology_name in pathology_names if pathology_name in pathologies_to_convert]
-print("Converting csvs for pathologies: " + ",".join(pathology_names))
+print("Importing CSVs for pathologies: " + ",".join(pathology_names))
 
 # Import all pathologies
 for pathology_name in pathology_names:
@@ -276,7 +292,7 @@ for pathology_name in pathology_names:
     create_pathology_data_table(pathology_name,
                                 CommonDataElements().pathologies[pathology_name])
 
-    # Add all the csvs in the database
+    # Import each csv of the pathology
     pathology_folder_path = Path(os.path.join(data_abs_path, pathology_name))
     for csv_path in pathology_folder_path.glob('*.csv'):
         print(f"Importing CSV: {csv_path}")
@@ -285,4 +301,3 @@ for pathology_name in pathology_names:
                                            CommonDataElements().pathologies[pathology_name])
 
 # TODO Add monetdb_dockerized in the project
-# TODO Validate value enumerations, min, max
