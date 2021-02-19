@@ -17,28 +17,15 @@ from mipengine.node.udfgen.udfparams import SQLTYPES
 
 UDF_REGISTRY = {}
 
+CREATE_OR_REPLACE = "CREATE OR REPLACE"
+FUNCTION = "FUNCTION"
+RETURNS = "RETURNS"
+LANGUAGE_PYTHON = "LANGUAGE PYTHON"
+BEGIN = "{"
+END = "};"
+
 
 class UDFGenerator:
-    _udf_template = Template(
-        dedent(
-            """
-            CREATE OR REPLACE FUNCTION
-            $func_name($input_params)
-            RETURNS
-            $output_expr
-            LANGUAGE PYTHON
-            {
-            $table_defs
-            $tensor_defs
-            $loopbacks
-            $literals
-
-                # method body
-            $body
-            $return_stmt
-            };"""
-        )
-    )
     _table_template = Template("return as_relational_table($return_name)")
     _tensor_template = Template("return as_tensor_table($return_name)")
 
@@ -189,17 +176,25 @@ class UDFGenerator:
         literal_defs = gen_literal_def_code(inputs)
 
         prfx = " " * 4
-        return self._udf_template.substitute(
-            func_name=self.name,
-            input_params=input_params,
-            output_expr=output_expr,
-            table_defs=indent(table_defs or "", prfx),
-            tensor_defs=indent(tensor_defs or "", prfx),
-            loopbacks=indent(loopback_calls or "", prfx),
-            literals=indent(literal_defs or "", prfx),
-            body=indent(self.body or "", prfx),
-            return_stmt=indent(return_stmt, prfx),
-        )
+
+        funcdef = [
+            CREATE_OR_REPLACE,
+            FUNCTION,
+            f"{self.name}({input_params})",
+            RETURNS,
+            f"{output_expr}",
+            LANGUAGE_PYTHON,
+            BEGIN,
+        ]
+        funcdef += [indent(table_defs, prfx)] if table_defs else []
+        funcdef += [indent(tensor_defs, prfx)] if tensor_defs else []
+        funcdef += [indent(loopback_calls, prfx)] if loopback_calls else []
+        funcdef += [indent(literal_defs, prfx)] if literal_defs else []
+        funcdef += ["", "    # body", indent(self.body, prfx)] if self.body else []
+        funcdef += [indent(return_stmt, prfx)]
+        funcdef += [END]
+
+        return "\n".join(funcdef)
 
 
 def monet_udf(func):
