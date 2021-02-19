@@ -172,7 +172,7 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
         str
             The schema in a sql query formatted string
     """
-    return ', '.join(f"{column.name} {convert_to_monetdb_column_type(column.data_type)}" for column in schema.schema)
+    return ', '.join(f"{column.name} {convert_to_monetdb_column_type(column.data_type)}" for column in schema.columns)
 
 
 def get_table_data(table_type: str, table_name: str) -> List[List[Union[str, int, float, bool]]]:

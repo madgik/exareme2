@@ -24,7 +24,7 @@ class ColumnInfo:
 @dataclass_json
 @dataclass
 class TableSchema:
-    schema: List[ColumnInfo]
+    columns: List[ColumnInfo]
 
 
 @dataclass_json

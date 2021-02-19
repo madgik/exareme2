@@ -34,6 +34,6 @@ def test_views():
     table_data_json = get_view_data.delay(table_1_name).get()
     table_data = TableData.from_json(table_data_json)
     assert table_data.data is not []
-    assert table_data.schema == schema
+    assert table_data.columns == schema
 
     clean_up.delay(context_id.lower()).get()
