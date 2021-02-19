@@ -7,12 +7,12 @@ from mipengine.algorithms.numpy2 import zeros
 from mipengine.algorithms.preprocessing import LabelBinarizer
 from mipengine.algorithms.specialfuncs import expit
 from mipengine.algorithms.specialfuncs import xlogy
-from mipengine.node import monet_udf
-from mipengine.node import Table
-from mipengine.node import Tensor
-from mipengine.node import LoopbackTable
-from mipengine.node import LiteralParameter
-from mipengine.node import Scalar
+from mipengine.node.udfgen.udfgenerator import monet_udf
+from mipengine.node.udfgen.udfgenerator import Table
+from mipengine.node.udfgen.udfgenerator import Tensor
+from mipengine.node.udfgen.udfgenerator import LoopbackTable
+from mipengine.node.udfgen.udfgenerator import LiteralParameter
+from mipengine.node.udfgen.udfgenerator import Scalar
 
 PREC = 1e-6
 

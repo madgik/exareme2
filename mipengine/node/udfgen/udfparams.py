@@ -3,7 +3,9 @@ from numbers import Number
 
 import numpy as np
 
-from mipengine.node.udfgen.ufunctypes import type_conversion_table
+from mipengine.node.udfgen.ufunctypes import get_ufunc_type_conversions
+
+TYPE_CONVERSIONS = get_ufunc_type_conversions()
 
 SQLTYPES = {
     int: "BIGINT",
@@ -37,7 +39,7 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
                 raise ValueError("Matrix dimensions missmatch")
             newshape = inputs[0].shape[:1] + inputs[1].shape[1:]
             intypes = tuple([_typeof(inpt) for inpt in inputs])
-            newtype = type_conversion_table[ufunc.__name__][intypes]
+            newtype = TYPE_CONVERSIONS[ufunc.__name__][intypes]
             return Table(dtype=newtype, shape=newshape)
         else:
             if ufunc.nin == 1:
@@ -54,7 +56,7 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
             else:
                 raise ValueError("ufuncs do not accept more than 2 operands")
             intypes = tuple([_typeof(inpt) for inpt in inputs])
-            newtype = type_conversion_table[ufunc.__name__][intypes]
+            newtype = TYPE_CONVERSIONS[ufunc.__name__][intypes]
             return Table(dtype=newtype, shape=newshape)
 
     def __getitem__(self, key):

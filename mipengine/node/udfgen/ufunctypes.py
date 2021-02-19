@@ -1,30 +1,4 @@
-# from types import ModuleType
-
 import numpy
-
-
-def get_ufuncs(module):
-    ufuncs = {}
-    for name, obj in module.__dict__.items():
-        if type(obj) == numpy.ufunc:
-            ufuncs[name] = obj
-    return ufuncs
-
-
-ufuncs = get_ufuncs(numpy)
-
-
-# def get_types(module):
-#     types = ()
-#     for name in dir(module):
-#         if type(getattr(module, name)) == type:
-#             types += (getattr(module, name),)
-#         elif type(getattr(module, name)) == ModuleType:
-#             types += get_types(getattr(module, name))
-#     return types
-
-
-# types = get_types(numpy)
 
 types = (
     bool,
@@ -71,7 +45,15 @@ types = (
 )
 
 
-def compute_type_conversion_table(ufunc):
+def get_ufuncs(module):
+    ufuncs = {}
+    for name, obj in module.__dict__.items():
+        if type(obj) == numpy.ufunc:
+            ufuncs[name] = obj
+    return ufuncs
+
+
+def get_single_ufunc_type_conversions(ufunc):
     type_conversion_table = {}
     if ufunc.__name__ == "arctanh":
         val = 0
@@ -97,21 +79,25 @@ def compute_type_conversion_table(ufunc):
     return type_conversion_table
 
 
-type_conversion_table = {}
-for name, ufunc in ufuncs.items():
-    if name == "matmul":
-        continue
-    conversions = compute_type_conversion_table(ufunc)
-    type_conversion_table[name] = conversions
+def get_ufunc_type_conversions():
+    ufuncs = get_ufuncs(numpy)
 
-type_conversion_table["matmul"] = {}
-for tp_1 in types:
-    for tp_2 in types:
-        try:
-            matrix_1 = numpy.array([[1, 2, 3], [1, 2, 3]], dtype=tp_1).T
-            matrix_2 = numpy.array([[1, 2, 3], [1, 2, 3]], dtype=tp_2)
-        except TypeError:
+    type_conversion_table = {}
+    for name, ufunc in ufuncs.items():
+        if name == "matmul":
             continue
-        else:
-            out = matrix_1 @ matrix_2
-            type_conversion_table["matmul"][(tp_1, tp_2)] = type(out[0, 0])
+        conversions = get_single_ufunc_type_conversions(ufunc)
+        type_conversion_table[name] = conversions
+
+    type_conversion_table["matmul"] = {}
+    for tp_1 in types:
+        for tp_2 in types:
+            try:
+                matrix_1 = numpy.array([[1, 2, 3], [1, 2, 3]], dtype=tp_1).T
+                matrix_2 = numpy.array([[1, 2, 3], [1, 2, 3]], dtype=tp_2)
+            except TypeError:
+                continue
+            else:
+                out = matrix_1 @ matrix_2
+                type_conversion_table["matmul"][(tp_1, tp_2)] = type(out[0, 0])
+    return type_conversion_table

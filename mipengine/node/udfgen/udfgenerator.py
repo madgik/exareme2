@@ -3,18 +3,19 @@ import inspect
 from string import Template
 from textwrap import indent
 from textwrap import dedent
+from typing import Dict, List
 
 import astor
 
-from mipengine.node.udfgen import Table
-from mipengine.node.udfgen import LiteralParameter
-from mipengine.node.udfgen import LoopbackTable
-from mipengine.node.udfgen import Tensor
-from mipengine.node.udfgen import Scalar
+from mipengine.node.udfgen.udfparams import Table
+from mipengine.node.udfgen.udfparams import LiteralParameter
+from mipengine.node.udfgen.udfparams import LoopbackTable
+from mipengine.node.udfgen.udfparams import Tensor
+from mipengine.node.udfgen.udfparams import Scalar
 from mipengine.node.udfgen.udfparams import SQLTYPES
 
 
-UDF_REGISTER = {}
+UDF_REGISTRY = {}
 
 
 class UDFGenerator:
@@ -202,12 +203,12 @@ class UDFGenerator:
 
 
 def monet_udf(func):
-    global UDF_REGISTER
+    global UDF_REGISTRY
 
     verify_annotations(func)
 
     ugen = UDFGenerator(func)
-    UDF_REGISTER[ugen.name] = ugen
+    UDF_REGISTRY[ugen.name] = ugen
     return ugen
 
 
@@ -222,18 +223,27 @@ def verify_annotations(func):
         raise TypeError("Function is not properly annotated as a Monet UDF")
 
 
-def generate_udf(udf_name, table_schema, table_rows, loopback_tables, literalparams):
-    gen = UDF_REGISTER[udf_name]
+def generate_udf(
+    udf_name: str,
+    input_tables: List[Dict],
+    loopback_tables: List[Dict],
+    literalparams: Dict,
+) -> str:
+    udf = UDF_REGISTRY[udf_name]
 
-    table = create_table(table_schema, table_rows)
-
-    loopback_tables = [
-        create_table(lp["table_schema"], lp["table_rows"], name)
-        for name, lp in loopback_tables.items()
+    input_tables = [
+        create_table(table["shema"], table["nrows"]) for table in input_tables
     ]
 
-    literals = [LiteralParameter(literalparams[name]) for name in gen.literalparams]
-    return UDF_REGISTER[udf_name].to_sql(table, *loopback_tables, *literals)
+    loopback_tables = [
+        create_table(ltable["schema"], ltable["rows"], ltable["name"])
+        for ltable in loopback_tables
+    ]
+
+    literalparams = [
+        LiteralParameter(literalparams[name]) for name in udf.literalparams
+    ]
+    return udf.to_sql(*input_tables, *loopback_tables, *literalparams)
 
 
 def create_table(table_schema, table_rows, name=None):
@@ -246,32 +256,3 @@ def create_table(table_schema, table_rows, name=None):
     else:
         table = Table(dtype, shape=(table_rows, ncols))
     return table
-
-
-# -------------------------------------------------------- #
-# Examples                                                 #
-# -------------------------------------------------------- #
-
-
-@monet_udf
-def binarize_labels(y: Tensor, classes: LiteralParameter) -> Table:
-    from algorithms.preprocessing import LabelBinarizer
-
-    binarizer = LabelBinarizer()
-    binarizer.fit(classes)
-    binarized = binarizer.transform(y)
-    return binarized
-
-
-print(binarize_labels.to_sql(Table(int, (10, 1)), LiteralParameter([1, 2])))
-
-
-@monet_udf
-def zeros(shape: LiteralParameter) -> Tensor:
-    import numpy2 as np
-
-    z = np.zeros(shape)
-    return z
-
-
-print(zeros.to_sql(shape=LiteralParameter((2, 3))))
