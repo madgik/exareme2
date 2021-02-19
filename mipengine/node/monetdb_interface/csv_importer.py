@@ -299,5 +299,3 @@ for pathology_name in pathology_names:
         import_dataset_csv_into_data_table(csv_path,
                                            pathology_name,
                                            CommonDataElements().pathologies[pathology_name])
-
-# TODO Add monetdb_dockerized in the project
