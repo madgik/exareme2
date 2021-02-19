@@ -1,19 +1,10 @@
 from typing import List
 
 from celery import shared_task
-from tasks.tables import TableInfo
 
-
-class Parameter:
-    def __init__(self, name, value):
-        self.name: str = name
-        self.value = value
-
-
-class UDFInfo:
-    def __init__(self, name, header):
-        self.name: str = name
-        self.header: str = header
+from mipengine.node.tasks.data_classes import Parameter
+from mipengine.node.tasks.data_classes import TableInfo
+from mipengine.node.tasks.data_classes import UDFInfo
 
 
 @shared_task
