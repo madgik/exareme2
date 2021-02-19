@@ -17,7 +17,7 @@ from sqlalchemy import null
 from sqlalchemy.exc import OperationalError
 
 from mipengine.common.common_data_elements import CommonDataElement
-from mipengine.common.common_data_elements import CommonDataElements
+from mipengine.common.common_data_elements import common_data_elements
 
 AMOUNT_OF_ROWS_TO_INSERT_INTO_SQL_PER_CALL = 100
 
@@ -287,10 +287,10 @@ print("Importing CSVs for pathologies: " + ",".join(pathology_names))
 # Import all pathologies
 for pathology_name in pathology_names:
     create_pathology_metadata_table(pathology_name,
-                                    CommonDataElements().pathologies[pathology_name])
+                                    common_data_elements().pathologies[pathology_name])
 
     create_pathology_data_table(pathology_name,
-                                CommonDataElements().pathologies[pathology_name])
+                                common_data_elements().pathologies[pathology_name])
 
     # Import each csv of the pathology
     pathology_folder_path = Path(os.path.join(data_abs_path, pathology_name))
@@ -298,4 +298,4 @@ for pathology_name in pathology_names:
         print(f"Importing CSV: {csv_path}")
         import_dataset_csv_into_data_table(csv_path,
                                            pathology_name,
-                                           CommonDataElements().pathologies[pathology_name])
+                                           common_data_elements().pathologies[pathology_name])

@@ -90,7 +90,7 @@ def test_proper_algorithm():
     request_body = {
         "inputdata": {
             "pathology": "dementia",
-            "datasets": ["adni"],
+            "datasets": ["ppmi"],
             "filter": {},
             "x": ["lefthippocampus", "righthippocampus"],
             "y": ["alzheimerbroadcategory"]

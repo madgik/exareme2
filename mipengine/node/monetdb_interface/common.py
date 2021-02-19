@@ -4,7 +4,7 @@ from typing import Union
 import pymonetdb
 from pymonetdb.sql.cursors import Cursor
 
-from mipengine.common.node_catalog import NodeCatalog
+from mipengine.common.node_catalog import node_catalog
 from mipengine.node.config.config_parser import Config
 from mipengine.node.node import config
 from mipengine.node.tasks.data_classes import ColumnInfo
@@ -13,7 +13,6 @@ MONETDB_VARCHAR_SIZE = 50
 
 # TODO Add monetdb asyncio connection (aiopymonetdb)
 config = Config().config
-node_catalog = NodeCatalog()
 local_node = node_catalog.get_local_node_data(config["node"]["identifier"])
 monetdb_hostname = local_node.monetdbHostname
 monetdb_port = local_node.monetdbPort

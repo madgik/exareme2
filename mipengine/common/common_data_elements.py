@@ -105,4 +105,4 @@ class CommonDataElements:
             )
 
 
-CommonDataElements()
+common_data_elements = CommonDataElements()

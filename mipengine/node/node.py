@@ -1,9 +1,8 @@
 from celery import Celery
 
-from mipengine.common.node_catalog import NodeCatalog
+from mipengine.common.node_catalog import node_catalog
 from mipengine.node.config.config_parser import Config
 
-node_catalog = NodeCatalog()
 config = Config().config
 local_node = node_catalog.get_local_node_data(config["node"]["identifier"])
 

@@ -6,11 +6,10 @@ from typing import Optional
 from dataclasses_json import dataclass_json
 
 from mipengine.controller.common.algorithms_specifications import AlgorithmSpecifications
-from mipengine.controller.common.algorithms_specifications import AlgorithmsSpecifications
 from mipengine.controller.common.algorithms_specifications import CROSSVALIDATION_ALGORITHM_NAME
 from mipengine.controller.common.algorithms_specifications import GenericParameterSpecification
 from mipengine.controller.common.algorithms_specifications import InputDataSpecifications
-from mipengine.controller.common.utils import Singleton
+from mipengine.controller.common.algorithms_specifications import algorithms_specifications
 
 
 @dataclass_json
@@ -145,15 +144,17 @@ class AlgorithmSpecificationDTO:
             )
 
 
-class AlgorithmSpecificationsDTOs(metaclass=Singleton):
+class AlgorithmSpecificationsDTOs:
     algorithms_list = List[AlgorithmSpecificationDTO]
     algorithms_dict = Dict[str, AlgorithmSpecificationDTO]
 
     def __init__(self):
-        algorithms_specifications = AlgorithmsSpecifications()
         self.algorithms_list = [AlgorithmSpecificationDTO(algorithm, algorithms_specifications.crossvalidation)
                                 for algorithm in algorithms_specifications.enabled_algorithms.values()]
 
         self.algorithms_dict = {
             algorithm.name: AlgorithmSpecificationDTO(algorithm, algorithms_specifications.crossvalidation)
             for algorithm in algorithms_specifications.enabled_algorithms.values()}
+
+
+algorithm_specificationsDTOs = AlgorithmSpecificationsDTOs()
