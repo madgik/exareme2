@@ -104,12 +104,12 @@ class UDFGenerator:
             input_params = ", ".join(input_params)
             return input_params
 
-        def get_return_statement(output):
-            if type(output) == Table:
+        def get_return_statement(return_type):
+            if return_type == Table:
                 return_stmt = self._table_template.substitute(
                     return_name=self.return_name
                 )
-            elif type(output) == Tensor:
+            elif return_type == Tensor:
                 return_stmt = self._tensor_template.substitute(
                     return_name=self.return_name
                 )
@@ -133,18 +133,12 @@ class UDFGenerator:
                 table = inputs[name]
                 start, stop = stop, stop + table.shape[1]
                 table_defs += [f"{name} = ArrayBundle(_columns[{start}:{stop}])"]
-            table_defs = "\n".join(table_defs)
-            return table_defs
-
-        def gen_tensor_def_code(inputs):
-            tensor_defs = []
-            stop = 0
             for name in self.tensorparams:
                 tensor = inputs[name]
                 start, stop = stop, stop + tensor.shape[1]
-                tensor_defs += [f"{name} = from_tensor_table(_columns[{start}:{stop}])"]
-            tensor_defs = "\n".join(tensor_defs)
-            return tensor_defs
+                table_defs += [f"{name} = from_tensor_table(_columns[{start}:{stop}])"]
+            table_defs = "\n".join(table_defs)
+            return table_defs
 
         def gen_loopback_calls_code(inputs):
             loopback_calls = []
@@ -168,10 +162,9 @@ class UDFGenerator:
         inputs = gather_inputs(args, kwargs)
         output = self(*args, **kwargs)
         input_params = make_declaration_input_params(inputs)
-        return_stmt = get_return_statement(output)
+        return_stmt = get_return_statement(self.return_type)
         output_expr = get_output_expression(output)
         table_defs = gen_table_def_code(inputs)
-        tensor_defs = gen_tensor_def_code(inputs)
         loopback_calls = gen_loopback_calls_code(inputs)
         literal_defs = gen_literal_def_code(inputs)
 
@@ -187,7 +180,6 @@ class UDFGenerator:
             BEGIN,
         ]
         funcdef += [indent(table_defs, prfx)] if table_defs else []
-        funcdef += [indent(tensor_defs, prfx)] if tensor_defs else []
         funcdef += [indent(loopback_calls, prfx)] if loopback_calls else []
         funcdef += [indent(literal_defs, prfx)] if literal_defs else []
         funcdef += ["", "    # body", indent(self.body, prfx)] if self.body else []

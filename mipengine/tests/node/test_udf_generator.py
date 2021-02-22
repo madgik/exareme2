@@ -1,12 +1,13 @@
 from textwrap import dedent
 
+import pytest
+
 from mipengine.node.udfgen.udfgenerator import generate_udf
 from mipengine.node.udfgen.udfgenerator import monet_udf
 from mipengine.node.udfgen.udfparams import Table
 from mipengine.node.udfgen.udfparams import Tensor
 from mipengine.node.udfgen.udfparams import LoopbackTable
 from mipengine.node.udfgen.udfparams import LiteralParameter
-import pytest
 
 
 @monet_udf
@@ -32,6 +33,12 @@ def udf_with_literals(X: Tensor, val: LiteralParameter) -> Tensor:
     return result
 
 
+@monet_udf
+def udf_multitype_input(x: Table, y: Tensor, z: LoopbackTable) -> Table:
+    t = y * z
+    return x
+
+
 test_cases = [
     (
         udf_tables.to_sql(Table(int, (10, 2)), Table(int, (10, 2))),
@@ -51,8 +58,8 @@ test_cases = [
             result = x + y
 
             return as_relational_table(result)
-        };"""[1:]
-        ),
+        };"""
+        )[1:],
     ),
     (
         udf_table_to_tensor.to_sql(Table(int, (4, 4))),
@@ -66,9 +73,9 @@ test_cases = [
         LANGUAGE PYTHON
         {
             input = ArrayBundle(_columns[0:4])
-            return as_relational_table(input)
-        };"""[1:]
-        ),
+            return as_tensor_table(input)
+        };"""
+        )[1:],
     ),
     (
         udf_tensor_and_loopback.to_sql(
@@ -90,9 +97,9 @@ test_cases = [
             # body
             result = X @ c
 
-            return as_relational_table(result)
-        };"""[1:]
-        ),
+            return as_tensor_table(result)
+        };"""
+        )[1:],
     ),
     (
         udf_with_literals.to_sql(Tensor(int, (3, 3)), LiteralParameter(5)),
@@ -111,9 +118,35 @@ test_cases = [
                 # body
                 result = X + val
 
-                return as_relational_table(result)
-            };"""[1:]
+                return as_tensor_table(result)
+            };"""
+        )[1:],
+    ),
+    (
+        udf_multitype_input.to_sql(
+            Table(int, (10, 2)),
+            Tensor(float, (2, 2)),
+            LoopbackTable(dtype=float, shape=(2, 2), name="t"),
         ),
+        dedent(
+            """
+            CREATE OR REPLACE
+            FUNCTION
+            udf_multitype_input(x0 BIGINT, x1 BIGINT, y0 DOUBLE, y1 DOUBLE)
+            RETURNS
+            Table(x0 BIGINT, x1 BIGINT)
+            LANGUAGE PYTHON
+            {
+                x = ArrayBundle(_columns[0:2])
+                y = from_tensor_table(_columns[2:4])
+                z = _conn.execute("SELECT * FROM t")
+
+                # body
+                t = y * z
+
+                return as_relational_table(x)
+            };"""
+        )[1:],
     ),
 ]
 
