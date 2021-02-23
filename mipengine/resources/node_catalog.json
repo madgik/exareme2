@@ -16,7 +16,22 @@
           {
             "name": "dementia",
             "datasets": [
-              "edsd"
+              "edsd",
+              "ppmi",
+              "desd-synthdata",
+              "fake_longitudinal"
+            ]
+          },
+          {
+            "name": "mentalhealth",
+            "datasets": [
+              "demo"
+            ]
+          },
+          {
+            "name": "tbi",
+            "datasets": [
+              "dummy_tbi"
             ]
           }
         ]
@@ -32,7 +47,22 @@
           {
             "name": "dementia",
             "datasets": [
-              "adni"
+              "edsd",
+              "ppmi",
+              "desd-synthdata",
+              "fake_longitudinal"
+            ]
+          },
+          {
+            "name": "mentalhealth",
+            "datasets": [
+              "demo"
+            ]
+          },
+          {
+            "name": "tbi",
+            "datasets": [
+              "dummy_tbi"
             ]
           }
         ]
