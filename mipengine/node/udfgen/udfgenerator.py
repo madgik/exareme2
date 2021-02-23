@@ -77,7 +77,7 @@ class UDFGenerator:
         body = dedent("".join(astor.to_source(stmt) for stmt in statemets))
         return body
 
-    def to_sql(self, *args, **kwargs):
+    def to_sql(self, udf_name, *args, **kwargs):
         def verify_types(args, kwargs):
             allowed = (Table, Tensor, LiteralParameter, LoopbackTable)
             args_are_allowed = [
@@ -173,7 +173,7 @@ class UDFGenerator:
         funcdef = [
             CREATE_OR_REPLACE,
             FUNCTION,
-            f"{self.name}({input_params})",
+            f"{udf_name}({input_params})",
             RETURNS,
             f"{output_expr}",
             LANGUAGE_PYTHON,
@@ -211,26 +211,27 @@ def verify_annotations(func):
 
 
 def generate_udf(
+    func_name: str,
     udf_name: str,
     input_tables: List[Dict],
     loopback_tables: List[Dict],
     literalparams: Dict,
 ) -> str:
-    udf = UDF_REGISTRY[udf_name]
+    udf = UDF_REGISTRY[func_name]
 
     input_tables = [
-        create_table(table["shema"], table["nrows"]) for table in input_tables
+        create_table(table["schema"], table["nrows"]) for table in input_tables
     ]
 
     loopback_tables = [
-        create_table(ltable["schema"], ltable["rows"], ltable["name"])
+        create_table(ltable["schema"], ltable["nrows"], ltable["name"])
         for ltable in loopback_tables
     ]
 
     literalparams = [
         LiteralParameter(literalparams[name]) for name in udf.literalparams
     ]
-    return udf.to_sql(*input_tables, *loopback_tables, *literalparams)
+    return udf.to_sql(udf_name, *input_tables, *loopback_tables, *literalparams)
 
 
 def create_table(table_schema, table_rows, name=None):
