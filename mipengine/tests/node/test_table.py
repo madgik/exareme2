@@ -24,7 +24,7 @@ def test_tables():
     table_data = get_table_data.delay(table_1_name).get()
     object_table_data = TableData.from_json(table_data)
     assert object_table_data.data == []
-    assert object_table_data.columns == schema
+    assert object_table_data.schema == schema
 
     context_id_2 = "HISTOGRAMS"
     table_2_name = create_table.delay(context_id_2, str(pymonetdb.uuid.uuid1()).replace("-", ""), json_schema).get()
