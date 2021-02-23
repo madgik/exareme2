@@ -287,10 +287,10 @@ print("Importing CSVs for pathologies: " + ",".join(pathology_names))
 # Import all pathologies
 for pathology_name in pathology_names:
     create_pathology_metadata_table(pathology_name,
-                                    common_data_elements().pathologies[pathology_name])
+                                    common_data_elements.pathologies[pathology_name])
 
     create_pathology_data_table(pathology_name,
-                                common_data_elements().pathologies[pathology_name])
+                                common_data_elements.pathologies[pathology_name])
 
     # Import each csv of the pathology
     pathology_folder_path = Path(os.path.join(data_abs_path, pathology_name))
@@ -298,4 +298,4 @@ for pathology_name in pathology_names:
         print(f"Importing CSV: {csv_path}")
         import_dataset_csv_into_data_table(csv_path,
                                            pathology_name,
-                                           common_data_elements().pathologies[pathology_name])
+                                           common_data_elements.pathologies[pathology_name])

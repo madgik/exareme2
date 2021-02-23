@@ -3,4 +3,4 @@ pymonetdb==1.4.1
 celery
 sqlalchemy==1.3.23
 future
-
+sqlalchemy_monetdb
