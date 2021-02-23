@@ -2,40 +2,37 @@ from typing import List
 from typing import Union
 
 import pymonetdb
-from pymonetdb.sql.cursors import Cursor
 
-from mipengine.common.node_catalog import node_catalog
-from mipengine.node.config.config_parser import Config
+from mipengine.common.node_catalog import NodeCatalog
 from mipengine.node.node import config
 from mipengine.node.tasks.data_classes import ColumnInfo
+from mipengine.node.tasks.data_classes import TableSchema
 
 MONETDB_VARCHAR_SIZE = 50
 
 # TODO Add monetdb asyncio connection (aiopymonetdb)
-config = Config().config
-local_node = node_catalog.get_local_node_data(config["node"]["identifier"])
+node_catalog = NodeCatalog()
+local_node = node_catalog.get_local_node_data(config.get("node","identifier"))
 monetdb_hostname = local_node.monetdbHostname
 monetdb_port = local_node.monetdbPort
-connection = pymonetdb.connect(username=config["monet_db"]["username"],
+connection = pymonetdb.connect(username=config.get("monet_db","username"),
                                port=monetdb_port,
-                               password=config["monet_db"]["password"],
+                               password=config.get("monet_db","password"),
                                hostname=monetdb_hostname,
-                               database=config["monet_db"]["database"])
-cursor: Cursor = connection.cursor()
+                               database=config.get("monet_db","database"))
+cursor = connection.cursor()
 
 
-def create_table_name(table_type: str, context_id: str, node_id: str) -> str:
+def create_table_name(table_type: str, command_id: str, context_id: str, node_id: str) -> str:
     """
     Creates a table name with the format <table_type>_<context_id>_<node_id>_<uuid>
     """
     if table_type not in {"table", "view", "merge"}:
-        raise KeyError(f"Table type is not acceptable: {table_type} .")
-    if node_id not in {"global", config["node"]["identifier"]}:
-        raise KeyError(f"Node Identifier is not acceptable: {node_id} .")
+        raise TypeError(f"Table type is not acceptable: {table_type} .")
+    if node_id not in {"global", config.get("node","identifier")}:
+        raise TypeError(f"Node Identifier is not acceptable: {node_id} .")
 
-    uuid = str(pymonetdb.uuid.uuid1()).replace("-", "")
-
-    return f"{table_type}_{context_id}_{node_id}_{uuid}"
+    return f"{table_type}_{command_id}_{context_id}_{node_id}"
 
 
 # TODO Add SQLAlchemy if possible
@@ -48,12 +45,17 @@ def get_table_type_enumeration_value(table_type: str) -> int:
      merge -> 3,
      remote -> 5,
         """
-    return {
+    type_mapping = {
         "normal": 0,
         "view": 1,
         "merge": 3,
         "remote": 5,
-    }[table_type]
+    }
+
+    if table_type not in type_mapping.keys():
+        raise ValueError(f"Type {table_type} cannot be converted to monetdb table type.")
+
+    return type_mapping.get(str(table_type).lower())
 
 
 def convert_to_monetdb_column_type(column_type: str) -> str:
@@ -64,13 +66,18 @@ def convert_to_monetdb_column_type(column_type: str) -> str:
     bool -> boolean
     clob -> clob
     """
-    return {
+    type_mapping = {
         "int": "int",
         "float": "double",
         "text": f"varchar({MONETDB_VARCHAR_SIZE})",
         "bool": "bool",
         "clob": "clob",
-    }[str.lower(column_type)]
+    }
+
+    if column_type not in type_mapping.keys():
+        raise ValueError(f"Type {column_type} cannot be converted to monetdb column type.")
+
+    return type_mapping.get(str(column_type).lower())
 
 
 def convert_from_monetdb_column_type(column_type: str) -> str:
@@ -81,21 +88,21 @@ def convert_from_monetdb_column_type(column_type: str) -> str:
     boolean -> bool
     clob -> clob
     """
-    return {
+    type_mapping = {
         "int": "int",
         "double": "float",
         "varchar": "text",
         "bool": "bool",
         "clob": "clob",
-    }[str.lower(column_type)]
+    }
 
     if column_type not in type_mapping.keys():
-        raise TypeError(f"Type {column_type} cannot be converted to monetdb column type.")
+        raise ValueError(f"Type {column_type} cannot be converted to MIP Engine's types.")
 
-    return type_mapping.get(column_type)
+    return type_mapping.get(str(column_type).lower())
 
 
-def get_table_schema(table_type: str, table_name: str) -> List[ColumnInfo]:
+def get_table_schema(table_type: str, table_name: str) -> TableSchema:
     """Retrieves a schema for a specific table type and table name  from the monetdb.
 
         Parameters
@@ -107,25 +114,27 @@ def get_table_schema(table_type: str, table_name: str) -> List[ColumnInfo]:
 
         Returns
         ------
-        List[ColumnInfo]
-            A schema which is a list of ColumnInfo's objects.
+        TableSchema
+            A schema which is TableSchema object.
     """
-    cursor.execute(f"SELECT columns.name, columns.type "
-                   f"FROM columns "
-                   f"RIGHT JOIN tables "
-                   f"ON tables.id = columns.table_id "
-                   f"WHERE "
-                   f"tables.type = {str(get_table_type_enumeration_value(table_type))} "
-                   f"AND "
-                   f"tables.name = '{table_name}' "
-                   f"AND "
-                   f"tables.system=false;")
+    cursor.execute(
+        f"""
+        SELECT columns.name, columns.type 
+        FROM columns 
+        RIGHT JOIN tables 
+        ON tables.id = columns.table_id 
+        WHERE 
+        tables.type = {str(get_table_type_enumeration_value(table_type))} 
+        AND 
+        tables.name = '{table_name}' 
+        AND 
+        tables.system=false""")
 
-    return [ColumnInfo(table[0], convert_from_monetdb_column_type(table[1])) for table in cursor]
+    return TableSchema([ColumnInfo(table[0], convert_from_monetdb_column_type(table[1])) for table in cursor])
 
 
 def get_tables_names(table_type: str, context_id: str) -> List[str]:
-    """Retrieves a list of table names, which contain the context_id    from the monetdb.
+    """Retrieves a list of table names, which contain the context_id from the monetdb.
 
         Parameters
         ----------
@@ -139,38 +148,31 @@ def get_tables_names(table_type: str, context_id: str) -> List[str]:
         List[str]
             A list of table names.
     """
-    type_clause = f"type = {str(get_table_type_enumeration_value(table_type))} AND"
-
-    context_clause = f"name LIKE '%{context_id.lower()}%' AND"
-
     cursor.execute(
-        "SELECT name FROM tables "
-        "WHERE"
-        f" {type_clause}"
-        f" {context_clause} "
-        "system = false")
+        f"""
+        SELECT name FROM tables 
+        WHERE
+         type = {str(get_table_type_enumeration_value(table_type))} AND
+        name LIKE '%{context_id.lower()}%' AND 
+        system = false""")
 
     return [table[0] for table in cursor]
 
 
-def convert_schema_to_sql_query_format(schema: List[ColumnInfo]) -> str:
+def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     """Converts a table's schema to a sql query.
 
         Parameters
         ----------
-        schema : List[ColumnInfo]
-            The schema(list of ColumnInfo) of a table
+        schema : TableSchema
+            The schema of a table
 
         Returns
         ------
         str
             The schema in a sql query formatted string
     """
-    columns_schema = ""
-    for column_info in schema:
-        columns_schema += f"{column_info.name} {convert_to_monetdb_column_type(column_info.type)}, "
-    columns_schema = columns_schema[:-2]
-    return columns_schema
+    return ', '.join(f"{column.name} {convert_to_monetdb_column_type(column.data_type)}" for column in schema.columns)
 
 
 def get_table_data(table_type: str, table_name: str) -> List[List[Union[str, int, float, bool]]]:
@@ -189,11 +191,14 @@ def get_table_data(table_type: str, table_name: str) -> List[List[Union[str, int
             The data of the table.
     """
     cursor.execute(
-        f"SELECT {table_name}.* "
-        f"FROM {table_name} "
-        f"INNER JOIN tables ON tables.name = '{table_name}' "
-        f"WHERE tables.system=false "
-        f"AND tables.type = {str(get_table_type_enumeration_value(table_type))}")
+        f"""
+        SELECT {table_name}.* 
+        FROM {table_name} 
+        INNER JOIN tables ON tables.name = '{table_name}' 
+        WHERE tables.system=false 
+        AND tables.type = {str(get_table_type_enumeration_value(table_type))}
+        """)
+
     return cursor.fetchall()
 
 
@@ -205,10 +210,8 @@ def clean_up(context_id: str):
         context_id : str
             The id of the experiment
     """
-    delete_table_by_type_and_context_id("merge", context_id)
-    delete_table_by_type_and_context_id("remote", context_id)
-    delete_table_by_type_and_context_id("view", context_id)
-    delete_table_by_type_and_context_id("normal", context_id)
+    for table_type in ("merge", "remote", "view", "normal"):
+        delete_table_by_type_and_context_id(table_type, context_id)
     connection.commit()
 
 
@@ -222,16 +225,13 @@ def delete_table_by_type_and_context_id(table_type: str, context_id: str):
         context_id : str
             The id of the experiment
     """
-
-    context_clause = f"name LIKE '%{context_id.lower()}%' AND"
-    type_clause = f"tables.type = {str(get_table_type_enumeration_value(table_type))} AND"
-
     cursor.execute(
-        "SELECT name, type FROM tables "
-        "WHERE"
-        f" {context_clause}"
-        f" {type_clause}"
-        " system = false")
+        f"""
+        SELECT name, type FROM tables 
+        WHERE name LIKE '%{context_id.lower()}%'
+        AND tables.type = {str(get_table_type_enumeration_value(table_type))} 
+        AND system = false
+        """)
     for table in cursor.fetchall():
         if table[1] == 1:
             cursor.execute(f"DROP VIEW {table[0]}")

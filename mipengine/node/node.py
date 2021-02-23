@@ -1,15 +1,15 @@
 from celery import Celery
 
-from mipengine.common.node_catalog import node_catalog
-from mipengine.node.config.config_parser import Config
+from mipengine.common.node_catalog import NodeCatalog
+from mipengine.node.config.config_parser import config
 
-config = Config().config
-local_node = node_catalog.get_local_node_data(config["node"]["identifier"])
+node_catalog = NodeCatalog()
+local_node = node_catalog.get_local_node_data(config.get("node", "identifier"))
 
 rabbitmqURL = local_node.rabbitmqURL
-user = config["rabbitmq"]["user"]
-password = config["rabbitmq"]["password"]
-vhost = config["rabbitmq"]["vhost"]
+user = config.get("rabbitmq", "user")
+password = config.get("rabbitmq", "password")
+vhost = config.get("rabbitmq", "vhost")
 
 app = Celery('mipengine.node',
              broker=f'amqp://{user}:{password}@{rabbitmqURL}/{vhost}',
