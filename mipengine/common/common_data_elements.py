@@ -27,8 +27,8 @@ class MetadataVariable:
     sql_type: str
     isCategorical: bool
     enumerations: Optional[List[MetadataEnumeration]] = None
-    min: Optional[int] = None
-    max: Optional[int] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
 
     def __post_init__(self):
         allowed_types = {"int", "real", "text"}
@@ -49,9 +49,8 @@ class MetadataGroup:
 
     def __iter__(self):
         yield self
-        for group in self.groups:
-            for subgroup in group:
-                yield subgroup
+        for subgroup in self.groups:
+            yield from subgroup
 
 
 @dataclass
@@ -60,8 +59,8 @@ class CommonDataElement:
     sql_type: str
     categorical: bool
     enumerations: Optional[Set] = None
-    min: Optional[int] = None
-    max: Optional[int] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
 
     def __init__(self, variable: MetadataVariable):
         self.label = variable.label
