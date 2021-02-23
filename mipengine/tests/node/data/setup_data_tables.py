@@ -4,11 +4,10 @@ import pymonetdb
 from pymonetdb import Connection
 
 from mipengine.common.node_catalog import LocalNode
-from mipengine.common.node_catalog import NodeCatalog
+from mipengine.common.node_catalog import node_catalog
 from mipengine.node.config.config_parser import Config
 
 config = Config().config
-node_catalog = NodeCatalog()
 
 
 def setup_data_table(connection: Connection, cursor, node_id: str):

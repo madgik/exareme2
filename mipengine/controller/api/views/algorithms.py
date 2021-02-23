@@ -5,7 +5,7 @@ from quart import Blueprint
 from quart import request
 
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO
-from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationsDTOs
+from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import algorithm_specificationsDTOs
 from mipengine.controller.api.errors.exceptions import BadRequest
 from mipengine.controller.api.errors.exceptions import BadUserInput
 from mipengine.controller.api.services.validate_algorithm import validate_algorithm
@@ -15,7 +15,7 @@ algorithms = Blueprint('algorithms_endpoint', __name__)
 
 @algorithms.route("/algorithms")
 async def get_algorithms() -> str:
-    algorithm_specifications = AlgorithmSpecificationsDTOs().algorithms_list
+    algorithm_specifications = algorithm_specificationsDTOs.algorithms_list
 
     return AlgorithmSpecificationDTO.schema().dumps(algorithm_specifications, many=True)
 
