@@ -2,6 +2,7 @@ import re
 from functools import wraps
 
 
+# TODO: better name
 def sql_injections_defender(func):
     wraps(func)
 
@@ -23,6 +24,7 @@ def sql_injections_defender(func):
 def check_proper_url_format(url: str):
     regex_between_0_to_255 = "([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])"
     regex_any_alphanumeric = "([a-zA-Z0-9]*)"
+    # The format of the URL of a REMOTE TABLE is: mapi:monetdb://<host>:<port>/<dbname>
     return re.search(
         f"^mapi:monetdb://{regex_between_0_to_255}\.{regex_between_0_to_255}\.{regex_between_0_to_255}\.{regex_between_0_to_255}:{regex_any_alphanumeric}/{regex_any_alphanumeric}$",
         url)
