@@ -2,8 +2,9 @@ from functools import singledispatch
 
 import numpy as np
 
-from mipengine.node.udfgen import LiteralParameter
-from mipengine.node.udfgen import Tensor
+from mipengine.algorithms.udfgen.udfparams import LiteralParameter
+from mipengine.algorithms.udfgen.udfparams import Table
+from mipengine.algorithms.udfgen.udfparams import Tensor
 
 
 @singledispatch
@@ -33,5 +34,26 @@ def _(vec: np.ndarray):
 
 @diag.register
 def _(vec: Tensor):
-    assert len(vec.shape) == 1
+    assert vec.ncols == 1
     return Tensor(dtype=vec.dtype, shape=(vec.shape[0], vec.shape[0]))
+
+
+@diag.register
+def _(vec: Table):
+    assert vec.ncols == 1
+    return Table(dtype=vec.dtype, shape=(vec.shape[0], vec.shape[0]))
+
+
+@singledispatch
+def inv(mat):
+    raise NotImplemented
+
+
+@inv.register
+def _(mat: np.ndarray):
+    return np.linalg.inv(mat)
+
+
+@inv.register
+def _(mat: Table):
+    return mat

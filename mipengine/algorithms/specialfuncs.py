@@ -4,7 +4,8 @@ from functools import singledispatch
 import numpy as np
 from scipy import special
 
-from mipengine.node.udfgen.udfparams import Tensor
+from mipengine.algorithms.udfgen.udfparams import Table
+from mipengine.algorithms.udfgen.udfparams import Tensor
 
 
 @singledispatch
@@ -22,6 +23,11 @@ def _(x: Tensor):
     return copy(x)
 
 
+@expit.register
+def _(x: Table):
+    return copy(x)
+
+
 @singledispatch
 def xlogy(x, y):
     raise NotImplementedError
@@ -34,4 +40,9 @@ def _(x: np.ndarray, y):
 
 @xlogy.register
 def _(x: Tensor, y):
+    return copy(x)
+
+
+@xlogy.register
+def _(x: Table, y):
     return copy(x)
