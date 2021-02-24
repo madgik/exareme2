@@ -7,7 +7,7 @@ from mipengine.common.node_catalog import NodeCatalog
 from mipengine.node.node import config
 from mipengine.node.tasks.data_classes import ColumnInfo
 from mipengine.node.tasks.data_classes import TableSchema
-from mipengine.utils.verify_identifier_names import sql_injections_defender
+from mipengine.utils.validate_identifier_names import validate_identifier_names
 
 MONETDB_VARCHAR_SIZE = 50
 
@@ -103,7 +103,7 @@ def convert_from_monetdb_column_type(column_type: str) -> str:
     return type_mapping.get(str(column_type).lower())
 
 
-@sql_injections_defender
+@validate_identifier_names
 def get_table_schema(table_type: str, table_name: str) -> TableSchema:
     """Retrieves a schema for a specific table type and table name  from the monetdb.
 
@@ -135,7 +135,7 @@ def get_table_schema(table_type: str, table_name: str) -> TableSchema:
     return TableSchema([ColumnInfo(table[0], convert_from_monetdb_column_type(table[1])) for table in cursor])
 
 
-@sql_injections_defender
+@validate_identifier_names
 def get_tables_names(table_type: str, context_id: str) -> List[str]:
     """Retrieves a list of table names, which contain the context_id from the monetdb.
 
@@ -178,7 +178,7 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     return ', '.join(f"{column.name} {convert_to_monetdb_column_type(column.data_type)}" for column in schema.columns)
 
 
-@sql_injections_defender
+@validate_identifier_names
 def get_table_data(table_type: str, table_name: str) -> List[List[Union[str, int, float, bool]]]:
     """Retrieves the data of a table with specific type and name  from the monetdb.
 
@@ -219,7 +219,7 @@ def clean_up(context_id: str):
     connection.commit()
 
 
-@sql_injections_defender
+@validate_identifier_names
 def delete_table_by_type_and_context_id(table_type: str, context_id: str):
     """Deletes all tables of specific type with name that contain a specific context_id from the monetdb.
 

@@ -10,20 +10,20 @@ from mipengine.node.monetdb_interface.common import cursor
 from mipengine.node.tasks.data_classes import TableInfo
 from mipengine.utils.custom_exception import IncompatibleSchemasMergeException
 from mipengine.utils.custom_exception import TableCannotBeFound
-from mipengine.utils.verify_identifier_names import sql_injections_defender
+from mipengine.utils.validate_identifier_names import validate_identifier_names
 
 
 def get_merge_tables_names(context_id: str) -> List[str]:
     return common.get_tables_names("merge", context_id)
 
 
-@sql_injections_defender
+@validate_identifier_names
 def create_merge_table(table_info: TableInfo):
     columns_schema = convert_schema_to_sql_query_format(table_info.schema)
     cursor.execute(f"CREATE MERGE TABLE {table_info.name} ( {columns_schema} )")
 
 
-@sql_injections_defender
+@validate_identifier_names
 def get_non_existing_tables(table_names: List[str]) -> List[str]:
     names_clause = str(table_names)[1:-1]
     cursor.execute(f"SELECT name FROM tables WHERE name IN({names_clause})")
@@ -31,7 +31,7 @@ def get_non_existing_tables(table_names: List[str]) -> List[str]:
     return [name for name in table_names if name not in existing_table_names]
 
 
-@sql_injections_defender
+@validate_identifier_names
 def add_to_merge_table(merge_table_name: str, partition_tables_names: List[str]):
     non_existing_tables = get_non_existing_tables(partition_tables_names)
     table_infos = [TableInfo(name, tables.get_table_schema(name)) for name in partition_tables_names]

@@ -2,8 +2,7 @@ import re
 from functools import wraps
 
 
-# TODO: better name
-def sql_injections_defender(func):
+def validate_identifier_names(func):
     wraps(func)
 
     def wrapper(*args, **kwargs):
