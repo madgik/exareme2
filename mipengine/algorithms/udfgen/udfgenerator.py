@@ -131,11 +131,11 @@ class UDFGenerator:
             stop = 0
             for name in self.tableparams:
                 table = inputs[name]
-                start, stop = stop, stop + table.shape[1]
+                start, stop = stop, stop + table.ncols
                 table_defs += [f"{name} = ArrayBundle(_columns[{start}:{stop}])"]
             for name in self.tensorparams:
                 tensor = inputs[name]
-                start, stop = stop, stop + tensor.shape[1]
+                start, stop = stop, stop + tensor.ncols
                 table_defs += [f"{name} = from_tensor_table(_columns[{start}:{stop}])"]
             table_defs = "\n".join(table_defs)
             return table_defs

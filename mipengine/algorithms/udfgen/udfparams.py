@@ -23,41 +23,61 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
         self.dtype = dtype
         self.shape = shape
 
+    @property
+    def ncols(self):
+        if len(self.shape) == 1:
+            return 1
+        else:
+            return self.shape[1]
+
     def __repr__(self):
         clsname = type(self).__name__
         return f"{clsname}(dtype={self.dtype.__name__}, shape={self.shape})"
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        inputs = [
-            inpt.value if isinstance(inpt, LiteralParameter) else inpt
-            for inpt in inputs
-        ]
-        if not all(isinstance(inpt, (Table, Number)) for inpt in inputs):
-            raise TypeError("Can only apply ufunc between Table and Number")
-        if ufunc.__name__ == "matmul":
-            if inputs[0].shape[-1] != inputs[1].shape[0]:
-                raise ValueError("Matrix dimensions missmatch")
-            newshape = inputs[0].shape[:1] + inputs[1].shape[1:]
-            intypes = tuple([_typeof(inpt) for inpt in inputs])
-            newtype = TYPE_CONVERSIONS[ufunc.__name__][intypes]
-            return Table(dtype=newtype, shape=newshape)
-        else:
-            if ufunc.nin == 1:
-                shape_a = inputs[0].shape
-                newshape = shape_a
-            elif ufunc.nin == 2:
-                if isinstance(inputs[0], Number):
-                    inputs = (np.array(inputs[0]), inputs[1])
-                if isinstance(inputs[1], Number):
-                    inputs = (inputs[0], np.array(inputs[1]))
-                shape_a = inputs[0].shape
-                shape_b = inputs[1].shape
-                newshape = _broadcast_shapes(shape_a, shape_b)
+        if method == "__call__":
+            inputs = [
+                inpt.value if isinstance(inpt, LiteralParameter) else inpt
+                for inpt in inputs
+            ]
+            if not all(
+                isinstance(inpt, (Table, Number, np.ndarray)) for inpt in inputs
+            ):
+                raise TypeError(
+                    "Can only apply ufunc between Table and Number and arrays"
+                )
+            if ufunc.__name__ == "matmul":
+                if type(inputs[0]) == np.ndarray:
+                    inputs[0] = Table(float, inputs[0].shape)
+                if type(inputs[1]) == np.ndarray:
+                    inputs[1] = Table(float, inputs[1].shape)
+                if inputs[0].shape[-1] != inputs[1].shape[0]:
+                    raise ValueError("Matrix dimensions missmatch")
+                newshape = inputs[0].shape[:1] + inputs[1].shape[1:]
+                intypes = tuple([_typeof(inpt) for inpt in inputs])
+                newtype = TYPE_CONVERSIONS[ufunc.__name__][intypes]
+                return Table(dtype=newtype, shape=newshape)
             else:
-                raise ValueError("ufuncs do not accept more than 2 operands")
-            intypes = tuple([_typeof(inpt) for inpt in inputs])
-            newtype = TYPE_CONVERSIONS[ufunc.__name__][intypes]
-            return Table(dtype=newtype, shape=newshape)
+                if ufunc.nin == 1:
+                    shape_a = inputs[0].shape
+                    newshape = shape_a
+                elif ufunc.nin == 2:
+                    if isinstance(inputs[0], Number):
+                        inputs = (np.array(inputs[0]), inputs[1])
+                    if isinstance(inputs[1], Number):
+                        inputs = (inputs[0], np.array(inputs[1]))
+                    shape_a = inputs[0].shape
+                    shape_b = inputs[1].shape
+                    newshape = _broadcast_shapes(shape_a, shape_b)
+                else:
+                    raise ValueError("ufuncs do not accept more than 2 operands")
+                intypes = tuple([_typeof(inpt) for inpt in inputs])
+                newtype = TYPE_CONVERSIONS[ufunc.__name__][intypes]
+                return Table(dtype=newtype, shape=newshape)
+        elif method == "reduce":
+            # TODO implement
+            tab = inputs[0]
+            return Table(dtype=tab.dtype, shape=(1,))
 
     def __getitem__(self, key):
         mock = np.broadcast_to(np.array(0), self.shape)
@@ -81,7 +101,7 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
 
     def as_sql_parameters(self, name):
         return ", ".join(
-            [f"{name}{_} {SQLTYPES[self.dtype]}" for _ in range(self.shape[1])]
+            [f"{name}{_} {SQLTYPES[self.dtype]}" for _ in range(self.ncols)]
         )
 
     def as_sql_return_declaration(self, name):
