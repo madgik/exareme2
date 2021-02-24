@@ -3,7 +3,7 @@ from numbers import Number
 
 import numpy as np
 
-from mipengine.node.udfgen.ufunctypes import get_ufunc_type_conversions
+from mipengine.algorithms.udfgen.ufunctypes import get_ufunc_type_conversions
 
 TYPE_CONVERSIONS = get_ufunc_type_conversions()
 

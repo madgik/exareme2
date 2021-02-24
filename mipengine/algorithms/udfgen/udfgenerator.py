@@ -7,12 +7,12 @@ from typing import Dict, List
 
 import astor
 
-from mipengine.node.udfgen.udfparams import Table
-from mipengine.node.udfgen.udfparams import LiteralParameter
-from mipengine.node.udfgen.udfparams import LoopbackTable
-from mipengine.node.udfgen.udfparams import Tensor
-from mipengine.node.udfgen.udfparams import Scalar
-from mipengine.node.udfgen.udfparams import SQLTYPES
+from mipengine.algorithms.udfgen.udfparams import Table
+from mipengine.algorithms.udfgen.udfparams import LiteralParameter
+from mipengine.algorithms.udfgen.udfparams import LoopbackTable
+from mipengine.algorithms.udfgen.udfparams import Tensor
+from mipengine.algorithms.udfgen.udfparams import Scalar
+from mipengine.algorithms.udfgen.udfparams import SQLTYPES
 
 
 UDF_REGISTRY = {}

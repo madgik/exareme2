@@ -2,12 +2,12 @@ from textwrap import dedent
 
 import pytest
 
-from mipengine.node.udfgen.udfgenerator import generate_udf
-from mipengine.node.udfgen.udfgenerator import monet_udf
-from mipengine.node.udfgen.udfparams import Table
-from mipengine.node.udfgen.udfparams import Tensor
-from mipengine.node.udfgen.udfparams import LoopbackTable
-from mipengine.node.udfgen.udfparams import LiteralParameter
+from mipengine.algorithms.udfgen.udfgenerator import generate_udf
+from mipengine.algorithms.udfgen.udfgenerator import monet_udf
+from mipengine.algorithms.udfgen.udfparams import Table
+from mipengine.algorithms.udfgen.udfparams import Tensor
+from mipengine.algorithms.udfgen.udfparams import LoopbackTable
+from mipengine.algorithms.udfgen.udfparams import LiteralParameter
 
 
 @monet_udf
