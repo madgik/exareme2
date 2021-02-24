@@ -7,19 +7,20 @@ from mipengine.common.node_catalog import NodeCatalog
 from mipengine.node.node import config
 from mipengine.node.tasks.data_classes import ColumnInfo
 from mipengine.node.tasks.data_classes import TableSchema
+from mipengine.utils.validate_identifier_names import validate_identifier_names
 
 MONETDB_VARCHAR_SIZE = 50
 
 # TODO Add monetdb asyncio connection (aiopymonetdb)
 node_catalog = NodeCatalog()
-local_node = node_catalog.get_local_node_data(config.get("node","identifier"))
+local_node = node_catalog.get_local_node_data(config.get("node", "identifier"))
 monetdb_hostname = local_node.monetdbHostname
 monetdb_port = local_node.monetdbPort
-connection = pymonetdb.connect(username=config.get("monet_db","username"),
+connection = pymonetdb.connect(username=config.get("monet_db", "username"),
                                port=monetdb_port,
-                               password=config.get("monet_db","password"),
+                               password=config.get("monet_db", "password"),
                                hostname=monetdb_hostname,
-                               database=config.get("monet_db","database"))
+                               database=config.get("monet_db", "database"))
 cursor = connection.cursor()
 
 
@@ -29,7 +30,7 @@ def create_table_name(table_type: str, command_id: str, context_id: str, node_id
     """
     if table_type not in {"table", "view", "merge"}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
-    if node_id not in {"global", config.get("node","identifier")}:
+    if node_id not in {"global", config.get("node", "identifier")}:
         raise TypeError(f"Node Identifier is not acceptable: {node_id} .")
 
     return f"{table_type}_{command_id}_{context_id}_{node_id}"
@@ -102,6 +103,7 @@ def convert_from_monetdb_column_type(column_type: str) -> str:
     return type_mapping.get(str(column_type).lower())
 
 
+@validate_identifier_names
 def get_table_schema(table_type: str, table_name: str) -> TableSchema:
     """Retrieves a schema for a specific table type and table name  from the monetdb.
 
@@ -133,6 +135,7 @@ def get_table_schema(table_type: str, table_name: str) -> TableSchema:
     return TableSchema([ColumnInfo(table[0], convert_from_monetdb_column_type(table[1])) for table in cursor])
 
 
+@validate_identifier_names
 def get_tables_names(table_type: str, context_id: str) -> List[str]:
     """Retrieves a list of table names, which contain the context_id from the monetdb.
 
@@ -175,6 +178,7 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     return ', '.join(f"{column.name} {convert_to_monetdb_column_type(column.data_type)}" for column in schema.columns)
 
 
+@validate_identifier_names
 def get_table_data(table_type: str, table_name: str) -> List[List[Union[str, int, float, bool]]]:
     """Retrieves the data of a table with specific type and name  from the monetdb.
 
@@ -215,6 +219,7 @@ def clean_up(context_id: str):
     connection.commit()
 
 
+@validate_identifier_names
 def delete_table_by_type_and_context_id(table_type: str, context_id: str):
     """Deletes all tables of specific type with name that contain a specific context_id from the monetdb.
 
@@ -237,4 +242,3 @@ def delete_table_by_type_and_context_id(table_type: str, context_id: str):
             cursor.execute(f"DROP VIEW {table[0]}")
         else:
             cursor.execute(f"DROP TABLE {table[0]}")
-
