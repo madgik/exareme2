@@ -10,7 +10,7 @@ sudo apt install python3-pip
 
 2. Add the MIP-Engine folder to your PYTHONPATH. For example:
 ```
-export PYTHONPATH=$PYTHONPATH:/.../.../.../MIP-Engine
+export PYTHONPATH=$PYTHONPATH:/absolute/path/to/MIP-Engine
 ```
 You can also add this to your profile (~/.profile), otherwise you will need to do that every time.
 
@@ -61,8 +61,8 @@ python3.8 -m pip install -r ./requirements/node.txt
 
 5. Import the csvs in MonetDB. To import all the csvs on both dbs, run:
 ```
-python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder /home/thanasis/Desktop/MIP-Engine/mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50000 -farm db
-python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder /home/thanasis/Desktop/MIP-Engine/mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50001 -farm db
+python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50000 -farm db
+python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50001 -farm db
 ```
 
 6. Inside the MIP-Engine folder run the celery workers: <br/>
@@ -79,12 +79,6 @@ Inside the MIP-Engine folder:
 sudo apt install python3.8
 sudo apt install tox
 ```
-
-2. Setup the data tables: <br/>
-```
-python3.8 mipengine/tests/node/data/setup_data_tables.py
-```
-
 
 2. Run the tests <br/>
 ```

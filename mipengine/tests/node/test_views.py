@@ -18,20 +18,22 @@ clean_up = app.signature('mipengine.node.tasks.common.clean_up')
 
 def test_views():
     context_id = "regrEssion"
-    columns = ["subjectcode", "dataset", "subjectvisitid", "subjectvisitdate"]
+    columns = ["dataset", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
     datasets = ["edsd"]
-    table_1_name = create_view.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), json.dumps(columns),
-                                     json.dumps(datasets)).get()
+    pathology = "tbi"
+    table_1_name = create_view.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), pathology, json.dumps(datasets), json.dumps(columns), "dsa").get()
     tables = get_views.delay(context_id).get()
     assert table_1_name in tables
     schema = TableSchema([
-        ColumnInfo('subjectcode', 'clob'),
-        ColumnInfo('dataset', 'clob'),
-        ColumnInfo('subjectvisitid', 'clob'),
-        ColumnInfo('subjectvisitdate', 'clob')])
+        ColumnInfo('dataset', 'text'),
+        ColumnInfo('age_value', 'int'),
+        ColumnInfo('gcs_motor_response_scale', 'text'),
+        ColumnInfo('pupil_reactivity_right_eye_result', 'text')])
 
     schema_result = get_view_schema.delay(table_1_name).get()
     object_schema_result = TableSchema.from_json(schema_result)
+    print(object_schema_result)
+    print(schema)
     assert object_schema_result == schema
     table_data_json = get_view_data.delay(table_1_name).get()
     table_data = TableData.from_json(table_data_json)
@@ -59,34 +61,43 @@ def test_sql_injection_get_view_schema():
 def test_sql_injection_create_view_context_id():
     with pytest.raises(ValueError):
         context_id = "drop table data;"
-        columns = ["subjectcode", "dataset", "subjectvisitid", "subjectvisitdate"]
+        columns = ["dataset", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
         datasets = ["edsd"]
-        create_view.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), json.dumps(columns),
-                          json.dumps(datasets)).get()
+        pathology = "tbi"
+        create_view.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), pathology, json.dumps(datasets), json.dumps(columns), "").get()
 
 
 def test_sql_injection_create_view_columns():
     with pytest.raises(ValueError):
         context_id = "regrEssion"
-        columns = ["drop table data;", "dataset", "subjectvisitid", "subjectvisitdate"]
+        columns = ["drop table data;", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
         datasets = ["edsd"]
-        create_view.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), json.dumps(columns),
-                          json.dumps(datasets)).get()
+        pathology = "tbi"
+        create_view.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), pathology, json.dumps(datasets), json.dumps(columns), "").get()
 
 
 def test_sql_injection_create_view_datasets():
     with pytest.raises(ValueError):
         context_id = "regrEssion"
-        columns = ["subjectcode", "dataset", "subjectvisitid", "subjectvisitdate"]
+        columns = ["dataset", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
         datasets = ["drop table data;"]
-        create_view.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), json.dumps(columns),
-                          json.dumps(datasets)).get()
+        pathology = "tbi"
+        create_view.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), pathology, json.dumps(datasets), json.dumps(columns), "").get()
 
 
 def test_sql_injection_create_view_uuid():
     with pytest.raises(ValueError):
         context_id = "regrEssion"
-        columns = ["subjectcode", "dataset", "subjectvisitid", "subjectvisitdate"]
+        columns = ["dataset", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
         datasets = ["edsd"]
-        create_view.delay(context_id, "drop table data;", json.dumps(columns),
-                          json.dumps(datasets)).get()
+        pathology = "tbi"
+        create_view.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), pathology, json.dumps(datasets), json.dumps(columns), "").get()
+
+
+def test_sql_injection_create_view_pathology():
+    with pytest.raises(ValueError):
+        context_id = "regrEssion"
+        columns = ["dataset", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
+        datasets = ["edsd"]
+        pathology = "drop table data;"
+        create_view.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), pathology, json.dumps(datasets), json.dumps(columns), "").get()
