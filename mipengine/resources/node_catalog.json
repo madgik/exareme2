@@ -2,21 +2,19 @@
   "globalNode": {
     "nodeId": "global_node",
     "rabbitmqURL": "127.0.0.1:5672",
-    "monetdbHostname": "127.0.0.1",
-    "monetdbPort": "50000"
+    "monetdbURL": "127.0.0.1:50000"
   },
   "localNodes": [
     {
       "nodeId": "local_node_1",
       "rabbitmqURL": "127.0.0.1:5672",
-      "monetdbHostname": "127.0.0.1",
-      "monetdbPort": "50000",
+      "monetdbURL": "127.0.0.1:50000",
       "data": {
         "pathologies": [
           {
             "name": "dementia",
             "datasets": [
-              "edsd"
+              "adni"
             ]
           }
         ]
@@ -24,15 +22,42 @@
     },
     {
       "nodeId": "local_node_2",
-      "rabbitmqURL": "127.0.0.1:5673",
-      "monetdbHostname": "127.0.0.1",
-      "monetdbPort": "50001",
+      "rabbitmqURL": "127.0.0.1:5672",
+      "monetdbURL": "127.0.0.1:50000",
       "data": {
         "pathologies": [
           {
-            "name": "dementia",
+            "name": "mentalhealth",
             "datasets": [
-              "adni"
+              "mentalhealth_demo"
+            ]
+          },
+          {
+            "name": "tbi",
+            "datasets": [
+              "tbi_demo2"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "nodeId": "local_node_3",
+      "rabbitmqURL": "127.0.0.1:5672",
+      "monetdbURL": "127.0.0.1:50000",
+      "data": {
+        "pathologies": [
+          {
+            "name": "tbi",
+            "datasets": [
+              "demo1"
+            ]
+          },
+          {
+            "name": "dementia_longitudinal",
+            "datasets": [
+              "fake_longitudinal",
+              "alzheimer_fake_cohort"
             ]
           }
         ]
