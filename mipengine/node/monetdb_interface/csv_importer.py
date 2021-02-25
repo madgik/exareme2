@@ -34,8 +34,8 @@ def create_pathology_metadata_table(pathology: str,
                            Column('min', Integer),
                            Column('max', Integer),
                            )
-    db_engine_metadata.drop_all(db_engine, checkfirst=True)
-    db_engine_metadata.create_all(db_engine)
+    db_engine_metadata.drop_all(db_engine, checkfirst=True, tables=[metadata_table])
+    db_engine_metadata.create_all(db_engine, tables=[metadata_table])
 
     for common_data_element_code, common_data_element in pathology_common_data_elements.items():
         # Parse the special values (Optional, Enumerations) to sql format
@@ -92,12 +92,12 @@ def create_pathology_data_table(pathology: str,
 
     data_table_name = pathology + "_data"
 
-    Table(data_table_name, db_engine_metadata,
-          *(Column(column_name.lower(), column_type)
-            for column_name, column_type in zip(column_names, column_types)))
+    data_table = Table(data_table_name, db_engine_metadata,
+                       *(Column(column_name.lower(), column_type)
+                         for column_name, column_type in zip(column_names, column_types)))
 
-    db_engine_metadata.drop_all(db_engine, checkfirst=True)
-    db_engine_metadata.create_all(db_engine)
+    db_engine_metadata.drop_all(db_engine, checkfirst=True, tables=[data_table])
+    db_engine_metadata.create_all(db_engine, tables=[data_table])
 
 
 def import_dataset_csv_into_data_table(csv_file_path: Path,
