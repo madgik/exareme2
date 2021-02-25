@@ -1,32 +1,17 @@
 import pymonetdb
 import pytest
-from celery import Celery
 
-from mipengine.node.config.config_parser import config
 from mipengine.node.tasks.data_classes import ColumnInfo
 from mipengine.node.tasks.data_classes import TableInfo
 from mipengine.node.tasks.data_classes import TableSchema
+from mipengine.tests.node.set_up_nodes import celery_local_node_1
+from mipengine.tests.node.set_up_nodes import celery_local_node_2
 
-user = config["rabbitmq"]["user"]
-password = config["rabbitmq"]["password"]
-vhost = config["rabbitmq"]["vhost"]
-node1 = Celery('mipengine.node',
-               broker=f'amqp://{user}:{password}@{"127.0.0.1"}:{5672}/{vhost}',
-               backend='rpc://',
-               include=['mipengine.node.tasks.tables', 'mipengine.node.tasks.remote_tables',
-                        'mipengine.node.tasks.merge_tables', 'mipengine.node.tasks.common'])
-
-node2 = Celery('mipengine.node',
-               broker=f'amqp://{user}:{password}@{"127.0.0.1"}:{5673}/{vhost}',
-               backend='rpc://',
-               include=['mipengine.node.tasks.tables', 'mipengine.node.tasks.remote_tables',
-                        'mipengine.node.tasks.merge_tables', 'mipengine.node.tasks.common'])
-
-create_table = node1.signature('mipengine.node.tasks.tables.create_table')
-create_remote_table = node2.signature('mipengine.node.tasks.remote_tables.create_remote_table')
-get_remote_tables = node2.signature('mipengine.node.tasks.remote_tables.get_remote_tables')
-clean_up_node1 = node1.signature('mipengine.node.tasks.common.clean_up')
-clean_up_node2 = node2.signature('mipengine.node.tasks.common.clean_up')
+create_table = celery_local_node_1.signature('mipengine.node.tasks.tables.create_table')
+clean_up_node1 = celery_local_node_1.signature('mipengine.node.tasks.common.clean_up')
+create_remote_table = celery_local_node_2.signature('mipengine.node.tasks.remote_tables.create_remote_table')
+get_remote_tables = celery_local_node_2.signature('mipengine.node.tasks.remote_tables.get_remote_tables')
+clean_up_node2 = celery_local_node_2.signature('mipengine.node.tasks.common.clean_up')
 
 context_id = "regrEssion"
 url = 'mapi:monetdb://192.168.1.147:50000/db'
@@ -51,7 +36,7 @@ def test_sql_injection_get_remote_tables():
         get_remote_tables.delay("drop table data;").get()
 
 
-def test_sql_injection_create_remote_table_TableSchema_name():
+def test_sql_injection_create_remote_table_table_schema_name():
     with pytest.raises(ValueError):
         invalid_schema = TableSchema(
             [ColumnInfo("drop table data;", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])
@@ -60,7 +45,7 @@ def test_sql_injection_create_remote_table_TableSchema_name():
         create_remote_table.delay(invalid_table_info_json, url).get()
 
 
-def test_sql_injection_TableSchema_type():
+def test_sql_injection_table_schema_type():
     with pytest.raises(TypeError):
         invalid_schema = TableSchema(
             [ColumnInfo("col1", "drop table data;"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])

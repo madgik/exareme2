@@ -7,8 +7,10 @@ from mipengine.node.monetdb_interface import tables
 from mipengine.node.monetdb_interface.common import connection
 from mipengine.node.monetdb_interface.common import convert_schema_to_sql_query_format
 from mipengine.node.monetdb_interface.common import cursor
+from mipengine.node.monetdb_interface.common import get_monetdb_table_type_enumeration_value
 from mipengine.node.tasks.data_classes import TableInfo
 from mipengine.utils.custom_exception import IncompatibleSchemasMergeException
+from mipengine.utils.custom_exception import IncompatibleTableTypes
 from mipengine.utils.custom_exception import TableCannotBeFound
 from mipengine.utils.validate_identifier_names import validate_identifier_names
 
@@ -51,3 +53,23 @@ def add_to_merge_table(merge_table_name: str, partition_tables_names: List[str])
             connection.rollback()
             raise exc
     connection.commit()
+
+
+@validate_identifier_names
+def get_type_of_tables(partition_tables_names: List[str]):
+    table_names = ','.join(f"\'{table}\'" for table in partition_tables_names)
+
+    cursor.execute(
+        f"""
+    SELECT DISTINCT(type)
+    FROM tables 
+    WHERE
+    system = false
+    AND
+    name in ({table_names})""")
+
+    tables_types = cursor.fetchall()
+    if len(tables_types) == 1:
+        return get_monetdb_table_type_enumeration_value(tables_types[0][0])
+    raise IncompatibleTableTypes(tables_types)
+

@@ -1,16 +1,16 @@
 import pymonetdb
 import pytest
 
-from mipengine.node.node import app
 from mipengine.node.tasks.data_classes import ColumnInfo
 from mipengine.node.tasks.data_classes import TableData
 from mipengine.node.tasks.data_classes import TableSchema
+from mipengine.tests.node.set_up_nodes import celery_local_node_1
 
-create_table = app.signature('mipengine.node.tasks.tables.create_table')
-get_tables = app.signature('mipengine.node.tasks.tables.get_tables')
-get_table_data = app.signature('mipengine.node.tasks.tables.get_table_data')
-get_table_schema = app.signature('mipengine.node.tasks.tables.get_table_schema')
-clean_up = app.signature('mipengine.node.tasks.common.clean_up')
+create_table = celery_local_node_1.signature('mipengine.node.tasks.tables.create_table')
+get_tables = celery_local_node_1.signature('mipengine.node.tasks.tables.get_tables')
+get_table_data = celery_local_node_1.signature('mipengine.node.tasks.tables.get_table_data')
+get_table_schema = celery_local_node_1.signature('mipengine.node.tasks.tables.get_table_schema')
+clean_up = celery_local_node_1.signature('mipengine.node.tasks.common.clean_up')
 
 
 def test_tables():

@@ -60,8 +60,7 @@ def get_view_data(view_name: str) -> str:
 
 
 @shared_task
-def create_view(context_id: str, command_id: str, columns_json: str, datasets_json: str) -> str:
-    # TODO The parameters should be context_id, pathology:str, datasets:List[str],
+def create_view(context_id: str, command_id: str, pathology: str, datasets_json: str, columns_json: str, filters_json: str) -> str:
     #  filter: str, x: Optional[List[str]], y: Optional[List[str]]
     # We need to refactor that
     # pathology and filter will not be used for now, but should exist on the interface
@@ -72,10 +71,14 @@ def create_view(context_id: str, command_id: str, columns_json: str, datasets_js
             The id of the experiment
         command_id : str
             The id of the command that the view
-        columns_json : str
-            A list of column names in a jsonified format
-        datasets_json : str
+        pathology : str
+            The pathology data table on which the view will be created
+        datasets_json : str(List[str])
             A list of dataset names in a jsonified format
+        columns_json : str(List[str])
+            A list of column names in a jsonified format
+        filters_json : str(dict)
+            A Jquery filters object
 
         Returns
         ------
@@ -83,5 +86,5 @@ def create_view(context_id: str, command_id: str, columns_json: str, datasets_js
             The name of the created view in lower case
     """
     view_name = create_table_name("view", command_id, context_id, config["node"]["identifier"])
-    views.create_view(view_name, json.loads(columns_json), json.loads(datasets_json))
+    views.create_view(view_name, pathology, json.loads(datasets_json), json.loads(columns_json), filters_json)
     return view_name.lower()
