@@ -3,7 +3,7 @@ from typing import Union
 
 import pymonetdb
 
-from mipengine.common.node_catalog import NodeCatalog
+from mipengine.common.node_catalog import node_catalog
 from mipengine.node.node import config
 from mipengine.node.tasks.data_classes import ColumnInfo
 from mipengine.node.tasks.data_classes import TableSchema
@@ -12,10 +12,13 @@ from mipengine.utils.validate_identifier_names import validate_identifier_names
 MONETDB_VARCHAR_SIZE = 50
 
 # TODO Add monetdb asyncio connection (aiopymonetdb)
-node_catalog = NodeCatalog()
-local_node = node_catalog.get_local_node_data(config.get("node", "identifier"))
-monetdb_hostname = local_node.monetdbHostname
-monetdb_port = local_node.monetdbPort
+global_node = node_catalog.get_global_node()
+if global_node.nodeId == config.get("node", "identifier"):
+    node = global_node
+else:
+    node = node_catalog.get_local_node_data(config.get("node", "identifier"))
+monetdb_hostname = node.monetdbHostname
+monetdb_port = node.monetdbPort
 connection = pymonetdb.connect(username=config.get("monet_db", "username"),
                                port=monetdb_port,
                                password=config.get("monet_db", "password"),
@@ -57,6 +60,26 @@ def get_table_type_enumeration_value(table_type: str) -> int:
         raise ValueError(f"Type {table_type} cannot be converted to monetdb table type.")
 
     return type_mapping.get(str(table_type).lower())
+
+
+def get_monetdb_table_type_enumeration_value(monet_table_type: int) -> int:
+    """ Converts MonetDB's table types to MIP Engine's table types
+    0 -> normal,
+    1 -> view,
+    3 -> merge,
+    5 -> remote,
+        """
+    type_mapping = {
+        0: "normal",
+        1: "view",
+        3: "merge",
+        5: "remote",
+    }
+
+    if monet_table_type not in type_mapping.keys():
+        raise ValueError(f"Type {monet_table_type} cannot be converted to MIP Engine's table types.")
+
+    return type_mapping.get(monet_table_type)
 
 
 def convert_to_monetdb_column_type(column_type: str) -> str:

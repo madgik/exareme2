@@ -3,17 +3,17 @@ import json
 import pymonetdb
 import pytest
 
-from mipengine.node.node import app
 from mipengine.node.tasks.data_classes import ColumnInfo
 from mipengine.node.tasks.data_classes import TableData
 from mipengine.node.tasks.data_classes import TableSchema
+from mipengine.tests.node.set_up_nodes import celery_local_node_1
 
-create_table = app.signature('mipengine.node.tasks.tables.create_table')
-create_view = app.signature('mipengine.node.tasks.views.create_view')
-get_views = app.signature('mipengine.node.tasks.views.get_views')
-get_view_data = app.signature('mipengine.node.tasks.views.get_view_data')
-get_view_schema = app.signature('mipengine.node.tasks.views.get_view_schema')
-clean_up = app.signature('mipengine.node.tasks.common.clean_up')
+create_table = celery_local_node_1.signature('mipengine.node.tasks.tables.create_table')
+create_view = celery_local_node_1.signature('mipengine.node.tasks.views.create_view')
+get_views = celery_local_node_1.signature('mipengine.node.tasks.views.get_views')
+get_view_data = celery_local_node_1.signature('mipengine.node.tasks.views.get_view_data')
+get_view_schema = celery_local_node_1.signature('mipengine.node.tasks.views.get_view_schema')
+clean_up = celery_local_node_1.signature('mipengine.node.tasks.common.clean_up')
 
 
 def test_views():
@@ -32,8 +32,6 @@ def test_views():
 
     schema_result = get_view_schema.delay(table_1_name).get()
     object_schema_result = TableSchema.from_json(schema_result)
-    print(object_schema_result)
-    print(schema)
     assert object_schema_result == schema
     table_data_json = get_view_data.delay(table_1_name).get()
     table_data = TableData.from_json(table_data_json)

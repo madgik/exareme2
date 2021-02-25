@@ -4,15 +4,15 @@ import pymonetdb
 import pytest
 
 from mipengine.node.monetdb_interface.common import cursor, connection
-from mipengine.node.node import app
 from mipengine.node.tasks.data_classes import ColumnInfo
 from mipengine.node.tasks.data_classes import TableSchema
+from mipengine.tests.node.set_up_nodes import celery_local_node_1
 from mipengine.utils.custom_exception import IncompatibleSchemasMergeException, TableCannotBeFound
 
-create_table = app.signature('mipengine.node.tasks.tables.create_table')
-create_merge_table = app.signature('mipengine.node.tasks.merge_tables.create_merge_table')
-get_merge_tables = app.signature('mipengine.node.tasks.merge_tables.get_merge_tables')
-clean_up = app.signature('mipengine.node.tasks.common.clean_up')
+create_table = celery_local_node_1.signature('mipengine.node.tasks.tables.create_table')
+create_merge_table = celery_local_node_1.signature('mipengine.node.tasks.merge_tables.create_merge_table')
+get_merge_tables = celery_local_node_1.signature('mipengine.node.tasks.merge_tables.get_merge_tables')
+clean_up = celery_local_node_1.signature('mipengine.node.tasks.common.clean_up')
 
 context_id = "regrEssion"
 
@@ -26,19 +26,6 @@ def setup_tables_for_merge(number_of_table: int) -> str:
         f"INSERT INTO {table_name} VALUES ( {number_of_table}, {number_of_table}, 'table_{number_of_table}')")
     connection.commit()
     return table_name
-
-
-success_partition_tables = [setup_tables_for_merge(1), setup_tables_for_merge(2), setup_tables_for_merge(3),
-                            setup_tables_for_merge(4)]
-
-
-def test_merge_tables():
-    success_merge_table_1_name = create_merge_table.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""),
-                                                          json.dumps(success_partition_tables)).get()
-    merge_tables = get_merge_tables.delay(context_id).get()
-    assert success_merge_table_1_name in merge_tables
-
-    clean_up.delay(context_id.lower()).get()
 
 
 def test_incompatible_schemas_merge():
@@ -69,6 +56,8 @@ def test_sql_injection_get_merge_tables():
 
 def test_sql_injection_create_merge_table_context_id():
     with pytest.raises(ValueError):
+        success_partition_tables = [setup_tables_for_merge(1), setup_tables_for_merge(2), setup_tables_for_merge(3),
+                                    setup_tables_for_merge(4)]
         create_merge_table.delay("drop table data;",
                                  str(pymonetdb.uuid.uuid1()).replace("-", ""),
                                  json.dumps(success_partition_tables)).get()
@@ -76,6 +65,8 @@ def test_sql_injection_create_merge_table_context_id():
 
 def test_sql_injection_create_merge_table_uuid():
     with pytest.raises(ValueError):
+        success_partition_tables = [setup_tables_for_merge(1), setup_tables_for_merge(2), setup_tables_for_merge(3),
+                                    setup_tables_for_merge(4)]
         create_merge_table.delay(context_id, "drop table data;",
                                  json.dumps(success_partition_tables)).get()
 
@@ -84,3 +75,17 @@ def test_sql_injection_create_merge_table_table_names():
     with pytest.raises(ValueError):
         create_merge_table.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""),
                                  json.dumps(["drop table data;"])).get()
+
+
+def test_merge_tables():
+    success_partition_tables = [setup_tables_for_merge(1), setup_tables_for_merge(2), setup_tables_for_merge(3),
+                                setup_tables_for_merge(4)]
+    success_merge_table_1_name = create_merge_table.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                                          json.dumps(success_partition_tables)).get()
+    merge_tables = get_merge_tables.delay(context_id).get()
+    assert success_merge_table_1_name in merge_tables
+
+    clean_up.delay(context_id.lower()).get()
+
+
+test_merge_tables()

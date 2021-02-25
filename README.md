@@ -33,12 +33,14 @@ Inside the MIP-Engine folder:
 ```
 docker run -d -P -p 50000:50000 --name monetdb-1 thanasulas/monetdb:11.37.11
 docker run -d -P -p 50001:50000 --name monetdb-2 thanasulas/monetdb:11.37.11
+docker run -d -P -p 50002:50000 --name monetdb-3 thanasulas/monetdb:11.37.11
 ```
 
 2. Deploy RabbitMQ (docker). <br/>
 ```
 sudo docker run -d -p 5672:5672 --name rabbitmq-1 rabbitmq
 sudo docker run -d -p 5673:5672 --name rabbitmq-2 rabbitmq
+sudo docker run -d -p 5674:5672 --name rabbitmq-3 rabbitmq
 ```
 
 3. Configure RabbitMQ. <br/>
@@ -51,7 +53,11 @@ sudo docker exec -it rabbitmq-1 rabbitmqctl set_permissions -p user_vhost user "
 sudo docker exec -it rabbitmq-2 rabbitmqctl add_user user password &&
 sudo docker exec -it rabbitmq-2 rabbitmqctl add_vhost user_vhost &&
 sudo docker exec -it rabbitmq-2 rabbitmqctl set_user_tags user user_tag &&
-sudo docker exec -it rabbitmq-2 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*"
+sudo docker exec -it rabbitmq-2 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*" &&
+sudo docker exec -it rabbitmq-3 rabbitmqctl add_user user password &&
+sudo docker exec -it rabbitmq-3 rabbitmqctl add_vhost user_vhost &&
+sudo docker exec -it rabbitmq-3 rabbitmqctl set_user_tags user user_tag &&
+sudo docker exec -it rabbitmq-3 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*"
 ```
 
 4. Install requirements. <br/>
@@ -61,14 +67,15 @@ python3.8 -m pip install -r ./requirements/node.txt
 
 5. Import the csvs in MonetDB. To import all the csvs on both dbs, run:
 ```
-python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50000 -farm db
 python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50001 -farm db
+python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50002 -farm db
 ```
 
 6. Inside the MIP-Engine folder run the celery workers: <br/>
 ```
 python3.8 mipengine/tests/node/set_node_identifier.py local_node_1 && celery -A mipengine.node.node worker --loglevel=info
 python3.8 mipengine/tests/node/set_node_identifier.py local_node_2 && celery -A mipengine.node.node worker --loglevel=info
+python3.8 mipengine/tests/node/set_node_identifier.py global_node && celery -A mipengine.node.node worker --loglevel=info
 ```
 
 ## Tests
