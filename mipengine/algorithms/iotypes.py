@@ -15,5 +15,8 @@ ScalarT = TypeVar("ScalarT", "Scalar", Any)
 
 def udf(func):
     global UDF_REGISTRY
-    UDF_REGISTRY[func.__name__] = func
+    module_name = func.__module__.split('.')[-1]
+    func_name = func.__name__
+    qualname = module_name + '.' + func_name
+    UDF_REGISTRY[qualname] = func
     return func

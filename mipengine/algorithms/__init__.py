@@ -1,4 +1,4 @@
-from .demoalgo import *
+from .demo import *
 from .iotypes import UDF_REGISTRY
 from .iotypes import udf
 from .iotypes import TableT

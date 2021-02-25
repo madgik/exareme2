@@ -53,7 +53,7 @@ def udf_to_scalar(vec1: TensorT, vec2: TensorT) -> ScalarT:
 test_cases_generate_udf = [
     (
         {
-            "func_name": "udf_tables",
+            "func_name": "test_udf_generator.udf_tables",
             "udf_name": "udf_tables_1234",
             "input_tables": [
                 {"schema": [{"type": int}, {"type": int}], "nrows": 10},
@@ -84,7 +84,7 @@ test_cases_generate_udf = [
     ),
     (
         {
-            "func_name": "udf_table_to_tensor",
+            "func_name": "test_udf_generator.udf_table_to_tensor",
             "udf_name": "udf_table_to_tensor_1234",
             "input_tables": [
                 {
@@ -117,7 +117,7 @@ test_cases_generate_udf = [
     ),
     (
         {
-            "func_name": "udf_tensor_and_loopback",
+            "func_name": "test_udf_generator.udf_tensor_and_loopback",
             "udf_name": "udf_tensor_and_loopback_1234",
             "input_tables": [
                 {
@@ -157,7 +157,7 @@ test_cases_generate_udf = [
     (
         {
             "udf_name": "udf_with_literals_1234",
-            "func_name": "udf_with_literals",
+            "func_name": "test_udf_generator.udf_with_literals",
             "input_tables": [
                 {"schema": [{"type": int}, {"type": int}, {"type": int}], "nrows": 3}
             ],
@@ -187,7 +187,7 @@ test_cases_generate_udf = [
     (
         {
             "udf_name": "udf_multitype_input_1234",
-            "func_name": "udf_multitype_input",
+            "func_name": "test_udf_generator.udf_multitype_input",
             "input_tables": [
                 {"schema": [{"type": int}, {"type": int}], "nrows": 10},
                 {"schema": [{"type": float}, {"type": float}], "nrows": 2},
@@ -221,7 +221,7 @@ test_cases_generate_udf = [
     (
         {
             "udf_name": "udf_to_scalar_1234",
-            "func_name": "udf_to_scalar",
+            "func_name": "test_udf_generator.udf_to_scalar",
             "input_tables": [
                 {"schema": [{"type": int}], "nrows": 10},
                 {"schema": [{"type": int}], "nrows": 10},

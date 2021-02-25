@@ -210,7 +210,8 @@ def verify_annotations(func):
 
 
 @lru_cache
-def get_generator(func):
+def get_generator(func_name):
+    func = UDF_REGISTRY[func_name]
     verify_annotations(func)
     return UDFGenerator(func)
 
@@ -246,8 +247,7 @@ def generate_udf(
         str
             Multiline string with MonetDB Python UDF definition.
     """
-    udf = UDF_REGISTRY[func_name]
-    generator = get_generator(udf)
+    generator = get_generator(func_name)
 
     input_tables = [
         create_table(table["schema"], table["nrows"]) for table in input_tables
