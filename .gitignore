@@ -131,3 +131,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# vim stuff
+.vim/
+pyrightconfig.json
+.vimspector.json
+
+# macos
+**/.DS_Store
