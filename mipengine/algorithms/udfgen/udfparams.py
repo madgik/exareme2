@@ -1,7 +1,10 @@
 from __future__ import annotations
 from numbers import Number
+from typing import TypeVar
+from typing import Any
 
 import numpy as np
+import pandas as pd
 
 from mipengine.algorithms.udfgen.ufunctypes import get_ufunc_type_conversions
 
@@ -156,3 +159,10 @@ class LoopbackTable(Table):
 
 class Scalar:
     pass
+
+
+TableT = TypeVar("TableT", Table, np.ndarray, pd.DataFrame)
+TensorT = TypeVar("TensorT", Tensor, np.ndarray)
+LoopbackTableT = TypeVar("LoopbackTableT", LoopbackTable, np.ndarray, pd.DataFrame)
+LiteralParameterT = TypeVar("LiteralParameterT", LiteralParameter, Any)
+ScalarT = TypeVar("ScalarT", Scalar, Any)

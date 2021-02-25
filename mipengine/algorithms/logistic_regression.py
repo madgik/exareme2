@@ -1,4 +1,6 @@
 from typing import DefaultDict
+from typing import TypeVar
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -15,11 +17,17 @@ from mipengine.algorithms.udfgen.udfparams import Tensor
 from mipengine.algorithms.udfgen.udfparams import LoopbackTable
 from mipengine.algorithms.udfgen.udfparams import LiteralParameter
 from mipengine.algorithms.udfgen.udfparams import Scalar
+from mipengine.algorithms.udfgen.udfparams import TableT
+from mipengine.algorithms.udfgen.udfparams import TensorT
+from mipengine.algorithms.udfgen.udfparams import LoopbackTableT
+from mipengine.algorithms.udfgen.udfparams import LiteralParameterT
+from mipengine.algorithms.udfgen.udfparams import ScalarT
+
 
 PREC = 1e-6
 
 
-def logistic_regression_true(y: Table, X: Table, classes: LiteralParameter):
+def logistic_regression_true(y: TableT, X: TableT, classes: LiteralParameterT):
     # init model
     nobs, ncols = X.shape
     coeff = init_tensor_zeros((ncols,))
@@ -47,7 +55,7 @@ def logistic_regression_true(y: Table, X: Table, classes: LiteralParameter):
     return coeff
 
 
-def logistic_regression_mock(y: Table, X: Table, classes: LiteralParameter):
+def logistic_regression_mock(y: TableT, X: TableT, classes: LiteralParameterT):
     # init model
     nobs, ncols = X.shape
     coeff = init_tensor_zeros(LiteralParameter((ncols,)))
@@ -75,7 +83,7 @@ def logistic_regression_mock(y: Table, X: Table, classes: LiteralParameter):
     return coeff
 
 
-def logistic_regression_genudf(y: Table, X: Table, classes: LiteralParameter):
+def logistic_regression_genudf(y: TableT, X: TableT, classes: LiteralParameterT):
     udefs = []
     # init model
     nobs, ncols = X.shape
@@ -142,13 +150,13 @@ def logistic_regression_genudf(y: Table, X: Table, classes: LiteralParameter):
 
 
 @monet_udf
-def init_tensor_zeros(shape: LiteralParameter) -> Tensor:
+def init_tensor_zeros(shape: LiteralParameterT) -> TensorT:
     z = zeros(shape)
     return z
 
 
 @monet_udf
-def binarize_labels(y: Table, classes: LiteralParameter) -> Table:
+def binarize_labels(y: TableT, classes: LiteralParameterT) -> TableT:
     binarizer = LabelBinarizer()
     binarizer.fit(classes)
     binarized = binarizer.transform(y)
@@ -156,73 +164,73 @@ def binarize_labels(y: Table, classes: LiteralParameter) -> Table:
 
 
 @monet_udf
-def matrix_dot_vector(M: Tensor, v: LoopbackTable) -> Tensor:
+def matrix_dot_vector(M: TensorT, v: LoopbackTableT) -> TensorT:
     result = M @ v
     return result
 
 
 @monet_udf
-def tensor_expit(t: Tensor) -> Tensor:
+def tensor_expit(t: TensorT) -> TensorT:
     result = expit(t)
     return result
 
 
 @monet_udf
-def tensor_mult(t1: Tensor, t2: Tensor) -> Tensor:
+def tensor_mult(t1: TensorT, t2: TensorT) -> TensorT:
     result = t1 * t2
     return result
 
 
 @monet_udf
-def tensor_add(t1: Tensor, t2: Tensor) -> Tensor:
+def tensor_add(t1: TensorT, t2: TensorT) -> TensorT:
     result = t1 + t2
     return result
 
 
 @monet_udf
-def tensor_sub(t1: Tensor, t2: Tensor) -> Tensor:
+def tensor_sub(t1: TensorT, t2: TensorT) -> TensorT:
     result = t1 - t2
     return result
 
 
 @monet_udf
-def tensor_div(t1: Tensor, t2: Tensor) -> Tensor:
+def tensor_div(t1: TensorT, t2: TensorT) -> TensorT:
     result = t1 / t2
     return result
 
 
 @monet_udf
-def const_tensor_sub(const: LiteralParameter, t: Tensor) -> Tensor:
+def const_tensor_sub(const: LiteralParameterT, t: TensorT) -> TensorT:
     result = const - t
     return result
 
 
 @monet_udf
-def mat_transp_dot_diag_dot_mat(M: Tensor, d: Tensor) -> Tensor:
+def mat_transp_dot_diag_dot_mat(M: TensorT, d: TensorT) -> TensorT:
     result = M.T @ diag(d) @ M
     return result
 
 
 @monet_udf
-def mat_transp_dot_diag_dot_vec(M: Tensor, d: Tensor, v: Tensor) -> Tensor:
+def mat_transp_dot_diag_dot_vec(M: TensorT, d: TensorT, v: TensorT) -> TensorT:
     result = M.T @ diag(d) @ v
     return result
 
 
 @monet_udf
-def logistic_loss(v1: Tensor, v2: Tensor) -> Scalar:
+def logistic_loss(v1: TensorT, v2: TensorT) -> ScalarT:
     ll = np.sum(xlogy(v1, v2) + xlogy(1 - v1, 1 - v2))
     return ll
 
 
 @monet_udf
-def tensor_max_abs_diff(t1: Tensor, t2: Tensor) -> Scalar:
+def tensor_max_abs_diff(t1: TensorT, t2: TensorT) -> ScalarT:
     result = np.max(np.abs(t1 - t2))
     return result
 
 
 @monet_udf
-def mat_inverse(M: Tensor) -> Tensor:
+def mat_inverse(M: TensorT) -> TensorT:
     minv = inv(M)
     return minv
 

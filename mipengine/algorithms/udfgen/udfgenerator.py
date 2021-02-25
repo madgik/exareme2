@@ -3,7 +3,9 @@ import inspect
 from string import Template
 from textwrap import indent
 from textwrap import dedent
-from typing import Dict, List
+from typing import Dict
+from typing import List
+from typing import get_type_hints
 
 import astor
 
@@ -12,6 +14,11 @@ from mipengine.algorithms.udfgen.udfparams import LiteralParameter
 from mipengine.algorithms.udfgen.udfparams import LoopbackTable
 from mipengine.algorithms.udfgen.udfparams import Tensor
 from mipengine.algorithms.udfgen.udfparams import Scalar
+from mipengine.algorithms.udfgen.udfparams import TableT
+from mipengine.algorithms.udfgen.udfparams import TensorT
+from mipengine.algorithms.udfgen.udfparams import LoopbackTableT
+from mipengine.algorithms.udfgen.udfparams import LiteralParameterT
+from mipengine.algorithms.udfgen.udfparams import ScalarT
 from mipengine.algorithms.udfgen.udfparams import SQLTYPES
 
 
@@ -41,22 +48,22 @@ class UDFGenerator:
         self.tableparams = [
             name
             for name, param in self.signature.parameters.items()
-            if param.annotation == Table
+            if param.annotation == TableT
         ]
         self.tensorparams = [
             name
             for name, param in self.signature.parameters.items()
-            if param.annotation == Tensor
+            if param.annotation == TensorT
         ]
         self.literalparams = [
             name
             for name, param in self.signature.parameters.items()
-            if param.annotation == LiteralParameter
+            if param.annotation == LiteralParameterT
         ]
         self.loopbackparams = [
             name
             for name, param in self.signature.parameters.items()
-            if param.annotation == LoopbackTable
+            if param.annotation == LoopbackTableT
         ]
 
     def __call__(self, *args, **kwargs):
@@ -105,11 +112,11 @@ class UDFGenerator:
             return input_params
 
         def get_return_statement(return_type):
-            if return_type == Table:
+            if return_type == TableT:
                 return_stmt = self._table_template.substitute(
                     return_name=self.return_name
                 )
-            elif return_type == Tensor:
+            elif return_type == TensorT:
                 return_stmt = self._tensor_template.substitute(
                     return_name=self.return_name
                 )
@@ -192,21 +199,23 @@ class UDFGenerator:
 def monet_udf(func):
     global UDF_REGISTRY
 
-    verify_annotations(func)
+    validate_type_hints(func)
 
     ugen = UDFGenerator(func)
     UDF_REGISTRY[ugen.name] = ugen
     return ugen
 
 
-def verify_annotations(func):
-    allowed_types = (Table, Tensor, LiteralParameter, LoopbackTable)
+def validate_type_hints(func):
+    allowed_types = {TableT, TensorT, LiteralParameterT, LoopbackTableT}
     sig = inspect.signature(func)
+    types = get_type_hints(func)
+    if set(types.keys()) - set(sig.parameters.keys()) != {"return"}:
+        raise TypeError(f"Some annotations are missing from {func.__name__}")
     argnames = sig.parameters.keys()
-    annotations = func.__annotations__
-    if any(annotations.get(arg, None) not in allowed_types for arg in argnames):
+    if any(types[arg] not in allowed_types for arg in argnames):
         raise TypeError("Function is not properly annotated as a Monet UDF")
-    if annotations.get("return", None) not in allowed_types + (Scalar,):
+    if types.get("return", None) not in allowed_types | {ScalarT}:
         raise TypeError("Function is not properly annotated as a Monet UDF")
 
 
