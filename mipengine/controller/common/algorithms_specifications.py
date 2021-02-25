@@ -10,7 +10,6 @@ from typing import Optional
 from dataclasses_json import dataclass_json
 
 from mipengine import algorithms
-from mipengine.controller.common.utils import Singleton
 
 CROSSVALIDATION_ALGORITHM_NAME = "crossvalidation"
 
@@ -74,7 +73,7 @@ class AlgorithmSpecifications:
     flags: Optional[Dict[str, bool]] = None
 
 
-class AlgorithmsSpecifications(metaclass=Singleton):
+class AlgorithmsSpecifications:
     crossvalidation: AlgorithmSpecifications
     enabled_algorithms: Dict[str, AlgorithmSpecifications]
 
@@ -101,4 +100,4 @@ class AlgorithmsSpecifications(metaclass=Singleton):
             self.crossvalidation = all_algorithms[CROSSVALIDATION_ALGORITHM_NAME]
 
 
-AlgorithmsSpecifications()
+algorithms_specifications = AlgorithmsSpecifications()

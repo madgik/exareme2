@@ -29,3 +29,17 @@ class IncompatibleSchemasMergeException(Exception):
         self.table_infos = table_infos
         self.message = f"Tables to be added doesn't match MERGE TABLE schema : {table_infos}"
         super().__init__(self.message)
+
+
+class IncompatibleTableTypes(Exception):
+    """Exception raised for errors while trying to merge tables with incompatible table types.
+
+    Attributes:
+        table_types --  the types of the table which caused the error
+        message -- explanation of the error
+    """
+
+    def __init__(self, table_types: List[str]):
+        self.table_types = table_types
+        self.message = f"Tables have more than one distinct types : {self.table_types}"
+        super().__init__(self.message)

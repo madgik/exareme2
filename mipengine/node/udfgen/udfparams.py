@@ -1,12 +1,9 @@
 from __future__ import annotations
 from numbers import Number
-from typing import TypeVar
-from typing import Any
 
 import numpy as np
-import pandas as pd
 
-from mipengine.algorithms.udfgen.ufunctypes import get_ufunc_type_conversions
+from mipengine.node.udfgen.ufunctypes import get_ufunc_type_conversions
 
 TYPE_CONVERSIONS = get_ufunc_type_conversions()
 
@@ -59,7 +56,6 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
                 newshape = inputs[0].shape[:1] + inputs[1].shape[1:]
                 intypes = tuple([_typeof(inpt) for inpt in inputs])
                 newtype = TYPE_CONVERSIONS[ufunc.__name__][intypes]
-                return Table(dtype=newtype, shape=newshape)
             else:
                 if ufunc.nin == 1:
                     shape_a = inputs[0].shape
@@ -76,7 +72,11 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
                     raise ValueError("ufuncs do not accept more than 2 operands")
                 intypes = tuple([_typeof(inpt) for inpt in inputs])
                 newtype = TYPE_CONVERSIONS[ufunc.__name__][intypes]
-                return Table(dtype=newtype, shape=newshape)
+
+            out = Table(dtype=newtype, shape=newshape)
+            if _is_scalar(out):
+                return Scalar(dtype=newtype)
+            return out
         elif method == "reduce":
             # TODO implement
             tab = inputs[0]
@@ -86,7 +86,7 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
         mock = np.broadcast_to(np.array(0), self.shape)
         newshape = mock[key].shape
         if newshape == ():
-            newshape = (1,)
+            Scalar(dtype=self.dtype)
         return Table(dtype=self.dtype, shape=newshape)
 
     def __len__(self):
@@ -107,8 +107,8 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
             [f"{name}{_} {SQLTYPES[self.dtype]}" for _ in range(self.ncols)]
         )
 
-    def as_sql_return_declaration(self, name):
-        if self.shape == (1,):
+    def as_sql_return_type(self, name):
+        if _is_scalar(self):
             return SQLTYPES[self.dtype]
         else:
             return f"Table({self.as_sql_parameters(name)})"
@@ -128,6 +128,10 @@ def _broadcast_shapes(*shapes):
                     raise ValueError(msg)
                 out[i] = x
     return (*out,)
+
+
+def _is_scalar(table):
+    return all(dim == 1 for dim in table.shape)
 
 
 def _typeof(obj):
@@ -158,11 +162,8 @@ class LoopbackTable(Table):
 
 
 class Scalar:
-    pass
+    def __init__(self, dtype):
+        self.dtype = dtype
 
-
-TableT = TypeVar("TableT", Table, np.ndarray, pd.DataFrame)
-TensorT = TypeVar("TensorT", Tensor, np.ndarray)
-LoopbackTableT = TypeVar("LoopbackTableT", LoopbackTable, np.ndarray, pd.DataFrame)
-LiteralParameterT = TypeVar("LiteralParameterT", LiteralParameter, Any)
-ScalarT = TypeVar("ScalarT", Scalar, Any)
+    def as_sql_return_type(self):
+        return SQLTYPES[self.dtype]

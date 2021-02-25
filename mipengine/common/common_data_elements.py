@@ -9,7 +9,7 @@ from typing import Set
 
 from dataclasses_json import dataclass_json
 
-from mipengine.controller.resources import pathologies_metadata
+from mipengine.resources import pathologies_metadata
 
 
 @dataclass_json
@@ -23,9 +23,12 @@ class MetadataEnumeration:
 @dataclass
 class MetadataVariable:
     code: str
+    label: str
     sql_type: str
     isCategorical: bool
     enumerations: Optional[List[MetadataEnumeration]] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
 
     def __post_init__(self):
         allowed_types = {"int", "real", "text"}
@@ -46,25 +49,29 @@ class MetadataGroup:
 
     def __iter__(self):
         yield self
-        for group in self.groups:
-            for subgroup in group:
-                yield subgroup
+        for subgroup in self.groups:
+            yield from subgroup
 
 
 @dataclass
 class CommonDataElement:
+    label: str
     sql_type: str
     categorical: bool
     enumerations: Optional[Set] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
 
     def __init__(self, variable: MetadataVariable):
+        self.label = variable.label
         self.sql_type = variable.sql_type
         self.categorical = variable.isCategorical
         if variable.enumerations:
             self.enumerations = {enumeration.code for enumeration in variable.enumerations}
+        self.min = variable.min
+        self.max = variable.max
 
 
-@dataclass
 class CommonDataElements:
     pathologies: Dict[str, Dict[str, CommonDataElement]]
 
@@ -80,10 +87,21 @@ class CommonDataElements:
                     for group in pathology_metadata
                     for variable in group.variables
                 }
-
             except Exception as e:
                 logging.error(f"Parsing metadata file: {pathology_metadata_filepath}")
                 raise e
+                # Adding the subject code cde that doesn't exist in the metadata
+            self.pathologies[pathology_metadata.code]['subjectcode'] = CommonDataElement(
+                MetadataVariable(
+                    code='subjectcode',
+                    label='The unique identifier of the record',
+                    sql_type='text',
+                    isCategorical=False,
+                    enumerations=None,
+                    min=None,
+                    max=None
+                )
+            )
 
 
-CommonDataElements()
+common_data_elements = CommonDataElements()

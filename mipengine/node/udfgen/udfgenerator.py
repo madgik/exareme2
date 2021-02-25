@@ -1,34 +1,33 @@
+from __future__ import annotations
 import ast
+from functools import lru_cache
 import inspect
 from string import Template
 from textwrap import indent
 from textwrap import dedent
-from typing import Dict
-from typing import List
-from typing import get_type_hints
 
 import astor
 
-from mipengine.algorithms.udfgen.udfparams import Table
-from mipengine.algorithms.udfgen.udfparams import LiteralParameter
-from mipengine.algorithms.udfgen.udfparams import LoopbackTable
-from mipengine.algorithms.udfgen.udfparams import Tensor
-from mipengine.algorithms.udfgen.udfparams import Scalar
-from mipengine.algorithms.udfgen.udfparams import TableT
-from mipengine.algorithms.udfgen.udfparams import TensorT
-from mipengine.algorithms.udfgen.udfparams import LoopbackTableT
-from mipengine.algorithms.udfgen.udfparams import LiteralParameterT
-from mipengine.algorithms.udfgen.udfparams import ScalarT
-from mipengine.algorithms.udfgen.udfparams import SQLTYPES
+from mipengine.algorithms import UDF_REGISTRY
+from mipengine.algorithms import TableT
+from mipengine.algorithms import TensorT
+from mipengine.algorithms import LoopbackTableT
+from mipengine.algorithms import LiteralParameterT
+from mipengine.algorithms import ScalarT
+from mipengine.node.udfgen.udfparams import Table
+from mipengine.node.udfgen.udfparams import LiteralParameter
+from mipengine.node.udfgen.udfparams import LoopbackTable
+from mipengine.node.udfgen.udfparams import Tensor
+from mipengine.node.udfgen.udfparams import Scalar
+from mipengine.node.udfgen.udfparams import SQLTYPES
 
-
-UDF_REGISTRY = {}
 
 CREATE_OR_REPLACE = "CREATE OR REPLACE"
 FUNCTION = "FUNCTION"
 RETURNS = "RETURNS"
 LANGUAGE_PYTHON = "LANGUAGE PYTHON"
 BEGIN = "{"
+IMPORTS = "from mipengine.udfgen import ArrayBundle"
 END = "};"
 
 
@@ -124,11 +123,13 @@ class UDFGenerator:
                 return_stmt = f"return {self.return_name}\n"
             return return_stmt
 
-        def get_output_expression(output):
+        def get_output_type(output):
             if type(output) == Table:
-                output_expr = output.as_sql_return_declaration(self.return_name)
+                output_expr = output.as_sql_return_type(self.return_name)
             elif type(output) == Tensor:
-                output_expr = output.as_sql_return_declaration(self.return_name)
+                output_expr = output.as_sql_return_type(self.return_name)
+            elif type(output) == Scalar:
+                output_expr = output.as_sql_return_type()
             else:
                 output_expr = SQLTYPES[type(output)]
             return output_expr
@@ -138,11 +139,11 @@ class UDFGenerator:
             stop = 0
             for name in self.tableparams:
                 table = inputs[name]
-                start, stop = stop, stop + table.ncols
+                start, stop = stop, stop + table.shape[1]
                 table_defs += [f"{name} = ArrayBundle(_columns[{start}:{stop}])"]
             for name in self.tensorparams:
                 tensor = inputs[name]
-                start, stop = stop, stop + tensor.ncols
+                start, stop = stop, stop + tensor.shape[1]
                 table_defs += [f"{name} = from_tensor_table(_columns[{start}:{stop}])"]
             table_defs = "\n".join(table_defs)
             return table_defs
@@ -170,7 +171,7 @@ class UDFGenerator:
         output = self(*args, **kwargs)
         input_params = make_declaration_input_params(inputs)
         return_stmt = get_return_statement(self.return_type)
-        output_expr = get_output_expression(output)
+        output_expr = get_output_type(output)
         table_defs = gen_table_def_code(inputs)
         loopback_calls = gen_loopback_calls_code(inputs)
         literal_defs = gen_literal_def_code(inputs)
@@ -185,6 +186,7 @@ class UDFGenerator:
             f"{output_expr}",
             LANGUAGE_PYTHON,
             BEGIN,
+            indent(IMPORTS, prfx),
         ]
         funcdef += [indent(table_defs, prfx)] if table_defs else []
         funcdef += [indent(loopback_calls, prfx)] if loopback_calls else []
@@ -196,37 +198,56 @@ class UDFGenerator:
         return "\n".join(funcdef)
 
 
-def monet_udf(func):
-    global UDF_REGISTRY
-
-    validate_type_hints(func)
-
-    ugen = UDFGenerator(func)
-    UDF_REGISTRY[ugen.name] = ugen
-    return ugen
-
-
-def validate_type_hints(func):
-    allowed_types = {TableT, TensorT, LiteralParameterT, LoopbackTableT}
+def verify_annotations(func):
+    allowed_types = (TableT, TensorT, LiteralParameterT, LoopbackTableT)
     sig = inspect.signature(func)
-    types = get_type_hints(func)
-    if set(types.keys()) - set(sig.parameters.keys()) != {"return"}:
-        raise TypeError(f"Some annotations are missing from {func.__name__}")
     argnames = sig.parameters.keys()
-    if any(types[arg] not in allowed_types for arg in argnames):
+    annotations = func.__annotations__
+    if any(annotations.get(arg, None) not in allowed_types for arg in argnames):
         raise TypeError("Function is not properly annotated as a Monet UDF")
-    if types.get("return", None) not in allowed_types | {ScalarT}:
+    if annotations.get("return", None) not in allowed_types + (ScalarT,):
         raise TypeError("Function is not properly annotated as a Monet UDF")
+
+
+@lru_cache
+def get_generator(func_name):
+    func = UDF_REGISTRY[func_name]
+    verify_annotations(func)
+    return UDFGenerator(func)
 
 
 def generate_udf(
     func_name: str,
     udf_name: str,
-    input_tables: List[Dict],
-    loopback_tables: List[Dict],
-    literalparams: Dict,
+    input_tables: list[dict],
+    loopback_tables: list[dict],
+    literalparams: dict,
 ) -> str:
-    udf = UDF_REGISTRY[func_name]
+    """
+    Generates definitions in MonetDB Python UDFs from Python functions which
+    have been properly annotated using types found in
+    mipengine.algorithms.iotypes.
+
+    Parameters
+    ----------
+        func_name: str
+            Name of function from which to generate UDF.
+        udf_name: str
+            Name to use in UDF definition.
+        input_tables: list[dict]
+            Table descriptions (dict with keys 'schema', 'nrows')
+        loopback_tables: list[dict]
+            Loopback table descriptions (dict with keys 'schema', 'nrows',
+            'name')
+        literalparams: dict
+            Mapping with literal parameters of UDF.
+
+    Returns
+    -------
+        str
+            Multiline string with MonetDB Python UDF definition.
+    """
+    generator = get_generator(func_name)
 
     input_tables = [
         create_table(table["schema"], table["nrows"]) for table in input_tables
@@ -238,9 +259,9 @@ def generate_udf(
     ]
 
     literalparams = [
-        LiteralParameter(literalparams[name]) for name in udf.literalparams
+        LiteralParameter(literalparams[name]) for name in generator.literalparams
     ]
-    return udf.to_sql(udf_name, *input_tables, *loopback_tables, *literalparams)
+    return generator.to_sql(udf_name, *input_tables, *loopback_tables, *literalparams)
 
 
 def create_table(table_schema, table_rows, name=None):

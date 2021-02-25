@@ -2,34 +2,30 @@
   "globalNode": {
     "nodeId": "global_node",
     "rabbitmqURL": "127.0.0.1:5672",
-    "monetdbURL": "127.0.0.1:50000"
+    "monetdbHostname": "127.0.0.1",
+    "monetdbPort": "50000"
   },
   "localNodes": [
     {
       "nodeId": "local_node_1",
-      "rabbitmqURL": "127.0.0.1:5672",
-      "monetdbURL": "127.0.0.1:50000",
+      "rabbitmqURL": "127.0.0.1:5673",
+      "monetdbHostname": "127.0.0.1",
+      "monetdbPort": "50001",
       "data": {
         "pathologies": [
           {
             "name": "dementia",
             "datasets": [
-              "adni"
+              "edsd",
+              "ppmi",
+              "desd-synthdata",
+              "fake_longitudinal"
             ]
-          }
-        ]
-      }
-    },
-    {
-      "nodeId": "local_node_2",
-      "rabbitmqURL": "127.0.0.1:5672",
-      "monetdbURL": "127.0.0.1:50000",
-      "data": {
-        "pathologies": [
+          },
           {
             "name": "mentalhealth",
             "datasets": [
-              "mentalhealth_demo"
+              "demo"
             ]
           },
           {
@@ -42,22 +38,31 @@
       }
     },
     {
-      "nodeId": "local_node_3",
-      "rabbitmqURL": "127.0.0.1:5672",
-      "monetdbURL": "127.0.0.1:50000",
+      "nodeId": "local_node_2",
+      "rabbitmqURL": "127.0.0.1:5674",
+      "monetdbHostname": "127.0.0.1",
+      "monetdbPort": "50002",
       "data": {
         "pathologies": [
           {
-            "name": "tbi",
+            "name": "dementia",
             "datasets": [
-              "demo1"
+              "edsd",
+              "ppmi",
+              "desd-synthdata",
+              "fake_longitudinal"
             ]
           },
           {
-            "name": "dementia_longitudinal",
+            "name": "mentalhealth",
             "datasets": [
-              "fake_longitudinal",
-              "alzheimer_fake_cohort"
+              "demo"
+            ]
+          },
+          {
+            "name": "tbi",
+            "datasets": [
+              "dummy_tbi"
             ]
           }
         ]

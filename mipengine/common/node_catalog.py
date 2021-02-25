@@ -6,7 +6,6 @@ from typing import List
 from dataclasses_json import dataclass_json
 
 from mipengine import resources
-from mipengine.controller.common.utils import Singleton
 
 
 @dataclass_json
@@ -45,7 +44,7 @@ class Nodes:
 
 @dataclass_json
 @dataclass
-class NodeCatalog(metaclass=Singleton):
+class NodeCatalog:
     _nodes: Nodes
     _datasets: Dict[str, List[str]]
     _nodes_per_dataset: Dict[str, List[LocalNode]]
@@ -91,4 +90,4 @@ class NodeCatalog(metaclass=Singleton):
         return self._nodes.localNodes
 
 
-NodeCatalog()
+node_catalog = NodeCatalog()
