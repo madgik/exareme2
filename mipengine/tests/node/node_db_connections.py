@@ -5,7 +5,6 @@ from mipengine.node.config.config_parser import config
 
 
 def get_node_db_connection(node_id: str):
-
     global_node = node_catalog.get_global_node()
     if global_node.nodeId == node_id:
         node = global_node

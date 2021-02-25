@@ -86,5 +86,9 @@ def create_view(context_id: str, command_id: str, pathology: str, datasets_json:
             The name of the created view in lower case
     """
     view_name = create_table_name("view", command_id, context_id, config["node"]["identifier"])
-    views.create_view(view_name, pathology, json.loads(datasets_json), json.loads(columns_json), filters_json)
+    views.create_view(view_name=view_name,
+                      pathology=pathology,
+                      datasets=json.loads(datasets_json),
+                      columns=json.loads(columns_json),
+                      filters=filters_json)
     return view_name.lower()

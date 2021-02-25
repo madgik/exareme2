@@ -25,7 +25,6 @@ def get_merge_tables(context_id: str) -> str:
     return json.dumps(merge_tables.get_merge_tables_names(context_id))
 
 
-# TODO Add in method description the jsonified input types
 @shared_task
 def create_merge_table(context_id: str, command_id: str, partition_table_names_json: str) -> str:
     """

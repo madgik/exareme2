@@ -1,5 +1,4 @@
 from typing import List
-from typing import re
 
 from mipengine.node.monetdb_interface import common
 from mipengine.node.monetdb_interface.common import connection
