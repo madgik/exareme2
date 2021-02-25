@@ -1,9 +1,9 @@
 {
   "globalNode": {
     "nodeId": "global_node",
-    "rabbitmqURL": "127.0.0.1:5672",
+    "rabbitmqURL": "127.0.0.1:5671",
     "monetdbHostname": "127.0.0.1",
-    "monetdbPort": "50000"
+    "monetdbPort": "49999"
   },
   "localNodes": [
     {
