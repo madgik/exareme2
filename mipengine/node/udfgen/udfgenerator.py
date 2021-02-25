@@ -222,6 +222,30 @@ def generate_udf(
     loopback_tables: list[dict],
     literalparams: dict,
 ) -> str:
+    """
+    Generates definitions in MonetDB Python UDFs from Python functions which
+    have been properly annotated using types found in
+    mipengine.algorithms.iotypes.
+
+    Parameters
+    ----------
+        func_name: str
+            Name of function from which to generate UDF.
+        udf_name: str
+            Name to use in UDF definition.
+        input_tables: list[dict]
+            Table descriptions (dict with keys 'schema', 'nrows')
+        loopback_tables: list[dict]
+            Loopback table descriptions (dict with keys 'schema', 'nrows',
+            'name')
+        literalparams: dict
+            Mapping with literal parameters of UDF.
+
+    Returns
+    -------
+        str
+            Multiline string with MonetDB Python UDF definition.
+    """
     udf = UDF_REGISTRY[func_name]
     generator = get_generator(udf)
 
