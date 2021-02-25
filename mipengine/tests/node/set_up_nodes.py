@@ -16,6 +16,7 @@ celery_global_node = Celery('mipengine.node',
                             include=['mipengine.node.tasks.tables', 'mipengine.node.tasks.remote_tables',
                                      'mipengine.node.tasks.merge_tables', 'mipengine.node.tasks.common'])
 
+
 celery_local_node_1 = Celery('mipengine.node',
                              broker=f'amqp://{user}:{password}@{local_node_1.rabbitmqURL}/{vhost}',
                              backend='rpc://',

@@ -1,14 +1,9 @@
-import time
-
 import pymonetdb
-from celery import Celery
 
-from mipengine.common.node_catalog import LocalNode
-from mipengine.common.node_catalog import node_catalog
-from mipengine.node.config.config_parser import config
 from mipengine.node.tasks.data_classes import ColumnInfo
 from mipengine.node.tasks.data_classes import TableInfo
 from mipengine.node.tasks.data_classes import TableSchema
+from mipengine.tests.node.node_db_connections import get_node_db_connection
 from mipengine.tests.node.set_up_nodes import celery_global_node
 from mipengine.tests.node.set_up_nodes import celery_local_node_1
 from mipengine.tests.node.set_up_nodes import celery_local_node_2
@@ -24,14 +19,8 @@ get_merge_tables = celery_global_node.signature('mipengine.node.tasks.merge_tabl
 clean_up_global = celery_global_node.signature('mipengine.node.tasks.common.clean_up')
 
 
-def insert_data_into_local_node_tables(node: LocalNode, table_name: str):
-    monetdb_hostname = node.monetdbHostname
-    monetdb_port = node.monetdbPort
-    connection = pymonetdb.connect(username=config.get("monet_db", "username"),
-                                   port=monetdb_port,
-                                   password=config.get("monet_db", "password"),
-                                   hostname=monetdb_hostname,
-                                   database=config.get("monet_db", "database"))
+def insert_data_into_local_node_db(node_id: str, table_name: str):
+    connection = get_node_db_connection(node_id)
     cursor = connection.cursor()
 
     cursor.execute(f"INSERT INTO {table_name} VALUES (1, 1.2, {table_name})")
@@ -52,14 +41,14 @@ def test_global_node():
     # Setup local node 1
     local_node_1_table_name = create_table_local_node_1.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""),
                                                               json_schema).get()
-    # insert_data_into_local_node_tables(local_node_1, local_node_1_table_name)
+    # insert_data_into_local_node_db('local_node_1', local_node_1_table_name)
     table_info_local_1 = TableInfo(local_node_1_table_name, schema)
     table_info_json_1 = table_info_local_1.to_json()
 
     # Setup local node 2
     local_node_2_table_name = create_table_local_node_2.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""),
                                                               json_schema).get()
-    # insert_data_into_local_node_tables(local_node_2, local_node_2_table_name)
+    # insert_data_into_local_node_db('local_node_2', local_node_2_table_name)
     table_info_local_2 = TableInfo(local_node_2_table_name, schema)
     table_info_json_2 = table_info_local_2.to_json()
 
