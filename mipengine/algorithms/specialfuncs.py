@@ -4,8 +4,8 @@ from functools import singledispatch
 import numpy as np
 from scipy import special
 
-from mipengine.algorithms.udfgen.udfparams import Table
-from mipengine.algorithms.udfgen.udfparams import Tensor
+from mipengine.node.udfgen.udfparams import Table
+from mipengine.node.udfgen.udfparams import Tensor
 
 
 @singledispatch

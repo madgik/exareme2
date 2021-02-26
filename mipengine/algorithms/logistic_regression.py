@@ -5,23 +5,23 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from mipengine.algorithms import udf
+from mipengine.algorithms import TableT
+from mipengine.algorithms import TensorT
+from mipengine.algorithms import LoopbackTableT
+from mipengine.algorithms import LiteralParameterT
+from mipengine.algorithms import ScalarT
 from mipengine.algorithms.numpy2 import diag
 from mipengine.algorithms.numpy2 import zeros
 from mipengine.algorithms.numpy2 import inv
 from mipengine.algorithms.preprocessing import LabelBinarizer
 from mipengine.algorithms.specialfuncs import expit
 from mipengine.algorithms.specialfuncs import xlogy
-from mipengine.algorithms.udfgen.udfgenerator import monet_udf
-from mipengine.algorithms.udfgen.udfparams import Table
-from mipengine.algorithms.udfgen.udfparams import Tensor
-from mipengine.algorithms.udfgen.udfparams import LoopbackTable
-from mipengine.algorithms.udfgen.udfparams import LiteralParameter
-from mipengine.algorithms.udfgen.udfparams import Scalar
-from mipengine.algorithms.udfgen.udfparams import TableT
-from mipengine.algorithms.udfgen.udfparams import TensorT
-from mipengine.algorithms.udfgen.udfparams import LoopbackTableT
-from mipengine.algorithms.udfgen.udfparams import LiteralParameterT
-from mipengine.algorithms.udfgen.udfparams import ScalarT
+from mipengine.node.udfgen.udfparams import Table
+from mipengine.node.udfgen.udfparams import Tensor
+from mipengine.node.udfgen.udfparams import LoopbackTable
+from mipengine.node.udfgen.udfparams import LiteralParameter
+from mipengine.node.udfgen.udfparams import Scalar
 
 
 PREC = 1e-6
@@ -149,13 +149,13 @@ def logistic_regression_genudf(y: TableT, X: TableT, classes: LiteralParameterT)
     return udefs
 
 
-@monet_udf
+@udf
 def init_tensor_zeros(shape: LiteralParameterT) -> TensorT:
     z = zeros(shape)
     return z
 
 
-@monet_udf
+@udf
 def binarize_labels(y: TableT, classes: LiteralParameterT) -> TableT:
     binarizer = LabelBinarizer()
     binarizer.fit(classes)
@@ -163,73 +163,73 @@ def binarize_labels(y: TableT, classes: LiteralParameterT) -> TableT:
     return binarized
 
 
-@monet_udf
+@udf
 def matrix_dot_vector(M: TensorT, v: LoopbackTableT) -> TensorT:
     result = M @ v
     return result
 
 
-@monet_udf
+@udf
 def tensor_expit(t: TensorT) -> TensorT:
     result = expit(t)
     return result
 
 
-@monet_udf
+@udf
 def tensor_mult(t1: TensorT, t2: TensorT) -> TensorT:
     result = t1 * t2
     return result
 
 
-@monet_udf
+@udf
 def tensor_add(t1: TensorT, t2: TensorT) -> TensorT:
     result = t1 + t2
     return result
 
 
-@monet_udf
+@udf
 def tensor_sub(t1: TensorT, t2: TensorT) -> TensorT:
     result = t1 - t2
     return result
 
 
-@monet_udf
+@udf
 def tensor_div(t1: TensorT, t2: TensorT) -> TensorT:
     result = t1 / t2
     return result
 
 
-@monet_udf
+@udf
 def const_tensor_sub(const: LiteralParameterT, t: TensorT) -> TensorT:
     result = const - t
     return result
 
 
-@monet_udf
+@udf
 def mat_transp_dot_diag_dot_mat(M: TensorT, d: TensorT) -> TensorT:
     result = M.T @ diag(d) @ M
     return result
 
 
-@monet_udf
+@udf
 def mat_transp_dot_diag_dot_vec(M: TensorT, d: TensorT, v: TensorT) -> TensorT:
     result = M.T @ diag(d) @ v
     return result
 
 
-@monet_udf
+@udf
 def logistic_loss(v1: TensorT, v2: TensorT) -> ScalarT:
     ll = np.sum(xlogy(v1, v2) + xlogy(1 - v1, 1 - v2))
     return ll
 
 
-@monet_udf
+@udf
 def tensor_max_abs_diff(t1: TensorT, t2: TensorT) -> ScalarT:
     result = np.max(np.abs(t1 - t2))
     return result
 
 
-@monet_udf
+@udf
 def mat_inverse(M: TensorT) -> TensorT:
     minv = inv(M)
     return minv
@@ -267,4 +267,4 @@ def genudf_run():
 if __name__ == "__main__":
     true_run()
     mock_run()
-    genudf_run()
+    # genudf_run()

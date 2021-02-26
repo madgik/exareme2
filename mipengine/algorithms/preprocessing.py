@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 
-from mipengine.algorithms.udfgen.udfparams import Table
-from mipengine.algorithms.udfgen.udfparams import LiteralParameter
+from mipengine.node.udfgen.udfparams import Table
+from mipengine.node.udfgen.udfparams import LiteralParameter
 
 
 class LabelBinarizer(preprocessing.LabelBinarizer):

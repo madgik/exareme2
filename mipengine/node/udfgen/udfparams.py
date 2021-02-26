@@ -74,8 +74,8 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
                 newtype = TYPE_CONVERSIONS[ufunc.__name__][intypes]
 
             out = Table(dtype=newtype, shape=newshape)
-            if _is_scalar(out):
-                return Scalar(dtype=newtype)
+            # if _is_scalar(out):
+            #     return Scalar(dtype=newtype)
             return out
         elif method == "reduce":
             # TODO implement
