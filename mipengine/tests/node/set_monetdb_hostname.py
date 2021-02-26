@@ -2,7 +2,7 @@ import json
 from argparse import ArgumentParser
 from pathlib import Path
 
-from mipengine import resources
+from mipengine.common import resources
 
 parser = ArgumentParser()
 parser.add_argument('-host', '--hostname', required=True,

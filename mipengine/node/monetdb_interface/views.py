@@ -5,7 +5,7 @@ from mipengine.node.monetdb_interface import common
 from mipengine.node.monetdb_interface.common import connection
 from mipengine.node.monetdb_interface.common import cursor
 from mipengine.node.tasks.data_classes import TableSchema
-from mipengine.utils.validate_identifier_names import validate_identifier_names
+from mipengine.common.validate_identifier_names import validate_identifier_names
 
 
 def get_views_names(context_id: str) -> List[str]:

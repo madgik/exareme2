@@ -9,10 +9,10 @@ from mipengine.node.monetdb_interface.common import convert_schema_to_sql_query_
 from mipengine.node.monetdb_interface.common import cursor
 from mipengine.node.monetdb_interface.common import get_monetdb_table_type_enumeration_value
 from mipengine.node.tasks.data_classes import TableInfo
-from mipengine.utils.custom_exception import IncompatibleSchemasMergeException
-from mipengine.utils.custom_exception import IncompatibleTableTypes
-from mipengine.utils.custom_exception import TableCannotBeFound
-from mipengine.utils.validate_identifier_names import validate_identifier_names
+from mipengine.common.node_exceptions import IncompatibleSchemasMergeException
+from mipengine.common.node_exceptions import IncompatibleTableTypes
+from mipengine.common.node_exceptions import TableCannotBeFound
+from mipengine.common.validate_identifier_names import validate_identifier_names
 
 
 def get_merge_tables_names(context_id: str) -> List[str]:

@@ -7,7 +7,7 @@ from mipengine.common.node_catalog import node_catalog
 from mipengine.node.node import config
 from mipengine.node.tasks.data_classes import ColumnInfo
 from mipengine.node.tasks.data_classes import TableSchema
-from mipengine.utils.validate_identifier_names import validate_identifier_names
+from mipengine.common.validate_identifier_names import validate_identifier_names
 
 MONETDB_VARCHAR_SIZE = 50
 

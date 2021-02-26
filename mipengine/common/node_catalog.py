@@ -5,7 +5,7 @@ from typing import List
 
 from dataclasses_json import dataclass_json
 
-from mipengine import resources
+from mipengine.common import resources
 
 
 @dataclass_json

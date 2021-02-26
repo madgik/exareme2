@@ -6,7 +6,7 @@ from mipengine.node.monetdb_interface.common import convert_schema_to_sql_query_
 from mipengine.node.monetdb_interface.common import cursor
 from mipengine.node.tasks.data_classes import TableInfo
 from mipengine.node.tasks.data_classes import TableSchema
-from mipengine.utils.validate_identifier_names import validate_identifier_names
+from mipengine.common.validate_identifier_names import validate_identifier_names
 
 
 def get_table_schema(table_name: str) -> TableSchema:
