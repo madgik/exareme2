@@ -36,7 +36,7 @@ def test_create_and_get_view():
                                              pathology,
                                              json.dumps(datasets),
                                              json.dumps(columns),
-                                             "filter"
+                                             "filters"
                                              ).get()
     views = local_node_get_views.delay(context_id).get()
     assert view_name in views

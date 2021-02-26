@@ -89,6 +89,5 @@ def create_view(context_id: str, command_id: str, pathology: str, datasets_json:
     views.create_view(view_name=view_name,
                       pathology=pathology,
                       datasets=json.loads(datasets_json),
-                      columns=json.loads(columns_json),
-                      filters=filters_json)
+                      columns=json.loads(columns_json))
     return view_name.lower()

@@ -57,7 +57,7 @@ def add_to_merge_table(merge_table_name: str, partition_tables_names: List[str])
 
 @validate_identifier_names
 def get_type_of_tables(partition_tables_names: List[str]):
-    table_names = ','.join(f"\'{table}\'" for table in partition_tables_names)
+    table_names = ','.join(f"'{table}'" for table in partition_tables_names)
 
     cursor.execute(
         f"""

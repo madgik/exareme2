@@ -78,15 +78,14 @@ def test_create_merge_table_with_remote_tables():
     merge_tables = global_node_get_merge_tables.delay(context_id).get()
     assert merge_table_name in merge_tables
 
-    # TODO Should work
-    # # Validate merge table row count
-    # connection = get_node_db_connection(global_node_id)
-    # cursor = connection.cursor()
-    # cursor.execute(f"SELECT * FROM {merge_table_name}")
-    # row_count = cursor.fetchall().count();
-    # assert row_count == 2
-    # connection.commit()
-    # connection.close()
+    # Validate merge table row count
+    connection = get_node_db_connection(global_node_id)
+    cursor = connection.cursor()
+    cursor.execute(f"SELECT * FROM {merge_table_name}")
+    row_count = len(cursor.fetchall())
+    assert row_count == 2
+    connection.commit()
+    connection.close()
 
     clean_up_global.delay(context_id.lower()).get()
     clean_up_node1.delay(context_id.lower()).get()
