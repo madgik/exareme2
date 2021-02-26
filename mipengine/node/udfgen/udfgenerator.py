@@ -1,5 +1,6 @@
 from __future__ import annotations
 import ast
+from collections import OrderedDict
 from functools import lru_cache
 import inspect
 from string import Template
@@ -21,6 +22,9 @@ from mipengine.node.udfgen.udfparams import Tensor
 from mipengine.node.udfgen.udfparams import Scalar
 from mipengine.node.udfgen.udfparams import SQLTYPES
 
+INPUTTABLE = "input_table"
+LOOPBACK = "loopback_table"
+LITERAL = "literal_parameter"
 
 CREATE_OR_REPLACE = "CREATE OR REPLACE"
 FUNCTION = "FUNCTION"
@@ -29,6 +33,86 @@ LANGUAGE_PYTHON = "LANGUAGE PYTHON"
 BEGIN = "{"
 IMPORTS = "from mipengine.udfgen import ArrayBundle"
 END = "};"
+
+
+STR_TO_TYPE = {"int": int, "real": float, "text": str}
+
+
+def generate_udf(
+    func_name: str,
+    udf_name: str,
+    positional_args: list[dict],
+    keyword_args: dict[str, dict],
+) -> str:
+    """
+    Generates definitions in MonetDB Python UDFs from Python functions which
+    have been properly annotated using types found in
+    mipengine.algorithms.iotypes.
+
+    Parameters
+    ----------
+        func_name: str
+            Name of function from which to generate UDF.
+        udf_name: str
+            Name to use in UDF definition.
+        positional_args: list[dict]
+            Positional parameter info objects.
+        keyword_args: dict[str, dict]
+            Keyword parameter info objects.
+
+    Returns
+    -------
+        str
+            Multiline string with MonetDB Python UDF definition.
+    """
+    generator = get_generator(func_name)
+    args = [create_input_parameter(arg) for arg in positional_args]
+    kwargs = {name: create_input_parameter(arg) for name, arg in keyword_args.items()}
+    return generator.to_sql(udf_name, *args, **kwargs)
+
+
+@lru_cache
+def get_generator(func_name):
+    func = UDF_REGISTRY[func_name]
+    verify_annotations(func)
+    return UDFGenerator(func)
+
+
+def create_input_parameter(parameter):
+    if parameter["type"] == INPUTTABLE:
+        return create_input_table(parameter)
+    elif parameter["type"] == LOOPBACK:
+        return create_loopback_table(parameter)
+    elif parameter["type"] == LITERAL:
+        return create_literal(parameter)
+    else:
+        raise TypeError(f"Unknown parameter type {parameter['type']}")
+
+
+def create_input_table(descr):
+    schema = descr["schema"]
+    nrows = descr["nrows"]
+    ncols = len(schema)
+    dtype = STR_TO_TYPE[schema[0]["type"]]
+    if not all(col["type"] == schema[0]["type"] for col in schema):
+        raise TypeError("Can't have different types in columns.")
+    return Table(dtype, shape=(nrows, ncols))
+
+
+def create_loopback_table(descr):
+    name = descr["name"]
+    schema = descr["schema"]
+    nrows = descr["nrows"]
+    ncols = len(schema)
+    dtype = STR_TO_TYPE[schema[0]["type"]]
+    if not all(col["type"] == schema[0]["type"] for col in schema):
+        raise TypeError("Can't have different types in columns.")
+    return LoopbackTable(name, dtype, shape=(nrows, ncols))
+
+
+def create_literal(descr):
+    value = descr["value"]
+    return LiteralParameter(value)
 
 
 class UDFGenerator:
@@ -99,13 +183,17 @@ class UDFGenerator:
                 for name in self.signature.parameters.keys()
                 if name not in kwargs.keys()
             ]
-            inputs = dict(**dict(zip(argnames, args)), **kwargs)
+            all_args = dict(**dict(zip(argnames, args)), **kwargs)
+            inputs = OrderedDict(
+                **{name: all_args[name] for name in self.signature.parameters.keys()}
+            )
             return inputs
 
         def make_declaration_input_params(inputs):
             input_params = [
-                inputs[name].as_sql_parameters(name)
-                for name in self.tableparams + self.tensorparams
+                input_param.as_sql_parameters(name)
+                for name, input_param in inputs.items()
+                if name in self.tableparams + self.tensorparams
             ]
             input_params = ", ".join(input_params)
             return input_params
@@ -130,6 +218,8 @@ class UDFGenerator:
                 output_expr = output.as_sql_return_type(self.return_name)
             elif type(output) == Scalar:
                 output_expr = output.as_sql_return_type()
+            elif type(output) == LiteralParameter:
+                output_expr = SQLTYPES[type(output.value)]
             else:
                 output_expr = SQLTYPES[type(output)]
             return output_expr
@@ -207,70 +297,3 @@ def verify_annotations(func):
         raise TypeError("Function is not properly annotated as a Monet UDF")
     if annotations.get("return", None) not in allowed_types + (ScalarT,):
         raise TypeError("Function is not properly annotated as a Monet UDF")
-
-
-@lru_cache
-def get_generator(func_name):
-    func = UDF_REGISTRY[func_name]
-    verify_annotations(func)
-    return UDFGenerator(func)
-
-
-def generate_udf(
-    func_name: str,
-    udf_name: str,
-    input_tables: list[dict],
-    loopback_tables: list[dict],
-    literalparams: dict,
-) -> str:
-    """
-    Generates definitions in MonetDB Python UDFs from Python functions which
-    have been properly annotated using types found in
-    mipengine.algorithms.iotypes.
-
-    Parameters
-    ----------
-        func_name: str
-            Name of function from which to generate UDF.
-        udf_name: str
-            Name to use in UDF definition.
-        input_tables: list[dict]
-            Table descriptions (dict with keys 'schema', 'nrows')
-        loopback_tables: list[dict]
-            Loopback table descriptions (dict with keys 'schema', 'nrows',
-            'name')
-        literalparams: dict
-            Mapping with literal parameters of UDF.
-
-    Returns
-    -------
-        str
-            Multiline string with MonetDB Python UDF definition.
-    """
-    generator = get_generator(func_name)
-
-    input_tables = [
-        create_table(table["schema"], table["nrows"]) for table in input_tables
-    ]
-
-    loopback_tables = [
-        create_table(ltable["schema"], ltable["nrows"], ltable["name"])
-        for ltable in loopback_tables
-    ]
-
-    literalparams = [
-        LiteralParameter(literalparams[name]) for name in generator.literalparams
-    ]
-    return generator.to_sql(udf_name, *input_tables, *loopback_tables, *literalparams)
-
-
-def create_table(table_schema, table_rows, name=None):
-    ncols = len(table_schema)
-    dtype = table_schema[0]["type"]
-    if not all(col["type"] == dtype for col in table_schema):
-        raise TypeError("Can't have different types in columns yet")
-    if name:
-        table = LoopbackTable(name, dtype, shape=(table_rows, ncols))
-    else:
-        table = Table(dtype, shape=(table_rows, ncols))
-    return table
