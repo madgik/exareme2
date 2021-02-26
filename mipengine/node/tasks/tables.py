@@ -1,16 +1,16 @@
-import json
+from typing import List
+
 from celery import shared_task
 
 from mipengine.node.monetdb_interface import tables
 from mipengine.node.monetdb_interface.common import config
 from mipengine.node.monetdb_interface.common import create_table_name
-from mipengine.node.tasks.data_classes import TableData
 from mipengine.node.tasks.data_classes import TableInfo
 from mipengine.node.tasks.data_classes import TableSchema
 
 
-@shared_task
-def get_tables(context_id: str) -> str:
+@shared_task(serializer="json")
+def get_tables(context_id: str) -> List[str]:
     """
         Parameters
         ----------
@@ -19,48 +19,13 @@ def get_tables(context_id: str) -> str:
 
         Returns
         ------
-        str(List[str])
-            A list of table names in a jsonified format
+        List[str]
+            A list of table names
     """
-    return json.dumps(tables.get_tables_names(context_id))
+    return tables.get_tables_names(context_id)
 
 
-@shared_task
-def get_table_schema(table_name: str) -> str:
-    """
-        Parameters
-        ----------
-        table_name : str
-        The name of the table
-
-        Returns
-        ------
-        str(TableSchema)
-            A TableSchema object in a jsonified format
-    """
-    schema = tables.get_table_schema(table_name)
-    return schema.to_json()
-
-
-@shared_task
-def get_table_data(table_name: str) -> str:
-    """
-        Parameters
-        ----------
-        table_name : str
-            The name of the table
-
-        Returns
-        ------
-        str(TableData)
-            An object of TableData in a jsonified format
-    """
-    schema = tables.get_table_schema(table_name)
-    data = tables.get_table_data(table_name)
-    return TableData(schema, data).to_json()
-
-
-@shared_task
+@shared_task(serializer="json")
 def create_table(context_id: str, command_id: str, schema_json: str) -> str:
     """
         Parameters

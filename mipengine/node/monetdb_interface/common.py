@@ -127,7 +127,11 @@ def convert_from_monetdb_column_type(column_type: str) -> str:
 
 
 @validate_identifier_names
-def get_table_schema(table_type: str, table_name: str) -> TableSchema:
+def get_table_schema(table_name: str, table_type: str = None) -> TableSchema:
+    type_clause = ""
+    if table_type is not None:
+        type_clause = f" AND tables.type = {str(get_table_type_enumeration_value(table_type))}"
+
     """Retrieves a schema for a specific table type and table name  from the monetdb.
 
         Parameters
@@ -149,11 +153,10 @@ def get_table_schema(table_type: str, table_name: str) -> TableSchema:
         RIGHT JOIN tables 
         ON tables.id = columns.table_id 
         WHERE 
-        tables.type = {str(get_table_type_enumeration_value(table_type))} 
-        AND 
         tables.name = '{table_name}' 
         AND 
-        tables.system=false""")
+        tables.system=false 
+        {type_clause}""")
 
     return TableSchema([ColumnInfo(table[0], convert_from_monetdb_column_type(table[1])) for table in cursor])
 
@@ -202,7 +205,10 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
 
 
 @validate_identifier_names
-def get_table_data(table_type: str, table_name: str) -> List[List[Union[str, int, float, bool]]]:
+def get_table_data(table_name: str, table_type: str = None) -> List[List[Union[str, int, float, bool]]]:
+    type_clause = ""
+    if table_type is not None:
+        type_clause = f" AND tables.type = {str(get_table_type_enumeration_value(table_type))}"
     """Retrieves the data of a table with specific type and name  from the monetdb.
 
         Parameters
@@ -223,7 +229,7 @@ def get_table_data(table_type: str, table_name: str) -> List[List[Union[str, int
         FROM {table_name} 
         INNER JOIN tables ON tables.name = '{table_name}' 
         WHERE tables.system=false 
-        AND tables.type = {str(get_table_type_enumeration_value(table_type))}
+        {type_clause}
         """)
 
     return cursor.fetchall()

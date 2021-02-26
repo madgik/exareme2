@@ -24,7 +24,7 @@ context_id = "regrEssion"
 def cleanup_tables():
     yield
 
-    local_node_cleanup.delay(context_id.lower()).get()
+    local_node_cleanup.delay(context_id=context_id.lower()).get()
 
 
 def test_create_and_get_remote_table():
@@ -33,13 +33,14 @@ def test_create_and_get_remote_table():
 
     table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])
 
-    table_name = local_node_create_table.delay(context_id,
-                                               str(pymonetdb.uuid.uuid1()).replace("-", ""),
-                                               table_schema.to_json()
+    table_name = local_node_create_table.delay(context_id=context_id,
+                                               command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                               schema_json=table_schema.to_json()
                                                ).get()
 
     table_info = TableInfo(table_name, table_schema)
 
-    global_node_create_remote_table.delay(table_info.to_json(), local_node_1_url).get()
-    remote_tables = global_node_get_remote_tables.delay(context_id).get()
+    global_node_create_remote_table.delay(table_info_json=table_info.to_json(),
+                                          url=local_node_1_url).get()
+    remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()
     assert table_name.lower() in remote_tables

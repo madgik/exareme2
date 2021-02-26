@@ -30,28 +30,12 @@ def get_celery_get_tables_signature(celery_app):
     return celery_app.signature('mipengine.node.tasks.tables.get_tables')
 
 
-def get_celery_get_table_schema_signature(celery_app):
-    return celery_app.signature('mipengine.node.tasks.tables.get_table_schema')
-
-
-def get_celery_get_table_data_signature(celery_app):
-    return celery_app.signature('mipengine.node.tasks.tables.get_table_data')
-
-
 def get_celery_create_view_signature(celery_app):
     return celery_app.signature('mipengine.node.tasks.views.create_view')
 
 
 def get_celery_get_views_signature(celery_app):
     return celery_app.signature('mipengine.node.tasks.views.get_views')
-
-
-def get_celery_get_view_schema_signature(celery_app):
-    return celery_app.signature('mipengine.node.tasks.views.get_view_schema')
-
-
-def get_celery_get_view_data_signature(celery_app):
-    return celery_app.signature('mipengine.node.tasks.views.get_view_data')
 
 
 def get_celery_create_merge_table_signature(celery_app):
@@ -62,20 +46,20 @@ def get_celery_get_merge_tables_signature(celery_app):
     return celery_app.signature('mipengine.node.tasks.merge_tables.get_merge_tables')
 
 
-def get_celery_get_merge_table_schema_signature(celery_app):
-    return celery_app.signature('mipengine.node.tasks.merge_tables.get_merge_table_schema')
-
-
-def get_celery_get_merge_table_data_signature(celery_app):
-    return celery_app.signature('mipengine.node.tasks.merge_tables.get_merge_table_data')
-
-
 def get_celery_create_remote_table_signature(celery_app):
     return celery_app.signature('mipengine.node.tasks.remote_tables.create_remote_table')
 
 
 def get_celery_get_remote_tables_signature(celery_app):
     return celery_app.signature('mipengine.node.tasks.remote_tables.get_remote_tables')
+
+
+def get_celery_get_table_schema_signature(celery_app):
+    return celery_app.signature('mipengine.node.tasks.common.get_table_schema')
+
+
+def get_celery_get_table_data_signature(celery_app):
+    return celery_app.signature('mipengine.node.tasks.common.get_table_data')
 
 
 def get_celery_cleanup_signature(celery_app):
