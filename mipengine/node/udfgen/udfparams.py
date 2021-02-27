@@ -129,6 +129,10 @@ class LiteralParameter:
     def __init__(self, value):
         self.value = value
 
+    def __repr__(self):
+        clsname = type(self).__name__
+        return f"{clsname}({self.value})"
+
 
 class LoopbackTable(Table):
     def __init__(self, name, dtype, shape):
