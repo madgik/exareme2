@@ -15,7 +15,6 @@ local_node_create_merge_table = nodes_communication.get_celery_create_merge_tabl
 local_node_get_merge_tables = nodes_communication.get_celery_get_merge_tables_signature(local_node)
 local_node_create_view = nodes_communication.get_celery_create_view_signature(local_node)
 local_node_get_views = nodes_communication.get_celery_get_views_signature(local_node)
-local_node_get_view_schema = nodes_communication.get_celery_get_view_schema_signature(local_node)
 local_node_create_remote_table = nodes_communication.get_celery_create_remote_table_signature(local_node)
 local_node_get_remote_tables = nodes_communication.get_celery_get_remote_tables_signature(local_node)
 local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
@@ -27,25 +26,27 @@ context_id = "HISTOGRAMS"
 def cleanup_tables():
     yield
 
-    local_node_cleanup.delay(context_id.lower()).get()
+    local_node_cleanup.delay(context_id=context_id.lower()).get()
 
 
 def test_sql_injection_get_tables():
     with pytest.raises(ValueError):
-        local_node_get_tables.delay(");\"").get()
+        local_node_get_tables.delay(context_id=");\"").get()
 
 
 def test_sql_injection_get_table_schema():
     with pytest.raises(ValueError):
-        local_node_get_table_schema.delay("drop table data;").get()
+        local_node_get_table_schema.delay(table_name="drop table data;").get()
 
 
 def test_sql_injection_create_table_context_id():
     with pytest.raises(ValueError):
-        context_id = "drop table data;"
+        invalid_context_id = "drop table data;"
         schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])
         json_schema = schema.to_json()
-        local_node_create_table.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), json_schema).get()
+        local_node_create_table.delay(context_id=invalid_context_id,
+                                      command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                      schema_json=json_schema).get()
 
 
 def test_sql_injection_create_table_tableschema_name():
@@ -53,29 +54,31 @@ def test_sql_injection_create_table_tableschema_name():
         schema = TableSchema(
             [ColumnInfo("drop table data;", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])
         json_schema = schema.to_json()
-        local_node_create_table.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), json_schema).get()
+        local_node_create_table.delay(context_id=context_id,
+                                      command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                      schema_json=json_schema).get()
 
 
 def test_sql_injection_get_merge_tables():
     with pytest.raises(ValueError):
-        local_node_get_merge_tables.delay("drop table data;").get()
+        local_node_get_merge_tables.delay(context_id="drop table data;").get()
 
 
 def test_sql_injection_create_merge_table_table_names():
     with pytest.raises(ValueError):
-        local_node_create_merge_table.delay(context_id,
-                                            str(pymonetdb.uuid.uuid1()).replace("-", ""),
-                                            json.dumps(["drop table data;"])).get()
+        local_node_create_merge_table.delay(context_id=context_id,
+                                            command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                            partition_table_names=["drop table data;"]).get()
 
 
 def test_sql_injection_get_views():
     with pytest.raises(ValueError):
-        local_node_get_views.delay("drop table data;").get()
+        local_node_get_views.delay(context_id="drop table data;").get()
 
 
 def test_sql_injection_get_view_schema():
     with pytest.raises(ValueError):
-        local_node_get_view_schema.delay("drop table data;").get()
+        local_node_get_table_schema.delay(table_name="drop table data;").get()
 
 
 def test_sql_injection_create_view_columns():
@@ -83,8 +86,12 @@ def test_sql_injection_create_view_columns():
         columns = ["drop table data;", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
         datasets = ["edsd"]
         pathology = "tbi"
-        local_node_create_view.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), pathology,
-                                     json.dumps(datasets), json.dumps(columns), "").get()
+        local_node_create_view.delay(context_id=context_id,
+                                     command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                     pathology=pathology,
+                                     datasets=json.dumps(datasets),
+                                     columns=json.dumps(columns),
+                                     filters_json="filters").get()
 
 
 def test_sql_injection_create_view_datasets():
@@ -92,10 +99,14 @@ def test_sql_injection_create_view_datasets():
         columns = ["dataset", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
         datasets = ["drop table data;"]
         pathology = "tbi"
-        local_node_create_view.delay(context_id, str(pymonetdb.uuid.uuid1()).replace("-", ""), pathology,
-                                     json.dumps(datasets), json.dumps(columns), "").get()
+        local_node_create_view.delay(context_id=context_id,
+                                     command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                     pathology=pathology,
+                                     datasets=json.dumps(datasets),
+                                     columns=json.dumps(columns),
+                                     filters_json="").get()
 
 
 def test_sql_injection_get_remote_tables():
     with pytest.raises(ValueError):
-        local_node_get_remote_tables.delay("drop table data;").get()
+        local_node_get_remote_tables.delay(context_id="drop table data;").get()

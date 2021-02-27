@@ -23,24 +23,22 @@ context_id = "regrEssion"
 def cleanup_tables():
     yield
 
-    local_node_cleanup.delay(context_id.lower()).get()
+    local_node_cleanup.delay(context_id=context_id.lower()).get()
 
 
 def create_two_column_table(table_id: int):
     table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT")])
-    table_name = local_node_create_table.delay(f"{context_id}_table_{table_id}",
-                                               str(pymonetdb.uuid.uuid1()).replace("-", ""),
-                                               table_schema.to_json()
-                                               ).get()
+    table_name = local_node_create_table.delay(context_id=f"{context_id}_table_{table_id}",
+                                               command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                               schema_json=table_schema.to_json()).get()
     return table_name
 
 
 def create_three_column_table_with_data(table_id: int):
     table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])
-    table_name = local_node_create_table.delay(f"{context_id}_table_{table_id}",
-                                               str(pymonetdb.uuid.uuid1()).replace("-", ""),
-                                               table_schema.to_json()
-                                               ).get()
+    table_name = local_node_create_table.delay(context_id=f"{context_id}_table_{table_id}",
+                                               command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                               schema_json=table_schema.to_json()).get()
 
     connection = get_node_db_connection(local_node_id)
     connection.cursor().execute(f"INSERT INTO {table_name} VALUES ( 1, 2.0, '3')")
@@ -54,10 +52,10 @@ def test_create_and_get_merge_table():
                            create_three_column_table_with_data(2),
                            create_three_column_table_with_data(3),
                            create_three_column_table_with_data(4)]
-    merge_table_1_name = local_node_create_merge_table.delay(context_id,
-                                                             str(pymonetdb.uuid.uuid1()).replace("-", ""),
-                                                             json.dumps(tables_to_be_merged)).get()
-    merge_tables = local_node_get_merge_tables.delay(context_id).get()
+    merge_table_1_name = local_node_create_merge_table.delay(context_id=context_id,
+                                                             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                                             partition_table_names=tables_to_be_merged).get()
+    merge_tables = local_node_get_merge_tables.delay(context_id=context_id).get()
     assert merge_table_1_name in merge_tables
 
 
@@ -67,10 +65,9 @@ def test_incompatible_schemas_merge():
                                          create_two_column_table(2),
                                          create_two_column_table(3),
                                          create_three_column_table_with_data(4)]
-        local_node_create_merge_table.delay(context_id,
-                                            str(pymonetdb.uuid.uuid1()).replace("-", ""),
-                                            json.dumps(incompatible_partition_tables)
-                                            ).get()
+        local_node_create_merge_table.delay(context_id=context_id,
+                                            command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                            partition_table_names=incompatible_partition_tables).get()
 
 
 def test_table_cannot_be_found():
@@ -79,7 +76,6 @@ def test_table_cannot_be_found():
                             create_three_column_table_with_data(2),
                             "non_existing_table"]
 
-        local_node_create_merge_table.delay(context_id,
-                                            str(pymonetdb.uuid.uuid1()).replace("-", ""),
-                                            json.dumps(not_found_tables)
-                                            ).get()
+        local_node_create_merge_table.delay(context_id=context_id,
+                                            command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                            partition_table_names=not_found_tables).get()
