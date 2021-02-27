@@ -8,7 +8,7 @@ from mipengine.node.monetdb_interface.common import config
 from mipengine.node.monetdb_interface.common import create_table_name
 
 
-@shared_task(serializer="json")
+@shared_task
 def get_views(context_id: str) -> List[str]:
     """
         Parameters
@@ -24,7 +24,7 @@ def get_views(context_id: str) -> List[str]:
     return views.get_views_names(context_id)
 
 
-@shared_task(serializer="json")
+@shared_task
 def create_view(context_id: str, command_id: str, pathology: str, datasets: List[str], columns: List[str], filters_json: str) -> str:
     # filter: str, x: Optional[List[str]], y: Optional[List[str]]
     # We need to refactor that

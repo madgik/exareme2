@@ -9,7 +9,7 @@ from mipengine.node.tasks.data_classes import TableInfo
 from mipengine.node.tasks.data_classes import TableSchema
 
 
-@shared_task(serializer="json")
+@shared_task
 def get_tables(context_id: str) -> List[str]:
     """
         Parameters
@@ -25,7 +25,7 @@ def get_tables(context_id: str) -> List[str]:
     return tables.get_tables_names(context_id)
 
 
-@shared_task(serializer="json")
+@shared_task
 def create_table(context_id: str, command_id: str, schema_json: str) -> str:
     """
         Parameters

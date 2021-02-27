@@ -4,7 +4,7 @@ from mipengine.node.monetdb_interface import common
 from mipengine.node.tasks.data_classes import TableData
 
 
-@shared_task(serializer="json")
+@shared_task
 def get_table_schema(table_name: str) -> str:
     """
         Parameters
@@ -21,7 +21,7 @@ def get_table_schema(table_name: str) -> str:
     return schema.to_json()
 
 
-@shared_task(serializer="json")
+@shared_task
 def get_table_data(table_name: str) -> str:
     """
         Parameters
@@ -39,6 +39,6 @@ def get_table_data(table_name: str) -> str:
     return TableData(schema, data).to_json()
 
 
-@shared_task(serializer="json")
+@shared_task
 def clean_up(context_id: str):
     common.clean_up(context_id)

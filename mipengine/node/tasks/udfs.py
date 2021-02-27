@@ -2,7 +2,6 @@ from typing import List
 
 from celery import shared_task
 
-from mipengine.node.tasks.data_classes import Parameter
 from mipengine.node.tasks.data_classes import TableInfo
 from mipengine.node.tasks.data_classes import UDFInfo
 
@@ -13,7 +12,7 @@ def get_udfs() -> List[UDFInfo]:
 
 
 @shared_task
-def run_udf(udf_name: str, input: List[Parameter]) -> TableInfo:
+def run_udf(udf_name: str, input: str) -> TableInfo:
     pass
 
 

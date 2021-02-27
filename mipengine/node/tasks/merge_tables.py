@@ -10,7 +10,7 @@ from mipengine.node.monetdb_interface.merge_tables import get_type_of_tables
 from mipengine.node.tasks.data_classes import TableInfo
 
 
-@shared_task(serializer="json")
+@shared_task
 def get_merge_tables(context_id: str) -> List[str]:
     """
         Parameters
@@ -26,7 +26,7 @@ def get_merge_tables(context_id: str) -> List[str]:
     return merge_tables.get_merge_tables_names(context_id)
 
 
-@shared_task(serializer="json")
+@shared_task
 def create_merge_table(context_id: str, command_id: str, partition_table_names: List[str]) -> str:
     """
         Parameters

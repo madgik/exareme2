@@ -6,7 +6,7 @@ from mipengine.node.monetdb_interface import remote_tables
 from mipengine.node.tasks.data_classes import TableInfo
 
 
-@shared_task(serializer="json")
+@shared_task
 def get_remote_tables(context_id: str) -> List[str]:
     """
         Parameters
@@ -22,7 +22,7 @@ def get_remote_tables(context_id: str) -> List[str]:
     return remote_tables.get_remote_tables_names(context_id)
 
 
-@shared_task(serializer="json")
+@shared_task
 def create_remote_table(table_info_json: str, url: str):
     """
         Parameters
