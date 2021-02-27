@@ -71,10 +71,10 @@ python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/t
 python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50002 -farm db
 ```
 
-6. Modify mipengine/resources/node_catalog.json to match your internal IP instead of 127.0.0.1 . Localhost should NOT be used!
+6. Modify `mipengine/resources/node_catalog.json` to match your internal IP instead of 127.0.0.1 . Localhost should NOT be used!
 You can use the command `ifconfig` to get your internal IP.
 ```
-python3 mipengine/tests/node/set_monetdb_hostname.py -host  <internal IP>
+python3 mipengine/tests/node/set_monetdb_hostname.py -host <internal IP>
 ```
 
 7. Inside the MIP-Engine folder run the celery workers: <br/>
