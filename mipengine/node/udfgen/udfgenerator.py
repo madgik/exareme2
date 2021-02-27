@@ -35,7 +35,7 @@ IMPORTS = "from mipengine.udfgen import ArrayBundle"
 END = "};"
 
 
-STR_TO_TYPE = {"int": int, "real": float, "text": str}
+STR_TO_TYPE = {"int": int, "float": float, "float64": float, "str": str}
 
 
 def generate_udf(
