@@ -1,9 +1,9 @@
 import pymonetdb
 import pytest
 
-from mipengine.node.tasks.data_classes import ColumnInfo
-from mipengine.node.tasks.data_classes import TableInfo
-from mipengine.node.tasks.data_classes import TableSchema
+from mipengine.common.DTOs import ColumnInfo
+from mipengine.common.DTOs import TableInfo
+from mipengine.common.DTOs import TableSchema
 from mipengine.tests.node import nodes_communication
 from mipengine.common.node_catalog import node_catalog
 

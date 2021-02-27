@@ -3,14 +3,13 @@ import json
 import pymonetdb
 import pytest
 
-from mipengine.node.tasks.data_classes import ColumnInfo
-from mipengine.node.tasks.data_classes import TableSchema
-from mipengine.node.tasks.data_classes import TableData
+from mipengine.common.DTOs import ColumnInfo
+from mipengine.common.DTOs import TableData
+from mipengine.common.DTOs import TableSchema
 from mipengine.tests.node import nodes_communication
 
 local_node_id = "local_node_1"
 local_node = nodes_communication.get_celery_app(local_node_id)
-local_node_create_view = nodes_communication.get_celery_create_view_signature(local_node)
 local_node_create_view = nodes_communication.get_celery_create_view_signature(local_node)
 local_node_get_views = nodes_communication.get_celery_get_views_signature(local_node)
 local_node_get_view_data = nodes_communication.get_celery_get_table_data_signature(local_node)
@@ -34,8 +33,8 @@ def test_create_and_get_view():
     view_name = local_node_create_view.delay(context_id=context_id,
                                              command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
                                              pathology=pathology,
-                                             datasets=json.dumps(datasets),
-                                             columns=json.dumps(columns),
+                                             datasets=datasets,
+                                             columns=columns,
                                              filters_json="filters"
                                              ).get()
     views = local_node_get_views.delay(context_id=context_id).get()

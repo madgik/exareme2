@@ -4,7 +4,7 @@ from mipengine.node.monetdb_interface import common
 from mipengine.node.monetdb_interface.common import connection
 from mipengine.node.monetdb_interface.common import convert_schema_to_sql_query_format
 from mipengine.node.monetdb_interface.common import cursor
-from mipengine.node.tasks.data_classes import TableInfo
+from mipengine.common.DTOs import TableInfo
 from mipengine.common.validate_identifier_names import validate_identifier_names
 
 

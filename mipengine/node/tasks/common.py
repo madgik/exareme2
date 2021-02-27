@@ -1,7 +1,7 @@
 from celery import shared_task
 
 from mipengine.node.monetdb_interface import common
-from mipengine.node.tasks.data_classes import TableData
+from mipengine.common.DTOs import TableData
 
 
 @shared_task

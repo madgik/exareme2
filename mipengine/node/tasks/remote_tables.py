@@ -2,8 +2,8 @@ from typing import List
 
 from celery import shared_task
 
+from mipengine.common.DTOs import TableInfo
 from mipengine.node.monetdb_interface import remote_tables
-from mipengine.node.tasks.data_classes import TableInfo
 
 
 @shared_task

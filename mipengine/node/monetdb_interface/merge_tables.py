@@ -2,17 +2,15 @@ from typing import List
 
 import pymonetdb
 
-from mipengine.node.monetdb_interface import common
-from mipengine.node.monetdb_interface import tables
-from mipengine.node.monetdb_interface.common import connection
-from mipengine.node.monetdb_interface.common import convert_schema_to_sql_query_format
-from mipengine.node.monetdb_interface.common import cursor
-from mipengine.node.monetdb_interface.common import get_monetdb_table_type_enumeration_value
-from mipengine.node.tasks.data_classes import TableInfo
 from mipengine.common.node_exceptions import IncompatibleSchemasMergeException
 from mipengine.common.node_exceptions import IncompatibleTableTypes
 from mipengine.common.node_exceptions import TableCannotBeFound
 from mipengine.common.validate_identifier_names import validate_identifier_names
+from mipengine.node.monetdb_interface import common
+from mipengine.node.monetdb_interface.common import connection
+from mipengine.node.monetdb_interface.common import convert_schema_to_sql_query_format
+from mipengine.node.monetdb_interface.common import cursor
+from mipengine.common.DTOs import TableInfo
 
 
 def get_merge_tables_names(context_id: str) -> List[str]:
@@ -56,7 +54,7 @@ def add_to_merge_table(merge_table_name: str, partition_tables_names: List[str])
 
 
 @validate_identifier_names
-def get_type_of_tables(partition_tables_names: List[str]):
+def validate_tables_can_be_merged(partition_tables_names: List[str]):
     table_names = ','.join(f"'{table}'" for table in partition_tables_names)
 
     cursor.execute(

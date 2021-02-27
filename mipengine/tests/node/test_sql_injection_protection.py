@@ -3,7 +3,7 @@ import json
 import pymonetdb
 import pytest
 
-from mipengine.node.tasks.data_classes import ColumnInfo, TableSchema
+from mipengine.common.DTOs import ColumnInfo, TableSchema
 from mipengine.tests.node import nodes_communication
 
 local_node = nodes_communication.get_celery_app("local_node_1")

@@ -2,12 +2,12 @@ from typing import List
 
 from celery import shared_task
 
+from mipengine.common.DTOs import TableInfo
 from mipengine.node.monetdb_interface import common
 from mipengine.node.monetdb_interface import merge_tables
 from mipengine.node.monetdb_interface.common import config
 from mipengine.node.monetdb_interface.common import create_table_name
-from mipengine.node.monetdb_interface.merge_tables import get_type_of_tables
-from mipengine.node.tasks.data_classes import TableInfo
+from mipengine.node.monetdb_interface.merge_tables import validate_tables_can_be_merged
 
 
 @shared_task
@@ -21,7 +21,7 @@ def get_merge_tables(context_id: str) -> List[str]:
         Returns
         ------
         List[str]
-            A list of merged table names
+            A list of merge table names
     """
     return merge_tables.get_merge_tables_names(context_id)
 
@@ -43,7 +43,7 @@ def create_merge_table(context_id: str, command_id: str, partition_table_names: 
         str
             The name(string) of the created merge table in lower case.
     """
-    get_type_of_tables(partition_table_names)
+    validate_tables_can_be_merged(partition_table_names)
     schema = common.get_table_schema(partition_table_names[0])
     merge_table_name = create_table_name("merge", command_id, context_id, config["node"]["identifier"])
     table_info = TableInfo(merge_table_name.lower(), schema)

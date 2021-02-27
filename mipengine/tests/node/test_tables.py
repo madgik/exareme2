@@ -1,9 +1,9 @@
 import pymonetdb
 import pytest
 
-from mipengine.node.tasks.data_classes import ColumnInfo
-from mipengine.node.tasks.data_classes import TableData
-from mipengine.node.tasks.data_classes import TableSchema
+from mipengine.common.DTOs import ColumnInfo
+from mipengine.common.DTOs import TableData
+from mipengine.common.DTOs import TableSchema
 from mipengine.tests.node import nodes_communication
 
 local_node = nodes_communication.get_celery_app("local_node_1")

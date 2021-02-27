@@ -1,6 +1,6 @@
 from typing import List
 
-from mipengine.node.tasks.data_classes import TableInfo
+from mipengine.common.DTOs import TableInfo
 
 
 class TableCannotBeFound(Exception):

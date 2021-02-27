@@ -10,11 +10,11 @@ def validate_identifier_names(func):
         for arg in all_args:
             if type(arg) == str:
                 if not arg.isidentifier() and not check_proper_url_format(arg):
-                    raise ValueError(f"Not allowed character in argument: {arg}!")
+                    raise ValueError(f"Not allowed character in argument: {arg}")
             elif type(arg) == list:
                 for item in arg:
                     if not item.isidentifier() and not check_proper_url_format(item):
-                        raise ValueError(f"Not allowed character in argument: {item}!")
+                        raise ValueError(f"Not allowed character in argument: {item}")
         return func(*args, **kwargs)
 
     return wrapper
