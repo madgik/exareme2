@@ -8,12 +8,10 @@ following code
 
 from mipengine.algorithms.iotypes import udf
 from mipengine.algorithms.iotypes import TableT
-from mipengine.algorithms.iotypes import TensorT
-
 
 @udf
-def func(x: TableT) -> TensorT:
-    result = x.T @ x
+def func(x: TableT, y: TableT) -> TableT:
+    result = x + y
     return result
 ```
 then
@@ -21,24 +19,24 @@ then
 >>> from mipengine.node.udfgen import generate_udf
 >>> func_name = 'demo.func'
 >>> udf_name = 'demo_func_1234'
->>> input_tables = [{'schema': [{'type': int}, {'type': int}], 'nrows': 100}]
->>> loopback_tables = []
->>> literal_params = {}
->>> udf = generate_udf(func_name, udf_name, input_tables, loopback_tables, literal_params)
+>>> positional_args = [{"type": "input_table", "schema": [{"type": "int"}, {"type": "int"}], "nrows": 10}]
+>>> keyword_args = {"y": {"type": "input_table", "schema": [{"type": "int"}, {"type": "int"}], "nrows": 10}}
+>>> udf = generate_udf(func_name, udf_name, positional_args, keyword_args)
 >>> print(udf)
 CREATE OR REPLACE
 FUNCTION
-demo_func_1234(x0 BIGINT, x1 BIGINT)
+demo_func_1234(x0 BIGINT, x1 BIGINT, y0 BIGINT, y1 BIGINT)
 RETURNS
 Table(result0 BIGINT, result1 BIGINT)
 LANGUAGE PYTHON
 {
     from mipengine.udfgen import ArrayBundle
     x = ArrayBundle(_columns[0:2])
+    y = ArrayBundle(_columns[2:4])
 
     # body
-    result = x.T @ x
+    result = x + y
 
-    return as_tensor_table(result)
+    return as_relational_table(result)
 };
 ```

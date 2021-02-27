@@ -50,17 +50,34 @@ def udf_to_scalar(vec1: TensorT, vec2: TensorT) -> ScalarT:
     return dotprod
 
 
+@udf
+def udf_many_params(
+    x: TableT, y: TensorT, z: LoopbackTableT, w: LiteralParameterT, t: TableT
+) -> ScalarT:
+    if x is not None:
+        if len(y) != 0:
+            result = w
+    return result
+
+
 test_cases_generate_udf = [
     (
         {
             "func_name": "test_udf_generator.udf_tables",
             "udf_name": "udf_tables_1234",
-            "input_tables": [
-                {"schema": [{"type": int}, {"type": int}], "nrows": 10},
-                {"schema": [{"type": int}, {"type": int}], "nrows": 10},
+            "positional_args": [
+                {
+                    "type": "input_table",
+                    "schema": [{"type": "int"}, {"type": "int"}],
+                    "nrows": 10,
+                },
+                {
+                    "type": "input_table",
+                    "schema": [{"type": "int"}, {"type": "int"}],
+                    "nrows": 10,
+                },
             ],
-            "loopback_tables": [],
-            "literalparams": {},
+            "keyword_args": {},
         },
         dedent(
             """\
@@ -86,19 +103,19 @@ test_cases_generate_udf = [
         {
             "func_name": "test_udf_generator.udf_table_to_tensor",
             "udf_name": "udf_table_to_tensor_1234",
-            "input_tables": [
+            "positional_args": [
                 {
+                    "type": "input_table",
                     "schema": [
-                        {"type": int},
-                        {"type": int},
-                        {"type": int},
-                        {"type": int},
+                        {"type": "int"},
+                        {"type": "int"},
+                        {"type": "int"},
+                        {"type": "int"},
                     ],
                     "nrows": 4,
                 }
             ],
-            "loopback_tables": [],
-            "literalparams": {},
+            "keyword_args": {},
         },
         dedent(
             """\
@@ -119,20 +136,24 @@ test_cases_generate_udf = [
         {
             "func_name": "test_udf_generator.udf_tensor_and_loopback",
             "udf_name": "udf_tensor_and_loopback_1234",
-            "input_tables": [
+            "positional_args": [
                 {
+                    "type": "input_table",
                     "schema": [
-                        {"type": float},
-                        {"type": float},
-                        {"type": float},
+                        {"type": "real"},
+                        {"type": "real"},
+                        {"type": "real"},
                     ],
                     "nrows": 10,
-                }
+                },
+                {
+                    "type": "loopback_table",
+                    "schema": [{"type": "real"}],
+                    "nrows": 3,
+                    "name": "coeffs",
+                },
             ],
-            "loopback_tables": [
-                {"schema": [{"type": float}], "nrows": 3, "name": "coeffs"}
-            ],
-            "literalparams": {},
+            "keyword_args": {},
         },
         dedent(
             """\
@@ -158,11 +179,15 @@ test_cases_generate_udf = [
         {
             "udf_name": "udf_with_literals_1234",
             "func_name": "test_udf_generator.udf_with_literals",
-            "input_tables": [
-                {"schema": [{"type": int}, {"type": int}, {"type": int}], "nrows": 3}
+            "positional_args": [
+                {
+                    "type": "input_table",
+                    "schema": [{"type": "int"}, {"type": "int"}, {"type": "int"}],
+                    "nrows": 3,
+                },
+                {"type": "literal_parameter", "value": 5},
             ],
-            "loopback_tables": [],
-            "literalparams": {"val": 5},
+            "keyword_args": {},
         },
         dedent(
             """\
@@ -188,14 +213,25 @@ test_cases_generate_udf = [
         {
             "udf_name": "udf_multitype_input_1234",
             "func_name": "test_udf_generator.udf_multitype_input",
-            "input_tables": [
-                {"schema": [{"type": int}, {"type": int}], "nrows": 10},
-                {"schema": [{"type": float}, {"type": float}], "nrows": 2},
+            "positional_args": [
+                {
+                    "type": "input_table",
+                    "schema": [{"type": "int"}, {"type": "int"}],
+                    "nrows": 10,
+                },
+                {
+                    "type": "input_table",
+                    "schema": [{"type": "real"}, {"type": "real"}],
+                    "nrows": 2,
+                },
+                {
+                    "type": "loopback_table",
+                    "schema": [{"type": "real"}, {"type": "real"}],
+                    "nrows": 2,
+                    "name": "t",
+                },
             ],
-            "loopback_tables": [
-                {"schema": [{"type": float}, {"type": float}], "nrows": 2, "name": "t"}
-            ],
-            "literalparams": {},
+            "keyword_args": {},
         },
         dedent(
             """\
@@ -222,12 +258,11 @@ test_cases_generate_udf = [
         {
             "udf_name": "udf_to_scalar_1234",
             "func_name": "test_udf_generator.udf_to_scalar",
-            "input_tables": [
-                {"schema": [{"type": int}], "nrows": 10},
-                {"schema": [{"type": int}], "nrows": 10},
+            "positional_args": [
+                {"type": "input_table", "schema": [{"type": "int"}], "nrows": 10},
+                {"type": "input_table", "schema": [{"type": "int"}], "nrows": 10},
             ],
-            "loopback_tables": [],
-            "literalparams": {},
+            "keyword_args": {},
         },
         dedent(
             """\
@@ -250,6 +285,63 @@ test_cases_generate_udf = [
                 };"""
         ),
     ),
+    (
+        {
+            "udf_name": "many_params_1029384",
+            "func_name": "test_udf_generator.udf_many_params",
+            "positional_args": [
+                {
+                    "type": "input_table",
+                    "schema": [{"type": "int"}, {"type": "int"}],
+                    "nrows": 10,
+                },
+            ],
+            "keyword_args": {
+                "y": {
+                    "type": "input_table",
+                    "schema": [{"type": "int"}, {"type": "int"}],
+                    "nrows": 10,
+                },
+                "z": {
+                    "type": "loopback_table",
+                    "schema": [{"type": "real"}],
+                    "nrows": 3,
+                    "name": "coeffs",
+                },
+                "w": {"type": "literal_parameter", "value": 5},
+                "t": {
+                    "type": "input_table",
+                    "schema": [{"type": "real"}, {"type": "real"}],
+                    "nrows": 10,
+                },
+            },
+        },
+        dedent(
+            """\
+            CREATE OR REPLACE
+            FUNCTION
+            many_params_1029384(x0 BIGINT, x1 BIGINT, y0 BIGINT, y1 BIGINT, t0 DOUBLE, t1 DOUBLE)
+            RETURNS
+            BIGINT
+            LANGUAGE PYTHON
+            {
+                from mipengine.udfgen import ArrayBundle
+                x = ArrayBundle(_columns[0:2])
+                t = ArrayBundle(_columns[2:4])
+                y = from_tensor_table(_columns[4:6])
+                z = _conn.execute("SELECT * FROM coeffs")
+                w = 5
+
+                # body
+                if x is not None:
+                    if len(y) != 0:
+                        result = w
+
+                return result
+
+            };"""
+        ),
+    ),
 ]
 
 
@@ -259,9 +351,8 @@ def test_generate_udf(test_input, expected):
         generate_udf(
             func_name=test_input["func_name"],
             udf_name=test_input["udf_name"],
-            input_tables=test_input["input_tables"],
-            loopback_tables=test_input["loopback_tables"],
-            literalparams=test_input["literalparams"],
+            positional_args=test_input["positional_args"],
+            keyword_args=test_input["keyword_args"],
         )
         == expected
     )
