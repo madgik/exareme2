@@ -1,4 +1,6 @@
 from numbers import Number
+from textwrap import indent
+from textwrap import dedent
 
 import numpy as np
 
@@ -88,10 +90,17 @@ class ArrayBundle(np.lib.mixins.NDArrayOperatorsMixin):
 
     def __repr__(self):
         class_name = type(self).__name__
-        indent = len(class_name) + 2
-        lines = [indent * " " + repr(array) + "," for array in self._itercolumns()]
-        lines[0] = f"{class_name}([" + lines[0][indent:]
-        lines[-1] = lines[-1][:-1] + "])"
+        prfx = " " * 2
+        columns = [
+            dedent(
+                repr(col[:, np.newaxis]).replace("array(", " " * 6).strip(")")
+            ).splitlines()
+            for col in self._itercolumns()
+        ]
+        lines = list(map(" ".join, zip(*columns)))
+        lines = [indent(line, prfx) for line in lines]
+        lines.insert(0, f"{class_name}(")
+        lines.append(")")
         return "\n".join(lines)
 
     def __array__(self):
@@ -173,7 +182,7 @@ def _ufunc_binary(inputs, ufunc, method, **kwargs):
 @_ufunc_binary.register(Number, ArrayBundle)
 def _(inputs, ufunc, method, **kwargs):
     num, arrb = inputs
-    out_type = comput_out_type(ufunc, *inputs)
+    out_type = compute_out_type(ufunc, *inputs)
     out = np.empty(arrb.shape, dtype=out_type)
     for i, column in enumerate(arrb._itercolumns()):
         getattr(ufunc, method)(num, column, out=out[:, i], **kwargs)
@@ -183,7 +192,7 @@ def _(inputs, ufunc, method, **kwargs):
 @_ufunc_binary.register(ArrayBundle, Number)
 def _(inputs, ufunc, method, **kwargs):
     arrb, num = inputs
-    out_type = comput_out_type(ufunc, *inputs)
+    out_type = compute_out_type(ufunc, *inputs)
     out = np.empty(arrb.shape, dtype=out_type)
     for i, column in enumerate(arrb._itercolumns()):
         getattr(ufunc, method)(column, num, out=out[:, i], **kwargs)
@@ -194,7 +203,7 @@ def _(inputs, ufunc, method, **kwargs):
 def _(inputs, ufunc, method, **kwargs):
     arr, arrb = inputs
     assert arr.shape == arrb.shape, "For now no broadcasting"
-    out_type = comput_out_type(ufunc, *inputs)
+    out_type = compute_out_type(ufunc, *inputs)
     out = np.empty(arr.shape, dtype=out_type)
     for i, column in enumerate(arrb._itercolumns()):
         getattr(ufunc, method)(arr[:, i], column, out=out[:, i], **kwargs)
@@ -205,7 +214,7 @@ def _(inputs, ufunc, method, **kwargs):
 def _(inputs, ufunc, method, **kwargs):
     arrb, arr = inputs
     assert arr.shape == arrb.shape, "For now no broadcasting"
-    out_type = comput_out_type(ufunc, *inputs)
+    out_type = compute_out_type(ufunc, *inputs)
     out = np.empty(arr.shape, dtype=out_type)
     for i, column in enumerate(arrb._itercolumns()):
         getattr(ufunc, method)(column, arr[:, i], out=out[:, i], **kwargs)
@@ -216,7 +225,7 @@ def _(inputs, ufunc, method, **kwargs):
 def _(inputs, ufunc, method, **kwargs):
     arrb_1, arrb_2 = inputs
     assert arrb_1.shape == arrb_2.shape, "For now no broadcasting"
-    out_type = comput_out_type(ufunc, *inputs)
+    out_type = compute_out_type(ufunc, *inputs)
     out = np.empty(arrb_1.shape, dtype=out_type)
     columns_1, columns_2 = arrb_1._itercolumns(), arrb_2._itercolumns()
     for i, (col_1, col_2) in enumerate(zip(columns_1, columns_2)):
@@ -224,7 +233,7 @@ def _(inputs, ufunc, method, **kwargs):
     return out
 
 
-def comput_out_type(ufunc, op_1, op_2):
+def compute_out_type(ufunc, op_1, op_2):
     if ufunc.__name__ in BOOLEAN_UFUNCS:
         return bool
     if type(op_1) == int and type(op_2) == int:
@@ -242,7 +251,7 @@ def _(inputs, ufunc, method, **kwargs):
     arrb_l, arr_r = inputs
     if arrb_l.shape[1] != arr_r.shape[0]:
         raise ValueError("matmul: operand dimension mismatch")
-    out_type = comput_out_type(ufunc, *inputs)
+    out_type = compute_out_type(ufunc, *inputs)
     out = np.empty((arrb_l.shape[0], arr_r.shape[1]), dtype=out_type)
     dimleft = arrb_l.shape[0]
     dimmid = arrb_l.shape[1]
@@ -258,7 +267,7 @@ def _(inputs, ufunc, method, **kwargs):
     arr_l, arr_bund_r = inputs
     if arr_l.shape[1] != arr_bund_r.shape[0]:
         raise ValueError("matmul: operand dimension mismatch")
-    out_type = comput_out_type(ufunc, *inputs)
+    out_type = compute_out_type(ufunc, *inputs)
     out = np.empty((arr_l.shape[0], arr_bund_r.shape[1]), dtype=out_type)
     dimleft = arr_l.shape[0]
     dimright = arr_bund_r.shape[1]
@@ -273,7 +282,7 @@ def _(inputs, ufunc, method, **kwargs):
     arrb_l, arrb_r = inputs
     if arrb_l.shape[1] != arrb_r.shape[0]:
         raise ValueError("matmul: operand dimension mismatch")
-    out_type = comput_out_type(ufunc, *inputs)
+    out_type = compute_out_type(ufunc, *inputs)
     out = np.empty((arrb_l.shape[0], arrb_r.shape[1]), dtype=out_type)
     dimleft = arrb_l.shape[0]
     dimmid = arrb_l.shape[1]
