@@ -2,8 +2,8 @@ from typing import List
 
 from celery import shared_task
 
-from mipengine.common.DTOs import TableInfo
-from mipengine.common.DTOs import TableSchema
+from mipengine.common.node_tasks_DTOs import TableInfo
+from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface import tables
 from mipengine.node.monetdb_interface.common import config
 from mipengine.node.monetdb_interface.common import create_table_name

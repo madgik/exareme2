@@ -6,8 +6,8 @@ import pymonetdb
 from mipengine.common.node_catalog import node_catalog
 from mipengine.common.validate_identifier_names import validate_identifier_names
 from mipengine.node.node import config
-from mipengine.common.DTOs import ColumnInfo
-from mipengine.common.DTOs import TableSchema
+from mipengine.common.node_tasks_DTOs import ColumnInfo
+from mipengine.common.node_tasks_DTOs import TableSchema
 
 MONETDB_VARCHAR_SIZE = 50
 
@@ -33,7 +33,7 @@ cursor = connection.cursor()
 @validate_identifier_names
 def create_table_name(table_type: str, command_id: str, context_id: str, node_id: str) -> str:
     """
-    Creates a table name with the format <table_type>_<context_id>_<node_id>_<uuid>
+    Creates a table name with the format <tableType>_<commandId>_<contextId>_<nodeId>
     """
     if table_type not in {"table", "view", "merge"}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")

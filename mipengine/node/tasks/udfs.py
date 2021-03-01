@@ -2,8 +2,8 @@ from typing import List, Dict
 
 from celery import shared_task
 
-from mipengine.common.DTOs import TableInfo
-from mipengine.common.DTOs import UDFInfo
+from mipengine.common.node_tasks_DTOs import TableInfo
+from mipengine.common.node_tasks_DTOs import UDFInfo
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.udfgen import generate_udf
 

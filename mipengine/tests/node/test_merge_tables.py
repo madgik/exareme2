@@ -1,8 +1,8 @@
 import pymonetdb
 import pytest
 
-from mipengine.common.DTOs import ColumnInfo
-from mipengine.common.DTOs import TableSchema
+from mipengine.common.node_tasks_DTOs import ColumnInfo
+from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.tests.node import nodes_communication
 from mipengine.tests.node.node_db_connections import get_node_db_connection
 from mipengine.common.node_exceptions import IncompatibleSchemasMergeException, TableCannotBeFound
