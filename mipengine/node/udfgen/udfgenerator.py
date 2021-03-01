@@ -35,7 +35,16 @@ IMPORTS = "from mipengine.udfgen import ArrayBundle"
 END = "};"
 
 
-STR_TO_TYPE = {"int": int, "float": float, "float64": float, "str": str}
+STR_TO_TYPE = {
+    "int": int,
+    "float": float,
+    "float64": float,
+    "real": float,
+    "str": str,
+    "text": str,
+}
+
+UDFGEN_REGISTRY = {}
 
 
 def generate_udf(
@@ -71,11 +80,15 @@ def generate_udf(
     return generator.to_sql(udf_name, *args, **kwargs)
 
 
-@lru_cache
 def get_generator(func_name):
+    global UDFGEN_REGISTRY
+    if func_name in UDFGEN_REGISTRY:
+        return UDFGEN_REGISTRY[func_name]
     func = UDF_REGISTRY[func_name]
     verify_annotations(func)
-    return UDFGenerator(func)
+    gen = UDFGenerator(func)
+    UDFGEN_REGISTRY[func_name] = gen
+    return gen
 
 
 def create_input_parameter(parameter):
