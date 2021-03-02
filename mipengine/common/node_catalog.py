@@ -6,6 +6,7 @@ from typing import List
 from dataclasses_json import dataclass_json
 
 from mipengine.common import resources
+from mipengine.common.node_exceptions import InvalidNodeId
 
 
 @dataclass_json
@@ -53,6 +54,10 @@ class NodeCatalog:
     def __init__(self):
         node_catalog_content = pkg_resources.read_text(resources, 'node_catalog.json')
         self._nodes: Nodes = Nodes.from_json(node_catalog_content)
+
+        for local_node in self._nodes.localNodes:
+            if not local_node.nodeId.isalnum():
+                raise InvalidNodeId(local_node.nodeId)
 
         self._datasets = {}
         for local_node in self._nodes.localNodes:

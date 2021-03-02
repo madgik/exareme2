@@ -1,13 +1,13 @@
 {
   "globalNode": {
-    "nodeId": "global_node",
+    "nodeId": "globalnode",
     "rabbitmqURL": "127.0.0.1:5672",
     "monetdbHostname": "192.168.1.147",
     "monetdbPort": "50000"
   },
   "localNodes": [
     {
-      "nodeId": "local_node_1",
+      "nodeId": "localnode1",
       "rabbitmqURL": "127.0.0.1:5673",
       "monetdbHostname": "192.168.1.147",
       "monetdbPort": "50001",
@@ -38,7 +38,7 @@
       }
     },
     {
-      "nodeId": "local_node_2",
+      "nodeId": "localnode2",
       "rabbitmqURL": "127.0.0.1:5674",
       "monetdbHostname": "192.168.1.147",
       "monetdbPort": "50002",

@@ -8,7 +8,7 @@ from mipengine.common.node_tasks_DTOs import TableData
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.tests.node import nodes_communication
 
-local_node_id = "local_node_1"
+local_node_id = "localnode1"
 local_node = nodes_communication.get_celery_app(local_node_id)
 local_node_create_view = nodes_communication.get_celery_create_view_signature(local_node)
 local_node_get_views = nodes_communication.get_celery_get_views_signature(local_node)

@@ -38,7 +38,7 @@ def create_table_name(table_type: str, command_id: str, context_id: str, node_id
     if table_type not in {"table", "view", "merge"}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
     if node_id not in {"global", config.get("node", "identifier")}:
-        raise TypeError(f"Node Identifier is not acceptable: {node_id} .")
+        raise TypeError(f"Node Identifier is not acceptable: {node_id}.")
 
     return f"{table_type}_{command_id}_{context_id}_{node_id}"
 

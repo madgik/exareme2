@@ -6,7 +6,7 @@ import pytest
 from mipengine.common.node_tasks_DTOs import ColumnInfo, TableSchema
 from mipengine.tests.node import nodes_communication
 
-local_node = nodes_communication.get_celery_app("local_node_1")
+local_node = nodes_communication.get_celery_app("localnode1")
 local_node_create_table = nodes_communication.get_celery_create_table_signature(local_node)
 local_node_get_tables = nodes_communication.get_celery_get_tables_signature(local_node)
 local_node_get_table_schema = nodes_communication.get_celery_get_table_schema_signature(local_node)

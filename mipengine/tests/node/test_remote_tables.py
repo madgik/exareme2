@@ -7,8 +7,8 @@ from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.tests.node import nodes_communication
 from mipengine.common.node_catalog import node_catalog
 
-global_node_id = "global_node"
-local_node_id = "local_node_1"
+global_node_id = "globalnode"
+local_node_id = "localnode1"
 global_node = nodes_communication.get_celery_app(global_node_id)
 local_node = nodes_communication.get_celery_app(local_node_id)
 local_node_create_table = nodes_communication.get_celery_create_table_signature(local_node)
