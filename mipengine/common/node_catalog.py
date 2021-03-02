@@ -58,6 +58,8 @@ class NodeCatalog:
         for local_node in self._nodes.localNodes:
             if not local_node.nodeId.isalnum():
                 raise InvalidNodeId(local_node.nodeId)
+            if not local_node.nodeId.islower():
+                raise ValueError(f"Node id should be lower case, node id = {local_node.nodeId}")
 
         self._datasets = {}
         for local_node in self._nodes.localNodes:
