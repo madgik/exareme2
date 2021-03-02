@@ -9,21 +9,24 @@ def validate_identifier_names(func):
         all_args = list(args) + list(kwargs.values())
         for arg in all_args:
             if type(arg) == str:
-                if not arg.isidentifier() and not check_proper_url_format(arg):
+                if not arg.isidentifier() and not has_proper_url_format(arg):
                     raise ValueError(f"Not allowed character in argument: {arg}")
             elif type(arg) == list:
                 for item in arg:
-                    if not item.isidentifier() and not check_proper_url_format(item):
+                    if not item.isidentifier() and not has_proper_url_format(item):
                         raise ValueError(f"Not allowed character in argument: {item}")
         return func(*args, **kwargs)
 
     return wrapper
 
 
-def check_proper_url_format(url: str):
+def has_proper_url_format(url: str):
     regex_between_0_to_255 = "([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])"
     regex_any_alphanumeric = "([a-zA-Z0-9]*)"
+    ip_regex = f"{regex_between_0_to_255}" \
+               f"\.{regex_between_0_to_255}" \
+               f"\.{regex_between_0_to_255}" \
+               f"\.{regex_between_0_to_255}"
     # The format of the URL of a REMOTE TABLE is: mapi:monetdb://<host>:<port>/<dbname>
-    return re.search(
-        f"^mapi:monetdb://{regex_between_0_to_255}\.{regex_between_0_to_255}\.{regex_between_0_to_255}\.{regex_between_0_to_255}:{regex_any_alphanumeric}/{regex_any_alphanumeric}$",
-        url)
+    url_match = re.match(f"mapi:monetdb://{ip_regex}:{regex_any_alphanumeric}/{regex_any_alphanumeric}$", url)
+    return url_match is not None

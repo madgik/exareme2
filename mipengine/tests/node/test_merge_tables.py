@@ -52,7 +52,7 @@ def test_create_and_get_merge_table():
                            create_three_column_table_with_data(4)]
     merge_table_1_name = local_node_create_merge_table.delay(context_id=context_id,
                                                              command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
-                                                             partition_table_names=tables_to_be_merged).get()
+                                                             table_names=tables_to_be_merged).get()
     merge_tables = local_node_get_merge_tables.delay(context_id=context_id).get()
     assert merge_table_1_name in merge_tables
 
@@ -65,7 +65,7 @@ def test_incompatible_schemas_merge():
                                          create_three_column_table_with_data(4)]
         local_node_create_merge_table.delay(context_id=context_id,
                                             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
-                                            partition_table_names=incompatible_partition_tables).get()
+                                            table_names=incompatible_partition_tables).get()
 
 
 def test_table_cannot_be_found():
@@ -76,4 +76,4 @@ def test_table_cannot_be_found():
 
         local_node_create_merge_table.delay(context_id=context_id,
                                             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
-                                            partition_table_names=not_found_tables).get()
+                                            table_names=not_found_tables).get()

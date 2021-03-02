@@ -74,7 +74,7 @@ def test_create_merge_table_with_remote_tables():
     # Create merge table
     merge_table_name = global_node_create_merge_table.delay(context_id=context_id,
                                                             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
-                                                            partition_table_names=remote_tables).get()
+                                                            table_names=remote_tables).get()
 
     # Validate merge table exists
     merge_tables = global_node_get_merge_tables.delay(context_id=context_id).get()

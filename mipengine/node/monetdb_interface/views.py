@@ -1,13 +1,13 @@
 from typing import List
 
 from mipengine.common.validate_identifier_names import validate_identifier_names
-from mipengine.node.monetdb_interface import common
-from mipengine.node.monetdb_interface.common import connection
-from mipengine.node.monetdb_interface.common import cursor
+from mipengine.node.monetdb_interface import common_action
+from mipengine.node.monetdb_interface.common_action import connection
+from mipengine.node.monetdb_interface.common_action import cursor
 
 
 def get_views_names(context_id: str) -> List[str]:
-    return common.get_tables_names("view", context_id)
+    return common_action.get_tables_names("view", context_id)
 
 
 @validate_identifier_names
