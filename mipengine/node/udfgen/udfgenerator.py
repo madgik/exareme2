@@ -34,6 +34,9 @@ BEGIN = "{"
 IMPORTS = "from mipengine.udfgen import ArrayBundle"
 END = "};"
 
+PRFX = " " * 4
+SEP = ", "
+LN = "\n"
 
 STR_TO_TYPE = {
     "int": int,
@@ -85,7 +88,7 @@ def get_generator(func_name):
     if func_name in UDFGEN_REGISTRY:
         return UDFGEN_REGISTRY[func_name]
     func = UDF_REGISTRY[func_name]
-    verify_annotations(func)
+    validate_type_hints(func)
     gen = UDFGenerator(func)
     UDFGEN_REGISTRY[func_name] = gen
     return gen
@@ -208,7 +211,7 @@ class UDFGenerator:
                 for name, input_param in inputs.items()
                 if name in self.tableparams + self.tensorparams
             ]
-            input_params = ", ".join(input_params)
+            input_params = SEP.join(input_params)
             return input_params
 
         def get_return_statement(return_type):
@@ -248,7 +251,7 @@ class UDFGenerator:
                 tensor = inputs[name]
                 start, stop = stop, stop + tensor.shape[1]
                 table_defs += [f"{name} = from_tensor_table(_columns[{start}:{stop}])"]
-            table_defs = "\n".join(table_defs)
+            table_defs = LN.join(table_defs)
             return table_defs
 
         def gen_loopback_calls_code(inputs):
@@ -258,7 +261,7 @@ class UDFGenerator:
                 loopback_calls += [
                     f'{name} = _conn.execute("SELECT * FROM {lpb.name}")'
                 ]
-            loopback_calls = "\n".join(loopback_calls)
+            loopback_calls = LN.join(loopback_calls)
             return loopback_calls
 
         def gen_literal_def_code(inputs):
@@ -266,7 +269,7 @@ class UDFGenerator:
             for name in self.literalparams:
                 ltr = inputs[name]
                 literal_defs += [f"{name} = {ltr.value}"]
-            literal_defs = "\n".join(literal_defs)
+            literal_defs = LN.join(literal_defs)
             return literal_defs
 
         verify_types(args, kwargs)
@@ -279,8 +282,6 @@ class UDFGenerator:
         loopback_calls = gen_loopback_calls_code(inputs)
         literal_defs = gen_literal_def_code(inputs)
 
-        prfx = " " * 4
-
         funcdef = [
             CREATE_OR_REPLACE,
             FUNCTION,
@@ -289,24 +290,28 @@ class UDFGenerator:
             f"{output_expr}",
             LANGUAGE_PYTHON,
             BEGIN,
-            indent(IMPORTS, prfx),
+            indent(IMPORTS, PRFX),
         ]
-        funcdef += [indent(table_defs, prfx)] if table_defs else []
-        funcdef += [indent(loopback_calls, prfx)] if loopback_calls else []
-        funcdef += [indent(literal_defs, prfx)] if literal_defs else []
-        funcdef += ["", "    # body", indent(self.body, prfx)] if self.body else []
-        funcdef += [indent(return_stmt, prfx)]
+        funcdef += [indent(table_defs, PRFX)] if table_defs else []
+        funcdef += [indent(loopback_calls, PRFX)] if loopback_calls else []
+        funcdef += [indent(literal_defs, PRFX)] if literal_defs else []
+        funcdef += ["", "    # body", indent(self.body, PRFX)] if self.body else []
+        funcdef += [indent(return_stmt, PRFX)]
         funcdef += [END]
 
-        return "\n".join(funcdef)
+        return LN.join(funcdef)
 
 
-def verify_annotations(func):
+def validate_type_hints(func):
     allowed_types = (TableT, TensorT, LiteralParameterT, LoopbackTableT)
     sig = inspect.signature(func)
     argnames = sig.parameters.keys()
-    annotations = func.__annotations__
-    if any(annotations.get(arg, None) not in allowed_types for arg in argnames):
+    type_hints = func.__annotations__
+    argument_hints = dict(**type_hints)
+    del argument_hints["return"]
+    if any(type_hints.get(arg, None) not in allowed_types for arg in argnames):
         raise TypeError("Function is not properly annotated as a Monet UDF")
-    if annotations.get("return", None) not in allowed_types + (ScalarT,):
+    if type_hints.get("return", None) not in allowed_types + (ScalarT,):
         raise TypeError("Function is not properly annotated as a Monet UDF")
+    if TableT in argument_hints.values() and TensorT in argument_hints.values():
+        raise TypeError("Can't have both TableT and TensorT in udf annotation")
