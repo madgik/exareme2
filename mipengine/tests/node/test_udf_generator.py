@@ -2,17 +2,13 @@ from textwrap import dedent
 
 import pytest
 
-from mipengine.algorithms import udf
+from mipengine.algorithms import LiteralParameterT
+from mipengine.algorithms import LoopbackTableT
+from mipengine.algorithms import ScalarT
 from mipengine.algorithms import TableT
 from mipengine.algorithms import TensorT
-from mipengine.algorithms import LoopbackTableT
-from mipengine.algorithms import LiteralParameterT
-from mipengine.algorithms import ScalarT
+from mipengine.algorithms import udf
 from mipengine.node.udfgen import generate_udf
-from mipengine.node.udfgen.udfparams import Table
-from mipengine.node.udfgen.udfparams import Tensor
-from mipengine.node.udfgen.udfparams import LoopbackTable
-from mipengine.node.udfgen.udfparams import LiteralParameter
 
 
 @udf
@@ -52,7 +48,7 @@ def udf_to_scalar(vec1: TensorT, vec2: TensorT) -> ScalarT:
 
 @udf
 def udf_many_params(
-    x: TableT, y: TensorT, z: LoopbackTableT, w: LiteralParameterT, t: TableT
+        x: TableT, y: TensorT, z: LoopbackTableT, w: LiteralParameterT, t: TableT
 ) -> ScalarT:
     if x is not None:
         if len(y) != 0:
@@ -348,11 +344,11 @@ test_cases_generate_udf = [
 @pytest.mark.parametrize("test_input,expected", test_cases_generate_udf)
 def test_generate_udf(test_input, expected):
     assert (
-        generate_udf(
-            func_name=test_input["func_name"],
-            udf_name=test_input["udf_name"],
-            positional_args=test_input["positional_args"],
-            keyword_args=test_input["keyword_args"],
-        )
-        == expected
+            generate_udf(
+                func_name=test_input["func_name"],
+                udf_name=test_input["udf_name"],
+                positional_args=test_input["positional_args"],
+                keyword_args=test_input["keyword_args"],
+            )
+            == expected
     )

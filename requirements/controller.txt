@@ -1,3 +1,4 @@
 quart==0.14.1
 dataclasses_json==0.5.2
-
+numpy
+pandas
