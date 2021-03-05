@@ -9,7 +9,7 @@ from typing import Set
 
 from dataclasses_json import dataclass_json
 
-from mipengine.resources import pathologies_metadata
+from mipengine.common.resources import pathologies_metadata
 
 
 @dataclass_json

@@ -15,7 +15,7 @@ from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import InputDataS
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import InputDataSpecificationsDTO
 from mipengine.controller.api.errors.exceptions import BadRequest
 from mipengine.controller.api.errors.exceptions import BadUserInput
-from mipengine.controller.common.algorithms_specifications import GenericParameterSpecification
+from mipengine.controller.algorithms_specifications import GenericParameterSpecification
 from mipengine.common.common_data_elements import CommonDataElement
 from mipengine.common.common_data_elements import common_data_elements
 
