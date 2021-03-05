@@ -39,7 +39,7 @@ def udf_with_literals(X: TensorT, val: LiteralParameterT) -> TensorT:
 
 
 @udf
-def udf_multitype_input(x: TableT, y: TensorT, z: LoopbackTableT) -> TableT:
+def udf_multitype_input(x: TableT, y: TableT, z: LoopbackTableT) -> TableT:
     t = y * z
     return x
 
@@ -52,7 +52,7 @@ def udf_to_scalar(vec1: TensorT, vec2: TensorT) -> ScalarT:
 
 @udf
 def udf_many_params(
-    x: TableT, y: TensorT, z: LoopbackTableT, w: LiteralParameterT, t: TableT
+    x: TensorT, y: TensorT, z: LoopbackTableT, w: LiteralParameterT, t: TensorT
 ) -> ScalarT:
     if x is not None:
         if len(y) != 0:
@@ -244,7 +244,7 @@ test_cases_generate_udf = [
             {
                 from mipengine.udfgen import ArrayBundle
                 x = ArrayBundle(_columns[0:2])
-                y = from_tensor_table(_columns[2:4])
+                y = ArrayBundle(_columns[2:4])
                 z = _conn.execute("SELECT * FROM t")
 
                 # body
@@ -326,9 +326,9 @@ test_cases_generate_udf = [
             LANGUAGE PYTHON
             {
                 from mipengine.udfgen import ArrayBundle
-                x = ArrayBundle(_columns[0:2])
-                t = ArrayBundle(_columns[2:4])
-                y = from_tensor_table(_columns[4:6])
+                x = from_tensor_table(_columns[0:2])
+                y = from_tensor_table(_columns[2:4])
+                t = from_tensor_table(_columns[4:6])
                 z = _conn.execute("SELECT * FROM coeffs")
                 w = 5
 

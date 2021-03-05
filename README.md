@@ -18,7 +18,7 @@ You can also add this to your profile (~/.profile), otherwise you will need to d
 
 1. Install requirements. <br/>
 ```
-python3.8 -m pip install -r ./requirements/controller.txt 
+python3.8 -m pip install -r ./requirements/controller.txt
 ```
 
 2. Run the controller API. <br/>

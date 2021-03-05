@@ -1,11 +1,15 @@
 from __future__ import annotations
 import ast
 from collections import OrderedDict
-from functools import lru_cache
+from dataclasses import dataclass
 import inspect
+from itertools import groupby
+from operator import attrgetter
 from string import Template
 from textwrap import indent
 from textwrap import dedent
+from typing import Any
+from typing import TypeVar
 
 import astor
 
@@ -22,9 +26,6 @@ from mipengine.node.udfgen.udfparams import Tensor
 from mipengine.node.udfgen.udfparams import Scalar
 from mipengine.node.udfgen.udfparams import SQLTYPES
 
-INPUTTABLE = "input_table"
-LOOPBACK = "loopback_table"
-LITERAL = "literal_parameter"
 
 CREATE_OR_REPLACE = "CREATE OR REPLACE"
 FUNCTION = "FUNCTION"
@@ -32,17 +33,70 @@ RETURNS = "RETURNS"
 LANGUAGE_PYTHON = "LANGUAGE PYTHON"
 BEGIN = "{"
 IMPORTS = "from mipengine.udfgen import ArrayBundle"
-END = "};"
+END = "}"
+
+SELECT = "SELECT"
+STAR = " * "
+FROM = "FROM"
+WHERE = "WHERE"
+
+PRFX = " " * 4
+SEP = ", "
+LN = "\n"
+SEPLN = ",\n"
+ANDLN = " AND\n"
+
+STR_TO_TYPE = {
+    "int": int,
+    "float": float,
+    "float64": float,
+    "real": float,
+    "str": str,
+    "text": str,
+}
+
+UDFGEN_REGISTRY = {}
 
 
-STR_TO_TYPE = {"int": int, "real": float, "text": str}
+@dataclass
+class ColumnInfo:
+    name: str
+    dtype: str
+
+
+@dataclass
+class TableInfo:
+    name: str
+    nrows: int
+    schema: list[ColumnInfo]
+
+    @property
+    def shape(self):
+        return self.nrows, len(self.schema)
+
+
+Literal = Any
+UdfArgument = TypeVar("UdfArgument", TableInfo, Literal)
+
+
+def generate_udf_application_steps(
+    func_name: str,
+    udf_name: str,
+    positional_args: list[UdfArgument],
+    keyword_args: dict[str, UdfArgument],
+) -> tuple[str, str]:
+    udf_def = generate_udf(func_name, udf_name, positional_args, keyword_args)
+    udf_sel = generate_udf_select_stmt(
+        func_name, udf_name, positional_args, keyword_args
+    )
+    return udf_def, udf_sel
 
 
 def generate_udf(
     func_name: str,
     udf_name: str,
-    positional_args: list[dict],
-    keyword_args: dict[str, dict],
+    positional_args: list[UdfArgument],
+    keyword_args: dict[str, UdfArgument],
 ) -> str:
     """
     Generates definitions in MonetDB Python UDFs from Python functions which
@@ -71,48 +125,30 @@ def generate_udf(
     return generator.to_sql(udf_name, *args, **kwargs)
 
 
-@lru_cache
 def get_generator(func_name):
+    global UDFGEN_REGISTRY
+    if func_name in UDFGEN_REGISTRY:
+        return UDFGEN_REGISTRY[func_name]
     func = UDF_REGISTRY[func_name]
-    verify_annotations(func)
-    return UDFGenerator(func)
+    validate_type_hints(func)
+    gen = UDFGenerator(func)
+    UDFGEN_REGISTRY[func_name] = gen
+    return gen
 
 
 def create_input_parameter(parameter):
-    if parameter["type"] == INPUTTABLE:
+    if isinstance(parameter, TableInfo):
         return create_input_table(parameter)
-    elif parameter["type"] == LOOPBACK:
-        return create_loopback_table(parameter)
-    elif parameter["type"] == LITERAL:
-        return create_literal(parameter)
     else:
-        raise TypeError(f"Unknown parameter type {parameter['type']}")
+        return LiteralParameter(parameter)
 
 
-def create_input_table(descr):
-    schema = descr["schema"]
-    nrows = descr["nrows"]
-    ncols = len(schema)
-    dtype = STR_TO_TYPE[schema[0]["type"]]
-    if not all(col["type"] == schema[0]["type"] for col in schema):
-        raise TypeError("Can't have different types in columns.")
-    return Table(dtype, shape=(nrows, ncols))
-
-
-def create_loopback_table(descr):
-    name = descr["name"]
-    schema = descr["schema"]
-    nrows = descr["nrows"]
-    ncols = len(schema)
-    dtype = STR_TO_TYPE[schema[0]["type"]]
-    if not all(col["type"] == schema[0]["type"] for col in schema):
-        raise TypeError("Can't have different types in columns.")
-    return LoopbackTable(name, dtype, shape=(nrows, ncols))
-
-
-def create_literal(descr):
-    value = descr["value"]
-    return LiteralParameter(value)
+def create_input_table(table):
+    shape = table.shape
+    dtype = STR_TO_TYPE[table.schema[0].dtype]
+    if not all(col.dtype == table.schema[0].dtype for col in table.schema):
+        raise TypeError("Can't have different types in columns.")  # TODO change that
+    return Table(dtype, shape=shape)
 
 
 class UDFGenerator:
@@ -195,7 +231,7 @@ class UDFGenerator:
                 for name, input_param in inputs.items()
                 if name in self.tableparams + self.tensorparams
             ]
-            input_params = ", ".join(input_params)
+            input_params = SEP.join(input_params)
             return input_params
 
         def get_return_statement(return_type):
@@ -235,7 +271,7 @@ class UDFGenerator:
                 tensor = inputs[name]
                 start, stop = stop, stop + tensor.shape[1]
                 table_defs += [f"{name} = from_tensor_table(_columns[{start}:{stop}])"]
-            table_defs = "\n".join(table_defs)
+            table_defs = LN.join(table_defs)
             return table_defs
 
         def gen_loopback_calls_code(inputs):
@@ -245,7 +281,7 @@ class UDFGenerator:
                 loopback_calls += [
                     f'{name} = _conn.execute("SELECT * FROM {lpb.name}")'
                 ]
-            loopback_calls = "\n".join(loopback_calls)
+            loopback_calls = LN.join(loopback_calls)
             return loopback_calls
 
         def gen_literal_def_code(inputs):
@@ -253,7 +289,7 @@ class UDFGenerator:
             for name in self.literalparams:
                 ltr = inputs[name]
                 literal_defs += [f"{name} = {ltr.value}"]
-            literal_defs = "\n".join(literal_defs)
+            literal_defs = LN.join(literal_defs)
             return literal_defs
 
         verify_types(args, kwargs)
@@ -266,8 +302,6 @@ class UDFGenerator:
         loopback_calls = gen_loopback_calls_code(inputs)
         literal_defs = gen_literal_def_code(inputs)
 
-        prfx = " " * 4
-
         funcdef = [
             CREATE_OR_REPLACE,
             FUNCTION,
@@ -276,24 +310,226 @@ class UDFGenerator:
             f"{output_expr}",
             LANGUAGE_PYTHON,
             BEGIN,
-            indent(IMPORTS, prfx),
+            indent(IMPORTS, PRFX),
         ]
-        funcdef += [indent(table_defs, prfx)] if table_defs else []
-        funcdef += [indent(loopback_calls, prfx)] if loopback_calls else []
-        funcdef += [indent(literal_defs, prfx)] if literal_defs else []
-        funcdef += ["", "    # body", indent(self.body, prfx)] if self.body else []
-        funcdef += [indent(return_stmt, prfx)]
+        funcdef += [indent(table_defs, PRFX)] if table_defs else []
+        funcdef += [indent(loopback_calls, PRFX)] if loopback_calls else []
+        funcdef += [indent(literal_defs, PRFX)] if literal_defs else []
+        funcdef += ["", "    # body", indent(self.body, PRFX)] if self.body else []
+        funcdef += [indent(return_stmt, PRFX)]
         funcdef += [END]
 
-        return "\n".join(funcdef)
+        return LN.join(funcdef)
 
 
-def verify_annotations(func):
+def validate_type_hints(func):
     allowed_types = (TableT, TensorT, LiteralParameterT, LoopbackTableT)
     sig = inspect.signature(func)
     argnames = sig.parameters.keys()
-    annotations = func.__annotations__
-    if any(annotations.get(arg, None) not in allowed_types for arg in argnames):
+    type_hints = func.__annotations__
+    argument_hints = dict(**type_hints)
+    del argument_hints["return"]
+    if any(type_hints.get(arg, None) not in allowed_types for arg in argnames):
         raise TypeError("Function is not properly annotated as a Monet UDF")
-    if annotations.get("return", None) not in allowed_types + (ScalarT,):
+    if type_hints.get("return", None) not in allowed_types + (ScalarT,):
         raise TypeError("Function is not properly annotated as a Monet UDF")
+    if TableT in argument_hints.values() and TensorT in argument_hints.values():
+        raise TypeError("Can't have both TableT and TensorT in udf annotation")
+
+
+def generate_udf_select_stmt(
+    func_name: str,
+    udf_name: str,
+    positional_args: list[UdfArgument],
+    keyword_args: dict[str, UdfArgument],  # XXX not used for now
+) -> str:
+    """
+    Generates select statement for calling MonetDB Python UDFs.
+
+    Parameters
+    ----------
+        func_name: str
+            Name of function from which to generate UDF.
+        udf_name: str
+            Name to use in UDF definition.
+        positional_args: list[dict]
+            Positional parameter info objects.
+        keyword_args: dict[str, dict]
+            Keyword parameter info objects.
+
+    Returns
+    -------
+        str
+            Multiline string with select statemet calling a MonetDB Python UDF.
+    """
+    gen = UDFGEN_REGISTRY.get(func_name, None) or get_generator(func_name)
+    parameters = gen.signature.parameters
+    return_hint = gen.signature.return_annotation
+    type_hints = {name: parameter.annotation for name, parameter in parameters.items()}
+
+    if TableT in type_hints.values():
+        main_input_type = TableT
+    elif TensorT in type_hints.values():
+        main_input_type = TensorT
+    else:
+        raise NotImplementedError
+
+    tables = [
+        arg
+        for arg, hint in zip(positional_args, type_hints.values())
+        if hint == main_input_type
+    ]
+    table_names = [table.name for table in tables]
+    table_schemas = [[col.name for col in table.schema] for table in tables]
+
+    udf_arguments = [
+        f"{table}.{column}"
+        for table, columns in zip(table_names, table_schemas)
+        for column in columns
+    ]
+    udf_call_args = prettify(SEP.join(udf_arguments))
+
+    from_subexpr = prettify(SEP.join(table_names))
+
+    if TableT in type_hints.values():
+        head_table, *tail_tables = table_names
+        join_on = [f"{head_table}.row_id={table}.row_id" for table in tail_tables]
+        where_subexpr = ANDLN.join(join_on)
+    elif TensorT in type_hints.values():
+        if not all_equal(tables, attrgetter("shape")):
+            raise TypeError("Can't have tensors of different sizes in python udf")
+        ndims = len(tables[0].schema) - 1
+        all_dims = [f"dim{i}" for i in range(ndims)]
+        tensor_dims = [[f"{name}.{dim}" for dim in all_dims] for name in table_names]
+        head_dims, *tail_dims = tensor_dims
+        join_on = [
+            ANDLN.join([f"{a}={b}" for a, b in zip(head_dims, other)])
+            for other in tail_dims
+        ]
+        where_subexpr = ANDLN.join(join_on)
+    else:
+        raise NotImplementedError
+
+    if return_hint not in (TableT, TensorT):
+        select_lines = [SELECT]
+        select_lines.append(indent(udf_name + parens(udf_call_args), PRFX))
+        select_lines.append(FROM)
+        select_lines.append(indent(from_subexpr, PRFX))
+        if where_subexpr:
+            select_lines.append(WHERE)
+            select_lines.append(indent(where_subexpr, PRFX))
+        select_stmt = LN.join(select_lines)
+
+    else:
+        subquery_lines = [SELECT]
+        subquery_lines.append(indent(udf_call_args, PRFX))
+        subquery_lines.append(FROM)
+        subquery_lines.append(indent(from_subexpr, PRFX))
+        if where_subexpr:
+            subquery_lines.append(WHERE)
+            subquery_lines.append(indent(where_subexpr, PRFX))
+        subquery = LN.join(subquery_lines)
+        select_lines = [SELECT + STAR]
+        select_lines.append(FROM)
+        select_lines.append(indent(udf_name + parens(parens(subquery)), PRFX))
+        select_stmt = LN.join(select_lines)
+
+    return select_stmt
+
+
+def all_equal(iterable, func=None):
+    """Returns True if all elements in iterable are equal, False otherwise. If
+    func is passed a new iterable is used by mapping func to iterable."""
+    itr = map(func, iterable) if func else iterable
+    g = groupby(itr)
+    return next(g, True) and not next(g, False)
+
+
+def prettify(lst_expr):
+    if len(lst_expr) > 80:
+        return LN + indent(lst_expr.replace(SEP, SEPLN), PRFX) + LN
+    return lst_expr
+
+
+def parens(expr):
+    if LN not in expr and len(expr) <= 78:
+        return "(" + expr + ")"
+    else:
+        return "(\n" + expr + "\n)"
+
+
+if __name__ == "__main__":
+    t1 = TableInfo(
+        name="tab1",
+        nrows=10,
+        schema=[
+            ColumnInfo("a", "int"),
+            ColumnInfo("b", "int"),
+            ColumnInfo("c", "int"),
+            ColumnInfo("d", "int"),
+        ],
+    )
+    t2 = TableInfo(
+        name="tab2",
+        nrows=10,
+        schema=[
+            ColumnInfo("A", "int"),
+            ColumnInfo("B", "int"),
+            ColumnInfo("C", "int"),
+            ColumnInfo("D", "int"),
+        ],
+    )
+    udfstr = generate_udf("demo.func", "example", [t1, t2], {})
+    print(udfstr)
+    print("-" * 80)
+    t1 = TableInfo(
+        name="T1",
+        nrows=8,
+        schema=[
+            ColumnInfo("dim0", "int"),
+            ColumnInfo("dim1", "int"),
+            ColumnInfo("dim2", "int"),
+            ColumnInfo("val", "int"),
+        ],
+    )
+
+    t1 = TableInfo(
+        name="tab1",
+        nrows=10,
+        schema=[
+            ColumnInfo("a", "int"),
+            ColumnInfo("b", "int"),
+            ColumnInfo("c", "int"),
+            ColumnInfo("d", "int"),
+        ],
+    )
+    t2 = TableInfo(
+        name="tab2",
+        nrows=10,
+        schema=[
+            ColumnInfo("A", "int"),
+            ColumnInfo("B", "int"),
+        ],
+    )
+    sel = generate_udf_select_stmt("demo.func", "example", [t1, t2], {})
+    print(sel)
+    print("-" * 80)
+    t1 = TableInfo(
+        name="T1",
+        nrows=8,
+        schema=[
+            ColumnInfo("dim0", "int"),
+            ColumnInfo("dim1", "int"),
+            ColumnInfo("dim2", "int"),
+            ColumnInfo("val", "int"),
+        ],
+    )
+    sel = generate_udf_select_stmt("demo.tensor3", "example", [t1, t1, t1], {})
+    print(sel)
+    print("-" * 80)
+    sel = generate_udf_select_stmt("demo.tensor1", "func", [t1], {})
+    print(sel)
+
+    step1, step2 = generate_udf_application_steps("demo.func", "example", [t1, t1], {})
+    print(step1)
+    print(step2)
