@@ -41,7 +41,6 @@ def create_three_column_table_with_data(table_id: int):
     connection = get_node_db_connection(local_node_id)
     connection.cursor().execute(f"INSERT INTO {table_name} VALUES ( 1, 2.0, '3')")
     connection.commit()
-    connection.close()
     return table_name
 
 

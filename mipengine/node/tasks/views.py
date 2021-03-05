@@ -3,8 +3,9 @@ from typing import List
 from celery import shared_task
 
 from mipengine.node.monetdb_interface import views
-from mipengine.node.monetdb_interface.common_action import config
-from mipengine.node.monetdb_interface.common_action import create_table_name
+from mipengine.node.monetdb_interface.common_actions import config
+from mipengine.node.monetdb_interface.common_actions import create_table_name
+from mipengine.node.monetdb_interface.common_actions import get_connection
 
 
 @shared_task
@@ -20,7 +21,8 @@ def get_views(context_id: str) -> List[str]:
         List[str]
             A list of view names
     """
-    return views.get_views_names(context_id)
+    connection = get_connection()
+    return views.get_views_names(connection.cursor(), context_id)
 
 
 @shared_task
@@ -53,9 +55,13 @@ def create_view(context_id: str,
         str
             The name of the created view in lower case
     """
+    connection = get_connection()
     view_name = create_table_name("view", command_id, context_id, config["node"]["identifier"])
-    views.create_view(view_name=view_name,
-                      pathology=pathology,
-                      datasets=datasets,
-                      columns=columns)
+    views.create_view(
+        cursor=connection.cursor(),
+        view_name=view_name,
+        pathology=pathology,
+        datasets=datasets,
+        columns=columns)
+    connection.commit()
     return view_name.lower()

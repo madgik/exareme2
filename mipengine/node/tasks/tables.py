@@ -5,8 +5,9 @@ from celery import shared_task
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface import tables
-from mipengine.node.monetdb_interface.common_action import config
-from mipengine.node.monetdb_interface.common_action import create_table_name
+from mipengine.node.monetdb_interface.common_actions import config
+from mipengine.node.monetdb_interface.common_actions import create_table_name
+from mipengine.node.monetdb_interface.common_actions import get_connection
 
 
 @shared_task
@@ -22,7 +23,8 @@ def get_tables(context_id: str) -> List[str]:
         List[str]
             A list of table names
     """
-    return tables.get_tables_names(context_id)
+    connection = get_connection()
+    return tables.get_tables_names(connection.cursor(), context_id)
 
 
 @shared_task
@@ -42,8 +44,10 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
         str
             The name of the created table in lower case
     """
+    connection = get_connection()
     schema_object = TableSchema.from_json(schema_json)
     table_name = create_table_name("table", command_id, context_id, config["node"]["identifier"])
     table_info = TableInfo(table_name.lower(), schema_object)
-    tables.create_table(table_info)
+    tables.create_table(connection.cursor(), table_info)
+    connection.commit()
     return table_name.lower()
