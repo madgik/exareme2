@@ -32,7 +32,7 @@ FUNCTION = "FUNCTION"
 RETURNS = "RETURNS"
 LANGUAGE_PYTHON = "LANGUAGE PYTHON"
 BEGIN = "{"
-IMPORTS = "from mipengine.udfgen import ArrayBundle"
+IMPORTS = "import pandas as pd"
 END = "}"
 
 SELECT = "SELECT"
@@ -152,8 +152,12 @@ def create_input_table(table):
 
 
 class UDFGenerator:
-    _table_template = Template("return as_relational_table($return_name)")
-    _tensor_template = Template("return as_tensor_table($return_name)")
+    _table_tpl = "return as_relational_table({return_name})"
+    _tensor_tpl = "return as_tensor_table({return_name})"
+    _df_def_tpl = "{name} = pd.DataFrame({{n: _columns[n] for n in {colnames}}})"
+    _tsr_def_tpl = "{name} = from_tensor_table({{n: _columns[n] for n in {colnames}}})"
+    _reindex_tpl = "{name}.reindex(_columns['row_id'])"
+    _loopbk_call_tpl = '{name} = _conn.execute("SELECT * FROM {lbname}")'
 
     def __init__(self, func):
         self.func = func
@@ -236,13 +240,9 @@ class UDFGenerator:
 
         def get_return_statement(return_type):
             if return_type == TableT:
-                return_stmt = self._table_template.substitute(
-                    return_name=self.return_name
-                )
+                return_stmt = self._table_tpl.format(return_name=self.return_name)
             elif return_type == TensorT:
-                return_stmt = self._tensor_template.substitute(
-                    return_name=self.return_name
-                )
+                return_stmt = self._tensor_tpl.format(return_name=self.return_name)
             else:
                 return_stmt = f"return {self.return_name}\n"
             return return_stmt
@@ -262,24 +262,26 @@ class UDFGenerator:
 
         def gen_table_def_code(inputs):
             table_defs = []
-            stop = 0
             for name in self.tableparams:
                 table = inputs[name]
-                start, stop = stop, stop + table.shape[1]
-                table_defs += [f"{name} = ArrayBundle(_columns[{start}:{stop}])"]
+                tabcolnames = [f"{name}{i}" for i in range(table.ncols)]
+                table_defs += [self._df_def_tpl.format(name=name, colnames=tabcolnames)]
+                # table_defs += [self._reindex.format(name=name)]  # TODO see if needed
             for name in self.tensorparams:
                 tensor = inputs[name]
-                start, stop = stop, stop + tensor.shape[1]
-                table_defs += [f"{name} = from_tensor_table(_columns[{start}:{stop}])"]
+                tabcolnames = [f"{name}{i}" for i in range(tensor.ncols)]
+                table_defs += [
+                    self._tsr_def_tpl.format(name=name, colnames=tabcolnames)
+                ]
             table_defs = LN.join(table_defs)
             return table_defs
 
         def gen_loopback_calls_code(inputs):
             loopback_calls = []
             for name in self.loopbackparams:
-                lpb = inputs[name]
+                lb = inputs[name]
                 loopback_calls += [
-                    f'{name} = _conn.execute("SELECT * FROM {lpb.name}")'
+                    self._loopbk_call_tpl.format(name=name, lbname=lb.name)
                 ]
             loopback_calls = LN.join(loopback_calls)
             return loopback_calls
@@ -296,8 +298,9 @@ class UDFGenerator:
         inputs = gather_inputs(args, kwargs)
         output = self(*args, **kwargs)
         input_params = make_declaration_input_params(inputs)
+        udf_signature = f"{udf_name}({input_params})"
         return_stmt = get_return_statement(self.return_type)
-        output_expr = get_output_type(output)
+        output_type = get_output_type(output)
         table_defs = gen_table_def_code(inputs)
         loopback_calls = gen_loopback_calls_code(inputs)
         literal_defs = gen_literal_def_code(inputs)
@@ -305,9 +308,9 @@ class UDFGenerator:
         funcdef = [
             CREATE_OR_REPLACE,
             FUNCTION,
-            f"{udf_name}({input_params})",
+            udf_signature,
             RETURNS,
-            f"{output_expr}",
+            output_type,
             LANGUAGE_PYTHON,
             BEGIN,
             indent(IMPORTS, PRFX),
