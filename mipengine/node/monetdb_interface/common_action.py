@@ -157,7 +157,7 @@ def get_table_data(table_name: str, table_type: str = None) -> List[List[Union[s
 
 def get_table_rows(table_name: str) -> int:
     cursor.execute(f"select count(*) from {table_name}")
-    return cursor.next()
+    return cursor.next()[0]
 
 
 @validate_identifier_names
