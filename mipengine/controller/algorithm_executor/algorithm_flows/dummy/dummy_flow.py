@@ -10,26 +10,34 @@ class AlgorithmFlow(AlgorithmFlow_abstract):
         print("\n(dummy_flow.py::AlgorithmFlow::run) just in")
         runtime_interface = self.runtime_interface
 
-        # data = runtime_interface.get_table_data_from_local0(runtime_interface.local_nodes[0].initial_view_table)
-        # print(f"data->{data}")
+        node = runtime_interface.local_nodes[0]
+        table = runtime_interface.local_nodes[0].initial_view_tables["x"]
+        data = runtime_interface.get_table_data_from_local(node,table)
+        print(f"data->{data}\n")
+
+        node = runtime_interface.local_nodes[1]
+        table = runtime_interface.local_nodes[1].initial_view_tables["y"]
+        data = runtime_interface.get_table_data_from_local(node,table)
+        print(f"data->{data}\n")
 
         # # NODE insides..
-        # global_node_initial_view_table = runtime_interface.global_node.initial_view_table
-        # print(f"global_node_initial_view_table->{global_node_initial_view_table}")
+        global_node_initial_view_tables = runtime_interface.global_node.initial_view_tables
+        print(f"global_node_initial_view_tables->{global_node_initial_view_tables}")
 
-        # node1_initial_view_table = runtime_interface.local_nodes[0].initial_view_table
-        # print(f"node1_initial_view_table->{node1_initial_view_table.full_table_name}")
+        node0_initial_view_table_x = runtime_interface.local_nodes[0].initial_view_tables["x"]
+        print(f"node0_initial_view_table->{node0_initial_view_table_x.full_table_name}")
 
-        # node2_initial_view_table_name = runtime_interface.local_nodes[1].initial_view_table
-        # print(f"node2_initial_view_name->{node2_initial_view_table_name}")
+        node1_initial_view_table_x = runtime_interface.local_nodes[1].initial_view_tables["x"]
+        print(f"node1_initial_view_table->{node1_initial_view_table_x.full_table_name}")
 
-        # node1_initial_view_table_schema = runtime_interface.local_nodes[1].get_table_schema(runtime_interface.local_nodes[1].initial_view_table)
-        # print(f"node1_base_view_schema->{node1_initial_view_table_schema}   type->{type(node1_initial_view_table_schema)}")
+        node = runtime_interface.local_nodes[1]
+        table = runtime_interface.local_nodes[1].initial_view_tables["x"]
+        node1_initial_view_table_schema_x = node.get_table_schema(table)
+        print(f"node1_base_view_schema_x->{node1_initial_view_table_schema_x}   type->{type(node1_initial_view_table_schema_x)}")
 
-        # node1_initial_view_data = runtime_interface.local_nodes[0].get_table_data(runtime_interface.local_nodes[0].initial_view_table)
-        # print(f"node1_initial_view_data->{node1_initial_view_data}")
+        table = runtime_interface.local_nodes[1].initial_view_tables["y"]
+        node1_initial_view_table_schema_y = node.get_table_schema(table)
+        print(f"node1_base_view_schema_y->{node1_initial_view_table_schema_y}   type->{type(node1_initial_view_table_schema_y)}")
 
-        # node2_initial_view_data = runtime_interface.local_nodes[1].get_table_data(runtime_interface.local_nodes[1].initial_view_table)
-        # print(f"\nnode2_initial_view_data->{node2_initial_view_data}")
 
         return "ok"
