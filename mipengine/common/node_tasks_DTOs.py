@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import List, Dict, Any
 from typing import Union
 
 from dataclasses_json import dataclass_json
@@ -75,6 +75,11 @@ class TableData:
 
 @dataclass_json
 @dataclass
-class UDFInfo:
-    name: str
-    header: str
+class UDFArgument:
+    type: str
+    value: Any
+
+    def __post_init__(self):
+        allowed_types = {"table", "literal"}
+        if self.type not in allowed_types:
+            raise TypeError(f"UDFArgument type  can have one of the following types: {allowed_types}")
