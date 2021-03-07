@@ -9,7 +9,7 @@ from mipengine.algorithms import LoopbackTableT
 from mipengine.algorithms import LiteralParameterT
 from mipengine.algorithms import ScalarT
 from mipengine.node.udfgen import generate_udf
-from mipengine.node.udfgen.udfparams import Table
+from mipengine.node.udfgen.udfparams import DatalessArray
 from mipengine.node.udfgen.udfparams import Tensor
 from mipengine.node.udfgen.udfparams import LoopbackTable
 from mipengine.node.udfgen.udfparams import LiteralParameter

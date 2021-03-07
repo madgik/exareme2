@@ -18,7 +18,7 @@ SQLTYPES = {
 }
 
 
-class Table(np.lib.mixins.NDArrayOperatorsMixin):
+class DatalessArray(np.lib.mixins.NDArrayOperatorsMixin):
     def __init__(self, dtype, shape):
         self.dtype = dtype
         self.shape = shape
@@ -41,16 +41,16 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
                 for inpt in inputs
             ]
             if not all(
-                isinstance(inpt, (Table, Number, np.ndarray)) for inpt in inputs
+                isinstance(inpt, (DatalessArray, Number, np.ndarray)) for inpt in inputs
             ):
                 raise TypeError(
                     "Can only apply ufunc between Table and Number and arrays"
                 )
             if ufunc.__name__ == "matmul":
                 if type(inputs[0]) == np.ndarray:
-                    inputs[0] = Table(float, inputs[0].shape)
+                    inputs[0] = DatalessArray(float, inputs[0].shape)
                 if type(inputs[1]) == np.ndarray:
-                    inputs[1] = Table(float, inputs[1].shape)
+                    inputs[1] = DatalessArray(float, inputs[1].shape)
                 if inputs[0].shape[-1] != inputs[1].shape[0]:
                     raise ValueError("Matrix dimensions missmatch")
                 newshape = inputs[0].shape[:1] + inputs[1].shape[1:]
@@ -73,21 +73,21 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
                 intypes = tuple([_typeof(inpt) for inpt in inputs])
                 newtype = TYPE_CONVERSIONS[ufunc.__name__][intypes]
 
-            out = Table(dtype=newtype, shape=newshape)
+            out = DatalessArray(dtype=newtype, shape=newshape)
             # if _is_scalar(out):
             #     return Scalar(dtype=newtype)
             return out
         elif method == "reduce":
             # TODO implement
             tab = inputs[0]
-            return Table(dtype=tab.dtype, shape=(1,))
+            return DatalessArray(dtype=tab.dtype, shape=(1,))
 
     def __getitem__(self, key):
         mock = np.broadcast_to(np.array(0), self.shape)
         newshape = mock[key].shape
         if newshape == ():
             Scalar(dtype=self.dtype)
-        return Table(dtype=self.dtype, shape=newshape)
+        return DatalessArray(dtype=self.dtype, shape=newshape)
 
     def __len__(self):
         if len(self.shape) == 1:
@@ -98,7 +98,7 @@ class Table(np.lib.mixins.NDArrayOperatorsMixin):
     def transpose(self):
         if len(self.shape) == 1:
             return self
-        return Table(dtype=self.dtype, shape=(self.shape[1], self.shape[0]))
+        return DatalessArray(dtype=self.dtype, shape=(self.shape[1], self.shape[0]))
 
     T = transpose
 
@@ -141,8 +141,8 @@ def _typeof(obj):
         return obj.dtype
 
 
-class Tensor(Table):
-    pass
+# class Tensor(DatalessArray):
+#     pass
 
 
 class LiteralParameter:
@@ -154,7 +154,7 @@ class LiteralParameter:
         return f"{clsname}({self.value})"
 
 
-class LoopbackTable(Table):
+class LoopbackTable(DatalessArray):
     def __init__(self, name, dtype, shape):
         self.name = name
         super().__init__(dtype, shape)

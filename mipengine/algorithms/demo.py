@@ -1,11 +1,11 @@
 from mipengine.algorithms.iotypes import udf
-from mipengine.algorithms.iotypes import TableT
+from mipengine.algorithms.iotypes import RelationT
 from mipengine.algorithms.iotypes import TensorT
 from mipengine.algorithms.iotypes import ScalarT
 
 
 @udf
-def func(x: TableT, y: TableT) -> TableT:
+def func(x: RelationT, y: RelationT) -> RelationT:
     result = x + y
     return result
 
