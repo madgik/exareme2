@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import inspect
 from itertools import groupby
 from operator import attrgetter
+import os
 from string import Template
 from textwrap import indent
 from textwrap import dedent
@@ -19,6 +20,7 @@ from mipengine.algorithms import TensorT
 from mipengine.algorithms import LoopbackTableT
 from mipengine.algorithms import LiteralParameterT
 from mipengine.algorithms import ScalarT
+import mipengine.node.udfgen.patched
 from mipengine.node.udfgen.udfparams import Table
 from mipengine.node.udfgen.udfparams import LiteralParameter
 from mipengine.node.udfgen.udfparams import LoopbackTable
@@ -32,7 +34,13 @@ FUNCTION = "FUNCTION"
 RETURNS = "RETURNS"
 LANGUAGE_PYTHON = "LANGUAGE PYTHON"
 BEGIN = "{"
-IMPORTS = "import pandas as pd"
+IMPORTS = [  # TODO solve imports problem
+    "import pandas as pd",
+    "from scipy.special import expit",
+    "from udfio import as_tensor_table",
+    "from udfio import from_tensor_table",
+    "from udfio import as_relational_table",
+]
 END = "}"
 
 SELECT = "SELECT"
@@ -42,9 +50,9 @@ WHERE = "WHERE"
 
 PRFX = " " * 4
 SEP = ", "
-LN = "\n"
-SEPLN = ",\n"
-ANDLN = " AND\n"
+LN = os.linesep
+SEPLN = SEP + LN
+ANDLN = " AND" + LN
 
 STR_TO_TYPE = {
     "int": int,
@@ -75,8 +83,8 @@ class TableInfo:
         return self.nrows, len(self.schema)
 
 
-Literal = Any
-UdfArgument = TypeVar("UdfArgument", TableInfo, Literal)
+LiteralValue = Any
+UdfArgument = TypeVar("UdfArgument", TableInfo, LiteralValue)
 
 
 def generate_udf_application_steps(
@@ -147,15 +155,15 @@ def create_input_table(table):
     shape = table.shape
     dtype = STR_TO_TYPE[table.schema[0].dtype]
     if not all(col.dtype == table.schema[0].dtype for col in table.schema):
-        raise TypeError("Can't have different types in columns.")  # TODO change that
+        raise TypeError("Can't have different types in columns.")  # TODO yes can
     return Table(dtype, shape=shape)
 
 
 class UDFGenerator:
     _table_tpl = "return as_relational_table({return_name})"
-    _tensor_tpl = "return as_tensor_table({return_name})"
+    _tensor_tpl = "return as_tensor_table({return_name})"  # TODO should coerce to np.array before returning
     _df_def_tpl = "{name} = pd.DataFrame({{n: _columns[n] for n in {colnames}}})"
-    _tsr_def_tpl = "{name} = from_tensor_table({{n: _columns[n] for n in {colnames}}})"
+    _tens_def_tpl = "{name} = from_tensor_table({{n: _columns[n] for n in {colnames}}})"
     _reindex_tpl = "{name}.reindex(_columns['row_id'])"
     _loopbk_call_tpl = '{name} = _conn.execute("SELECT * FROM {lbname}")'
 
@@ -193,7 +201,7 @@ class UDFGenerator:
         return self.func(*args, **kwargs)
 
     def _get_return_name(self):
-        body_stmts = self.tree.body[0].body
+        body_stmts = self.tree.body[0].body  # type: ignore
         ret_stmt = next(s for s in body_stmts if isinstance(s, ast.Return))
         if isinstance(ret_stmt.value, ast.Name):
             ret_name = ret_stmt.value.id
@@ -202,7 +210,7 @@ class UDFGenerator:
         return ret_name
 
     def _get_body(self):
-        body_ast = self.tree.body[0].body
+        body_ast = self.tree.body[0].body  # type: ignore
         statemets = [stmt for stmt in body_ast if type(stmt) != ast.Return]
         body = dedent("".join(astor.to_source(stmt) for stmt in statemets))
         return body
@@ -250,12 +258,11 @@ class UDFGenerator:
         def get_output_type(output):
             if type(output) == Table:
                 output_expr = output.as_sql_return_type(self.return_name)
-            elif type(output) == Tensor:
+            elif type(output) == Tensor:  # TODO override as_sql_return_type
+                # Not used: func never returns Tensor
                 output_expr = output.as_sql_return_type(self.return_name)
             elif type(output) == Scalar:
-                output_expr = output.as_sql_return_type()
-            elif type(output) == LiteralParameter:
-                output_expr = SQLTYPES[type(output.value)]
+                output_expr = output.as_sql_return_type()  # Is this used?
             else:
                 output_expr = SQLTYPES[type(output)]
             return output_expr
@@ -266,12 +273,11 @@ class UDFGenerator:
                 table = inputs[name]
                 tabcolnames = [f"{name}{i}" for i in range(table.ncols)]
                 table_defs += [self._df_def_tpl.format(name=name, colnames=tabcolnames)]
-                # table_defs += [self._reindex.format(name=name)]  # TODO see if needed
             for name in self.tensorparams:
                 tensor = inputs[name]
                 tabcolnames = [f"{name}{i}" for i in range(tensor.ncols)]
                 table_defs += [
-                    self._tsr_def_tpl.format(name=name, colnames=tabcolnames)
+                    self._tens_def_tpl.format(name=name, colnames=tabcolnames)
                 ]
             table_defs = LN.join(table_defs)
             return table_defs
@@ -313,14 +319,16 @@ class UDFGenerator:
             output_type,
             LANGUAGE_PYTHON,
             BEGIN,
-            indent(IMPORTS, PRFX),
         ]
+        funcdef.extend([indent(line, PRFX) for line in IMPORTS])
         funcdef += [indent(table_defs, PRFX)] if table_defs else []
         funcdef += [indent(loopback_calls, PRFX)] if loopback_calls else []
         funcdef += [indent(literal_defs, PRFX)] if literal_defs else []
-        funcdef += ["", "    # body", indent(self.body, PRFX)] if self.body else []
+        funcdef += [indent(self.body, PRFX)] if self.body else []
         funcdef += [indent(return_stmt, PRFX)]
         funcdef += [END]
+
+        funcdef = remove_blank_lines(funcdef)
 
         return LN.join(funcdef)
 
@@ -448,6 +456,14 @@ def all_equal(iterable, func=None):
     return next(g, True) and not next(g, False)
 
 
+def remove_blank_lines(text):
+    try:
+        text = text.splitlines()
+    except AttributeError:
+        pass
+    return map(lambda s: s.replace(LN, ""), text)
+
+
 def prettify(lst_expr):
     if len(lst_expr) > 80:
         return LN + indent(lst_expr.replace(SEP, SEPLN), PRFX) + LN
@@ -482,57 +498,5 @@ if __name__ == "__main__":
             ColumnInfo("D", "int"),
         ],
     )
-    udfstr = generate_udf("demo.func", "example", [t1, t2], {})
+    udfstr = generate_udf("demo.func", "example", [t1], {})
     print(udfstr)
-    print("-" * 80)
-    t1 = TableInfo(
-        name="T1",
-        nrows=8,
-        schema=[
-            ColumnInfo("dim0", "int"),
-            ColumnInfo("dim1", "int"),
-            ColumnInfo("dim2", "int"),
-            ColumnInfo("val", "int"),
-        ],
-    )
-
-    t1 = TableInfo(
-        name="tab1",
-        nrows=10,
-        schema=[
-            ColumnInfo("a", "int"),
-            ColumnInfo("b", "int"),
-            ColumnInfo("c", "int"),
-            ColumnInfo("d", "int"),
-        ],
-    )
-    t2 = TableInfo(
-        name="tab2",
-        nrows=10,
-        schema=[
-            ColumnInfo("A", "int"),
-            ColumnInfo("B", "int"),
-        ],
-    )
-    sel = generate_udf_select_stmt("demo.func", "example", [t1, t2], {})
-    print(sel)
-    print("-" * 80)
-    t1 = TableInfo(
-        name="T1",
-        nrows=8,
-        schema=[
-            ColumnInfo("dim0", "int"),
-            ColumnInfo("dim1", "int"),
-            ColumnInfo("dim2", "int"),
-            ColumnInfo("val", "int"),
-        ],
-    )
-    sel = generate_udf_select_stmt("demo.tensor3", "example", [t1, t1, t1], {})
-    print(sel)
-    print("-" * 80)
-    sel = generate_udf_select_stmt("demo.tensor1", "func", [t1], {})
-    print(sel)
-
-    step1, step2 = generate_udf_application_steps("demo.func", "example", [t1, t1], {})
-    print(step1)
-    print(step2)

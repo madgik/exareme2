@@ -6,7 +6,7 @@ def as_tensor_table(array: np.ndarray):
     shape = array.shape
     indices = np.unravel_index(range(size), shape)
     out = {f"dim{i}": idx for i, idx in enumerate(indices)}
-    out["values"] = array.ravel()
+    out["val"] = array.ravel()
     return out
 
 
@@ -16,9 +16,9 @@ def from_tensor_table(table: dict):
     shape = [max(idx) + 1 for idx in multi_index]
     lin_index = np.ravel_multi_index(multi_index, shape)
     if all(li == i for i, li in enumerate(lin_index)):
-        array = table["values"].reshape(shape)
+        array = table["val"].reshape(shape)
     else:
-        array = table["values"][lin_index].reshape(shape)
+        array = table["val"][lin_index].reshape(shape)
     return np.array(array)
 
 
