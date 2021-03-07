@@ -29,10 +29,10 @@ def udf(func):
 # output size                                              #
 # -------------------------------------------------------- #
 Shape = TypeVar("Shape")
+Schema = TypeVar("Schema")
 NRows = TypeVar("NRows")
 NColumns = TypeVar("NColumns")
 DType = TypeVar("DType")
-
 
 
 class TableT(ABC):
@@ -43,7 +43,7 @@ class TableT(ABC):
     def __repr__(self) -> str:
         cls = type(self).__name__
         attrs = self.__dict__
-        attrs_rep = str(attrs).replace("'", "").replace(': ', '=').strip('{}')
+        attrs_rep = str(attrs).replace("'", "").replace(": ", "=").strip("{}")
         rep = f"{cls}({attrs_rep})"
         return rep
 
@@ -54,6 +54,21 @@ class RelationT(TableT, Generic[NColumns]):
 
 
 class LoopbackRelationT(RelationT, Generic[NColumns]):
+    pass
+
+
+class RelationFromSchemaT(TableT, Generic[Schema]):
+    def __init__(self, schema) -> None:
+        self.schema = [(col.name, col.dtype) for col in schema]
+
+    def as_sql_parameters(self, name):
+        return ",".join([f"{name}_{colname} {tp}" for colname, tp in self.schema])
+
+    def as_sql_return_type(self, name):
+        return f"TABLE({self.as_sql_parameters(name)})"
+
+
+class LoopbackRelationFromSchemaT(RelationFromSchemaT, Generic[Schema]):
     pass
 
 
@@ -70,6 +85,7 @@ class TensorT(TableT, Generic[DType, NRows, NColumns]):
 
 class LoopbackTensorT(TensorT, Generic[DType, NRows, NColumns]):
     pass
+
 
 T1 = TypeVar("T1")
 T2 = TypeVar("T2")

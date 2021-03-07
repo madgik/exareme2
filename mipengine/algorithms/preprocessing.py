@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 
-from mipengine.node.udfgen.udfparams import DatalessArray
+from mipengine.node.udfgen.udfparams import DatalessTensor
 from mipengine.node.udfgen.udfparams import LiteralParameter
 
 
@@ -31,8 +31,8 @@ class LabelBinarizer(preprocessing.LabelBinarizer):
         return super().transform(y)
 
     @transform.register
-    def _(self, y: DatalessArray):
+    def _(self, y: DatalessTensor):
         if len(self.classes_) == 2:
-            return DatalessArray(dtype=int, shape=(y.shape[0], 1))
+            return DatalessTensor(dtype=int, shape=(y.shape[0], 1))
         else:
-            return DatalessArray(dtype=int, shape=(y.shape[0], len(self.classes_)))
+            return DatalessTensor(dtype=int, shape=(y.shape[0], len(self.classes_)))

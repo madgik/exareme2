@@ -15,12 +15,12 @@ from mipengine.algorithms.logistic_regression import mat_inverse
 import mipengine.node.udfgen.patched
 from mipengine.node.udfgen.udfgenerator import get_generator
 from mipengine.node.udfgen.udfgenerator import generate_udf
-from mipengine.node.udfgen.udfparams import DatalessArray
+from mipengine.node.udfgen.udfparams import DatalessTensor
 from mipengine.node.udfgen.udfparams import LoopbackTable
 from mipengine.node.udfgen.udfparams import LiteralParameter
 
 
-def logistic_regression_udfs(y: DatalessArray, X: DatalessArray, classes: LiteralParameter):
+def logistic_regression_udfs(y: DatalessTensor, X: DatalessTensor, classes: LiteralParameter):
     udfs = []
     # init model
     nobs, ncols = X.shape
@@ -175,7 +175,7 @@ def to_literal_param(literal):
 def to_arg_descr(*args):
     descriptions = []
     for arg in args:
-        if type(arg) == DatalessArray:
+        if type(arg) == DatalessTensor:
             descriptions.append(to_table_descr(arg))
         elif type(arg) == LoopbackTable:
             descriptions.append(to_loopback_descr(arg))
@@ -189,8 +189,8 @@ def to_arg_descr(*args):
 
 
 def mock_run():
-    y = DatalessArray(dtype=str, shape=(1000, 1))
-    X = DatalessArray(dtype=float, shape=(1000, 2))
+    y = DatalessTensor(dtype=str, shape=(1000, 1))
+    X = DatalessTensor(dtype=float, shape=(1000, 2))
     classes = LiteralParameter(np.array(["AD", "CN"]))
     udfs = logistic_regression_udfs(y, X, classes)
     for udf in udfs:

@@ -17,7 +17,7 @@ from mipengine.algorithms.patched import diag
 from mipengine.algorithms.patched import xlogy
 from mipengine.algorithms.patched import inv
 from mipengine.algorithms.preprocessing import LabelBinarizer
-from mipengine.node.udfgen.udfparams import DatalessArray
+from mipengine.node.udfgen.udfparams import DatalessTensor
 from mipengine.node.udfgen.udfparams import Tensor
 from mipengine.node.udfgen.udfparams import LoopbackTable
 from mipengine.node.udfgen.udfparams import LiteralParameter
