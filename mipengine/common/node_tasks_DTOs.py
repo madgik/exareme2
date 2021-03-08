@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Dict, Any
 from typing import Union
 
 from dataclasses_json import dataclass_json
@@ -43,7 +43,7 @@ class TableInfo:
 class TableView:
     datasets: List[str]
     columns: List[str]
-    filter: dict
+    filter: Dict
 
     def __post_init__(self):
         for dataset in self.datasets:
@@ -52,11 +52,12 @@ class TableView:
         for column in self.columns:
             if not self.column.isidentifier():
                 raise ValueError(f"Column : {column} has inappropriate characters for a sql query.")
-        for key in filter():
-            if not key.isidentifier():
-                raise ValueError(f"Filter's key : {key} has inappropriate characters for a sql query.")
-            if not filter[key].isidentifier():
-                raise ValueError(f"Filter's value : {filter[key]} has inappropriate characters for a sql query.")
+        # TODO Do we need to check the filters or is Jason's parser handle it?
+        # for key in filter:
+        #     if not key.isidentifier():
+        #         raise ValueError(f"Filter's key : {key} has inappropriate characters for a sql query.")
+        #     if not filter[key].isidentifier():
+        #         raise ValueError(f"Filter's value : {filter[key]} has inappropriate characters for a sql query.")
 
 
 @dataclass_json
@@ -74,6 +75,11 @@ class TableData:
 
 @dataclass_json
 @dataclass
-class UDFInfo:
-    name: str
-    header: str
+class UDFArgument:
+    type: str
+    value: Any
+
+    def __post_init__(self):
+        allowed_types = {"table", "literal"}
+        if self.type not in allowed_types:
+            raise TypeError(f"UDFArgument type  can have one of the following types: {allowed_types}")

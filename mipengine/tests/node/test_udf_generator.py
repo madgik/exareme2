@@ -8,6 +8,9 @@ from mipengine.algorithms import TensorT
 from mipengine.algorithms import LoopbackTableT
 from mipengine.algorithms import LiteralParameterT
 from mipengine.algorithms import ScalarT
+from mipengine.algorithms import TableT
+from mipengine.algorithms import TensorT
+from mipengine.algorithms import udf
 from mipengine.node.udfgen import generate_udf
 from mipengine.node.udfgen.udfparams import DatalessArray
 from mipengine.node.udfgen.udfparams import Tensor
@@ -348,11 +351,11 @@ test_cases_generate_udf = [
 @pytest.mark.parametrize("test_input,expected", test_cases_generate_udf)
 def test_generate_udf(test_input, expected):
     assert (
-        generate_udf(
-            func_name=test_input["func_name"],
-            udf_name=test_input["udf_name"],
-            positional_args=test_input["positional_args"],
-            keyword_args=test_input["keyword_args"],
-        )
-        == expected
+            generate_udf(
+                func_name=test_input["func_name"],
+                udf_name=test_input["udf_name"],
+                positional_args=test_input["positional_args"],
+                keyword_args=test_input["keyword_args"],
+            )
+            == expected
     )

@@ -1,13 +1,13 @@
-import json
+from typing import List
 
 from celery import shared_task
 
+from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.node.monetdb_interface import remote_tables
-from mipengine.node.tasks.data_classes import TableInfo
 
 
 @shared_task
-def get_remote_tables(context_id: str) -> str:
+def get_remote_tables(context_id: str) -> List[str]:
     """
         Parameters
         ----------
@@ -16,10 +16,10 @@ def get_remote_tables(context_id: str) -> str:
 
         Returns
         ------
-        str(List[str])
-            A list of remote table names in a jsonified format
+        List[str]
+            A list of remote table names
     """
-    return json.dumps(remote_tables.get_remote_tables_names(context_id))
+    return remote_tables.get_remote_tables_names(context_id)
 
 
 @shared_task

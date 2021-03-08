@@ -5,11 +5,11 @@ from typing import Optional
 
 from dataclasses_json import dataclass_json
 
-from mipengine.controller.common.algorithms_specifications import AlgorithmSpecifications
-from mipengine.controller.common.algorithms_specifications import CROSSVALIDATION_ALGORITHM_NAME
-from mipengine.controller.common.algorithms_specifications import GenericParameterSpecification
-from mipengine.controller.common.algorithms_specifications import InputDataSpecifications
-from mipengine.controller.common.algorithms_specifications import algorithms_specifications
+from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
+from mipengine.controller.algorithms_specifications import CROSSVALIDATION_ALGORITHM_NAME
+from mipengine.controller.algorithms_specifications import GenericParameterSpecification
+from mipengine.controller.algorithms_specifications import InputDataSpecifications
+from mipengine.controller.algorithms_specifications import algorithms_specifications
 
 
 @dataclass_json
