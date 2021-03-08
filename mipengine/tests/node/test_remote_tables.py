@@ -17,7 +17,7 @@ global_node_get_remote_tables = nodes_communication.get_celery_get_remote_tables
 local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
 global_node_cleanup = nodes_communication.get_celery_cleanup_signature(global_node)
 
-context_id = "regrEssion"
+context_id = "remotetalbes"
 
 
 @pytest.fixture(autouse=True)

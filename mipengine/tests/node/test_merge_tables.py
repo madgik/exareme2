@@ -14,7 +14,7 @@ local_node_create_merge_table = nodes_communication.get_celery_create_merge_tabl
 local_node_get_merge_tables = nodes_communication.get_celery_get_merge_tables_signature(local_node)
 local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
 
-context_id = "regrEssion"
+context_id = "mergetables"
 
 
 @pytest.fixture(autouse=True)
@@ -41,6 +41,8 @@ def create_three_column_table_with_data(table_id: int):
     connection = get_node_db_connection(local_node_id)
     connection.cursor().execute(f"INSERT INTO {table_name} VALUES ( 1, 2.0, '3')")
     connection.commit()
+    connection.close()
+
     return table_name
 
 

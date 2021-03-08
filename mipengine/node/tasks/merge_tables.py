@@ -7,7 +7,7 @@ from mipengine.node.monetdb_interface import common_actions
 from mipengine.node.monetdb_interface import merge_tables
 from mipengine.node.monetdb_interface.common_actions import config
 from mipengine.node.monetdb_interface.common_actions import create_table_name
-from mipengine.node.monetdb_interface.common_actions import get_connection
+from mipengine.node.monetdb_interface.connection_pool import get_connection, release_connection
 from mipengine.node.monetdb_interface.merge_tables import validate_tables_can_be_merged
 
 
@@ -25,7 +25,9 @@ def get_merge_tables(context_id: str) -> List[str]:
             A list of merge table names
     """
     connection = get_connection()
-    return merge_tables.get_merge_tables_names(connection.cursor(), context_id)
+    merge_table_names = merge_tables.get_merge_tables_names(connection.cursor(), context_id)
+    release_connection(connection)
+    return merge_table_names
 
 
 @shared_task
@@ -54,4 +56,5 @@ def create_merge_table(context_id: str, command_id: str, table_names: List[str])
     merge_tables.create_merge_table(cursor, table_info)
     merge_tables.add_to_merge_table(cursor, merge_table_name, table_names)
     connection.commit()
+    release_connection(connection)
     return merge_table_name.lower()

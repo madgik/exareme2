@@ -26,7 +26,7 @@ clean_up_node1 = nodes_communication.get_celery_cleanup_signature(local_node_1)
 clean_up_node2 = nodes_communication.get_celery_cleanup_signature(local_node_2)
 clean_up_global = nodes_communication.get_celery_cleanup_signature(global_node)
 
-context_id = "regrEssion"
+context_id = "localglobalnodes"
 
 
 def insert_data_into_local_node_db_table(node_id: str, table_name: str):
@@ -35,6 +35,7 @@ def insert_data_into_local_node_db_table(node_id: str, table_name: str):
 
     cursor.execute(f"INSERT INTO {table_name} VALUES (1, 1.2,'test')")
     connection.commit()
+    connection.close()
 
 
 def test_create_merge_table_with_remote_tables():
@@ -88,6 +89,7 @@ def test_create_merge_table_with_remote_tables():
     row_count = len(cursor.fetchall())
     assert row_count == 2
     connection.commit()
+    connection.close()
 
     clean_up_global.delay(context_id=context_id.lower()).get()
     clean_up_node1.delay(context_id=context_id.lower()).get()

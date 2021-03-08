@@ -7,7 +7,7 @@ from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface import tables
 from mipengine.node.monetdb_interface.common_actions import config
 from mipengine.node.monetdb_interface.common_actions import create_table_name
-from mipengine.node.monetdb_interface.common_actions import get_connection
+from mipengine.node.monetdb_interface.connection_pool import get_connection, release_connection
 
 
 @shared_task
@@ -24,7 +24,9 @@ def get_tables(context_id: str) -> List[str]:
             A list of table names
     """
     connection = get_connection()
-    return tables.get_tables_names(connection.cursor(), context_id)
+    table_names = tables.get_tables_names(connection.cursor(), context_id)
+    release_connection(connection)
+    return table_names
 
 
 @shared_task
@@ -50,4 +52,5 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
     table_info = TableInfo(table_name.lower(), schema_object)
     tables.create_table(connection.cursor(), table_info)
     connection.commit()
+    release_connection(connection)
     return table_name.lower()
