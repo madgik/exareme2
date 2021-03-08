@@ -5,8 +5,8 @@ from typing import List
 
 from dataclasses_json import dataclass_json
 
-from mipengine import resources
-from mipengine.controller.common.utils import Singleton
+from mipengine.common import resources
+from mipengine.common.node_exceptions import InvalidNodeId
 
 
 @dataclass_json
@@ -46,7 +46,7 @@ class Nodes:
 
 @dataclass_json
 @dataclass
-class NodeCatalog(metaclass=Singleton):
+class NodeCatalog:
     _nodes: Nodes
     _datasets: Dict[str, List[str]]
     _nodes_per_dataset: Dict[str, List[LocalNode]]
@@ -54,6 +54,12 @@ class NodeCatalog(metaclass=Singleton):
     def __init__(self):
         node_catalog_content = pkg_resources.read_text(resources, 'node_catalog.json')
         self._nodes: Nodes = Nodes.from_json(node_catalog_content)
+
+        for local_node in self._nodes.localNodes:
+            if not local_node.nodeId.isalnum():
+                raise InvalidNodeId(local_node.nodeId)
+            if not local_node.nodeId.islower():
+                raise ValueError(f"Node id should be lower case, node id = {local_node.nodeId}")
 
         self._datasets = {}
         for local_node in self._nodes.localNodes:
@@ -69,7 +75,7 @@ class NodeCatalog(metaclass=Singleton):
                 for dataset in pathology.datasets:
                     if dataset not in self._nodes_per_dataset.keys():
                         self._nodes_per_dataset[dataset] = [local_node]
-                    else:
+                    elif local_node not in self._nodes_per_dataset[dataset]:
                         self._nodes_per_dataset[dataset].append(local_node)
 
     def pathology_exists(self, pathology: str) -> bool:
@@ -95,4 +101,4 @@ class NodeCatalog(metaclass=Singleton):
         return [local_node for local_node in self._nodes.localNodes if local_node.nodeId == node_id][0]
 
 
-NodeCatalog()
+node_catalog = NodeCatalog()

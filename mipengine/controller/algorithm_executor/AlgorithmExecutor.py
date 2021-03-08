@@ -3,27 +3,20 @@ from typing import Dict, List, Any, Optional
 
 import datetime
 import random
-
-from abc import ABC
-
 import importlib
 
 from celery import Celery
 
 
-#  TODO: change those to the actual ones...
-from node_catalog import NodeCatalog
-from AlgorithmRequestDTO import AlgorithmRequestDTO
-from data_classes import ColumnInfo, TableSchema, TableInfo 
-from data_classes import TableView, TableData, UDFInfo
+from mipengine.common.node_catalog import NodeCatalog
+from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequest
+from mipengine.common.node_tasks_DTOs import ColumnInfo, TableSchema, TableInfo
+from mipengine.common.node_tasks_DTOs import TableView, TableData, UDFInfo
 
-import pdb
-
-TASK_TIMEOUT = 2
-
+# TASK_TIMEOUT = 2
 
 class AlgorithmExecutor:
-    def __init__(self, algorithm_request_dto: AlgorithmRequestDTO):
+    def __init__(self, algorithm_request_dto: AlgorithmRequest):
 
         print("(AlgorithmExecutor::__init__) just in")
 
@@ -43,7 +36,7 @@ class AlgorithmExecutor:
                                      monetdb_url=f"{global_node.monetdbHostname}:{global_node.monetdbPort}",
                                      context_id=self.context_id)
 
-        initial_view_tables_params = {"commandId": get_next_command_id(),  # get_a_uniqueid(),
+        initial_view_tables_params = {"commandId": get_next_command_id(),
                                       "pathology": algorithm_request_dto.pathology,
                                       "datasets": algorithm_request_dto.datasets,
                                       "columns": algorithm_request_dto.columns,
@@ -58,22 +51,22 @@ class AlgorithmExecutor:
                                               initial_view_tables_params=initial_view_tables_params,
                                               context_id=self.context_id))
 
-        execution_interface = self.AlgorithmExecutionInterface(global_node=self.global_node,
-                                                               local_nodes=self.local_nodes)
-                                                               #algorithm_params=algorithm_request)
+        self.execution_interface = self.AlgorithmExecutionInterface(global_node=self.global_node,
+                                                                    local_nodes=self.local_nodes)
 
         # import the algorithm flow module
-        algorithm_folder = algorithm_request_dto.algorithm_name
         algorithm_flow_file = algorithm_request_dto.algorithm_name
-        print(f"will import-> algorithm_flows.{algorithm_folder}.{algorithm_flow_file}")
-        algorithm_flow_module = importlib.import_module(f"algorithm_flows.{algorithm_folder}.{algorithm_flow_file}_flow")
-        print(f"(AlgorithmExecutor::__init__) algorithm_flow_module->{algorithm_flow_module}")
+        # print(f"will import-> mipengine.algorithms.{algorithm_flow_file}_flow.py")
+        self.algorithm_flow_module = importlib.import_module(f"mipengine.algorithms.{algorithm_flow_file}_flow")
 
-        algorithm_flow_module.AlgorithmFlow(execution_interface).run()
-        #algorithm_flow_module.run(execution_interface)
-        
+        # print(f"(AlgorithmExecutor::__init__) algorithm_flow_module->{algorithm_flow_module}")
+
+    def run(self):
+        algorithm_result = self.algorithm_flow_module.run(self.execution_interface)
 
         # self.clean_up()
+
+        return algorithm_result
 
     def clean_up(self):
         self.global_node.clean_up()
@@ -126,7 +119,7 @@ class AlgorithmExecutor:
             return self.__initial_view_tables
 
         def __create_initial_view_tables(self, initial_view_tables_params):
-            print(f"initial_view_tables_params->{initial_view_tables_params}")
+            # print(f"initial_view_tables_params->{initial_view_tables_params}")
             # the initial_view_table_name will be the view created from the pathology, datasets, x, y etc passed to the algorithm
             initial_view_tables = {}
             for variables_set in initial_view_tables_params["columns"]:
@@ -172,16 +165,16 @@ class AlgorithmExecutor:
         # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
         def create_view(self, command_id: str, pathology: str, datasets: List[str], columns: List[str], filters: List[str]) -> TableName:
             task_signature = self.__celery_obj.signature(self.task_signatures_str["create_view"])
-            # -----------DEBUG
-            #command_id = get_next_command_id()
-            print(f"(Node::create_view) context_id->{self.__context_id} type->{type(self.__context_id)}")
-            print(f"(Node::create_view) command_id->{command_id} type->{type(command_id)}")
-            print(f"(Node::create_view) pathology->{pathology} type->{type(pathology)}")
-            print(f"(Node::create_view) datasets->{datasets} type->{type(datasets)}")
-            print(f"(Node::create_view) columns->{columns} type->{type(columns)}")
-            print(f"(Node::create_view) filters->{filters} type->{type(filters)}")
+            
+            # # -----------DEBUG
+            # print(f"(Node::create_view) context_id->{self.__context_id} type->{type(self.__context_id)}")
+            # print(f"(Node::create_view) command_id->{command_id} type->{type(command_id)}")
+            # print(f"(Node::create_view) pathology->{pathology} type->{type(pathology)}")
+            # print(f"(Node::create_view) datasets->{datasets} type->{type(datasets)}")
+            # print(f"(Node::create_view) columns->{columns} type->{type(columns)}")
+            # print(f"(Node::create_view) filters->{filters} type->{type(filters)}")
+            # # --------------
 
-            # --------------
             result = task_signature.delay(context_id=self.__context_id,
                                           command_id=command_id,
                                           pathology=pathology,
@@ -235,7 +228,7 @@ class AlgorithmExecutor:
             result = task_signature.delay(command_id=command_id, context_id=self.__context_id, udf_input=udf_input).get()
             return result
 
-        #CLEANUP functionality
+        # CLEANUP functionality
         def clean_up(self):
             task_signature = self.__celery_obj.signature(self.task_signatures_str["clean_up"])
             task_signature.delay(self.__context_id)
@@ -280,20 +273,20 @@ class AlgorithmExecutor:
             # TODO: validate all local nodes have created the base_view_table??
 
             self._initial_view_tables = {}  # variable:LocalTable
-            tmp_node_table_names = {}
             tmp_variable_node_table = {}
-            print()
+            
+            # TODO: clean up this mindfuck??
             for node in self.local_nodes:
-                print(f"node -> {node.node_id}")
+                # print(f"node -> {node.node_id}")
                 for (variable_name, table_name) in node.initial_view_tables.items():
-                    print(f"\t\tvariable_name -> {variable_name}    table_name->{table_name.full_table_name}")
+                    # print(f"\t\tvariable_name -> {variable_name}    table_name->{table_name.full_table_name}")
                     if variable_name in tmp_variable_node_table:
                         tmp_variable_node_table[variable_name].update({node: table_name})
                     else:
                         tmp_variable_node_table[variable_name] = {node: table_name}
-                    print(f"tmp_variable_node_table-> {tmp_variable_node_table}\n\n")
+                    # print(f"tmp_variable_node_table-> {tmp_variable_node_table}\n\n")
 
-            print(f"\n\ntmp_variable_node_table->{tmp_variable_node_table}\n\n")
+            # print(f"\n\ntmp_variable_node_table->{tmp_variable_node_table}\n\n")
 
             self._initial_view_tables = {variable_name: self.LocalNodeTable(node_table) for (variable_name, node_table) in tmp_variable_node_table.items()} 
 
@@ -404,11 +397,6 @@ class AlgorithmExecutor:
                 return self.__node
 
 
-class AlgorithmFlow_abstract(ABC):
-    def __init__(self, execution_interface):
-        self.runtime_interface = execution_interface
-
-
 def get_a_uniqueid():
     return "{}".format(datetime.datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000))
 
@@ -419,9 +407,3 @@ def get_next_command_id():
     else:
         get_next_command_id.index = 0
     return get_next_command_id.index
-
-def get_package(algorithm):
-    mpackage = "algorithms"
-    importlib.import_module(mpackage)
-    algo = importlib.import_module("." + algorithm, mpackage)
-    return algo

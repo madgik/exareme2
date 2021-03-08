@@ -1,38 +1,68 @@
 {
   "globalNode": {
-    "nodeId": "global_node",
-    "rabbitmqURL": "127.0.0.1:5672",
-    "monetdbHostname": "127.0.0.1",
+    "nodeId": "globalnode",
+    "rabbitmqURL": "192.168.1.11:5670",
+    "monetdbHostname": "192.168.1.11",
     "monetdbPort": "50000"
   },
   "localNodes": [
     {
-      "nodeId": "local_node_1",
-      "rabbitmqURL": "127.0.0.1:5672",
-      "monetdbHostname": "127.0.0.1",
-      "monetdbPort": "50000",
-      "data": {
-        "pathologies": [
-          {
-            "name": "dementia",
-            "datasets": [
-              "edsd"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "nodeId": "local_node_2",
-      "rabbitmqURL": "127.0.0.1:5673",
-      "monetdbHostname": "127.0.0.1",
+      "nodeId": "localnode1",
+      "rabbitmqURL": "192.168.1.11:5671",
+      "monetdbHostname": "192.168.1.11",
       "monetdbPort": "50001",
       "data": {
         "pathologies": [
           {
             "name": "dementia",
             "datasets": [
-              "adni"
+              "edsd",
+              "ppmi",
+              "desd-synthdata",
+              "fake_longitudinal"
+            ]
+          },
+          {
+            "name": "mentalhealth",
+            "datasets": [
+              "demo"
+            ]
+          },
+          {
+            "name": "tbi",
+            "datasets": [
+              "dummy_tbi"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "nodeId": "localnode2",
+      "rabbitmqURL": "192.168.1.11:5672",
+      "monetdbHostname": "192.168.1.11",
+      "monetdbPort": "50002",
+      "data": {
+        "pathologies": [
+          {
+            "name": "dementia",
+            "datasets": [
+              "edsd",
+              "ppmi",
+              "desd-synthdata",
+              "fake_longitudinal"
+            ]
+          },
+          {
+            "name": "mentalhealth",
+            "datasets": [
+              "demo"
+            ]
+          },
+          {
+            "name": "tbi",
+            "datasets": [
+              "dummy_tbi"
             ]
           }
         ]
