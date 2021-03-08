@@ -93,7 +93,7 @@ class TableV(ABC):
 
     @property
     def columns(self):
-        return ...
+        return [f"{self.name}_{name}" for name, _ in self.schema]
 
     @abstractproperty
     def schema(self):
@@ -433,12 +433,10 @@ class UDFCodeGenerator:
         table_defs = []
         for name in self.relation_params:
             table = inputs[name]
-            tabcolnames = table.as_udf_signature()
-            table_defs += [self._df_def_tpl.format(name=name, colnames=tabcolnames)]
+            table_defs += [self._df_def_tpl.format(name=name, colnames=table.columns)]
         for name in self.tensor_params:
-            tensor = inputs[name]
-            tabcolnames = tensor.as_udf_signature()
-            table_defs += [self._tens_def_tpl.format(name=name, colnames=tabcolnames)]
+            table = inputs[name]
+            table_defs += [self._tens_def_tpl.format(name=name, colnames=table.columns)]
         return table_defs
 
     def _gen_loopback_calls(self, inputs):
