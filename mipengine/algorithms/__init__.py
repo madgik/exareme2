@@ -1,15 +1,13 @@
 from .demo import *
-from .iotypes import UDF_REGISTRY
-from .iotypes import udf
-from .iotypes import TableT
-from .iotypes import RelationT
-from .iotypes import LoopbackRelationT
-from .iotypes import RelationFromSchemaT
-from .iotypes import LoopbackRelationFromSchemaT
-from .iotypes import TensorT
-from .iotypes import LoopbackTensorT
-from .iotypes import LiteralParameterT
-from .iotypes import ScalarT
+from .udfiotypes import UDF_REGISTRY
+from .udfiotypes import udf
+from .udfiotypes import TableT
+from .udfiotypes import RelationT
+from .udfiotypes import LoopbackRelationT
+from .udfiotypes import TensorT
+from .udfiotypes import LoopbackTensorT
+from .udfiotypes import LiteralParameterT
+from .udfiotypes import ScalarT
 
 
 __all__ = [
@@ -18,8 +16,6 @@ __all__ = [
     "TableT",
     "RelationT",
     "LoopbackRelationT",
-    "RelationFromSchemaT",
-    "LoopbackRelationFromSchemaT",
     "TensorT",
     "LoopbackTensorT",
     "LiteralParameterT",
