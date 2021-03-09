@@ -1,13 +1,13 @@
 from .demo import *
-from .udfiotypes import UDF_REGISTRY
-from .udfiotypes import udf
-from .udfiotypes import TableT
-from .udfiotypes import RelationT
-from .udfiotypes import LoopbackRelationT
-from .udfiotypes import TensorT
-from .udfiotypes import LoopbackTensorT
-from .udfiotypes import LiteralParameterT
-from .udfiotypes import ScalarT
+from .udfutils import UDF_REGISTRY
+from .udfutils import udf
+from .udfutils import TableT
+from .udfutils import RelationT
+from .udfutils import LoopbackRelationT
+from .udfutils import TensorT
+from .udfutils import LoopbackTensorT
+from .udfutils import LiteralParameterT
+from .udfutils import ScalarT
 
 
 __all__ = [

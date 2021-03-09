@@ -1,10 +1,10 @@
 from typing import TypeVar
 
-from mipengine.algorithms.udfiotypes import udf
-from mipengine.algorithms.udfiotypes import RelationT
-from mipengine.algorithms.udfiotypes import RelationT
-from mipengine.algorithms.udfiotypes import TensorT
-from mipengine.algorithms.udfiotypes import ScalarT
+from mipengine.algorithms.udfutils import udf
+from mipengine.algorithms.udfutils import RelationT
+from mipengine.algorithms.udfutils import RelationT
+from mipengine.algorithms.udfutils import TensorT
+from mipengine.algorithms.udfutils import ScalarT
 
 
 S1 = TypeVar("S1")
