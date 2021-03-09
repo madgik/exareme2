@@ -7,8 +7,6 @@ import functools
 import inspect
 import itertools
 import operator
-from operator import attrgetter
-from operator import concat
 import os
 import string
 from textwrap import indent
@@ -211,19 +209,13 @@ class FunctionAnalyzer:
         code = inspect.getsource(func)
         self.tree = ast.parse(code)
         self.body = self.get_body()
-        self.signature = inspect.signature(func)
-        self.type_hints = get_type_hints(func)
         self.return_name = self.get_return_name()
-        self.return_hint = self.signature.return_annotation
-        self.return_type = get_origin(self.return_hint)
-        self.return_typevars = get_args(self.return_hint)
-        parameters = self.signature.parameters
-        self.parameter_hints = [param.annotation for param in parameters.values()]
-        type_origins = [get_origin(param) for param in self.parameter_hints]
-        self.parameter_types = OrderedDict(zip(parameters.keys(), type_origins))
-        self.parameter_typevars = [get_args(param) for param in self.parameter_hints]
 
-    def get_return_name(self):
+        signature = inspect.signature(func)
+        self.analyze_return_type(signature)
+        self.analyze_parameter_types(signature)
+
+    def get_return_name(self) -> str:
         body_stmts = self.tree.body[0].body  # type: ignore
         ret_stmt = next(s for s in body_stmts if isinstance(s, ast.Return))
         if isinstance(ret_stmt.value, ast.Name):
@@ -232,11 +224,31 @@ class FunctionAnalyzer:
             raise NotImplementedError("No expressions in return stmt, for now")
         return ret_name
 
-    def get_body(self):
+    def get_body(self) -> str:
         body_ast = self.tree.body[0].body  # type: ignore
         statemets = [stmt for stmt in body_ast if type(stmt) != ast.Return]
         body = dedent("".join(astor.to_source(stmt) for stmt in statemets))
         return body
+
+    def analyze_return_type(self, signature) -> None:
+        return_hint = signature.return_annotation
+        self.return_type = get_origin(return_hint)
+        ret_typevarnames = map(typevar_to_attr_name, self.return_type.__parameters__)
+        self.return_typevars = OrderedDict(zip(ret_typevarnames, get_args(return_hint)))
+
+    def analyze_parameter_types(self, signature) -> None:
+        parameters = signature.parameters
+        pnames = parameters.keys()
+        parameter_hints = [param.annotation for param in parameters.values()]
+        parameter_types = [get_origin(param) for param in parameter_hints]
+        self.parameter_types = OrderedDict(zip(pnames, parameter_types))
+        parameter_typevars = [get_args(param) for param in parameter_hints]
+        param_typevar_values = dict(zip(pnames, parameter_typevars))
+        self.parameter_typevars = OrderedDict()
+        for pname, ptype in self.parameter_types.items():
+            typevar_names = map(typevar_to_attr_name, ptype.__parameters__)
+            typevar_vals = param_typevar_values[pname]
+            self.parameter_typevars[pname] = dict(zip(typevar_names, typevar_vals))
 
 
 class UDFCodeGenerator:
@@ -250,66 +262,39 @@ class UDFCodeGenerator:
     def __init__(self, func) -> None:
         self.func = func
         self.funcparts = FunctionAnalyzer(func)
-        self._validate_type_hints()
+        # self._validate_type_hints()
         self._group_parameters()
 
-    def _validate_type_hints(self):
-        allowed_types = (
-            RelationT,
-            LoopbackRelationT,
-            TensorT,
-            LoopbackTensorT,
-            LiteralParameterT,
-            ScalarT,
-        )
-        sig = self.funcparts.signature
-        argnames = sig.parameters.keys()
-        type_hints = self.funcparts.type_hints
-        argument_hints = dict(**type_hints)
-        del argument_hints["return"]
-        if any(
-            type_hints.get(arg, None).__origin__ not in allowed_types
-            for arg in argnames
-        ):
-            raise TypeError("Function parameters are not properly annotated.")
-        if get_origin(type_hints.get("return", None)) not in allowed_types + (ScalarT,):
-            raise TypeError("Function return type is not allowed.")
-        if RelationT in argument_hints.values() and TensorT in argument_hints.values():
-            raise TypeError("Can't have both RelationT and TensorT in udf annotation.")
-
     def _group_parameters(self):
+        parameter_types = self.funcparts.parameter_types
         self.relation_params = [
-            name
-            for name, param in self.funcparts.signature.parameters.items()
-            if get_origin(param.annotation) == RelationT
+            pname for pname, ptype in parameter_types.items() if ptype == RelationT
         ]
         self.lbrelation_params = [
-            name
-            for name, param in self.funcparts.signature.parameters.items()
-            if get_origin(param.annotation) == LoopbackRelationT
+            pname
+            for pname, ptype in parameter_types.items()
+            if ptype == LoopbackRelationT
         ]
         self.tensor_params = [
-            name
-            for name, param in self.funcparts.signature.parameters.items()
-            if get_origin(param.annotation) == TensorT
+            pname for pname, ptype in parameter_types.items() if ptype == TensorT
         ]
         self.lbtensor_params = [
-            name
-            for name, param in self.funcparts.signature.parameters.items()
-            if get_origin(param.annotation) == LoopbackTensorT
+            pname
+            for pname, ptype in parameter_types.items()
+            if ptype == LoopbackTensorT
         ]
         self.literal_params = [
-            name
-            for name, param in self.funcparts.signature.parameters.items()
-            if get_origin(param.annotation) == LiteralParameterT
+            pname
+            for pname, ptype in parameter_types.items()
+            if ptype == LiteralParameterT
         ]
 
     def generate_code(self, *args, **kwargs):
         udf_name = "$udf_name"
-        self._validate_arg_types(args, kwargs)
         inputs = self._gather_inputs(args, kwargs)
+        self._validate_input_types(inputs)
         if self._output_type_is_known():
-            output = self._compute_known_output(args, kwargs)
+            output = self._compute_known_output(inputs)
         else:
             # output = self.func(*args, **kwargs)
             raise NotImplementedError
@@ -343,65 +328,79 @@ class UDFCodeGenerator:
 
         return LN.join(funcdef)
 
-    def _validate_arg_types(self, args, kwargs):
-        parameters = self.funcparts.signature.parameters
-        for arg, param in zip(args, parameters.values()):
-            paramtype = get_origin(param.annotation)
-            if not isinstance(arg, TableInfo) and not issubclass(paramtype, TableT):
-                TypeError("Expected type {paramtype}, got type {type(arg)}.")
-        for name, arg in kwargs.items():
-            paramtype = get_origin(parameters[name].annotation)
-            if not isinstance(arg, TableInfo) and not issubclass(paramtype, TableT):
-                TypeError("Expected type {paramtype}, got type {type(arg)}.")
-
     def _gather_inputs(self, args, kwargs):
-        argnames = [
-            name
-            for name in self.funcparts.signature.parameters.keys()
-            if name not in kwargs.keys()
-        ]
-        all_args = dict(**dict(zip(argnames, args)), **kwargs)
-        if len(all_args) != len(self.funcparts.signature.parameters):
+        pnames = self.funcparts.parameter_types.keys()
+        if len(args) + len(kwargs) != len(pnames):
             msg = format_multiline_msg(
                 """Arguments passed to UDFCodeGenerator do not match
                 corresponding number formal parameters.
                 """
             )
             raise ValueError(msg)
+        argnames = [name for name in pnames if name not in kwargs.keys()]
+        argsmap = OrderedDict(zip(argnames, args))
         inputs = OrderedDict(
-            **{
-                name: all_args[name]
-                for name in self.funcparts.signature.parameters.keys()
-            }
+            {pname: argsmap.get(pname, None) or kwargs.get(pname) for pname in pnames}
         )
         return inputs
 
+    def _validate_input_types(self, inputs):
+        parameter_types = self.funcparts.parameter_types
+        for pname, ptype in parameter_types.items():
+            arg = inputs[pname]
+            if not isinstance(arg, TableInfo) and not issubclass(ptype, TableT):
+                TypeError("Expected type {ptype}, got type {type(arg)}.")
+
     def _output_type_is_known(self) -> bool:
-        return_typevarset = set(self.funcparts.return_typevars)
-        parameter_typevarset = set(flatten(self.funcparts.parameter_typevars))
+        return_typevarset = set(self.funcparts.return_typevars.values())
+        parameter_typevars = self.funcparts.parameter_typevars
+        parameter_typevarset = set(
+            flatten([list(_.values()) for _ in parameter_typevars.values()])
+        )
         return not (return_typevarset - parameter_typevarset)
 
-    def _compute_known_output(self, args, kwargs):
-        # XXX very messy
-        output_type = self.funcparts.return_type
-        return_name = self.funcparts.return_name
-        return_typeparams = self.funcparts.return_type.__parameters__
+    def _compute_known_output(self, inputs):
+        # We compute the output object by assembling attributes from input
+        # objects and using one of the constructors (RelationV, TensorV).
+        # The algorithm works as follows:
+        # For every type variable in return type hint:
+        #     For type variables in every input parameter:
+        #         If return type variable value present in parameter type variables:
+        #             Add mapping (type variable name -> parameter name) to dictionary
+        # For every typevar_name, pname pair of dictionary:
+        #     Get attribute of name typevar_name from parameter of name pname
+        # Use attributes with constructor to build output object
+
         return_typevars = self.funcparts.return_typevars
-        return_typevar_map = dict(zip(return_typeparams, return_typevars))
-        parameter_types = self.funcparts.parameter_types
         parameter_typevars = self.funcparts.parameter_typevars
-        output_args = dict()
-        for typevar_name, typevar_val in return_typevar_map.items():
-            typevar_idx = [typevar_val in ptv for ptv in parameter_typevars].index(True)
-            arg = args[typevar_idx]
-            attr = typevar_to_attr_name(typevar_name)
-            output_args[attr] = getattr(arg, attr)
+
+        # Find args holding a type var value that matches a return type var value
+        found_args = dict()
+        for ret_typevarname, ret_typevarval in return_typevars.items():
+            for pname, ptypevars in parameter_typevars.items():
+                if ret_typevarval in ptypevars.values():
+                    found_args[ret_typevarname] = pname
+                    break
+
+        return_name = self.funcparts.return_name
+        output_type = self.funcparts.return_type
+
+        # Get from parameter object the attributes described by relevant type var names
+        output_constructor_args = dict()
+        for typevar_name, pname in found_args.items():
+            cons_arg = getattr(inputs[found_args[typevar_name]], typevar_name)
+            output_constructor_args[typevar_name] = cons_arg
+
+        # Get constructor
         if output_type == RelationT:
-            output = RelationV(return_name, **output_args)
+            output_constructor = RelationV
         elif output_type == TensorT:
-            output = TensorV(return_name, **output_args)
+            output_constructor = TensorV
         else:
-            raise TypeError("???")
+            msg = "If output type is not RelationT or TensorT we should be here."
+            raise ValueError(msg)
+
+        output = output_constructor(name=return_name, **output_constructor_args)
         return output
 
     def _make_signature(self, inputs):
@@ -415,14 +414,14 @@ class UDFCodeGenerator:
         return input_params
 
     def _get_return_statement(self):
-        return_type = self.funcparts.return_hint
+        return_type = self.funcparts.return_type
         return_name = self.funcparts.return_name
         if return_type == RelationT:
             return_stmt = self._table_tpl.format(return_name=return_name)
         elif return_type == TensorT:
             return_stmt = self._tensor_tpl.format(return_name=return_name)
         else:
-            return_stmt = f"return {return_name}\n"
+            return_stmt = f"return {return_name}"
         return return_stmt
 
     def _get_return_type(self, output_type):
@@ -480,21 +479,28 @@ def generate_udf_select_stmt(
     """
     udf_name = "$udf_name"
     gen = UDFGEN_REGISTRY.get(func_name, None) or get_generator(func_name)
-    parameters = gen.funcparts.signature.parameters
-    return_hint = gen.funcparts.signature.return_annotation
-    type_hints = {name: parameter.annotation for name, parameter in parameters.items()}
+    parameter_types = gen.funcparts.parameter_types
+    return_type = gen.funcparts.return_type
 
-    if any_(type_hints.values(), lambda x: get_origin(x) == RelationT):
+    # Validate we don't have both TableT types in parameters
+    if (
+        RelationT in parameter_types.values()
+        and not TensorT in parameter_types.values()
+    ):
         main_input_type = RelationT
-    elif any_(type_hints.values(), lambda x: get_origin(x) == TensorT):
+    elif (
+        TensorT in parameter_types.values()
+        and not RelationT in parameter_types.values()
+    ):
         main_input_type = TensorT
     else:
         raise NotImplementedError
 
+    # Filter tables involved in select statement
     tables = [
         arg
-        for arg, hint in zip(positional_args, type_hints.values())
-        if get_origin(hint) == main_input_type
+        for arg, type in zip(positional_args, parameter_types.values())
+        if type == main_input_type
     ]
     table_names = [table.name for table in tables]
     table_schemas = [[col.name for col in table.schema] for table in tables]
@@ -525,7 +531,7 @@ def generate_udf_select_stmt(
     else:
         raise NotImplementedError
 
-    if return_hint not in (RelationT, TensorT):
+    if return_type not in (RelationT, TensorT):
         select_lines = [SELECT]
         select_lines.append(indent(udf_name + parens(udf_call_args), PRFX))
         select_lines.append(FROM)
@@ -606,7 +612,7 @@ def typevar_to_attr_name(typevar):
     return typevar.__name__.lower()
 
 
-flatten = functools.partial(functools.reduce, concat)
+flatten = functools.partial(functools.reduce, operator.concat)
 
 if __name__ == "__main__":
     t1 = TableInfo(

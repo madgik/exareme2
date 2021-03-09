@@ -12,9 +12,7 @@ S2 = TypeVar("S2")
 
 
 @udf
-def func(
-    x: RelationT[S1], y: RelationT[S2]
-) -> RelationT[S1]:
+def func(x: RelationT[S1], y: RelationT[S2]) -> RelationT[S1]:
     result = x
     return result
 

@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
+from inspect import signature
 from numbers import Number
-from typing import Text, Tuple
+from typing import Text
+from typing import Tuple
+from typing import get_origin
 from typing import TypeVar
 from typing import Any
 from typing import Generic
@@ -20,8 +23,36 @@ def udf(func):
     module_name = func.__module__.split(".")[-1]
     func_name = func.__name__
     qualname = module_name + "." + func_name
+    if qualname in UDF_REGISTRY:
+        raise KeyError(f"A UDF named {qualname} already in UDF_REGISTRY.")
+    validate_type_hints(func)
     UDF_REGISTRY[qualname] = func
     return func
+
+
+def validate_type_hints(func):
+    allowed_types = {
+        RelationT,
+        LoopbackRelationT,
+        TensorT,
+        LoopbackTensorT,
+        LiteralParameterT,
+        ScalarT,
+    }
+    sig = signature(func)
+    func_type_hints = set(
+        get_origin(param.annotation)
+        if get_origin(param.annotation)
+        else param.annotation
+        for param in sig.parameters.values()
+    )
+    func_type_hints.add(
+        get_origin(sig.return_annotation)
+        if get_origin(sig.return_annotation)
+        else sig.return_annotation
+    )
+    if func_type_hints - allowed_types:
+        raise TypeError("Function parameters are not properly annotated.")
 
 
 DType = TypeVar("DType")
