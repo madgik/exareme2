@@ -32,8 +32,6 @@ RUN apt update && apt install -y libssl-dev libpcre3 libpcre3-dev pkg-config uui
 
 RUN apt update && apt install -y python3-pip
 
-RUN pip3 install numpy scipy matplotlib ipython jupyter pandas sympy nose
-
 #######################################################
 # Install monetdb
 #######################################################
@@ -54,5 +52,20 @@ COPY config/bootstrap.sh /home/bootstrap.sh
 RUN chmod 775 /home/bootstrap.sh
 
 EXPOSE 50000
+
+#######################################################
+# Install python libraries
+#######################################################
+RUN pip3 install numpy
+RUN pip3 install scipy
+RUN pip3 install pandas
+
+#######################################################
+# Add /home/udflib to python path and copy
+# necessary tools
+#######################################################
+COPY monetdb_dockerized/hijack_pythonpath.pth /usr/local/lib/python3.8/dist-packages/
+COPY mipengine/node/udfgen/udfio.py /home/udflib/
+
 
 CMD ["/bin/bash","/home/bootstrap.sh"]
