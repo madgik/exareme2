@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import ABC
+from abc import abstractmethod
 from abc import abstractproperty
 import ast
 from collections import OrderedDict
@@ -15,6 +16,7 @@ from textwrap import fill
 from typing import Any
 from typing import NamedTuple
 from typing import TypeVar
+from typing import Generic
 from typing import get_type_hints
 from typing import get_origin
 from typing import get_args
@@ -39,9 +41,7 @@ LANGUAGE_PYTHON = "LANGUAGE PYTHON"
 BEGIN = "{"
 IMPORTS = [  # TODO solve imports problem
     "import pandas as pd",
-    "from udfio import as_tensor_table",
-    "from udfio import from_tensor_table",
-    "from udfio import as_relational_table",
+    "import udfio",
 ]
 END = "}"
 DROP_IF_EXISTS = "DROP TABLE IF EXISTS "
@@ -62,6 +62,9 @@ SCOLON = ";"
 UDFGEN_REGISTRY = {}
 
 
+PY2SQL_TYPES = {int: "INT", float: "FLOAT", str: "TEXT"}
+
+
 class ColumnInfo(NamedTuple):
     name: str
     dtype: str
@@ -77,13 +80,25 @@ LiteralValue = Any
 UdfArgument = TypeVar("UdfArgument", TableInfo, LiteralValue)
 
 
-class TableV(ABC):
+class UdfIOValue(ABC):
+    """Objects of this class mirror objects of subclasses of UdfIOType. They
+    represent instantiations of the types represented by UdfIOType. They are used
+    as data object placeholders within the UDF generation/calling mechanism."""
+
     def __repr__(self) -> str:
         cls = type(self).__name__
         attrs = self.__dict__
         attrs_rep = str(attrs).replace("'", "").replace(": ", "=").strip("{}")
         rep = f"{cls}({attrs_rep})"
         return rep
+
+    @abstractmethod
+    def as_udf_return_type(self):
+        raise NotImplementedError
+
+
+class TableV(UdfIOValue, ABC):
+    name: str
 
     @property
     def ncolumns(self):
@@ -97,10 +112,11 @@ class TableV(ABC):
     def schema(self):
         raise NotImplementedError
 
+    @abstractmethod
     def as_udf_signature(self):
         raise NotImplementedError
 
-    def as_udf_return_type(self):
+    def as_udf_return_type(self) -> str:
         return_signature = SEP.join([f"{name} {dtype}" for name, dtype in self.schema])
         return f"TABLE({return_signature})"
 
@@ -134,6 +150,25 @@ class TensorV(TableV):
         schema = [ColumnInfo(f"dim{d}", "INT") for d in range(self.ndims)]
         schema.append(ColumnInfo("val", str(self.dtype)))
         return schema
+
+    @classmethod
+    def from_table_info(cls, table_info):
+        try:
+            dtype = next(col.dtype for col in table_info.schema if col.name == "val")
+        except StopIteration:
+            raise TypeError("TableInfo doesn't have tensor-like schema.")
+        return cls(name=table_info.name, ndims=len(table_info.schema) - 1, dtype=dtype)
+
+
+class ScalarV(UdfIOValue):
+    def __init__(self, dtype: type) -> None:
+        self.dtype = dtype
+
+    def as_udf_return_type(self) -> str:
+        return PY2SQL_TYPES[self.dtype]
+
+
+TYPES2CONS = {RelationT: RelationV, TensorT: TensorV, ScalarT: ScalarV}
 
 
 def generate_udf_application_queries(
@@ -177,19 +212,24 @@ def generate_udf_def(
             Multiline string with MonetDB Python UDF definition.
     """
     generator = get_generator(func_name)
-    parameter_typess = generator.funcparts.parameter_types
+    parameter_types = generator.funcparts.parameter_types
+    if (pn := len(parameter_types)) != (an := len(positional_args) + len(keyword_args)):
+        raise ValueError(f"Expected {pn} arguments, {an} where given.")
     args = []
-    for arg, (pname, ptype) in zip(positional_args, parameter_typess.items()):
-        if ptype == RelationT:
+    for arg, (pname, ptype) in zip(positional_args, parameter_types.items()):
+        if ptype == RelationT and isinstance(arg, TableInfo):
             args.append(RelationV(name=pname, schema=arg.schema))
-        elif ptype == TensorT:
-            try:
-                dtype = next(col.dtype for col in arg.schema if col.name == "val")
-            except StopIteration:
-                raise TypeError("TableInfo doesn't have tensor-like schema.")
-            args.append(TensorV(name=pname, ndims=len(arg.schema) - 1, dtype=dtype))
-        else:
+        elif ptype == LoopbackRelationT and isinstance(arg, TableInfo):
+            args.append(RelationV(name=pname, schema=arg.schema))
+        elif ptype == TensorT and isinstance(arg, TableInfo):
+            args.append(TensorV.from_table_info(arg))
+        elif ptype == LoopbackTensorT and isinstance(arg, TableInfo):
+            args.append(TensorV.from_table_info(arg))
+        elif ptype == LiteralParameterT and not isinstance(arg, TableInfo):
             args.append(arg)
+        else:
+            raise TypeError("Arguments given do not match UDF formal parameter types")
+
     return generator.generate_code(*args, **keyword_args)
 
 
@@ -212,8 +252,11 @@ class FunctionAnalyzer:
         self.return_name = self.get_return_name()
 
         signature = inspect.signature(func)
-        self.analyze_return_type(signature)
-        self.analyze_parameter_types(signature)
+        self._return_hint = signature.return_annotation
+        self._parameter_hints = OrderedDict()
+        parameters = signature.parameters
+        for pname, param in parameters.items():
+            self._parameter_hints[pname] = param.annotation
 
     def get_return_name(self) -> str:
         body_stmts = self.tree.body[0].body  # type: ignore
@@ -230,39 +273,84 @@ class FunctionAnalyzer:
         body = dedent("".join(astor.to_source(stmt) for stmt in statemets))
         return body
 
-    def analyze_return_type(self, signature) -> None:
-        return_hint = signature.return_annotation
-        self.return_type = get_origin(return_hint)
-        ret_typevarnames = map(typevar_to_attr_name, self.return_type.__parameters__)
-        self.return_typevars = OrderedDict(zip(ret_typevarnames, get_args(return_hint)))
+    @staticmethod
+    def _get_typehint_type(type_hint):
+        if type_hint.typevars_are_bound:
+            return type(type_hint)
+        else:
+            return get_origin(type_hint)
 
-    def analyze_parameter_types(self, signature) -> None:
-        parameters = signature.parameters
-        pnames = parameters.keys()
-        parameter_hints = [param.annotation for param in parameters.values()]
-        parameter_types = [get_origin(param) for param in parameter_hints]
-        self.parameter_types = OrderedDict(zip(pnames, parameter_types))
-        parameter_typevars = [get_args(param) for param in parameter_hints]
-        param_typevar_values = dict(zip(pnames, parameter_typevars))
-        self.parameter_typevars = OrderedDict()
-        for pname, ptype in self.parameter_types.items():
-            typevar_names = map(typevar_to_attr_name, ptype.__parameters__)
-            typevar_vals = param_typevar_values[pname]
-            self.parameter_typevars[pname] = dict(zip(typevar_names, typevar_vals))
+    @staticmethod
+    def _get_typehint_free_typevars(type_hint):
+        if type_hint.typevars_are_bound:
+            return dict()
+        else:
+            type_param_names = (
+                typevar_to_attr_name(name)
+                for name in get_origin(type_hint).__parameters__
+            )
+            return dict(zip(type_param_names, get_args(type_hint)))
+
+    @staticmethod
+    def _get_typehint_bound_typevars(type_hint):
+        if type_hint.typevars_are_bound:
+            type_param_names = (
+                typevar_to_attr_name(name) for name in type(type_hint).__parameters__
+            )
+            return {
+                type_param_name: getattr(type_hint, type_param_name)
+                for type_param_name in type_param_names
+            }
+        else:
+            return dict()
+
+    @functools.cached_property
+    def return_type(self):
+        return self._get_typehint_type(self._return_hint)
+
+    @functools.cached_property
+    def return_free_typevars(self):
+        return self._get_typehint_free_typevars(self._return_hint)
+
+    @functools.cached_property
+    def return_bound_typevars(self):
+        return self._get_typehint_bound_typevars(self._return_hint)
+
+    @functools.cached_property
+    def parameter_types(self):
+        parameter_types = OrderedDict()
+        for pname, param in self._parameter_hints.items():
+            parameter_types[pname] = self._get_typehint_type(param)
+        return parameter_types
+
+    @functools.cached_property
+    def parameter_free_typevars(self):
+        parameter_free_typevars = OrderedDict()
+        for pname, param in self._parameter_hints.items():
+            parameter_free_typevars[pname] = self._get_typehint_free_typevars(param)
+        return parameter_free_typevars
+
+    @functools.cached_property
+    def parameter_bound_typevars(self):
+        parameter_bound_typevars = OrderedDict()
+        for pname, param in self._parameter_hints.items():
+            parameter_bound_typevars[pname] = self._get_typehint_bound_typevars(param)
+        return parameter_bound_typevars
+
+    def get_return_obj_constructor(self):
+        return TYPES2CONS[self.return_type]
 
 
 class UDFCodeGenerator:
-    _table_tpl = "return as_relational_table({return_name})"
-    _tensor_tpl = "return as_tensor_table(numpy.array({return_name}))"
-    _df_def_tpl = "{name} = pd.DataFrame({{n: _columns[n] for n in {colnames}}})"
-    _tens_def_tpl = "{name} = from_tensor_table({{n: _columns[n] for n in {colnames}}})"
-    _reindex_tpl = "{name}.reindex(_columns['row_id'])"
-    _loopbk_call_tpl = '{name} = _conn.execute("SELECT * FROM {lbname}")'
+    ret_tab = "return {return_name}"
+    ret_tens = "return udfio.as_tensor_table(numpy.array({return_name}))"
+    def_df = "{name} = pd.DataFrame({{n: _columns[n] for n in {colnames}}})"
+    def_tens = "{name} = udfio.from_tensor_table({{n:_columns[n] for n in {colnames}}})"
+    call_loopbk = '{name} = _conn.execute("SELECT * FROM {lbname}")'
 
     def __init__(self, func) -> None:
         self.func = func
         self.funcparts = FunctionAnalyzer(func)
-        # self._validate_type_hints()
         self._group_parameters()
 
     def _group_parameters(self):
@@ -293,16 +381,18 @@ class UDFCodeGenerator:
         udf_name = "$udf_name"
         inputs = self._gather_inputs(args, kwargs)
         self._validate_input_types(inputs)
-        if self._output_type_is_known():
-            output = self._compute_known_output(inputs)
+        if self._return_typevars_are_bound():
+            return_obj = self._build_return_obj()
+        elif self._return_obj_has_known_attrs():
+            return_obj = self._build_return_obj_from_inputs(inputs)
         else:
             # output = self.func(*args, **kwargs)
             raise NotImplementedError
-        input_params = self._make_signature(inputs)
+        input_params = self._make_parameter_signature(inputs)
         udf_signature = f"{udf_name}({input_params})"
         return_stmt = self._get_return_statement()
         return_name = self.funcparts.return_name
-        sql_return_type = output.as_udf_return_type()
+        sql_return_type = return_obj.as_udf_return_type()
         table_defs = self._gen_table_defs(inputs)
         loopback_calls = self._gen_loopback_calls(inputs)
         literal_defs = self._gen_literal_defs(inputs)
@@ -330,13 +420,6 @@ class UDFCodeGenerator:
 
     def _gather_inputs(self, args, kwargs):
         pnames = self.funcparts.parameter_types.keys()
-        if len(args) + len(kwargs) != len(pnames):
-            msg = format_multiline_msg(
-                """Arguments passed to UDFCodeGenerator do not match
-                corresponding number formal parameters.
-                """
-            )
-            raise ValueError(msg)
         argnames = [name for name in pnames if name not in kwargs.keys()]
         argsmap = OrderedDict(zip(argnames, args))
         inputs = OrderedDict(
@@ -351,28 +434,34 @@ class UDFCodeGenerator:
             if not isinstance(arg, TableInfo) and not issubclass(ptype, TableT):
                 TypeError("Expected type {ptype}, got type {type(arg)}.")
 
-    def _output_type_is_known(self) -> bool:
-        return_typevarset = set(self.funcparts.return_typevars.values())
-        parameter_typevars = self.funcparts.parameter_typevars
-        parameter_typevarset = set(
-            flatten([list(_.values()) for _ in parameter_typevars.values()])
-        )
+    def _return_typevars_are_bound(self):
+        return self.funcparts._return_hint.typevars_are_bound
+
+    def _build_return_obj(self):
+        return_cons = self.funcparts.get_return_obj_constructor()
+        return_args = self.funcparts.return_bound_typevars
+        return return_cons(**return_args)
+
+    def _return_obj_has_known_attrs(self) -> bool:
+        return_typevarset = set(self.funcparts.return_free_typevars.values())
+        parameter_typevars = self.funcparts.parameter_free_typevars.values()
+        parameter_typevarset = set(flatten([_.values() for _ in parameter_typevars]))
         return not (return_typevarset - parameter_typevarset)
 
-    def _compute_known_output(self, inputs):
+    def _build_return_obj_from_inputs(self, inputs):
         # We compute the output object by assembling attributes from input
         # objects and using one of the constructors (RelationV, TensorV).
         # The algorithm works as follows:
-        # For every type variable in return type hint:
-        #     For type variables in every input parameter:
+        # For every free type variable in return type hint:
+        #     For free type variables in every input parameter:
         #         If return type variable value present in parameter type variables:
         #             Add mapping (type variable name -> parameter name) to dictionary
         # For every typevar_name, pname pair of dictionary:
         #     Get attribute of name typevar_name from parameter of name pname
         # Use attributes with constructor to build output object
 
-        return_typevars = self.funcparts.return_typevars
-        parameter_typevars = self.funcparts.parameter_typevars
+        return_typevars = self.funcparts.return_free_typevars
+        parameter_typevars = self.funcparts.parameter_free_typevars
 
         # Find args holding a type var value that matches a return type var value
         found_args = dict()
@@ -397,13 +486,13 @@ class UDFCodeGenerator:
         elif output_type == TensorT:
             output_constructor = TensorV
         else:
-            msg = "If output type is not RelationT or TensorT we should be here."
+            msg = "If output type is not RelationT or TensorT we shouldn't be here."
             raise ValueError(msg)
 
         output = output_constructor(name=return_name, **output_constructor_args)
         return output
 
-    def _make_signature(self, inputs):
+    def _make_parameter_signature(self, inputs):
         parameter_types = self.funcparts.parameter_types
         input_params = [
             input_.as_udf_signature()
@@ -417,32 +506,28 @@ class UDFCodeGenerator:
         return_type = self.funcparts.return_type
         return_name = self.funcparts.return_name
         if return_type == RelationT:
-            return_stmt = self._table_tpl.format(return_name=return_name)
+            return_stmt = self.ret_tab.format(return_name=return_name)
         elif return_type == TensorT:
-            return_stmt = self._tensor_tpl.format(return_name=return_name)
+            return_stmt = self.ret_tens.format(return_name=return_name)
         else:
             return_stmt = f"return {return_name}"
         return return_stmt
-
-    def _get_return_type(self, output_type):
-        return_name = self.funcparts.return_name
-        return output_type.as_sql_return_type(return_name)
 
     def _gen_table_defs(self, inputs):
         table_defs = []
         for name in self.relation_params:
             table = inputs[name]
-            table_defs += [self._df_def_tpl.format(name=name, colnames=table.columns)]
+            table_defs += [self.def_df.format(name=name, colnames=table.columns)]
         for name in self.tensor_params:
             table = inputs[name]
-            table_defs += [self._tens_def_tpl.format(name=name, colnames=table.columns)]
+            table_defs += [self.def_tens.format(name=name, colnames=table.columns)]
         return table_defs
 
     def _gen_loopback_calls(self, inputs):
         loopback_calls = []
         for name in self.lbrelation_params:
             lb = inputs[name]
-            loopback_calls += [self._loopbk_call_tpl.format(name=name, lbname=lb.name)]
+            loopback_calls += [self.call_loopbk.format(name=name, lbname=lb.name)]
         return loopback_calls
 
     def _gen_literal_defs(self, inputs):
@@ -612,7 +697,7 @@ def typevar_to_attr_name(typevar):
     return typevar.__name__.lower()
 
 
-flatten = functools.partial(functools.reduce, operator.concat)
+flatten = itertools.chain.from_iterable
 
 if __name__ == "__main__":
     t1 = TableInfo(
@@ -627,10 +712,10 @@ if __name__ == "__main__":
     t2 = TableInfo(
         name="tab2",
         schema=[
-            ColumnInfo("A", "int"),
-            ColumnInfo("B", "int"),
-            ColumnInfo("C", "int"),
-            ColumnInfo("D", "int"),
+            ColumnInfo("a", "int"),
+            ColumnInfo("b", "int"),
+            ColumnInfo("c", "int"),
+            ColumnInfo("d", "int"),
         ],
     )
     udf, query = generate_udf_application_queries("demo.func", [t1, t2], {})
@@ -639,7 +724,7 @@ if __name__ == "__main__":
 
     print("-" * 50)
     t1 = TableInfo(
-        name="tab1",
+        name="T1",
         schema=[
             ColumnInfo("dim0", "int"),
             ColumnInfo("dim1", "int"),
@@ -648,13 +733,13 @@ if __name__ == "__main__":
         ],
     )
     t2 = TableInfo(
-        name="tab2",
+        name="T2",
         schema=[
             ColumnInfo("dim0", "int"),
             ColumnInfo("dim1", "int"),
             ColumnInfo("val", "float"),
         ],
     )
-    udf, query = generate_udf_application_queries("demo.tensor3", [t1, t2, t1], {})
-    print(udf.substitute(udf_name="yaya"))
-    print(query.substitute(udf_name="yaya", table_name="bababa"))
+    udf, query = generate_udf_application_queries("demo.tensor2", [t1, t2], {})
+    print(udf.substitute(udf_name="hello"))
+    print(query.substitute(udf_name="hello", table_name="goodbye"))

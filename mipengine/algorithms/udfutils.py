@@ -14,9 +14,6 @@ import pandas as pd
 
 UDF_REGISTRY = {}
 
-LiteralParameterT = Any
-ScalarT = TypeVar("ScalarT", Number, Text, bool, np.ndarray, list, dict, tuple)
-
 
 def udf(func):
     global UDF_REGISTRY
@@ -25,7 +22,7 @@ def udf(func):
     qualname = module_name + "." + func_name
     if qualname in UDF_REGISTRY:
         raise KeyError(f"A UDF named {qualname} already in UDF_REGISTRY.")
-    validate_type_hints(func)
+    # validate_type_hints(func)
     UDF_REGISTRY[qualname] = func
     return func
 
@@ -39,6 +36,7 @@ def validate_type_hints(func):
         LiteralParameterT,
         ScalarT,
     }
+    breakpoint()
     sig = signature(func)
     func_type_hints = set(
         get_origin(param.annotation)
@@ -60,10 +58,11 @@ Schema = TypeVar("Schema")
 NDims = TypeVar("NDims")
 
 
-class TableT(ABC):
-    @abstractmethod
+class UdfIOType(ABC):
+    typevars_are_bound = False
+
     def __init__(self) -> None:
-        raise NotImplementedError
+        self.typevars_are_bound = True
 
     def __repr__(self) -> str:
         cls = type(self).__name__
@@ -73,9 +72,14 @@ class TableT(ABC):
         return rep
 
 
+class TableT(UdfIOType, ABC):
+    pass
+
+
 class RelationT(TableT, Generic[Schema]):
     def __init__(self, schema) -> None:
         self.schema = [(col.name, col.dtype) for col in schema]
+        super().__init__()
 
 
 class LoopbackRelationT(RelationT, Generic[Schema]):
@@ -83,13 +87,23 @@ class LoopbackRelationT(RelationT, Generic[Schema]):
 
 
 class TensorT(TableT, Generic[DType, NDims]):
-    is_generic = True
-
     def __init__(self, dtype, ndims) -> None:
-        self.is_generic = False
         self.dtype = dtype
         self.ndims = ndims
+        super().__init__()
 
 
 class LoopbackTensorT(TensorT, Generic[DType, NDims]):
     pass
+
+
+class ScalarT(UdfIOType, Generic[DType]):
+    def __init__(self, dtype) -> None:
+        self.dtype = dtype
+        super().__init__()
+
+
+class LiteralParameterT(UdfIOType, Generic[DType]):
+    def __init__(self, dtype) -> None:
+        self.dtype = dtype
+        super().__init__()
