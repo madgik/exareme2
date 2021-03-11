@@ -14,7 +14,8 @@ from mipengine.common.node_exceptions import InvalidNodeId
 class GlobalNode:
     nodeId: str
     rabbitmqURL: str
-    monetdbURL: str
+    monetdbHostname: str
+    monetdbPort: str
 
 
 @dataclass_json
@@ -95,6 +96,9 @@ class NodeCatalog:
 
     def get_local_nodes(self) -> List[LocalNode]:
         return self._nodes.localNodes
+
+    def get_local_node_data(self, node_id) -> LocalNode:
+        return [local_node for local_node in self._nodes.localNodes if local_node.nodeId == node_id][0]
 
 
 node_catalog = NodeCatalog()

@@ -38,7 +38,6 @@ from mipengine.algorithms import LiteralParameterT
 from mipengine.algorithms import ScalarT
 from mipengine.node.udfgen.sql_linalg import SQL_LINALG_QUERIES
 
-
 CREATE_OR_REPLACE = "CREATE OR REPLACE"
 FUNCTION = "FUNCTION"
 RETURNS = "RETURNS"
@@ -65,7 +64,6 @@ ANDLN = " AND" + LN
 SCOLON = ";"
 
 UDFGEN_REGISTRY = {}
-
 
 PY2SQL_TYPES: dict[type, str] = {int: "INT", float: "FLOAT", str: "TEXT"}
 
@@ -187,9 +185,9 @@ TYPES2CONS = {RelationT: RelationV, TensorT: TensorV, ScalarT: ScalarV}
 
 
 def generate_udf_application_queries(
-    func_name: str,
-    positional_args: list[UdfArgument],
-    keyword_args: dict[str, UdfArgument],
+        func_name: str,
+        positional_args: list[UdfArgument],
+        keyword_args: dict[str, UdfArgument],
 ) -> tuple[string.Template, string.Template]:
     if keyword_args:
         msg = "Calling with keyword arguments is not implemented yet."
@@ -212,9 +210,9 @@ def generate_udf_application_queries(
 
 
 def generate_udf_def(
-    func_name: str,
-    positional_args: list[UdfArgument],
-    keyword_args: dict[str, UdfArgument],
+        func_name: str,
+        positional_args: list[UdfArgument],
+        keyword_args: dict[str, UdfArgument],
 ) -> str:
     """
     Generates definitions in MonetDB Python UDFs from Python functions which
@@ -347,6 +345,7 @@ class FunctionAnalyzer:
         parameter_types = OrderedDict()
         for pname, param in self._parameter_hints.items():
             parameter_types[pname] = self._get_typehint_type(param)
+            print(parameter_types[pname])
         return parameter_types
 
     @functools.cached_property
@@ -565,9 +564,9 @@ class UDFCodeGenerator:
 
 
 def generate_udf_select_stmt(
-    func_name: str,
-    positional_args: list[UdfArgument],
-    keyword_args: dict[str, UdfArgument],  # XXX not used for now
+        func_name: str,
+        positional_args: list[UdfArgument],
+        keyword_args: dict[str, UdfArgument],  # XXX not used for now
 ) -> str:
     """
     Generates select statement for calling MonetDB Python UDFs.
@@ -595,13 +594,13 @@ def generate_udf_select_stmt(
 
     # Validate we don't have both TableT types in parameters
     if (
-        RelationT in parameter_types.values()
-        and not TensorT in parameter_types.values()
+            RelationT in parameter_types.values()
+            and not TensorT in parameter_types.values()
     ):
         main_input_type = RelationT
     elif (
-        TensorT in parameter_types.values()
-        and not RelationT in parameter_types.values()
+            TensorT in parameter_types.values()
+            and not RelationT in parameter_types.values()
     ):
         main_input_type = TensorT
     else:

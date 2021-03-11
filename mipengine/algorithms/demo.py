@@ -1,12 +1,10 @@
 from typing import TypeVar
 
-from mipengine.algorithms.udfutils import udf
-from mipengine.algorithms.udfutils import RelationT
-from mipengine.algorithms.udfutils import RelationT
-from mipengine.algorithms.udfutils import TensorT
-from mipengine.algorithms.udfutils import ScalarT
 from mipengine.algorithms.udfutils import LiteralParameterT
-
+from mipengine.algorithms.udfutils import RelationT
+from mipengine.algorithms.udfutils import ScalarT
+from mipengine.algorithms.udfutils import TensorT
+from mipengine.algorithms.udfutils import udf
 
 S1 = TypeVar("S1")
 S2 = TypeVar("S2")
@@ -32,4 +30,10 @@ def tensor2(t1: TensorT[T, ND1], t2: TensorT[T, ND2]) -> TensorT[T, ND2]:
 @udf
 def tensor1(t: TensorT[T, ND1]) -> ScalarT:
     result = 1
+    return result
+
+
+@udf
+def table_and_literal_arguments(table: RelationT[S1], literal: LiteralParameterT) -> ScalarT:
+    result = 1 + literal
     return result
