@@ -4,6 +4,8 @@ from abc import abstractmethod
 from abc import abstractproperty
 import ast
 from collections import OrderedDict
+from dataclasses import dataclass
+from dataclasses import field
 import functools
 import inspect
 import itertools
@@ -14,6 +16,7 @@ from textwrap import indent
 from textwrap import dedent
 from textwrap import fill
 from typing import Any
+from typing import Optional
 from typing import NamedTuple
 from typing import TypeVar
 from typing import Generic
@@ -62,7 +65,7 @@ SCOLON = ";"
 UDFGEN_REGISTRY = {}
 
 
-PY2SQL_TYPES = {int: "INT", float: "FLOAT", str: "TEXT"}
+PY2SQL_TYPES: dict[type, str] = {int: "INT", float: "FLOAT", str: "TEXT"}
 
 
 class ColumnInfo(NamedTuple):
@@ -70,10 +73,20 @@ class ColumnInfo(NamedTuple):
     dtype: str
 
 
-class TableInfo(NamedTuple):
+@dataclass
+class TableInfo:
     name: str
     schema: list[ColumnInfo]
-    # nrows: int  # not used?
+    nrows: Optional[int] = field(default=None)
+
+    def __post_init__(self):
+        if any(map(str.isupper, self.name)):
+            msg = f"Uppercase letters are not allowed in table names: {self.name}."
+            raise ValueError(msg)
+        for cname, _ in self.schema:
+            if any(map(str.isupper, cname)):
+                msg = f"Uppercase letters are not allowed in column names: {cname}."
+                raise ValueError(msg)
 
 
 LiteralValue = Any
@@ -338,7 +351,7 @@ class FunctionAnalyzer:
         return parameter_bound_typevars
 
     def get_return_obj_constructor(self):
-        return TYPES2CONS[self.return_type]
+        return TYPES2CONS[self.return_type]  # type: ignore
 
 
 class UDFCodeGenerator:
@@ -724,7 +737,7 @@ if __name__ == "__main__":
 
     print("-" * 50)
     t1 = TableInfo(
-        name="T1",
+        name="tab1",
         schema=[
             ColumnInfo("dim0", "int"),
             ColumnInfo("dim1", "int"),
@@ -733,7 +746,7 @@ if __name__ == "__main__":
         ],
     )
     t2 = TableInfo(
-        name="T2",
+        name="tab2",
         schema=[
             ColumnInfo("dim0", "int"),
             ColumnInfo("dim1", "int"),
