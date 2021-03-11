@@ -11,6 +11,7 @@ import inspect
 import itertools
 import operator
 import os
+import re
 import string
 from textwrap import indent
 from textwrap import dedent
@@ -227,7 +228,7 @@ def generate_udf_def(
     generator = get_generator(func_name)
     parameter_types = generator.funcparts.parameter_types
     if (pn := len(parameter_types)) != (an := len(positional_args) + len(keyword_args)):
-        raise ValueError(f"Expected {pn} arguments, {an} where given.")
+        raise ValueError(f"{func_name} expected {pn} arguments, {an} where given.")
     args = []
     for arg, (pname, ptype) in zip(positional_args, parameter_types.items()):
         if ptype == RelationT and isinstance(arg, TableInfo):
@@ -683,7 +684,7 @@ def remove_blank_lines(text):
         text = text.splitlines()
     except AttributeError:
         pass
-    return map(lambda s: s.replace(LN, ""), text)
+    return map(lambda line: re.sub(r"(.*)(\n)$", r"\1", line), text)
 
 
 def prettify(lst_expr):
@@ -711,48 +712,3 @@ def typevar_to_attr_name(typevar):
 
 
 flatten = itertools.chain.from_iterable
-
-if __name__ == "__main__":
-    t1 = TableInfo(
-        name="tab1",
-        schema=[
-            ColumnInfo("a", "int"),
-            ColumnInfo("b", "int"),
-            ColumnInfo("c", "int"),
-            ColumnInfo("d", "int"),
-        ],
-    )
-    t2 = TableInfo(
-        name="tab2",
-        schema=[
-            ColumnInfo("a", "int"),
-            ColumnInfo("b", "int"),
-            ColumnInfo("c", "int"),
-            ColumnInfo("d", "int"),
-        ],
-    )
-    udf, query = generate_udf_application_queries("demo.func", [t1, t2], {})
-    print(udf.substitute(udf_name="yaya"))
-    print(query.substitute(udf_name="yaya", table_name="bababa"))
-
-    print("-" * 50)
-    t1 = TableInfo(
-        name="tab1",
-        schema=[
-            ColumnInfo("dim0", "int"),
-            ColumnInfo("dim1", "int"),
-            ColumnInfo("dim2", "int"),
-            ColumnInfo("val", "float"),
-        ],
-    )
-    t2 = TableInfo(
-        name="tab2",
-        schema=[
-            ColumnInfo("dim0", "int"),
-            ColumnInfo("dim1", "int"),
-            ColumnInfo("val", "float"),
-        ],
-    )
-    udf, query = generate_udf_application_queries("demo.tensor2", [t1, t2], {})
-    print(udf.substitute(udf_name="hello"))
-    print(query.substitute(udf_name="hello", table_name="goodbye"))

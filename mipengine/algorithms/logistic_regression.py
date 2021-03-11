@@ -1,28 +1,16 @@
+# type: ignore
 from typing import DefaultDict
 from typing import TypeVar
 from typing import Any
 
-import numpy as np
+import numpy
 import pandas as pd
-from scipy import special
 
 from mipengine.algorithms import udf
 from mipengine.algorithms import TableT
 from mipengine.algorithms import TensorT
-from mipengine.algorithms import LoopbackTableT
 from mipengine.algorithms import LiteralParameterT
 from mipengine.algorithms import ScalarT
-from mipengine.algorithms.patched import expit
-from mipengine.algorithms.patched import diag
-from mipengine.algorithms.patched import xlogy
-from mipengine.algorithms.patched import inv
-from mipengine.algorithms.preprocessing import LabelBinarizer
-from mipengine.node.udfgen.udfparams import DatalessTensor
-from mipengine.node.udfgen.udfparams import Tensor
-from mipengine.node.udfgen.udfparams import LoopbackTable
-from mipengine.node.udfgen.udfparams import LiteralParameter
-from mipengine.node.udfgen.udfparams import Scalar
-
 
 PREC = 1e-6
 
@@ -30,7 +18,7 @@ PREC = 1e-6
 def logistic_regression(y: TableT, X: TableT, classes: LiteralParameterT):
     # init model
     nobs, ncols = X.shape
-    coeff = np.zeros(ncols)
+    coeff = zeros((ncols,))
     logloss = 1e6
     # binarize labels
     ybin = binarize_labels(y, classes)
@@ -54,83 +42,97 @@ def logistic_regression(y: TableT, X: TableT, classes: LiteralParameterT):
     return coeff
 
 
+DT = TypeVar("DT")
+ND = TypeVar("ND")
+
+# TODO SQL UDF
+def zeros(shape):
+    return numpy.zeros(shape)
+
+
 @udf
-def binarize_labels(y: TableT, classes: LiteralParameterT) -> TableT:
+def binarize_labels(y: TableT, classes: LiteralParameterT) -> TensorT(int, 1):
+    from sklearn.preprocessing import LabelBinarizer
+
     binarizer = LabelBinarizer()
     binarizer.fit(classes)
     binarized = binarizer.transform(y)
     return binarized
 
 
-@udf
-def matrix_dot_vector(M: TensorT, v: LiteralParameterT) -> TensorT:
+# TODO SQL UDF
+def matrix_dot_vector(M, v):
     result = M @ v
     return result
 
 
 @udf
-def tensor_expit(t: TensorT) -> TensorT:
-    result = expit(t)
+def tensor_expit(t: TensorT[DT, ND]) -> TensorT[DT, ND]:
+    from scipy import special
+
+    result = special.expit(t)
     return result
 
 
-@udf
-def tensor_mult(t1: TensorT, t2: TensorT) -> TensorT:
+# TODO SQL UDF
+def tensor_mult(t1, t2):
     result = t1 * t2
     return result
 
 
-@udf
-def tensor_add(t1: TensorT, t2: TensorT) -> TensorT:
+# TODO SQL UDF
+def tensor_add(t1, t2):
     result = t1 + t2
     return result
 
 
-@udf
-def tensor_sub(t1: TensorT, t2: TensorT) -> TensorT:
+# TODO SQL UDF
+def tensor_sub(t1, t2):
     result = t1 - t2
     return result
 
 
-@udf
-def tensor_div(t1: TensorT, t2: TensorT) -> TensorT:
+# TODO SQL UDF
+def tensor_div(t1, t2):
     result = t1 / t2
     return result
 
 
-@udf
-def const_tensor_sub(const: LiteralParameterT, t: TensorT) -> TensorT:
+# TODO SQL UDF
+def const_tensor_sub(const, t):
     result = const - t
     return result
 
 
-@udf
-def mat_transp_dot_diag_dot_mat(M: TensorT, d: TensorT) -> TensorT:
-    result = M.T @ diag(d) @ M
+# TODO SQL UDF
+def mat_transp_dot_diag_dot_mat(M, d):
+    result = M.T @ numpy.diag(d) @ M
+    return result
+
+
+# TODO SQL UDF
+def mat_transp_dot_diag_dot_vec(M, d, v):
+    result = M.T @ numpy.diag(d) @ v
     return result
 
 
 @udf
-def mat_transp_dot_diag_dot_vec(M: TensorT, d: TensorT, v: TensorT) -> TensorT:
-    result = M.T @ diag(d) @ v
-    return result
+def logistic_loss(v1: TensorT[DT, ND], v2: TensorT[DT, ND]) -> ScalarT(float):
+    from scipy import special
 
-
-@udf
-def logistic_loss(v1: TensorT, v2: TensorT) -> ScalarT:
-    ll = np.sum(xlogy(v1, v2) + xlogy(1 - v1, 1 - v2))
+    ll = numpy.sum(special.xlogy(v1, v2) + special.xlogy(1 - v1, 1 - v2))
     return ll
 
 
 @udf
-def tensor_max_abs_diff(t1: TensorT, t2: TensorT) -> ScalarT:
-    result = np.max(np.abs(t1 - t2))
+def tensor_max_abs_diff(t1: TensorT[DT, ND], t2: TensorT[DT, ND]) -> ScalarT(float):
+    result = numpy.max(numpy.abs(t1 - t2))
     return result
 
 
 @udf
-def mat_inverse(M: TensorT) -> TensorT:
-    minv = inv(M)
+def mat_inverse(M: TensorT[DT, ND]) -> TensorT[DT, ND]:
+    minv = numpy.linalg.inv(M)
     return minv
 
 
@@ -141,18 +143,9 @@ def true_run():
     data = pd.read_csv("mipengine/algorithms/logistic_data.csv")
     y = data["alzheimerbroadcategory"].to_numpy()
     X = data[["lefthippocampus", "righthippocampus"]].to_numpy()
-    coeff = logistic_regression(y, X, np.array(["AD", "CN"]))
+    coeff = logistic_regression(y, X, numpy.array(["AD", "CN"]))
     print(coeff)
-
-
-# def mock_run():
-#     y = Table(dtype=str, shape=(1000, 1))
-#     X = Table(dtype=float, shape=(1000, 2))
-#     classes = LiteralParameter(np.array(["AD", "CN"]))
-#     coeff = logistic_regression(y, X, classes)
-#     print(coeff)
 
 
 if __name__ == "__main__":
     true_run()
-    # mock_run()
