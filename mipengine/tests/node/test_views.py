@@ -1,38 +1,58 @@
 import json
-from mipengine.node.node import app
-from mipengine.node.tasks.data_classes import ColumnInfo
-from mipengine.node.tasks.data_classes import TableData
 
-create_table = app.signature('mipengine.node.tasks.tables.create_table')
-create_view = app.signature('mipengine.node.tasks.views.create_view')
-get_views = app.signature('mipengine.node.tasks.views.get_views')
-get_view_data = app.signature('mipengine.node.tasks.views.get_view_data')
-get_view_schema = app.signature('mipengine.node.tasks.views.get_view_schema')
-get_view_schema = app.signature('mipengine.node.tasks.views.get_view_schema')
-clean_up = app.signature('mipengine.node.tasks.common.clean_up')
+import pymonetdb
+import pytest
+
+from mipengine.common.node_tasks_DTOs import ColumnInfo
+from mipengine.common.node_tasks_DTOs import TableData
+from mipengine.common.node_tasks_DTOs import TableSchema
+from mipengine.tests.node import nodes_communication
+
+local_node_id = "localnode1"
+local_node = nodes_communication.get_celery_app(local_node_id)
+local_node_create_view = nodes_communication.get_celery_create_view_signature(local_node)
+local_node_get_views = nodes_communication.get_celery_get_views_signature(local_node)
+local_node_get_view_data = nodes_communication.get_celery_get_table_data_signature(local_node)
+local_node_get_view_schema = nodes_communication.get_celery_get_table_schema_signature(local_node)
+local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
+
+context_id = "regrEssion"
 
 
-def test_views():
-    context_id = "regrEssion"
-    columns = ["subjectcode", "dataset", "subjectvisitid", "subjectvisitdate"]
+@pytest.fixture(autouse=True)
+def cleanup_views():
+    yield
+
+    local_node_cleanup.delay(context_id=context_id.lower()).get()
+
+
+def test_create_and_get_view():
+    columns = ["dataset", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
     datasets = ["edsd"]
-    table_1_name = create_view.delay(context_id, json.dumps(columns), json.dumps(datasets)).get()
-    tables = get_views.delay(context_id).get()
-    assert table_1_name in tables
-    schema = [
-        ColumnInfo('subjectcode', 'clob'),
-        ColumnInfo('dataset', 'clob'),
-        ColumnInfo('subjectvisitid', 'clob'),
-        ColumnInfo('subjectvisitdate', 'clob')]
-    schema_result = get_view_schema.delay(table_1_name).get()
-    object_schema_result = ColumnInfo.schema().loads(schema_result, many=True)
-    assert object_schema_result == schema
-    table_data_json = get_view_data.delay(table_1_name).get()
-    table_data = TableData.from_json(table_data_json)
-    assert table_data.data == []
-    assert table_data.schema == schema
+    pathology = "tbi"
+    view_name = local_node_create_view.delay(context_id=context_id,
+                                             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                             pathology=pathology,
+                                             datasets=datasets,
+                                             columns=columns,
+                                             filters_json="filters"
+                                             ).get()
+    views = local_node_get_views.delay(context_id=context_id).get()
+    assert view_name in views
 
-    clean_up.delay(context_id).get()
+    schema = TableSchema([
+        ColumnInfo('dataset', 'text'),
+        ColumnInfo('age_value', 'int'),
+        ColumnInfo('gcs_motor_response_scale', 'text'),
+        ColumnInfo('pupil_reactivity_right_eye_result', 'text')])
+    schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
+    assert schema == TableSchema.from_json(schema_result_json)
 
+    view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
+    view_data = TableData.from_json(view_data_json)
+    assert view_data.data == []
+    assert view_data.schema == schema
 
-
+    view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()
+    view_schema = TableSchema.from_json(view_schema_json)
+    assert view_schema == schema

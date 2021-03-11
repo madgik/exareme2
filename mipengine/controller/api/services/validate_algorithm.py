@@ -5,19 +5,19 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.common.node_catalog import NodeCatalog
+from mipengine.common.node_catalog import node_catalog
 from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmInputDataDTO
 from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequestDTO
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO
-from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationsDTOs
+from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import algorithm_specificationsDTOs
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import CrossValidationSpecificationsDTO
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import InputDataSpecificationDTO
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import InputDataSpecificationsDTO
 from mipengine.controller.api.errors.exceptions import BadRequest
 from mipengine.controller.api.errors.exceptions import BadUserInput
-from mipengine.controller.common.algorithms_specifications import GenericParameterSpecification
-from mipengine.controller.common.common_data_elements import CommonDataElement
-from mipengine.controller.common.common_data_elements import CommonDataElements
+from mipengine.controller.algorithms_specifications import GenericParameterSpecification
+from mipengine.common.common_data_elements import CommonDataElement
+from mipengine.common.common_data_elements import common_data_elements
 
 
 def validate_algorithm(algorithm_name: str, request_body: str):
@@ -29,7 +29,7 @@ def validate_algorithm(algorithm_name: str, request_body: str):
     """
 
     # Check that algorithm exists
-    if str.lower(algorithm_name) not in AlgorithmSpecificationsDTOs().algorithms_dict.keys():
+    if str.lower(algorithm_name) not in algorithm_specificationsDTOs.algorithms_dict.keys():
         raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
 
     # Validate algorithm body has proper format
@@ -41,7 +41,7 @@ def validate_algorithm(algorithm_name: str, request_body: str):
         raise BadRequest(f"The algorithm body does not have the proper format.")
 
     # Get algorithm specification and validate the algorithm input
-    algorithm_specs = AlgorithmSpecificationsDTOs().algorithms_dict[algorithm_name]
+    algorithm_specs = algorithm_specificationsDTOs.algorithms_dict[algorithm_name]
     validate_algorithm_parameters(algorithm_specs, algorithm_request)
 
 
@@ -88,7 +88,6 @@ def validate_inputdata_pathology_and_dataset_values(pathology: str,
     that the datasets belong in the pathology.
     """
 
-    node_catalog = NodeCatalog()
     if not node_catalog.pathology_exists(pathology):
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
 
@@ -163,7 +162,7 @@ def validate_inputdata_cde_value(cde: str,
     3) that it has a statistical type allowed from the specification and
     4) that it has the proper amount of enumerations.
     """
-    pathology_cdes: Dict[str, CommonDataElement] = CommonDataElements().pathologies[pathology]
+    pathology_cdes: Dict[str, CommonDataElement] = common_data_elements.pathologies[pathology]
     if cde not in pathology_cdes.keys():
         raise BadUserInput(f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
                            f"does not exist in pathology '{pathology}'.")

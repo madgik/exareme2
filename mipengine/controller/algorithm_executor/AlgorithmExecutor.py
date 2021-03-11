@@ -28,14 +28,13 @@ class AlgorithmExecutor:
         #DEBUG
         # time.sleep(10)
         #------------------
-        
+
         self.algorithm_name = algorithm_name
         self.context_id = get_a_uniqueid()  # TODO should this be passed as a param??
 
         node_catalog = NodeCatalog()
         global_node = node_catalog.get_global_node()
         local_nodes = node_catalog.get_nodes_with_any_of_datasets(algorithm_request_dto.inputdata.datasets)
-
 
         # instantiate the GLOBAL Node object
         self.global_node = self.Node(node_id=global_node.nodeId,

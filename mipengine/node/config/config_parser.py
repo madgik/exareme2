@@ -1,20 +1,8 @@
-import configparser
+from configparser import ConfigParser
 import importlib.resources as pkg_resources
 
-from mipengine.node import config
+from mipengine.node import config as config_package
 
-
-class Singleton(type):
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-
-class Config(metaclass=Singleton):
-    def __init__(self):
-        self.config = configparser.ConfigParser()
-        config_str = pkg_resources.read_text(config, 'config.ini')
-        self.config.read_string(config_str)
+config = ConfigParser()
+config_str = pkg_resources.read_text(config_package, 'config.ini')
+config.read_string(config_str)

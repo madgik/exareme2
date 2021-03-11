@@ -1,15 +1,17 @@
-import json
+from typing import List
+
 from celery import shared_task
 
+from mipengine.common.node_tasks_DTOs import TableInfo
+from mipengine.node.monetdb_interface import common_action
 from mipengine.node.monetdb_interface import merge_tables
-from mipengine.node.monetdb_interface import tables
-from mipengine.node.monetdb_interface.common import config
-from mipengine.node.monetdb_interface.common import create_table_name
-from mipengine.node.tasks.data_classes import TableInfo
+from mipengine.node.monetdb_interface.common_action import config
+from mipengine.node.monetdb_interface.common_action import create_table_name
+from mipengine.node.monetdb_interface.merge_tables import validate_tables_can_be_merged
 
 
 @shared_task
-def get_merge_tables(context_id: str) -> str:
+def get_merge_tables(context_id: str) -> List[str]:
     """
         Parameters
         ----------
@@ -18,32 +20,33 @@ def get_merge_tables(context_id: str) -> str:
 
         Returns
         ------
-        str --> (jsonified List[str])
-            A list of merged table names in a jsonified format
+        List[str]
+            A list of merge table names
     """
-    return json.dumps(merge_tables.get_merge_tables_names(context_id))
+    return merge_tables.get_merge_tables_names(context_id)
 
 
-# TODO Add in method description the jsonified input types
 @shared_task
-def create_merge_table(context_id: str, partition_table_names_json: str) -> str:
+def create_merge_table(context_id: str, command_id: str, table_names: List[str]) -> str:
     """
         Parameters
         ----------
         context_id : str
             The id of the experiment
-        partition_table_names_json : str --> (jsonified List[str])
-            Its a list of names of the tables to be merged in a jsonified format
+        command_id : str
+            The id of the command that the merge table
+        table_names: List[str]
+            Its a list of names of the tables to be merged
 
         Returns
         ------
         str
             The name(string) of the created merge table in lower case.
     """
-    partition_table_names = json.loads(partition_table_names_json)
-    merge_table_name = create_table_name("merge", context_id, config["node"]["identifier"])
-    schema = tables.get_table_schema(partition_table_names[0])
+    validate_tables_can_be_merged(table_names)
+    schema = common_action.get_table_schema(table_names[0])
+    merge_table_name = create_table_name("merge", command_id, context_id, config["node"]["identifier"])
     table_info = TableInfo(merge_table_name.lower(), schema)
     merge_tables.create_merge_table(table_info)
-    merge_tables.add_to_merge_table(merge_table_name, partition_table_names)
+    merge_tables.add_to_merge_table(merge_table_name, table_names)
     return merge_table_name.lower()
