@@ -51,7 +51,7 @@ INSERT INTO matrix VALUES (1, 1, 8.1);
 
 udf, query = generate_udf_application_queries("sql.zeros1", [5], {})
 print(udf.substitute(udf_name="zeros1"))
-print(query.substitute(udf_name="zeros1", table_name="zeros1_result"))
+print(query.substitute(udf_name="zeros1", table_name="zeros1_result", node_id='12345'))
 print()
 # UDF result
 # +------+--------------------------+
@@ -66,7 +66,7 @@ print()
 
 udf, query = generate_udf_application_queries("sql.matrix_dot_vector", [matr, vec], {})
 print(udf.substitute(udf_name="matrix_dot_vector"))
-print(query.substitute(udf_name="matrix_dot_vector", table_name="matrix_dot_vector_results"))
+print(query.substitute(udf_name="matrix_dot_vector", table_name="matrix_dot_vector_results", node_id='12345'))
 print()
 # UDF result
 # +------+--------------------------+
@@ -78,7 +78,7 @@ print()
 
 udf, query = generate_udf_application_queries("sql.tensor1_mult", [tens1, tens1], {})
 print(udf.substitute(udf_name="tensor_mult"))
-print(query.substitute(udf_name="tensor_mult", table_name="tensor_mult_result"))
+print(query.substitute(udf_name="tensor_mult", table_name="tensor_mult_result", node_id='12345'))
 print()
 # UDF result
 # +------+--------------------------+
@@ -92,7 +92,7 @@ print()
 
 udf, query = generate_udf_application_queries("sql.tensor1_add", [tens1, tens1], {})
 print(udf.substitute(udf_name="tensor_add"))
-print(query.substitute(udf_name="tensor_add", table_name="tensor_add_result"))
+print(query.substitute(udf_name="tensor_add", table_name="tensor_add_result", node_id='12345'))
 print()
 # UDF result
 # +------+--------------------------+
@@ -106,7 +106,7 @@ print()
 
 udf, query = generate_udf_application_queries("sql.tensor1_sub", [tens1, tens1], {})
 print(udf.substitute(udf_name="tensor_sub"))
-print(query.substitute(udf_name="tensor_sub", table_name="tensor_sub_result"))
+print(query.substitute(udf_name="tensor_sub", table_name="tensor_sub_result", node_id='12345'))
 print()
 # UDF result
 # +------+--------------------------+
@@ -120,7 +120,7 @@ print()
 
 udf, query = generate_udf_application_queries("sql.tensor1_div", [tens1, tens1], {})
 print(udf.substitute(udf_name="tensor_div"))
-print(query.substitute(udf_name="tensor_div", table_name="tensor_div_result"))
+print(query.substitute(udf_name="tensor_div", table_name="tensor_div_result", node_id='12345'))
 print()
 # UDF result
 # +------+--------------------------+
@@ -134,7 +134,7 @@ print()
 
 udf, query = generate_udf_application_queries("sql.const_tensor1_sub", [1, tens1], {})
 print(udf.substitute(udf_name="const_tensor_sub1"))
-print(query.substitute(udf_name="const_tensor_sub1", table_name="const_tensor_sub1_result"))
+print(query.substitute(udf_name="const_tensor_sub1", table_name="const_tensor_sub1_result", node_id='12345'))
 print()
 # UDF result
 # +------+--------------------------+
@@ -148,7 +148,7 @@ print()
 
 udf, query = generate_udf_application_queries("sql.mat_transp_dot_diag_dot_mat", [matr, vec], {})
 print(udf.substitute(udf_name="mat_transp_dot_diag_dot_mat"))
-print(query.substitute(udf_name="mat_transp_dot_diag_dot_mat", table_name="mat_transp_dot_diag_dot_mat_result"))
+print(query.substitute(udf_name="mat_transp_dot_diag_dot_mat", table_name="mat_transp_dot_diag_dot_mat_result", node_id='12345'))
 print()
 # UDF result
 # +------+------+--------------------------+
@@ -162,7 +162,7 @@ print()
 
 udf, query = generate_udf_application_queries("sql.mat_transp_dot_diag_dot_vec", [matr, diag, vec], {})
 print(udf.substitute(udf_name="mat_transp_dot_diag_dot_vec"))
-print(query.substitute(udf_name="mat_transp_dot_diag_dot_vec", table_name="mat_transp_dot_diag_dot_vec_result"))
+print(query.substitute(udf_name="mat_transp_dot_diag_dot_vec", table_name="mat_transp_dot_diag_dot_vec_result", node_id='12345'))
 print()
 # UDF result
 # +------+--------------------------+
