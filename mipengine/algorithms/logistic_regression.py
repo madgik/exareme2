@@ -18,7 +18,7 @@ PREC = 1e-6
 def logistic_regression(y: TableT, X: TableT, classes: LiteralParameterT):
     # init model
     nobs, ncols = X.shape
-    coeff = zeros((ncols,))
+    coeff = zeros1(ncols)
     logloss = 1e6
     # binarize labels
     ybin = binarize_labels(y, classes)
@@ -46,8 +46,8 @@ DT = TypeVar("DT")
 ND = TypeVar("ND")
 
 # TODO SQL UDF
-def zeros(shape):
-    return numpy.zeros(shape)
+def zeros1(n):
+    return numpy.zeros((n,))
 
 
 @udf

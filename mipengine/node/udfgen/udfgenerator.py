@@ -36,6 +36,7 @@ from mipengine.algorithms import TensorT
 from mipengine.algorithms import LoopbackTensorT
 from mipengine.algorithms import LiteralParameterT
 from mipengine.algorithms import ScalarT
+from mipengine.node.udfgen.sql_linalg import SQL_LINALG_QUERIES
 
 
 CREATE_OR_REPLACE = "CREATE OR REPLACE"
@@ -193,6 +194,17 @@ def generate_udf_application_queries(
     if keyword_args:
         msg = "Calling with keyword arguments is not implemented yet."
         raise NotImplementedError(msg)
+
+    # --> Hack for calling hard-coded UDFs
+    if func_name.startswith("sql"):
+        udf_gen_func = SQL_LINALG_QUERIES[func_name]
+        udf_gen_func_args = [
+            t.name if isinstance(t, TableInfo) else t for t in positional_args
+        ]
+        udf_def, udf_sel = udf_gen_func(*udf_gen_func_args)
+        udf_create_table = generate_udf_create_table(udf_sel)
+        return string.Template(udf_def), string.Template(udf_create_table)
+    # <--
     udf_def = generate_udf_def(func_name, positional_args, keyword_args)
     udf_sel = generate_udf_select_stmt(func_name, positional_args, keyword_args)
     udf_create_table = generate_udf_create_table(udf_sel)
