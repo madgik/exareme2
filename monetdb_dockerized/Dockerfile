@@ -32,6 +32,7 @@ RUN apt update && apt install -y libssl-dev libpcre3 libpcre3-dev pkg-config uui
 
 RUN apt update && apt install -y python3-pip
 
+RUN pip3 install numpy
 #######################################################
 # Install monetdb
 #######################################################
@@ -48,7 +49,7 @@ RUN dpkg -i libstreams0v5_0.7.8-2.2_amd64.deb libstreams-dev_0.7.8-2.2_amd64.deb
 #######################################################
 # Setup bootstrap file
 #######################################################
-COPY config/bootstrap.sh /home/bootstrap.sh
+COPY monetdb_dockerized/config/bootstrap.sh /home/bootstrap.sh
 RUN chmod 775 /home/bootstrap.sh
 
 EXPOSE 50000
@@ -56,7 +57,6 @@ EXPOSE 50000
 #######################################################
 # Install python libraries
 #######################################################
-RUN pip3 install numpy
 RUN pip3 install scipy
 RUN pip3 install pandas
 
@@ -64,8 +64,7 @@ RUN pip3 install pandas
 # Add /home/udflib to python path and copy
 # necessary tools
 #######################################################
-COPY monetdb_dockerized/hijack_pythonpath.pth /usr/local/lib/python3.8/dist-packages/
 COPY mipengine/node/udfgen/udfio.py /home/udflib/
-
+ENV PYTHONPATH "/home/udflib/"
 
 CMD ["/bin/bash","/home/bootstrap.sh"]
