@@ -45,7 +45,7 @@ def logistic_regression(y: TableT, X: TableT, classes: LiteralParameterT):
 DT = TypeVar("DT")
 ND = TypeVar("ND")
 
-# TODO SQL UDF
+# SQL UDF
 def zeros1(n):
     return numpy.zeros((n,))
 
@@ -60,7 +60,7 @@ def binarize_labels(y: TableT, classes: LiteralParameterT) -> TensorT(int, 1):
     return binarized
 
 
-# TODO SQL UDF
+# SQL UDF
 def matrix_dot_vector(M, v):
     result = M @ v
     return result
@@ -74,43 +74,43 @@ def tensor_expit(t: TensorT[DT, ND]) -> TensorT[DT, ND]:
     return result
 
 
-# TODO SQL UDF
+# SQL UDF
 def tensor_mult(t1, t2):
     result = t1 * t2
     return result
 
 
-# TODO SQL UDF
+# SQL UDF
 def tensor_add(t1, t2):
     result = t1 + t2
     return result
 
 
-# TODO SQL UDF
+# SQL UDF
 def tensor_sub(t1, t2):
     result = t1 - t2
     return result
 
 
-# TODO SQL UDF
+# SQL UDF
 def tensor_div(t1, t2):
     result = t1 / t2
     return result
 
 
-# TODO SQL UDF
+# SQL UDF
 def const_tensor_sub(const, t):
     result = const - t
     return result
 
 
-# TODO SQL UDF
+# SQL UDF
 def mat_transp_dot_diag_dot_mat(M, d):
     result = M.T @ numpy.diag(d) @ M
     return result
 
 
-# TODO SQL UDF
+# SQL UDF
 def mat_transp_dot_diag_dot_vec(M, d, v):
     result = M.T @ numpy.diag(d) @ v
     return result
