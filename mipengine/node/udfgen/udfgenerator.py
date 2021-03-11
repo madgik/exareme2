@@ -625,6 +625,8 @@ def generate_udf_select_stmt(
 
     from_subexpr = prettify(SEP.join(table_names))
 
+    nodeid_column = " $node_id" + AS + "node_id"
+
     if RelationT == main_input_type:
         head_table, *tail_tables = table_names
         join_on = [f"{head_table}.row_id={table}.row_id" for table in tail_tables]
@@ -661,7 +663,7 @@ def generate_udf_select_stmt(
             subquery_lines.append(WHERE)
             subquery_lines.append(indent(where_subexpr, PRFX))
         subquery = LN.join(subquery_lines)
-        select_lines = [SELECT + STAR]
+        select_lines = [SELECT + nodeid_column + SEP + STAR]
         select_lines.append(FROM)
         select_lines.append(indent(udf_name + parens(parens(subquery)), PRFX))
         select_stmt = LN.join(select_lines)

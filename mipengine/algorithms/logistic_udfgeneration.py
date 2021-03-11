@@ -174,7 +174,7 @@ print()
 
 udf, query = generate_udf_application_queries("logistic_regression.tensor_expit", [tens1], {})
 print(udf.substitute(udf_name="tensor_expit"))
-print(query.substitute(udf_name="tensor_expit", table_name="expit_result"))
+print(query.substitute(udf_name="tensor_expit", table_name="expit_result", node_id='12345'))
 print()
 # UDF result
 # +------+--------------------------+
@@ -211,7 +211,7 @@ print()
 tens3 = TableInfo(name="tens3", schema=[ColumnInfo("dim0", "int"),ColumnInfo("dim1", "int"), ColumnInfo("val", "float")])
 udf, query = generate_udf_application_queries("logistic_regression.mat_inverse", [tens3], {})
 print(udf.substitute(udf_name="mat_inverse"))
-print(query.substitute(udf_name="mat_inverse", table_name="mat_inverse_result"))
+print(query.substitute(udf_name="mat_inverse", table_name="mat_inverse_result", node_id='12345'))
 # UDF result
 # +------+------+--------------------------+
 # | dim0 | dim1 | val                      |
