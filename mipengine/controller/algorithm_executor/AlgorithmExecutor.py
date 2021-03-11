@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 
 import datetime
 import random
@@ -9,26 +9,33 @@ from celery import Celery
 
 
 from mipengine.common.node_catalog import NodeCatalog
-from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequest
+from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequestDTO
 from mipengine.common.node_tasks_DTOs import ColumnInfo, TableSchema, TableInfo
-from mipengine.common.node_tasks_DTOs import TableView, TableData, UDFInfo
+from mipengine.common.node_tasks_DTOs import TableView, TableData
+from mipengine.common.node_tasks_DTOs import UDFArgument
 
-# TASK_TIMEOUT = 2
+#DEBUG
+import pdb
+import time
+
+# TODO: Too many things happening in all the initialiazers. Especially the AlgorithmExecutor __init__ is called synchronuously from the server
+# TODO: TASK_TIMEOUT
+
 
 class AlgorithmExecutor:
-    def __init__(self, algorithm_request_dto: AlgorithmRequest):
+    def __init__(self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO):
 
-        print("(AlgorithmExecutor::__init__) just in")
-
+        #DEBUG
+        # time.sleep(10)
+        #------------------
+        
+        self.algorithm_name = algorithm_name
         self.context_id = get_a_uniqueid()  # TODO should this be passed as a param??
 
         node_catalog = NodeCatalog()
         global_node = node_catalog.get_global_node()
-        local_nodes = node_catalog.get_nodes_with_datasets(algorithm_request_dto.datasets)
+        local_nodes = node_catalog.get_nodes_with_any_of_datasets(algorithm_request_dto.inputdata.datasets)
 
-        # TODO: As is now, if multiple datasets are passed only the nodes of the 1st dataset will be processed
-        # TODO: node_catalog returns List[List[Node]] this has to be fixed there
-        local_nodes = [node for node in local_nodes[0]]
 
         # instantiate the GLOBAL Node object
         self.global_node = self.Node(node_id=global_node.nodeId,
@@ -36,11 +43,14 @@ class AlgorithmExecutor:
                                      monetdb_url=f"{global_node.monetdbHostname}:{global_node.monetdbPort}",
                                      context_id=self.context_id)
 
+        algorithm_request_dto.inputdata.x.append("dataset")
+        algorithm_request_dto.inputdata.y.append("dataset")
         initial_view_tables_params = {"commandId": get_next_command_id(),
-                                      "pathology": algorithm_request_dto.pathology,
-                                      "datasets": algorithm_request_dto.datasets,
-                                      "columns": algorithm_request_dto.columns,
-                                      "filters": algorithm_request_dto.filter}
+                                      "pathology": algorithm_request_dto.inputdata.pathology,
+                                      "datasets": algorithm_request_dto.inputdata.datasets,
+                                      "x": algorithm_request_dto.inputdata.x,
+                                      "y": algorithm_request_dto.inputdata.y,
+                                      "filters": algorithm_request_dto.inputdata.filters}
 
         # instantiate the LOCAL Node objects
         self.local_nodes = []
@@ -52,19 +62,16 @@ class AlgorithmExecutor:
                                               context_id=self.context_id))
 
         self.execution_interface = self.AlgorithmExecutionInterface(global_node=self.global_node,
-                                                                    local_nodes=self.local_nodes)
+                                                                    local_nodes=self.local_nodes,
+                                                                    algorithm_name=self.algorithm_name)
 
         # import the algorithm flow module
-        algorithm_flow_file = algorithm_request_dto.algorithm_name
-        # print(f"will import-> mipengine.algorithms.{algorithm_flow_file}_flow.py")
-        self.algorithm_flow_module = importlib.import_module(f"mipengine.algorithms.{algorithm_flow_file}_flow")
-
-        # print(f"(AlgorithmExecutor::__init__) algorithm_flow_module->{algorithm_flow_module}")
+        self.algorithm_flow_module = importlib.import_module(f"mipengine.algorithms.{self.algorithm_name}_flow")
 
     def run(self):
         algorithm_result = self.algorithm_flow_module.run(self.execution_interface)
 
-        # self.clean_up()
+        self.clean_up()
 
         return algorithm_result
 
@@ -105,7 +112,7 @@ class AlgorithmExecutor:
 
                 "get_udfs": "mipengine.node.tasks.udfs.get_udfs",
                 "run_udf": "mipengine.node.tasks.udfs.run_udf",
-                "get_udf": "mipengine.node.tasks.udfs.get_udf",
+                "get_run_udf_query": "mipengine.node.tasks.udfs.get_run_udf_query",
 
                 "clean_up": "mipengine.node.tasks.common.clean_up"
             }
@@ -119,18 +126,31 @@ class AlgorithmExecutor:
             return self.__initial_view_tables
 
         def __create_initial_view_tables(self, initial_view_tables_params):
-            # print(f"initial_view_tables_params->{initial_view_tables_params}")
-            # the initial_view_table_name will be the view created from the pathology, datasets, x, y etc passed to the algorithm
-            initial_view_tables = {}
-            for variables_set in initial_view_tables_params["columns"]:
-                command_id = str(initial_view_tables_params["commandId"]) + variables_set.name
-                view_name = self.create_view(command_id=command_id,
-                                             pathology=initial_view_tables_params["pathology"],
-                                             datasets=initial_view_tables_params["datasets"],
-                                             columns=variables_set.column_names,
-                                             filters=initial_view_tables_params["filters"])
 
-                initial_view_tables[variables_set.name] = view_name
+            # will contain the views created from the pathology, datasets. Its keys are the variable sets x, y etc
+            initial_view_tables = {}
+            
+            # initial view for variables in X
+            variable = "x"
+            command_id = str(initial_view_tables_params["commandId"]) + variable
+            view_name = self.create_view(command_id=command_id,
+                                         pathology=initial_view_tables_params["pathology"],
+                                         datasets=initial_view_tables_params["datasets"],
+                                         columns=initial_view_tables_params[variable],
+                                         filters=initial_view_tables_params["filters"])
+
+            initial_view_tables["x"] = view_name
+
+            # initial view for variables in Y
+            variable = "y"
+            command_id = str(initial_view_tables_params["commandId"]) + variable
+            view_name = self.create_view(command_id=command_id,
+                                         pathology=initial_view_tables_params["pathology"],
+                                         datasets=initial_view_tables_params["datasets"],
+                                         columns=initial_view_tables_params[variable],
+                                         filters=initial_view_tables_params["filters"])
+
+            initial_view_tables["y"] = view_name
 
             return initial_view_tables
 
@@ -166,22 +186,23 @@ class AlgorithmExecutor:
         def create_view(self, command_id: str, pathology: str, datasets: List[str], columns: List[str], filters: List[str]) -> TableName:
             task_signature = self.__celery_obj.signature(self.task_signatures_str["create_view"])
             
-            # # -----------DEBUG
+            # -----------DEBUG
+            # print(f"(Node::create_view) node_id->{self.node_id} ")
             # print(f"(Node::create_view) context_id->{self.__context_id} type->{type(self.__context_id)}")
             # print(f"(Node::create_view) command_id->{command_id} type->{type(command_id)}")
             # print(f"(Node::create_view) pathology->{pathology} type->{type(pathology)}")
             # print(f"(Node::create_view) datasets->{datasets} type->{type(datasets)}")
             # print(f"(Node::create_view) columns->{columns} type->{type(columns)}")
-            # print(f"(Node::create_view) filters->{filters} type->{type(filters)}")
-            # # --------------
+            # print(f"(Node::create_view) filters->{filters} type->{type(filters)}\n")
+            # --------------
 
             result = task_signature.delay(context_id=self.__context_id,
                                           command_id=command_id,
                                           pathology=pathology,
                                           datasets=datasets,
                                           columns=columns,
-                                          filters_json=filters)
-            result = result.get()
+                                          filters_json=filters).get()
+
             return self.TableName(result)
 
         # MERGE TABLES functionality
@@ -209,23 +230,23 @@ class AlgorithmExecutor:
             return self.TableName(TableInfo(result).name)
 
         # UDFs functionality
-        def queue_run_udf(self, command_id: str, udf_input: UDFInput) -> AsyncResult:
+        def queue_run_udf(self, command_id: str, func_name: str, positional_args: List[UDFArgument]) -> "AsyncResult":
             task_signature = self.__celery_obj.signature(self.task_signatures_str["run_udf"])
-            return task_signature.delay(command_id=command_id, context_id=self.__context_id, udf_input=udf_input)
+            return task_signature.delay(command_id=command_id, context_id=self.__context_id, func_name=func_name, positional_args=positional_args)
 
-        def get_result_run_udf(self, async_result) -> str:
-            result = async_result.get()
-            return self.TableName(result)
+        # def get_result_run_udf(self, async_result) -> str:
+        #     result = async_result.get()
+        #     return self.TableName(result)
 
-        def get_udfs(self, algorithm_name) -> List["UDFInfo"]:
+        def get_udfs(self, algorithm_name) -> List[str]:
             task_signature = self.__celery_obj.signature(self.task_signatures_str["get_udfs"])
             result = task_signature.delay(algorithm_name).get()
             return result
 
         # return the generated monetdb pythonudf
-        def validate_udf(self, command_id: str, udf_input: UDFInput) -> str:
-            task_signature = self.__celery_obj.signature(self.task_signatures_str["run_udf"])
-            result = task_signature.delay(command_id=command_id, context_id=self.__context_id, udf_input=udf_input).get()
+        def get_run_udf_query(self, command_id: str, func_name: str, positional_args: List[UDFArgument]) -> Tuple[str,str]:
+            task_signature = self.__celery_obj.signature(self.task_signatures_str["get_run_udf_query"])
+            result = task_signature.delay(command_id=command_id, context_id=self.__context_id, func_name=func_name, positional_args=positional_args).get()
             return result
 
         # CLEANUP functionality
@@ -267,12 +288,13 @@ class AlgorithmExecutor:
 
     class AlgorithmExecutionInterface:
 
-        def __init__(self, global_node, local_nodes):
+        def __init__(self, global_node, local_nodes, algorithm_name):
             self.global_node = global_node
             self.local_nodes = local_nodes
-            # TODO: validate all local nodes have created the base_view_table??
+            self._algorithm_name = algorithm_name
 
-            self._initial_view_tables = {}  # variable:LocalTable
+            # TODO: validate all local nodes have created the base_view_table??
+            self._initial_view_tables = {}  # {variable:LocalTable}
             tmp_variable_node_table = {}
             
             # TODO: clean up this mindfuck??
@@ -286,8 +308,6 @@ class AlgorithmExecutor:
                         tmp_variable_node_table[variable_name] = {node: table_name}
                     # print(f"tmp_variable_node_table-> {tmp_variable_node_table}\n\n")
 
-            # print(f"\n\ntmp_variable_node_table->{tmp_variable_node_table}\n\n")
-
             self._initial_view_tables = {variable_name: self.LocalNodeTable(node_table) for (variable_name, node_table) in tmp_variable_node_table.items()} 
 
         @property
@@ -295,7 +315,7 @@ class AlgorithmExecutor:
             return self._initial_view_tables
 
         # UDFs functionality
-        def run_udf_on_local_nodes(self, udf_name: str, udf_input: "UDFInput", share_to_global: bool):  # -> GlobalNodeTable or LocalNodeTable
+        def run_udf_on_local_nodes(self, func_name: str, positional_args: List[UDFArgument], share_to_global: bool):  # -> GlobalNodeTable or LocalNodeTable
             # TREAT ALL NODES AS BEEING ONE NODE???
             # <tableType>_<commandId>_<contextIdentifier> to the algorithm developper?
 
@@ -306,9 +326,11 @@ class AlgorithmExecutor:
             # queue create_remote_table on global for each of the generated tables
             # create merge table on global node to merge the remote tables
 
+            func_name = f"{self.algorithm_name}.{func_name}"
+
             tasks = {}
             for node in self._local_nodes:
-                task = node.run_udf(command_id=get_a_uniqueid(), udf_name=udf_name, udf_input=udf_input)
+                task = node.run_udf(command_id=get_a_uniqueid(), func_name=func_name, positional_args=positional_args)
                 tasks[node] = task
 
             # udf_result_tables = []
@@ -333,15 +355,17 @@ class AlgorithmExecutor:
             else:
                 return self.LocalNodeTable(nodes_tables=udf_result_tables)
 
-        def run_udf_on_global_node(self, udf_name: str, udf_input: "UDFInput", share_to_locals: bool):  # -> GlobalNodeTable or LocalNodeTable
+        def run_udf_on_global_node(self, func_name: str, positional_args: List[UDFArgument], share_to_locals: bool):  # -> GlobalNodeTable or LocalNodeTable
             # check the input tables are GlobalNodeTable(s)
             # queue exec_udf on the global node
             # wait for it to complete
             # a new table was generated on global node
             # queue create_remote_table on each of the local nodes for the ganerated table
 
+            func_name = f"{self.algorithm_name}.{func_name}"
+
             # TODO: try/catches tasks can throw exceptions
-            udf_result_table = self.global_node.run_udf(command_id=get_a_uniqueid(), udf_name=udf_name, udf_input=udf_input).get()
+            udf_result_table = self.global_node.run_udf(command_id=get_a_uniqueid(), func_name=func_name, positional_args=positional_args).get()
 
             if share_to_locals:
                 local_nodes_tables = {}
@@ -407,3 +431,5 @@ def get_next_command_id():
     else:
         get_next_command_id.index = 0
     return get_next_command_id.index
+
+

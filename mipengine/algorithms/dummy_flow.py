@@ -1,3 +1,5 @@
+import time
+
 def run(runtime_interface):
     print("\n(dummy_flow.py::AlgorithmFlow::run) just in")
 
@@ -5,13 +7,16 @@ def run(runtime_interface):
 
     node = runtime_interface.local_nodes[0]
     table = runtime_interface.local_nodes[0].initial_view_tables["x"]
-    data = runtime_interface.get_table_data_from_local(node,table)
-    print(f"data->{data}\n")
+    data = runtime_interface.get_table_data_from_local(node, table)
+    # print(f"data->{data}\n")
 
-    node = runtime_interface.local_nodes[1]
-    table = runtime_interface.local_nodes[1].initial_view_tables["y"]
-    data = runtime_interface.get_table_data_from_local(node,table)
-    print(f"data->{data}\n")
+    #DEBUG
+    # time.sleep(15)
+
+    # node = runtime_interface.local_nodes[1]
+    # table = runtime_interface.local_nodes[1].initial_view_tables["y"]
+    # data = runtime_interface.get_table_data_from_local(node, table)
+    # print(f"data->{data}\n")
 
     # # # NODE insides..
     # global_node_initial_view_tables = runtime_interface.global_node.initial_view_tables
@@ -33,4 +38,5 @@ def run(runtime_interface):
     # print(f"node1_base_view_schema_y->{node1_initial_view_table_schema_y}   type->{type(node1_initial_view_table_schema_y)}")
 
 
-    return "ok"
+    # return "ok"
+    return data

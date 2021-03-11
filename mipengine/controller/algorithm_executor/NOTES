@@ -1,5 +1,0 @@
-reset the db...
-docker rm -f <643e69d>
-docker run -d -P -p 50000:50000 --name monetdb-11 thanasulas/monetdb:11.37.11
-docker exec -it <864bb> /bin/bash
-mclient -u monetdb -d db
