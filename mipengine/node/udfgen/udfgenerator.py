@@ -466,6 +466,8 @@ class UDFCodeGenerator:
     def _build_return_obj(self):
         return_cons = self.funcparts.get_return_obj_constructor()
         return_args = self.funcparts.return_bound_typevars
+        if 'name' in inspect.signature(return_cons).parameters:
+            return_args['name'] = self.funcparts.return_name
         return return_cons(**return_args)
 
     def _return_obj_has_known_attrs(self) -> bool:
