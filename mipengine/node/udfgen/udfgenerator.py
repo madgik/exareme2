@@ -52,7 +52,7 @@ END = "}"
 DROP_IF_EXISTS = "DROP TABLE IF EXISTS "
 CREATE_TABLE = "CREATE TABLE "
 SELECT = "SELECT"
-STAR = " * "
+STAR = "*"
 FROM = "FROM"
 WHERE = "WHERE"
 AS = " AS "
@@ -562,7 +562,7 @@ class UDFCodeGenerator:
         literal_defs = []
         for name in self.literal_params:
             ltr = inputs[name]
-            literal_defs += [f"{name} = {ltr.value}"]
+            literal_defs += [f"{name} = {ltr}"]
         return literal_defs
 
 
