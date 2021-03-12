@@ -4,10 +4,10 @@ from typing import Union
 import pymonetdb
 
 from mipengine.common.node_catalog import node_catalog
-from mipengine.common.validate_identifier_names import validate_identifier_names
-from mipengine.node.node import config
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
+from mipengine.common.validate_identifier_names import validate_identifier_names
+from mipengine.node.node import config
 
 MONETDB_VARCHAR_SIZE = 50
 
@@ -153,6 +153,11 @@ def get_table_data(table_name: str, table_type: str = None) -> List[List[Union[s
         """)
 
     return cursor.fetchall()
+
+
+def get_table_rows(table_name: str) -> int:
+    cursor.execute(f"select count(*) from {table_name}")
+    return cursor.next()[0]
 
 
 @validate_identifier_names

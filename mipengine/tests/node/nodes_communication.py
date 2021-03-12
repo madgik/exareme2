@@ -62,5 +62,17 @@ def get_celery_get_table_data_signature(celery_app):
     return celery_app.signature('mipengine.node.tasks.common.get_table_data')
 
 
+def get_celery_get_udfs_signature(celery_app):
+    return celery_app.signature('mipengine.node.tasks.udfs.get_udfs')
+
+
+def get_celery_run_udf_signature(celery_app):
+    return celery_app.signature('mipengine.node.tasks.udfs.run_udf')
+
+
+def get_celery_get_run_udf_query_signature(celery_app):
+    return celery_app.signature('mipengine.node.tasks.udfs.get_run_udf_query')
+
+
 def get_celery_cleanup_signature(celery_app):
     return celery_app.signature('mipengine.node.tasks.common.clean_up')

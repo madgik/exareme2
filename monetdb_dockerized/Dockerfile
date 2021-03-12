@@ -32,8 +32,7 @@ RUN apt update && apt install -y libssl-dev libpcre3 libpcre3-dev pkg-config uui
 
 RUN apt update && apt install -y python3-pip
 
-RUN pip3 install numpy scipy matplotlib ipython jupyter pandas sympy nose
-
+RUN pip3 install numpy
 #######################################################
 # Install monetdb
 #######################################################
@@ -50,9 +49,34 @@ RUN dpkg -i libstreams0v5_0.7.8-2.2_amd64.deb libstreams-dev_0.7.8-2.2_amd64.deb
 #######################################################
 # Setup bootstrap file
 #######################################################
-COPY config/bootstrap.sh /home/bootstrap.sh
+COPY monetdb_dockerized/config/bootstrap.sh /home/bootstrap.sh
 RUN chmod 775 /home/bootstrap.sh
 
 EXPOSE 50000
+
+#######################################################
+# Install python libraries
+#######################################################
+RUN pip3 install scipy
+RUN pip3 install pandas
+
+#######################################################
+# Add /home/udflib to python path and copy
+# necessary tools
+#######################################################
+COPY mipengine/node/udfgen/udfio.py /home/udflib/
+ENV PYTHONPATH "/home/udflib/"
+
+#######################################################
+# Clean up
+#######################################################
+WORKDIR /home
+RUN rm /home/MonetDB-11.37.11.tar.bz2 && rm -rf /home/MonetDB-11.37.11/
+
+#######################################################
+# DEV ONLY add username/password
+#######################################################
+RUN echo "user=monetdb" > /home/.monetdb
+RUN echo "password=monetdb" >> /home/.monetdb
 
 CMD ["/bin/bash","/home/bootstrap.sh"]

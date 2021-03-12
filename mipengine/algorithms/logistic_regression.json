@@ -1,0 +1,40 @@
+{
+    "name": "Logistic Regression",
+    "desc": "Logistic Regression",
+    "label": "Logistic Regression",
+    "enabled": true,
+    "inputdata": {
+        "x": {
+            "label": "features",
+            "desc": "Features",
+            "types": [
+                "real"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": true
+        },
+        "y": {
+            "label": "target",
+            "desc": "Target variable",
+            "types": [
+                "int"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "enumslen": 2,
+            "notblank": true,
+            "multiple": false
+        }
+    },
+    "parameters": {
+    },
+    "flags": {
+        "formula": false,
+        "crossvalidation": false
+    }
+}
+

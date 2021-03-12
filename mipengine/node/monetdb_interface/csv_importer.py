@@ -84,17 +84,21 @@ def convert_sql_type_to_monetdb_type(sql_type: str):
 def create_pathology_data_table(pathology: str,
                                 pathology_common_data_elements: Dict[str, CommonDataElement]):
     column_names = [cde_code for cde_code, cde in pathology_common_data_elements.items()]
-    column_names.append('subjectcode')  # subjectcode is not part of the metadata
-
     column_types = [convert_sql_type_to_monetdb_type(cde.sql_type)
                     for cde_code, cde in pathology_common_data_elements.items()]
-    column_types.append(convert_sql_type_to_monetdb_type("text"))  # subjectcode type is added as well
+    columns = [Column(column_name.lower(), column_type)
+               for column_name, column_type in zip(column_names, column_types)]
+
+    # The row_id column, the primary key of the table, it's not part of the metadata
+    row_id_column = Column('row_id',
+                           convert_sql_type_to_monetdb_type("int"),
+                           primary_key=True,
+                           autoincrement=True)
+    columns.append(row_id_column)
 
     data_table_name = pathology + "_data"
-
     data_table = Table(data_table_name, db_engine_metadata,
-                       *(Column(column_name.lower(), column_type)
-                         for column_name, column_type in zip(column_names, column_types)))
+                       *columns)
 
     db_engine_metadata.drop_all(db_engine, checkfirst=True, tables=[data_table])
     db_engine_metadata.create_all(db_engine, tables=[data_table])
