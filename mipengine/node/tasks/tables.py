@@ -24,8 +24,15 @@ def get_tables(context_id: str) -> List[str]:
             A list of table names
     """
     connection = get_connection()
-    table_names = tables.get_tables_names(connection.cursor(), context_id)
-    release_connection(connection)
+    cursor = connection.cursor()
+    try:
+        table_names = tables.get_tables_names(connection.cursor(), context_id)
+        connection.commit()
+        release_connection(connection, cursor)
+    except Exception as exc:
+        connection.rollback()
+        release_connection(connection, cursor)
+        raise exc
     return table_names
 
 
@@ -46,11 +53,15 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
         str
             The name of the created table in lower case
     """
-    connection = get_connection()
     schema_object = TableSchema.from_json(schema_json)
     table_name = create_table_name("table", command_id, context_id, config["node"]["identifier"])
     table_info = TableInfo(table_name.lower(), schema_object)
-    tables.create_table(connection.cursor(), table_info)
-    connection.commit()
-    release_connection(connection)
+    connection = get_connection()
+    cursor = connection.cursor()
+    try:
+        tables.create_table(connection, cursor, table_info)
+        release_connection(connection, cursor)
+    except Exception as exc:
+        release_connection(connection, cursor)
+        raise exc
     return table_name.lower()

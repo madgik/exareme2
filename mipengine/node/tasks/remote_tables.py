@@ -21,8 +21,15 @@ def get_remote_tables(context_id: str) -> List[str]:
             A list of remote table names
     """
     connection = get_connection()
-    remote_table_names = remote_tables.get_remote_tables_names(connection.cursor(), context_id)
-    release_connection(connection)
+    cursor = connection.cursor()
+    try:
+        remote_table_names = remote_tables.get_remote_tables_names(connection.cursor(), context_id)
+        connection.commit()
+        release_connection(connection, cursor)
+    except Exception as exc:
+        connection.rollback()
+        release_connection(connection, cursor)
+        raise exc
     return remote_table_names
 
 
@@ -38,6 +45,10 @@ def create_remote_table(table_info_json: str, url: str):
     """
     connection = get_connection()
     table_info = TableInfo.from_json(table_info_json)
-    remote_tables.create_remote_table(connection.cursor(), table_info, url)
-    connection.commit()
-    release_connection(connection)
+    cursor = connection.cursor()
+    try:
+        remote_tables.create_remote_table(connection, cursor, table_info, url)
+        release_connection(connection, cursor)
+    except Exception as exc:
+        release_connection(connection, cursor)
+        raise exc

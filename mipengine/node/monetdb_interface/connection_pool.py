@@ -1,16 +1,14 @@
-import queue
-import threading
 import time
 
 import pymonetdb
+from pymonetdb import Connection
+from pymonetdb.sql.cursors import Cursor
 
 from mipengine.common.node_catalog import node_catalog
 from mipengine.node.config.config_parser import config
 
-connection_queue = queue.Queue()
 
-
-def __get_connection():
+def get_connection():
     global_node = node_catalog.get_global_node()
     if global_node.nodeId == config.get("node", "identifier"):
         node = global_node
@@ -25,13 +23,24 @@ def __get_connection():
                              database=config.get("monet_db", "database"))
 
 
-for count in range(50):
-    connection_queue.put(__get_connection())
+def execute_with_occ(connection:Connection, cursor: Cursor, query: str):
+    attempts = 20
+    while attempts >= 0:
+        try:
+            cursor.execute(query)
+            connection.commit()
+            break
+        except pymonetdb.exceptions.OperationalError as operational_error_exc:
+            print(operational_error_exc)
+            raise operational_error_exc
+        except Exception:
+            connection.rollback()
+            if attempts == 0:
+                raise TimeoutError
+            time.sleep(1)
+            attempts -= 1
 
 
-def get_connection():
-    return connection_queue.get()
-
-
-def release_connection(connection):
-    connection_queue.put(connection)
+def release_connection(connection, cursor):
+    cursor.close()
+    connection.close()

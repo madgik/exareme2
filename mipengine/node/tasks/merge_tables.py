@@ -25,8 +25,14 @@ def get_merge_tables(context_id: str) -> List[str]:
             A list of merge table names
     """
     connection = get_connection()
-    merge_table_names = merge_tables.get_merge_tables_names(connection.cursor(), context_id)
-    release_connection(connection)
+    cursor = connection.cursor()
+    try:
+        merge_table_names = merge_tables.get_merge_tables_names(connection.cursor(), context_id)
+        release_connection(connection, cursor)
+    except Exception as exc:
+        release_connection(connection, cursor)
+        raise exc
+
     return merge_table_names
 
 
@@ -49,12 +55,17 @@ def create_merge_table(context_id: str, command_id: str, table_names: List[str])
     """
     connection = get_connection()
     cursor = connection.cursor()
-    validate_tables_can_be_merged(cursor, table_names)
-    schema = common_actions.get_table_schema(cursor, table_names[0])
-    merge_table_name = create_table_name("merge", command_id, context_id, config["node"]["identifier"])
-    table_info = TableInfo(merge_table_name.lower(), schema)
-    merge_tables.create_merge_table(cursor, table_info)
-    merge_tables.add_to_merge_table(cursor, merge_table_name, table_names)
-    connection.commit()
-    release_connection(connection)
+    try:
+        validate_tables_can_be_merged(cursor, table_names)
+        schema = common_actions.get_table_schema(cursor, table_names[0])
+        print(schema)
+        merge_table_name = create_table_name("merge", command_id, context_id, config["node"]["identifier"])
+        table_info = TableInfo(merge_table_name.lower(), schema)
+        merge_tables.create_merge_table(connection, cursor, table_info)
+        merge_tables.add_to_merge_table(connection, cursor, merge_table_name, table_names)
+        release_connection(connection, cursor)
+    except Exception as exc:
+        release_connection(connection, cursor)
+        raise exc
+
     return merge_table_name.lower()

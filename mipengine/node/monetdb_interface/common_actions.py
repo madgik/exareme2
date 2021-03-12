@@ -1,11 +1,12 @@
 from typing import List
 from typing import Union
 
-import pymonetdb
+from pymonetdb import Connection
 from pymonetdb.sql.cursors import Cursor
 
-from mipengine.common.node_catalog import node_catalog
+from mipengine.common.node_exceptions import TableCannotBeFound
 from mipengine.common.validate_identifier_names import validate_identifier_names
+from mipengine.node.monetdb_interface.connection_pool import execute_with_occ
 from mipengine.node.node import config
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
@@ -77,7 +78,10 @@ def get_table_schema(cursor: Cursor, table_name: str, table_type: str = None) ->
         tables.system=false 
         {type_clause}""")
 
-    return TableSchema([ColumnInfo(table[0], __convert_from_monetdb_column_type(table[1])) for table in cursor])
+    schema = cursor.fetchall()
+    if not schema:
+        raise TableCannotBeFound(table_name)
+    return TableSchema([ColumnInfo(table[0], __convert_from_monetdb_column_type(table[1])) for table in schema])
 
 
 @validate_identifier_names
@@ -144,7 +148,7 @@ def get_table_data(cursor: Cursor, table_name: str, table_type: str = None) -> L
     return cursor.fetchall()
 
 
-def clean_up(cursor: Cursor, context_id: str):
+def clean_up(connection: Connection, cursor: Cursor, context_id: str):
     """Deletes all tables of any type with name that contain a specific context_id from the monetdb.
 
         Parameters
@@ -155,7 +159,7 @@ def clean_up(cursor: Cursor, context_id: str):
             The id of the experiment
     """
     for table_type in ("merge", "remote", "view", "normal"):
-        __delete_table_by_type_and_context_id(cursor, table_type, context_id)
+        __delete_table_by_type_and_context_id(connection, cursor, table_type, context_id)
 
 
 def __convert_monet_table_type_to_mip(monet_table_type: int) -> str:
@@ -243,7 +247,7 @@ def __convert_from_monetdb_column_type(column_type: str) -> str:
 
 
 @validate_identifier_names
-def __delete_table_by_type_and_context_id(cursor: Cursor, table_type: str, context_id: str):
+def __delete_table_by_type_and_context_id(connection: Connection, cursor: Cursor, table_type: str, context_id: str):
     """Deletes all tables of specific type with name that contain a specific context_id from the monetdb.
 
         Parameters
@@ -264,6 +268,6 @@ def __delete_table_by_type_and_context_id(cursor: Cursor, table_type: str, conte
         """)
     for table in cursor.fetchall():
         if table[1] == 1:
-            cursor.execute(f"DROP VIEW {table[0]}")
+            execute_with_occ(connection, cursor, f"DROP VIEW {table[0]}")
         else:
-            cursor.execute(f"DROP TABLE {table[0]}")
+            execute_with_occ(connection, cursor, f"DROP TABLE {table[0]}")

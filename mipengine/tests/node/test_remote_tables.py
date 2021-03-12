@@ -20,13 +20,6 @@ global_node_cleanup = nodes_communication.get_celery_cleanup_signature(global_no
 context_id = "remotetalbes"
 
 
-@pytest.fixture(autouse=True)
-def cleanup_tables():
-    yield
-
-    local_node_cleanup.delay(context_id=context_id.lower()).get()
-
-
 def test_create_and_get_remote_table():
     local_node_data = node_catalog.get_local_node_data(local_node_id)
     local_node_1_url = f'mapi:monetdb://{local_node_data.monetdbHostname}:{local_node_data.monetdbPort}/db'
@@ -44,3 +37,4 @@ def test_create_and_get_remote_table():
                                           url=local_node_1_url).get()
     remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()
     assert table_name.lower() in remote_tables
+    local_node_cleanup.delay(context_id=context_id.lower()).get()
