@@ -31,7 +31,7 @@
           {
             "name": "tbi",
             "datasets": [
-              "dummy_tbi"
+              "tbi_demo2"
             ]
           }
         ]

@@ -4,3 +4,4 @@ celery
 sqlalchemy==1.3.23
 future
 sqlalchemy_monetdb
+astor==0.8.1

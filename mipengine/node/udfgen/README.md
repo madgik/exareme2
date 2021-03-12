@@ -1,42 +1,56 @@
 ## UDF Generator
 
 ### Usage
-Assuming there exists a file `demo.py` in `mipengine.algorithms` with the
-following code
+Using a UDFs defined in `logistic_regression.py` in `mipengine.algorithms`
 ```python
-# demo.py
+# excerpt from logistic_regression.py
 
-from mipengine.algorithms.iotypes import udf
-from mipengine.algorithms.iotypes import TableT
+DT = TypeVar("DT")  # type parameter representing datatype
+ND = TypeVar("ND")  # type parameter representing number of dimensions
 
 @udf
-def func(x: TableT, y: TableT) -> TableT:
-    result = x + y
+def tensor_expit(t: TensorT[DT, ND]) -> TensorT[DT, ND]:
+    from scipy import special
+    result = special.expit(t)
     return result
 ```
 then
 ```
->>> from mipengine.node.udfgen import generate_udf
->>> func_name = 'demo.func'
->>> udf_name = 'demo_func_1234'
->>> positional_args = [{"type": "input_table", "schema": [{"type": "int"}, {"type": "int"}], "nrows": 10}]
->>> keyword_args = {"y": {"type": "input_table", "schema": [{"type": "int"}, {"type": "int"}], "nrows": 10}}
->>> udf = generate_udf(func_name, udf_name, positional_args, keyword_args)
->>> print(udf)
+>>> from mipengine.node.udfgen import generate_udf_application_queries
+>>> import mipengine.algorithms.logistic_regression
+>>> from mipengine.algorithms.udfutils import TableInfo, ColumnInfo
+>>> func_name = 'logistic_regression.tensor_expit'
+>>> t = TableInfo(name='tens1', schema=[ColumnInfo('dim0', 'int'), ColumnInfo('val', 'float')
+>>> positional_args = [t]
+>>> keyword_args = {}
+>>> udf, query = generate_udf_application_queries(func_name, positional_args, keyword_args)
+>>> print(udf.substitute(udf_name="tensor_expit_12345"))
 CREATE OR REPLACE
 FUNCTION
-demo_func_1234(x0 BIGINT, x1 BIGINT, y0 BIGINT, y1 BIGINT)
+tensor_expit_12345(tens1_dim0 INT, tens1_val float)
 RETURNS
-Table(result0 BIGINT, result1 BIGINT)
+TABLE(dim0 INT, val float)
 LANGUAGE PYTHON
 {
-    from mipengine.udfgen import ArrayBundle
-    x = ArrayBundle(_columns[0:2])
-    y = ArrayBundle(_columns[2:4])
-
-    # body
-    result = x + y
-
-    return as_relational_table(result)
+    import pandas as pd
+    import udfio
+    t = udfio.from_tensor_table({n:_columns[n] for n in ['tens1_dim0', 'tens1_val']})
+    from scipy import special
+    result = special.expit(t)
+    return udfio.as_tensor_table(numpy.array(result))
 };
+>>> print(query.substitute(udf_name="tensor_expit_12345", table_name="expit_result", node_id='54321'))
+DROP TABLE IF EXISTS expit_result;
+CREATE TABLE expit_result AS (
+    SELECT 54321 AS node_id,  *
+    FROM
+        tensor_expit_12345(
+            (
+                SELECT
+                    tens1.dim0, tens1.val
+                FROM
+                    tens1
+            )
+        )
+);
 ```
