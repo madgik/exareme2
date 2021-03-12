@@ -1,4 +1,3 @@
-from .demo import *
 from .udfutils import UDF_REGISTRY
 from .udfutils import udf
 from .udfutils import TableT

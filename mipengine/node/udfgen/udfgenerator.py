@@ -51,7 +51,7 @@ END = "}"
 DROP_IF_EXISTS = "DROP TABLE IF EXISTS "
 CREATE_TABLE = "CREATE TABLE "
 SELECT = "SELECT"
-STAR = " * "
+STAR = "*"
 FROM = "FROM"
 WHERE = "WHERE"
 AS = " AS "
@@ -465,6 +465,8 @@ class UDFCodeGenerator:
     def _build_return_obj(self):
         return_cons = self.funcparts.get_return_obj_constructor()
         return_args = self.funcparts.return_bound_typevars
+        if 'name' in inspect.signature(return_cons).parameters:
+            return_args['name'] = self.funcparts.return_name
         return return_cons(**return_args)
 
     def _return_obj_has_known_attrs(self) -> bool:
@@ -559,7 +561,7 @@ class UDFCodeGenerator:
         literal_defs = []
         for name in self.literal_params:
             ltr = inputs[name]
-            literal_defs += [f"{name} = {ltr.value}"]
+            literal_defs += [f"{name} = {ltr}"]
         return literal_defs
 
 
