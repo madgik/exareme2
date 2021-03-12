@@ -141,7 +141,7 @@ def mat_inverse(M: TensorT(Number, 2)) -> TensorT(float, 2):
 # Examples                                                 #
 # -------------------------------------------------------- #
 def true_run():
-    data = pd.read_csv("mipengine/algorithms/logistic_data.csv")
+    data = pd.read_csv("mipengine/algorithms/auxfiles/logistic_data.csv")
     y = data["alzheimerbroadcategory"].to_numpy()
     X = data[["lefthippocampus", "righthippocampus"]].to_numpy()
     coeff = logistic_regression(y, X, numpy.array(["AD", "CN"]))
