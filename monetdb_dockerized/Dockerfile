@@ -67,4 +67,16 @@ RUN pip3 install pandas
 COPY mipengine/node/udfgen/udfio.py /home/udflib/
 ENV PYTHONPATH "/home/udflib/"
 
+#######################################################
+# Clean up
+#######################################################
+WORKDIR /home
+RUN rm /home/MonetDB-11.37.11.tar.bz2 && rm -rf /home/MonetDB-11.37.11/
+
+#######################################################
+# DEV ONLY add username/password
+#######################################################
+RUN echo "user=monetdb" > /home/.monetdb
+RUN echo "password=monetdb" >> /home/.monetdb
+
 CMD ["/bin/bash","/home/bootstrap.sh"]
