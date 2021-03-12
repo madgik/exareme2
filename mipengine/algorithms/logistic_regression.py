@@ -2,6 +2,7 @@
 from typing import DefaultDict
 from typing import TypeVar
 from typing import Any
+from numbers import Number
 
 import numpy
 import pandas as pd
@@ -131,7 +132,7 @@ def tensor_max_abs_diff(t1: TensorT[DT, ND], t2: TensorT[DT, ND]) -> ScalarT(flo
 
 
 @udf
-def mat_inverse(M: TensorT[DT, ND]) -> TensorT[DT, ND]:
+def mat_inverse(M: TensorT(Number, 2)) -> TensorT(float, 2):
     minv = numpy.linalg.inv(M)
     return minv
 
