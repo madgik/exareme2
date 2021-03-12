@@ -33,13 +33,13 @@ async def post_algorithm(algorithm_name: str) -> str:
 
     request_body = await request.data
 
-    # try:
-    #     validate_algorithm(algorithm_name, request_body)
-    # except (BadRequest, BadUserInput) as exc:
-    #     raise exc
-    # except:
-    #     logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
-    #     raise BadRequest("Algorithm validation failed.")
+    try:
+        validate_algorithm(algorithm_name, request_body)
+    except (BadRequest, BadUserInput) as exc:
+        raise exc
+    except:
+        logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
+        raise BadRequest("Algorithm validation failed.")
 
     try:
         # print(f"(algorithms.py::post_algorithm) request_body->{request_body}")

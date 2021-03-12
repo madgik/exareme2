@@ -8,7 +8,7 @@ def run(runtime_interface):
     node = runtime_interface.local_nodes[0]
     table = runtime_interface.local_nodes[0].initial_view_tables["x"]
     data = runtime_interface.get_table_data_from_local(node, table)
-    # print(f"data->{data}\n")
+    print(f"data->{data}\n")
 
     #DEBUG
     # time.sleep(15)

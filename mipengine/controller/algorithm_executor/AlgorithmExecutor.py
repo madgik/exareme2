@@ -21,6 +21,7 @@ import time
 # TODO: Too many things happening in all the initialiazers. Especially the AlgorithmExecutor __init__ is called synchronuously from the server
 # TODO: TASK_TIMEOUT
 
+ALGORITHMS_FOLDER = "mipengine.algorithms"
 
 class AlgorithmExecutor:
     def __init__(self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO):
@@ -65,7 +66,9 @@ class AlgorithmExecutor:
                                                                     algorithm_name=self.algorithm_name)
 
         # import the algorithm flow module
-        self.algorithm_flow_module = importlib.import_module(f"mipengine.algorithms.{self.algorithm_name}_flow")
+        # self.algorithm_flow_module = importlib.import_module(f"{ALGORITHMS_FOLDER}.{self.algorithm_name}_flow")
+        self.algorithm_flow_module = importlib.import_module(f"{ALGORITHMS_FOLDER}.{self.algorithm_name}")
+
 
     def run(self):
         algorithm_result = self.algorithm_flow_module.run(self.execution_interface)

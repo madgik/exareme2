@@ -1,0 +1,42 @@
+{
+  "name": "dummy",
+  "desc": "This is a tset algorithm.",
+  "label": "DUMMY",
+  "enabled": true,
+  "inputdata": {
+    "x": {
+      "label": "features",
+      "desc": "Features used in my algorithm.",
+      "types": [
+        "real",
+        "int",
+        "text"
+      ],
+      "stattypes": [
+        "numerical",
+        "nominal"
+      ],
+      "notblank": true,
+      "multiple": true
+    },
+    "y": {
+      "label": "target",
+      "desc": "Target variable for my algorithm.",
+      "types": [
+        "real",
+        "text",
+        "int"
+      ],
+      "stattypes": [
+        "numerical",
+        "nominal"
+      ],
+      "notblank": true,
+      "multiple": true
+    }
+  },
+  "flags": {
+    "formula": true,
+    "crossvalidation": true
+  }
+}
