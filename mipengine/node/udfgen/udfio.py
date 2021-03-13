@@ -1,6 +1,8 @@
+from functools import partial, reduce
 import re
 
 import numpy as np
+import pandas as pd
 
 
 def as_tensor_table(array: np.ndarray):
@@ -36,3 +38,29 @@ def as_relational_table(array: np.ndarray, name: str):
     names = (f"{name}_{i}" for i in range(array.shape[1]))
     out = {n: c for n, c in zip(names, array)}
     return out
+
+
+def reduce_tensor_pair(op, a: pd.DataFrame, b: pd.DataFrame):
+    ndims = len(a.columns) - 1
+    dimensions = [f"dim{_}" for _ in range(ndims)]
+    merged = a.merge(b, left_on=dimensions, right_on=dimensions)
+    merged["val"] = merged.apply(lambda df: op(df.val_x, df.val_y), axis=1)
+    return merged[dimensions + ["val"]]
+
+
+def reduce_tensor_merge_table(op, merge_table):
+    groups = [group for _, group in merge_table.groupby("node_id")]
+    groups = [group.drop("node_id", 1) for group in groups]
+    result = reduce(partial(reduce_tensor_pair, op), groups)
+    return result
+
+
+def make_tensor_merge_table(columns):
+    colnames = columns.keys()
+    expected = {"node_id", "val"}
+    if expected - set(colnames):
+        raise ValueError("No node_id or val in columns.")
+    columns = {n: v for n, v in columns.items() if n in expected or n.startswith("dim")}
+    if len(columns) <= 2:
+        raise ValueError(f"Columns have wrong format {columns}.")
+    return pd.DataFrame(columns)

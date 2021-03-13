@@ -243,3 +243,40 @@ CREATE TABLE mat_transp_dot_diag_dot_vec_result AS (
         m.dim1
 );
 SELECT * FROM mat_transp_dot_diag_dot_vec_result;
+
+
+DROP TABLE IF EXISTS merged;
+CREATE TABLE merged(node_id int, dim0 INT, dim1 INT, val FLOAT);
+INSERT INTO merged VALUES (0, 0, 0, 0.50);
+INSERT INTO merged VALUES (0, 0, 1, 0.73);
+INSERT INTO merged VALUES (0, 1, 0, 0.93);
+INSERT INTO merged VALUES (0, 1, 1, 0.111);
+INSERT INTO merged VALUES (1, 0, 0, 2.50);
+INSERT INTO merged VALUES (1, 0, 1, 2.73);
+INSERT INTO merged VALUES (1, 1, 0, 2.93);
+INSERT INTO merged VALUES (1, 1, 1, 2.111);
+INSERT INTO merged VALUES (2, 0, 0, 2.50);
+INSERT INTO merged VALUES (2, 0, 1, 2.73);
+INSERT INTO merged VALUES (2, 1, 0, 2.93);
+INSERT INTO merged VALUES (2, 1, 1, 2.111);
+INSERT INTO merged VALUES (3, 0, 0, 2.50);
+INSERT INTO merged VALUES (3, 0, 1, 2.73);
+INSERT INTO merged VALUES (3, 1, 0, 2.93);
+INSERT INTO merged VALUES (3, 1, 1, 2.111);
+
+CREATE OR REPLACE
+FUNCTION
+sum_tensors(node_id INT, dim0 INT, dim1 INT, val FLOAT)
+RETURNS
+TABLE(dim0 INT, dim1 INT, val FLOAT)
+LANGUAGE PYTHON
+{
+    import udfio
+    import operator
+    merge_table = udfio.make_tensor_merge_table(_columns)
+    reduced = udfio.reduce_tensor_merge_table(operator.add, merge_table)
+    return reduced
+};
+DROP TABLE IF EXISTS reduced_result;
+CREATE TABLE reduced_result AS (SELECT * FROM sum_tensors((SELECT node_id, dim0, dim1, val FROM merged)));
+SELECT * FROM reduced_result;
