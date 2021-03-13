@@ -3,7 +3,9 @@ from typing import List, Dict, Tuple
 
 from celery import shared_task
 
-from mipengine import algorithms
+from mipengine.algorithms import UDF_REGISTRY
+from mipengine.algorithms import logistic_regression
+from mipengine.algorithms import demo  # TODO Split the actual and testing algorithms
 from mipengine.common.node_tasks_DTOs import UDFArgument
 from mipengine.common.validate_identifier_names import validate_identifier_names
 from mipengine.node.config.config_parser import config
@@ -14,7 +16,7 @@ from mipengine.node.udfgen import ColumnInfo, TableInfo, generate_udf_applicatio
 
 @shared_task
 def get_udfs(algorithm_name: str) -> List[str]:
-    return [inspect.getsource(udf) for udf_name, udf in algorithms.UDF_REGISTRY.items()
+    return [inspect.getsource(udf) for udf_name, udf in UDF_REGISTRY.items()
             if udf_name.startswith(algorithm_name)]
 
 
@@ -153,9 +155,12 @@ def __generate_udf_statements(command_id: str,
 
     udf_creation_stmt, udf_execution_stmt = generate_udf_application_queries(func_name, gen_pos_args, gen_kw_args)
 
-    udf_name = __create_udf_name(func_name, command_id, context_id)
+    allowed_func_name = func_name.replace('.', '_')  # A dot is not an allowed character
+    udf_name = __create_udf_name(allowed_func_name, command_id, context_id)
     result_table_name = create_table_name("table", command_id, context_id, config["node"]["identifier"])
     udf_creation_stmt = udf_creation_stmt.substitute(udf_name=udf_name)
-    udf_execution_stmt = udf_execution_stmt.substitute(table_name=result_table_name)
+    udf_execution_stmt = udf_execution_stmt.substitute(table_name=result_table_name,
+                                                       udf_name=udf_name,
+                                                       node_id=config["node"]["identifier"])
 
     return udf_creation_stmt, udf_execution_stmt

@@ -34,6 +34,6 @@ def tensor1(t: TensorT[T, ND1]) -> ScalarT:
 
 
 @udf
-def table_and_literal_arguments(table: RelationT[S1], literal: LiteralParameterT) -> ScalarT:
-    result = 1 + literal
+def table_and_literal_arguments(X: RelationT[S1], n: LiteralParameterT[int]) -> RelationT[S1]:
+    result = X + n
     return result
