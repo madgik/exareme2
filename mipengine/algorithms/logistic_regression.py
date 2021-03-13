@@ -1,8 +1,8 @@
 # type: ignore
+from numbers import Number
 from typing import DefaultDict
 from typing import TypeVar
 from typing import Any
-from numbers import Number
 
 import numpy
 import pandas as pd
@@ -16,24 +16,21 @@ from mipengine.algorithms import ScalarT
 PREC = 1e-6
 
 
-def logistic_regression(y: TableT, X: TableT, classes: LiteralParameterT):
+def logistic_regression(y: TableT, X: TableT):
     # init model
     nobs, ncols = X.shape
     coeff = zeros1(ncols)
     logloss = 1e6
-    # binarize labels
-    ybin = binarize_labels(y, classes)
-    ybin = ybin[:, 0]
     # loop update coefficients
     while True:
         z = matrix_dot_vector(X, coeff)
         s = tensor_expit(z)
         d = tensor_mult(s, const_tensor_sub(1, s))
-        y_ratio = tensor_div(tensor_sub(ybin, s), d)
+        y_ratio = tensor_div(tensor_sub(y, s), d)
 
         hessian = mat_transp_dot_diag_dot_mat(X, d)
         grad = mat_transp_dot_diag_dot_vec(X, d, tensor_add(z, y_ratio))
-        newlogloss = logistic_loss(ybin, s)
+        newlogloss = logistic_loss(y, s)
         # ******** Global part ******** #
         coeff = matrix_dot_vector(mat_inverse(hessian), grad)
 
@@ -49,16 +46,6 @@ ND = TypeVar("ND")
 # SQL UDF
 def zeros1(n):
     return numpy.zeros((n,))
-
-
-@udf
-def binarize_labels(y: TableT, classes: LiteralParameterT) -> TensorT(int, 1):
-    from sklearn.preprocessing import LabelBinarizer
-
-    binarizer = LabelBinarizer()
-    binarizer.fit(classes)
-    binarized = binarizer.transform(y)
-    return binarized
 
 
 # SQL UDF
@@ -144,7 +131,7 @@ def true_run():
     data = pd.read_csv("mipengine/algorithms/auxfiles/logistic_data.csv")
     y = data["alzheimerbroadcategory"].to_numpy()
     X = data[["lefthippocampus", "righthippocampus"]].to_numpy()
-    coeff = logistic_regression(y, X, numpy.array(["AD", "CN"]))
+    coeff = logistic_regression(y, X)
     print(coeff)
 
 
