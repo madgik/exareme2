@@ -31,9 +31,9 @@ Inside the MIP-Engine folder:
 
 1. Deploy MonetDB (docker). <br/>
 ```
-docker run -d -P -p 50000:50000 --name monetdb-1 jassak/mipenginedb:latest
-docker run -d -P -p 50001:50000 --name monetdb-2 jassak/mipenginedb:latest
-docker run -d -P -p 50002:50000 --name monetdb-3 jassak/mipenginedb:latest
+docker run -d -P -p 50000:50000 --name monetdb-1 jassak/mipenginedb:dev1.0
+docker run -d -P -p 50001:50000 --name monetdb-2 jassak/mipenginedb:dev1.0
+docker run -d -P -p 50002:50000 --name monetdb-3 jassak/mipenginedb:dev1.0
 ```
 
 2. Deploy RabbitMQ (docker). <br/>
@@ -67,10 +67,9 @@ python3.8 -m pip install -r ./requirements/node.txt
 
 5. Import the csvs in MonetDB. To import all the csvs on both dbs, run:
 ```
-python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -url localhost:50001 -farm db
-python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -url localhost:50002 -farm db
+python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50001 -farm db
+python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50002 -farm db
 ```
-
 6. To modify `mipengine/resources/node_catalog.json` to match your internal IP instead of 127.0.0.1 , run:
 ```
 python3 mipengine/tests/node/set_monetdb_hostname.py -host <internal IP>

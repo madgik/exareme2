@@ -36,6 +36,7 @@ from mipengine.algorithms import TensorT
 from mipengine.algorithms import LoopbackTensorT
 from mipengine.algorithms import LiteralParameterT
 from mipengine.algorithms import ScalarT
+from mipengine.node.udfgen.reduce import SQL_REDUCE_QUERIES
 from mipengine.node.udfgen.sql_linalg import SQL_LINALG_QUERIES
 
 CREATE_OR_REPLACE = "CREATE OR REPLACE"
@@ -185,9 +186,9 @@ TYPES2CONS = {RelationT: RelationV, TensorT: TensorV, ScalarT: ScalarV}
 
 
 def generate_udf_application_queries(
-        func_name: str,
-        positional_args: list[UdfArgument],
-        keyword_args: dict[str, UdfArgument],
+    func_name: str,
+    positional_args: list[UdfArgument],
+    keyword_args: dict[str, UdfArgument],
 ) -> tuple[string.Template, string.Template]:
     if keyword_args:
         msg = "Calling with keyword arguments is not implemented yet."
@@ -202,6 +203,13 @@ def generate_udf_application_queries(
         udf_def, udf_sel = udf_gen_func(*udf_gen_func_args)
         udf_create_table = generate_udf_create_table(udf_sel)
         return string.Template(udf_def), string.Template(udf_create_table)
+    if func_name.startswith("reduce"):
+        udf_gen_func = SQL_REDUCE_QUERIES[func_name]
+        merge_table, *_ = positional_args
+        ndims = len(merge_table.schema) - 2
+        udf_def, udf_sel = udf_gen_func(merge_table.name, ndims)
+        udf_create_table = generate_udf_create_table(udf_sel)
+        return string.Template(udf_def), string.Template(udf_create_table)
     # <--
     udf_def = generate_udf_def(func_name, positional_args, keyword_args)
     udf_sel = generate_udf_select_stmt(func_name, positional_args, keyword_args)
@@ -210,9 +218,9 @@ def generate_udf_application_queries(
 
 
 def generate_udf_def(
-        func_name: str,
-        positional_args: list[UdfArgument],
-        keyword_args: dict[str, UdfArgument],
+    func_name: str,
+    positional_args: list[UdfArgument],
+    keyword_args: dict[str, UdfArgument],
 ) -> str:
     """
     Generates definitions in MonetDB Python UDFs from Python functions which
@@ -345,7 +353,6 @@ class FunctionAnalyzer:
         parameter_types = OrderedDict()
         for pname, param in self._parameter_hints.items():
             parameter_types[pname] = self._get_typehint_type(param)
-            print(parameter_types[pname])
         return parameter_types
 
     @functools.cached_property
@@ -465,8 +472,8 @@ class UDFCodeGenerator:
     def _build_return_obj(self):
         return_cons = self.funcparts.get_return_obj_constructor()
         return_args = self.funcparts.return_bound_typevars
-        if 'name' in inspect.signature(return_cons).parameters:
-            return_args['name'] = self.funcparts.return_name
+        if "name" in inspect.signature(return_cons).parameters:
+            return_args["name"] = self.funcparts.return_name
         return return_cons(**return_args)
 
     def _return_obj_has_known_attrs(self) -> bool:
@@ -566,9 +573,9 @@ class UDFCodeGenerator:
 
 
 def generate_udf_select_stmt(
-        func_name: str,
-        positional_args: list[UdfArgument],
-        keyword_args: dict[str, UdfArgument],  # XXX not used for now
+    func_name: str,
+    positional_args: list[UdfArgument],
+    keyword_args: dict[str, UdfArgument],  # XXX not used for now
 ) -> str:
     """
     Generates select statement for calling MonetDB Python UDFs.
@@ -596,13 +603,13 @@ def generate_udf_select_stmt(
 
     # Validate we don't have both TableT types in parameters
     if (
-            RelationT in parameter_types.values()
-            and not TensorT in parameter_types.values()
+        RelationT in parameter_types.values()
+        and not TensorT in parameter_types.values()
     ):
         main_input_type = RelationT
     elif (
-            TensorT in parameter_types.values()
-            and not RelationT in parameter_types.values()
+        TensorT in parameter_types.values()
+        and not RelationT in parameter_types.values()
     ):
         main_input_type = TensorT
     else:

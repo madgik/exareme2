@@ -47,6 +47,25 @@ INSERT INTO matrix VALUES (0, 0, 5.5);
 INSERT INTO matrix VALUES (0, 1, 9.3);
 INSERT INTO matrix VALUES (1, 0, 11.3);
 INSERT INTO matrix VALUES (1, 1, 8.1);
+
+DROP TABLE IF EXISTS merge_table;
+CREATE TABLE merge_table(node_id int, dim0 INT, dim1 INT, val FLOAT);
+INSERT INTO merge_table VALUES (0, 0, 0, 0.50);
+INSERT INTO merge_table VALUES (0, 0, 1, 0.73);
+INSERT INTO merge_table VALUES (0, 1, 0, 0.93);
+INSERT INTO merge_table VALUES (0, 1, 1, 0.111);
+INSERT INTO merge_table VALUES (1, 0, 0, 2.50);
+INSERT INTO merge_table VALUES (1, 0, 1, 2.73);
+INSERT INTO merge_table VALUES (1, 1, 0, 2.93);
+INSERT INTO merge_table VALUES (1, 1, 1, 2.111);
+INSERT INTO merge_table VALUES (2, 0, 0, 2.50);
+INSERT INTO merge_table VALUES (2, 0, 1, 2.73);
+INSERT INTO merge_table VALUES (2, 1, 0, 2.93);
+INSERT INTO merge_table VALUES (2, 1, 1, 2.111);
+INSERT INTO merge_table VALUES (3, 0, 0, 2.50);
+INSERT INTO merge_table VALUES (3, 0, 1, 2.73);
+INSERT INTO merge_table VALUES (3, 1, 0, 2.93);
+INSERT INTO merge_table VALUES (3, 1, 1, 2.111);
 """
 
 udf, query = generate_udf_application_queries("sql.zeros1", [5], {})
@@ -212,6 +231,7 @@ tens3 = TableInfo(name="tens3", schema=[ColumnInfo("dim0", "int"),ColumnInfo("di
 udf, query = generate_udf_application_queries("logistic_regression.mat_inverse", [tens3], {})
 print(udf.substitute(udf_name="mat_inverse"))
 print(query.substitute(udf_name="mat_inverse", table_name="mat_inverse_result", node_id='12345'))
+print()
 # UDF result
 # +------+------+--------------------------+
 # | dim0 | dim1 | val                      |
@@ -220,4 +240,19 @@ print(query.substitute(udf_name="mat_inverse", table_name="mat_inverse_result", 
 # |    0 |    1 |      0.15361744301288402 |
 # |    1 |    0 |       0.1866534522629666 |
 # |    1 |    1 |      -0.0908490254377271 |
+# +------+------+--------------------------+
+
+merge_table = TableInfo(name="merge_table", schema=[ColumnInfo("node_id", "int"), ColumnInfo("dim0", "int"),ColumnInfo("dim1", "int"), ColumnInfo("val", "float")])
+udf, query = generate_udf_application_queries("reduce.sum_tensors", [merge_table], {})
+print(udf.substitute(udf_name="sum_tensors"))
+print(query.substitute(udf_name="sum_tensors", table_name="reduced_result", node_id='12345'))
+print()
+# UDF result
+# +------+------+--------------------------+
+# | dim0 | dim1 | val                      |
+# +======+======+==========================+
+# |    0 |    0 |                        8 |
+# |    0 |    1 |                     8.92 |
+# |    1 |    0 |                     9.72 |
+# |    1 |    1 |        6.444000000000001 |
 # +------+------+--------------------------+
