@@ -12,11 +12,14 @@ from mipengine.algorithms import TableT
 from mipengine.algorithms import TensorT
 from mipengine.algorithms import LiteralParameterT
 from mipengine.algorithms import ScalarT
+from mipengine.algorithms import RelationT
 
 PREC = 1e-6
 
 
 def logistic_regression(y: TableT, X: TableT):
+    y = relation_to_vector(y)
+    X = relation_to_matrix(X)
     # init model
     nobs, ncols = X.shape
     coeff = zeros1(ncols)
@@ -42,6 +45,7 @@ def logistic_regression(y: TableT, X: TableT):
 
 DT = TypeVar("DT")
 ND = TypeVar("ND")
+S = TypeVar("S")
 
 # SQL UDF
 def zeros1(n):
@@ -52,6 +56,16 @@ def zeros1(n):
 def matrix_dot_vector(M, v):
     result = M @ v
     return result
+
+
+@udf
+def relation_to_matrix(rel: RelationT[S]) -> TensorT(float, 2):
+    return rel
+
+
+@udf
+def relation_to_vector(rel: RelationT[S]) -> TensorT(float, 1):
+    return rel
 
 
 @udf
