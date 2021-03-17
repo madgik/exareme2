@@ -66,7 +66,10 @@ SCOLON = ";"
 
 UDFGEN_REGISTRY = {}
 
-PY2SQL_TYPES: dict[type, str] = {int: "INT", float: "FLOAT", str: "TEXT"}
+PYTYPES = [int, float, str]
+SQLTYPES = ["int", "float", "text"]
+PY2SQL_TYPES: dict[type, str] = dict(zip(PYTYPES, SQLTYPES))
+SQL2PY_TYPES: dict[str, type] = dict(zip(SQLTYPES, PYTYPES))
 
 
 class ColumnInfo(NamedTuple):
@@ -155,14 +158,14 @@ class TensorV(TableV):
         self.dtype = dtype
 
     def as_udf_signature(self):
-        signature = [f"{self.name}_dim{d} INT" for d in range(self.ndims)]
-        signature.append(f"{self.name}_val {self.dtype}")
+        signature = [f"{self.name}_dim{d} int" for d in range(self.ndims)]
+        signature.append(f"{self.name}_val {PY2SQL_TYPES[self.dtype]}")
         return SEP.join(signature)
 
     @property
     def schema(self):
-        schema = [ColumnInfo(f"dim{d}", "INT") for d in range(self.ndims)]
-        schema.append(ColumnInfo("val", str(self.dtype)))
+        schema = [ColumnInfo(f"dim{d}", "int") for d in range(self.ndims)]
+        schema.append(ColumnInfo("val", PY2SQL_TYPES[self.dtype]))
         return schema
 
     @classmethod
@@ -171,7 +174,10 @@ class TensorV(TableV):
             dtype = next(col.dtype for col in table_info.schema if col.name == "val")
         except StopIteration:
             raise TypeError("TableInfo doesn't have tensor-like schema.")
-        return cls(name=table_info.name, ndims=len(table_info.schema) - 1, dtype=dtype)
+        tensor_dtype = SQL2PY_TYPES[dtype]
+        return cls(
+            name=table_info.name, ndims=len(table_info.schema) - 1, dtype=tensor_dtype
+        )
 
 
 class ScalarV(UdfIOValue):
@@ -633,7 +639,8 @@ def generate_udf_select_stmt(
 
     from_subexpr = prettify(SEP.join(table_names))
 
-    nodeid_column = " $node_id" + AS + "node_id"
+    node_id_type = "varchar(50)"
+    nodeid_column = f" CAST('$node_id' AS {node_id_type})" + AS + "node_id"
 
     if RelationT == main_input_type:
         head_table, *tail_tables = table_names

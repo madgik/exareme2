@@ -3,6 +3,8 @@ from mipengine.node.udfgen import ColumnInfo
 from mipengine.node.udfgen import generate_udf_application_queries
 import mipengine.algorithms.logistic_regression
 
+X = TableInfo(name="features", schema=[ColumnInfo("feat1", "float"), ColumnInfo("feat2", "float")])
+y = TableInfo(name="target", schema=[ColumnInfo("target", "int")])
 tens1 = TableInfo(name="tens1", schema=[ColumnInfo("dim0", "int"), ColumnInfo("val", "float")])
 tens2 = TableInfo(name="tens2", schema=[ColumnInfo("dim0", "int"), ColumnInfo("val", "float")])
 matr = TableInfo(name="matrix", schema=[ColumnInfo("dim0", "int"), ColumnInfo("dim1", "int"), ColumnInfo("val", "float")])
@@ -67,6 +69,16 @@ INSERT INTO merge_table VALUES (3, 0, 1, 2.73);
 INSERT INTO merge_table VALUES (3, 1, 0, 2.93);
 INSERT INTO merge_table VALUES (3, 1, 1, 2.111);
 """
+
+udf, query = generate_udf_application_queries("logistic_regression.relation_to_vector", [y], {})
+print(udf.substitute(udf_name="relation_to_vector"))
+print(query.substitute(udf_name="relation_to_vector", table_name="relation_to_vector_results", node_id='12345'))
+print()
+
+udf, query = generate_udf_application_queries("logistic_regression.relation_to_matrix", [X], {})
+print(udf.substitute(udf_name="relation_to_matrix"))
+print(query.substitute(udf_name="relation_to_matrix", table_name="relation_to_matrix_result", node_id='12345'))
+print()
 
 udf, query = generate_udf_application_queries("sql.zeros1", [5], {})
 print(udf.substitute(udf_name="zeros1"))
