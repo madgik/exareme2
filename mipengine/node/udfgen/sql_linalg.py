@@ -14,7 +14,7 @@ LANGUAGE PYTHON
     val = numpy.zeros((n,))
     return udfio.as_tensor_table(val)
 }"""
-    udf_sel = Template("SELECT ${node_id} AS node_id, * FROM ${udf_name}(${length})")
+    udf_sel = Template("SELECT '${node_id}' AS node_id, * FROM ${udf_name}(${length})")
     return udf_def, udf_sel.safe_substitute(length=length)
 
 
@@ -22,7 +22,7 @@ def SQL_matrix_dot_vector(table1, table2):
     tmpl = Template(
         """\
 SELECT
-    ${node_id} AS node_id,
+    '${node_id}' AS node_id,
     t1.dim0 AS dim0,
     SUM(t1.val * t2.val) AS val
 FROM ${table1} AS t1, ${table2} AS t2
@@ -38,7 +38,7 @@ def SQL_tensor1_mult(table1, table2):
     tmpl = Template(
         """\
 SELECT
-    ${node_id} AS node_id,
+    '${node_id}' AS node_id,
     t1.dim0 AS dim0,
     t1.val * t1.val AS val
 FROM ${table1} AS t1, ${table2} AS t2
@@ -52,7 +52,7 @@ def SQL_tensor1_add(table1, table2):
     tmpl = Template(
         """\
 SELECT
-    ${node_id} AS node_id,
+    '${node_id}' AS node_id,
     t1.dim0 AS dim0,
     t1.val + t1.val AS val
 FROM ${table1} AS t1, ${table2} AS t2
@@ -66,7 +66,7 @@ def SQL_tensor1_sub(table1, table2):
     tmpl = Template(
         """\
 SELECT
-    ${node_id} AS node_id,
+    '${node_id}' AS node_id,
     t1.dim0 AS dim0,
     t1.val - t1.val AS val
 FROM ${table1} AS t1, ${table2} AS t2
@@ -80,7 +80,7 @@ def SQL_tensor1_div(table1, table2):
     tmpl = Template(
         """\
 SELECT
-    ${node_id} AS node_id,
+    '${node_id}' AS node_id,
     t1.dim0 AS dim0,
     t1.val / t1.val AS val
 FROM ${table1} AS t1, ${table2} AS t2
@@ -91,7 +91,7 @@ WHERE
 
 
 def SQL_const_tensor1_sub(const, table):
-    tmpl = Template("SELECT ${node_id} AS node_id, dim0, ${const}-val from ${table}")
+    tmpl = Template("SELECT '${node_id}' AS node_id, dim0, ${const}-val from ${table}")
     return "", tmpl.safe_substitute(const=const, table=table)
 
 
@@ -99,7 +99,7 @@ def SQL_mat_transp_dot_diag_dot_mat(matrix, diag):
     tmpl = Template(
         """\
 SELECT
-    ${node_id} AS node_id,
+    '${node_id}' AS node_id,
     m1.dim1 AS dim0,
     m2.dim1 AS dim1,
     SUM(m1.val * d.val * m2.val) AS val
@@ -117,7 +117,7 @@ def SQL_mat_transp_dot_diag_dot_vec(matrix, diag, vec):
     tmpl = Template(
         """\
 SELECT
-    ${node_id} AS node_id,
+    '${node_id}' AS node_id,
     m.dim1 AS dim0,
     SUM(m.val * d.val * v.val) AS val
 FROM ${matrix} AS m, ${diag} AS d, ${vec} AS v

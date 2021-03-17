@@ -633,7 +633,7 @@ def generate_udf_select_stmt(
 
     from_subexpr = prettify(SEP.join(table_names))
 
-    nodeid_column = " $node_id" + AS + "node_id"
+    nodeid_column = " '$node_id'" + AS + "node_id"
 
     if RelationT == main_input_type:
         head_table, *tail_tables = table_names
