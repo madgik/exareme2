@@ -10,7 +10,7 @@ from mipengine.common.node_tasks_DTOs import UDFArgument
 from mipengine.common.validate_identifier_names import validate_identifier_names
 from mipengine.node.config.config_parser import config
 from mipengine.node.monetdb_interface import udfs
-from mipengine.node.monetdb_interface.common_action import get_table_schema, create_table_name
+from mipengine.node.monetdb_interface.common_actions import get_table_schema, create_table_name
 from mipengine.node.udfgen import ColumnInfo, TableInfo, generate_udf_application_queries
 
 

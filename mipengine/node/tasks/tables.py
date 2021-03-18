@@ -5,8 +5,8 @@ from celery import shared_task
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface import tables
-from mipengine.node.monetdb_interface.common_action import config
-from mipengine.node.monetdb_interface.common_action import create_table_name
+from mipengine.node.monetdb_interface.common_actions import config
+from mipengine.node.monetdb_interface.common_actions import create_table_name
 
 
 @shared_task
