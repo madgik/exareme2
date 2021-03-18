@@ -175,12 +175,9 @@ def clean_up(context_id: str):
 
 
 def __convert_monet_table_type_to_mip(monet_table_type: int) -> str:
-    """ Converts MonetDB's table types to MIP Engine's table types
-    0 -> normal,
-    1 -> view,
-    3 -> merge,
-    5 -> remote,
-        """
+    """
+    Converts MonetDB's table types to MIP Engine's table types
+    """
     type_mapping = {
         0: "normal",
         1: "view",
@@ -195,12 +192,9 @@ def __convert_monet_table_type_to_mip(monet_table_type: int) -> str:
 
 
 def __convert_mip_table_type_to_monet(table_type: str) -> int:
-    """ Converts MIP Engine's table types to MonetDB's table types
-     normal -> 0,
-     view -> 1,
-     merge -> 3,
-     remote -> 5,
-        """
+    """
+    Converts MIP Engine's table types to MonetDB's table types
+    """
     type_mapping = {
         "normal": 0,
         "view": 1,
@@ -211,16 +205,12 @@ def __convert_mip_table_type_to_monet(table_type: str) -> int:
     if table_type not in type_mapping.keys():
         raise ValueError(f"Type {table_type} cannot be converted to monetdb table type.")
 
-    return type_mapping.get(str(table_type).lower())
+    return type_mapping.get(table_type)
 
 
 def __convert_to_monetdb_column_type(column_type: str) -> str:
-    """ Converts MIP Engine's int,float,text types to monetdb
-    int -> integer
-    float -> double
-    text -> varchar(50s)
-    bool -> boolean
-    clob -> clob
+    """
+    Converts MIP Engine's int,float,text types to monetdb
     """
     type_mapping = {
         "int": "int",
@@ -233,16 +223,12 @@ def __convert_to_monetdb_column_type(column_type: str) -> str:
     if column_type not in type_mapping.keys():
         raise ValueError(f"Type {column_type} cannot be converted to monetdb column type.")
 
-    return type_mapping.get(str(column_type).lower())
+    return type_mapping.get(column_type)
 
 
 def __convert_from_monetdb_column_type(column_type: str) -> str:
-    """ Converts MonetDB's types to MIP Engine's types
-    int ->  int
-    double  -> float
-    varchar(50)  -> text
-    boolean -> bool
-    clob -> clob
+    """
+    Converts MonetDB's types to MIP Engine's types
     """
     type_mapping = {
         "int": "int",
@@ -255,7 +241,7 @@ def __convert_from_monetdb_column_type(column_type: str) -> str:
     if column_type not in type_mapping.keys():
         raise ValueError(f"Type {column_type} cannot be converted to MIP Engine's types.")
 
-    return type_mapping.get(str(column_type).lower())
+    return type_mapping.get(column_type)
 
 
 def __delete_table_by_type_and_context_id(table_type: str, context_id: str):

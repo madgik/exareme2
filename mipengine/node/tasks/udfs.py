@@ -39,9 +39,9 @@ def run_udf(command_id: str,
             The experiment identifier, common among all experiment related actions.
         func_name: str
             Name of function from which to generate UDF.
-        positional_args_json: list[str(dict)]
+        positional_args_json: list[str(UDFArgument)]
             Positional arguments of the udf call.
-        keyword_args_json: dict[str, str(dict)]
+        keyword_args_json: dict[str, str(UDFArgument)]
             Keyword arguments of the udf call.
 
     Returns
@@ -88,9 +88,9 @@ def get_run_udf_query(command_id: str,
             The experiment identifier, common among all experiment related actions.
         func_name: str
             Name of function from which to generate UDF.
-        positional_args_json: list[str(dict)]
+        positional_args_json: list[str(UDFArgument)]
             Positional arguments of the udf call.
-        keyword_args_json: dict[str, str(dict)]
+        keyword_args_json: dict[str, str(UDFArgument)]
             Keyword arguments of the udf call.
 
     Returns
