@@ -149,10 +149,10 @@ def get_table_data(
 
     Parameters
     ----------
-    table_type : str
-        The type of the table
     table_name : str
         The name of the table
+    table_type : str
+        The type of the table
 
     Returns
     ------
@@ -194,6 +194,7 @@ def clean_up(context_id: str):
     context_id : str
         The id of the experiment
     """
+    # TODO We also need to cleanup the udfs with the specific context_id
     for table_type in ("merge", "remote", "view", "normal"):
         __delete_table_by_type_and_context_id(table_type, context_id)
     connection.commit()
