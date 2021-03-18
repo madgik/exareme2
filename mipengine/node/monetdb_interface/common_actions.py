@@ -62,7 +62,7 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
         The schema in a sql query formatted string
     """
     return ", ".join(
-        f"{column.name} {__convert_mip2monetdb_column_type(column.data_type)}"
+        f"{column.name} {_convert_mip2monetdb_column_type(column.data_type)}"
         for column in schema.columns
     )
 
@@ -88,7 +88,7 @@ def get_table_schema(table_name: str, table_type: str = None) -> TableSchema:
     type_clause = ""
     if table_type is not None:
         type_clause = (
-            f" AND tables.type = {str(__convert_mip2monet_table_type(table_type))}"
+            f" AND tables.type = {str(_convert_mip2monet_table_type(table_type))}"
         )
 
     cursor.execute(
@@ -105,7 +105,7 @@ def get_table_schema(table_name: str, table_type: str = None) -> TableSchema:
     )
 
     columns = [
-        ColumnInfo(table[0], __convert_monetdb2mip_column_type(table[1]))
+        ColumnInfo(table[0], _convert_monetdb2mip_column_type(table[1]))
         for table in cursor
     ]
     return TableSchema(columns)
@@ -132,7 +132,7 @@ def get_tables_names(table_type: str, context_id: str) -> List[str]:
         f"""
         SELECT name FROM tables 
         WHERE
-         type = {str(__convert_mip2monet_table_type(table_type))} AND
+         type = {str(_convert_mip2monet_table_type(table_type))} AND
         name LIKE '%{context_id.lower()}%' AND 
         system = false"""
     )
@@ -163,7 +163,7 @@ def get_table_data(
     type_clause = ""
     if table_type is not None:
         type_clause = (
-            f" AND tables.type = {str(__convert_mip2monet_table_type(table_type))}"
+            f" AND tables.type = {str(_convert_mip2monet_table_type(table_type))}"
         )
 
     cursor.execute(
@@ -196,11 +196,11 @@ def clean_up(context_id: str):
     """
     # TODO We also need to cleanup the udfs with the specific context_id
     for table_type in ("merge", "remote", "view", "normal"):
-        __delete_table_by_type_and_context_id(table_type, context_id)
+        _delete_table_by_type_and_context_id(table_type, context_id)
     connection.commit()
 
 
-def __convert_monet2mip_table_type(monet_table_type: int) -> str:
+def _convert_monet2mip_table_type(monet_table_type: int) -> str:
     """
     Converts MonetDB's table types to MIP Engine's table types
     """
@@ -219,7 +219,7 @@ def __convert_monet2mip_table_type(monet_table_type: int) -> str:
     return type_mapping.get(monet_table_type)
 
 
-def __convert_mip2monet_table_type(table_type: str) -> int:
+def _convert_mip2monet_table_type(table_type: str) -> int:
     """
     Converts MIP Engine's table types to MonetDB's table types
     """
@@ -238,7 +238,7 @@ def __convert_mip2monet_table_type(table_type: str) -> int:
     return type_mapping.get(table_type)
 
 
-def __convert_mip2monetdb_column_type(column_type: str) -> str:
+def _convert_mip2monetdb_column_type(column_type: str) -> str:
     """
     Converts MIP Engine's int,float,text types to monetdb
     """
@@ -258,7 +258,7 @@ def __convert_mip2monetdb_column_type(column_type: str) -> str:
     return type_mapping.get(column_type)
 
 
-def __convert_monetdb2mip_column_type(column_type: str) -> str:
+def _convert_monetdb2mip_column_type(column_type: str) -> str:
     """
     Converts MonetDB's types to MIP Engine's types
     """
@@ -278,7 +278,7 @@ def __convert_monetdb2mip_column_type(column_type: str) -> str:
     return type_mapping.get(column_type)
 
 
-def __delete_table_by_type_and_context_id(table_type: str, context_id: str):
+def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
     """
     Deletes all tables of specific type with name that contain a specific context_id from the monetdb.
 
@@ -293,7 +293,7 @@ def __delete_table_by_type_and_context_id(table_type: str, context_id: str):
         f"""
         SELECT name, type FROM tables 
         WHERE name LIKE '%{context_id.lower()}%'
-        AND tables.type = {str(__convert_mip2monet_table_type(table_type))} 
+        AND tables.type = {str(_convert_mip2monet_table_type(table_type))} 
         AND system = false
         """
     )
