@@ -1,9 +1,6 @@
 import time
 
 import pymonetdb
-from pymonetdb import Connection
-from pymonetdb.sql.cursors import Cursor
-
 from mipengine.common.node_catalog import node_catalog
 from mipengine.node.config.config_parser import config
 
@@ -27,6 +24,7 @@ class MonetDB(metaclass=Singleton):
     We want one MonetDB connection instance per Celery worker/process.
 
     """
+
     def __init__(self):
         print("Initializing MonetDB!")
         global_node = node_catalog.get_global_node()
@@ -40,39 +38,39 @@ class MonetDB(metaclass=Singleton):
                                              port=monetdb_port,
                                              password=config.get("monet_db", "password"),
                                              hostname=monetdb_hostname,
-                                             database=config.get("monet_db", "database"))
+                                             database=config.get("monet_db", "database"),
+                                             autocommit=True)
         self._cursor = self._connection.cursor()
 
     def get_connection(self):
-        # Commit is needed to get the latest changes.
-        self._connection.commit()
         return self._connection
-
-    def get_cursor(self):
-        return self._cursor
 
 
 def get_connection():
     connection = MonetDB().get_connection()
-    connection.commit()
-    print("Getting MonetDB connection! : " + str(connection))
     return connection
 
 
-def execute_with_occ(connection: Connection, cursor: Cursor, query: str):
+def execute(query: str):
+    cursor = get_connection().cursor()
+    cursor.execute(query)
+    result = cursor.fetchall()
+    cursor.close()
+    return result
+
+
+def execute_with_occ(query: str):
     attempts = 20
+    cursor = get_connection().cursor()
     while attempts >= 0:
         try:
             cursor.execute(query)
-            connection.commit()
             break
         except pymonetdb.exceptions.OperationalError as operational_error_exc:
             print("Operational Error: " + str(operational_error_exc))
-            connection.rollback()
             raise operational_error_exc
         except Exception as exc:
             print("Exception: " + str(exc))
-            connection.rollback()
             if attempts == 0:
                 raise TimeoutError
             time.sleep(1)

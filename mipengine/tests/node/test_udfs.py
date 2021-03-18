@@ -24,12 +24,14 @@ local_node_run_udf = nodes_communication.get_celery_run_udf_signature(local_node
 local_node_create_table = nodes_communication.get_celery_create_table_signature(local_node)
 local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
 
-
-@pytest.fixture(autouse=True)
-def cleanup_tables():
-    yield
-
-    local_node_cleanup.delay(context_id=context_id.lower()).get()
+#TODO:Fix this one to make proper cleanup.
+#
+#
+# @pytest.fixture(autouse=True)
+# def cleanup_tables():
+#     yield
+#
+#     local_node_cleanup.delay(context_id=context_id.lower()).get()
 
 
 def test_get_udfs():

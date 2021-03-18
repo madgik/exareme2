@@ -1,12 +1,8 @@
 from typing import List
 from typing import Union
-
-from pymonetdb import Connection
-from pymonetdb.sql.cursors import Cursor
-
 from mipengine.common.node_exceptions import TableCannotBeFound
-from mipengine.common.validate_identifier_names import validate_identifier_names
-from mipengine.node.monetdb_interface.connection_pool import execute_with_occ
+from mipengine.node.monetdb_interface.monet_db_connection import execute
+from mipengine.node.monetdb_interface.monet_db_connection import execute_with_occ
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.common.validate_identifier_names import validate_identifier_names
@@ -45,15 +41,11 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
 
 
 @validate_identifier_names
-def get_table_schema(cursor: Cursor, table_name: str, table_type: str = None) -> TableSchema:
+def get_table_schema(table_name: str) -> TableSchema:
     """Retrieves a schema for a specific table type and table name  from the monetdb.
 
         Parameters
         ----------
-        cursor : Cursor
-            Database cursor to use for queries
-        table_type : str
-            The type of the table
         table_name : str
             The name of the table
 
@@ -62,12 +54,7 @@ def get_table_schema(cursor: Cursor, table_name: str, table_type: str = None) ->
         TableSchema
             A schema which is TableSchema object.
     """
-
-    type_clause = ""
-    if table_type is not None:
-        type_clause = f" AND tables.type = {str(__convert_mip_table_type_to_monet(table_type))}"
-
-    cursor.execute(
+    schema = execute(
         f"""
         SELECT columns.name, columns.type 
         FROM columns 
@@ -77,22 +64,19 @@ def get_table_schema(cursor: Cursor, table_name: str, table_type: str = None) ->
         tables.name = '{table_name}' 
         AND 
         tables.system=false 
-        {type_clause}""")
+        """)
 
-    schema = cursor.fetchall()
     if not schema:
         raise TableCannotBeFound(table_name)
     return TableSchema([ColumnInfo(table[0], __convert_from_monetdb_column_type(table[1])) for table in schema])
 
 
 @validate_identifier_names
-def get_tables_names(cursor: Cursor, table_type: str, context_id: str) -> List[str]:
+def get_tables_names(table_type: str, context_id: str) -> List[str]:
     """Retrieves a list of table names, which contain the context_id from the monetdb.
 
         Parameters
         ----------
-        cursor : Cursor
-            Database cursor to use for queries
         table_type : str
             The type of the table
         context_id : str
@@ -103,7 +87,7 @@ def get_tables_names(cursor: Cursor, table_type: str, context_id: str) -> List[s
         List[str]
             A list of table names.
     """
-    cursor.execute(
+    result = execute(
         f"""
         SELECT name FROM tables 
         WHERE
@@ -111,19 +95,15 @@ def get_tables_names(cursor: Cursor, table_type: str, context_id: str) -> List[s
         name LIKE '%{context_id.lower()}%' AND 
         system = false""")
 
-    return [table[0] for table in cursor]
+    return [table[0] for table in result]
 
 
 @validate_identifier_names
-def get_table_data(cursor: Cursor, table_name: str, table_type: str = None) -> List[List[Union[str, int, float, bool]]]:
+def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     """Retrieves the data of a table with specific type and name  from the monetdb.
 
         Parameters
         ----------
-        cursor : Cursor
-            Database cursor to use for queries
-        table_type : str
-            The type of the table
         table_name : str
             The name of the table
 
@@ -133,20 +113,15 @@ def get_table_data(cursor: Cursor, table_name: str, table_type: str = None) -> L
             The data of the table.
     """
 
-    type_clause = ""
-    if table_type is not None:
-        type_clause = f" AND tables.type = {str(__convert_mip_table_type_to_monet(table_type))}"
-
-    cursor.execute(
+    result = execute(
         f"""
         SELECT {table_name}.* 
         FROM {table_name} 
         INNER JOIN tables ON tables.name = '{table_name}' 
-        WHERE tables.system=false 
-        {type_clause}
+        WHERE tables.system=false
         """)
 
-    return cursor.fetchall()
+    return result
 
 
 # def get_table_rows(table_name: str) -> int:
@@ -155,18 +130,16 @@ def get_table_data(cursor: Cursor, table_name: str, table_type: str = None) -> L
 #
 
 @validate_identifier_names
-def clean_up(connection: Connection, cursor: Cursor, context_id: str):
+def clean_up(context_id: str):
     """Deletes all tables of any type with name that contain a specific context_id from the monetdb.
 
         Parameters
         ----------
-        cursor : Cursor
-            Database cursor to use for queries
         context_id : str
             The id of the experiment
     """
     for table_type in ("merge", "remote", "view", "normal"):
-        __delete_table_by_type_and_context_id(connection, cursor, table_type, context_id)
+        __delete_table_by_type_and_context_id(table_type, context_id)
 
 
 def __convert_monet_table_type_to_mip(monet_table_type: int) -> str:
@@ -240,27 +213,25 @@ def __convert_from_monetdb_column_type(column_type: str) -> str:
 
 
 @validate_identifier_names
-def __delete_table_by_type_and_context_id(connection: Connection, cursor: Cursor, table_type: str, context_id: str):
+def __delete_table_by_type_and_context_id(table_type: str, context_id: str):
     """Deletes all tables of specific type with name that contain a specific context_id from the monetdb.
 
         Parameters
         ----------
-        cursor : Cursor
-            Database cursor to use for queries
         table_type : str
             The type of the table
         context_id : str
             The id of the experiment
     """
-    cursor.execute(
+    result = execute(
         f"""
         SELECT name, type FROM tables 
         WHERE name LIKE '%{context_id.lower()}%'
         AND tables.type = {str(__convert_mip_table_type_to_monet(table_type))} 
         AND system = false
         """)
-    for table in cursor.fetchall():
+    for table in result:
         if table[1] == 1:
-            execute_with_occ(connection, cursor, f"DROP VIEW {table[0]}")
+            execute_with_occ(f"DROP VIEW {table[0]}")
         else:
-            execute_with_occ(connection, cursor, f"DROP TABLE {table[0]}")
+            execute_with_occ(f"DROP TABLE {table[0]}")

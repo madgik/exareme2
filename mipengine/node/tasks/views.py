@@ -5,7 +5,6 @@ from celery import shared_task
 from mipengine.node.monetdb_interface import views
 from mipengine.node.monetdb_interface.common_actions import config
 from mipengine.node.monetdb_interface.common_actions import create_table_name
-from mipengine.node.monetdb_interface.connection_pool import get_connection
 
 
 @shared_task
@@ -21,15 +20,7 @@ def get_views(context_id: str) -> List[str]:
         List[str]
             A list of view names
     """
-    connection = get_connection()
-    cursor = connection.cursor()
-    try:
-        view_names = views.get_views_names(connection.cursor(), context_id)
-        connection.commit()
-    except Exception as exc:
-        connection.rollback()
-        raise exc
-    return view_names
+    return views.get_views_names(context_id)
 
 
 @shared_task
@@ -63,18 +54,10 @@ def create_view(context_id: str,
             The name of the created view in lower case
     """
     view_name = create_table_name("view", command_id, context_id, config["node"]["identifier"])
-
-    connection = get_connection()
-    cursor = connection.cursor()
-    try:
-        views.create_view(
-            connection=connection,
-            cursor=cursor,
-            view_name=view_name,
-            pathology=pathology,
-            datasets=datasets,
-            columns=columns)
-    except Exception as exc:
-        raise exc
+    views.create_view(
+        view_name=view_name,
+        pathology=pathology,
+        datasets=datasets,
+        columns=columns)
 
     return view_name.lower()

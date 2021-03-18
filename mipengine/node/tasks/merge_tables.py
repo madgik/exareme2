@@ -7,7 +7,6 @@ from mipengine.node.monetdb_interface import common_actions
 from mipengine.node.monetdb_interface import merge_tables
 from mipengine.node.monetdb_interface.common_actions import config
 from mipengine.node.monetdb_interface.common_actions import create_table_name
-from mipengine.node.monetdb_interface.connection_pool import get_connection
 from mipengine.node.monetdb_interface.merge_tables import validate_tables_can_be_merged
 
 
@@ -24,14 +23,7 @@ def get_merge_tables(context_id: str) -> List[str]:
         List[str]
             A list of merge table names
     """
-    connection = get_connection()
-    cursor = connection.cursor()
-    try:
-        merge_table_names = merge_tables.get_merge_tables_names(connection.cursor(), context_id)
-    except Exception as exc:
-        raise exc
-
-    return merge_table_names
+    return merge_tables.get_merge_tables_names(context_id)
 
 
 @shared_task
@@ -51,17 +43,11 @@ def create_merge_table(context_id: str, command_id: str, table_names: List[str])
         str
             The name(string) of the created merge table in lower case.
     """
-    connection = get_connection()
-    cursor = connection.cursor()
-    try:
-        validate_tables_can_be_merged(cursor, table_names)
-        schema = common_actions.get_table_schema(cursor, table_names[0])
-        print(schema)
-        merge_table_name = create_table_name("merge", command_id, context_id, config["node"]["identifier"])
-        table_info = TableInfo(merge_table_name.lower(), schema)
-        merge_tables.create_merge_table(connection, cursor, table_info)
-        merge_tables.add_to_merge_table(connection, cursor, merge_table_name, table_names)
-    except Exception as exc:
-        raise exc
+    validate_tables_can_be_merged(table_names)
+    schema = common_actions.get_table_schema(table_names[0])
+    merge_table_name = create_table_name("merge", command_id, context_id, config["node"]["identifier"])
+    table_info = TableInfo(merge_table_name.lower(), schema)
+    merge_tables.create_merge_table(table_info)
+    merge_tables.add_to_merge_table(merge_table_name, table_names)
 
     return merge_table_name.lower()
