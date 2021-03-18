@@ -19,4 +19,5 @@ app = Celery('mipengine.node',
              broker=f'amqp://{user}:{password}@{rabbitmqURL}/{vhost}',
              backend='rpc://',
              include=['mipengine.node.tasks.tables', 'mipengine.node.tasks.remote_tables',
-                      'mipengine.node.tasks.merge_tables', 'mipengine.node.tasks.views', 'mipengine.node.tasks.common'])
+                      'mipengine.node.tasks.merge_tables', 'mipengine.node.tasks.views',
+                      'mipengine.node.tasks.common', 'mipengine.node.tasks.udfs'])

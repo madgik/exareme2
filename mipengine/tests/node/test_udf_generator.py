@@ -1,354 +1,242 @@
+# type: ignore
 from textwrap import dedent
+from typing import TypeVar
 
 import pytest
 
-from mipengine.algorithms import LiteralParameterT
-from mipengine.algorithms import LoopbackTableT
-from mipengine.algorithms import ScalarT
-from mipengine.algorithms import TableT
-from mipengine.algorithms import TensorT
 from mipengine.algorithms import udf
-from mipengine.node.udfgen import generate_udf
+from mipengine.algorithms import RelationT
+from mipengine.algorithms import TensorT
+from mipengine.algorithms import LoopbackTensorT
+from mipengine.algorithms import LiteralParameterT
+from mipengine.algorithms import ScalarT
+from mipengine.node.udfgen import generate_udf_application_queries
+from mipengine.node.udfgen import ColumnInfo, TableInfo
+
+Schema1 = TypeVar("Schema1")
+Schema2 = TypeVar("Schema2")
+DT1 = TypeVar("DT1")
+ND1 = TypeVar("ND1")
+DT2 = TypeVar("DT2")
+ND2 = TypeVar("ND2")
+
+UDFNAME = "udfname"
+TABLENAME = "tablename"
+NODEID = "12345"
 
 
 @udf
-def udf_tables(x: TableT, y: TableT) -> TableT:
-    result = x + y
+def relations_to_relation(
+    x: RelationT[Schema1], y: RelationT[Schema2]
+) -> RelationT[Schema1]:
+    result = x
     return result
 
 
-@udf
-def udf_table_to_tensor(input: TableT) -> TensorT:
-    return input
+POSARGS_relations_to_relation = [
+    TableInfo("rel1", [ColumnInfo("col1", "int"), ColumnInfo("col2", "float")]),
+    TableInfo("rel2", [ColumnInfo("col1", "int"), ColumnInfo("col2", "float")]),
+]
+DEF_relations_to_relation = """\
+CREATE OR REPLACE
+FUNCTION
+udfname(x_col1 int, x_col2 float, y_col1 int, y_col2 float)
+RETURNS
+TABLE(col1 int, col2 float)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    x = pd.DataFrame({n: _columns[n] for n in ['x_col1', 'x_col2']})
+    y = pd.DataFrame({n: _columns[n] for n in ['y_col1', 'y_col2']})
+    result = x
+    return result
+};"""
+QUERY_relations_to_relation = """\
+DROP TABLE IF EXISTS tablename;
+CREATE TABLE tablename AS (
+    SELECT CAST('12345' AS varchar(50)) AS node_id, *
+    FROM
+        udfname(
+            (
+                SELECT
+                    rel1.col1, rel1.col2, rel2.col1, rel2.col2
+                FROM
+                    rel1, rel2
+                WHERE
+                    rel1.row_id=rel2.row_id
+            )
+        )
+);"""
 
 
 @udf
-def udf_tensor_and_loopback(X: TensorT, c: LoopbackTableT) -> TensorT:
-    result = X @ c
+def table_to_tensor(input_: RelationT[Schema1]) -> TensorT(float, 2):
+    output = [[1, 2, 3], [4, 5, 6]]
+    return output
+
+
+POSARGS_table_to_tensor = [
+    TableInfo("rel1", [ColumnInfo("col1", "int"), ColumnInfo("col2", "float")]),
+]
+DEF_table_to_tensor = """\
+CREATE OR REPLACE
+FUNCTION
+udfname(input__col1 int, input__col2 float)
+RETURNS
+TABLE(dim0 int, dim1 int, val float)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    input_ = pd.DataFrame({n: _columns[n] for n in ['input__col1', 'input__col2']})
+    output = [[1, 2, 3], [4, 5, 6]]
+    return udfio.as_tensor_table(numpy.array(output))
+};"""
+QUERY_table_to_tensor = """\
+DROP TABLE IF EXISTS tablename;
+CREATE TABLE tablename AS (
+    SELECT CAST('12345' AS varchar(50)) AS node_id, *
+    FROM
+        udfname(
+            (
+                SELECT
+                    rel1.col1, rel1.col2
+                FROM
+                    rel1
+            )
+        )
+);"""
+
+
+# FIXME loopbacks are not implemented
+# @udf
+# def tensor_and_loopback(
+#     X: TensorT(float, 2), c: LoopbackRelationT(float, 1)
+# ) -> TensorT(float, 1):
+#     result = X @ c
+#     return result
+
+
+@udf
+def with_literal(X: TensorT[DT1, ND1], n: LiteralParameterT[int]) -> TensorT[DT1, ND1]:
+    result = X + n
     return result
 
 
-@udf
-def udf_with_literals(X: TensorT, val: LiteralParameterT) -> TensorT:
-    result = X + val
-    return result
+POSARGS_with_literal = [
+    TableInfo("tens1", [ColumnInfo("dim0", "int"), ColumnInfo("val", "float")]),
+    5,
+]
+DEF_with_literal = """\
+CREATE OR REPLACE
+FUNCTION
+udfname(tens1_dim0 int, tens1_val float)
+RETURNS
+TABLE(dim0 int, val float)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    X = udfio.from_tensor_table({n:_columns[n] for n in ['tens1_dim0', 'tens1_val']})
+    n = 5
+    result = X + n
+    return udfio.as_tensor_table(numpy.array(result))
+};"""
+QUERY_with_literal = """\
+DROP TABLE IF EXISTS tablename;
+CREATE TABLE tablename AS (
+    SELECT CAST('12345' AS varchar(50)) AS node_id, *
+    FROM
+        udfname(
+            (
+                SELECT
+                    tens1.dim0, tens1.val
+                FROM
+                    tens1
+            )
+        )
+);"""
 
 
 @udf
-def udf_multitype_input(x: TableT, y: TensorT, z: LoopbackTableT) -> TableT:
-    t = y * z
-    return x
-
-
-@udf
-def udf_to_scalar(vec1: TensorT, vec2: TensorT) -> ScalarT:
+def to_scalar(vec1: TensorT(float, 1), vec2: TensorT(float, 1)) -> ScalarT(float):
     dotprod = vec1.T @ vec2
     return dotprod
 
 
-@udf
-def udf_many_params(
-        x: TableT, y: TensorT, z: LoopbackTableT, w: LiteralParameterT, t: TableT
-) -> ScalarT:
-    if x is not None:
-        if len(y) != 0:
-            result = w
-    return result
-
+POSARGS_to_scalar = [
+    TableInfo("tens1", [ColumnInfo("dim0", "int"), ColumnInfo("val", "float")]),
+    TableInfo("tens2", [ColumnInfo("dim0", "int"), ColumnInfo("val", "float")]),
+]
+DEF_to_scalar = """\
+CREATE OR REPLACE
+FUNCTION
+udfname(tens1_dim0 int, tens1_val float, tens2_dim0 int, tens2_val float)
+RETURNS
+float
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    vec1 = udfio.from_tensor_table({n:_columns[n] for n in ['tens1_dim0', 'tens1_val']})
+    vec2 = udfio.from_tensor_table({n:_columns[n] for n in ['tens2_dim0', 'tens2_val']})
+    dotprod = vec1.T @ vec2
+    return dotprod
+};"""
+QUERY_to_scalar = """\
+DROP TABLE IF EXISTS tablename;
+CREATE TABLE tablename AS (
+    SELECT
+        udfname(tens1.dim0, tens1.val, tens2.dim0, tens2.val)
+    FROM
+        tens1, tens2
+    WHERE
+        tens1.dim0=tens2.dim0
+);"""
 
 test_cases_generate_udf = [
     (
         {
-            "func_name": "test_udf_generator.udf_tables",
-            "udf_name": "udf_tables_1234",
-            "positional_args": [
-                {
-                    "type": "input_table",
-                    "schema": [{"type": "int"}, {"type": "int"}],
-                    "nrows": 10,
-                },
-                {
-                    "type": "input_table",
-                    "schema": [{"type": "int"}, {"type": "int"}],
-                    "nrows": 10,
-                },
-            ],
+            "func_name": "test_udf_generator.relations_to_relation",
+            "positional_args": POSARGS_relations_to_relation,
             "keyword_args": {},
         },
-        dedent(
-            """\
-            CREATE OR REPLACE
-            FUNCTION
-            udf_tables_1234(x0 BIGINT, x1 BIGINT, y0 BIGINT, y1 BIGINT)
-            RETURNS
-            Table(result0 BIGINT, result1 BIGINT)
-            LANGUAGE PYTHON
-            {
-                from mipengine.udfgen import ArrayBundle
-                x = ArrayBundle(_columns[0:2])
-                y = ArrayBundle(_columns[2:4])
-
-                # body
-                result = x + y
-
-                return as_relational_table(result)
-            };"""
-        ),
+        (DEF_relations_to_relation, QUERY_relations_to_relation),
     ),
     (
         {
-            "func_name": "test_udf_generator.udf_table_to_tensor",
-            "udf_name": "udf_table_to_tensor_1234",
-            "positional_args": [
-                {
-                    "type": "input_table",
-                    "schema": [
-                        {"type": "int"},
-                        {"type": "int"},
-                        {"type": "int"},
-                        {"type": "int"},
-                    ],
-                    "nrows": 4,
-                }
-            ],
+            "func_name": "test_udf_generator.table_to_tensor",
+            "positional_args": POSARGS_table_to_tensor,
             "keyword_args": {},
         },
-        dedent(
-            """\
-            CREATE OR REPLACE
-            FUNCTION
-            udf_table_to_tensor_1234(input0 BIGINT, input1 BIGINT, input2 BIGINT, input3 BIGINT)
-            RETURNS
-            Table(input0 BIGINT, input1 BIGINT, input2 BIGINT, input3 BIGINT)
-            LANGUAGE PYTHON
-            {
-                from mipengine.udfgen import ArrayBundle
-                input = ArrayBundle(_columns[0:4])
-                return as_tensor_table(input)
-            };"""
-        ),
+        (DEF_table_to_tensor, QUERY_table_to_tensor),
     ),
     (
         {
-            "func_name": "test_udf_generator.udf_tensor_and_loopback",
-            "udf_name": "udf_tensor_and_loopback_1234",
-            "positional_args": [
-                {
-                    "type": "input_table",
-                    "schema": [
-                        {"type": "real"},
-                        {"type": "real"},
-                        {"type": "real"},
-                    ],
-                    "nrows": 10,
-                },
-                {
-                    "type": "loopback_table",
-                    "schema": [{"type": "real"}],
-                    "nrows": 3,
-                    "name": "coeffs",
-                },
-            ],
+            "func_name": "test_udf_generator.with_literal",
+            "positional_args": POSARGS_with_literal,
             "keyword_args": {},
         },
-        dedent(
-            """\
-            CREATE OR REPLACE
-            FUNCTION
-            udf_tensor_and_loopback_1234(X0 DOUBLE, X1 DOUBLE, X2 DOUBLE)
-            RETURNS
-            Table(result0 DOUBLE)
-            LANGUAGE PYTHON
-            {
-                from mipengine.udfgen import ArrayBundle
-                X = from_tensor_table(_columns[0:3])
-                c = _conn.execute("SELECT * FROM coeffs")
-
-                # body
-                result = X @ c
-
-                return as_tensor_table(result)
-            };"""
-        ),
+        (DEF_with_literal, QUERY_with_literal),
     ),
     (
         {
-            "udf_name": "udf_with_literals_1234",
-            "func_name": "test_udf_generator.udf_with_literals",
-            "positional_args": [
-                {
-                    "type": "input_table",
-                    "schema": [{"type": "int"}, {"type": "int"}, {"type": "int"}],
-                    "nrows": 3,
-                },
-                {"type": "literal_parameter", "value": 5},
-            ],
+            "func_name": "test_udf_generator.to_scalar",
+            "positional_args": POSARGS_to_scalar,
             "keyword_args": {},
         },
-        dedent(
-            """\
-            CREATE OR REPLACE
-            FUNCTION
-            udf_with_literals_1234(X0 BIGINT, X1 BIGINT, X2 BIGINT)
-            RETURNS
-            Table(result0 BIGINT, result1 BIGINT, result2 BIGINT)
-            LANGUAGE PYTHON
-            {
-                from mipengine.udfgen import ArrayBundle
-                X = from_tensor_table(_columns[0:3])
-                val = 5
-
-                # body
-                result = X + val
-
-                return as_tensor_table(result)
-            };"""
-        ),
-    ),
-    (
-        {
-            "udf_name": "udf_multitype_input_1234",
-            "func_name": "test_udf_generator.udf_multitype_input",
-            "positional_args": [
-                {
-                    "type": "input_table",
-                    "schema": [{"type": "int"}, {"type": "int"}],
-                    "nrows": 10,
-                },
-                {
-                    "type": "input_table",
-                    "schema": [{"type": "real"}, {"type": "real"}],
-                    "nrows": 2,
-                },
-                {
-                    "type": "loopback_table",
-                    "schema": [{"type": "real"}, {"type": "real"}],
-                    "nrows": 2,
-                    "name": "t",
-                },
-            ],
-            "keyword_args": {},
-        },
-        dedent(
-            """\
-            CREATE OR REPLACE
-            FUNCTION
-            udf_multitype_input_1234(x0 BIGINT, x1 BIGINT, y0 DOUBLE, y1 DOUBLE)
-            RETURNS
-            Table(x0 BIGINT, x1 BIGINT)
-            LANGUAGE PYTHON
-            {
-                from mipengine.udfgen import ArrayBundle
-                x = ArrayBundle(_columns[0:2])
-                y = from_tensor_table(_columns[2:4])
-                z = _conn.execute("SELECT * FROM t")
-
-                # body
-                t = y * z
-
-                return as_relational_table(x)
-            };"""
-        ),
-    ),
-    (
-        {
-            "udf_name": "udf_to_scalar_1234",
-            "func_name": "test_udf_generator.udf_to_scalar",
-            "positional_args": [
-                {"type": "input_table", "schema": [{"type": "int"}], "nrows": 10},
-                {"type": "input_table", "schema": [{"type": "int"}], "nrows": 10},
-            ],
-            "keyword_args": {},
-        },
-        dedent(
-            """\
-                CREATE OR REPLACE
-                FUNCTION
-                udf_to_scalar_1234(vec10 BIGINT, vec20 BIGINT)
-                RETURNS
-                BIGINT
-                LANGUAGE PYTHON
-                {
-                    from mipengine.udfgen import ArrayBundle
-                    vec1 = from_tensor_table(_columns[0:1])
-                    vec2 = from_tensor_table(_columns[1:2])
-
-                    # body
-                    dotprod = vec1.T @ vec2
-
-                    return dotprod
-
-                };"""
-        ),
-    ),
-    (
-        {
-            "udf_name": "many_params_1029384",
-            "func_name": "test_udf_generator.udf_many_params",
-            "positional_args": [
-                {
-                    "type": "input_table",
-                    "schema": [{"type": "int"}, {"type": "int"}],
-                    "nrows": 10,
-                },
-            ],
-            "keyword_args": {
-                "y": {
-                    "type": "input_table",
-                    "schema": [{"type": "int"}, {"type": "int"}],
-                    "nrows": 10,
-                },
-                "z": {
-                    "type": "loopback_table",
-                    "schema": [{"type": "real"}],
-                    "nrows": 3,
-                    "name": "coeffs",
-                },
-                "w": {"type": "literal_parameter", "value": 5},
-                "t": {
-                    "type": "input_table",
-                    "schema": [{"type": "real"}, {"type": "real"}],
-                    "nrows": 10,
-                },
-            },
-        },
-        dedent(
-            """\
-            CREATE OR REPLACE
-            FUNCTION
-            many_params_1029384(x0 BIGINT, x1 BIGINT, y0 BIGINT, y1 BIGINT, t0 DOUBLE, t1 DOUBLE)
-            RETURNS
-            BIGINT
-            LANGUAGE PYTHON
-            {
-                from mipengine.udfgen import ArrayBundle
-                x = ArrayBundle(_columns[0:2])
-                t = ArrayBundle(_columns[2:4])
-                y = from_tensor_table(_columns[4:6])
-                z = _conn.execute("SELECT * FROM coeffs")
-                w = 5
-
-                # body
-                if x is not None:
-                    if len(y) != 0:
-                        result = w
-
-                return result
-
-            };"""
-        ),
+        (DEF_to_scalar, QUERY_to_scalar),
     ),
 ]
 
 
 @pytest.mark.parametrize("test_input,expected", test_cases_generate_udf)
 def test_generate_udf(test_input, expected):
+    udf_def, udf_query = generate_udf_application_queries(**test_input)
+    exp_def, exp_query = expected
+    assert udf_def.substitute(udf_name=UDFNAME) == exp_def
     assert (
-            generate_udf(
-                func_name=test_input["func_name"],
-                udf_name=test_input["udf_name"],
-                positional_args=test_input["positional_args"],
-                keyword_args=test_input["keyword_args"],
-            )
-            == expected
+        udf_query.substitute(udf_name=UDFNAME, table_name=TABLENAME, node_id=NODEID)
+        == exp_query
     )

@@ -5,7 +5,8 @@ from pymonetdb.sql.cursors import Cursor
 
 from mipengine.common.validate_identifier_names import validate_identifier_names
 from mipengine.node.monetdb_interface import common_actions
-from mipengine.node.monetdb_interface.connection_pool import execute_with_occ
+
+DATA_TABLE_PRIMARY_KEY = 'row_id'
 
 
 def get_views_names(cursor: Cursor, context_id: str) -> List[str]:
@@ -17,5 +18,11 @@ def create_view(connection:Connection, cursor: Cursor, view_name: str, pathology
     # TODO: Add filters argument
     dataset_names = ','.join(f"'{dataset}'" for dataset in datasets)
     columns = ', '.join(columns)
-    execute_with_occ(connection, cursor,
-        f"CREATE VIEW {view_name} AS SELECT {columns} FROM {pathology}_data WHERE dataset IN ({dataset_names})")
+
+    cursor.execute(
+        f"""CREATE VIEW {view_name} 
+        AS SELECT {DATA_TABLE_PRIMARY_KEY}, {columns} 
+        FROM {pathology}_data 
+        WHERE dataset IN ({dataset_names})"""
+    )
+    connection.commit()

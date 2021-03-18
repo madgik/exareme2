@@ -7,9 +7,10 @@ from pymonetdb.sql.cursors import Cursor
 from mipengine.common.node_exceptions import TableCannotBeFound
 from mipengine.common.validate_identifier_names import validate_identifier_names
 from mipengine.node.monetdb_interface.connection_pool import execute_with_occ
-from mipengine.node.node import config
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
+from mipengine.common.validate_identifier_names import validate_identifier_names
+from mipengine.node.node import config
 
 MONETDB_VARCHAR_SIZE = 50
 
@@ -148,6 +149,12 @@ def get_table_data(cursor: Cursor, table_name: str, table_type: str = None) -> L
     return cursor.fetchall()
 
 
+# def get_table_rows(table_name: str) -> int:
+#     cursor.execute(f"select count(*) from {table_name}")
+#     return cursor.next()[0]
+#
+
+@validate_identifier_names
 def clean_up(connection: Connection, cursor: Cursor, context_id: str):
     """Deletes all tables of any type with name that contain a specific context_id from the monetdb.
 
@@ -163,12 +170,9 @@ def clean_up(connection: Connection, cursor: Cursor, context_id: str):
 
 
 def __convert_monet_table_type_to_mip(monet_table_type: int) -> str:
-    """ Converts MonetDB's table types to MIP Engine's table types
-    0 -> normal,
-    1 -> view,
-    3 -> merge,
-    5 -> remote,
-        """
+    """
+    Converts MonetDB's table types to MIP Engine's table types
+    """
     type_mapping = {
         0: "normal",
         1: "view",
@@ -183,12 +187,9 @@ def __convert_monet_table_type_to_mip(monet_table_type: int) -> str:
 
 
 def __convert_mip_table_type_to_monet(table_type: str) -> int:
-    """ Converts MIP Engine's table types to MonetDB's table types
-     normal -> 0,
-     view -> 1,
-     merge -> 3,
-     remote -> 5,
-        """
+    """
+    Converts MIP Engine's table types to MonetDB's table types
+    """
     type_mapping = {
         "normal": 0,
         "view": 1,
@@ -199,16 +200,12 @@ def __convert_mip_table_type_to_monet(table_type: str) -> int:
     if table_type not in type_mapping.keys():
         raise ValueError(f"Type {table_type} cannot be converted to monetdb table type.")
 
-    return type_mapping.get(str(table_type).lower())
+    return type_mapping.get(table_type)
 
 
 def __convert_to_monetdb_column_type(column_type: str) -> str:
-    """ Converts MIP Engine's int,float,text types to monetdb
-    int -> integer
-    float -> double
-    text -> varchar(50s)
-    bool -> boolean
-    clob -> clob
+    """
+    Converts MIP Engine's int,float,text types to monetdb
     """
     type_mapping = {
         "int": "int",
@@ -221,16 +218,12 @@ def __convert_to_monetdb_column_type(column_type: str) -> str:
     if column_type not in type_mapping.keys():
         raise ValueError(f"Type {column_type} cannot be converted to monetdb column type.")
 
-    return type_mapping.get(str(column_type).lower())
+    return type_mapping.get(column_type)
 
 
 def __convert_from_monetdb_column_type(column_type: str) -> str:
-    """ Converts MonetDB's types to MIP Engine's types
-    int ->  int
-    double  -> float
-    varchar(50)  -> text
-    boolean -> bool
-    clob -> clob
+    """
+    Converts MonetDB's types to MIP Engine's types
     """
     type_mapping = {
         "int": "int",
@@ -243,7 +236,7 @@ def __convert_from_monetdb_column_type(column_type: str) -> str:
     if column_type not in type_mapping.keys():
         raise ValueError(f"Type {column_type} cannot be converted to MIP Engine's types.")
 
-    return type_mapping.get(str(column_type).lower())
+    return type_mapping.get(column_type)
 
 
 @validate_identifier_names
