@@ -5,7 +5,7 @@ from celery import shared_task
 from mipengine.node.monetdb_interface import views
 from mipengine.node.monetdb_interface.common_actions import config
 from mipengine.node.monetdb_interface.common_actions import create_table_name
-from mipengine.node.monetdb_interface.connection_pool import get_connection, release_connection
+from mipengine.node.monetdb_interface.connection_pool import get_connection
 
 
 @shared_task
@@ -26,10 +26,8 @@ def get_views(context_id: str) -> List[str]:
     try:
         view_names = views.get_views_names(connection.cursor(), context_id)
         connection.commit()
-        release_connection(connection, cursor)
     except Exception as exc:
         connection.rollback()
-        release_connection(connection, cursor)
         raise exc
     return view_names
 
@@ -76,9 +74,7 @@ def create_view(context_id: str,
             pathology=pathology,
             datasets=datasets,
             columns=columns)
-        release_connection(connection, cursor)
     except Exception as exc:
-        release_connection(connection, cursor)
         raise exc
 
     return view_name.lower()

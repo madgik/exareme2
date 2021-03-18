@@ -4,7 +4,7 @@ from celery import shared_task
 
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.node.monetdb_interface import remote_tables
-from mipengine.node.monetdb_interface.connection_pool import get_connection, release_connection
+from mipengine.node.monetdb_interface.connection_pool import get_connection
 
 
 @shared_task
@@ -25,10 +25,8 @@ def get_remote_tables(context_id: str) -> List[str]:
     try:
         remote_table_names = remote_tables.get_remote_tables_names(connection.cursor(), context_id)
         connection.commit()
-        release_connection(connection, cursor)
     except Exception as exc:
         connection.rollback()
-        release_connection(connection, cursor)
         raise exc
     return remote_table_names
 
@@ -48,7 +46,5 @@ def create_remote_table(table_info_json: str, url: str):
     cursor = connection.cursor()
     try:
         remote_tables.create_remote_table(connection, cursor, table_info, url)
-        release_connection(connection, cursor)
     except Exception as exc:
-        release_connection(connection, cursor)
         raise exc

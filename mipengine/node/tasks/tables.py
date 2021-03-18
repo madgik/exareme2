@@ -7,7 +7,7 @@ from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface import tables
 from mipengine.node.monetdb_interface.common_actions import config
 from mipengine.node.monetdb_interface.common_actions import create_table_name
-from mipengine.node.monetdb_interface.connection_pool import get_connection, release_connection
+from mipengine.node.monetdb_interface.connection_pool import get_connection
 
 
 @shared_task
@@ -28,10 +28,8 @@ def get_tables(context_id: str) -> List[str]:
     try:
         table_names = tables.get_tables_names(connection.cursor(), context_id)
         connection.commit()
-        release_connection(connection, cursor)
     except Exception as exc:
         connection.rollback()
-        release_connection(connection, cursor)
         raise exc
     return table_names
 
@@ -60,8 +58,6 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
     cursor = connection.cursor()
     try:
         tables.create_table(connection, cursor, table_info)
-        release_connection(connection, cursor)
     except Exception as exc:
-        release_connection(connection, cursor)
         raise exc
     return table_name.lower()
