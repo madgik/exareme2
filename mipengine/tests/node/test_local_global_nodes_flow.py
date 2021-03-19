@@ -34,14 +34,9 @@ def insert_data_into_local_node_db_table(node_id: str, table_name: str):
     cursor = connection.cursor()
 
     cursor.execute(f"INSERT INTO {table_name} VALUES (1, 1.2,'test')")
-    connection.commit()
-    connection.close()
 
 
 def test_create_merge_table_with_remote_tables():
-    clean_up_global.delay(context_id=context_id.lower()).get()
-    clean_up_node1.delay(context_id=context_id.lower()).get()
-    clean_up_node2.delay(context_id=context_id.lower()).get()
     local_node_1_data = node_catalog.get_local_node_data(local_node_1_id)
     local_node_2_data = node_catalog.get_local_node_data(local_node_2_id)
 
@@ -84,12 +79,9 @@ def test_create_merge_table_with_remote_tables():
     connection = get_node_db_connection(global_node_id)
     cursor = connection.cursor()
     cursor.execute(f"SELECT * FROM tables where system = false")
-    print(cursor.fetchall())
     cursor.execute(f"SELECT * FROM {merge_table_name}")
     row_count = len(cursor.fetchall())
     assert row_count == 2
-    connection.commit()
-    connection.close()
 
     clean_up_global.delay(context_id=context_id.lower()).get()
     clean_up_node1.delay(context_id=context_id.lower()).get()

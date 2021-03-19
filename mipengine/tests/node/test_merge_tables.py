@@ -35,11 +35,8 @@ def create_three_column_table_with_data(context_id: str, table_id: int):
     connection = get_node_db_connection(local_node_id)
     cursor = connection.cursor()
     cursor.execute(f"INSERT INTO {table_name} VALUES ( 1, 2.0, '3')")
-    connection.commit()
     tables = local_node_get_tables.delay(context_id=f"{context_id}_table_{table_id}").get()
     assert table_name in tables
-    cursor.close()
-    connection.close()
 
     return table_name
 
@@ -56,7 +53,7 @@ def test_create_and_get_merge_table():
     merge_tables = local_node_get_merge_tables.delay(context_id=context_id).get()
     assert merge_table_1_name in merge_tables
 
-    local_node_cleanup.delay(context_id="success").get()
+    local_node_cleanup.delay(context_id=context_id).get()
 
 
 def test_incompatible_schemas_merge():
@@ -69,7 +66,7 @@ def test_incompatible_schemas_merge():
         local_node_create_merge_table.delay(context_id=context_id,
                                             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
                                             table_names=incompatible_partition_tables).get()
-    local_node_cleanup.delay(context_id="incompatible").get()
+    local_node_cleanup.delay(context_id=context_id).get()
 
 
 def test_table_cannot_be_found():
@@ -82,4 +79,4 @@ def test_table_cannot_be_found():
         local_node_create_merge_table.delay(context_id=context_id,
                                             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
                                             table_names=not_found_tables).get()
-    local_node_cleanup.delay(context_id="not_found").get()
+    local_node_cleanup.delay(context_id=context_id).get()

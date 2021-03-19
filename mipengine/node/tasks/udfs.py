@@ -11,7 +11,6 @@ from mipengine.common.validate_identifier_names import validate_identifier_names
 from mipengine.node.config.config_parser import config
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import get_table_schema, create_table_name
-from mipengine.node.monetdb_interface.monet_db_connection import get_connection
 from mipengine.node.udfgen import ColumnInfo, TableInfo, generate_udf_application_queries
 
 
@@ -126,7 +125,6 @@ def __convert_udf_arg_to_udfgen_arg(udf_argument: UDFArgument):
         return udf_argument.value
     elif udf_argument.type == "table":
         name = udf_argument.value
-        cursor = get_connection().cursor()
         schema = get_table_schema(udf_argument.value)
         udf_generator_schema = [ColumnInfo(column.name, column.data_type)
                                 for column in schema.columns]

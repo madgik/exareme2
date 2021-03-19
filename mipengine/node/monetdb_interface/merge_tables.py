@@ -19,7 +19,6 @@ def get_merge_tables_names(context_id: str) -> List[str]:
 @validate_identifier_names
 def create_merge_table(table_info: TableInfo):
     columns_schema = convert_schema_to_sql_query_format(table_info.schema)
-    print(f"CREATE MERGE TABLE {table_info.name} ( {columns_schema} )")
     execute_with_occ(f"CREATE MERGE TABLE {table_info.name} ( {columns_schema} )")
 
 

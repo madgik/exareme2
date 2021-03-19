@@ -58,8 +58,6 @@ def test_run_udf():
     cursor.execute(f"INSERT INTO {table_1_name} VALUES (1, 12,3)")
     cursor.execute(f"INSERT INTO {table_1_name} VALUES (2, 5,5)")
     cursor.execute(f"INSERT INTO {table_1_name} VALUES (4, 6,7)")
-    connection.commit()
-    connection.close()
 
     positional_args = [UDFArgument(type="table", value=table_1_name).to_json(),
                        UDFArgument(type="literal", value="15").to_json()]

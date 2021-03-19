@@ -8,7 +8,7 @@ from mipengine.tests.node import nodes_communication
 from mipengine.common.node_catalog import node_catalog
 
 global_node_id = "globalnode"
-local_node_id = "localnode1"
+local_node_id = "localnode2"
 global_node = nodes_communication.get_celery_app(global_node_id)
 local_node = nodes_communication.get_celery_app(local_node_id)
 local_node_create_table = nodes_communication.get_celery_create_table_signature(local_node)

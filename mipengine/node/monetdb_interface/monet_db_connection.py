@@ -1,6 +1,8 @@
 import time
+from typing import List
 
 import pymonetdb
+
 from mipengine.common.node_catalog import node_catalog
 from mipengine.node.config.config_parser import config
 
@@ -27,6 +29,12 @@ class MonetDB(metaclass=Singleton):
 
     def __init__(self):
         print("Initializing MonetDB!")
+        self._connection = self.renew_connection()
+
+    def get_connection(self):
+        return self._connection
+
+    def renew_connection(self):
         global_node = node_catalog.get_global_node()
         if global_node.nodeId == config.get("node", "identifier"):
             node = global_node
@@ -40,19 +48,11 @@ class MonetDB(metaclass=Singleton):
                                              hostname=monetdb_hostname,
                                              database=config.get("monet_db", "database"),
                                              autocommit=True)
-        self._cursor = self._connection.cursor()
-
-    def get_connection(self):
         return self._connection
 
 
-def get_connection():
-    connection = MonetDB().get_connection()
-    return connection
-
-
-def execute(query: str):
-    cursor = get_connection().cursor()
+def execute(query: str) -> List:
+    cursor = MonetDB().get_connection().cursor()
     cursor.execute(query)
     result = cursor.fetchall()
     cursor.close()
@@ -60,18 +60,26 @@ def execute(query: str):
 
 
 def execute_with_occ(query: str):
-    attempts = 20
-    cursor = get_connection().cursor()
-    while attempts >= 0:
+    attempts = 0
+    max_attemps = 5
+    cursor = MonetDB().get_connection().cursor()
+    while attempts <= max_attemps:
         try:
             cursor.execute(query)
+            print(query)
             break
         except pymonetdb.exceptions.OperationalError as operational_error_exc:
-            print("Operational Error: " + str(operational_error_exc))
             raise operational_error_exc
         except Exception as exc:
-            print("Exception: " + str(exc))
-            if attempts == 0:
-                raise TimeoutError
-            time.sleep(1)
-            attempts -= 1
+            if str(exc).startswith('40000!COMMIT'):
+                print("============================================================================================")
+                print(query)
+                print(exc)
+                if attempts == max_attemps:
+                    raise exc
+                time.sleep(attempts)
+                attempts += 1
+                cursor = MonetDB().renew_connection().cursor()
+            else:
+                print(exc)
+                raise exc
