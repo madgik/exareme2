@@ -1,4 +1,3 @@
-import time
 from typing import List
 
 import pymonetdb
@@ -6,6 +5,7 @@ import pymonetdb
 from mipengine.common.node_catalog import node_catalog
 from mipengine.node.config.config_parser import config
 
+MAX_ATTEMPS = 50
 
 class Singleton(type):
     _instances = {}
@@ -29,12 +29,6 @@ class MonetDB(metaclass=Singleton):
 
     def __init__(self):
         print("Initializing MonetDB!")
-        self._connection = self.renew_connection()
-
-    def get_connection(self):
-        return self._connection
-
-    def renew_connection(self):
         global_node = node_catalog.get_global_node()
         if global_node.nodeId == config.get("node", "identifier"):
             node = global_node
@@ -46,8 +40,10 @@ class MonetDB(metaclass=Singleton):
                                              port=monetdb_port,
                                              password=config.get("monet_db", "password"),
                                              hostname=monetdb_hostname,
-                                             database=config.get("monet_db", "database"),
-                                             autocommit=True)
+                                             database=config.get("monet_db", "database"))
+
+    def get_connection(self):
+        self._connection.commit()
         return self._connection
 
 
@@ -61,25 +57,19 @@ def execute(query: str) -> List:
 
 def execute_with_occ(query: str):
     attempts = 0
-    max_attemps = 5
-    cursor = MonetDB().get_connection().cursor()
-    while attempts <= max_attemps:
+    connection = MonetDB().get_connection()
+    while attempts <= MAX_ATTEMPS:
+        cursor = connection.cursor()
         try:
             cursor.execute(query)
-            print(query)
+            connection.commit()
             break
-        except pymonetdb.exceptions.OperationalError as operational_error_exc:
-            raise operational_error_exc
+        except pymonetdb.exceptions.IntegrityError as integrity_exc:
+            connection.rollback()
+            if attempts >= MAX_ATTEMPS:
+                raise integrity_exc
+            attempts += 1
+            print(type(integrity_exc))
         except Exception as exc:
-            if str(exc).startswith('40000!COMMIT'):
-                print("============================================================================================")
-                print(query)
-                print(exc)
-                if attempts == max_attemps:
-                    raise exc
-                time.sleep(attempts)
-                attempts += 1
-                cursor = MonetDB().renew_connection().cursor()
-            else:
-                print(exc)
-                raise exc
+            connection.rollback()
+            raise exc

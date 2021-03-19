@@ -57,8 +57,8 @@ def test_create_and_get_merge_table():
 
 
 def test_incompatible_schemas_merge():
+    context_id = "incompatible"
     with pytest.raises(IncompatibleSchemasMergeException):
-        context_id = "incompatible"
         incompatible_partition_tables = [create_three_column_table_with_data(context_id, 1),
                                          create_two_column_table(context_id, 2),
                                          create_two_column_table(context_id, 3),
@@ -70,8 +70,8 @@ def test_incompatible_schemas_merge():
 
 
 def test_table_cannot_be_found():
+    context_id = "not_found"
     with pytest.raises(TableCannotBeFound):
-        context_id = "not_found"
         not_found_tables = [create_three_column_table_with_data(context_id, 1),
                             create_three_column_table_with_data(context_id, 2),
                             "non_existing_table"]
