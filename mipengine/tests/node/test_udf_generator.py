@@ -55,7 +55,7 @@ LANGUAGE PYTHON
 QUERY_relations_to_relation = """\
 DROP TABLE IF EXISTS tablename;
 CREATE TABLE tablename AS (
-    SELECT 12345 AS node_id, *
+    SELECT CAST('12345' AS varchar(50)) AS node_id, *
     FROM
         udfname(
             (
@@ -84,7 +84,7 @@ CREATE OR REPLACE
 FUNCTION
 udfname(input__col1 int, input__col2 float)
 RETURNS
-TABLE(dim0 INT, dim1 INT, val <class 'float'>)
+TABLE(dim0 int, dim1 int, val float)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -96,7 +96,7 @@ LANGUAGE PYTHON
 QUERY_table_to_tensor = """\
 DROP TABLE IF EXISTS tablename;
 CREATE TABLE tablename AS (
-    SELECT 12345 AS node_id, *
+    SELECT CAST('12345' AS varchar(50)) AS node_id, *
     FROM
         udfname(
             (
@@ -131,9 +131,9 @@ POSARGS_with_literal = [
 DEF_with_literal = """\
 CREATE OR REPLACE
 FUNCTION
-udfname(tens1_dim0 INT, tens1_val float)
+udfname(tens1_dim0 int, tens1_val float)
 RETURNS
-TABLE(dim0 INT, val float)
+TABLE(dim0 int, val float)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -146,7 +146,7 @@ LANGUAGE PYTHON
 QUERY_with_literal = """\
 DROP TABLE IF EXISTS tablename;
 CREATE TABLE tablename AS (
-    SELECT 12345 AS node_id, *
+    SELECT CAST('12345' AS varchar(50)) AS node_id, *
     FROM
         udfname(
             (
@@ -172,9 +172,9 @@ POSARGS_to_scalar = [
 DEF_to_scalar = """\
 CREATE OR REPLACE
 FUNCTION
-udfname(tens1_dim0 INT, tens1_val float, tens2_dim0 INT, tens2_val float)
+udfname(tens1_dim0 int, tens1_val float, tens2_dim0 int, tens2_val float)
 RETURNS
-FLOAT
+float
 LANGUAGE PYTHON
 {
     import pandas as pd
