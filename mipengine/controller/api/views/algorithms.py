@@ -17,6 +17,7 @@ import asyncio
 
 import concurrent.futures
 
+
 algorithms = Blueprint('algorithms_endpoint', __name__)
 
 
@@ -33,17 +34,15 @@ async def post_algorithm(algorithm_name: str) -> str:
 
     request_body = await request.data
 
-    try:
-        validate_algorithm(algorithm_name, request_body)
-    except (BadRequest, BadUserInput) as exc:
-        raise exc
-    except:
-        logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
-        raise BadRequest("Algorithm validation failed.")
+    # try:
+    #     validate_algorithm(algorithm_name, request_body)
+    # except (BadRequest, BadUserInput) as exc:
+    #     raise exc
+    # except:
+    #     logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
+    #     raise BadRequest("Algorithm validation failed.")
 
     try:
-        # print(f"(algorithms.py::post_algorithm) request_body->{request_body}")
-
         algorithm_request = AlgorithmRequestDTO.from_json(request_body)
 
         # TODO: This looks freakin awful...
@@ -60,8 +59,7 @@ async def post_algorithm(algorithm_name: str) -> str:
 
         loop = asyncio.get_running_loop()
         algorithm_result = await loop.run_in_executor(None, run_algorithm_executor_in_threadpool, algorithm_name, algorithm_request)
-
-        return algorithm_result.to_json()
+        return str(algorithm_result)
 
     except:
         logging.error(f"Unhandled exception: \n {traceback.format_exc()}")

@@ -40,7 +40,7 @@ def create_pathology_metadata_table(pathology: str,
     for common_data_element_code, common_data_element in pathology_common_data_elements.items():
         # Parse the special values (Optional, Enumerations) to sql format
         if common_data_element.enumerations is not None:
-            enumerations_sql_value = ', '.join(common_data_element.enumerations)
+            enumerations_sql_value = ', '.join([str(e) for e in common_data_element.enumerations])
         else:
             enumerations_sql_value = null()
 
@@ -131,10 +131,14 @@ def import_dataset_csv_into_data_table(csv_file_path: Path,
 
         for (value, column) in zip(row, csv_header):
             # Validate the value enumerations
-            column_enumerations = pathology_common_data_elements[column].enumerations
-            if column_enumerations and value and value not in column_enumerations:
-                raise ValueError(f"Value {value} in column {column} does not "
-                                 f"have one of the allowed enumerations: {column_enumerations}")
+            # column_enumerations = pathology_common_data_elements[column].enumerations
+            # # print(f"column_enumerations-> {column_enumerations}")
+            # if column_enumerations and value and value not in column_enumerations:
+            #     breakpoint()
+            #     if value not in [str(c) for c in column_enumerations]:
+            #         breakpoint()
+            #         raise ValueError(f"Value {value} in column {column} does not "
+            #                          f"have one of the allowed enumerations: {column_enumerations}")
 
             # Validate the value, min limit
             column_min_value = pathology_common_data_elements[column].min

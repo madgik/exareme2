@@ -123,7 +123,7 @@ class TableV(UdfIOValue, ABC):
 
     @property
     def columns(self):
-        return [f"{self.name}_{name}" for name, _ in self.schema]
+        return [f"{self.name}_{name}" for name, _ in self.schema if name != "row_id"]
 
     @abstractproperty
     def schema(self):
@@ -144,7 +144,7 @@ class RelationV(TableV):
         self._schema = schema
 
     def as_udf_signature(self):
-        return SEP.join([f"{self.name}_{name} {dtype}" for name, dtype in self.schema])
+        return SEP.join([f"{self.name}_{name} {dtype}" for name, dtype in self.schema if name != "row_id"])
 
     @property
     def schema(self):
@@ -176,7 +176,7 @@ class TensorV(TableV):
             raise TypeError("TableInfo doesn't have tensor-like schema.")
         tensor_dtype = SQL2PY_TYPES[dtype]
         return cls(
-            name=table_info.name, ndims=len(table_info.schema) - 1, dtype=tensor_dtype
+            name=table_info.name, ndims=len(table_info.schema) - 2, dtype=tensor_dtype
         )
 
 
@@ -634,6 +634,7 @@ def generate_udf_select_stmt(
         f"{table}.{column}"
         for table, columns in zip(table_names, table_schemas)
         for column in columns
+        if column not in ("row_id", "node_id")
     ]
     udf_call_args = prettify(SEP.join(udf_arguments))
 
@@ -647,7 +648,7 @@ def generate_udf_select_stmt(
         join_on = [f"{head_table}.row_id={table}.row_id" for table in tail_tables]
         where_subexpr = ANDLN.join(join_on)
     elif TensorT == main_input_type:
-        ndims = len(tables[0].schema) - 1
+        ndims = len(tables[0].schema) - 2
         all_dims = [f"dim{i}" for i in range(ndims)]
         tensor_dims = [[f"{name}.{dim}" for dim in all_dims] for name in table_names]
         head_dims, *tail_dims = tensor_dims

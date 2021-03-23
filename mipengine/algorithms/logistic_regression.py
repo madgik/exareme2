@@ -14,33 +14,77 @@ from mipengine.algorithms import LiteralParameterT
 from mipengine.algorithms import ScalarT
 from mipengine.algorithms import RelationT
 
+
 PREC = 1e-6
 
 
-def logistic_regression(y: TableT, X: TableT):
-    y = relation_to_vector(y)
-    X = relation_to_matrix(X)
+def run(algo_interface):
+
+    # y: TableT, X: TableT
+    run_on_locals = algo_interface.run_udf_on_local_nodes
+    run_on_global = algo_interface.run_udf_on_global_node
+    get_table_schema = algo_interface.get_table_schema
+    # get_table_data = algo_interface.get_table_data
+
+    X_init: "LocalNodeTable" = algo_interface.initial_view_tables['x']
+    X = run_on_locals(func_name="logistic_regression.relation_to_matrix", positional_args={"rel": X_init})  # X = relation_to_matrix(X)
+
+    y_init: "LocalNodeTable" = algo_interface.initial_view_tables['y']
+    y = run_on_locals(func_name="logistic_regression.relation_to_vector", positional_args={"rel": y_init})  # y = relation_to_vector(y)
+
     # init model
-    nobs, ncols = X.shape
-    coeff = zeros1(ncols)
+    table_schema = get_table_schema(X)  #nobs, ncols = X.shape
+    ncols = len(table_schema.columns)
+
+    coeff = run_on_locals(func_name="sql.zeros1", positional_args={"n": ncols})  # coeff = zeros1(ncols)
+
+    # coeff_data = coeff.get_table_data()
+
     logloss = 1e6
     # loop update coefficients
     while True:
-        z = matrix_dot_vector(X, coeff)
-        s = tensor_expit(z)
-        d = tensor_mult(s, const_tensor_sub(1, s))
-        y_ratio = tensor_div(tensor_sub(y, s), d)
+        z = run_on_locals(func_name="sql.matrix_dot_vector", positional_args={"Μ": X, "v": coeff})  # z = matrix_dot_vector(X, coeff)
+        # breakpoint()
+        s = run_on_locals(func_name="logistic_regression.tensor_expit", positional_args={"t": z})  # s = tensor_expit(z)
 
-        hessian = mat_transp_dot_diag_dot_mat(X, d)
-        grad = mat_transp_dot_diag_dot_vec(X, d, tensor_add(z, y_ratio))
-        newlogloss = logistic_loss(y, s)
+        tmp = run_on_locals(func_name="sql.const_tensor1_sub", positional_args={"const": 1, "t": s})  # tmp = const_tensor_sub(1, s)
+
+        d = run_on_locals(func_name="sql.tensor1_mult", positional_args={"t1": s, "t2": tmp})  # d = tensor_mult(s, const_tensor_sub(1, s))
+
+        tmp = run_on_locals(func_name="sql.tensor1_sub", positional_args={"t1": y, "t2": s})
+        y_ratio = run_on_locals(func_name="sql.tensor1_div", positional_args={"t1": tmp, "t2": d})  # y_ratio = tensor_div(tensor_sub(y, s), d)
+        # breakpoint()
+
+        # breakpoint()
+        hessian = run_on_locals(func_name="sql.mat_transp_dot_diag_dot_mat", positional_args={"M": X, "d": d}, share_to_global=True)   # hessian = mat_transp_dot_diag_dot_mat(X, d)
+        # breakpoint()
+
+        tmp = run_on_locals(func_name="sql.tensor1_add", positional_args={"t1": z, "t2": y_ratio})
+        grad = run_on_locals(func_name="sql.mat_transp_dot_diag_dot_vec", positional_args={"M": X, "d": d, "v": tmp}, share_to_global=True)  #grad = mat_transp_dot_diag_dot_vec(X, d, tensor_add(z, y_ratio))
+        # breakpoint()
+        newlogloss = run_on_locals(func_name="logistic_regression.logistic_loss", positional_args={"v1": y, "v2": s}) # newlogloss = logistic_loss(y, s)
+        newlogloss = sum(newlogloss.get_table_data()) # is not a single value, its one value per local node
+        # breakpoint()
+
         # ******** Global part ******** #
-        coeff = matrix_dot_vector(mat_inverse(hessian), grad)
+        # hessian.get_table_data()
+        # breakpoint()
+        hessian_global = run_on_global(func_name="reduce.sum_tensors",positional_args=[hessian])
+        # breakpoint()
+        tmp = run_on_global(func_name="logistic_regression.mat_inverse", positional_args=[hessian_global])
+        # breakpoint()
+        coeff = run_on_global(func_name="sql.matrix_dot_vector", positional_args=[tmp, grad], share_to_locals=True)  # coeff = matrix_dot_vector(mat_inverse(hessian), grad)
+
+        # breakpoint()
 
         if abs(newlogloss - logloss) <= PREC:
+            coeff = run_on_global(func_name="sql.matrix_dot_vector", positional_args=[tmp, grad])  # coeff = matrix_dot_vector(mat_inverse(hessian), grad)
             break
         logloss = newlogloss
-    return coeff
+
+    # breakpoint()
+
+    return coeff.get_table_data()
 
 
 DT = TypeVar("DT")

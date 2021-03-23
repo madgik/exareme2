@@ -1,15 +1,15 @@
 {
   "globalNode": {
     "nodeId": "globalnode",
-    "rabbitmqURL": "127.0.0.1:5672",
-    "monetdbHostname": "192.168.1.147",
+    "rabbitmqURL": "192.168.68.113:5670",
+    "monetdbHostname": "192.168.68.113",
     "monetdbPort": "50000"
   },
   "localNodes": [
     {
       "nodeId": "localnode1",
-      "rabbitmqURL": "127.0.0.1:5673",
-      "monetdbHostname": "192.168.1.147",
+      "rabbitmqURL": "192.168.68.113:5671",
+      "monetdbHostname": "192.168.68.113",
       "monetdbPort": "50001",
       "data": {
         "pathologies": [
@@ -19,7 +19,8 @@
               "edsd",
               "ppmi",
               "desd-synthdata",
-              "fake_longitudinal"
+              "fake_longitudinal",
+              "demo_data"
             ]
           },
           {
@@ -39,8 +40,8 @@
     },
     {
       "nodeId": "localnode2",
-      "rabbitmqURL": "127.0.0.1:5674",
-      "monetdbHostname": "192.168.1.147",
+      "rabbitmqURL": "192.168.68.113:5672",
+      "monetdbHostname": "192.168.68.113",
       "monetdbPort": "50002",
       "data": {
         "pathologies": [
@@ -50,7 +51,8 @@
               "edsd",
               "ppmi",
               "desd-synthdata",
-              "fake_longitudinal"
+              "fake_longitudinal",
+              "demo_data"
             ]
           },
           {

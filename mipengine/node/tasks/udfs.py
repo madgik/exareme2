@@ -55,8 +55,9 @@ def run_udf(command_id: str,
     positional_args = [UDFArgument.from_json(arg)
                        for arg in positional_args_json]
 
-    keyword_args = {key: UDFArgument.from_json(arg)
-                    for key, arg in keyword_args_json.items()}
+    # TODO: need a check which of he two,  positional_args or keyword_args is available and use that, not both
+    keyword_args = {}#{key: UDFArgument.from_json(arg)
+                    # for key, arg in keyword_args_json.items()}
 
     udf_creation_stmt, udf_execution_stmt = __generate_udf_statements(command_id,
                                                                       context_id,
