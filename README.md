@@ -10,7 +10,8 @@ sudo apt install python3-pip
 1. The following script will set your local network IP in the `mipengine/resources/node_catalog.json`:<br/>
 
 ```
-ip4=$(/sbin/ip -o -4 addr list wlo1 | awk '{print $4}' | cut -d/ -f1)
+#network module name is specific to the machine, so wlo1 can also be wlan0 or something else. Check your ifconfig..
+ip4=$(/sbin/ip -o -4 addr list wlo1 | awk '{print $4}' | cut -d/ -f1) 
 python3.8 mipengine/tests/node/set_hostname_in_node_catalog.py -host $ip4
 ```
 or
