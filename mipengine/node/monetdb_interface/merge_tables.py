@@ -25,8 +25,8 @@ def create_merge_table(table_info: TableInfo):
 @validate_identifier_names
 def get_non_existing_tables(table_names: List[str]) -> List[str]:
     names_clause = str(table_names)[1:-1]
-    result = execute(f"SELECT name FROM tables WHERE name IN ({names_clause})")
-    existing_table_names = [table[0] for table in result]
+    existing_tables = execute(f"SELECT name FROM tables WHERE name IN ({names_clause})")
+    existing_table_names = [table[0] for table in existing_tables]
     return [name for name in table_names if name not in existing_table_names]
 
 
@@ -52,7 +52,7 @@ def add_to_merge_table(merge_table_name: str, tables_names: List[str]):
 def validate_tables_can_be_merged(tables_names: List[str]):
     table_names = ','.join(f"'{table}'" for table in tables_names)
 
-    result = execute(
+    dinstinct_table_types = execute(
         f"""
         SELECT DISTINCT(type)
         FROM tables 
@@ -61,6 +61,6 @@ def validate_tables_can_be_merged(tables_names: List[str]):
         AND
         name in ({table_names})""")
 
-    tables_types = result
+    tables_types = dinstinct_table_types
     if len(tables_types) != 1:
         raise IncompatibleTableTypes(tables_types)

@@ -7,6 +7,7 @@ from mipengine.node.config.config_parser import config
 
 MAX_ATTEMPS = 50
 
+
 class Singleton(type):
     _instances = {}
 
@@ -28,7 +29,6 @@ class MonetDB(metaclass=Singleton):
     """
 
     def __init__(self):
-        print("Initializing MonetDB!")
         global_node = node_catalog.get_global_node()
         if global_node.nodeId == config.get("node", "identifier"):
             node = global_node
@@ -69,7 +69,6 @@ def execute_with_occ(query: str):
             if attempts >= MAX_ATTEMPS:
                 raise integrity_exc
             attempts += 1
-            print(type(integrity_exc))
         except Exception as exc:
             connection.rollback()
             raise exc

@@ -87,7 +87,7 @@ def get_tables_names(table_type: str, context_id: str) -> List[str]:
         List[str]
             A list of table names.
     """
-    result = execute(
+    table_names = execute(
         f"""
         SELECT name FROM tables 
         WHERE
@@ -95,7 +95,7 @@ def get_tables_names(table_type: str, context_id: str) -> List[str]:
         name LIKE '%{context_id.lower()}%' AND 
         system = false""")
 
-    return [table[0] for table in result]
+    return [table[0] for table in table_names]
 
 
 @validate_identifier_names
@@ -113,7 +113,7 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
             The data of the table.
     """
 
-    result = execute(
+    data = execute(
         f"""
         SELECT {table_name}.* 
         FROM {table_name} 
@@ -121,13 +121,8 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
         WHERE tables.system=false
         """)
 
-    return result
+    return data
 
-
-# def get_table_rows(table_name: str) -> int:
-#     cursor.execute(f"select count(*) from {table_name}")
-#     return cursor.next()[0]
-#
 
 @validate_identifier_names
 def clean_up(context_id: str):
@@ -223,14 +218,14 @@ def __delete_table_by_type_and_context_id(table_type: str, context_id: str):
         context_id : str
             The id of the experiment
     """
-    result = execute(
+    table_names_and_types = execute(
         f"""
         SELECT name, type FROM tables 
         WHERE name LIKE '%{context_id.lower()}%'
         AND tables.type = {str(__convert_mip_table_type_to_monet(table_type))} 
         AND system = false
         """)
-    for table in result:
+    for table in table_names_and_types:
         if table[1] == 1:
             execute_with_occ(f"DROP VIEW {table[0]}")
         else:

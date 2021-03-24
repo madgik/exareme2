@@ -41,4 +41,10 @@ def get_table_data(table_name: str) -> str:
 
 @shared_task
 def clean_up(context_id: str):
+    """
+        Parameters
+        ----------
+        context_id : str
+            The id of the experiment
+    """
     common_actions.clean_up(context_id)
