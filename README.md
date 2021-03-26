@@ -16,7 +16,7 @@ python3.8 mipengine/tests/node/set_hostname_in_node_catalog.py -host $ip4
 ```
 or
 ```
-python3.8 mipengine/tests/node/set_monetdb_hostname.py -host <local network IP>
+python3.8 mipengine/tests/node/set_hostname_in_node_catalog.py -host <local network IP>
 ```
 
 ### Start the nodes (3 nodes: 1 global node, 2 local nodes)
