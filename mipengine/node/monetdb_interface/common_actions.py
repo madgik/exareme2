@@ -1,8 +1,7 @@
 from typing import List
 from typing import Union
 from mipengine.common.node_exceptions import TableCannotBeFound
-from mipengine.node.monetdb_interface.monet_db_connection import execute
-from mipengine.node.monetdb_interface.monet_db_connection import execute_with_occ
+from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.common.validate_identifier_names import validate_identifier_names
@@ -54,7 +53,7 @@ def get_table_schema(table_name: str) -> TableSchema:
         TableSchema
             A schema which is TableSchema object.
     """
-    schema = execute(
+    schema = MonetDB().execute_with_result(
         f"""
         SELECT columns.name, columns.type 
         FROM columns 
@@ -87,7 +86,7 @@ def get_tables_names(table_type: str, context_id: str) -> List[str]:
         List[str]
             A list of table names.
     """
-    table_names = execute(
+    table_names = MonetDB().execute_with_result(
         f"""
         SELECT name FROM tables 
         WHERE
@@ -113,7 +112,7 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
             The data of the table.
     """
 
-    data = execute(
+    data = MonetDB().execute_with_result(
         f"""
         SELECT {table_name}.* 
         FROM {table_name} 
@@ -218,7 +217,7 @@ def __delete_table_by_type_and_context_id(table_type: str, context_id: str):
         context_id : str
             The id of the experiment
     """
-    table_names_and_types = execute(
+    table_names_and_types = MonetDB().execute_with_result(
         f"""
         SELECT name, type FROM tables 
         WHERE name LIKE '%{context_id.lower()}%'
@@ -227,6 +226,6 @@ def __delete_table_by_type_and_context_id(table_type: str, context_id: str):
         """)
     for table in table_names_and_types:
         if table[1] == 1:
-            execute_with_occ(f"DROP VIEW {table[0]}")
+            MonetDB().execute(f"DROP VIEW {table[0]}")
         else:
-            execute_with_occ(f"DROP TABLE {table[0]}")
+            MonetDB().execute(f"DROP TABLE {table[0]}")
