@@ -37,8 +37,8 @@ def run_udf(
     keyword_args_json: Dict[str, str],
 ) -> str:
     """
-    Creates the UDF and adds it in the database.
-    Then it runs the UDF with the input provided.
+    Creates the UDF, if provided, and adds it in the database.
+    Then it runs the select statement with the input provided.
 
     Parameters
     ----------
@@ -87,8 +87,7 @@ def get_run_udf_query(
     keyword_args_json: Dict[str, str],
 ) -> Tuple[str, str]:
     """
-    Creates the UDF, if provided, and adds it in the database.
-    Then it runs the select statement with the input provided.
+    Returns the sql statements that represent the execution of the udf.
 
     Parameters
     ----------
