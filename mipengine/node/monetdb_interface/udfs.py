@@ -1,5 +1,5 @@
-from mipengine.node.monetdb_interface.common_action import connection
-from mipengine.node.monetdb_interface.common_action import cursor
+from mipengine.node.monetdb_interface.common_actions import connection
+from mipengine.node.monetdb_interface.common_actions import cursor
 
 
 def run_udf(udf_creation_stmt: str,
