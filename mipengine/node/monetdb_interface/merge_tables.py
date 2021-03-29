@@ -30,12 +30,12 @@ def get_non_existing_tables(table_names: List[str]) -> List[str]:
 
 
 @validate_identifier_names
-def add_to_merge_table(merge_table_name: str, tables_names: List[str]):
-    non_existing_tables = get_non_existing_tables(tables_names)
-    table_infos = [TableInfo(name, common_actions.get_table_schema(name)) for name in tables_names]
+def add_to_merge_table(merge_table_name: str, table_names: List[str]):
+    non_existing_tables = get_non_existing_tables(table_names)
+    table_infos = [TableInfo(name, common_actions.get_table_schema(name)) for name in table_names]
 
     try:
-        for name in tables_names:
+        for name in table_names:
             MonetDB().execute(f"ALTER TABLE {merge_table_name} ADD TABLE {name.lower()}")
 
     except pymonetdb.exceptions.OperationalError as exc:
@@ -51,7 +51,7 @@ def add_to_merge_table(merge_table_name: str, tables_names: List[str]):
 def validate_tables_can_be_merged(tables_names: List[str]):
     table_names = ','.join(f"'{table}'" for table in tables_names)
 
-    dinstinct_table_types = MonetDB().execute_with_result(
+    distinct_table_types = MonetDB().execute_with_result(
         f"""
         SELECT DISTINCT(type)
         FROM tables 
@@ -60,6 +60,5 @@ def validate_tables_can_be_merged(tables_names: List[str]):
         AND
         name in ({table_names})""")
 
-    tables_types = dinstinct_table_types
-    if len(tables_types) != 1:
-        raise IncompatibleTableTypes(tables_types)
+    if len(distinct_table_types) != 1:
+        raise IncompatibleTableTypes(distinct_table_types)

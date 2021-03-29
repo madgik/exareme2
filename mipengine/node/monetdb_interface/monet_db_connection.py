@@ -5,10 +5,13 @@ import pymonetdb
 from mipengine.common.node_catalog import node_catalog
 from mipengine.node.config.config_parser import config
 
-MAX_ATTEMPS = 50
+OCC_MAX_ATTEMPTS = 50
 
 
 class Singleton(type):
+    """
+    Copied from https://stackoverflow.com/questions/6760685/creating-a-singleton-in-python
+    """
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
@@ -44,14 +47,16 @@ class MonetDB(metaclass=Singleton):
 
     def _get_connection(self):
         """
-        Retrieves the connection and commits so the connection is up-to-date.
+        Commits the connection and then retrieves it so it is up-to-date.
         """
         self._connection.commit()
         return self._connection
 
     def execute_with_result(self, query: str) -> List:
         """
-        Executes only select queries and returns a result.
+        Used to execute select queries that return a result.
+
+        Should NOT be used to execute "CREATE, DROP, ALTER, UPDATE, ..." statements.
         """
         cursor = self._get_connection().cursor()
         cursor.execute(query)
@@ -61,14 +66,14 @@ class MonetDB(metaclass=Singleton):
 
     def execute(self, query: str):
         """
-        Executes statements that don't have a result.
-        For example "CREATE,DROP,UPDATE"
-        And handles the *Optimistic Concurrency Control by giving each call 50 attempt if they fail with pymonetdb.exceptions.IntegrityError.
+        Executes statements that don't have a result. For example "CREATE,DROP,UPDATE".
+        And handles the *Optimistic Concurrency Control by giving each call X attempts
+        if they fail with pymonetdb.exceptions.IntegrityError .
         *https://www.monetdb.org/blog/optimistic-concurrency-control
         """
         attempts = 0
         connection = self._get_connection()
-        while attempts <= MAX_ATTEMPS:
+        while attempts <= OCC_MAX_ATTEMPTS:
             cursor = connection.cursor()
             try:
                 cursor.execute(query)
@@ -76,9 +81,9 @@ class MonetDB(metaclass=Singleton):
                 break
             except pymonetdb.exceptions.IntegrityError as integrity_exc:
                 connection.rollback()
-                if attempts >= MAX_ATTEMPS:
-                    raise integrity_exc
                 attempts += 1
+                if attempts >= OCC_MAX_ATTEMPTS:
+                    raise integrity_exc
             except Exception as exc:
                 connection.rollback()
                 raise exc
