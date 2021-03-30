@@ -24,7 +24,7 @@ python3.8 mipengine/tests/node/set_hostname_in_node_catalog.py -host <local netw
 ### Start the nodes (3 nodes: 1 global node, 2 local nodes)
 1. Kill existing monetdb and rabbitmq containers, if present <br/>
 ```
-docker rm -f $(docker ps -a -q) #!!!WARNING: WILL KILL ALL EXISTING CONTAINERS
+docker rm -f $(docker ps -a -q) #!!!WARNING: WILL KILL AND REMOVE ALL EXISTING CONTAINERS
 ```
 
 2. Navigate to `/MIP-Engine/` <br/>
