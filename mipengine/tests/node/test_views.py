@@ -28,14 +28,53 @@ def cleanup_views():
 
 def test_create_and_get_view():
     columns = ["dataset", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
-    datasets = ["edsd"]
+    datasets = ["dummy_tbi"]
     pathology = "tbi"
+    filters = {
+        "condition": "AND",
+        "rules": [
+            {
+                "id": "age_value",
+                "field": "age_value",
+                "type": "int",
+                "input": "number",
+                "operator": "between",
+                "value": [
+                    10,
+                    20
+                ]
+            },
+            {
+                "condition": "OR",
+                "rules": [
+                    {
+                        "id": "gender_type",
+                        "field": "gender_type",
+                        "type": "string",
+                        "input": "text",
+                        "operator": "equal",
+                        "value": "F"
+                    },
+                    {
+                        "id": "gcs_motor_response_scale",
+                        "field": "gcs_motor_response_scale",
+                        "type": "integer",
+                        "input": "select",
+                        "operator": "is_null",
+                        "value": "null"
+                    }
+                ]
+            }
+        ],
+        "valid": True
+    }
+
     view_name = local_node_create_view.delay(context_id=context_id,
                                              command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
                                              pathology=pathology,
                                              datasets=datasets,
                                              columns=columns,
-                                             filters_json="filters"
+                                             filters_json=filters
                                              ).get()
     views = local_node_get_views.delay(context_id=context_id).get()
     assert view_name in views
@@ -50,7 +89,7 @@ def test_create_and_get_view():
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.from_json(view_data_json)
-    assert view_data.data == []
+    assert view_data.data != []
     assert view_data.schema == schema
 
     view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()

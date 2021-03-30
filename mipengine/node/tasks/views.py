@@ -31,7 +31,6 @@ def create_view(context_id: str,
                 columns: List[str],
                 filters_json: str
                 ) -> str:
-    # TODO We need to add the filters
     """
         Parameters
         ----------
@@ -57,5 +56,6 @@ def create_view(context_id: str,
     views.create_view(view_name=view_name,
                       pathology=pathology,
                       datasets=datasets,
-                      columns=columns)
+                      columns=columns,
+                      filters=filters_json)
     return view_name.lower()
