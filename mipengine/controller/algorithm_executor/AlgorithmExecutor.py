@@ -55,6 +55,9 @@ class TableName:
     def without_node_id(self):
         return self.__table_type + "_" + self.__command_id + "_" + self.__context_id
 
+    def __repr__(self):
+        return self.full_table_name
+
 class AlgorithmExecutor:
     def __init__(self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO):
 
@@ -152,6 +155,9 @@ class AlgorithmExecutor:
             self.__initial_view_tables = None
             if initial_view_tables_params is not None:
                 self.__initial_view_tables = self.__create_initial_view_tables(initial_view_tables_params)
+
+        def __repr__(self):
+            return f"node_id: {self.node_id}"
 
         @property
         def initial_view_tables(self):
@@ -430,8 +436,6 @@ class AlgorithmExecutor:
             def get_table_schema(self):
                 node = list(self.nodes_tables.keys())[0]
                 table = self.nodes_tables[node]
-                print(f"node-> {node}  table->{table}")
-                print(f"node.get_table_schema(table)->{node.get_table_schema(table)}")
                 return node.get_table_schema(table)
 
             def get_table_data(self):  #-> {Node:TableData}
@@ -441,6 +445,16 @@ class AlgorithmExecutor:
                 tables_data_flat = [table_data.data for table_data in tables_data]
                 tables_data_flat = [k for i in tables_data_flat for j in i for k in j]  # TODO bejesus..
                 return tables_data_flat
+
+            def __repr__(self):
+                r = "LocalNodeTable:\n"
+                r += f"schema: {self.get_table_schema()}\n"
+                for node, table_name in self.nodes_tables.items():
+                    r += f"{node} - {table_name} \ndata(LIMIT 20):\n"
+                    tmp = [str(row) for row in node.get_table_data(table_name).data[0:20]]
+                    r += "\n".join(tmp)
+                    r += "\n"
+                return r
 
             def _validate_matching_table_names(self, table_names: List[TableName]):  # noqa: F821
                 table_name_without_node_id = table_names[0].without_node_id()
@@ -469,9 +483,20 @@ class AlgorithmExecutor:
                 return table_schema
 
             def get_table_data(self):  #-> {Node:TableData}
-                node, table_name = self.node_table.popitem()
+                node = list(self.node_table.keys())[0]
+                table_name: TableName = list(self.node_table.values())[0]
                 table_data = node.get_table_data(table_name).data
                 return table_data
+
+            def __repr__(self):
+                node = list(self.node_table.keys())[0]
+                table_name: TableName = list(self.node_table.values())[0]
+                r = f"GlobalNodeTable: {table_name.full_table_name}"
+                r += f"\nschema: {self.get_table_schema()}"
+                r += f"\ndata (LIMIT 20): \n"
+                tmp = [str(row) for row in self.get_table_data()[0:20]]
+                r += "\n".join(tmp)
+                return r
 
 
 def get_a_uniqueid():
