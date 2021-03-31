@@ -5,8 +5,6 @@ from mipengine.node.monetdb_interface import common_action
 from mipengine.node.monetdb_interface.common_action import connection
 from mipengine.node.monetdb_interface.common_action import cursor
 
-PRIVACY_THRESHOLD = 10
-
 
 def get_views_names(context_id: str) -> List[str]:
     return common_action.get_tables_names("view", context_id)
