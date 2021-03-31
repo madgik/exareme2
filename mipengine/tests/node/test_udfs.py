@@ -1,11 +1,12 @@
 import inspect
+import logging
+import uuid
 from string import Template
 
-import pymonetdb
 import pytest
 
-from mipengine.algorithms.demo import table_and_literal_arguments
 from mipengine.algorithms.demo import func
+from mipengine.algorithms.demo import table_and_literal_arguments
 from mipengine.algorithms.demo import tensor1
 from mipengine.algorithms.demo import tensor2
 from mipengine.common.node_tasks_DTOs import ColumnInfo
@@ -15,7 +16,6 @@ from mipengine.tests.node import nodes_communication
 from mipengine.tests.node.node_db_connections import get_node_db_connection
 
 local_node_id = "localnode1"
-context_id = "udfs_test"
 command_id = "command123"
 local_node = nodes_communication.get_celery_app(local_node_id)
 local_node_get_udfs = nodes_communication.get_celery_get_udfs_signature(local_node)
@@ -24,14 +24,13 @@ local_node_run_udf = nodes_communication.get_celery_run_udf_signature(local_node
 local_node_create_table = nodes_communication.get_celery_create_table_signature(local_node)
 local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
 
-#TODO:Fix this one to make proper cleanup.
-#
-#
-# @pytest.fixture(autouse=True)
-# def cleanup_tables():
-#     yield
-#
-#     local_node_cleanup.delay(context_id=context_id.lower()).get()
+@pytest.fixture()
+def cleanup_context_id():
+    context_id = "test_udfs_" + str(uuid.uuid4()).replace("-", "")
+
+    yield context_id
+
+    local_node_cleanup.delay(context_id=context_id).get()
 
 
 def test_get_udfs():
@@ -45,11 +44,11 @@ def test_get_udfs():
     assert udfs == fetched_udfs
 
 
-def test_run_udf():
+def test_run_udf(cleanup_context_id):
     table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "INT"), ColumnInfo("col3", "INT")])
 
-    table_1_name = local_node_create_table.delay(context_id=context_id,
-                                                 command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+    table_1_name = local_node_create_table.delay(context_id=cleanup_context_id,
+                                                 command_id=str(uuid.uuid4()).replace("-", ""),
                                                  schema_json=table_schema.to_json()).get()
 
     # Add data to table_1
@@ -58,43 +57,50 @@ def test_run_udf():
     cursor.execute(f"INSERT INTO {table_1_name} VALUES (1, 12,3)")
     cursor.execute(f"INSERT INTO {table_1_name} VALUES (2, 5,5)")
     cursor.execute(f"INSERT INTO {table_1_name} VALUES (4, 6,7)")
+    cursor.close()
+    connection.close()
 
     positional_args = [UDFArgument(type="table", value=table_1_name).to_json(),
                        UDFArgument(type="literal", value="15").to_json()]
 
-    udf_table_name = local_node_run_udf.delay(command_id=command_id,
-                                              context_id=context_id,
-                                              func_name="demo.table_and_literal_arguments",
-                                              positional_args_json=positional_args,
-                                              keyword_args_json={}
-                                              ).get()
+    local_node_run_udf.delay(command_id=command_id,
+                             context_id=cleanup_context_id,
+                             func_name="demo.table_and_literal_arguments",
+                             positional_args_json=positional_args,
+                             keyword_args_json={}
+                             ).get()
 
 
-def test_get_run_udf_query():
+def test_get_run_udf_query(cleanup_context_id):
     table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])
 
-    table_1_name = local_node_create_table.delay(context_id=context_id,
-                                                 command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+    table_1_name = local_node_create_table.delay(context_id=cleanup_context_id,
+                                                 command_id=str(uuid.uuid4()).replace("-", ""),
                                                  schema_json=table_schema.to_json()).get()
 
     positional_args = [UDFArgument(type="table", value=table_1_name).to_json(),
                        UDFArgument(type="literal", value="15").to_json()]
 
+    func_name = "demo.table_and_literal_arguments"
     udf_creation_statement, execution_statement = \
         local_node_get_run_udf_query.delay(command_id=command_id,
-                                           context_id=context_id,
-                                           func_name="demo.table_and_literal_arguments",
+                                           context_id=cleanup_context_id,
+                                           func_name=func_name,
                                            positional_args_json=positional_args,
                                            keyword_args_json={}
                                            ).get()
 
-    assert udf_creation_statement == proper_udf_creation_statement
-    assert execution_statement == proper_execution_statement.substitute(input_table_name=table_1_name)
+    udf_name = func_name.replace('.', '_') + "_" + command_id + "_" + cleanup_context_id
+    assert udf_creation_statement == proper_udf_creation_statement.substitute(udf_name=udf_name)
+    output_table_name = "table_" + command_id + "_" + cleanup_context_id + "_" + local_node_id
+    assert execution_statement == proper_execution_statement.substitute(output_table_name=output_table_name,
+                                                                        udf_name=udf_name,
+                                                                        input_table_name=table_1_name)
 
 
-proper_udf_creation_statement = """CREATE OR REPLACE
+proper_udf_creation_statement = Template("""CREATE OR REPLACE
 FUNCTION
-demo_table_and_literal_arguments_command123_udfs_test(x_col1 int, x_col2 float, x_col3 text)
+$udf_name(x_col1 int, x_col2 float, x_col3 text)
 RETURNS
 TABLE(col1 int, col2 float, col3 text)
 LANGUAGE PYTHON
@@ -105,13 +111,13 @@ LANGUAGE PYTHON
     n = 15
     result = x + n
     return result
-};"""
+};""")
 
-proper_execution_statement = Template("""DROP TABLE IF EXISTS table_command123_udfs_test_localnode1;
-CREATE TABLE table_command123_udfs_test_localnode1 AS (
+proper_execution_statement = Template("""DROP TABLE IF EXISTS $output_table_name;
+CREATE TABLE $output_table_name AS (
     SELECT CAST('localnode1' AS varchar(50)) AS node_id, *
     FROM
-        demo_table_and_literal_arguments_command123_udfs_test(
+        $udf_name(
             (
                 SELECT
 
@@ -120,7 +126,9 @@ CREATE TABLE table_command123_udfs_test_localnode1 AS (
                         $input_table_name.col3
 
                 FROM
-                    $input_table_name
+
+                        $input_table_name
+
             )
         )
 );""")

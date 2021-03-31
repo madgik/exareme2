@@ -1,9 +1,10 @@
 import json
+import uuid
 
-import pymonetdb
 import pytest
 
-from mipengine.common.node_tasks_DTOs import ColumnInfo, TableSchema
+from mipengine.common.node_tasks_DTOs import ColumnInfo
+from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.tests.node import nodes_communication
 
 local_node = nodes_communication.get_celery_app("localnode1")
@@ -19,14 +20,15 @@ local_node_create_remote_table = nodes_communication.get_celery_create_remote_ta
 local_node_get_remote_tables = nodes_communication.get_celery_get_remote_tables_signature(local_node)
 local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
 
-context_id = "HISTOGRAMS"
-
 
 @pytest.fixture(autouse=True)
-def cleanup_tables():
-    yield
+def cleanup_context_id():
+    context_id = "test_sql_injection" + str(uuid.uuid4()).replace("-", "")
+    print(context_id)
 
-    local_node_cleanup.delay(context_id=context_id.lower()).get()
+    yield context_id
+
+    local_node_cleanup.delay(context_id=context_id).get()
 
 
 def test_sql_injection_get_tables():
@@ -45,17 +47,18 @@ def test_sql_injection_create_table_context_id():
         schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])
         json_schema = schema.to_json()
         local_node_create_table.delay(context_id=invalid_context_id,
-                                      command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                      command_id=str(uuid.uuid4()).replace("-", ""),
                                       schema_json=json_schema).get()
 
 
-def test_sql_injection_create_table_tableschema_name():
+def test_sql_injection_create_table_tableschema_name(cleanup_context_id):
     with pytest.raises(ValueError):
         schema = TableSchema(
-            [ColumnInfo("Robert'); DROP TABLE data; --", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])
+            [ColumnInfo("Robert'); DROP TABLE data; --", "INT"), ColumnInfo("col2", "FLOAT"),
+             ColumnInfo("col3", "TEXT")])
         json_schema = schema.to_json()
-        local_node_create_table.delay(context_id=context_id,
-                                      command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+        local_node_create_table.delay(context_id=cleanup_context_id,
+                                      command_id=str(uuid.uuid4()).replace("-", ""),
                                       schema_json=json_schema).get()
 
 
@@ -64,10 +67,10 @@ def test_sql_injection_get_merge_tables():
         local_node_get_merge_tables.delay(context_id="Robert'); DROP TABLE data; --").get()
 
 
-def test_sql_injection_create_merge_table_table_names():
+def test_sql_injection_create_merge_table_table_names(cleanup_context_id):
     with pytest.raises(ValueError):
-        local_node_create_merge_table.delay(context_id=context_id,
-                                            command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+        local_node_create_merge_table.delay(context_id=cleanup_context_id,
+                                            command_id=str(uuid.uuid4()).replace("-", ""),
                                             table_names=["Robert'); DROP TABLE data; --"]).get()
 
 
@@ -81,26 +84,27 @@ def test_sql_injection_get_view_schema():
         local_node_get_table_schema.delay(table_name="Robert'); DROP TABLE data; --").get()
 
 
-def test_sql_injection_create_view_columns():
+def test_sql_injection_create_view_columns(cleanup_context_id):
     with pytest.raises(ValueError):
-        columns = ["Robert'); DROP TABLE data; --", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
+        columns = ["Robert'); DROP TABLE data; --", "age_value", "gcs_motor_response_scale",
+                   "pupil_reactivity_right_eye_result"]
         datasets = ["edsd"]
         pathology = "tbi"
-        local_node_create_view.delay(context_id=context_id,
-                                     command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+        local_node_create_view.delay(context_id=cleanup_context_id,
+                                     command_id=str(uuid.uuid4()).replace("-", ""),
                                      pathology=pathology,
                                      datasets=json.dumps(datasets),
                                      columns=json.dumps(columns),
                                      filters_json="filters").get()
 
 
-def test_sql_injection_create_view_datasets():
+def test_sql_injection_create_view_datasets(cleanup_context_id):
     with pytest.raises(ValueError):
         columns = ["dataset", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
         datasets = ["Robert'); DROP TABLE data; --"]
         pathology = "tbi"
-        local_node_create_view.delay(context_id=context_id,
-                                     command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+        local_node_create_view.delay(context_id=cleanup_context_id,
+                                     command_id=str(uuid.uuid4()).replace("-", ""),
                                      pathology=pathology,
                                      datasets=json.dumps(datasets),
                                      columns=json.dumps(columns),

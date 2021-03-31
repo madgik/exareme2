@@ -1,6 +1,5 @@
-import json
+import uuid
 
-import pymonetdb
 import pytest
 
 from mipengine.common.node_tasks_DTOs import ColumnInfo
@@ -16,21 +15,28 @@ local_node_get_view_data = nodes_communication.get_celery_get_table_data_signatu
 local_node_get_view_schema = nodes_communication.get_celery_get_table_schema_signature(local_node)
 local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
 
-context_id = "views"
+
+@pytest.fixture(autouse=True)
+def cleanup_context_id():
+    context_id = "test_views_" + str(uuid.uuid4()).replace("-", "")
+
+    yield context_id
+
+    local_node_cleanup.delay(context_id=context_id).get()
 
 
-def test_create_and_get_view():
+def test_create_and_get_view(cleanup_context_id):
     columns = ["dataset", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
     datasets = ["edsd"]
     pathology = "tbi"
-    view_name = local_node_create_view.delay(context_id=context_id,
-                                             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+    view_name = local_node_create_view.delay(context_id=cleanup_context_id,
+                                             command_id=str(uuid.uuid4()).replace("-", ""),
                                              pathology=pathology,
                                              datasets=datasets,
                                              columns=columns,
                                              filters_json="filters"
                                              ).get()
-    views = local_node_get_views.delay(context_id=context_id).get()
+    views = local_node_get_views.delay(context_id=cleanup_context_id).get()
     assert view_name in views
 
     schema = TableSchema([
@@ -50,6 +56,3 @@ def test_create_and_get_view():
     view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()
     view_schema = TableSchema.from_json(view_schema_json)
     assert view_schema == schema
-
-    local_node_cleanup.delay(context_id=context_id.lower()).get()
-

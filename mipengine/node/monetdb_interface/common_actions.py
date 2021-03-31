@@ -71,7 +71,7 @@ def get_table_schema(table_name: str) -> TableSchema:
 
 
 @validate_identifier_names
-def get_tables_names(table_type: str, context_id: str) -> List[str]:
+def get_table_names(table_type: str, context_id: str) -> List[str]:
     """Retrieves a list of table names, which contain the context_id from the monetdb.
 
         Parameters
@@ -89,8 +89,7 @@ def get_tables_names(table_type: str, context_id: str) -> List[str]:
     table_names = MonetDB().execute_with_result(
         f"""
         SELECT name FROM tables 
-        WHERE
-         type = {str(__convert_mip_table_type_to_monet(table_type))} AND
+        WHERE type = {str(__convert_mip_table_type_to_monet(table_type))} AND
         name LIKE '%{context_id.lower()}%' AND 
         system = false""")
 

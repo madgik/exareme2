@@ -1,4 +1,6 @@
-import pymonetdb
+import uuid
+
+import pytest
 
 from mipengine.common.node_catalog import node_catalog
 from mipengine.common.node_tasks_DTOs import ColumnInfo
@@ -26,28 +28,39 @@ clean_up_node1 = nodes_communication.get_celery_cleanup_signature(local_node_1)
 clean_up_node2 = nodes_communication.get_celery_cleanup_signature(local_node_2)
 clean_up_global = nodes_communication.get_celery_cleanup_signature(global_node)
 
-context_id = "localglobalnodes"
-
 
 def insert_data_into_local_node_db_table(node_id: str, table_name: str):
     connection = get_node_db_connection(node_id)
     cursor = connection.cursor()
 
     cursor.execute(f"INSERT INTO {table_name} VALUES (1, 1.2,'test')")
+    cursor.close()
+    connection.close()
 
 
-def test_create_merge_table_with_remote_tables():
+@pytest.fixture(autouse=True)
+def cleanup_context_id():
+    context_id = "test_local_global_nodes_" + str(uuid.uuid4()).replace("-", "")
+
+    yield context_id
+
+    clean_up_node1.delay(context_id=context_id).get()
+    clean_up_node2.delay(context_id=context_id).get()
+    clean_up_global.delay(context_id=context_id).get()
+
+
+def test_create_merge_table_with_remote_tables(cleanup_context_id):
     local_node_1_data = node_catalog.get_local_node_data(local_node_1_id)
     local_node_2_data = node_catalog.get_local_node_data(local_node_2_id)
 
     schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])
 
     # Create local tables
-    local_node_1_table_name = local_node_1_create_table.delay(context_id=context_id,
-                                                              command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+    local_node_1_table_name = local_node_1_create_table.delay(context_id=cleanup_context_id,
+                                                              command_id=str(uuid.uuid4()).replace("-", ""),
                                                               schema_json=schema.to_json()).get()
-    local_node_2_table_name = local_node_2_create_table.delay(context_id=context_id,
-                                                              command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+    local_node_2_table_name = local_node_2_create_table.delay(context_id=cleanup_context_id,
+                                                              command_id=str(uuid.uuid4()).replace("-", ""),
                                                               schema_json=schema.to_json()).get()
     # Insert data into local tables
     insert_data_into_local_node_db_table(local_node_1_id, local_node_1_table_name)
@@ -62,17 +75,17 @@ def test_create_merge_table_with_remote_tables():
                                           url=monetdb_url_local_node_1).get()
     global_node_create_remote_table.delay(table_info_json=table_info_local_2.to_json(),
                                           url=monetdb_url_local_node_2).get()
-    remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()
+    remote_tables = global_node_get_remote_tables.delay(context_id=cleanup_context_id).get()
     assert local_node_1_table_name in remote_tables
     assert local_node_2_table_name in remote_tables
 
     # Create merge table
-    merge_table_name = global_node_create_merge_table.delay(context_id=context_id,
-                                                            command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+    merge_table_name = global_node_create_merge_table.delay(context_id=cleanup_context_id,
+                                                            command_id=str(uuid.uuid4()).replace("-", ""),
                                                             table_names=remote_tables).get()
 
     # Validate merge table exists
-    merge_tables = global_node_get_merge_tables.delay(context_id=context_id).get()
+    merge_tables = global_node_get_merge_tables.delay(context_id=cleanup_context_id).get()
     assert merge_table_name in merge_tables
 
     # Validate merge table row count
@@ -80,9 +93,7 @@ def test_create_merge_table_with_remote_tables():
     cursor = connection.cursor()
     cursor.execute(f"SELECT * FROM tables where system = false")
     cursor.execute(f"SELECT * FROM {merge_table_name}")
+    cursor.close()
+    connection.close()
     row_count = len(cursor.fetchall())
     assert row_count == 2
-
-    clean_up_global.delay(context_id=context_id.lower()).get()
-    clean_up_node1.delay(context_id=context_id.lower()).get()
-    clean_up_node2.delay(context_id=context_id.lower()).get()

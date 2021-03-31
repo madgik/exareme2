@@ -8,7 +8,7 @@ from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 
 def get_tables_names(context_id: str) -> List[str]:
-    return common_actions.get_tables_names("normal", context_id)
+    return common_actions.get_table_names("normal", context_id)
 
 
 @validate_identifier_names
