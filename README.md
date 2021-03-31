@@ -78,9 +78,9 @@ You can use the command `ifconfig` to get your internal IP.
 
 7. Inside the MIP-Engine folder run the celery workers: <br/>
 ```
-python3.8 mipengine/tests/node/set_node_identifier.py localnode1 && celery -A mipengine.node.node worker --loglevel=info
-python3.8 mipengine/tests/node/set_node_identifier.py localnode2 && celery -A mipengine.node.node worker --loglevel=info
-python3.8 mipengine/tests/node/set_node_identifier.py globalnode && celery -A mipengine.node.node worker --loglevel=info
+python3.8 mipengine/tests/node/set_node_identifier.py localnode1 && celery -A mipengine.node.node worker --loglevel=info --concurrency 1
+python3.8 mipengine/tests/node/set_node_identifier.py localnode2 && celery -A mipengine.node.node worker --loglevel=info --concurrency 1
+python3.8 mipengine/tests/node/set_node_identifier.py globalnode && celery -A mipengine.node.node worker --loglevel=info --concurrency 1
 ```
 
 ## Tests
