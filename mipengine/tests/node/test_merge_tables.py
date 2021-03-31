@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 from mipengine.common.node_exceptions import IncompatibleSchemasMergeException
-from mipengine.common.node_exceptions import TableCannotBeFound
+from mipengine.common.node_exceptions import TablesNotFound
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.tests.node import nodes_communication
@@ -78,7 +78,7 @@ def test_incompatible_schemas_merge(cleanup_context_id):
 
 
 def test_table_cannot_be_found(cleanup_context_id):
-    with pytest.raises(TableCannotBeFound):
+    with pytest.raises(TablesNotFound):
         not_found_tables = [create_three_column_table_with_data(cleanup_context_id, 1),
                             create_three_column_table_with_data(cleanup_context_id, 2),
                             "non_existing_table"]

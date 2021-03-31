@@ -12,6 +12,7 @@ class Singleton(type):
     """
     Copied from https://stackoverflow.com/questions/6760685/creating-a-singleton-in-python
     """
+
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
@@ -39,11 +40,13 @@ class MonetDB(metaclass=Singleton):
             node = node_catalog.get_local_node_data(config.get("node", "identifier"))
         monetdb_hostname = node.monetdbHostname
         monetdb_port = node.monetdbPort
-        self._connection = pymonetdb.connect(username=config.get("monet_db", "username"),
-                                             port=monetdb_port,
-                                             password=config.get("monet_db", "password"),
-                                             hostname=monetdb_hostname,
-                                             database=config.get("monet_db", "database"))
+        self._connection = pymonetdb.connect(
+            username=config.get("monet_db", "username"),
+            port=monetdb_port,
+            password=config.get("monet_db", "password"),
+            hostname=monetdb_hostname,
+            database=config.get("monet_db", "database"),
+        )
 
     def _get_connection(self):
         """
