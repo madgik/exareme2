@@ -1,98 +1,102 @@
 # MIP-Engine
 
-## Installation
-
-1. Install python <br/>
+Install [python3.8](https://www.python.org/downloads/ "python3.8")
 ```
 sudo apt install python3.8
 sudo apt install python3-pip
 ```
 
-2. Add the MIP-Engine folder to your PYTHONPATH. For example:
-```
-export PYTHONPATH=$PYTHONPATH:/absolute/path/to/MIP-Engine
-```
-You can also add this to your profile (~/.profile), otherwise you will need to do that every time.
+## Setup
+1. For everything that follows you need to be in the project's root directory, i.e. `MIP-Engine/`
 
-### Controller API
+2. Setup a [virtualenv](https://docs.python.org/3.8/tutorial/venv.html "virtual environment")
 
-1. Install requirements. <br/>
-```
-python3.8 -m pip install -r ./requirements/controller.txt
-```
+3. Set `PYTHONPATH`
+   ```
+   export PYTHONPATH=$(pwd):$PYTHONPATH
+   ```
+   Or, to avoid setting it in every new shell
+   ```
+   echo 'export PYTHONPATH=/path/to/MIP-Engine/:$PYTHONPATH' >> ~/.bashrc
+   ```
+   
+4. Install all requirements
+   ```
+   python -m pip install -r requirements/algorithms.txt requirements/controller.txt requirements/node.txt requirements/tests.txt
+   ```
+   
+5. The following script will set your local network IP in `mipengine/resources/node_catalog.json`.
+   First you need to find your ip. On Linux/MacOS list all available ips with
+   ```
+   ifconfig | grep "inet "
+   ```
+   To get a particular interface's ip use
+   ```
+   ifconfig <INTERFACE> | awk '/inet / { print $2 }'
+   ```
+   Once you know your machine's ip set it in the node catalog with
+   ```
+   python mipengine/tests/node/set_hostname_in_node_catalog.py -host <IP>
+   ```
 
-2. Run the controller API. <br/>
-```
-export QUART_APP=mipengine/controller/api/app:app; python3.8 -m quart run
-```
 
-### Nodes setup
-Inside the MIP-Engine folder:
+### Nodes Setup
+1. Kill existing monetdb and rabbitmq containers, if present
+   ```
+   docker ps -a | grep -E 'monet|rabbitmq' | awk '{ print $1 }' | xargs docker rm -vf
+   ```
 
-1. Deploy MonetDB (docker). <br/>
-```
-docker run -d -P -p 50000:50000 --name monetdb-1 jassak/mipenginedb:dev1.0
-docker run -d -P -p 50001:50000 --name monetdb-2 jassak/mipenginedb:dev1.0
-docker run -d -P -p 50002:50000 --name monetdb-3 jassak/mipenginedb:dev1.0
-```
+2. Start MonetDB containers
+   ```
+   docker run -d -P -p 50000:50000 --name monetdb-0 jassak/mipenginedb:dev1.1  # global node
+   docker run -d -P -p 50001:50000 --name monetdb-1 jassak/mipenginedb:dev1.1  # local node 1
+   docker run -d -P -p 50002:50000 --name monetdb-2 jassak/mipenginedb:dev1.1  # local node 2
+   ```
 
-2. Deploy RabbitMQ (docker). <br/>
-```
-sudo docker run -d -p 5672:5672 --name rabbitmq-1 rabbitmq
-sudo docker run -d -p 5673:5672 --name rabbitmq-2 rabbitmq
-sudo docker run -d -p 5674:5672 --name rabbitmq-3 rabbitmq
-```
+3. Populate the 2 local nodes databases from the csv data files
+   ```
+   python -m mipengine.node.monetdb_interface.csv_importer -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50001 -farm db
+   python -m mipengine.node.monetdb_interface.csv_importer -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50002 -farm db
+   ```
 
-3. Configure RabbitMQ. <br/>
-   Wait until RabbitMQ containers are up and then run the configuration.
-```
-sudo docker exec -it rabbitmq-1 rabbitmqctl add_user user password &&
-sudo docker exec -it rabbitmq-1 rabbitmqctl add_vhost user_vhost &&
-sudo docker exec -it rabbitmq-1 rabbitmqctl set_user_tags user user_tag &&
-sudo docker exec -it rabbitmq-1 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*" &&
-sudo docker exec -it rabbitmq-2 rabbitmqctl add_user user password &&
-sudo docker exec -it rabbitmq-2 rabbitmqctl add_vhost user_vhost &&
-sudo docker exec -it rabbitmq-2 rabbitmqctl set_user_tags user user_tag &&
-sudo docker exec -it rabbitmq-2 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*" &&
-sudo docker exec -it rabbitmq-3 rabbitmqctl add_user user password &&
-sudo docker exec -it rabbitmq-3 rabbitmqctl add_vhost user_vhost &&
-sudo docker exec -it rabbitmq-3 rabbitmqctl set_user_tags user user_tag &&
-sudo docker exec -it rabbitmq-3 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*"
-```
+4. Start RabbitMQ containers
+   ```
+   docker run -d -p 5670:5672 --name rabbitmq-0 rabbitmq  # global node
+   docker run -d -p 5671:5672 --name rabbitmq-1 rabbitmq  # local node 1
+   docker run -d -p 5672:5672 --name rabbitmq-2 rabbitmq  # local node 2
+   ```
 
-4. Install requirements. <br/>
-```
-python3.8 -m pip install -r ./requirements/node.txt
-```
+5. Configure RabbitMQ. *WARNING* RabbitMQ needs ~30 secs to be ready to execute the following commands.
+   ```
+   docker exec -it rabbitmq-0 rabbitmqctl add_user user password &&
+   docker exec -it rabbitmq-0 rabbitmqctl add_vhost user_vhost &&
+   docker exec -it rabbitmq-0 rabbitmqctl set_user_tags user user_tag &&
+   docker exec -it rabbitmq-0 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*" &&
+   docker exec -it rabbitmq-1 rabbitmqctl add_user user password &&
+   docker exec -it rabbitmq-1 rabbitmqctl add_vhost user_vhost &&
+   docker exec -it rabbitmq-1 rabbitmqctl set_user_tags user user_tag &&
+   docker exec -it rabbitmq-1 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*" &&
+   docker exec -it rabbitmq-2 rabbitmqctl add_user user password &&
+   docker exec -it rabbitmq-2 rabbitmqctl add_vhost user_vhost &&
+   docker exec -it rabbitmq-2 rabbitmqctl set_user_tags user user_tag &&
+   docker exec -it rabbitmq-2 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*"
+   ```
 
-5. Import the csvs in MonetDB. To import all the csvs on both dbs, run:
-```
-python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50001 -farm db
-python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50002 -farm db
-```
-6. To modify `mipengine/resources/node_catalog.json` to match your internal IP instead of 127.0.0.1 , run:
-```
-python3 mipengine/tests/node/set_monetdb_hostname.py -host <internal IP>
-```
-You can use the command `ifconfig` to get your internal IP.
+6. Start nodes
+   ```
+   python mipengine/tests/node/set_node_identifier.py globalnode && celery -A mipengine.node.node worker --loglevel=info &&
+   python mipengine/tests/node/set_node_identifier.py localnode1 && celery -A mipengine.node.node worker --loglevel=info &&
+   python mipengine/tests/node/set_node_identifier.py localnode2 && celery -A mipengine.node.node worker --loglevel=info
+   ```
 
-7. Inside the MIP-Engine folder run the celery workers: <br/>
-```
-python3.8 mipengine/tests/node/set_node_identifier.py localnode1 && celery -A mipengine.node.node worker --loglevel=info
-python3.8 mipengine/tests/node/set_node_identifier.py localnode2 && celery -A mipengine.node.node worker --loglevel=info
-python3.8 mipengine/tests/node/set_node_identifier.py globalnode && celery -A mipengine.node.node worker --loglevel=info
-```
+### Controller Setup
 
-## Tests
-Inside the MIP-Engine folder:
+1. Start controller
+   ```
+   export QUART_APP=mipengine/controller/api/app:app; python -m quart run
+   ```
 
-1. Install requirements <br/>
-```
-sudo apt install python3.8
-sudo apt install tox
-```
+### Algorithm Run
 
-2. Run the tests <br/>
-```
-tox
-```
+1. Call the test script which performs a post request to the controller 
+   ```python test_post_request.py```
