@@ -1,4 +1,0 @@
-pytest~=6.2.2
-pytest-xdist
-requests~=2.22.0
-pandas
