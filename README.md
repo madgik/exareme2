@@ -20,7 +20,10 @@ heavily influenced by Rust's `cargo`.
    is important to install `poetry` in isolation, so follow the
    recomended installation method.
 
-2. ```poetry install```
+2. Install dependecies
+   ```
+   poetry install
+   ```
 
 `poetry` uses a single file for configuring dependencies,
 `pyproject.toml` in the project's root directory. To add dependecies
