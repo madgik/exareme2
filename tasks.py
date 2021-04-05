@@ -69,7 +69,6 @@ def setup_dbs(c, local_nodes=2):
     start_monetdb_global(c)
     start_monetdb_locals(c, local_nodes=local_nodes)
     load_data_into_db(c, local_nodes=local_nodes)
-    message("Done!", Level.SUCCESS)
 
 
 @task
@@ -151,6 +150,13 @@ def start_rabbitmq(c):
 
 
 @task
+def setup_rabbitmq(c):
+    clean_rabbitmq_containers(c)
+    start_rabbitmq(c)
+    config_rabbitmq(c)
+
+
+@task
 def killall_celery(c):
     message("Killing previous Celery instances...", Level.HEADER)
     cmd = "ps aux | grep '[c]elery' | awk '{ print $2}' | xargs kill -9"
@@ -212,7 +218,7 @@ def deploy(c, start_services=False, ip=None):
     install_dependencies(c)
     set_ip(c, ip)
     setup_dbs(c)
-    start_rabbitmq(c)
+    setup_rabbitmq(c)
     if start_services:
         start_controller(c)
         start_global_node(c)
