@@ -3,7 +3,7 @@ import logging
 
 import requests
 
-from mipengine.tests.controller.api import algorithms_url
+from tests import algorithms_url
 
 
 def test_get_algorithms():
@@ -26,7 +26,7 @@ def test_get_demo_algorithm():
 
 
 def get_demo_algorithm() -> str:
-    return '''
+    return """
     {
         "name": "demo",
         "crossvalidation":
@@ -168,4 +168,4 @@ def get_demo_algorithm() -> str:
         "label": "DEMO",
         "desc": "This is a demo algorithm."
     }
-    '''
+    """

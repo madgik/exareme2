@@ -3,7 +3,7 @@ import logging
 
 import requests
 
-from mipengine.tests.controller.api import algorithms_url
+from tests import algorithms_url
 
 
 def test_wrong_algorithm_name():
@@ -28,18 +28,18 @@ def test_wrong_pathology():
             "datasets": ["adni"],
             "filter": {},
             "x": ["lefthippocampus", "righthippocampus"],
-            "y": ["alzheimerbroadcategory"]
+            "y": ["alzheimerbroadcategory"],
         },
         "parameters": {
             "my_enum_param": "a",
             "my_int_param": 3,
-            "list_param": [0.8, 0.95]
+            "list_param": [0.8, 0.95],
         },
         "crossvalidation": {
             "type": "k_fold",
             "nsplits": 10,
-            "metrics": ["precision", "confusion_matrix"]
-        }
+            "metrics": ["precision", "confusion_matrix"],
+        },
     }
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
 
@@ -47,7 +47,9 @@ def test_wrong_pathology():
 
     assert request.status_code == 200
 
-    assert json.loads(request.text) == get_user_error_response("Pathology 'wrong' does not exist.")
+    assert json.loads(request.text) == get_user_error_response(
+        "Pathology 'wrong' does not exist."
+    )
 
 
 def test_wrong_dataset():
@@ -60,18 +62,18 @@ def test_wrong_dataset():
             "datasets": ["wrong"],
             "filter": {},
             "x": ["lefthippocampus", "righthippocampus"],
-            "y": ["alzheimerbroadcategory"]
+            "y": ["alzheimerbroadcategory"],
         },
         "parameters": {
             "my_enum_param": "a",
             "my_int_param": 3,
-            "list_param": [0.8, 0.95]
+            "list_param": [0.8, 0.95],
         },
         "crossvalidation": {
             "type": "k_fold",
             "nsplits": 10,
-            "metrics": ["precision", "confusion_matrix"]
-        }
+            "metrics": ["precision", "confusion_matrix"],
+        },
     }
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
 
@@ -79,8 +81,9 @@ def test_wrong_dataset():
 
     assert request.status_code == 200
 
-    assert json.loads(request.text) == \
-           get_user_error_response("Datasets '['wrong']' do not belong in pathology 'dementia'.")
+    assert json.loads(request.text) == get_user_error_response(
+        "Datasets '['wrong']' do not belong in pathology 'dementia'."
+    )
 
 
 def test_proper_algorithm():
@@ -93,18 +96,18 @@ def test_proper_algorithm():
             "datasets": ["ppmi"],
             "filter": {},
             "x": ["lefthippocampus", "righthippocampus"],
-            "y": ["alzheimerbroadcategory"]
+            "y": ["alzheimerbroadcategory"],
         },
         "parameters": {
             "my_enum_param": "a",
             "my_int_param": 3,
-            "list_param": [0.8, 0.95]
+            "list_param": [0.8, 0.95],
         },
         "crossvalidation": {
             "type": "k_fold",
             "nsplits": 10,
-            "metrics": ["precision", "confusion_matrix"]
-        }
+            "metrics": ["precision", "confusion_matrix"],
+        },
     }
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
 
