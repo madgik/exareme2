@@ -14,3 +14,8 @@ repos:
     rev: 20.8b1
     hooks:
     -   id: black
+
+-   repo: https://github.com/executablebooks/mdformat
+    rev: 0.6.4
+    hooks:
+    -   id: mdformat
