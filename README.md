@@ -6,13 +6,13 @@
 
 1. Install [poetry](https://python-poetry.org/ "poetry")
    It is important to install `poetry` in isolation, so follow the
-   recomended installation method.
+   recommended installation method.
 
 ## Setup
 
 #### Environment Setup
 
-1. Install dependecies
+1. Install dependencies
 
    ```
    poetry install
@@ -52,9 +52,16 @@
    invoke --list
    ```
 
-### Algorithm Run
+#### Algorithm Run
 
 1. Make a post request, *e.g.*
    ```
    python test_post_request.py
+   ```
+
+## Setup pre-commit hooks (optional)
+
+1. `pre-commit` is included in development dependencies. To install hooks
+   ```
+   pre-commit install
    ```
