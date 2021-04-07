@@ -31,16 +31,16 @@ Inside the MIP-Engine folder:
 
 1. Deploy MonetDB (docker). <br/>
 ```
-docker run -d -P -p 50000:50000 --name monetdb-1 jassak/mipenginedb:dev1.0
-docker run -d -P -p 50001:50000 --name monetdb-2 jassak/mipenginedb:dev1.0
-docker run -d -P -p 50002:50000 --name monetdb-3 jassak/mipenginedb:dev1.0
+docker run -d -P -p 50000:50000 --name monetdb-1 thanasulas/mipenginedb:dev1.1
+docker run -d -P -p 50001:50000 --name monetdb-2 thanasulas/mipenginedb:dev1.1
+docker run -d -P -p 50002:50000 --name monetdb-3 thanasulas/mipenginedb:dev1.1
 ```
 
 2. Deploy RabbitMQ (docker). <br/>
 ```
-sudo docker run -d -p 5672:5672 --name rabbitmq-1 rabbitmq
-sudo docker run -d -p 5673:5672 --name rabbitmq-2 rabbitmq
-sudo docker run -d -p 5674:5672 --name rabbitmq-3 rabbitmq
+docker run -d -p 5672:5672 --name rabbitmq-1 rabbitmq
+docker run -d -p 5673:5672 --name rabbitmq-2 rabbitmq
+docker run -d -p 5674:5672 --name rabbitmq-3 rabbitmq
 ```
 
 3. Configure RabbitMQ. <br/>
