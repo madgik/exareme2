@@ -6,15 +6,15 @@ from mipengine.common.node_exceptions import IncompatibleSchemasMergeException
 from mipengine.common.node_exceptions import IncompatibleTableTypes
 from mipengine.common.node_exceptions import TableCannotBeFound
 from mipengine.common.validate_identifier_names import validate_identifier_names
-from mipengine.node.monetdb_interface import common_action
-from mipengine.node.monetdb_interface.common_action import connection
-from mipengine.node.monetdb_interface.common_action import convert_schema_to_sql_query_format
-from mipengine.node.monetdb_interface.common_action import cursor
+from mipengine.node.monetdb_interface import common_actions
+from mipengine.node.monetdb_interface.common_actions import connection
+from mipengine.node.monetdb_interface.common_actions import convert_schema_to_sql_query_format
+from mipengine.node.monetdb_interface.common_actions import cursor
 from mipengine.common.node_tasks_DTOs import TableInfo
 
 
 def get_merge_tables_names(context_id: str) -> List[str]:
-    return common_action.get_tables_names("merge", context_id)
+    return common_actions.get_tables_names("merge", context_id)
 
 
 @validate_identifier_names
@@ -34,7 +34,7 @@ def get_non_existing_tables(table_names: List[str]) -> List[str]:
 @validate_identifier_names
 def add_to_merge_table(merge_table_name: str, tables_names: List[str]):
     non_existing_tables = get_non_existing_tables(tables_names)
-    table_infos = [TableInfo(name, common_action.get_table_schema(name)) for name in tables_names]
+    table_infos = [TableInfo(name, common_actions.get_table_schema(name)) for name in tables_names]
 
     try:
         for name in tables_names:

@@ -112,7 +112,7 @@ python3.8 -m pip install -r ./requirements/controller.txt
 export QUART_APP=mipengine/controller/api/app:app; python3.8 -m quart run
 ```
 
-### Execute an algorithm
+### A test script that executes an algorithm
 
 1. Navigate to `/MIP-Engine/` <br/>
 2. Call the test script which performs a post request to the controller
