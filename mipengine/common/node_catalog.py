@@ -52,14 +52,16 @@ class NodeCatalog:
     _nodes_per_dataset: Dict[str, List[LocalNode]]
 
     def __init__(self):
-        node_catalog_content = pkg_resources.read_text(resources, 'node_catalog.json')
+        node_catalog_content = pkg_resources.read_text(resources, "node_catalog.json")
         self._nodes: Nodes = Nodes.from_json(node_catalog_content)
 
         for local_node in self._nodes.localNodes:
             if not local_node.nodeId.isalnum():
                 raise InvalidNodeId(local_node.nodeId)
             if not local_node.nodeId.islower():
-                raise ValueError(f"Node id should be lower case, node id = {local_node.nodeId}")
+                raise ValueError(
+                    f"Node id should be lower case, node id = {local_node.nodeId}"
+                )
 
         self._datasets = {}
         for local_node in self._nodes.localNodes:
@@ -97,8 +99,12 @@ class NodeCatalog:
     def get_local_nodes(self) -> List[LocalNode]:
         return self._nodes.localNodes
 
-    def get_local_node_data(self, node_id) -> LocalNode:
-        return [local_node for local_node in self._nodes.localNodes if local_node.nodeId == node_id][0]
+    def get_local_node(self, node_id) -> LocalNode:
+        return next(
+            local_node
+            for local_node in self._nodes.localNodes
+            if local_node.nodeId == node_id
+        )
 
 
 node_catalog = NodeCatalog()

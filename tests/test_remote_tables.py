@@ -28,7 +28,7 @@
 
 
 # def test_create_and_get_remote_table():
-#     local_node_data = node_catalog.get_local_node_data(local_node_id)
+#     local_node_data = node_catalog.get_local_node(local_node_id)
 #     local_node_1_url = f'mapi:monetdb://{local_node_data.monetdbHostname}:{local_node_data.monetdbPort}/db'
 
 #     table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])

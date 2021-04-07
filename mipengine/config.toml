@@ -1,0 +1,15 @@
+log_level = "INFO"
+
+[rabbitmq]
+user = "user"
+password = "password"
+vhost = "user_vhost"
+
+[monetdb]
+database = "db"
+username = "monetdb"
+password = "monetdb"
+
+[node]
+identifier = "localnode1"
+# is_global = false
