@@ -4,8 +4,8 @@
 # from mipengine.common.node_tasks_DTOs import ColumnInfo
 # from mipengine.common.node_tasks_DTOs import TableInfo
 # from mipengine.common.node_tasks_DTOs import TableSchema
-# from mipengine.tests.node import nodes_communication
-# from mipengine.tests.node.node_db_connections import get_node_db_connection
+# from tests import nodes_communication
+# from tests.node_db_connections import get_node_db_connection
 
 # local_node_1_id = "localnode1"
 # local_node_2_id = "localnode2"
@@ -14,13 +14,27 @@
 # local_node_2 = nodes_communication.get_celery_app(local_node_2_id)
 # global_node = nodes_communication.get_celery_app(global_node_id)
 
-# local_node_1_create_table = nodes_communication.get_celery_create_table_signature(local_node_1)
-# local_node_2_create_table = nodes_communication.get_celery_create_table_signature(local_node_2)
-# global_node_create_remote_table = nodes_communication.get_celery_create_remote_table_signature(global_node)
-# global_node_get_remote_tables = nodes_communication.get_celery_get_remote_tables_signature(global_node)
-# global_node_create_merge_table = nodes_communication.get_celery_create_merge_table_signature(global_node)
-# global_node_get_merge_tables = nodes_communication.get_celery_get_merge_tables_signature(global_node)
-# global_node_get_merge_table_data = nodes_communication.get_celery_get_table_data_signature(global_node)
+# local_node_1_create_table = nodes_communication.get_celery_create_table_signature(
+#     local_node_1
+# )
+# local_node_2_create_table = nodes_communication.get_celery_create_table_signature(
+#     local_node_2
+# )
+# global_node_create_remote_table = (
+#     nodes_communication.get_celery_create_remote_table_signature(global_node)
+# )
+# global_node_get_remote_tables = (
+#     nodes_communication.get_celery_get_remote_tables_signature(global_node)
+# )
+# global_node_create_merge_table = (
+#     nodes_communication.get_celery_create_merge_table_signature(global_node)
+# )
+# global_node_get_merge_tables = (
+#     nodes_communication.get_celery_get_merge_tables_signature(global_node)
+# )
+# global_node_get_merge_table_data = (
+#     nodes_communication.get_celery_get_table_data_signature(global_node)
+# )
 
 # clean_up_node1 = nodes_communication.get_celery_cleanup_signature(local_node_1)
 # clean_up_node2 = nodes_communication.get_celery_cleanup_signature(local_node_2)
@@ -45,15 +59,25 @@
 #     local_node_1_data = node_catalog.get_local_node(local_node_1_id)
 #     local_node_2_data = node_catalog.get_local_node(local_node_2_id)
 
-#     schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT"), ColumnInfo("col3", "TEXT")])
+#     schema = TableSchema(
+#         [
+#             ColumnInfo("col1", "INT"),
+#             ColumnInfo("col2", "FLOAT"),
+#             ColumnInfo("col3", "TEXT"),
+#         ]
+#     )
 
 #     # Create local tables
-#     local_node_1_table_name = local_node_1_create_table.delay(context_id=context_id,
-#                                                               command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
-#                                                               schema_json=schema.to_json()).get()
-#     local_node_2_table_name = local_node_2_create_table.delay(context_id=context_id,
-#                                                               command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
-#                                                               schema_json=schema.to_json()).get()
+#     local_node_1_table_name = local_node_1_create_table.delay(
+#         context_id=context_id,
+#         command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+#         schema_json=schema.to_json(),
+#     ).get()
+#     local_node_2_table_name = local_node_2_create_table.delay(
+#         context_id=context_id,
+#         command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+#         schema_json=schema.to_json(),
+#     ).get()
 #     # Insert data into local tables
 #     insert_data_into_local_node_db_table(local_node_1_id, local_node_1_table_name)
 #     insert_data_into_local_node_db_table(local_node_2_id, local_node_2_table_name)
@@ -61,20 +85,24 @@
 #     # Create remote tables
 #     table_info_local_1 = TableInfo(local_node_1_table_name, schema)
 #     table_info_local_2 = TableInfo(local_node_2_table_name, schema)
-#     monetdb_url_local_node_1 = f'mapi:monetdb://{local_node_1_data.monetdbHostname}:{local_node_1_data.monetdbPort}/db'
-#     monetdb_url_local_node_2 = f'mapi:monetdb://{local_node_2_data.monetdbHostname}:{local_node_2_data.monetdbPort}/db'
-#     global_node_create_remote_table.delay(table_info_json=table_info_local_1.to_json(),
-#                                           url=monetdb_url_local_node_1).get()
-#     global_node_create_remote_table.delay(table_info_json=table_info_local_2.to_json(),
-#                                           url=monetdb_url_local_node_2).get()
+#     monetdb_url_local_node_1 = f"mapi:monetdb://{local_node_1_data.monetdbHostname}:{local_node_1_data.monetdbPort}/db"
+#     monetdb_url_local_node_2 = f"mapi:monetdb://{local_node_2_data.monetdbHostname}:{local_node_2_data.monetdbPort}/db"
+#     global_node_create_remote_table.delay(
+#         table_info_json=table_info_local_1.to_json(), url=monetdb_url_local_node_1
+#     ).get()
+#     global_node_create_remote_table.delay(
+#         table_info_json=table_info_local_2.to_json(), url=monetdb_url_local_node_2
+#     ).get()
 #     remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()
 #     assert local_node_1_table_name in remote_tables
 #     assert local_node_2_table_name in remote_tables
 
 #     # Create merge table
-#     merge_table_name = global_node_create_merge_table.delay(context_id=context_id,
-#                                                             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
-#                                                             table_names=remote_tables).get()
+#     merge_table_name = global_node_create_merge_table.delay(
+#         context_id=context_id,
+#         command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+#         table_names=remote_tables,
+#     ).get()
 
 #     # Validate merge table exists
 #     merge_tables = global_node_get_merge_tables.delay(context_id=context_id).get()
