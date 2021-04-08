@@ -1,98 +1,67 @@
 # MIP-Engine
 
-## Installation
+### Prerequisites
 
-1. Install python <br/>
-```
-sudo apt install python3.8
-sudo apt install python3-pip
-```
+1. Install [python3.8](https://www.python.org/downloads/ "python3.8")
 
-2. Add the MIP-Engine folder to your PYTHONPATH. For example:
-```
-export PYTHONPATH=$PYTHONPATH:/absolute/path/to/MIP-Engine
-```
-You can also add this to your profile (~/.profile), otherwise you will need to do that every time.
+1. Install [poetry](https://python-poetry.org/ "poetry")
+   It is important to install `poetry` in isolation, so follow the
+   recommended installation method.
 
-### Controller API
+## Setup
 
-1. Install requirements. <br/>
-```
-python3.8 -m pip install -r ./requirements/controller.txt
-```
+#### Environment Setup
 
-2. Run the controller API. <br/>
-```
-export QUART_APP=mipengine/controller/api/app:app; python3.8 -m quart run
-```
+1. Install dependencies
 
-### Nodes setup
-Inside the MIP-Engine folder:
+   ```
+   poetry install
+   ```
 
-1. Deploy MonetDB (docker). <br/>
-```
-docker run -d -P -p 50000:50000 --name monetdb-1 thanasulas/mipenginedb:dev1.1
-docker run -d -P -p 50001:50000 --name monetdb-2 thanasulas/mipenginedb:dev1.1
-docker run -d -P -p 50002:50000 --name monetdb-3 thanasulas/mipenginedb:dev1.1
-```
+1. Activate virtual environment
 
-2. Deploy RabbitMQ (docker). <br/>
-```
-docker run -d -p 5672:5672 --name rabbitmq-1 rabbitmq
-docker run -d -p 5673:5672 --name rabbitmq-2 rabbitmq
-docker run -d -p 5674:5672 --name rabbitmq-3 rabbitmq
-```
+   ```
+   poetry shell
+   ```
 
-3. Configure RabbitMQ. <br/>
-   Wait until RabbitMQ containers are up and then run the configuration.
-```
-sudo docker exec -it rabbitmq-1 rabbitmqctl add_user user password &&
-sudo docker exec -it rabbitmq-1 rabbitmqctl add_vhost user_vhost &&
-sudo docker exec -it rabbitmq-1 rabbitmqctl set_user_tags user user_tag &&
-sudo docker exec -it rabbitmq-1 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*" &&
-sudo docker exec -it rabbitmq-2 rabbitmqctl add_user user password &&
-sudo docker exec -it rabbitmq-2 rabbitmqctl add_vhost user_vhost &&
-sudo docker exec -it rabbitmq-2 rabbitmqctl set_user_tags user user_tag &&
-sudo docker exec -it rabbitmq-2 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*" &&
-sudo docker exec -it rabbitmq-3 rabbitmqctl add_user user password &&
-sudo docker exec -it rabbitmq-3 rabbitmqctl add_vhost user_vhost &&
-sudo docker exec -it rabbitmq-3 rabbitmqctl set_user_tags user user_tag &&
-sudo docker exec -it rabbitmq-3 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*"
-```
+#### Local Deployment
 
-4. Install requirements. <br/>
-```
-python3.8 -m pip install -r ./requirements/node.txt
-```
+1. Find your machine's local ip address, *e.g.* with
 
-5. Import the csvs in MonetDB. To import all the csvs on both dbs, run:
-```
-python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50001 -farm db
-python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50002 -farm db
-```
-6. To modify `mipengine/resources/node_catalog.json` to match your internal IP instead of 127.0.0.1 , run:
-```
-python3 mipengine/tests/node/set_monetdb_hostname.py -host <internal IP>
-```
-You can use the command `ifconfig` to get your internal IP.
+   ```
+   ifconfig | grep "inet "
+   ```
 
-7. Inside the MIP-Engine folder run the celery workers: <br/>
-```
-python3.8 mipengine/tests/node/set_node_identifier.py localnode1 && celery -A mipengine.node.node worker --loglevel=info
-python3.8 mipengine/tests/node/set_node_identifier.py localnode2 && celery -A mipengine.node.node worker --loglevel=info
-python3.8 mipengine/tests/node/set_node_identifier.py globalnode && celery -A mipengine.node.node worker --loglevel=info
-```
+1. Deploy everything
 
-## Tests
-Inside the MIP-Engine folder:
+   ```
+   invoke deploy --ip <YOUR-IP> --start-services
+   ```
 
-1. Install requirements <br/>
-```
-sudo apt install python3.8
-sudo apt install tox
-```
+   *CAVEATS* The `--start-services` flag will start Controller (`quart`) and Nodes (`celery`). These
+   processes will then run in the background. You can then manually kill them or use
 
-2. Run the tests <br/>
-```
-tox
-```
+   ```
+   invoke killall-quart
+   invoke killall-celery
+   ```
+
+   To see all available `invoke` tasks
+
+   ```
+   invoke --list
+   ```
+
+#### Algorithm Run
+
+1. Make a post request, *e.g.*
+   ```
+   python test_post_request.py
+   ```
+
+## Setup pre-commit hooks (optional)
+
+1. `pre-commit` is included in development dependencies. To install hooks
+   ```
+   pre-commit install
+   ```
