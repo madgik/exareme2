@@ -44,7 +44,7 @@ def SQL_tensor1_mult(table1, table2):
 SELECT
     {nodeid_column},
     t1.dim0 AS dim0,
-    t1.val * t1.val AS val
+    t1.val * t2.val AS val
 FROM $table1 AS t1, $table2 AS t2
 WHERE
     t1.dim0=t2.dim0"""
@@ -58,7 +58,7 @@ def SQL_tensor1_add(table1, table2):
 SELECT
     {nodeid_column},
     t1.dim0 AS dim0,
-    t1.val + t1.val AS val
+    t1.val + t2.val AS val
 FROM $table1 AS t1, $table2 AS t2
 WHERE
     t1.dim0=t2.dim0"""
@@ -72,7 +72,7 @@ def SQL_tensor1_sub(table1, table2):
 SELECT
     {nodeid_column},
     t1.dim0 AS dim0,
-    t1.val - t1.val AS val
+    t1.val - t2.val AS val
 FROM $table1 AS t1, $table2 AS t2
 WHERE
     t1.dim0=t2.dim0"""
@@ -86,7 +86,7 @@ def SQL_tensor1_div(table1, table2):
 SELECT
     {nodeid_column},
     t1.dim0 AS dim0,
-    t1.val / t1.val AS val
+    t1.val / t2.val AS val
 FROM $table1 AS t1, $table2 AS t2
 WHERE
     t1.dim0=t2.dim0"""
@@ -95,7 +95,7 @@ WHERE
 
 
 def SQL_const_tensor1_sub(const, table):
-    tmpl = Template(f"SELECT {nodeid_column}, dim0, $const - val from $table")
+    tmpl = Template(f"SELECT {nodeid_column}, dim0, $const - val as val from $table")
     return "", tmpl.safe_substitute(const=const, table=table)
 
 
