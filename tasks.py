@@ -17,7 +17,7 @@ def install_dependencies(c):
 @task
 def set_ip(c, ip):
     message("Setting ip address...", Level.HEADER)
-    with c.cd("mipengine/tests/node"):
+    with c.cd("tests"):
         cmd = f"poetry run python set_hostname_in_node_catalog.py -host {ip}"
         message(cmd)
         c.run(cmd, hide="out")
@@ -56,7 +56,7 @@ def start_monetdb_locals(c, local_nodes=2):
 def load_data_into_db(c, local_nodes=2):
     message("Loading data...", Level.HEADER)
     for i in range(1, local_nodes + 1):
-        cmd = f"poetry run python -m mipengine.node.monetdb_interface.csv_importer -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:5000{i} -farm db"
+        cmd = f"poetry run python -m mipengine.node.monetdb_interface.csv_importer -folder ./tests/data/ -user monetdb -pass monetdb -url localhost:5000{i} -farm db"
         message(cmd)
         c.run(cmd, hide="out")
     message("Done!", Level.SUCCESS)
@@ -168,7 +168,7 @@ def killall_celery(c):
 @task(pre=[killall_celery])
 def start_global_node(c):
     message("Starting Global Node...", Level.HEADER)
-    cmd = "poetry run python mipengine/tests/node/set_node_identifier.py globalnode && poetry run celery -A mipengine.node.node worker -l INFO"
+    cmd = "poetry run python tests/set_node_identifier.py globalnode && poetry run celery -A mipengine.node.node worker -l INFO"
     message(cmd)
     c.run(cmd, disown=True)
     sleep(4)
@@ -179,7 +179,7 @@ def start_global_node(c):
 def start_local_nodes(c, local_nodes=2):
     message(f"Starting {local_nodes} Local Nodes...", Level.HEADER)
     for i in range(1, local_nodes + 1):
-        cmd = f"poetry run python mipengine/tests/node/set_node_identifier.py localnode{i} && poetry run celery -A mipengine.node.node worker -l INFO"
+        cmd = f"poetry run python tests/set_node_identifier.py localnode{i} && poetry run celery -A mipengine.node.node worker -l INFO"
         message(cmd)
         c.run(cmd, disown=True)
     sleep(4)
