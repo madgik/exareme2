@@ -1,121 +1,67 @@
-## Prerequisites
+# MIP-Engine
 
-Install python <br/>
-```
-sudo apt install python3.8
-sudo apt install python3-pip
-```
+### Prerequisites
+
+1. Install [python3.8](https://www.python.org/downloads/ "python3.8")
+
+1. Install [poetry](https://python-poetry.org/ "poetry")
+   It is important to install `poetry` in isolation, so follow the
+   recommended installation method.
 
 ## Setup
-1. The set_hostname_in_node_catalog.py script will set your local network IP in the `mipengine/resources/node_catalog.json`:<br/>
 
-```
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-#network module name is specific to the machine, so wlo1 can also be wlan0 or something else. Check your ifconfig..
-ip4=$(/sbin/ip -o -4 addr list wlo1 | awk '{print $4}' | cut -d/ -f1) 
-python3.8 mipengine/tests/node/set_hostname_in_node_catalog.py -host $ip4
-```
-or
-```
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-python3.8 mipengine/tests/node/set_hostname_in_node_catalog.py -host <local network IP>
-```
+#### Environment Setup
 
-### Start the nodes (3 nodes: 1 global node, 2 local nodes)
-1. Kill existing monetdb and rabbitmq containers, if present <br/>
-```
-docker rm -f $(docker ps -a -q) #!!!WARNING: WILL KILL AND REMOVE ALL EXISTING CONTAINERS
-```
+1. Install dependencies
 
-2. Navigate to `/MIP-Engine/` <br/>
+   ```
+   poetry install
+   ```
 
-3. Add the MIP-Engine folder to your PYTHONPATH<br/>
-```
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-```
+1. Activate virtual environment
 
-4. Install node requirements. <br/>
-```
-python3.8 -m pip install -r ./requirements/node.txt
-```
+   ```
+   poetry shell
+   ```
 
-5. Start the dockerized MonetDB instances. <br/>
-```
-docker run -d -P -p 50000:50000 --name monetdb-0 jassak/mipenginedb:dev1.1 #global node
-docker run -d -P -p 50001:50000 --name monetdb-1 jassak/mipenginedb:dev1.1 #local node 1
-docker run -d -P -p 50002:50000 --name monetdb-2 jassak/mipenginedb:dev1.1 #local node 2
-```
+#### Local Deployment
 
-6. Populate the 2 local nodes databases from the csv data files.
-```
-python3.8 -m mipengine.node.monetdb_interface.csv_importer -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50001 -farm db
-python3.8 -m mipengine.node.monetdb_interface.csv_importer -folder ./mipengine/tests/data/ -user monetdb -pass monetdb -url localhost:50002 -farm db
-```
+1. Find your machine's local ip address, *e.g.* with
 
-7. Start the dockerized RabbitMQ instances. <br/>
-```
-docker run -d -p 5670:5672 --name rabbitmq-0 rabbitmq #global node
-docker run -d -p 5671:5672 --name rabbitmq-1 rabbitmq #local node 1
-docker run -d -p 5672:5672 --name rabbitmq-2 rabbitmq #local node 2
-```
+   ```
+   ifconfig | grep "inet "
+   ```
 
-8. Configure RabbitMQ. <br/>
-   !!!WARNING RabbitMQ needs ~30 secs to be ready to execute the following commands.
-```
-docker exec -it rabbitmq-0 rabbitmqctl add_user user password &&
-docker exec -it rabbitmq-0 rabbitmqctl add_vhost user_vhost &&
-docker exec -it rabbitmq-0 rabbitmqctl set_user_tags user user_tag &&
-docker exec -it rabbitmq-0 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*" &&
+1. Deploy everything
 
-docker exec -it rabbitmq-1 rabbitmqctl add_user user password &&
-docker exec -it rabbitmq-1 rabbitmqctl add_vhost user_vhost &&
-docker exec -it rabbitmq-1 rabbitmqctl set_user_tags user user_tag &&
-docker exec -it rabbitmq-1 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*" &&
+   ```
+   invoke deploy --ip <YOUR-IP> --start-services
+   ```
 
-docker exec -it rabbitmq-2 rabbitmqctl add_user user password &&
-docker exec -it rabbitmq-2 rabbitmqctl add_vhost user_vhost &&
-docker exec -it rabbitmq-2 rabbitmqctl set_user_tags user user_tag &&
-docker exec -it rabbitmq-2 rabbitmqctl set_permissions -p user_vhost user ".*" ".*" ".*" 
-```
+   *CAVEATS* The `--start-services` flag will start Controller (`quart`) and Nodes (`celery`). These
+   processes will then run in the background. You can then manually kill them or use
 
-9. Start global node
-```
-python3.8 mipengine/tests/node/set_node_identifier.py globalnode && celery -A mipengine.node.node worker --loglevel=info
-```
-10. Start local node 1
-```
-(if in new shell) export PYTHONPATH=$PYTHONPATH:$(pwd)
-python3.8 mipengine/tests/node/set_node_identifier.py localnode1 && celery -A mipengine.node.node worker --loglevel=info
-```
-11. Start local node 2
-```
-(if in new shell) export PYTHONPATH=$PYTHONPATH:$(pwd)
-python3.8 mipengine/tests/node/set_node_identifier.py localnode2 && celery -A mipengine.node.node worker --loglevel=info
-```
+   ```
+   invoke killall-quart
+   invoke killall-celery
+   ```
 
-### Start the Controller
+   To see all available `invoke` tasks
 
-1. Navigate to `/MIP-Engine/` <br/>
+   ```
+   invoke --list
+   ```
 
-2. Add the MIP-Engine folder to your PYTHONPATH<br/>
-```
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-```
+#### Algorithm Run
 
-3. Install controller requirements. <br/>
-```
-python3.8 -m pip install -r ./requirements/controller.txt
-```
+1. Make a post request, *e.g.*
+   ```
+   python test_post_request.py
+   ```
 
-4. Run the controller. <br/>
-```
-export QUART_APP=mipengine/controller/api/app:app; python3.8 -m quart run
-```
+## Setup pre-commit hooks (optional)
 
-### A test script that executes an algorithm
-
-1. Navigate to `/MIP-Engine/` <br/>
-2. Call the test script which performs a post request to the controller
-```
-python3.8 test_post_request.py
-```
+1. `pre-commit` is included in development dependencies. To install hooks
+   ```
+   pre-commit install
+   ```
