@@ -29,7 +29,7 @@ def create_view(context_id: str,
                 pathology: str,
                 datasets: List[str],
                 columns: List[str],
-                filters_json: str
+                filters: str = None
                 ) -> str:
     """
         Parameters
@@ -44,7 +44,7 @@ def create_view(context_id: str,
             A list of dataset names
         columns : List[str]
             A list of column names
-        filters_json : str(dict)
+        filters : dict
             A Jquery filters object
 
         Returns
@@ -57,5 +57,5 @@ def create_view(context_id: str,
                       pathology=pathology,
                       datasets=datasets,
                       columns=columns,
-                      filters=filters_json)
+                      filters=filters)
     return view_name.lower()

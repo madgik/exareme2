@@ -21,6 +21,42 @@ def cleanup_views():
     local_node_cleanup.delay(context_id=context_id.lower()).get()
 
 
+def test_equal():
+    columns = ["dataset", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
+    datasets = ["dummy_tbi"]
+    pathology = "tbi"
+    filters = {
+        "condition": "AND",
+        "rules": [
+            {
+                "id": "age_value",
+                "field": "age_value",
+                "type": "int",
+                "input": "number",
+                "operator": "equal",
+                "value": 17
+            }
+        ],
+        "valid": True
+    }
+
+    view_name = local_node_create_view.delay(context_id=context_id,
+                                             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+                                             pathology=pathology,
+                                             datasets=datasets,
+                                             columns=columns,
+                                             filters=filters
+                                             ).get()
+    views = local_node_get_views.delay(context_id=context_id).get()
+    assert view_name in views
+
+    view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
+    view_data = TableData.from_json(view_data_json)
+    for row in view_data.data:
+        assert row[0] == "dummy_tbi"
+        assert row[1] == 17
+
+
 def test_equal_or_not_equal():
     columns = ["dataset", "age_value", "gcs_motor_response_scale", "pupil_reactivity_right_eye_result"]
     datasets = ["dummy_tbi"]
@@ -53,7 +89,7 @@ def test_equal_or_not_equal():
                                              pathology=pathology,
                                              datasets=datasets,
                                              columns=columns,
-                                             filters_json=filters
+                                             filters=filters
                                              ).get()
     views = local_node_get_views.delay(context_id=context_id).get()
     assert view_name in views
@@ -97,7 +133,7 @@ def test_less_and_greater():
                                              pathology=pathology,
                                              datasets=datasets,
                                              columns=columns,
-                                             filters_json=filters
+                                             filters=filters
                                              ).get()
     views = local_node_get_views.delay(context_id=context_id).get()
     assert view_name in views
@@ -148,7 +184,7 @@ def test_between_and_not_between():
                                              pathology=pathology,
                                              datasets=datasets,
                                              columns=columns,
-                                             filters_json=filters
+                                             filters=filters
                                              ).get()
     views = local_node_get_views.delay(context_id=context_id).get()
     assert view_name in views
@@ -171,8 +207,8 @@ def test_is_null_or_is_not_null():
             {
                 "id": "gose_score",
                 "field": "gose_score",
-                "type": "int",
-                "input": "number",
+                "type": "text",
+                "input": "text",
                 "operator": "is_null",
                 "value": None
             },
@@ -193,7 +229,7 @@ def test_is_null_or_is_not_null():
                                              pathology=pathology,
                                              datasets=datasets,
                                              columns=columns,
-                                             filters_json=filters
+                                             filters=filters
                                              ).get()
     views = local_node_get_views.delay(context_id=context_id).get()
     assert view_name in views
@@ -208,7 +244,7 @@ def test_is_null_or_is_not_null():
 
 def test_all():
     # View for females that of age 20-30 and gose_score is not null
-    # or males with mortality_core greater than 0.5 and gose_score less or equal to 4
+    # or males with mortality_core greater than 0.5 and less or equal to 0.8
     columns = ["dataset",
                "age_value",
                "gender_type",
@@ -248,8 +284,8 @@ def test_all():
                             {
                                 "id": "gose_score",
                                 "field": "gose_score",
-                                "type": "int",
-                                "input": "number",
+                                "type": "text",
+                                "input": "text",
                                 "operator": "is_not_null",
                                 "value": None
                             }
@@ -280,12 +316,12 @@ def test_all():
                                 "value": 0.5
                             },
                             {
-                                "id": "gose_score",
-                                "field": "gose_score",
-                                "type": "int",
+                                "id": "mortality_core",
+                                "field": "mortality_core",
+                                "type": "double",
                                 "input": "number",
                                 "operator": "less_or_equal",
-                                "value": 4
+                                "value": 0.8
                             }
                         ]
                     }
@@ -300,7 +336,7 @@ def test_all():
                                              pathology=pathology,
                                              datasets=datasets,
                                              columns=columns,
-                                             filters_json=filters
+                                             filters=filters
                                              ).get()
     views = local_node_get_views.delay(context_id=context_id).get()
     assert view_name in views
@@ -311,4 +347,4 @@ def test_all():
     for row in view_data.data:
         assert row[0] == "dummy_tbi"
         assert (row[2] == "F" and (20 <= row[1] <= 30 and row[3] != "null")) or (
-                    row[2] != "F" and (row[4] > 0.5 or row[3] <= 4))
+                    row[2] != "F" and (row[4] > 0.5 or row[4] <= 0.8))

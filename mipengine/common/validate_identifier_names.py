@@ -3,21 +3,25 @@ from functools import wraps
 
 
 def validate_identifier_names(func):
-    wraps(func)
-
+    @wraps(func)
     def wrapper(*args, **kwargs):
         all_args = list(args) + list(kwargs.values())
         for arg in all_args:
             if type(arg) == str:
-                if not arg.isidentifier() and not arg.isalnum() and not has_proper_url_format(arg):
-                    raise ValueError(f"Not allowed character in argument: {arg}")
+                if arg.isidentifier():
+                    continue
+                elif arg.isalnum():
+                    continue
+                elif has_proper_url_format(arg):
+                    continue
+                raise ValueError(f"Not allowed character in argument: {arg}")
             elif type(arg) == list:
-                for item in arg:
-                    if not item.isidentifier() and not item.isalnum() and not has_proper_url_format(item):
-                        raise ValueError(f"Not allowed character in argument: {item}")
-        return func(*args, **kwargs)
+                wrapper(*arg)
+            elif type(arg) == dict:
+                wrapper(**arg)
 
-    return wrapper
+    wrapper
+    return func
 
 
 def has_proper_url_format(url: str):

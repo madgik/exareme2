@@ -73,7 +73,7 @@ python3.8 mipengine/node/monetdb_interface/csv_importer.py -folder ./mipengine/t
 
 6. To modify `mipengine/resources/node_catalog.json` to match your internal IP instead of 127.0.0.1 , run:
 ```
-python3 mipengine/tests/node/set_monetdb_hostname.py -host 192.168.124.129
+python3 mipengine/tests/node/set_monetdb_hostname.py -host <internal IP>
 ```
 You can use the command `ifconfig` to get your internal IP.
 
