@@ -3,7 +3,7 @@ import logging
 
 import requests
 
-from tests import algorithms_url
+from mipengine.tests.controller.api import algorithms_url
 
 
 def test_get_algorithms():

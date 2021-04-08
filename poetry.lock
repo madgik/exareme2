@@ -956,7 +956,7 @@ python-versions = "*"
 name = "termcolor"
 version = "1.1.0"
 description = "ANSII Color formatting for output in terminal."
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -1091,7 +1091,7 @@ h11 = ">=0.9.0,<1"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "e6d055eb9f485fcc3069ceac7fe4a781734911f1bf324ec1c157ef432e6d82aa"
+content-hash = "cf13dc67b1831af58fae6523178505b3e19841f6a77f71c54cfc5352069882c2"
 
 [metadata.files]
 aiofiles = [
