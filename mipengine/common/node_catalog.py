@@ -15,10 +15,12 @@ class NodePathology:
     name: str
     datasets: List[str]
 
+
 @dataclass_json
 @dataclass
 class NodeData:
     pathologies: List[NodePathology]
+
 
 @dataclass_json
 @dataclass
@@ -28,15 +30,18 @@ class Node:
     monetdbHostname: str
     monetdbPort: str
 
+
 @dataclass_json
 @dataclass
 class GlobalNode(Node):
     pass
 
+
 @dataclass_json
 @dataclass
 class LocalNode(Node):
     data: NodeData
+
 
 @dataclass_json
 @dataclass
@@ -107,12 +112,15 @@ class NodeCatalog:
     def get_local_nodes(self) -> List[LocalNode]:
         return self._nodes.localNodes
 
-    def get_local_node(self, node_id) -> LocalNode:
-        return next(
-            local_node
-            for local_node in self._nodes.localNodes
-            if local_node.nodeId == node_id
-        )
+    def get_local_node(self, node_id: str) -> LocalNode:
+        try:
+            return next(
+                local_node
+                for local_node in self._nodes.localNodes
+                if local_node.nodeId == node_id
+            )
+        except StopIteration:
+            raise ValueError(f"Node ID {node_id} not found in the Node Catalog")
 
 
 node_catalog = NodeCatalog()

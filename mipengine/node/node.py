@@ -2,22 +2,21 @@ import argparse
 
 from celery import Celery
 
-from mipengine.common.node_catalog import node_catalog
 from mipengine import config
+from mipengine.common.node_catalog import node_catalog
 
-if __name__ != "__main__":
-    node_id = config.node.identifier
 
-elif __name__ == "__main__":
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--node-id", help="Current node identifier.", required=True)
     extra_args, celery_args = parser.parse_known_args()
-    node_id = extra_args.node_id
+    config.node.identifier = extra_args.node_id
 
-if global_node := node_catalog.get_global_node() == config.node.identifier:
+global_node = node_catalog.get_global_node()
+if global_node.nodeId == config.node.identifier:
     current_node = global_node
 else:
-    current_node = node_catalog.get_local_node(node_id)
+    current_node = node_catalog.get_local_node(config.node.identifier)
 
 rabbitmqURL = current_node.rabbitmqURL
 user = config.rabbitmq.user
