@@ -123,7 +123,7 @@ class TableV(UdfIOValue, ABC):
 
     @property
     def columns(self):
-        return [f"{self.name}_{name}" for name, _ in self.schema if name != "row_id"]
+        return [f"{self.name}_{name}" for name, _ in self.schema]
 
     @abstractproperty
     def schema(self):
@@ -144,11 +144,18 @@ class RelationV(TableV):
         self._schema = schema
 
     def as_udf_signature(self):
-        return SEP.join([f"{self.name}_{name} {dtype}" for name, dtype in self.schema if name != "row_id"])
+        return SEP.join([f"{self.name}_{name} {dtype}" for name, dtype in self.schema])
 
     @property
     def schema(self):
         return self._schema
+
+    @classmethod
+    def from_table_info(cls, name, table_info):
+        if "row_id" not in (col.name for col in table_info.schema):
+            raise ValueError(f"{TableInfo} doesn't have a row_id column")
+        schema = [col for col in table_info.schema if col.name != "row_id"]
+        return cls(name=name, schema=schema)
 
 
 class TensorV(TableV):
@@ -169,15 +176,21 @@ class TensorV(TableV):
         return schema
 
     @classmethod
-    def from_table_info(cls, table_info):
-        try:
-            dtype = next(col.dtype for col in table_info.schema if col.name == "val")
-        except StopIteration:
-            raise TypeError("TableInfo doesn't have tensor-like schema.")
+    def from_table_info(cls, name, table_info):
+        dim_pattern = r"dim[0-9]+"
+        schema = table_info.schema
+        for col in schema:
+            if col.name == "val":
+                continue
+            if re.fullmatch(dim_pattern, col.name):
+                continue
+            if col.name == "row_id":
+                continue
+            raise ValueError(f"Unexpected column name {col.name}")
+        dtype = next(col.dtype for col in schema if col.name == "val")
         tensor_dtype = SQL2PY_TYPES[dtype]
-        return cls(
-            name=table_info.name, ndims=len(table_info.schema) - 2, dtype=tensor_dtype
-        )
+        ndims = len([col for col in schema if re.fullmatch(dim_pattern, col.name)])
+        return cls(name=name, ndims=ndims, dtype=tensor_dtype)
 
 
 class ScalarV(UdfIOValue):
@@ -256,13 +269,13 @@ def generate_udf_def(
     args = []
     for arg, (pname, ptype) in zip(positional_args, parameter_types.items()):
         if ptype == RelationT and isinstance(arg, TableInfo):
-            args.append(RelationV(name=pname, schema=arg.schema))
+            args.append(RelationV.from_table_info(pname, arg))
         elif ptype == LoopbackRelationT and isinstance(arg, TableInfo):
-            args.append(RelationV(name=pname, schema=arg.schema))
+            args.append(RelationV.from_table_info(pname, arg))
         elif ptype == TensorT and isinstance(arg, TableInfo):
-            args.append(TensorV.from_table_info(arg))
+            args.append(TensorV.from_table_info(pname, arg))
         elif ptype == LoopbackTensorT and isinstance(arg, TableInfo):
-            args.append(TensorV.from_table_info(arg))
+            args.append(TensorV.from_table_info(pname, arg))
         elif ptype == LiteralParameterT and not isinstance(arg, TableInfo):
             args.append(arg)
         else:
@@ -297,7 +310,7 @@ class FunctionAnalyzer:
             self._parameter_hints[pname] = param.annotation
 
     def get_return_name(self) -> str:
-        body_stmts = self.tree.body[0].body  # type: ignore
+        body_stmts = self.tree.body[0].body
         ret_stmt = next(s for s in body_stmts if isinstance(s, ast.Return))
         if isinstance(ret_stmt.value, ast.Name):
             ret_name = ret_stmt.value.id
@@ -306,7 +319,7 @@ class FunctionAnalyzer:
         return ret_name
 
     def get_body(self) -> str:
-        body_ast = self.tree.body[0].body  # type: ignore
+        body_ast = self.tree.body[0].body
         statemets = [stmt for stmt in body_ast if type(stmt) != ast.Return]
         body = dedent("".join(astor.to_source(stmt) for stmt in statemets))
         return body
@@ -376,7 +389,7 @@ class FunctionAnalyzer:
         return parameter_bound_typevars
 
     def get_return_obj_constructor(self):
-        return TYPES2CONS[self.return_type]  # type: ignore
+        return TYPES2CONS[self.return_type]
 
 
 class UDFCodeGenerator:
@@ -424,12 +437,10 @@ class UDFCodeGenerator:
         elif self._return_obj_has_known_attrs():
             return_obj = self._build_return_obj_from_inputs(inputs)
         else:
-            # output = self.func(*args, **kwargs)
             raise NotImplementedError
         input_params = self._make_parameter_signature(inputs)
         udf_signature = f"{udf_name}({input_params})"
         return_stmt = self._get_return_statement()
-        return_name = self.funcparts.return_name
         sql_return_type = return_obj.as_udf_return_type()
         table_defs = self._gen_table_defs(inputs)
         loopback_calls = self._gen_loopback_calls(inputs)
@@ -470,7 +481,7 @@ class UDFCodeGenerator:
         for pname, ptype in parameter_types.items():
             arg = inputs[pname]
             if not isinstance(arg, TableInfo) and not issubclass(ptype, TableT):
-                TypeError("Expected type {ptype}, got type {type(arg)}.")
+                TypeError(f"Expected type {ptype}, got type {type(arg)}.")
 
     def _return_typevars_are_bound(self):
         return self.funcparts._return_hint.typevars_are_bound
@@ -583,6 +594,7 @@ def generate_udf_select_stmt(
     positional_args: list[UdfArgument],
     keyword_args: dict[str, UdfArgument],  # XXX not used for now
 ) -> str:
+    # TODO rewrite this function
     """
     Generates select statement for calling MonetDB Python UDFs.
 
@@ -648,7 +660,10 @@ def generate_udf_select_stmt(
         join_on = [f"{head_table}.row_id={table}.row_id" for table in tail_tables]
         where_subexpr = ANDLN.join(join_on)
     elif TensorT == main_input_type:
-        ndims = len(tables[0].schema) - 2
+        head_table, *_ = tables
+        ndims = len(
+            [col for col in head_table.schema if re.fullmatch(r"dim[0-9]+", col.name)]
+        )
         all_dims = [f"dim{i}" for i in range(ndims)]
         tensor_dims = [[f"{name}.{dim}" for dim in all_dims] for name in table_names]
         head_dims, *tail_dims = tensor_dims
@@ -714,7 +729,7 @@ def remove_blank_lines(text):
         text = text.splitlines()
     except AttributeError:
         pass
-    return map(lambda line: re.sub(r"(.*)(\n)$", r"\1", line), text)
+    return list(map(lambda line: re.sub(r"(.*)(\n)$", r"\1", line), text))
 
 
 def prettify(lst_expr):

@@ -1,5 +1,4 @@
 # type: ignore
-from textwrap import dedent
 from typing import TypeVar
 
 import pytest
@@ -7,7 +6,6 @@ import pytest
 from mipengine.algorithms import udf
 from mipengine.algorithms import RelationT
 from mipengine.algorithms import TensorT
-from mipengine.algorithms import LoopbackTensorT
 from mipengine.algorithms import LiteralParameterT
 from mipengine.algorithms import ScalarT
 from mipengine.node.udfgen import generate_udf_application_queries
@@ -34,8 +32,22 @@ def relations_to_relation(
 
 
 POSARGS_relations_to_relation = [
-    TableInfo("rel1", [ColumnInfo("col1", "int"), ColumnInfo("col2", "float")]),
-    TableInfo("rel2", [ColumnInfo("col1", "int"), ColumnInfo("col2", "float")]),
+    TableInfo(
+        "rel1",
+        [
+            ColumnInfo("row_id", "text"),
+            ColumnInfo("col1", "int"),
+            ColumnInfo("col2", "float"),
+        ],
+    ),
+    TableInfo(
+        "rel2",
+        [
+            ColumnInfo("row_id", "text"),
+            ColumnInfo("col1", "int"),
+            ColumnInfo("col2", "float"),
+        ],
+    ),
 ]
 DEF_relations_to_relation = """\
 CREATE OR REPLACE
@@ -77,7 +89,14 @@ def table_to_tensor(input_: RelationT[Schema1]) -> TensorT(float, 2):
 
 
 POSARGS_table_to_tensor = [
-    TableInfo("rel1", [ColumnInfo("col1", "int"), ColumnInfo("col2", "float")]),
+    TableInfo(
+        "rel1",
+        [
+            ColumnInfo("row_id", "text"),
+            ColumnInfo("col1", "int"),
+            ColumnInfo("col2", "float"),
+        ],
+    ),
 ]
 DEF_table_to_tensor = """\
 CREATE OR REPLACE
@@ -125,20 +144,27 @@ def with_literal(X: TensorT[DT1, ND1], n: LiteralParameterT[int]) -> TensorT[DT1
 
 
 POSARGS_with_literal = [
-    TableInfo("tens1", [ColumnInfo("dim0", "int"), ColumnInfo("val", "float")]),
+    TableInfo(
+        "tens1",
+        [
+            ColumnInfo("row_id", "text"),
+            ColumnInfo("dim0", "int"),
+            ColumnInfo("val", "float"),
+        ],
+    ),
     5,
 ]
 DEF_with_literal = """\
 CREATE OR REPLACE
 FUNCTION
-udfname(tens1_dim0 int, tens1_val float)
+udfname(X_dim0 int, X_val float)
 RETURNS
 TABLE(dim0 int, val float)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    X = udfio.from_tensor_table({n:_columns[n] for n in ['tens1_dim0', 'tens1_val']})
+    X = udfio.from_tensor_table({n:_columns[n] for n in ['X_dim0', 'X_val']})
     n = 5
     result = X + n
     return udfio.as_tensor_table(numpy.array(result))
@@ -166,21 +192,35 @@ def to_scalar(vec1: TensorT(float, 1), vec2: TensorT(float, 1)) -> ScalarT(float
 
 
 POSARGS_to_scalar = [
-    TableInfo("tens1", [ColumnInfo("dim0", "int"), ColumnInfo("val", "float")]),
-    TableInfo("tens2", [ColumnInfo("dim0", "int"), ColumnInfo("val", "float")]),
+    TableInfo(
+        "tens1",
+        [
+            ColumnInfo("row_id", "text"),
+            ColumnInfo("dim0", "int"),
+            ColumnInfo("val", "float"),
+        ],
+    ),
+    TableInfo(
+        "tens2",
+        [
+            ColumnInfo("row_id", "text"),
+            ColumnInfo("dim0", "int"),
+            ColumnInfo("val", "float"),
+        ],
+    ),
 ]
 DEF_to_scalar = """\
 CREATE OR REPLACE
 FUNCTION
-udfname(tens1_dim0 int, tens1_val float, tens2_dim0 int, tens2_val float)
+udfname(vec1_dim0 int, vec1_val float, vec2_dim0 int, vec2_val float)
 RETURNS
 float
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    vec1 = udfio.from_tensor_table({n:_columns[n] for n in ['tens1_dim0', 'tens1_val']})
-    vec2 = udfio.from_tensor_table({n:_columns[n] for n in ['tens2_dim0', 'tens2_val']})
+    vec1 = udfio.from_tensor_table({n:_columns[n] for n in ['vec1_dim0', 'vec1_val']})
+    vec2 = udfio.from_tensor_table({n:_columns[n] for n in ['vec2_dim0', 'vec2_val']})
     dotprod = vec1.T @ vec2
     return dotprod
 };"""
