@@ -2,7 +2,7 @@ import pymonetdb
 from pymonetdb import Connection
 
 from mipengine.common.node_catalog import node_catalog
-from mipengine.node.config.config_parser import config
+from mipengine import config
 
 
 def get_node_db_connection(node_id: str) -> Connection:
