@@ -3,11 +3,11 @@ from typing import Union
 
 import pymonetdb
 
+from mipengine import config
 from mipengine.common.node_catalog import node_catalog
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.common.validate_identifier_names import validate_identifier_names
-from mipengine.node.node import config
 
 MONETDB_VARCHAR_SIZE = 50
 
@@ -16,32 +16,32 @@ MONETDB_VARCHAR_SIZE = 50
 # TODO Add monetdb asyncio connection (aiopymonetdb)
 
 global_node = node_catalog.get_global_node()
-if global_node.nodeId == config.get("node", "identifier"):
+if global_node.nodeId == config.node.identifier:
     node = global_node
 else:
-    node = node_catalog.get_local_node_data(config.get("node", "identifier"))
+    node = node_catalog.get_local_node(config.node.identifier)
 monetdb_hostname = node.monetdbHostname
 monetdb_port = node.monetdbPort
 connection = pymonetdb.connect(
-    username=config.get("monet_db", "username"),
+    username=config.monetdb.username,
     port=monetdb_port,
-    password=config.get("monet_db", "password"),
+    password=config.monetdb.password,
     hostname=monetdb_hostname,
-    database=config.get("monet_db", "database"),
+    database=config.monetdb.database,
 )
 cursor = connection.cursor()
 
 
 @validate_identifier_names
 def create_table_name(
-        table_type: str, command_id: str, context_id: str, node_id: str
+    table_type: str, command_id: str, context_id: str, node_id: str
 ) -> str:
     """
     Creates a table name with the format <tableType>_<commandId>_<contextId>_<nodeId>
     """
     if table_type not in {"table", "view", "merge"}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
-    if node_id not in {"global", config.get("node", "identifier")}:
+    if node_id not in {"global", config.node.identifier}:
         raise TypeError(f"Node Identifier is not acceptable: {node_id}.")
 
     return f"{table_type}_{command_id}_{context_id}_{node_id}"
@@ -93,14 +93,14 @@ def get_table_schema(table_name: str, table_type: str = None) -> TableSchema:
 
     cursor.execute(
         f"""
-        SELECT columns.name, columns.type 
-        FROM columns 
-        RIGHT JOIN tables 
-        ON tables.id = columns.table_id 
-        WHERE 
-        tables.name = '{table_name}' 
-        AND 
-        tables.system=false 
+        SELECT columns.name, columns.type
+        FROM columns
+        RIGHT JOIN tables
+        ON tables.id = columns.table_id
+        WHERE
+        tables.name = '{table_name}'
+        AND
+        tables.system=false
         {type_clause}"""
     )
 
@@ -130,10 +130,10 @@ def get_tables_names(table_type: str, context_id: str) -> List[str]:
     """
     cursor.execute(
         f"""
-        SELECT name FROM tables 
+        SELECT name FROM tables
         WHERE
          type = {str(_convert_mip2monet_table_type(table_type))} AND
-        name LIKE '%{context_id.lower()}%' AND 
+        name LIKE '%{context_id.lower()}%' AND
         system = false"""
     )
 
@@ -142,7 +142,7 @@ def get_tables_names(table_type: str, context_id: str) -> List[str]:
 
 @validate_identifier_names
 def get_table_data(
-        table_name: str, table_type: str = None
+    table_name: str, table_type: str = None
 ) -> List[List[Union[str, int, float, bool]]]:
     """
     Retrieves the data of a table with specific type and name  from the monetdb.
@@ -168,10 +168,10 @@ def get_table_data(
 
     cursor.execute(
         f"""
-        SELECT {table_name}.* 
-        FROM {table_name} 
-        INNER JOIN tables ON tables.name = '{table_name}' 
-        WHERE tables.system=false 
+        SELECT {table_name}.*
+        FROM {table_name}
+        INNER JOIN tables ON tables.name = '{table_name}'
+        WHERE tables.system=false
         {type_clause}
         """
     )
@@ -187,7 +187,8 @@ def get_table_rows(table_name: str) -> int:
 @validate_identifier_names
 def clean_up(context_id: str):
     """
-    Deletes all tables of any type with name that contain a specific context_id from the monetdb.
+    Deletes all tables of any type with name that contain a specific
+    context_id from the DB.
 
     Parameters
     ----------
@@ -291,9 +292,9 @@ def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
     """
     cursor.execute(
         f"""
-        SELECT name, type FROM tables 
+        SELECT name, type FROM tables
         WHERE name LIKE '%{context_id.lower()}%'
-        AND tables.type = {str(_convert_mip2monet_table_type(table_type))} 
+        AND tables.type = {str(_convert_mip2monet_table_type(table_type))}
         AND system = false
         """
     )

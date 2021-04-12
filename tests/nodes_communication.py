@@ -9,7 +9,7 @@ def get_celery_app(node_id: str):
     if global_node.nodeId == node_id:
         node = global_node
     else:
-        node = node_catalog.get_local_node_data(node_id)
+        node = node_catalog.get_local_node(node_id)
 
     user = config["rabbitmq"]["user"]
     password = config["rabbitmq"]["password"]
