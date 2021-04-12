@@ -34,4 +34,4 @@ node_catalog["globalNode"]["rabbitmqURL"] = f"{tmp[0]}:{tmp[1]}"
 with open(node_catalog_abs_path, "w") as node_catalog_file:
     json.dump(node_catalog, node_catalog_file, indent=2)
 
-print(f"Successfully changed monetdb hostnames to '{hostname}'.")
+print(f"Successfully changed node catalog hostnames to '{hostname}'.")
