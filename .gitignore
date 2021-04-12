@@ -132,6 +132,11 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+#temp files
+*~
+*.swp
+*.swo
+
 # vim stuff
 .vim/
 pyrightconfig.json

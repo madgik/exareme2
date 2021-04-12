@@ -168,7 +168,7 @@ def killall_celery(c):
 @task(pre=[killall_celery])
 def start_global_node(c):
     message("Starting Global Node...", Level.HEADER)
-    cmd = "poetry run python tests/set_node_identifier.py globalnode && poetry run celery -A mipengine.node.node worker -l INFO"
+    cmd = "poetry run python -m mipengine.node.node worker --node-id globalnode"
     message(cmd)
     c.run(cmd, disown=True)
     sleep(4)
@@ -179,7 +179,7 @@ def start_global_node(c):
 def start_local_nodes(c, local_nodes=2):
     message(f"Starting {local_nodes} Local Nodes...", Level.HEADER)
     for i in range(1, local_nodes + 1):
-        cmd = f"poetry run python tests/set_node_identifier.py localnode{i} && poetry run celery -A mipengine.node.node worker -l INFO"
+        cmd = f"poetry run python -m mipengine.node.node worker --node-id localnode{i}"
         message(cmd)
         c.run(cmd, disown=True)
     sleep(4)

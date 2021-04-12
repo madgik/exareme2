@@ -11,15 +11,6 @@ from mipengine.common.node_exceptions import InvalidNodeId
 
 @dataclass_json
 @dataclass
-class GlobalNode:
-    nodeId: str
-    rabbitmqURL: str
-    monetdbHostname: str
-    monetdbPort: str
-
-
-@dataclass_json
-@dataclass
 class NodePathology:
     name: str
     datasets: List[str]
@@ -33,7 +24,22 @@ class NodeData:
 
 @dataclass_json
 @dataclass
-class LocalNode(GlobalNode):
+class Node:
+    nodeId: str
+    rabbitmqURL: str
+    monetdbHostname: str
+    monetdbPort: str
+
+
+@dataclass_json
+@dataclass
+class GlobalNode(Node):
+    pass
+
+
+@dataclass_json
+@dataclass
+class LocalNode(Node):
     data: NodeData
 
 
@@ -44,22 +50,18 @@ class Nodes:
     localNodes: List[LocalNode]
 
 
-@dataclass_json
-@dataclass
 class NodeCatalog:
-    _nodes: Nodes
-    _datasets: Dict[str, List[str]]
-    _nodes_per_dataset: Dict[str, List[LocalNode]]
-
     def __init__(self):
-        node_catalog_content = pkg_resources.read_text(resources, 'node_catalog.json')
+        node_catalog_content = pkg_resources.read_text(resources, "node_catalog.json")
         self._nodes: Nodes = Nodes.from_json(node_catalog_content)
 
         for local_node in self._nodes.localNodes:
             if not local_node.nodeId.isalnum():
                 raise InvalidNodeId(local_node.nodeId)
             if not local_node.nodeId.islower():
-                raise ValueError(f"Node id should be lower case, node id = {local_node.nodeId}")
+                raise ValueError(
+                    f"Node id should be lower case, node id = {local_node.nodeId}"
+                )
 
         self._datasets = {}
         for local_node in self._nodes.localNodes:
@@ -75,7 +77,7 @@ class NodeCatalog:
                 for dataset in pathology.datasets:
                     if dataset not in self._nodes_per_dataset.keys():
                         self._nodes_per_dataset[dataset] = [local_node]
-                    else:
+                    elif local_node not in self._nodes_per_dataset[dataset]:
                         self._nodes_per_dataset[dataset].append(local_node)
 
     def pathology_exists(self, pathology: str) -> bool:
@@ -91,14 +93,34 @@ class NodeCatalog:
         """
         return [self._nodes_per_dataset[dataset] for dataset in datasets]
 
+    def get_nodes_with_any_of_datasets(self, datasets: List[str]) -> List[LocalNode]:
+        tmp = self.get_nodes_with_datasets(datasets)
+        if tmp:
+            local_nodes = [tmp[0][0]]
+            for nodes in tmp:
+                for node in nodes:
+                    if node not in local_nodes:
+                        local_nodes.append(node)
+            return local_nodes
+
+        else:
+            raise Exception(f"There are no nodes with any of the datasets->{datasets}")
+
     def get_global_node(self) -> GlobalNode:
         return self._nodes.globalNode
 
     def get_local_nodes(self) -> List[LocalNode]:
         return self._nodes.localNodes
 
-    def get_local_node_data(self, node_id) -> LocalNode:
-        return [local_node for local_node in self._nodes.localNodes if local_node.nodeId == node_id][0]
+    def get_local_node(self, node_id: str) -> LocalNode:
+        try:
+            return next(
+                local_node
+                for local_node in self._nodes.localNodes
+                if local_node.nodeId == node_id
+            )
+        except StopIteration:
+            raise ValueError(f"Node ID {node_id} not found in the Node Catalog")
 
 
 node_catalog = NodeCatalog()

@@ -14,10 +14,11 @@ def get_node_db_connection(node_id: str) -> Connection:
 
     monetdb_hostname = node.monetdbHostname
     monetdb_port = node.monetdbPort
-    connection = pymonetdb.connect(username=config.get("monet_db", "username"),
-                                   port=monetdb_port,
-                                   password=config.get("monet_db", "password"),
-                                   hostname=monetdb_hostname,
-                                   database=config.get("monet_db", "database"),
-                                   autocommit=True)
+    connection = pymonetdb.connect(
+        username=config.monetdb.username,
+        port=monetdb_port,
+        password=config.monetdb.password,
+        hostname=monetdb_hostname,
+        database=config.monetdb.database,
+    )
     return connection

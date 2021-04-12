@@ -7,10 +7,11 @@ from celery import shared_task
 
 from mipengine.algorithms import UDF_REGISTRY
 from mipengine.algorithms import logistic_regression
-from mipengine.algorithms import demo  # TODO Split the actual and testing algorithms
+
+# from mipengine.algorithms import demo  # TODO Split the actual and testing algorithms
 from mipengine.common.node_tasks_DTOs import UDFArgument
 from mipengine.common.validate_identifier_names import validate_identifier_names
-from mipengine.node.config.config_parser import config
+from mipengine import config
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
@@ -60,7 +61,7 @@ def run_udf(
     """
 
     result_table_name = create_table_name(
-        "table", command_id, context_id, config["node"]["identifier"]
+        "table", command_id, context_id, config.node.identifier
     )
 
     positional_args = [UDFArgument.from_json(arg) for arg in positional_args_json]
@@ -174,14 +175,14 @@ def _generate_udf_statements(
     allowed_func_name = func_name.replace(".", "_")  # A dot is not an allowed character
     udf_name = _create_udf_name(allowed_func_name, command_id, context_id)
     result_table_name = create_table_name(
-        "table", command_id, context_id, config["node"]["identifier"]
+        "table", command_id, context_id, config.node.identifier
     )
 
     udf_creation_stmt = udf_creation_stmt.substitute(udf_name=udf_name)
     udf_execution_stmt = udf_execution_stmt.substitute(
         table_name=result_table_name,
         udf_name=udf_name,
-        node_id=config["node"]["identifier"],
+        node_id=config.node.identifier,
     )
 
     return udf_creation_stmt, udf_execution_stmt
