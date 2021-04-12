@@ -24,6 +24,18 @@
    poetry shell
    ```
 
+1. *Optional* To install tab completion for `invoke` run  (replacing `bash` with you shell)
+
+   ```
+   source <(poetry run inv --print-completion-script bash)
+   ```
+
+1. *Optional* `pre-commit` is included in development dependencies. To install hooks
+
+   ```
+   pre-commit install
+   ```
+
 #### Local Deployment
 
 1. Find your machine's local ip address, *e.g.* with
@@ -32,24 +44,30 @@
    ifconfig | grep "inet "
    ```
 
-1. Deploy everything
+1. Create a deployment configuration
 
    ```
-   invoke deploy --ip <YOUR-IP> --start-services
+   inv config --ip <YOUR-IP> --node-name <NODE-NAME> --monetdb-port <MONETDB_PORT> --rabbitmq-port <RABBITMQ_PORT>
    ```
 
-   *CAVEATS* The `--start-services` flag will start Controller (`quart`) and Nodes (`celery`). These
-   processes will then run in the background. You can then manually kill them or use
+   Append as many `--node-name`, `--monetdb-port`, `rabbitmq-port` triplets as you want.
+
+1. Deploy everything with
 
    ```
-   invoke killall-quart
-   invoke killall-celery
+   inv deploy --start-controller --start-nodes
    ```
 
-   To see all available `invoke` tasks
+1. Attach to some service's stdout/stderr with
 
    ```
-   invoke --list
+   inv attach --controller
+   ```
+
+   or
+
+   ```
+   inv attach --node <NODE-NAME>
    ```
 
 #### Algorithm Run
@@ -57,11 +75,4 @@
 1. Make a post request, *e.g.*
    ```
    python test_post_request.py
-   ```
-
-## Setup pre-commit hooks (optional)
-
-1. `pre-commit` is included in development dependencies. To install hooks
-   ```
-   pre-commit install
    ```
