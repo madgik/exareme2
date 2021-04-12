@@ -56,8 +56,8 @@
 #     clean_up_global.delay(context_id=context_id.lower()).get()
 #     clean_up_node1.delay(context_id=context_id.lower()).get()
 #     clean_up_node2.delay(context_id=context_id.lower()).get()
-#     local_node_1_data = node_catalog.get_local_node_data(local_node_1_id)
-#     local_node_2_data = node_catalog.get_local_node_data(local_node_2_id)
+#     local_node_1_data = node_catalog.get_local_node(local_node_1_id)
+#     local_node_2_data = node_catalog.get_local_node(local_node_2_id)
 
 #     schema = TableSchema(
 #         [
