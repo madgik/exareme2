@@ -5,13 +5,11 @@ from typing import Tuple
 
 from celery import shared_task
 
+from mipengine import config
 from mipengine.algorithms import UDF_REGISTRY
-from mipengine.algorithms import logistic_regression
-
 # from mipengine.algorithms import demo  # TODO Split the actual and testing algorithms
 from mipengine.common.node_tasks_DTOs import UDFArgument
 from mipengine.common.validate_identifier_names import validate_identifier_names
-from mipengine import config
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
@@ -28,8 +26,8 @@ def get_udfs(algorithm_name: str) -> List[str]:
         if udf_name.startswith(algorithm_name)
     ]
 
-
-@shared_task
+#TODO Verify time limit when udf tests are fixed
+@shared_task(soft_time_limit=60, time_limit=120)
 def run_udf(
     command_id: str,
     context_id: str,
@@ -81,11 +79,11 @@ def run_udf(
 
 @shared_task
 def get_run_udf_query(
-    command_id: str,
-    context_id: str,
-    func_name: str,
-    positional_args_json: List[str],
-    keyword_args_json: Dict[str, str],
+        command_id: str,
+        context_id: str,
+        func_name: str,
+        positional_args_json: List[str],
+        keyword_args_json: Dict[str, str],
 ) -> Tuple[str, str]:
     """
     Returns the sql statements that represent the execution of the udf.
@@ -145,8 +143,8 @@ def _convert_udf2udfgen_arg(udf_argument: UDFArgument):
 
 
 def _convert_udf2udfgen_args(
-    positional_args: List[UDFArgument],
-    keyword_args: Dict[str, UDFArgument],
+        positional_args: List[UDFArgument],
+        keyword_args: Dict[str, UDFArgument],
 ):
     generator_pos_args = [
         _convert_udf2udfgen_arg(pos_arg) for pos_arg in positional_args
@@ -160,11 +158,11 @@ def _convert_udf2udfgen_args(
 
 
 def _generate_udf_statements(
-    command_id: str,
-    context_id: str,
-    func_name: str,
-    positional_args: List[UDFArgument],
-    keyword_args: Dict[str, UDFArgument],
+        command_id: str,
+        context_id: str,
+        func_name: str,
+        positional_args: List[UDFArgument],
+        keyword_args: Dict[str, UDFArgument],
 ):
     gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
 

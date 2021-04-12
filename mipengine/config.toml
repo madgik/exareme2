@@ -13,4 +13,3 @@ password = "monetdb"
 
 [node]
 identifier = "localnode1"
-# is_global = false
