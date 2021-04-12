@@ -78,8 +78,8 @@ def get_table_schema(table_name: str) -> TableSchema:
         raise TablesNotFound([table_name])
     return TableSchema(
         [
-            ColumnInfo(table[0], _convert_monet2mip_column_type(table[1]))
-            for table in schema
+            ColumnInfo(name, _convert_monet2mip_column_type(table_type))
+            for name, table_type in schema
         ]
     )
 
@@ -195,14 +195,12 @@ def _convert_mip2monet_table_type(table_type: str) -> int:
 
 def _convert_mip2monetdb_column_type(column_type: str) -> str:
     """
-    Converts MIP Engine's int,float,text types to monetdb
+    Converts MIP Engine's int,real,text types to monetdb
     """
     type_mapping = {
         "int": "int",
-        "float": "double",
+        "real": "float",
         "text": f"varchar({MONETDB_VARCHAR_SIZE})",
-        "bool": "bool",
-        "clob": "clob",
     }
 
     if column_type not in type_mapping.keys():
@@ -219,10 +217,8 @@ def _convert_monet2mip_column_type(column_type: str) -> str:
     """
     type_mapping = {
         "int": "int",
-        "double": "float",
+        "float": "real",
         "varchar": "text",
-        "bool": "bool",
-        "clob": "clob",
     }
 
     if column_type not in type_mapping.keys():
@@ -253,8 +249,8 @@ def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
         AND system = false
         """
     )
-    for table in table_names_and_types:
-        if table[1] == 1:
-            MonetDB().execute(f"DROP VIEW {table[0]}")
+    for name, table_type in table_names_and_types:
+        if table_type == _convert_mip2monet_table_type("view"):
+            MonetDB().execute(f"DROP VIEW {name}")
         else:
-            MonetDB().execute(f"DROP TABLE {table[0]}")
+            MonetDB().execute(f"DROP TABLE {name}")

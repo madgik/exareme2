@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from typing import List
 
 import pymonetdb
@@ -48,24 +49,19 @@ class MonetDB(metaclass=Singleton):
             database=config.get("monet_db", "database"),
         )
 
-    def _get_connection(self):
-        """
-        Commits the connection and then retrieves it so it is up-to-date.
-        """
-        self._connection.commit()
-        return self._connection
-
     def execute_with_result(self, query: str) -> List:
         """
         Used to execute select queries that return a result.
 
         Should NOT be used to execute "CREATE, DROP, ALTER, UPDATE, ..." statements.
         """
-        cursor = self._get_connection().cursor()
-        cursor.execute(query)
-        result = cursor.fetchall()
-        cursor.close()
-        return result
+
+        # DO NOT Remove. The connection needs to be committed so it is up to date.
+        self._connection.commit()
+        with self._connection.cursor() as cur:
+            cur.execute(query)
+            result = cur.fetchall()
+            return result
 
     def execute(self, query: str):
         """
@@ -74,19 +70,19 @@ class MonetDB(metaclass=Singleton):
         if they fail with pymonetdb.exceptions.IntegrityError .
         *https://www.monetdb.org/blog/optimistic-concurrency-control
         """
-        attempts = 0
-        connection = self._get_connection()
-        while attempts <= OCC_MAX_ATTEMPTS:
-            cursor = connection.cursor()
-            try:
-                cursor.execute(query)
-                connection.commit()
-                break
-            except pymonetdb.exceptions.IntegrityError as integrity_exc:
-                connection.rollback()
-                attempts += 1
-                if attempts >= OCC_MAX_ATTEMPTS:
-                    raise integrity_exc
-            except Exception as exc:
-                connection.rollback()
-                raise exc
+
+        for _ in range(OCC_MAX_ATTEMPTS):
+            with self._connection.cursor() as cur:
+                try:
+                    cur.execute(query)
+                    self._connection.commit()
+                    break
+                except pymonetdb.exceptions.IntegrityError as exc:
+                    integrity_error = exc
+                    self._connection.rollback()
+                    continue
+                except Exception as exc:
+                    self._connection.rollback()
+                    raise exc
+        else:
+            raise integrity_error
