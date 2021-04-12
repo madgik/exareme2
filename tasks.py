@@ -191,11 +191,32 @@ def kill_node(c, node=None, all_=False):
         message("Please specify a node using --node <node> or use --all", Level.WARNING)
         sys.exit(1)
     node_descr = f" {node_pattern}" if node_pattern else "s"
-    message(f"Killing previous celery instance{node_descr}...", Level.HEADER)
-    cmd = f"ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}' | xargs kill -9"
-    c.run(cmd)
-    cmd = f"ps aux | grep '[m]ipengine' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}' | xargs kill -9"
-    run(c, cmd)
+    res_bin = c.run(
+        "ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' ",
+        hide="both",
+        warn=True,
+    )
+    res_py = c.run(
+        "ps aux | grep '[m]ipengine' | grep 'worker' | grep '{node_pattern}'",
+        hide="both",
+        warn=True,
+    )
+    if res_bin.ok:
+        message(
+            f"Killing previous celery instance{node_descr} started using celery binary...",
+            Level.HEADER,
+        )
+        cmd = f"ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}' | xargs kill -9"
+        c.run(cmd)
+    if res_py.ok:
+        message(
+            f"Killing previous celery instance{node_descr} started as a python module...",
+            Level.HEADER,
+        )
+        cmd = f"ps aux | grep '[m]ipengine' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}' | xargs kill -9"
+        run(c, cmd)
+    if not res_bin.ok and not res_py.ok:
+        message("No celery instances found", Level.HEADER)
 
 
 @task
@@ -236,9 +257,13 @@ def start_node(c, node):
 @task
 def kill_controller(c):
     """Kill Controller"""
-    message("Killing previous Quart instances...", Level.HEADER)
-    cmd = "ps aux | grep '[q]uart' | awk '{ print $2}' | xargs kill -9 && sleep 5"
-    run(c, cmd)
+    res = c.run("ps aux | grep '[q]uart'", hide="both", warn=True)
+    if res.ok:
+        message("Killing previous Quart instances...", Level.HEADER)
+        cmd = "ps aux | grep '[q]uart' | awk '{ print $2}' | xargs kill -9 && sleep 5"
+        run(c, cmd)
+    else:
+        message("No quart instance found", Level.HEADER)
 
 
 @task(pre=[kill_controller])
@@ -256,7 +281,7 @@ def start_controller(c):
 @task
 def deploy(c, start_controller_=False, start_nodes=False, install_=True):
     """Deploy everything"""
-    with c.cd("/Users/zazon/projects/MIP-Engine/"):
+    with c.cd(PROJECT_ROOT):
         if not ENVFILE.exists():
             message(
                 "No config found, run invoke config to create one",
