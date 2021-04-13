@@ -3,7 +3,7 @@ from typing import Union
 
 import pymonetdb
 
-from mipengine import config
+from mipengine.node import config
 from mipengine.common.node_catalog import node_catalog
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
@@ -16,10 +16,10 @@ MONETDB_VARCHAR_SIZE = 50
 # TODO Add monetdb asyncio connection (aiopymonetdb)
 
 global_node = node_catalog.get_global_node()
-if global_node.nodeId == config.node.identifier:
+if global_node.nodeId == config.identifier:
     node = global_node
 else:
-    node = node_catalog.get_local_node(config.node.identifier)
+    node = node_catalog.get_local_node(config.identifier)
 monetdb_hostname = node.monetdbHostname
 monetdb_port = node.monetdbPort
 connection = pymonetdb.connect(
@@ -41,7 +41,7 @@ def create_table_name(
     """
     if table_type not in {"table", "view", "merge"}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
-    if node_id not in {"global", config.node.identifier}:
+    if node_id not in {"global", config.identifier}:
         raise TypeError(f"Node Identifier is not acceptable: {node_id}.")
 
     return f"{table_type}_{command_id}_{context_id}_{node_id}"
