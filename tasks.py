@@ -192,12 +192,12 @@ def kill_node(c, node=None, all_=False):
         sys.exit(1)
     node_descr = f" {node_pattern}" if node_pattern else "s"
     res_bin = c.run(
-        "ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' ",
+        f"ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' ",
         hide="both",
         warn=True,
     )
     res_py = c.run(
-        "ps aux | grep '[m]ipengine' | grep 'worker' | grep '{node_pattern}'",
+        f"ps aux | grep '[m]ipengine' | grep 'worker' | grep '{node_pattern}'",
         hide="both",
         warn=True,
     )
