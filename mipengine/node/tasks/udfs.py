@@ -5,13 +5,12 @@ from typing import Tuple
 
 from celery import shared_task
 
+from mipengine import config
 from mipengine.algorithms import UDF_REGISTRY
-from mipengine.algorithms import logistic_regression
 
 # from mipengine.algorithms import demo  # TODO Split the actual and testing algorithms
 from mipengine.common.node_tasks_DTOs import UDFArgument
 from mipengine.common.validate_identifier_names import validate_identifier_names
-from mipengine import config
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
@@ -29,7 +28,11 @@ def get_udfs(algorithm_name: str) -> List[str]:
     ]
 
 
-@shared_task
+# TODO Verify time limit when udf tests are fixed
+@shared_task(
+    soft_time_limit=config.node.run_udf_soft_time_limit,
+    time_limit=config.node.run_udf_time_limit,
+)
 def run_udf(
     command_id: str,
     context_id: str,

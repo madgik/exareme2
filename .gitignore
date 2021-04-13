@@ -144,3 +144,6 @@ pyrightconfig.json
 
 # macos
 **/.DS_Store
+
+# mip deployment config file
+.mipenv
