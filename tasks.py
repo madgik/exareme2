@@ -67,7 +67,7 @@ def install(c):
 def set_ip(c, ip):
     """Configure mipengine with you machine's IP"""
     message("Setting ip address...", Level.HEADER)
-    cmd = f"poetry run python tests/set_hostname_in_node_catalog.py -host {ip}"
+    cmd = f"poetry run python tests/integration_tests/set_hostname_in_node_catalog.py -host {ip}"
     run(c, cmd)
 
 

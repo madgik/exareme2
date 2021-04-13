@@ -1,7 +1,7 @@
 from celery import Celery
 
 from mipengine.common.node_catalog import node_catalog
-from mipengine.node.config.config_parser import config
+from mipengine import config
 
 
 def get_celery_app(node_id: str):
@@ -11,9 +11,9 @@ def get_celery_app(node_id: str):
     else:
         node = node_catalog.get_local_node(node_id)
 
-    user = config["rabbitmq"]["user"]
-    password = config["rabbitmq"]["password"]
-    vhost = config["rabbitmq"]["vhost"]
+    user = config.rabbitmq.user
+    password = config.rabbitmq.password
+    vhost = config.rabbitmq.vhost
 
     return Celery(
         "mipengine.node",
