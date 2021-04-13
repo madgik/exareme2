@@ -7,7 +7,7 @@ from mipengine import config
 from mipengine.common.node_catalog import node_catalog
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
-from mipengine.common.validate_identifier_names import validate_identifier_names
+from mipengine.common.sql_injection_guard import sql_injection_guard
 
 MONETDB_VARCHAR_SIZE = 50
 
@@ -32,7 +32,7 @@ connection = pymonetdb.connect(
 cursor = connection.cursor()
 
 
-@validate_identifier_names
+@sql_injection_guard
 def create_table_name(
     table_type: str, command_id: str, context_id: str, node_id: str
 ) -> str:
@@ -67,7 +67,7 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     )
 
 
-@validate_identifier_names
+@sql_injection_guard
 def get_table_schema(table_name: str, table_type: str = None) -> TableSchema:
     """
     Retrieves a schema for a specific table type and table name  from the monetdb.
@@ -111,7 +111,7 @@ def get_table_schema(table_name: str, table_type: str = None) -> TableSchema:
     return TableSchema(columns)
 
 
-@validate_identifier_names
+@sql_injection_guard
 def get_tables_names(table_type: str, context_id: str) -> List[str]:
     """
     Retrieves a list of table names, which contain the context_id from the monetdb.
@@ -140,7 +140,7 @@ def get_tables_names(table_type: str, context_id: str) -> List[str]:
     return [table[0] for table in cursor]
 
 
-@validate_identifier_names
+@sql_injection_guard
 def get_table_data(
     table_name: str, table_type: str = None
 ) -> List[List[Union[str, int, float, bool]]]:
@@ -184,7 +184,7 @@ def get_table_rows(table_name: str) -> int:
     return cursor.next()[0]
 
 
-@validate_identifier_names
+@sql_injection_guard
 def clean_up(context_id: str):
     """
     Deletes all tables of any type with name that contain a specific
