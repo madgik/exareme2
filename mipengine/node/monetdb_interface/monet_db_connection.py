@@ -3,8 +3,8 @@ from typing import List
 
 import pymonetdb
 
+from mipengine import config
 from mipengine.common.node_catalog import node_catalog
-from mipengine.node.config.config_parser import config
 
 OCC_MAX_ATTEMPTS = 50
 
@@ -35,19 +35,29 @@ class MonetDB(metaclass=Singleton):
 
     def __init__(self):
         global_node = node_catalog.get_global_node()
-        if global_node.nodeId == config.get("node", "identifier"):
+        if global_node.nodeId == config.node.identifier:
             node = global_node
         else:
-            node = node_catalog.get_local_node_data(config.get("node", "identifier"))
+            node = node_catalog.get_local_node(config.node.identifier)
         monetdb_hostname = node.monetdbHostname
         monetdb_port = node.monetdbPort
         self._connection = pymonetdb.connect(
-            username=config.get("monet_db", "username"),
+            username=config.monetdb.username,
             port=monetdb_port,
-            password=config.get("monet_db", "password"),
+            password=config.monetdb.password,
             hostname=monetdb_hostname,
-            database=config.get("monet_db", "database"),
+            database=config.monetdb.database,
         )
+
+    @contextmanager
+    def cursor(self):
+        try:
+            cur = self._connection.cursor()
+            yield cur
+        except Exception as exc:
+            raise exc
+        finally:
+            cur.close()
 
     def execute_with_result(self, query: str) -> List:
         """
@@ -58,7 +68,8 @@ class MonetDB(metaclass=Singleton):
 
         # DO NOT Remove. The connection needs to be committed so it is up to date.
         self._connection.commit()
-        with self._connection.cursor() as cur:
+
+        with self.cursor() as cur:
             cur.execute(query)
             result = cur.fetchall()
             return result
@@ -72,7 +83,7 @@ class MonetDB(metaclass=Singleton):
         """
 
         for _ in range(OCC_MAX_ATTEMPTS):
-            with self._connection.cursor() as cur:
+            with self.cursor() as cur:
                 try:
                     cur.execute(query)
                     self._connection.commit()

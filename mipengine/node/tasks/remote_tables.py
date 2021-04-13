@@ -5,7 +5,6 @@ from celery import shared_task
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.node.monetdb_interface import remote_tables
 
-
 # TODO: the database name has to come from somwhere outside this module. Not from the controller, controller should not know that
 DB_NAME = "db"
 
@@ -37,4 +36,4 @@ def create_remote_table(table_info_json: str, url: str):
         The url of the monetdb that we want to create the remote table from.
     """
     table_info = TableInfo.from_json(table_info_json)
-    remote_tables.create_remote_table(table_info=table_info, url=url, db_name=DB_NAME)
+    remote_tables.create_remote_table(table_info=table_info, url=url)

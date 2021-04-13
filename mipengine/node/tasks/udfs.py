@@ -29,10 +29,7 @@ def get_udfs(algorithm_name: str) -> List[str]:
 
 
 # TODO Verify time limit when udf tests are fixed
-@shared_task(
-    soft_time_limit=config.node.run_udf_soft_time_limit,
-    time_limit=config.node.run_udf_time_limit,
-)
+@shared_task(soft_time_limit=60, time_limit=120)
 def run_udf(
     command_id: str,
     context_id: str,
