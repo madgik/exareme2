@@ -1,5 +1,7 @@
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import Any
+from typing import Dict
+from typing import List
 from typing import Union
 
 from dataclasses_json import dataclass_json
@@ -12,13 +14,17 @@ class ColumnInfo:
     data_type: str
 
     def __post_init__(self):
-        allowed_types = {"int", "text", "float", "bool", "clob"}
+        allowed_types = {"int", "text", "real"}
         self.data_type = str.lower(self.data_type)
         if self.data_type not in allowed_types:
-            raise TypeError(f"Column can have one of the following types: {allowed_types}")
+            raise TypeError(
+                f"Column can have one of the following types: {allowed_types}"
+            )
 
         if not self.name.isidentifier():
-            raise ValueError(f"Name : {self.name} has inappropriate characters for a sql query.")
+            raise ValueError(
+                f"Name : {self.name} has inappropriate characters for a sql query."
+            )
 
 
 @dataclass_json
@@ -35,7 +41,9 @@ class TableInfo:
 
     def __post_init__(self):
         if not self.name.isidentifier():
-            raise ValueError(f"Name : {self.name} has inappropriate characters for a sql query.")
+            raise ValueError(
+                f"Name : {self.name} has inappropriate characters for a sql query."
+            )
 
 
 @dataclass_json
@@ -48,33 +56,32 @@ class TableView:
     def __post_init__(self):
         for dataset in self.datasets:
             if not self.dataset.isidentifier():
-                raise ValueError(f"Dataset : {dataset} has inappropriate characters for a sql query.")
+                raise ValueError(
+                    f"Dataset : {dataset} has inappropriate characters for a sql query."
+                )
         for column in self.columns:
             if not self.column.isidentifier():
-                raise ValueError(f"Column : {column} has inappropriate characters for a sql query.")
-        # TODO Do we need to check the filters or is Jason's parser handle it?
-        # for key in filter:
-        #     if not key.isidentifier():
-        #         raise ValueError(f"Filter's key : {key} has inappropriate characters for a sql query.")
-        #     if not filter[key].isidentifier():
-        #         raise ValueError(f"Filter's value : {filter[key]} has inappropriate characters for a sql query.")
+                raise ValueError(
+                    f"Column : {column} has inappropriate characters for a sql query."
+                )
 
 
 @dataclass_json
 @dataclass
 class TableData:
     schema: TableSchema
-    data: List[
-        List[
-            Union[
-                str,
-                int,
-                float,
-                bool]]]
+    data: List[List[Union[str, int, float, bool]]]
 
 
 @dataclass_json
 @dataclass
-class UDFInfo:
-    name: str
-    header: str
+class UDFArgument:
+    type: str
+    value: Any
+
+    def __post_init__(self):
+        allowed_types = {"table", "literal"}
+        if self.type not in allowed_types:
+            raise TypeError(
+                f"UDFArgument type  can have one of the following types: {allowed_types}"
+            )

@@ -40,7 +40,7 @@ def create_pathology_metadata_table(pathology: str,
     for common_data_element_code, common_data_element in pathology_common_data_elements.items():
         # Parse the special values (Optional, Enumerations) to sql format
         if common_data_element.enumerations is not None:
-            enumerations_sql_value = ', '.join(common_data_element.enumerations)
+            enumerations_sql_value = ', '.join([str(e) for e in common_data_element.enumerations])
         else:
             enumerations_sql_value = null()
 
@@ -84,17 +84,21 @@ def convert_sql_type_to_monetdb_type(sql_type: str):
 def create_pathology_data_table(pathology: str,
                                 pathology_common_data_elements: Dict[str, CommonDataElement]):
     column_names = [cde_code for cde_code, cde in pathology_common_data_elements.items()]
-    column_names.append('subjectcode')  # subjectcode is not part of the metadata
-
     column_types = [convert_sql_type_to_monetdb_type(cde.sql_type)
                     for cde_code, cde in pathology_common_data_elements.items()]
-    column_types.append(convert_sql_type_to_monetdb_type("text"))  # subjectcode type is added as well
+    columns = [Column(column_name.lower(), column_type)
+               for column_name, column_type in zip(column_names, column_types)]
+
+    # The row_id column, the primary key of the table, it's not part of the metadata
+    row_id_column = Column('row_id',
+                           convert_sql_type_to_monetdb_type("int"),
+                           primary_key=True,
+                           autoincrement=True)
+    columns.append(row_id_column)
 
     data_table_name = pathology + "_data"
-
     data_table = Table(data_table_name, db_engine_metadata,
-                       *(Column(column_name.lower(), column_type)
-                         for column_name, column_type in zip(column_names, column_types)))
+                       *columns)
 
     db_engine_metadata.drop_all(db_engine, checkfirst=True, tables=[data_table])
     db_engine_metadata.create_all(db_engine, tables=[data_table])
@@ -127,10 +131,14 @@ def import_dataset_csv_into_data_table(csv_file_path: Path,
 
         for (value, column) in zip(row, csv_header):
             # Validate the value enumerations
-            column_enumerations = pathology_common_data_elements[column].enumerations
-            if column_enumerations and value and value not in column_enumerations:
-                raise ValueError(f"Value {value} in column {column} does not "
-                                 f"have one of the allowed enumerations: {column_enumerations}")
+            # column_enumerations = pathology_common_data_elements[column].enumerations
+            # # print(f"column_enumerations-> {column_enumerations}")
+            # if column_enumerations and value and value not in column_enumerations:
+            #     breakpoint()
+            #     if value not in [str(c) for c in column_enumerations]:
+            #         breakpoint()
+            #         raise ValueError(f"Value {value} in column {column} does not "
+            #                          f"have one of the allowed enumerations: {column_enumerations}")
 
             # Validate the value, min limit
             column_min_value = pathology_common_data_elements[column].min

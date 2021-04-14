@@ -581,7 +581,7 @@ components:
     TableData:
       value: { "schema": [ "col1 INT","col2 FLOAT","col3 TEXT","col4 BOOLEAN" ],"data": [ [ 3,4.3,'male',False ],[ 5,6.4,'female',True ] ] }
     TableSchema:
-      value: [ { "columnName": "col1","columnType": "INT" },{ "columnName": "col2", "columnType": "FLOAT" },{ "columnName": "col3","columnType": "TEXT" } ]
+      value: [ { "columnName": "col1","columnType": "INT" },{ "columnName": "col2", "columnType": "REAL" },{ "columnName": "col3","columnType": "TEXT" } ]
     NameTypeTuple:
       value: { "columnName": "col1","columnType": "INT" }
     TableNamesArray:
@@ -596,7 +596,7 @@ components:
     ViewData:
       value: { "schema": [ "lefthippocampus FLOAT","righthippocampus FLOAT" ],"data": [ [ 3.54,4.6 ],[ 8.8,7.3 ],[ 9.8,5.3 ],[ 9.4,4.7 ] ] }
     ViewSchema:
-      value: [ { "columnName": "col1","columnType": "INT" },{ "columnName": "col2", "columnType": "FLOAT" },{ "columnName": "col3","columnType": "TEXT" } ]
+      value: [ { "columnName": "col1","columnType": "INT" },{ "columnName": "col2", "columnType": "REAL" },{ "columnName": "col3","columnType": "TEXT" } ]
     ViewNamesArray:
       value: [ "ViewName8","ViewName4","ViewName34" ]
     ViewInfoArray:

@@ -1,26 +1,21 @@
-## Monetdb 11.37.11 (June-SP1) dockerized
+## Monetdb 11.39.13 (Oct2020-SP3) dockerized
 
 ### Build
-In order to change the initial monetdb configuration, go to the `bootstrap.sh` inside the *config* folder.
+In order to change the initial monetdb configuration, go to the `bootstrap.sh`
+inside the *config* folder.
 
-Then you can build the image with:
+To build a new image you must be on the project root `MIP-Engine/`, then
 ```
-docker build username/imagename:imagetag .
+docker build -t <USERNAME>/mipenginedb:<IMAGETAG> -f monetdb_dockerized/Dockerfile .
 ```
 
 ## Run
-
-If you haven't built your own image download the latest from:
+Then run with
 ```
-thanasulas/monetdb:11.37.11
-```
-
-Then you can run it with:
-```
-docker run -d -P -p 50000:50000 --name monetdb-1 thanasulas/monetdb:11.37.11
+docker run -d -P -p 50000:50000 --name <CONTAINERNAME> <USERNAME>/mipenginedb:<IMAGETAG>
 ```
 
-If you want to access monetdb inside the container:
+Access container db with
 ```
-docker exec -it monetdb-1 mclient db
+docker exec -it <CONTAINERNAME> mclient db
 ```
