@@ -248,7 +248,7 @@ def start_node(c, node):
         kill_node(c, node)
         message(f"Starting Node {node}...", Level.HEADER)
         outpath = OUTDIR / (node + ".out")
-        cmd = f"poetry run python -m mipengine.node.node worker --node-id {node} >> {outpath} 2>&1"
+        cmd = f"poetry run python -m mipengine.node.node worker -l info --node-id {node} >> {outpath} 2>&1"
         c.run(cmd, disown=True)
         spin_wheel(time=4)
         message("Ok", Level.SUCCESS)
