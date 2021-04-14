@@ -62,9 +62,15 @@ def test_equal():
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.from_json(view_data_json)
-    for row in view_data.data:
-        assert row[0] == "dummy_tbi"
-        assert row[1] == 17
+    for (
+        _,
+        dataset,
+        age_value,
+        gcs_motor_response_scale,
+        pupil_reactivity_right_eye_result,
+    ) in view_data.data:
+        assert dataset == "dummy_tbi"
+        assert age_value == 17
 
 
 def test_equal_or_not_equal():
@@ -112,9 +118,15 @@ def test_equal_or_not_equal():
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.from_json(view_data_json)
-    for row in view_data.data:
-        assert row[0] == "dummy_tbi"
-        assert row[1] == 17 or row[3] != "Nonreactive"
+    for (
+        _,
+        dataset,
+        age_value,
+        gcs_motor_response_scale,
+        pupil_reactivity_right_eye_result,
+    ) in view_data.data:
+        assert dataset == "dummy_tbi"
+        assert age_value == 17 or gcs_motor_response_scale != "Nonreactive"
 
 
 def test_less_and_greater():
@@ -162,10 +174,16 @@ def test_less_and_greater():
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.from_json(view_data_json)
-    for row in view_data.data:
-        assert row[0] == "dummy_tbi"
-        assert row[1] < 50
-        assert row[1] > 20
+    for (
+        _,
+        dataset,
+        age_value,
+        gcs_motor_response_scale,
+        pupil_reactivity_right_eye_result,
+    ) in view_data.data:
+        assert dataset == "dummy_tbi"
+        assert age_value < 50
+        assert age_value > 20
 
 
 def test_between_and_not_between():
@@ -208,10 +226,16 @@ def test_between_and_not_between():
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.from_json(view_data_json)
-    for row in view_data.data:
-        assert row[0] == "dummy_tbi"
-        assert row[1] < 60 or row[1] > 90
-        assert 0.3 <= row[3] <= 0.8
+    for (
+        _,
+        dataset,
+        age_value,
+        gcs_motor_response_scale,
+        mortality_core,
+    ) in view_data.data:
+        assert dataset == "dummy_tbi"
+        assert age_value < 60 or age_value > 90
+        assert 0.3 <= mortality_core <= 0.8
 
 
 def test_is_null_or_is_not_null():
@@ -255,22 +279,15 @@ def test_is_null_or_is_not_null():
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.from_json(view_data_json)
     assert view_data.data != []
-    for row in view_data.data:
-        assert row[0] == "dummy_tbi"
-        assert row[1] == "null" or row[2] != "null"
+    for (_, dataset, gose_score, gcs_total_score) in view_data.data:
+        assert dataset == "dummy_tbi"
+        assert gose_score == "null" or gcs_total_score != "null"
 
 
 def test_all():
     # View for females that of age 20-30 and gose_score is not null
     # or males with mortality_core greater than 0.5 and less or equal to 0.8
-    columns = [
-        "dataset",
-        "age_value",
-        "gender_type",
-        "gose_score",
-        "mortality_core",
-        "mortality_gose",
-    ]
+    columns = ["dataset", "age_value", "gender_type", "gose_score", "mortality_core"]
     datasets = ["dummy_tbi"]
     pathology = "tbi"
     filters = {
@@ -362,8 +379,15 @@ def test_all():
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.from_json(view_data_json)
     assert view_data.data != []
-    for row in view_data.data:
-        assert row[0] == "dummy_tbi"
-        assert (row[2] == "F" and (20 <= row[1] <= 30 and row[3] != "null")) or (
-            row[2] != "F" and (row[4] > 0.5 or row[4] <= 0.8)
-        )
+    for (
+        _,
+        dataset,
+        age_value,
+        gender_type,
+        gose_score,
+        mortality_core,
+    ) in view_data.data:
+        assert dataset == "dummy_tbi"
+        assert (
+            gender_type == "F" and (20 <= age_value <= 30 and gose_score != "null")
+        ) or (gender_type != "F" and (mortality_core > 0.5 or mortality_core <= 0.8))

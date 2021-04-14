@@ -51,6 +51,7 @@ def test_create_and_get_view():
 
     schema = TableSchema(
         [
+            ColumnInfo("row_id", "int"),
             ColumnInfo("dataset", "text"),
             ColumnInfo("age_value", "int"),
             ColumnInfo("gcs_motor_response_scale", "text"),

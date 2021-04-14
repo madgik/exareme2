@@ -5,10 +5,8 @@ from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from tests.integration_tests import nodes_communication
 from tests.integration_tests.node_db_connections import get_node_db_connection
-from mipengine.common.node_exceptions import (
-    IncompatibleSchemasMergeException,
-    TablesNotFound,
-)
+from mipengine.common.node_exceptions import IncompatibleSchemasMergeException
+from mipengine.common.node_exceptions import TablesNotFound
 
 local_node_id = "localnode1"
 local_node = nodes_communication.get_celery_app(local_node_id)

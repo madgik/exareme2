@@ -5,9 +5,6 @@ from celery import shared_task
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.node.monetdb_interface import remote_tables
 
-# TODO: the database name has to come from somwhere outside this module. Not from the controller, controller should not know that
-DB_NAME = "db"
-
 
 @shared_task
 def get_remote_tables(context_id: str) -> List[str]:

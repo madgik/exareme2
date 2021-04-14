@@ -12,6 +12,8 @@ from mipengine.node.monetdb_interface.common_actions import (
     get_table_names,
     get_table_schema,
 )
+from mipengine.node.monetdb_interface.common_actions import get_table_names
+from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 
