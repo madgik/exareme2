@@ -55,7 +55,7 @@ def create_view(
         The name of the created view in lower case
     """
     view_name = create_table_name(
-        "view", command_id, context_id, config["node"]["identifier"]
+        "view", command_id, context_id, config.node.identifier
     )
     views.create_view(
         view_name=view_name, pathology=pathology, datasets=datasets, columns=columns
