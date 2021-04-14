@@ -1,14 +1,14 @@
 from typing import List
 
 from mipengine.common.validate_identifier_names import validate_identifier_names
-from mipengine.node.monetdb_interface import common_actions
+from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 DATA_TABLE_PRIMARY_KEY = "row_id"
 
 
 def get_view_names(context_id: str) -> List[str]:
-    return common_actions.get_table_names("view", context_id)
+    return get_table_names("view", context_id)
 
 
 @validate_identifier_names
@@ -20,8 +20,8 @@ def create_view(
     columns = ", ".join(columns)
 
     MonetDB().execute(
-        f"""CREATE VIEW {view_name} 
-        AS SELECT {DATA_TABLE_PRIMARY_KEY}, {columns} 
-        FROM {pathology}_data 
+        f"""CREATE VIEW {view_name}
+        AS SELECT {DATA_TABLE_PRIMARY_KEY}, {columns}
+        FROM {pathology}_data
         WHERE dataset IN ({dataset_names})"""
     )

@@ -7,15 +7,16 @@ from mipengine.common.node_exceptions import IncompatibleTableTypes
 from mipengine.common.node_exceptions import TablesNotFound
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.validate_identifier_names import validate_identifier_names
-from mipengine.node.monetdb_interface import common_actions
 from mipengine.node.monetdb_interface.common_actions import (
     convert_schema_to_sql_query_format,
 )
+from mipengine.node.monetdb_interface.common_actions import get_table_names
+from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 
 def get_merge_tables_names(context_id: str) -> List[str]:
-    return common_actions.get_table_names("merge", context_id)
+    return get_table_names("merge", context_id)
 
 
 @validate_identifier_names
@@ -37,9 +38,7 @@ def get_non_existing_tables(table_names: List[str]) -> List[str]:
 @validate_identifier_names
 def add_to_merge_table(merge_table_name: str, table_names: List[str]):
     non_existing_tables = get_non_existing_tables(table_names)
-    table_infos = [
-        TableInfo(name, common_actions.get_table_schema(name)) for name in table_names
-    ]
+    table_infos = [TableInfo(name, get_table_schema(name)) for name in table_names]
 
     try:
         for name in table_names:
@@ -63,7 +62,7 @@ def validate_tables_can_be_merged(tables_names: List[str]):
     distinct_table_types = MonetDB().execute_with_result(
         f"""
         SELECT DISTINCT(type)
-        FROM tables 
+        FROM tables
         WHERE
         system = false
         AND
