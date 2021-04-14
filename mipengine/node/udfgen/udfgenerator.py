@@ -186,6 +186,8 @@ class TensorV(TableV):
                 continue
             if col.name == "row_id":
                 continue
+            if col.name == "node_id":
+                continue
             raise ValueError(f"Unexpected column name {col.name}")
         dtype = next(col.dtype for col in schema if col.name == "val")
         tensor_dtype = SQL2PY_TYPES[dtype]
