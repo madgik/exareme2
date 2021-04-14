@@ -67,7 +67,7 @@ SCOLON = ";"
 UDFGEN_REGISTRY = {}
 
 PYTYPES = [int, float, str]
-SQLTYPES = ["int", "float", "text"]
+SQLTYPES = ["int", "real", "text"]
 PY2SQL_TYPES: dict[type, str] = dict(zip(PYTYPES, SQLTYPES))
 SQL2PY_TYPES: dict[str, type] = dict(zip(SQLTYPES, PYTYPES))
 
@@ -144,7 +144,13 @@ class RelationV(TableV):
         self._schema = schema
 
     def as_udf_signature(self):
-        return SEP.join([f"{self.name}_{name} {dtype}" for name, dtype in self.schema if name != "row_id"])
+        return SEP.join(
+            [
+                f"{self.name}_{name} {dtype}"
+                for name, dtype in self.schema
+                if name != "row_id"
+            ]
+        )
 
     @property
     def schema(self):

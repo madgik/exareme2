@@ -34,8 +34,8 @@ def relations_to_relation(
 
 
 POSARGS_relations_to_relation = [
-    TableInfo("rel1", [ColumnInfo("col1", "int"), ColumnInfo("col2", "float")]),
-    TableInfo("rel2", [ColumnInfo("col1", "int"), ColumnInfo("col2", "float")]),
+    TableInfo("rel1", [ColumnInfo("col1", "int"), ColumnInfo("col2", "real")]),
+    TableInfo("rel2", [ColumnInfo("col1", "int"), ColumnInfo("col2", "real")]),
 ]
 DEF_relations_to_relation = """\
 CREATE OR REPLACE
@@ -77,7 +77,7 @@ def table_to_tensor(input_: RelationT[Schema1]) -> TensorT(float, 2):
 
 
 POSARGS_table_to_tensor = [
-    TableInfo("rel1", [ColumnInfo("col1", "int"), ColumnInfo("col2", "float")]),
+    TableInfo("rel1", [ColumnInfo("col1", "int"), ColumnInfo("col2", "real")]),
 ]
 DEF_table_to_tensor = """\
 CREATE OR REPLACE
@@ -125,7 +125,7 @@ def with_literal(X: TensorT[DT1, ND1], n: LiteralParameterT[int]) -> TensorT[DT1
 
 
 POSARGS_with_literal = [
-    TableInfo("tens1", [ColumnInfo("dim0", "int"), ColumnInfo("val", "float")]),
+    TableInfo("tens1", [ColumnInfo("dim0", "int"), ColumnInfo("val", "real")]),
     5,
 ]
 DEF_with_literal = """\
@@ -166,8 +166,8 @@ def to_scalar(vec1: TensorT(float, 1), vec2: TensorT(float, 1)) -> ScalarT(float
 
 
 POSARGS_to_scalar = [
-    TableInfo("tens1", [ColumnInfo("dim0", "int"), ColumnInfo("val", "float")]),
-    TableInfo("tens2", [ColumnInfo("dim0", "int"), ColumnInfo("val", "float")]),
+    TableInfo("tens1", [ColumnInfo("dim0", "int"), ColumnInfo("val", "real")]),
+    TableInfo("tens2", [ColumnInfo("dim0", "int"), ColumnInfo("val", "real")]),
 ]
 DEF_to_scalar = """\
 CREATE OR REPLACE

@@ -22,7 +22,7 @@ def get_tables(context_id: str) -> List[str]:
     List[str]
         A list of table names
     """
-    return tables.get_tables_names(context_id)
+    return tables.get_table_names(context_id)
 
 
 @shared_task
@@ -44,7 +44,7 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
     """
     schema_object = TableSchema.from_json(schema_json)
     table_name = create_table_name(
-        "table", command_id, context_id, config["node"]["identifier"]
+        "table", command_id, context_id, config.node.identifier
     )
     table_info = TableInfo(table_name.lower(), schema_object)
     tables.create_table(table_info)

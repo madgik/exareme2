@@ -3,8 +3,9 @@ from typing import List
 from mipengine.common.node_tasks_DTOs import TableInfo
 
 
-class TableCannotBeFound(Exception):
-    """Exception raised for errors while retrieving a table from a database.
+class TablesNotFound(Exception):
+    """
+    Exception raised for errors while retrieving a table from a database.
 
     Attributes:
         tables -- tables which caused the error

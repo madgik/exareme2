@@ -62,9 +62,9 @@ def test_sql_injection_create_table_context_id():
         invalid_context_id = "Robert'); DROP TABLE data; --"
         schema = TableSchema(
             [
-                ColumnInfo("col1", "INT"),
-                ColumnInfo("col2", "FLOAT"),
-                ColumnInfo("col3", "TEXT"),
+                ColumnInfo("col1", "int"),
+                ColumnInfo("col2", "real"),
+                ColumnInfo("col3", "text"),
             ]
         )
         json_schema = schema.to_json()
@@ -80,8 +80,8 @@ def test_sql_injection_create_table_tableschema_name():
         schema = TableSchema(
             [
                 ColumnInfo("Robert'); DROP TABLE data; --", "INT"),
-                ColumnInfo("col2", "FLOAT"),
-                ColumnInfo("col3", "TEXT"),
+                ColumnInfo("col2", "real"),
+                ColumnInfo("col3", "text"),
             ]
         )
         json_schema = schema.to_json()
