@@ -12,8 +12,8 @@ def validate_identifier_names(func):
     return wrapper
 
 
-def validate_argument(all_args):
-    for arg in all_args:
+def validate_argument(argument):
+    for arg in argument:
         if type(arg) == str:
             if arg.isidentifier():
                 continue

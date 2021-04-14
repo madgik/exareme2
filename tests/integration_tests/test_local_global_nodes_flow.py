@@ -115,7 +115,6 @@ def test_create_merge_table_with_remote_tables():
     connection = get_node_db_connection(global_node_id)
     cursor = connection.cursor()
     cursor.execute(f"SELECT * FROM tables where system = false")
-    print(cursor.fetchall())
     cursor.execute(f"SELECT * FROM {merge_table_name}")
     row_count = len(cursor.fetchall())
     assert row_count == 2

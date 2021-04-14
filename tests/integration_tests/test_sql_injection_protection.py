@@ -134,8 +134,8 @@ def test_sql_injection_create_view_columns():
             context_id=context_id,
             command_id=str(uuid.uuid1()).replace("-", ""),
             pathology=pathology,
-            datasets=json.dumps(datasets),
-            columns=json.dumps(columns),
+            datasets=datasets,
+            columns=columns,
         ).get()
 
 
@@ -153,8 +153,42 @@ def test_sql_injection_create_view_datasets():
             context_id=context_id,
             command_id=str(uuid.uuid1()).replace("-", ""),
             pathology=pathology,
-            datasets=json.dumps(datasets),
-            columns=json.dumps(columns),
+            datasets=datasets,
+            columns=columns,
+        ).get()
+
+
+def test_sql_injection_create_view_filters():
+    with pytest.raises(ValueError):
+        columns = [
+            "dataset",
+            "age_value",
+            "gcs_motor_response_scale",
+            "pupil_reactivity_right_eye_result",
+        ]
+        datasets = ["edsd"]
+        pathology = "tbi"
+        filters = {
+            "condition": "Robert'); DROP TABLE data; --",
+            "rules": [
+                {
+                    "id": "age_value",
+                    "field": "age_value",
+                    "type": "int",
+                    "input": "number",
+                    "operator": "equal",
+                    "value": 17,
+                }
+            ],
+            "valid": True,
+        }
+        local_node_create_view.delay(
+            context_id=context_id,
+            command_id=str(uuid.uuid1()).replace("-", ""),
+            pathology=pathology,
+            datasets=datasets,
+            columns=columns,
+            filters=filters,
         ).get()
 
 
