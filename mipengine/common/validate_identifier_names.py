@@ -6,13 +6,13 @@ def validate_identifier_names(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         all_args = list(args) + list(kwargs.values())
-        test_recurs(all_args)
+        validate_argument(all_args)
         return func(*args, **kwargs)
 
     return wrapper
 
 
-def test_recurs(all_args):
+def validate_argument(all_args):
     for arg in all_args:
         if type(arg) == str:
             if arg.isidentifier():
@@ -23,9 +23,9 @@ def test_recurs(all_args):
                 continue
             raise ValueError(f"Not allowed character in argument: {arg}")
         elif type(arg) == list:
-            test_recurs(arg)
+            validate_argument(arg)
         elif type(arg) == dict:
-            test_recurs(arg)
+            validate_argument(arg)
 
 
 def has_proper_url_format(url: str):
