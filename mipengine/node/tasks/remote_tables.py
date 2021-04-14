@@ -6,7 +6,7 @@ from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.node.monetdb_interface import remote_tables
 
 
-# TODO: the database name has to come from somwhere outside this module. Not from the controller, controller should not know that
+# TODO: the database name has to come from somewhere outside this module. Not from the controller, controller should not know that
 DB_NAME = "db"
 
 
@@ -23,7 +23,7 @@ def get_remote_tables(context_id: str) -> List[str]:
     List[str]
         A list of remote table names
     """
-    return remote_tables.get_remote_tables_names(context_id)
+    return remote_tables.get_remote_table_names(context_id)
 
 
 @shared_task

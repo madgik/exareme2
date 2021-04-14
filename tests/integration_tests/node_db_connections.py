@@ -2,7 +2,7 @@ import pymonetdb
 from pymonetdb import Connection
 
 from mipengine.common.node_catalog import node_catalog
-from mipengine.node.config.config_parser import config
+from mipengine import config
 
 
 def get_node_db_connection(node_id: str) -> Connection:
@@ -14,7 +14,6 @@ def get_node_db_connection(node_id: str) -> Connection:
 
     monetdb_hostname = node.monetdbHostname
     monetdb_port = node.monetdbPort
-    print(monetdb_hostname, monetdb_port)
     connection = pymonetdb.connect(
         username=config.monetdb.username,
         port=monetdb_port,

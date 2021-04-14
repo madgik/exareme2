@@ -3,13 +3,30 @@ from mipengine.node.udfgen import ColumnInfo
 from mipengine.node.udfgen import generate_udf_application_queries
 import mipengine.algorithms.logistic_regression
 
-X = TableInfo(name="features", schema=[ColumnInfo("feat1", "float"), ColumnInfo("feat2", "float")])
+X = TableInfo(
+    name="features", schema=[ColumnInfo("feat1", "real"), ColumnInfo("feat2", "real")]
+)
 y = TableInfo(name="target", schema=[ColumnInfo("target", "int")])
-tens1 = TableInfo(name="tens1", schema=[ColumnInfo("dim0", "int"), ColumnInfo("val", "float")])
-tens2 = TableInfo(name="tens2", schema=[ColumnInfo("dim0", "int"), ColumnInfo("val", "float")])
-matr = TableInfo(name="matrix", schema=[ColumnInfo("dim0", "int"), ColumnInfo("dim1", "int"), ColumnInfo("val", "float")])
-vec = TableInfo(name="vector", schema=[ColumnInfo("dim0", "int"), ColumnInfo("val", "float")])
-diag = TableInfo(name="diag", schema=[ColumnInfo("dim0", "int"), ColumnInfo("val", "float")])
+tens1 = TableInfo(
+    name="tens1", schema=[ColumnInfo("dim0", "int"), ColumnInfo("val", "real")]
+)
+tens2 = TableInfo(
+    name="tens2", schema=[ColumnInfo("dim0", "int"), ColumnInfo("val", "real")]
+)
+matr = TableInfo(
+    name="matrix",
+    schema=[
+        ColumnInfo("dim0", "int"),
+        ColumnInfo("dim1", "int"),
+        ColumnInfo("val", "real"),
+    ],
+)
+vec = TableInfo(
+    name="vector", schema=[ColumnInfo("dim0", "int"), ColumnInfo("val", "real")]
+)
+diag = TableInfo(
+    name="diag", schema=[ColumnInfo("dim0", "int"), ColumnInfo("val", "real")]
+)
 
 CREATE_TABLES = """\
 DROP TABLE IF EXISTS tens1;
@@ -70,19 +87,35 @@ INSERT INTO merge_table VALUES (3, 1, 0, 2.93);
 INSERT INTO merge_table VALUES (3, 1, 1, 2.111);
 """
 
-udf, query = generate_udf_application_queries("logistic_regression.relation_to_vector", [y], {})
+udf, query = generate_udf_application_queries(
+    "logistic_regression.relation_to_vector", [y], {}
+)
 print(udf.substitute(udf_name="relation_to_vector"))
-print(query.substitute(udf_name="relation_to_vector", table_name="relation_to_vector_results", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="relation_to_vector",
+        table_name="relation_to_vector_results",
+        node_id="12345",
+    )
+)
 print()
 
-udf, query = generate_udf_application_queries("logistic_regression.relation_to_matrix", [X], {})
+udf, query = generate_udf_application_queries(
+    "logistic_regression.relation_to_matrix", [X], {}
+)
 print(udf.substitute(udf_name="relation_to_matrix"))
-print(query.substitute(udf_name="relation_to_matrix", table_name="relation_to_matrix_result", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="relation_to_matrix",
+        table_name="relation_to_matrix_result",
+        node_id="12345",
+    )
+)
 print()
 
 udf, query = generate_udf_application_queries("sql.zeros1", [5], {})
 print(udf.substitute(udf_name="zeros1"))
-print(query.substitute(udf_name="zeros1", table_name="zeros1_result", node_id='12345'))
+print(query.substitute(udf_name="zeros1", table_name="zeros1_result", node_id="12345"))
 print()
 # UDF result
 # +------+--------------------------+
@@ -97,7 +130,13 @@ print()
 
 udf, query = generate_udf_application_queries("sql.matrix_dot_vector", [matr, vec], {})
 print(udf.substitute(udf_name="matrix_dot_vector"))
-print(query.substitute(udf_name="matrix_dot_vector", table_name="matrix_dot_vector_results", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="matrix_dot_vector",
+        table_name="matrix_dot_vector_results",
+        node_id="12345",
+    )
+)
 print()
 # UDF result
 # +------+--------------------------+
@@ -109,7 +148,11 @@ print()
 
 udf, query = generate_udf_application_queries("sql.tensor1_mult", [tens1, tens1], {})
 print(udf.substitute(udf_name="tensor_mult"))
-print(query.substitute(udf_name="tensor_mult", table_name="tensor_mult_result", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="tensor_mult", table_name="tensor_mult_result", node_id="12345"
+    )
+)
 print()
 # UDF result
 # +------+--------------------------+
@@ -123,7 +166,11 @@ print()
 
 udf, query = generate_udf_application_queries("sql.tensor1_add", [tens1, tens1], {})
 print(udf.substitute(udf_name="tensor_add"))
-print(query.substitute(udf_name="tensor_add", table_name="tensor_add_result", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="tensor_add", table_name="tensor_add_result", node_id="12345"
+    )
+)
 print()
 # UDF result
 # +------+--------------------------+
@@ -137,7 +184,11 @@ print()
 
 udf, query = generate_udf_application_queries("sql.tensor1_sub", [tens1, tens1], {})
 print(udf.substitute(udf_name="tensor_sub"))
-print(query.substitute(udf_name="tensor_sub", table_name="tensor_sub_result", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="tensor_sub", table_name="tensor_sub_result", node_id="12345"
+    )
+)
 print()
 # UDF result
 # +------+--------------------------+
@@ -151,7 +202,11 @@ print()
 
 udf, query = generate_udf_application_queries("sql.tensor1_div", [tens1, tens1], {})
 print(udf.substitute(udf_name="tensor_div"))
-print(query.substitute(udf_name="tensor_div", table_name="tensor_div_result", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="tensor_div", table_name="tensor_div_result", node_id="12345"
+    )
+)
 print()
 # UDF result
 # +------+--------------------------+
@@ -165,7 +220,13 @@ print()
 
 udf, query = generate_udf_application_queries("sql.const_tensor1_sub", [1, tens1], {})
 print(udf.substitute(udf_name="const_tensor_sub1"))
-print(query.substitute(udf_name="const_tensor_sub1", table_name="const_tensor_sub1_result", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="const_tensor_sub1",
+        table_name="const_tensor_sub1_result",
+        node_id="12345",
+    )
+)
 print()
 # UDF result
 # +------+--------------------------+
@@ -177,9 +238,17 @@ print()
 # |    3 |                    0.889 |
 # +------+--------------------------+
 
-udf, query = generate_udf_application_queries("sql.mat_transp_dot_diag_dot_mat", [matr, vec], {})
+udf, query = generate_udf_application_queries(
+    "sql.mat_transp_dot_diag_dot_mat", [matr, vec], {}
+)
 print(udf.substitute(udf_name="mat_transp_dot_diag_dot_mat"))
-print(query.substitute(udf_name="mat_transp_dot_diag_dot_mat", table_name="mat_transp_dot_diag_dot_mat_result", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="mat_transp_dot_diag_dot_mat",
+        table_name="mat_transp_dot_diag_dot_mat_result",
+        node_id="12345",
+    )
+)
 print()
 # UDF result
 # +------+------+--------------------------+
@@ -191,9 +260,17 @@ print()
 # |    1 |    1 |                 611.3466 |
 # +------+------+--------------------------+
 
-udf, query = generate_udf_application_queries("sql.mat_transp_dot_diag_dot_vec", [matr, diag, vec], {})
+udf, query = generate_udf_application_queries(
+    "sql.mat_transp_dot_diag_dot_vec", [matr, diag, vec], {}
+)
 print(udf.substitute(udf_name="mat_transp_dot_diag_dot_vec"))
-print(query.substitute(udf_name="mat_transp_dot_diag_dot_vec", table_name="mat_transp_dot_diag_dot_vec_result", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="mat_transp_dot_diag_dot_vec",
+        table_name="mat_transp_dot_diag_dot_vec_result",
+        node_id="12345",
+    )
+)
 print()
 # UDF result
 # +------+--------------------------+
@@ -203,9 +280,15 @@ print()
 # |    1 |       225.81623999999996 |
 # +------+--------------------------+
 
-udf, query = generate_udf_application_queries("logistic_regression.tensor_expit", [tens1], {})
+udf, query = generate_udf_application_queries(
+    "logistic_regression.tensor_expit", [tens1], {}
+)
 print(udf.substitute(udf_name="tensor_expit"))
-print(query.substitute(udf_name="tensor_expit", table_name="expit_result", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="tensor_expit", table_name="expit_result", node_id="12345"
+    )
+)
 print()
 # UDF result
 # +------+--------------------------+
@@ -217,7 +300,9 @@ print()
 # |    3 |       0.5277215427491645 |
 # +------+--------------------------+
 
-udf, query = generate_udf_application_queries("logistic_regression.logistic_loss", [tens1, tens2], {})
+udf, query = generate_udf_application_queries(
+    "logistic_regression.logistic_loss", [tens1, tens2], {}
+)
 print(udf.substitute(udf_name="logistic_loss"))
 print(query.substitute(udf_name="logistic_loss", table_name="logistic_loss_result"))
 print()
@@ -228,9 +313,15 @@ print()
 # |       -5.005064700386452 |
 # +--------------------------+
 
-udf, query = generate_udf_application_queries("logistic_regression.tensor_max_abs_diff", [tens1, tens2], {})
+udf, query = generate_udf_application_queries(
+    "logistic_regression.tensor_max_abs_diff", [tens1, tens2], {}
+)
 print(udf.substitute(udf_name="tensor_max_abs_diff"))
-print(query.substitute(udf_name="tensor_max_abs_diff", table_name="tensor_max_abs_diff_result"))
+print(
+    query.substitute(
+        udf_name="tensor_max_abs_diff", table_name="tensor_max_abs_diff_result"
+    )
+)
 print()
 # UDF result
 # +--------------------------+
@@ -239,10 +330,23 @@ print()
 # |       0.8170000000000001 |
 # +--------------------------+
 
-tens3 = TableInfo(name="tens3", schema=[ColumnInfo("dim0", "int"),ColumnInfo("dim1", "int"), ColumnInfo("val", "float")])
-udf, query = generate_udf_application_queries("logistic_regression.mat_inverse", [tens3], {})
+tens3 = TableInfo(
+    name="tens3",
+    schema=[
+        ColumnInfo("dim0", "int"),
+        ColumnInfo("dim1", "int"),
+        ColumnInfo("val", "real"),
+    ],
+)
+udf, query = generate_udf_application_queries(
+    "logistic_regression.mat_inverse", [tens3], {}
+)
 print(udf.substitute(udf_name="mat_inverse"))
-print(query.substitute(udf_name="mat_inverse", table_name="mat_inverse_result", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="mat_inverse", table_name="mat_inverse_result", node_id="12345"
+    )
+)
 print()
 # UDF result
 # +------+------+--------------------------+
@@ -254,10 +358,22 @@ print()
 # |    1 |    1 |      -0.0908490254377271 |
 # +------+------+--------------------------+
 
-merge_table = TableInfo(name="merge_table", schema=[ColumnInfo("node_id", "int"), ColumnInfo("dim0", "int"),ColumnInfo("dim1", "int"), ColumnInfo("val", "float")])
+merge_table = TableInfo(
+    name="merge_table",
+    schema=[
+        ColumnInfo("node_id", "int"),
+        ColumnInfo("dim0", "int"),
+        ColumnInfo("dim1", "int"),
+        ColumnInfo("val", "real"),
+    ],
+)
 udf, query = generate_udf_application_queries("reduce.sum_tensors", [merge_table], {})
 print(udf.substitute(udf_name="sum_tensors"))
-print(query.substitute(udf_name="sum_tensors", table_name="reduced_result", node_id='12345'))
+print(
+    query.substitute(
+        udf_name="sum_tensors", table_name="reduced_result", node_id="12345"
+    )
+)
 print()
 # UDF result
 # +------+------+--------------------------+

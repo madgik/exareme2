@@ -13,4 +13,7 @@ password = "monetdb"
 
 [node]
 identifier = "localnode1"
-# is_global = false
+tasks_soft_time_limit = 30
+tasks_time_limit = 60
+run_udf_soft_time_limit = 60
+run_udf_time_limit = 120
