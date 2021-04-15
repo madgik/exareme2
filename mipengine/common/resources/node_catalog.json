@@ -1,16 +1,18 @@
 {
   "globalNode": {
     "nodeId": "globalnode",
-    "rabbitmqURL": "192.168.63.129:5670",
-    "monetdbHostname": "192.168.63.129",
-    "monetdbPort": "50000"
+    "rabbitmqIp": "127.0.0.1",
+    "rabbitmqPort": 5670,
+    "monetdbIp": "127.0.0.1",
+    "monetdbPort": 50000
   },
   "localNodes": [
     {
       "nodeId": "localnode1",
-      "rabbitmqURL": "192.168.63.129:5671",
-      "monetdbHostname": "192.168.63.129",
-      "monetdbPort": "50001",
+      "rabbitmqIp": "127.0.0.1",
+      "rabbitmqPort": 5671,
+      "monetdbIp": "127.0.0.1",
+      "monetdbPort": 50001,
       "data": {
         "pathologies": [
           {
@@ -39,9 +41,10 @@
     },
     {
       "nodeId": "localnode2",
-      "rabbitmqURL": "192.168.63.129:5672",
-      "monetdbHostname": "192.168.63.129",
-      "monetdbPort": "50002",
+      "rabbitmqIp": "127.0.0.1",
+      "rabbitmqPort": 5672,
+      "monetdbIp": "127.0.0.1",
+      "monetdbPort": 50002,
       "data": {
         "pathologies": [
           {

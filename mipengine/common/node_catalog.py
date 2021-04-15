@@ -25,9 +25,10 @@ class NodeData:
 @dataclass
 class Node:
     nodeId: str
-    rabbitmqURL: str
-    monetdbHostname: str
-    monetdbPort: str
+    rabbitmqIp: str
+    rabbitmqPort: int
+    monetdbIp: str
+    monetdbPort: int
 
 
 @dataclass_json

@@ -4,7 +4,6 @@ from typing import List
 import pymonetdb
 
 from mipengine.node import config
-from mipengine.common.node_catalog import node_catalog
 
 OCC_MAX_ATTEMPTS = 50
 
@@ -34,18 +33,11 @@ class MonetDB(metaclass=Singleton):
     """
 
     def __init__(self):
-        global_node = node_catalog.get_global_node()
-        if global_node.nodeId == config.identifier:
-            node = global_node
-        else:
-            node = node_catalog.get_local_node(config.identifier)
-        monetdb_hostname = node.monetdbHostname
-        monetdb_port = node.monetdbPort
         self._connection = pymonetdb.connect(
+            hostname=config.monetdb.ip,
+            port=config.monetdb.port,
             username=config.monetdb.username,
-            port=monetdb_port,
             password=config.monetdb.password,
-            hostname=monetdb_hostname,
             database=config.monetdb.database,
         )
 
