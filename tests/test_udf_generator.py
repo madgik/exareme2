@@ -37,7 +37,7 @@ POSARGS_relations_to_relation = [
         [
             ColumnInfo("row_id", "text"),
             ColumnInfo("col1", "int"),
-            ColumnInfo("col2", "float"),
+            ColumnInfo("col2", "real"),
         ],
     ),
     TableInfo(
@@ -45,7 +45,7 @@ POSARGS_relations_to_relation = [
         [
             ColumnInfo("row_id", "text"),
             ColumnInfo("col1", "int"),
-            ColumnInfo("col2", "float"),
+            ColumnInfo("col2", "real"),
         ],
     ),
 ]
@@ -94,7 +94,7 @@ POSARGS_table_to_tensor = [
         [
             ColumnInfo("row_id", "text"),
             ColumnInfo("col1", "int"),
-            ColumnInfo("col2", "float"),
+            ColumnInfo("col2", "real"),
         ],
     ),
 ]
@@ -149,7 +149,7 @@ POSARGS_with_literal = [
         [
             ColumnInfo("row_id", "text"),
             ColumnInfo("dim0", "int"),
-            ColumnInfo("val", "float"),
+            ColumnInfo("val", "real"),
         ],
     ),
     5,
@@ -197,7 +197,7 @@ POSARGS_to_scalar = [
         [
             ColumnInfo("row_id", "text"),
             ColumnInfo("dim0", "int"),
-            ColumnInfo("val", "float"),
+            ColumnInfo("val", "real"),
         ],
     ),
     TableInfo(
@@ -205,7 +205,7 @@ POSARGS_to_scalar = [
         [
             ColumnInfo("row_id", "text"),
             ColumnInfo("dim0", "int"),
-            ColumnInfo("val", "float"),
+            ColumnInfo("val", "real"),
         ],
     ),
 ]

@@ -4,7 +4,7 @@ from celery import Celery
 
 from mipengine import config
 from mipengine.common.node_catalog import node_catalog
-
+from mipengine.node import celery_config
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -36,6 +36,8 @@ app = Celery(
         "mipengine.node.tasks.udfs",
     ],
 )
+
+app.config_from_object(celery_config)
 
 if __name__ == "__main__":
     app.worker_main(celery_args)

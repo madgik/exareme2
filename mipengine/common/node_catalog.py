@@ -1,6 +1,5 @@
 import importlib.resources as pkg_resources
 from dataclasses import dataclass
-from typing import Dict
 from typing import List
 
 from dataclasses_json import dataclass_json
