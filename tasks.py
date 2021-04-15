@@ -91,10 +91,10 @@ def rm_containers(c, monetdb=False, rabbitmq=False):
             level=Level.WARNING,
         )
     for name in names:
-        container_ids = c.run(f"docker ps -q --filter name={name}", hide="out")
+        container_ids = c.run(f"docker ps -qa --filter name={name}", hide="out")
         if container_ids.stdout:
             message(f"Removing {name} containers...", Level.HEADER)
-            cmd = f"docker rm -vf $(docker ps -q --filter name={name})"
+            cmd = f"docker rm -vf $(docker ps -qa --filter name={name})"
             run(c, cmd)
         else:
             message(f"No {name} container to remove", level=Level.HEADER)
@@ -268,14 +268,15 @@ def start_node(c, ip, node_name, monetdb_port, rabbitmq_port):
         config_file = create_node_config_file(
             node_name, ip, monetdb_port, rabbitmq_port
         )
-        c.prefix(f"export CONFIG_FILE={config_file}")
-        outpath = OUTDIR / (node_name + ".out")
-        cmd = (
-            f"poetry run python -m mipengine.node.node worker -l info >> {outpath} 2>&1"
-        )
-        c.run(cmd, disown=True)
+        with c.prefix(f"export CONFIG_FILE={config_file}"):
+            outpath = OUTDIR / (node_name + ".out")
+            cmd = (
+                f"poetry run python -m mipengine.node.node worker -l info >> {outpath} 2>&1"
+            )
+            c.run(cmd, disown=True)
         spin_wheel(time=4)
         message("Ok", Level.SUCCESS)
+
 
 
 @task
@@ -334,7 +335,6 @@ def deploy(c, start_controller_=False, start_nodes=False, install_=True):
 
             if install_:
                 install(c)
-            set_ip(c, local_ip)
 
             rm_containers(c, monetdb=True)
             start_monetdb(c, monetdb_ports)
@@ -349,6 +349,7 @@ def deploy(c, start_controller_=False, start_nodes=False, install_=True):
             if start_nodes:
                 start_node(
                     c,
+                    ip=local_ip,
                     node_name=node_names,
                     monetdb_port=monetdb_ports,
                     rabbitmq_port=rabbitmq_ports,
