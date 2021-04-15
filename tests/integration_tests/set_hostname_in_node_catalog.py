@@ -18,18 +18,11 @@ node_catalog_stream = open(node_catalog_abs_path, "r")
 
 node_catalog = json.load(node_catalog_stream)
 for local_node in node_catalog["localNodes"]:
-    local_node["monetdbHostname"] = hostname
+    local_node["monetdbIp"] = hostname
+    local_node["rabbitmqIp"] = hostname
 
-    tmp = local_node["rabbitmqURL"]
-    tmp = tmp.split(":")
-    tmp[0] = hostname
-    local_node["rabbitmqURL"] = f"{tmp[0]}:{tmp[1]}"
-
-node_catalog["globalNode"]["monetdbHostname"] = hostname
-tmp = node_catalog["globalNode"]["rabbitmqURL"]
-tmp = tmp.split(":")
-tmp[0] = hostname
-node_catalog["globalNode"]["rabbitmqURL"] = f"{tmp[0]}:{tmp[1]}"
+node_catalog["globalNode"]["monetdbIp"] = hostname
+node_catalog["globalNode"]["rabbitmqIp"] = hostname
 
 with open(node_catalog_abs_path, "w") as node_catalog_file:
     json.dump(node_catalog, node_catalog_file, indent=2)

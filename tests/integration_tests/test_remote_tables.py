@@ -38,7 +38,7 @@ def test_create_and_get_remote_table():
     # TODO remove this on the MIP-16
     prefix = "mapi:monetdb://"
     db_name = "/db"
-    local_node_1_url = f"{prefix}{local_node_data.monetdbHostname}:{local_node_data.monetdbPort}{db_name}"
+    local_node_1_url = f"{prefix}{local_node_data.monetdbIp}:{local_node_data.monetdbPort}{db_name}"
 
     table_schema = TableSchema(
         [

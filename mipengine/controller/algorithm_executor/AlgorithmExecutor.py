@@ -71,8 +71,8 @@ class AlgorithmExecutor:
         # instantiate the GLOBAL Node object
         self.global_node = self.Node(
             node_id=global_node.nodeId,
-            rabbitmq_url=global_node.rabbitmqURL,
-            monetdb_url=f"{global_node.monetdbHostname}:{global_node.monetdbPort}",
+            rabbitmq_url=f"{global_node.rabbitmqIp}:{global_node.rabbitmqPort}",
+            monetdb_url=f"{global_node.monetdbIp}:{global_node.monetdbPort}",
             context_id=self.context_id,
         )
 
@@ -94,8 +94,8 @@ class AlgorithmExecutor:
             self.local_nodes.append(
                 self.Node(
                     node_id=local_node.nodeId,
-                    rabbitmq_url=local_node.rabbitmqURL,
-                    monetdb_url=f"{local_node.monetdbHostname}:{local_node.monetdbPort}",
+                    rabbitmq_url=f"{local_node.rabbitmqIp}:{local_node.rabbitmqPort}",
+                    monetdb_url=f"{local_node.monetdbIp}:{local_node.monetdbPort}",
                     initial_view_tables_params=initial_view_tables_params,
                     context_id=self.context_id,
                 )
