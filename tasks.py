@@ -433,6 +433,7 @@ def create_node_config_file(node_id, ip, monetdb_port, rabbitmq_port):
     with open(DEFAULT_NODE_CONFIG_FILE) as fp:
         node_config = toml.load(fp)
 
+    node_config["identifier"] = node_id
     node_config["monetdb"]["ip"] = ip
     node_config["monetdb"]["port"] = monetdb_port
     node_config["rabbitmq"]["ip"] = ip
