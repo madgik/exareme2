@@ -232,6 +232,7 @@ def _convert_monet2mip_column_type(column_type: str) -> str:
     return type_mapping.get(column_type)
 
 
+@sql_injection_guard
 def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
     """
     Deletes all tables of specific type with name that contain a specific context_id from the monetdb.

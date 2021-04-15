@@ -1,6 +1,5 @@
 from typing import List
 
-
 from mipengine.common.sql_injection_guard import sql_injection_guard
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB

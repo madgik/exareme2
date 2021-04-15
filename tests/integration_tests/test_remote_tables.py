@@ -35,7 +35,7 @@ def cleanup_tables():
 
 def test_create_and_get_remote_table():
     local_node_data = node_catalog.get_local_node(local_node_id)
-    local_node_1_url = (
+    local_node_1_db_location = (
         f"{local_node_data.monetdbHostname}:{local_node_data.monetdbPort}"
     )
 
@@ -56,7 +56,7 @@ def test_create_and_get_remote_table():
     table_info = TableInfo(table_name, table_schema)
 
     global_node_create_remote_table.delay(
-        table_info_json=table_info.to_json(), url=local_node_1_url
+        table_info_json=table_info.to_json(), db_location=local_node_1_db_location
     ).get()
     remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()
     assert table_name.lower() in remote_tables
