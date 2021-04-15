@@ -1,16 +1,20 @@
+import sys
 from enum import Enum
 from itertools import cycle
-import os
 from pathlib import Path
-import sys
 from textwrap import indent
 from time import sleep
 
-from invoke import Executor, UnexpectedExit, call, task
+import toml
+from invoke import UnexpectedExit
+from invoke import call
+from invoke import task
 from termcolor import colored
 
 PROJECT_ROOT = Path(__file__).parent
 ENVFILE = PROJECT_ROOT / ".mipenv"
+CONFIG_FILES_FOLDER = PROJECT_ROOT / "configs/"
+DEFAULT_NODE_CONFIG_FILE = PROJECT_ROOT / "mipengine/node/config.toml"
 OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
@@ -234,20 +238,38 @@ def attach(c, node=None, controller=False, db=None):
         sys.exit(1)
 
 
-@task(iterable=["node"])
-def start_node(c, node):
+@task(iterable=["node_name", "monetdb_port", "rabbitmq_port"])
+def start_node(c, ip, node_name, monetdb_port, rabbitmq_port):
     """Start Celery node(s)"""
-    if not node:
+    node_names = node_name
+    monetdb_ports = monetdb_port
+    rabbitmq_ports = rabbitmq_port
+
+    if ip and node_names and monetdb_ports and rabbitmq_ports:
+        if not (len(node_names) == len(monetdb_ports) == len(rabbitmq_ports)):
+            message(
+                "You should provide an equal number of node names, monetdb ports and rabbitmq ports",
+                Level.ERROR,
+            )
+            sys.exit(1)
+    else:
         message(
-            f"Please provide node names with --node <name> [--node <name> ...]",
-            Level.WARNING,
+            "You must specify all of the ip, node, monetdb port and rabbitmq port parameters.",
+            level=Level.ERROR,
         )
         sys.exit(1)
-    nodes = node
-    for node in nodes:
-        kill_node(c, node)
-        message(f"Starting Node {node}...", Level.HEADER)
-        outpath = OUTDIR / (node + ".out")
+
+    for (node_name, monetdb_port, rabbitmq_port) in zip(
+        node_names, monetdb_ports, rabbitmq_ports
+    ):
+        kill_node(c, node_name)
+        message(f"Starting Node {node_name}...", Level.HEADER)
+
+        config_file = create_node_config_file(
+            node_name, ip, monetdb_port, rabbitmq_port
+        )
+        c.prefix(f"export CONFIG_FILE={config_file}")
+        outpath = OUTDIR / (node_name + ".out")
         cmd = (
             f"poetry run python -m mipengine.node.node worker -l info >> {outpath} 2>&1"
         )
@@ -325,7 +347,12 @@ def deploy(c, start_controller_=False, start_nodes=False, install_=True):
                 kill_controller(c)
                 start_controller(c)
             if start_nodes:
-                start_node(c, node_names)
+                start_node(
+                    c,
+                    node_name=node_names,
+                    monetdb_port=monetdb_ports,
+                    rabbitmq_port=rabbitmq_ports,
+                )
 
 
 @task
@@ -407,3 +434,20 @@ def print_config():
             for line in f.readlines():
                 message(line.lstrip("export ").rstrip("\n"), Level.BODY)
     print()
+
+
+def create_node_config_file(node_id, ip, monetdb_port, rabbitmq_port):
+    with open(DEFAULT_NODE_CONFIG_FILE) as fp:
+        node_config = toml.load(fp)
+
+    node_config["monetdb"]["ip"] = ip
+    node_config["monetdb"]["port"] = monetdb_port
+    node_config["rabbitmq"]["ip"] = ip
+    node_config["rabbitmq"]["port"] = rabbitmq_port
+
+    Path(CONFIG_FILES_FOLDER).mkdir(parents=True, exist_ok=True)
+    node_config_file = CONFIG_FILES_FOLDER / f"{node_id}.toml"
+    with open(node_config_file, "w+") as fp:
+        toml.dump(node_config, fp)
+
+    return node_config_file

@@ -147,3 +147,4 @@ pyrightconfig.json
 
 # mip deployment config file
 .mipenv
+/configs
