@@ -7,11 +7,11 @@ from mipengine.common.node_exceptions import IncompatibleTableTypes
 from mipengine.common.node_exceptions import TablesNotFound
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.sql_injection_guard import sql_injection_guard
+from mipengine.node.monetdb_interface.common_actions import get_table_schema
+from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.common_actions import (
-    get_table_names,
     convert_schema_to_sql_query_format,
 )
-from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 
