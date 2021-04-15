@@ -38,5 +38,5 @@ def has_proper_db_location_format(db_location: str):
         f"\.{regex_between_0_to_255}"
     )
     # The format of the db location of a REMOTE TABLE is: <host>:<port>
-    url_match = re.match(f"{ip_regex}:{regex_any_alphanumeric}$", db_location)
-    return url_match is not None
+    db_location_match = re.match(f"{ip_regex}:{regex_any_alphanumeric}$", db_location)
+    return db_location_match is not None
