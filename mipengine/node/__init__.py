@@ -1,8 +1,14 @@
+import os
+
 import toml
 from importlib.resources import open_text
 
-import mipengine
+from mipengine import node
 from mipengine.utils import AttrDict
 
-with open_text(mipengine, "node.toml") as fp:
-    config = AttrDict(toml.load(fp))
+if config_file := os.getenv("CONFIG_FILE"):
+    with open(config_file) as fp:
+        config = AttrDict(toml.load(fp))
+else:
+    with open_text(node, "config.toml") as fp:
+        config = AttrDict(toml.load(fp))
