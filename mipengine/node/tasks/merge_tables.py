@@ -51,4 +51,5 @@ def create_merge_table(context_id: str, command_id: str, table_names: List[str])
     table_info = TableInfo(merge_table_name.lower(), schema)
     merge_tables.create_merge_table(table_info)
     merge_tables.add_to_merge_table(merge_table_name, table_names)
+
     return merge_table_name.lower()

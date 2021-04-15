@@ -1,12 +1,10 @@
-from mipengine.node.monetdb_interface.common_actions import connection
-from mipengine.node.monetdb_interface.common_actions import cursor
+from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 
-def run_udf(udf_creation_stmt: str,
-            udf_execution_query: str,
-            ):
-
+def run_udf(
+    udf_creation_stmt: str,
+    udf_execution_query: str,
+):
     if udf_creation_stmt:
-        cursor.execute(udf_creation_stmt)
-    cursor.execute(udf_execution_query)
-    connection.commit()
+        MonetDB().execute(udf_creation_stmt)
+    MonetDB().execute(udf_execution_query)

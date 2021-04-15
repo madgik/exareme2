@@ -20,7 +20,7 @@ def get_views(context_id: str) -> List[str]:
     List[str]
         A list of view names
     """
-    return views.get_views_names(context_id)
+    return views.get_view_names(context_id)
 
 
 @shared_task

@@ -3,8 +3,9 @@ from typing import List
 from mipengine.common.node_tasks_DTOs import TableInfo
 
 
-class TableCannotBeFound(Exception):
-    """Exception raised for errors while retrieving a table from a database.
+class TablesNotFound(Exception):
+    """
+    Exception raised for errors while retrieving a table from a database.
 
     Attributes:
         tables -- tables which caused the error
@@ -27,7 +28,9 @@ class IncompatibleSchemasMergeException(Exception):
 
     def __init__(self, table_infos: List[TableInfo]):
         self.table_infos = table_infos
-        self.message = f"Tables to be added doesn't match MERGE TABLE schema : {table_infos}"
+        self.message = (
+            f"Tables to be added doesn't match MERGE TABLE schema : {table_infos}"
+        )
         super().__init__(self.message)
 
 

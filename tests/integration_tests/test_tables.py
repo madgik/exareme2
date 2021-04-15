@@ -34,9 +34,9 @@ def cleanup_tables():
 def test_create_and_find_tables():
     table_schema = TableSchema(
         [
-            ColumnInfo("col1", "INT"),
-            ColumnInfo("col2", "FLOAT"),
-            ColumnInfo("col3", "TEXT"),
+            ColumnInfo("col1", "int"),
+            ColumnInfo("col2", "real"),
+            ColumnInfo("col3", "text"),
         ]
     )
 

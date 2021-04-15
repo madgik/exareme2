@@ -1,35 +1,17 @@
 from typing import List
 from typing import Union
 
-import pymonetdb
-
-from mipengine.node import config
-from mipengine.common.node_catalog import node_catalog
+from mipengine.common.node_exceptions import TablesNotFound
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.common.validate_identifier_names import validate_identifier_names
+from mipengine.node import config
+from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 MONETDB_VARCHAR_SIZE = 50
 
-# TODO Add SQLAlchemy if possible
-# TODO We need to add the PRIVATE/OPEN table logic
-# TODO Add monetdb asyncio connection (aiopymonetdb)
 
-global_node = node_catalog.get_global_node()
-if global_node.nodeId == config.identifier:
-    node = global_node
-else:
-    node = node_catalog.get_local_node(config.identifier)
-monetdb_hostname = node.monetdbHostname
-monetdb_port = node.monetdbPort
-connection = pymonetdb.connect(
-    username=config.monetdb.username,
-    port=monetdb_port,
-    password=config.monetdb.password,
-    hostname=monetdb_hostname,
-    database=config.monetdb.database,
-)
-cursor = connection.cursor()
+# TODO We need to add the PRIVATE/OPEN table logic
 
 
 @validate_identifier_names
@@ -68,14 +50,12 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
 
 
 @validate_identifier_names
-def get_table_schema(table_name: str, table_type: str = None) -> TableSchema:
+def get_table_schema(table_name: str) -> TableSchema:
     """
     Retrieves a schema for a specific table type and table name  from the monetdb.
 
     Parameters
     ----------
-    table_type : str
-        The type of the table
     table_name : str
         The name of the table
 
@@ -84,14 +64,7 @@ def get_table_schema(table_name: str, table_type: str = None) -> TableSchema:
     TableSchema
         A schema which is TableSchema object.
     """
-
-    type_clause = ""
-    if table_type is not None:
-        type_clause = (
-            f" AND tables.type = {str(_convert_mip2monet_table_type(table_type))}"
-        )
-
-    cursor.execute(
+    schema = MonetDB().execute_with_result(
         f"""
         SELECT columns.name, columns.type
         FROM columns
@@ -101,18 +74,21 @@ def get_table_schema(table_name: str, table_type: str = None) -> TableSchema:
         tables.name = '{table_name}'
         AND
         tables.system=false
-        {type_clause}"""
+        """
     )
 
-    columns = [
-        ColumnInfo(table[0], _convert_monetdb2mip_column_type(table[1]))
-        for table in cursor
-    ]
-    return TableSchema(columns)
+    if not schema:
+        raise TablesNotFound([table_name])
+    return TableSchema(
+        [
+            ColumnInfo(name, _convert_monet2mip_column_type(table_type))
+            for name, table_type in schema
+        ]
+    )
 
 
 @validate_identifier_names
-def get_tables_names(table_type: str, context_id: str) -> List[str]:
+def get_table_names(table_type: str, context_id: str) -> List[str]:
     """
     Retrieves a list of table names, which contain the context_id from the monetdb.
 
@@ -128,7 +104,7 @@ def get_tables_names(table_type: str, context_id: str) -> List[str]:
     List[str]
         A list of table names.
     """
-    cursor.execute(
+    table_names = MonetDB().execute_with_result(
         f"""
         SELECT name FROM tables
         WHERE
@@ -137,13 +113,11 @@ def get_tables_names(table_type: str, context_id: str) -> List[str]:
         system = false"""
     )
 
-    return [table[0] for table in cursor]
+    return [table[0] for table in table_names]
 
 
 @validate_identifier_names
-def get_table_data(
-    table_name: str, table_type: str = None
-) -> List[List[Union[str, int, float, bool]]]:
+def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     """
     Retrieves the data of a table with specific type and name  from the monetdb.
 
@@ -151,8 +125,6 @@ def get_table_data(
     ----------
     table_name : str
         The name of the table
-    table_type : str
-        The type of the table
 
     Returns
     ------
@@ -160,28 +132,16 @@ def get_table_data(
         The data of the table.
     """
 
-    type_clause = ""
-    if table_type is not None:
-        type_clause = (
-            f" AND tables.type = {str(_convert_mip2monet_table_type(table_type))}"
-        )
-
-    cursor.execute(
+    data = MonetDB().execute_with_result(
         f"""
         SELECT {table_name}.*
         FROM {table_name}
         INNER JOIN tables ON tables.name = '{table_name}'
         WHERE tables.system=false
-        {type_clause}
         """
     )
 
-    return cursor.fetchall()
-
-
-def get_table_rows(table_name: str) -> int:
-    cursor.execute(f"select count(*) from {table_name}")
-    return cursor.next()[0]
+    return data
 
 
 @validate_identifier_names
@@ -198,7 +158,6 @@ def clean_up(context_id: str):
     # TODO We also need to cleanup the udfs with the specific context_id
     for table_type in ("merge", "remote", "view", "normal"):
         _delete_table_by_type_and_context_id(table_type, context_id)
-    connection.commit()
 
 
 def _convert_monet2mip_table_type(monet_table_type: int) -> str:
@@ -241,14 +200,12 @@ def _convert_mip2monet_table_type(table_type: str) -> int:
 
 def _convert_mip2monetdb_column_type(column_type: str) -> str:
     """
-    Converts MIP Engine's int,float,text types to monetdb
+    Converts MIP Engine's int,real,text types to monetdb
     """
     type_mapping = {
         "int": "int",
-        "float": "double",
+        "real": "double",
         "text": f"varchar({MONETDB_VARCHAR_SIZE})",
-        "bool": "bool",
-        "clob": "clob",
     }
 
     if column_type not in type_mapping.keys():
@@ -259,26 +216,23 @@ def _convert_mip2monetdb_column_type(column_type: str) -> str:
     return type_mapping.get(column_type)
 
 
-def _convert_monetdb2mip_column_type(column_type: str) -> str:
+def _convert_monet2mip_column_type(column_type: str) -> str:
     """
-    Converts MonetDB's types to MIP Engine's types
+    Converts MonetDB's types to MIP's types
     """
     type_mapping = {
         "int": "int",
-        "double": "float",
+        "double": "real",
         "varchar": "text",
-        "bool": "bool",
-        "clob": "clob",
     }
 
     if column_type not in type_mapping.keys():
-        raise ValueError(
-            f"Type {column_type} cannot be converted to MIP Engine's types."
-        )
+        raise ValueError(f"Type {column_type} cannot be converted to MIP's types.")
 
     return type_mapping.get(column_type)
 
 
+@validate_identifier_names
 def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
     """
     Deletes all tables of specific type with name that contain a specific context_id from the monetdb.
@@ -290,7 +244,7 @@ def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
     context_id : str
         The id of the experiment
     """
-    cursor.execute(
+    table_names_and_types = MonetDB().execute_with_result(
         f"""
         SELECT name, type FROM tables
         WHERE name LIKE '%{context_id.lower()}%'
@@ -298,8 +252,8 @@ def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
         AND system = false
         """
     )
-    for table in cursor.fetchall():
-        if table[1] == 1:
-            cursor.execute(f"DROP VIEW {table[0]}")
+    for name, table_type in table_names_and_types:
+        if table_type == _convert_mip2monet_table_type("view"):
+            MonetDB().execute(f"DROP VIEW {name}")
         else:
-            cursor.execute(f"DROP TABLE {table[0]}")
+            MonetDB().execute(f"DROP TABLE {name}")

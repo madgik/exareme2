@@ -5,10 +5,8 @@ from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from tests.integration_tests import nodes_communication
 from tests.integration_tests.node_db_connections import get_node_db_connection
-from mipengine.common.node_exceptions import (
-    IncompatibleSchemasMergeException,
-    TableCannotBeFound,
-)
+from mipengine.common.node_exceptions import IncompatibleSchemasMergeException
+from mipengine.common.node_exceptions import TablesNotFound
 
 local_node_id = "localnode1"
 local_node = nodes_communication.get_celery_app(local_node_id)
@@ -34,7 +32,7 @@ def cleanup_tables():
 
 
 def create_two_column_table(table_id: int):
-    table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "FLOAT")])
+    table_schema = TableSchema([ColumnInfo("col1", "int"), ColumnInfo("col2", "real")])
     table_name = local_node_create_table.delay(
         context_id=f"{context_id}_table_{table_id}",
         command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
@@ -46,9 +44,9 @@ def create_two_column_table(table_id: int):
 def create_three_column_table_with_data(table_id: int):
     table_schema = TableSchema(
         [
-            ColumnInfo("col1", "INT"),
-            ColumnInfo("col2", "FLOAT"),
-            ColumnInfo("col3", "TEXT"),
+            ColumnInfo("col1", "int"),
+            ColumnInfo("col2", "real"),
+            ColumnInfo("col3", "text"),
         ]
     )
     table_name = local_node_create_table.delay(
@@ -96,7 +94,7 @@ def test_incompatible_schemas_merge():
 
 
 def test_table_cannot_be_found():
-    with pytest.raises(TableCannotBeFound):
+    with pytest.raises(TablesNotFound):
         not_found_tables = [
             create_three_column_table_with_data(1),
             create_three_column_table_with_data(2),

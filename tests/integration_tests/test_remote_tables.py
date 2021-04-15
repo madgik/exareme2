@@ -35,15 +35,16 @@ def cleanup_tables():
 
 def test_create_and_get_remote_table():
     local_node_data = node_catalog.get_local_node(local_node_id)
-    local_node_1_url = (
-        f"{local_node_data.monetdbHostname}:{local_node_data.monetdbPort}"
-    )
+    # TODO remove this on the MIP-16
+    prefix = "mapi:monetdb://"
+    db_name = "/db"
+    local_node_1_url = f"{prefix}{local_node_data.monetdbHostname}:{local_node_data.monetdbPort}{db_name}"
 
     table_schema = TableSchema(
         [
-            ColumnInfo("col1", "INT"),
-            ColumnInfo("col2", "FLOAT"),
-            ColumnInfo("col3", "TEXT"),
+            ColumnInfo("col1", "int"),
+            ColumnInfo("col2", "real"),
+            ColumnInfo("col3", "text"),
         ]
     )
 

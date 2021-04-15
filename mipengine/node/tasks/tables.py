@@ -22,7 +22,7 @@ def get_tables(context_id: str) -> List[str]:
     List[str]
         A list of table names
     """
-    return tables.get_tables_names(context_id)
+    return tables.get_table_names(context_id)
 
 
 @shared_task
