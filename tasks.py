@@ -68,14 +68,6 @@ def install(c):
 
 
 @task
-def set_ip(c, ip):
-    """Configure mipengine with you machine's IP"""
-    message("Setting ip address...", Level.HEADER)
-    cmd = f"poetry run python tests/integration_tests/set_hostname_in_node_catalog.py -host {ip}"
-    run(c, cmd)
-
-
-@task
 def rm_containers(c, monetdb=False, rabbitmq=False):
     """Remove containers
 
