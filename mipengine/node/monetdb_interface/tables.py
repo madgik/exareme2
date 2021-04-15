@@ -21,6 +21,8 @@ def create_table(table_info: TableInfo):
 
 @validate_identifier_names
 def insert_data_to_table(table_name: str, values: List[List[Union[str, int, float]]]):
+    if all(len(value) != len(values[0]) for value in values):
+        raise Exception("Row counts does not match")
     query_for_values = ",".join([str(tuple(value)) for value in values])
     query_for_values = str(query_for_values).replace(", None", ", null")
     MonetDB().execute(f"INSERT INTO {table_name} VALUES {query_for_values}")
