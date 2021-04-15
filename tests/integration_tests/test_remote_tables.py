@@ -34,7 +34,7 @@ def cleanup_tables():
 
 
 def test_create_and_get_remote_table():
-    local_node_data = node_catalog.get_local_node(local_node_id)
+    local_node_data = node_catalog.get_node(local_node_id)
     # TODO remove this on the MIP-16
     prefix = "mapi:monetdb://"
     db_name = "/db"

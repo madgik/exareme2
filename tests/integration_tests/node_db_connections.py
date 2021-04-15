@@ -6,19 +6,12 @@ from mipengine.node import config
 
 
 def get_node_db_connection(node_id: str) -> Connection:
-    global_node = node_catalog.get_global_node()
-    if global_node.nodeId == node_id:
-        node = global_node
-    else:
-        node = node_catalog.get_local_node(node_id)
-
-    monetdb_hostname = node.monetdbHostname
-    monetdb_port = node.monetdbPort
+    node = node_catalog.get_node(node_id)
     connection = pymonetdb.connect(
+        hostname=node.monetdbHostname,
+        port=node.monetdbPort,
         username=config.monetdb.username,
-        port=monetdb_port,
         password=config.monetdb.password,
-        hostname=monetdb_hostname,
         database=config.monetdb.database,
     )
     return connection

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import List
 
 from dataclasses_json import dataclass_json
+from typing import Union
 
 from mipengine.common import resources
 from mipengine.common.node_exceptions import InvalidNodeId
@@ -106,13 +107,10 @@ class NodeCatalog:
         else:
             raise Exception(f"There are no nodes with any of the datasets->{datasets}")
 
-    def get_global_node(self) -> GlobalNode:
-        return self._nodes.globalNode
+    def get_node(self, node_id: str) -> Union[LocalNode, GlobalNode]:
+        if self._nodes.globalNode.nodeId == node_id:
+            return self._nodes.globalNode
 
-    def get_local_nodes(self) -> List[LocalNode]:
-        return self._nodes.localNodes
-
-    def get_local_node(self, node_id: str) -> LocalNode:
         try:
             return next(
                 local_node

@@ -5,11 +5,7 @@ from mipengine.node import config
 
 
 def get_celery_app(node_id: str):
-    global_node = node_catalog.get_global_node()
-    if global_node.nodeId == node_id:
-        node = global_node
-    else:
-        node = node_catalog.get_local_node(node_id)
+    node = node_catalog.get_node(node_id)
 
     rabbitmq_credentials = config.rabbitmq.user + ":" + config.rabbitmq.password
     rabbitmq_url = node.rabbitmqIp + ":" + str(node.rabbitmqPort)
