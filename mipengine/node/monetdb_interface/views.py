@@ -8,7 +8,7 @@ from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 DATA_TABLE_PRIMARY_KEY = "row_id"
 
 
-def get_views_names(context_id: str) -> List[str]:
+def get_view_names(context_id: str) -> List[str]:
     return get_table_names("view", context_id)
 
 

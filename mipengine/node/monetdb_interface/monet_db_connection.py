@@ -71,7 +71,6 @@ class MonetDB(metaclass=Singleton):
         self._connection.commit()
 
         with self.cursor() as cur:
-            print(query)
             cur.execute(query)
             result = cur.fetchall()
             return result
@@ -83,7 +82,6 @@ class MonetDB(metaclass=Singleton):
         if they fail with pymonetdb.exceptions.IntegrityError .
         *https://www.monetdb.org/blog/optimistic-concurrency-control
         """
-        print(query)
         for _ in range(OCC_MAX_ATTEMPTS):
             with self.cursor() as cur:
                 try:
