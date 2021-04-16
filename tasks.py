@@ -429,18 +429,18 @@ def print_config():
     print()
 
 
-def create_node_config_file(node_id, ip, monetdb_port, rabbitmq_port):
+def create_node_config_file(node_name, ip, monetdb_port, rabbitmq_port):
     with open(DEFAULT_NODE_CONFIG_FILE) as fp:
         node_config = toml.load(fp)
 
-    node_config["identifier"] = node_id
+    node_config["identifier"] = node_name
     node_config["monetdb"]["ip"] = ip
     node_config["monetdb"]["port"] = monetdb_port
     node_config["rabbitmq"]["ip"] = ip
     node_config["rabbitmq"]["port"] = rabbitmq_port
 
     Path(CONFIG_FILES_FOLDER).mkdir(parents=True, exist_ok=True)
-    node_config_file = CONFIG_FILES_FOLDER / f"{node_id}.toml"
+    node_config_file = CONFIG_FILES_FOLDER / f"{node_name}.toml"
     with open(node_config_file, "w+") as fp:
         toml.dump(node_config, fp)
 
