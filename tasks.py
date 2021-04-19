@@ -240,13 +240,16 @@ def start_node(c, ip, node_name, monetdb_port, rabbitmq_port):
     if ip and node_names and monetdb_ports and rabbitmq_ports:
         if not (len(node_names) == len(monetdb_ports) == len(rabbitmq_ports)):
             message(
-                "You should provide an equal number of node names, monetdb ports and rabbitmq ports",
+                "<start_node> task should be called with an equal number of "
+                "node names, monetdb ports and rabbitmq ports.\n"
+                f"Parameters provided: {locals()}",
                 Level.ERROR,
             )
             sys.exit(1)
     else:
         message(
-            "You must specify all of the ip, node, monetdb port and rabbitmq port parameters.",
+            "<start_node> task should have all of the ip, node, monetdb port and rabbitmq port parameters.\n"
+            f"Parameters provided: {locals()}",
             level=Level.ERROR,
         )
         sys.exit(1)
@@ -262,13 +265,10 @@ def start_node(c, ip, node_name, monetdb_port, rabbitmq_port):
         )
         with c.prefix(f"export CONFIG_FILE={config_file}"):
             outpath = OUTDIR / (node_name + ".out")
-            cmd = (
-                f"poetry run python -m mipengine.node.node worker -l info >> {outpath} 2>&1"
-            )
+            cmd = f"poetry run python -m mipengine.node.node worker -l info >> {outpath} 2>&1"
             c.run(cmd, disown=True)
         spin_wheel(time=4)
         message("Ok", Level.SUCCESS)
-
 
 
 @task
