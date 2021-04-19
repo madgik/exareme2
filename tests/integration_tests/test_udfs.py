@@ -12,8 +12,8 @@
 # from mipengine.common.node_tasks_DTOs import ColumnInfo
 # from mipengine.common.node_tasks_DTOs import TableSchema
 # from mipengine.common.node_tasks_DTOs import UDFArgument
-# from tests import nodes_communication
-# from tests.node_db_connections import get_node_db_connection
+# from integration_tests import nodes_communication
+# from integration_tests.node_db_connections import get_node_db_connection
 #
 # local_node_id = "localnode1"
 # command_id = "command123"
