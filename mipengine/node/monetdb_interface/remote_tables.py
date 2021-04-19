@@ -14,12 +14,12 @@ def get_remote_table_names(context_id: str) -> List[str]:
 
 
 @sql_injection_guard
-def create_remote_table(table_info: TableInfo, db_location: str, db_name: str):
+def create_remote_table(table_info: TableInfo, db_socket_address: str, db_name: str):
     columns_schema = convert_schema_to_sql_query_format(table_info.schema)
     MonetDB().execute(
         f"""
         CREATE REMOTE TABLE {table_info.name}
-        ( {columns_schema}) ON 'mapi:monetdb://{db_location}/{db_name}'
+        ( {columns_schema}) ON 'mapi:monetdb://{db_socket_address}/{db_name}'
         WITH USER 'monetdb' PASSWORD 'monetdb'
         """
     )

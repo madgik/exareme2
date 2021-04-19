@@ -3,40 +3,45 @@ from functools import wraps
 
 
 def sql_injection_guard(func):
-    wraps(func)
-
+    @wraps(func)
     def wrapper(*args, **kwargs):
         all_args = list(args) + list(kwargs.values())
-        for arg in all_args:
-            if type(arg) == str:
-                if (
-                    not arg.isidentifier()
-                    and not arg.isalnum()
-                    and not has_proper_db_location_format(arg)
-                ):
-                    raise ValueError(f"Not allowed character in argument: {arg}")
-            elif type(arg) == list:
-                for item in arg:
-                    if (
-                        not item.isidentifier()
-                        and not item.isalnum()
-                        and not has_proper_db_location_format(item)
-                    ):
-                        raise ValueError(f"Not allowed character in argument: {item}")
+        validate_argument(all_args)
         return func(*args, **kwargs)
 
     return wrapper
 
 
-def has_proper_db_location_format(db_location: str):
-    regex_between_0_to_255 = "([01]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])"
-    regex_any_alphanumeric = "([a-zA-Z0-9]*)"
-    ip_regex = (
-        f"{regex_between_0_to_255}"
-        f"\.{regex_between_0_to_255}"
-        f"\.{regex_between_0_to_255}"
-        f"\.{regex_between_0_to_255}"
+def validate_argument(argument):
+    for arg in argument:
+        if isinstance(arg, str):
+            if arg.isidentifier():
+                continue
+            elif arg.isalnum():
+                continue
+            elif has_proper_db_socket_address_format(arg):
+                continue
+            raise ValueError(f"Not allowed character in argument: {arg}")
+        elif isinstance(arg, list):
+            validate_argument(arg)
+        elif isinstance(arg, dict):
+            validate_argument(arg)
+
+
+def has_proper_db_socket_address_format(db_socket_address: str):
+    db_socket_address_match = re.fullmatch(
+        r"""
+        (\d{0,3})
+        \.
+        (\d{0,3})
+        \.
+        (\d{0,3})
+        \.
+        (\d{0,3})
+        :
+        (\d{0,5})
+        """,
+        db_socket_address,
+        re.VERBOSE,
     )
-    # The format of the db location of a REMOTE TABLE is: <host>:<port>
-    db_location_match = re.match(f"{ip_regex}:{regex_any_alphanumeric}$", db_location)
-    return db_location_match is not None
+    return db_socket_address_match is not None
