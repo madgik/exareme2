@@ -204,7 +204,7 @@ def _convert_mip2monetdb_column_type(column_type: str) -> str:
     """
     type_mapping = {
         "int": "int",
-        "real": "double",
+        "real": "real",
         "text": f"varchar({MONETDB_VARCHAR_SIZE})",
     }
 
@@ -223,6 +223,7 @@ def _convert_monet2mip_column_type(column_type: str) -> str:
     type_mapping = {
         "int": "int",
         "double": "real",
+        "real": "real",
         "varchar": "text",
     }
 

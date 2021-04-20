@@ -25,8 +25,8 @@ LANGUAGE PYTHON
     )
     dimensions = [f"dim{_}" for _ in range(ndims)]
     dimensions_wtypes = [f"{d} {t}" for d, t in zip(dimensions, repeat("INT"))]
-    call_signature = ", ".join(["node_id TEXT"] + dimensions_wtypes + ["val FLOAT"])
-    return_signature = ", ".join(dimensions_wtypes + ["val FLOAT"])
+    call_signature = ", ".join(["node_id TEXT"] + dimensions_wtypes + ["val REAL"])
+    return_signature = ", ".join(dimensions_wtypes + ["val REAL"])
     call_args = ", ".join(["node_id"] + dimensions + ["val"])
     udf_def = udf_def.safe_substitute(
         call_signature=call_signature, return_signature=return_signature

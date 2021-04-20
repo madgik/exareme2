@@ -167,7 +167,7 @@ class AlgorithmExecutor:
 
             # will contain the views created from the pathology, datasets. Its keys are the variable sets x, y etc
             initial_view_tables = {}
-            
+
             # initial view for variables in X
             variable = "x"
             command_id = str(initial_view_tables_params["commandId"]) + variable
@@ -223,7 +223,7 @@ class AlgorithmExecutor:
         # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
         def create_view(self, command_id: str, pathology: str, datasets: List[str], columns: List[str], filters: List[str]) -> TableName:
             task_signature = self.__celery_obj.signature(self.task_signatures_str["create_view"])
-            
+
             # -----------DEBUG
             # print(f"(Node::create_view) node_id->{self.node_id} ")
             # print(f"(Node::create_view) context_id->{self.__context_id} type->{type(self.__context_id)}")
@@ -264,7 +264,7 @@ class AlgorithmExecutor:
             table_info_json = table_info.to_json()
             monetdb_url = native_node.monetdb_url
             task_signature = self.__celery_obj.signature(self.task_signatures_str["create_remote_table"])
-            result = task_signature.delay(table_info_json=table_info_json, url=monetdb_url).get()  #does not return anything, get() so it blocks until complete
+            result = task_signature.delay(table_info_json=table_info_json, monetdb_socket_address=monetdb_url).get()  #does not return anything, get() so it blocks until complete
 
         # UDFs functionality
         def queue_run_udf(self, command_id: str, func_name: str, positional_args, keyword_args) -> "AsyncResult": #: positional_args: List[TableName or str]
@@ -303,7 +303,7 @@ class AlgorithmExecutor:
             # TODO: validate all local nodes have created the base_view_table??
             self._initial_view_tables = {}  # {variable:LocalTable}
             tmp_variable_node_table = {}
-            
+
             # TODO: clean up this mindfuck??
             for node in self._local_nodes:
                 # print(f"node -> {node.node_id}")
@@ -315,7 +315,7 @@ class AlgorithmExecutor:
                         tmp_variable_node_table[variable_name] = {node: table_name}
                     # print(f"tmp_variable_node_table-> {tmp_variable_node_table}\n\n")
 
-            self._initial_view_tables = {variable_name: self.LocalNodeTable(node_table) for (variable_name, node_table) in tmp_variable_node_table.items()} 
+            self._initial_view_tables = {variable_name: self.LocalNodeTable(node_table) for (variable_name, node_table) in tmp_variable_node_table.items()}
 
         @property
         def initial_view_tables(self):
@@ -351,7 +351,7 @@ class AlgorithmExecutor:
             udf_result_tables = {}
             for node, task in tasks.items():
                 table_name = TableName(task.get())
-                udf_result_tables[node] = table_name 
+                udf_result_tables[node] = table_name
 
                 # ceate remote table on global node
                 if share_to_global:
@@ -473,7 +473,7 @@ class AlgorithmExecutor:
 
             @property
             def node_table(self):
-                return self.__node_table 
+                return self.__node_table
 
             # TODO this is redundant, either remove it or overload all node methods here?
             def get_table_schema(self):
