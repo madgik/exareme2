@@ -1,6 +1,7 @@
 import sys
 from enum import Enum
 from itertools import cycle
+from os import path
 from pathlib import Path
 from textwrap import indent
 from time import sleep
@@ -12,51 +13,41 @@ from invoke import task
 from termcolor import colored
 
 PROJECT_ROOT = Path(__file__).parent
-ENVFILE = PROJECT_ROOT / ".mipenv"
-CONFIG_FILES_FOLDER = PROJECT_ROOT / "configs/"
-DEFAULT_NODE_CONFIG_FILE = PROJECT_ROOT / "mipengine/node/config.toml"
+DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
+NODES_CONFIG_DIR = PROJECT_ROOT / "configs/nodes/"
+NODE_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "mipengine/node/config.toml"
 OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
 
-@task(iterable=["node_name", "monetdb_port", "rabbitmq_port"])
-def config(
-    c, ip=None, node_name=None, monetdb_port=None, rabbitmq_port=None, show=False
-):
-    """Configure mipengine deployment
+@task
+def create_node_configs(c):
+    """
+    This command, using the .deployment.toml configuration file, will create the node configuration files.
+    """
 
-    Run this command to configure the mipengine deployment process."""
-    if ip and node_name and monetdb_port and rabbitmq_port:
-        if not ENVFILE.exists():
-            ENVFILE.touch()
-        if not (len(node_name) == len(monetdb_port) == len(rabbitmq_port)):
-            message(
-                "You should provide an equal number of node names, monetdb ports and rabbitmq ports",
-                Level.ERROR,
-            )
-            sys.exit(1)
-        envvars = [
-            f"export PYTHONPATH={PROJECT_ROOT}",
-            f"export MIPENGINE_LOCAL_IP={ip}",
-            f"export MIPENGINE_NODE_NAMES={':'.join(node_name)}",
-            f"export MIPENGINE_MONETDB_PORTS={':'.join(monetdb_port)}",
-            f"export MIPENGINE_RABBITMQ_PORTS={':'.join(rabbitmq_port)}",
-        ]
-        envvars = [line + "\n" for line in envvars]
-        with ENVFILE.open("w") as f:
-            f.writelines(envvars)
-        print_config()
-    elif show:
-        if not ENVFILE.exists():
-            message("No config found, run invoke config --help", level=Level.WARNING)
-        else:
-            print_config()
-    else:
-        message(
-            "You must either specify all config parameters or use --show flag to show current config",
-            level=Level.WARNING,
-        )
+    if not path.isfile(DEPLOYMENT_CONFIG_FILE):
+        raise FileNotFoundError("Deployment config file '.deployment.toml' not found.")
+
+    with open(DEPLOYMENT_CONFIG_FILE) as fp:
+        deployment_config = toml.load(fp)
+
+    with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
+        template_node_config = toml.load(fp)
+
+    for node in deployment_config["nodes"]:
+        node_config = template_node_config.copy()
+        node_config["identifier"] = node["id"]
+        node_config["monetdb"]["ip"] = deployment_config["ip"]
+        node_config["monetdb"]["port"] = node["monetdb_port"]
+        node_config["rabbitmq"]["ip"] = deployment_config["ip"]
+        node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
+
+        Path(NODES_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
+        with open(node_config_file, "w+") as fp:
+            toml.dump(node_config, fp)
 
 
 @task
@@ -417,31 +408,3 @@ def spin_wheel(promise=None, time=None):
             if time <= 0:
                 print("\b\b", end="")
                 break
-
-
-def print_config():
-    message("\nMIP config:", Level.BODY)
-    message("========== ", Level.BODY)
-    if ENVFILE.exists:
-        with ENVFILE.open("r") as f:
-            for line in f.readlines():
-                message(line.lstrip("export ").rstrip("\n"), Level.BODY)
-    print()
-
-
-def create_node_config_file(node_name, ip, monetdb_port, rabbitmq_port):
-    with open(DEFAULT_NODE_CONFIG_FILE) as fp:
-        node_config = toml.load(fp)
-
-    node_config["identifier"] = node_name
-    node_config["monetdb"]["ip"] = ip
-    node_config["monetdb"]["port"] = monetdb_port
-    node_config["rabbitmq"]["ip"] = ip
-    node_config["rabbitmq"]["port"] = rabbitmq_port
-
-    Path(CONFIG_FILES_FOLDER).mkdir(parents=True, exist_ok=True)
-    node_config_file = CONFIG_FILES_FOLDER / f"{node_name}.toml"
-    with open(node_config_file, "w+") as fp:
-        toml.dump(node_config, fp)
-
-    return node_config_file

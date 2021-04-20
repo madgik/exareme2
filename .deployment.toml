@@ -1,0 +1,16 @@
+ip = "192.168.63.129"
+
+[[nodes]]
+id = "globalnode"
+monetdb_port=50000
+rabbitmq_port=5670
+
+[[nodes]]
+id = "localnode1"
+monetdb_port=50001
+rabbitmq_port=5671
+
+[[nodes]]
+id = "localnode2"
+monetdb_port=50002
+rabbitmq_port=5672
