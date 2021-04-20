@@ -63,34 +63,29 @@ def check_if_column_exists(pathology_name: str, column: str):
         raise KeyError(f"Column {column} does not exist in the metadata!")
 
 
-def _convert_type_name_to_class(type: str):
-    """Converts MonetDB's types to MIP Engine's types
-    int ->  class int
-    float  -> class float
-    text  -> class str
-    bool -> class bool
-    clob -> class str
+def _convert_mip_type_to_class_type(type: str):
+    """
+    Converts MIP's types to the according class.
     """
     type_mapping = {
         "int": int,
-        "float": float,
-        "text": str,
-        "bool": bool,
-        "clob": str,
         "real": float,
+        "text": str,
     }
 
     if type not in type_mapping.keys():
-        raise ValueError(f"Type {type} cannot be converted to class type.")
+        raise ValueError(
+            f"MIP type '{type}' cannot be converted to a python class type."
+        )
 
-    return type_mapping.get(str(type).lower())
+    return type_mapping.get(type)
 
 
 def check_if_value_has_proper_type(pathology_name: str, column: str, value):
     pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
     column_sql_type = pathology_common_data_elements[column].sql_type
 
-    if type(value) is not _convert_type_name_to_class(column_sql_type):
+    if type(value) is not _convert_mip_type_to_class_type(column_sql_type):
         raise KeyError(
             f"Value {value} should be {column_sql_type} but was {type(value)}"
         )
