@@ -23,6 +23,10 @@ if not OUTDIR.exists():
     OUTDIR.mkdir()
 
 
+# TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
+# Right now if we call a task from another task, the "pre"
+
+
 @task
 def create_node_configs(c):
     """
@@ -106,15 +110,16 @@ def load_data_into_db(c, port):
     ports = port
     for port in ports:
         message(f"Loading data on MonetDB at port {port}...", Level.HEADER)
-        cmd = f"poetry run python -m mipengine.node.monetdb_interface.csv_importer -folder ./tests/data/ -user monetdb -pass monetdb -url localhost:{port} -farm db"
+        cmd = (
+            f"poetry run python -m mipengine.node.monetdb_interface.csv_importer "
+            f"-folder ./tests/data/ -user monetdb -pass monetdb -url localhost:{port} -farm db"
+        )
         run(c, cmd)
 
 
 @task
 def config_rabbitmq(c, ports):
     """Configure users and permissions for RabbitMQ containers"""
-    message("Password required for configuring RabbitMQ containers:", Level.WARNING)
-    c.run("sudo echo")
     message("Configuring RabbitMQ containers, this may take some time", Level.HEADER)
     rabbitmqctl_cmds = [
         "add_user user password",
@@ -130,10 +135,10 @@ def config_rabbitmq(c, ports):
                 f"Configuring container {container_name}: rabbitmqctl {rmq_cmd}...",
                 Level.HEADER,
             )
-            cmd = f"sudo docker exec {container_name} rabbitmqctl {rmq_cmd}"
+            cmd = f"docker exec {container_name} rabbitmqctl {rmq_cmd}"
             for _ in range(30):
                 try:
-                    # only works with c.run for some crazy reason
+                    # We don't use run because we want to handle the exception
                     c.run(cmd, hide="both")
                 except UnexpectedExit as err:
                     if err.result.return_code in (69, 64):
@@ -171,7 +176,11 @@ def kill_node(c, node=None, all_=False):
 
     The method always tries two commands, one for cases where node was
     started using the celery binary and one for cases it was started
-    as a python module."""
+    as a python module.
+
+    In order for the node processes to be killed, we need to kill both
+    the parent process with the 'node_identifier' and it's child."""
+
     if all_:
         node_pattern = ""
     elif node:
@@ -197,8 +206,8 @@ def kill_node(c, node=None, all_=False):
         )
         cmd = (
             f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
+            f"&& pgrep -P $pid | xargs kill -9 "
             f"&& kill -9 $pid "
-            f"&& pgrep -P $pid | xargs kill -9"
         )
         c.run(cmd)
     if res_py.ok:
@@ -245,11 +254,9 @@ def start_node(c, node=None, all_=False):
         sys.exit(1)
 
     for node_id in node_ids:
-        # TODO Change kill_node to pre task when this is added: https://github.com/pyinvoke/invoke/pull/730
         kill_node(c, node_id)
 
         message(f"Starting Node {node_id}...", Level.HEADER)
-
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
         with c.prefix(f"export CONFIG_FILE={node_config_file}"):
             outpath = OUTDIR / (node_id + ".out")
@@ -263,6 +270,7 @@ def start_node(c, node=None, all_=False):
 @task
 def kill_controller(c):
     """Kill Controller"""
+    message("Killing Controller...", Level.HEADER)
     res = c.run("ps aux | grep '[q]uart'", hide="both", warn=True)
     if res.ok:
         message("Killing previous Quart instances...", Level.HEADER)
@@ -272,9 +280,11 @@ def kill_controller(c):
         message("No quart instance found", Level.HEADER)
 
 
-@task(pre=[kill_controller])
+@task
 def start_controller(c):
     """Start Controller"""
+    kill_controller(c)
+
     message("Starting Controller...", Level.HEADER)
     with c.prefix("export QUART_APP=mipengine/controller/api/app:app"):
         outpath = OUTDIR / "controller.out"
@@ -285,31 +295,44 @@ def start_controller(c):
 
 
 @task
-def deploy(c, start_controller_=False, start_nodes=False, install_dep=True):
-    """Deploy everything.
+def deploy(
+    c,
+    install_dep=True,
+    start_services=False,
+    start_controller_=False,
+    start_nodes=False,
+):
+    """(Re)Deploy everything.
     The nodes will be deployed using the existing node config files."""
     if install_dep:
         install_dependencies(c)
 
-    if start_controller_:
-        kill_controller(c)
+    if start_controller_ or start_services:
         start_controller(c)
 
-    rm_containers(c, monetdb=True)
-    start_monetdb(c, monetdb_ports)
+    config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
+    if not config_files:
+        message(
+            f"There are no node config files to be used for deployment. Folder: {NODES_CONFIG_DIR}",
+            Level.WARNING,
+        )
+        sys.exit(1)
 
-    rm_containers(c, rabbitmq=True)
+    monetdb_ports = []
+    rabbitmq_ports = []
+    for node_config_file in config_files:
+        with open(node_config_file) as fp:
+            node_config = toml.load(fp)
+        monetdb_ports.append(node_config["monetdb"]["port"])
+        rabbitmq_ports.append(node_config["rabbitmq"]["port"])
+
+    rm_containers(c, monetdb=True, rabbitmq=True)
+    start_monetdb(c, monetdb_ports)
     start_rabbitmq(c, rabbitmq_ports)
     config_rabbitmq(c, rabbitmq_ports)
 
-    if start_nodes:
-        start_node(
-            c,
-            ip=local_ip,
-            node_name=node_names,
-            monetdb_port=monetdb_ports,
-            rabbitmq_port=rabbitmq_ports,
-        )
+    if start_nodes or start_services:
+        start_node(c, all_=True)
 
 
 @task
