@@ -138,17 +138,10 @@ def config_rabbitmq(c, ports):
             cmd = f"docker exec {container_name} rabbitmqctl {rmq_cmd}"
             for _ in range(30):
                 try:
-                    # We don't use run because we want to handle the exception
-                    c.run(cmd, hide="both")
-                except UnexpectedExit as err:
-                    if err.result.return_code in (69, 64):
-                        sleep(2)
-                    else:
-                        message("Error", Level.ERROR)
-                        message(err.result.stderr, Level.BODY)
-                        sys.exit(err.result.return_code)
+                    run(c, cmd, raise_error=True)
+                except UnexpectedExit:
+                    spin_wheel(time=2)
                 else:
-                    message("Ok", Level.SUCCESS)
                     break
             else:
                 message("Cannot configure RabbitMQ", Level.ERROR)
@@ -298,7 +291,7 @@ def start_controller(c):
 def deploy(
     c,
     install_dep=True,
-    start_services=False,
+    start_all=False,
     start_controller_=False,
     start_nodes=False,
 ):
@@ -307,7 +300,7 @@ def deploy(
     if install_dep:
         install_dependencies(c)
 
-    if start_controller_ or start_services:
+    if start_controller_ or start_all:
         start_controller(c)
 
     config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
@@ -331,7 +324,7 @@ def deploy(
     start_rabbitmq(c, rabbitmq_ports)
     config_rabbitmq(c, rabbitmq_ports)
 
-    if start_nodes or start_services:
+    if start_nodes or start_all:
         start_node(c, all_=True)
 
 
@@ -364,11 +357,13 @@ def cleanup(c):
         message("Ok", level=Level.SUCCESS)
 
 
-def run(c, cmd, finish=True, error_check=True):
+def run(c, cmd, finish=True, error_check=True, raise_error=False):
     promise = c.run(cmd, asynchronous=True)
     spin_wheel(promise=promise)
     stderr = promise.runner.stderr
     if error_check and stderr:
+        if raise_error:
+            raise UnexpectedExit(stderr)
         message("Error", Level.ERROR)
         message("\n".join(stderr), Level.BODY)
         sys.exit(promise.runner.returncode())
