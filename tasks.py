@@ -1,6 +1,7 @@
 import sys
 from enum import Enum
 from itertools import cycle
+from os import listdir
 from os import path
 from pathlib import Path
 from textwrap import indent
@@ -12,6 +13,7 @@ from invoke import call
 from invoke import task
 from termcolor import colored
 
+MONETDB_IMAGE = "jassak/mipenginedb:dev1.1"
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
 NODES_CONFIG_DIR = PROJECT_ROOT / "configs/nodes/"
@@ -24,7 +26,7 @@ if not OUTDIR.exists():
 @task
 def create_node_configs(c):
     """
-    This command, using the .deployment.toml configuration file, will create the node configuration files.
+    This command, using the .deployment.toml file, will create the node configuration files.
     """
 
     if not path.isfile(DEPLOYMENT_CONFIG_FILE):
@@ -51,7 +53,7 @@ def create_node_configs(c):
 
 
 @task
-def install(c):
+def install_dependencies(c):
     """Install project dependencies using poetry"""
     message("Installing dependencies...", Level.HEADER)
     cmd = "poetry install"
@@ -94,7 +96,7 @@ def start_monetdb(c, port):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"docker run -d -P -p {container_ports} --name {container_name} jassak/mipenginedb:dev1.1"
+        cmd = f"docker run -d -P -p {container_ports} --name {container_name} {MONETDB_IMAGE}"
         run(c, cmd)
 
 
@@ -193,71 +195,67 @@ def kill_node(c, node=None, all_=False):
             f"Killing previous celery instance{node_descr} started using celery binary...",
             Level.HEADER,
         )
-        cmd = f"ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}' | xargs kill -9"
+        cmd = (
+            f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
+            f"&& kill -9 $pid "
+            f"&& pgrep -P $pid | xargs kill -9"
+        )
         c.run(cmd)
     if res_py.ok:
         message(
             f"Killing previous celery instance{node_descr} started as a python module...",
             Level.HEADER,
         )
-        cmd = f"ps aux | grep '[m]ipengine' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}' | xargs kill -9"
+        cmd = (
+            f"pid=$(ps aux | grep '[m]ipengine' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
+            f"&& pgrep -P $pid | xargs kill -9"
+            f"&& kill -9 $pid"
+        )
         run(c, cmd)
     if not res_bin.ok and not res_py.ok:
         message("No celery instances found", Level.HEADER)
 
 
 @task
-def attach(c, node=None, controller=False, db=None):
-    """Attach to Node, Controller or DB"""
-    if (node or controller) and not (node and controller):
-        fname = node or "controller"
-        outpath = OUTDIR / (fname + ".out")
-        cmd = f"tail -f {outpath}"
-        c.run(cmd)
-    elif db:
-        c.run(f"docker exec -it {db} mclient db", pty=True)
-    else:
-        message("You must attach to Node, Controller or DB", Level.WARNING)
-        sys.exit(1)
+def start_node(c, node=None, all_=False):
+    """Start Celery node(s)
 
+    A node is started using the appropriate file inside the ./configs/nodes folder.
+    A file with the same name as the node should exist.
 
-@task(iterable=["node_name", "monetdb_port", "rabbitmq_port"])
-def start_node(c, ip, node_name, monetdb_port, rabbitmq_port):
-    """Start Celery node(s)"""
-    node_names = node_name
-    monetdb_ports = monetdb_port
-    rabbitmq_ports = rabbitmq_port
+    If the --all argument is given, the nodes of which the configuration file exists, will be started."""
 
-    if ip and node_names and monetdb_ports and rabbitmq_ports:
-        if not (len(node_names) == len(monetdb_ports) == len(rabbitmq_ports)):
+    node_ids = []
+    if all_:
+        for node_config_file in listdir(NODES_CONFIG_DIR):
+            filename, file_ext = path.splitext(node_config_file)
+            node_ids.append(filename)
+    elif node:
+        node_config_file = NODES_CONFIG_DIR / f"{node}.toml"
+        if not path.isfile(node_config_file):
             message(
-                "<start_node> task should be called with an equal number of "
-                "node names, monetdb ports and rabbitmq ports.\n"
-                f"Parameters provided: {locals()}",
+                f"The configuration file for node '{node}', does not exist in directory '{NODES_CONFIG_DIR}'",
                 Level.ERROR,
             )
             sys.exit(1)
+        filename, file_ext = path.splitext(path.basename(node_config_file))
+        node_ids.append(filename)
     else:
-        message(
-            "<start_node> task should have all of the ip, node, monetdb port and rabbitmq port parameters.\n"
-            f"Parameters provided: {locals()}",
-            level=Level.ERROR,
-        )
+        message("Please specify a node using --node <node> or use --all", Level.WARNING)
         sys.exit(1)
 
-    for (node_name, monetdb_port, rabbitmq_port) in zip(
-        node_names, monetdb_ports, rabbitmq_ports
-    ):
-        kill_node(c, node_name)
-        message(f"Starting Node {node_name}...", Level.HEADER)
+    for node_id in node_ids:
+        # TODO Change kill_node to pre task when this is added: https://github.com/pyinvoke/invoke/pull/730
+        kill_node(c, node_id)
 
-        config_file = create_node_config_file(
-            node_name, ip, monetdb_port, rabbitmq_port
-        )
-        with c.prefix(f"export CONFIG_FILE={config_file}"):
-            outpath = OUTDIR / (node_name + ".out")
+        message(f"Starting Node {node_id}...", Level.HEADER)
+
+        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
+        with c.prefix(f"export CONFIG_FILE={node_config_file}"):
+            outpath = OUTDIR / (node_id + ".out")
             cmd = f"poetry run python -m mipengine.node.node worker -l info >> {outpath} 2>&1"
             c.run(cmd, disown=True)
+
         spin_wheel(time=4)
         message("Ok", Level.SUCCESS)
 
@@ -287,56 +285,46 @@ def start_controller(c):
 
 
 @task
-def deploy(c, start_controller_=False, start_nodes=False, install_=True):
-    """Deploy everything"""
-    with c.cd(PROJECT_ROOT):
-        if not ENVFILE.exists():
-            message(
-                "No config found, run invoke config to create one",
-                Level.WARNING,
-            )
-            sys.exit(1)
-        with c.prefix(f"source {ENVFILE}"):
-            message("Using the following config", Level.HEADER)
-            print_config()
-            local_ip = c.run("echo $MIPENGINE_LOCAL_IP", hide="out").stdout.strip("\n")
-            monetdb_ports = (
-                c.run("echo $MIPENGINE_MONETDB_PORTS", hide="out")
-                .stdout.strip("\n")
-                .split(":")
-            )
-            rabbitmq_ports = (
-                c.run("echo $MIPENGINE_RABBITMQ_PORTS", hide="out")
-                .stdout.strip("\n")
-                .split(":")
-            )
-            node_names = (
-                c.run("echo $MIPENGINE_NODE_NAMES", hide="out")
-                .stdout.strip("\n")
-                .split(":")
-            )
+def deploy(c, start_controller_=False, start_nodes=False, install_dep=True):
+    """Deploy everything.
+    The nodes will be deployed using the existing node config files."""
+    if install_dep:
+        install_dependencies(c)
 
-            if install_:
-                install(c)
+    if start_controller_:
+        kill_controller(c)
+        start_controller(c)
 
-            rm_containers(c, monetdb=True)
-            start_monetdb(c, monetdb_ports)
+    rm_containers(c, monetdb=True)
+    start_monetdb(c, monetdb_ports)
 
-            rm_containers(c, rabbitmq=True)
-            start_rabbitmq(c, rabbitmq_ports)
-            config_rabbitmq(c, rabbitmq_ports)
+    rm_containers(c, rabbitmq=True)
+    start_rabbitmq(c, rabbitmq_ports)
+    config_rabbitmq(c, rabbitmq_ports)
 
-            if start_controller_:
-                kill_controller(c)
-                start_controller(c)
-            if start_nodes:
-                start_node(
-                    c,
-                    ip=local_ip,
-                    node_name=node_names,
-                    monetdb_port=monetdb_ports,
-                    rabbitmq_port=rabbitmq_ports,
-                )
+    if start_nodes:
+        start_node(
+            c,
+            ip=local_ip,
+            node_name=node_names,
+            monetdb_port=monetdb_ports,
+            rabbitmq_port=rabbitmq_ports,
+        )
+
+
+@task
+def attach(c, node=None, controller=False, db=None):
+    """Attach to Node, Controller or DB"""
+    if (node or controller) and not (node and controller):
+        fname = node or "controller"
+        outpath = OUTDIR / (fname + ".out")
+        cmd = f"tail -f {outpath}"
+        c.run(cmd)
+    elif db:
+        c.run(f"docker exec -it {db} mclient db", pty=True)
+    else:
+        message("You must attach to Node, Controller or DB", Level.WARNING)
+        sys.exit(1)
 
 
 @task

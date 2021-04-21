@@ -10,7 +10,7 @@ if __name__ == "__main__":
     extra_args, celery_args = parser.parse_known_args()
 
     rabbitmq_credentials = config.rabbitmq.user + ":" + config.rabbitmq.password
-    rabbitmq_url = config.rabbitmq.ip + ":" + config.rabbitmq.port
+    rabbitmq_url = config.rabbitmq.ip + ":" + str(config.rabbitmq.port)
     vhost = config.rabbitmq.vhost
 
     app = Celery(
@@ -32,11 +32,13 @@ if __name__ == "__main__":
     app.conf.task_time_limit = config.celery.task_time_limit
 
     # Send information to node_catalog
-    node_catalog.set_node(node_id=config.identifier,
-                           monetdb_ip=config.monetdb.ip,
-                           monetdb_port=config.monetdb.port,
-                           rabbitmq_ip=config.rabbitmq.ip,
-                           rabbitmq_port=config.rabbitmq.port)
+    node_catalog.set_node(
+        node_id=config.identifier,
+        monetdb_ip=config.monetdb.ip,
+        monetdb_port=config.monetdb.port,
+        rabbitmq_ip=config.rabbitmq.ip,
+        rabbitmq_port=config.rabbitmq.port,
+    )
 
     # Start celery
     app.worker_main(celery_args)
