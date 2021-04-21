@@ -21,7 +21,8 @@
               "edsd",
               "ppmi",
               "desd-synthdata",
-              "fake_longitudinal"
+              "fake_longitudinal",
+              "demo_data"
             ]
           },
           {
@@ -53,7 +54,8 @@
               "edsd",
               "ppmi",
               "desd-synthdata",
-              "fake_longitudinal"
+              "fake_longitudinal",
+              "demo_data"
             ]
           },
           {
