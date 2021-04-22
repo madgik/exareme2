@@ -105,15 +105,44 @@ def start_monetdb(c, port):
 
 
 @task(iterable=["port"])
-def load_data_into_db(c, port):
-    # TODO Refactor method, should use deployment.toml
-    """Load data into DB from csv"""
-    ports = port
-    for port in ports:
+def load_data(c, port=None):
+    """Load data into DB from csv
+
+    If the port is not set, the configurations inside the `./configs/nodes` folder
+    will be used to load the data in the nodes. The data will be imported on nodes
+    that have the `local` keyword in their name."""
+
+    local_node_ports = port
+    if not local_node_ports:
+        config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
+        if not config_files:
+            message(
+                f"There are no node config files to be used for data import. Folder: {NODES_CONFIG_DIR}",
+                Level.WARNING,
+            )
+            sys.exit(1)
+
+        local_node_ports = []
+        for node_config_file in config_files:
+            with open(node_config_file) as fp:
+                node_config = toml.load(fp)
+            if "local" in node_config["identifier"]:
+                local_node_ports.append(node_config["monetdb"]["port"])
+
+    from tests import integration_tests
+
+    data_folder = path.dirname(integration_tests.__file__) + "/data"
+    with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
+        template_node_config = toml.load(fp)
+    for port in local_node_ports:
         message(f"Loading data on MonetDB at port {port}...", Level.HEADER)
         cmd = (
             f"poetry run python -m mipengine.node.monetdb_interface.csv_importer "
-            f"-folder ./tests/integration_tests/data/ -user monetdb -pass monetdb -url localhost:{port} -farm db"
+            f"-folder {data_folder} "
+            f"-user {template_node_config['monetdb']['username']} "
+            f"-pass {template_node_config['monetdb']['password']} "
+            f"-url localhost:{port} "
+            f"-farm db"
         )
         run(c, cmd)
 
