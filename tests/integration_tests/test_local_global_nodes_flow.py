@@ -95,15 +95,20 @@ def test_create_merge_table_with_remote_tables(context_id):
     table_info_local_1 = TableInfo(local_node_1_table_name, schema)
     table_info_local_2 = TableInfo(local_node_2_table_name, schema)
     # TODO remove prefix, db_name on the MIP-16
-    prefix = "mapi:monetdb://"
-    db_name = "/db"
-    monetdb_url_local_node_1 = f"{prefix}{local_node_1_data.monetdbHostname}:{local_node_1_data.monetdbPort}{db_name}"
-    monetdb_url_local_node_2 = f"{prefix}{local_node_2_data.monetdbHostname}:{local_node_2_data.monetdbPort}{db_name}"
+
+    monetdb_url_local_node_1 = (
+        f"{local_node_1_data.monetdbHostname}:{local_node_1_data.monetdbPort}"
+    )
+    monetdb_url_local_node_2 = (
+        f"{local_node_2_data.monetdbHostname}:{local_node_2_data.monetdbPort}"
+    )
     global_node_create_remote_table.delay(
-        table_info_json=table_info_local_1.to_json(), url=monetdb_url_local_node_1
+        table_info_json=table_info_local_1.to_json(),
+        monetdb_socket_address=monetdb_url_local_node_1,
     ).get()
     global_node_create_remote_table.delay(
-        table_info_json=table_info_local_2.to_json(), url=monetdb_url_local_node_2
+        table_info_json=table_info_local_2.to_json(),
+        monetdb_socket_address=monetdb_url_local_node_2,
     ).get()
     remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()
     assert local_node_1_table_name in remote_tables
