@@ -9,11 +9,9 @@ from time import sleep
 
 import toml
 from invoke import UnexpectedExit
-from invoke import call
 from invoke import task
 from termcolor import colored
 
-MONETDB_IMAGE = "jassak/mipenginedb:dev1.1"
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
 NODES_CONFIG_DIR = PROJECT_ROOT / "configs/nodes/"
@@ -45,6 +43,7 @@ def create_node_configs(c):
     for node in deployment_config["nodes"]:
         node_config = template_node_config.copy()
         node_config["identifier"] = node["id"]
+        node_config["log_level"] = deployment_config["log_level"]
         node_config["monetdb"]["ip"] = deployment_config["ip"]
         node_config["monetdb"]["port"] = node["monetdb_port"]
         node_config["rabbitmq"]["ip"] = deployment_config["ip"]
@@ -89,9 +88,14 @@ def rm_containers(c, monetdb=False, rabbitmq=False):
             message(f"No {name} container to remove", level=Level.HEADER)
 
 
-@task(pre=[call(rm_containers, monetdb=True)], iterable=["port"])
-def start_monetdb(c, port):
+@task(iterable=["port"])
+def start_monetdb(c, port, monetdb_image=None):
     """Start MonetDB container(s) on given port(s)"""
+    rm_containers(c, monetdb=True)
+
+    if not monetdb_image:
+        monetdb_image = get_deployment_config("monetdb_image")
+
     ports = port
     for i, port in enumerate(ports):
         container_ports = f"{port}:50000"
@@ -100,7 +104,7 @@ def start_monetdb(c, port):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"docker run -d -P -p {container_ports} --name {container_name} {MONETDB_IMAGE}"
+        cmd = f"docker run -d -P -p {container_ports} --name {container_name} {monetdb_image}"
         run(c, cmd)
 
 
@@ -147,16 +151,20 @@ def load_data(c, port=None):
         run(c, cmd)
 
 
-@task
-def config_rabbitmq(c, ports):
-    """Configure users and permissions for RabbitMQ containers"""
+@task(iterable=["port"])
+def config_rabbitmq(c, port):
+    """Configure users and permissions for RabbitMQ containers on given port(s)"""
     message("Configuring RabbitMQ containers, this may take some time", Level.HEADER)
+
+    with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
+        node_config = toml.load(fp)
     rabbitmqctl_cmds = [
-        "add_user user password",
-        "add_vhost user_vhost",
-        "set_user_tags user user_tag",
-        "set_permissions -p user_vhost user '.*' '.*' '.*'",
+        f"add_user {node_config['rabbitmq']['user']} {node_config['rabbitmq']['password']}",
+        f"add_vhost {node_config['rabbitmq']['vhost']}",
+        f"set_user_tags {node_config['rabbitmq']['user']} user_tag",
+        f"set_permissions -p {node_config['rabbitmq']['vhost']} {node_config['rabbitmq']['user']} '.*' '.*' '.*'",
     ]
+    ports = port
     for num, port in enumerate(ports):
         container_name = f"rabbitmq-{num}"
 
@@ -178,9 +186,10 @@ def config_rabbitmq(c, ports):
                 sys.exit(1)
 
 
-@task(pre=[call(rm_containers, rabbitmq=True)], iterable=["port"])
+@task(iterable=["port"])
 def start_rabbitmq(c, port):
     """Start RabbitMQ container(s) on given port(s)"""
+    rm_containers(c, rabbitmq=True)
     ports = port
     for i, port in enumerate(ports):
         container_name = f"rabbitmq-{i}"
@@ -249,13 +258,16 @@ def kill_node(c, node=None, all_=False):
 
 
 @task
-def start_node(c, node=None, all_=False):
+def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
     """Start Celery node(s)
 
     A node is started using the appropriate file inside the ./configs/nodes folder.
     A file with the same name as the node should exist.
 
     If the --all argument is given, the nodes of which the configuration file exists, will be started."""
+
+    if not celery_log_level:
+        celery_log_level = get_deployment_config("celery_log_level")
 
     node_ids = []
     if all_:
@@ -283,11 +295,14 @@ def start_node(c, node=None, all_=False):
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
         with c.prefix(f"export CONFIG_FILE={node_config_file}"):
             outpath = OUTDIR / (node_id + ".out")
-            cmd = f"poetry run python -m mipengine.node.node worker -l info >> {outpath} 2>&1"
-            c.run(cmd, disown=True)
-
-        spin_wheel(time=4)
-        message("Ok", Level.SUCCESS)
+            if detached or all_:
+                cmd = f"poetry run python -m mipengine.node.node worker -l {celery_log_level} >> {outpath} 2>&1"
+                c.run(cmd, disown=True)
+                spin_wheel(time=4)
+                message("Ok", Level.SUCCESS)
+            else:
+                cmd = f"poetry run python -m mipengine.node.node worker -l {celery_log_level}"
+                c.run(cmd)
 
 
 @task
@@ -304,17 +319,21 @@ def kill_controller(c):
 
 
 @task
-def start_controller(c):
+def start_controller(c, detached=False):
     """Start Controller"""
     kill_controller(c)
 
     message("Starting Controller...", Level.HEADER)
     with c.prefix("export QUART_APP=mipengine/controller/api/app:app"):
         outpath = OUTDIR / "controller.out"
-        cmd = f"poetry run quart run >> {outpath} 2>&1"
-        c.run(cmd, disown=True)
-    spin_wheel(time=4)
-    message("Ok", Level.SUCCESS)
+        if detached:
+            cmd = f"poetry run quart run >> {outpath} 2>&1"
+            c.run(cmd, disown=True)
+            spin_wheel(time=4)
+            message("Ok", Level.SUCCESS)
+        else:
+            cmd = f"poetry run quart run"
+            c.run(cmd)
 
 
 @task
@@ -324,14 +343,23 @@ def deploy(
     start_all=False,
     start_controller_=False,
     start_nodes=False,
+    celery_log_level=None,
+    monetdb_image=None,
 ):
     """(Re)Deploy everything.
     The nodes will be deployed using the existing node config files."""
+
+    if not celery_log_level:
+        celery_log_level = get_deployment_config("celery_log_level")
+
+    if not monetdb_image:
+        monetdb_image = get_deployment_config("monetdb_image")
+
     if install_dep:
         install_dependencies(c)
 
     if start_controller_ or start_all:
-        start_controller(c)
+        start_controller(c, detached=True)
 
     config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
     if not config_files:
@@ -349,13 +377,12 @@ def deploy(
         monetdb_ports.append(node_config["monetdb"]["port"])
         rabbitmq_ports.append(node_config["rabbitmq"]["port"])
 
-    rm_containers(c, monetdb=True, rabbitmq=True)
-    start_monetdb(c, monetdb_ports)
-    start_rabbitmq(c, rabbitmq_ports)
-    config_rabbitmq(c, rabbitmq_ports)
+    start_monetdb(c, port=monetdb_ports, monetdb_image=monetdb_image)
+    start_rabbitmq(c, port=rabbitmq_ports)
+    config_rabbitmq(c, port=rabbitmq_ports)
 
     if start_nodes or start_all:
-        start_node(c, all_=True)
+        start_node(c, all_=True, celery_log_level=celery_log_level, detached=True)
 
 
 @task
@@ -444,3 +471,13 @@ def spin_wheel(promise=None, time=None):
             if time <= 0:
                 print("\b\b", end="")
                 break
+
+
+def get_deployment_config(config):
+    if not path.isfile(DEPLOYMENT_CONFIG_FILE):
+        raise FileNotFoundError(
+            f"Please provide a --{config} parameter or create a deployment config file '.deployment.toml'"
+        )
+
+    with open(DEPLOYMENT_CONFIG_FILE) as fp:
+        return toml.load(fp)[config]
