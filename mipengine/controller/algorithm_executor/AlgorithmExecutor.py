@@ -72,7 +72,7 @@ class AlgorithmExecutor:
         self.global_node = self.Node(
             node_id=global_node.nodeId,
             rabbitmq_url=f"{global_node.rabbitmqIp}:{global_node.rabbitmqPort}",
-            monetdb_url=f"{global_node.monetdbIp}:{global_node.monetdbPort}",
+            monetdb_socket_addr=f"{global_node.monetdbIp}:{global_node.monetdbPort}",
             context_id=self.context_id,
         )
 
@@ -95,7 +95,7 @@ class AlgorithmExecutor:
                 self.Node(
                     node_id=local_node.nodeId,
                     rabbitmq_url=f"{local_node.rabbitmqIp}:{local_node.rabbitmqPort}",
-                    monetdb_url=f"{local_node.monetdbIp}:{local_node.monetdbPort}",
+                    monetdb_socket_addr=f"{local_node.monetdbIp}:{local_node.monetdbPort}",
                     initial_view_tables_params=initial_view_tables_params,
                     context_id=self.context_id,
                 )
@@ -128,7 +128,7 @@ class AlgorithmExecutor:
             self,
             node_id,
             rabbitmq_url,
-            monetdb_url,
+            monetdb_socket_addr,
             context_id,
             initial_view_tables_params=None,
         ):
@@ -142,7 +142,7 @@ class AlgorithmExecutor:
             broker = f"amqp://{user}:{password}@{rabbitmq_url}/{vhost}"
             self.__celery_obj = Celery(broker=broker, backend="rpc://")
 
-            self.monetdb_url = monetdb_url
+            self.monetdb_socket_addr = monetdb_socket_addr
 
             self.__context_id = context_id
 
@@ -316,12 +316,13 @@ class AlgorithmExecutor:
             self, table_info: TableInfo, native_node: Node
         ) -> TableName:  # noqa: F821
             table_info_json = table_info.to_json()
-            monetdb_url = native_node.monetdb_url
+            monetdb_socket_addr = native_node.monetdb_socket_addr
             task_signature = self.__celery_obj.signature(
                 self.task_signatures_str["create_remote_table"]
             )
-            result = task_signature.delay(
-                table_info_json=table_info_json, url=monetdb_url
+            task_signature.delay(
+                table_info_json=table_info_json,
+                monetdb_socket_address=monetdb_socket_addr,
             ).get()  # does not return anything, get() so it blocks until complete
 
         # UDFs functionality
