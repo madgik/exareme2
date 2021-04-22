@@ -11,7 +11,7 @@ CREATE OR REPLACE
 FUNCTION
 $udf_name(n INT)
 RETURNS
-TABLE(dim0 int, val float)
+TABLE(dim0 int, val real)
 LANGUAGE PYTHON
 {
     import udfio

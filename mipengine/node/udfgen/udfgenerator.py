@@ -36,6 +36,7 @@ from mipengine.algorithms import TensorT
 from mipengine.algorithms import LoopbackTensorT
 from mipengine.algorithms import LiteralParameterT
 from mipengine.algorithms import ScalarT
+import mipengine.algorithms
 from mipengine.node.udfgen.reduce import SQL_REDUCE_QUERIES
 from mipengine.node.udfgen.sql_linalg import SQL_LINALG_QUERIES
 
@@ -145,7 +146,6 @@ class RelationV(TableV):
 
     def as_udf_signature(self):
         return SEP.join([f"{self.name}_{name} {dtype}" for name, dtype in self.schema])
-
 
     @property
     def schema(self):
