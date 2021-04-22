@@ -1,3 +1,5 @@
+import uuid
+
 import pymonetdb
 import pytest
 
@@ -23,22 +25,21 @@ global_node_get_remote_tables = (
 local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
 global_node_cleanup = nodes_communication.get_celery_cleanup_signature(global_node)
 
-context_id = "regrEssion"
-
 
 @pytest.fixture(autouse=True)
-def cleanup_tables():
-    yield
+def context_id():
+    context_id = "test_remote_tables_" + str(uuid.uuid4()).replace("-", "")
+
+    yield context_id
 
     local_node_cleanup.delay(context_id=context_id.lower()).get()
+    global_node_cleanup.delay(context_id=context_id.lower()).get()
 
 
-def test_create_and_get_remote_table():
+def test_create_and_get_remote_table(context_id):
     local_node_data = node_catalog.get_node(local_node_id)
     # TODO remove this on the MIP-16
-    prefix = "mapi:monetdb://"
-    db_name = "/db"
-    local_node_1_url = f"{prefix}{local_node_data.monetdbIp}:{local_node_data.monetdbPort}{db_name}"
+    local_node_1_url = f"{local_node_data.monetdbIp}:{local_node_data.monetdbPort}"
 
     table_schema = TableSchema(
         [
@@ -57,7 +58,7 @@ def test_create_and_get_remote_table():
     table_info = TableInfo(table_name, table_schema)
 
     global_node_create_remote_table.delay(
-        table_info_json=table_info.to_json(), url=local_node_1_url
+        table_info_json=table_info.to_json(), monetdb_socket_address=local_node_1_url
     ).get()
     remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()
     assert table_name.lower() in remote_tables
