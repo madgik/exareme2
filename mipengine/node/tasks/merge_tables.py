@@ -26,7 +26,7 @@ def get_merge_tables(context_id: str) -> List[str]:
     return merge_tables.get_merge_tables_names(context_id)
 
 
-@shared_task
+@shared_task(serializer="json")
 def create_merge_table(context_id: str, command_id: str, table_names: List[str]) -> str:
     """
     Parameters
@@ -52,4 +52,5 @@ def create_merge_table(context_id: str, command_id: str, table_names: List[str])
     merge_tables.create_merge_table(table_info)
     merge_tables.add_to_merge_table(merge_table_name, table_names)
 
+    print("RETUUUUURN! " + merge_table_name)
     return merge_table_name.lower()

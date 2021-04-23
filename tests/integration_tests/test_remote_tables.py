@@ -1,5 +1,6 @@
 import pymonetdb
 import pytest
+import uuid as uuid
 
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableInfo
@@ -23,17 +24,18 @@ global_node_get_remote_tables = (
 local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
 global_node_cleanup = nodes_communication.get_celery_cleanup_signature(global_node)
 
-context_id = "regrEssion"
-
 
 @pytest.fixture(autouse=True)
-def cleanup_tables():
-    yield
+def context_id():
+    context_id = "test_remote_tables_" + str(uuid.uuid4()).replace("-", "")
+
+    yield context_id
 
     local_node_cleanup.delay(context_id=context_id.lower()).get()
+    global_node_cleanup.delay(context_id=context_id.lower()).get()
 
 
-def test_create_and_get_remote_table():
+def test_create_and_get_remote_table(context_id):
     local_node_data = node_catalog.get_local_node(local_node_id)
     local_node_1_db_socket_address = (
         f"{local_node_data.monetdbHostname}:{local_node_data.monetdbPort}"

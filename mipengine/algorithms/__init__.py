@@ -8,6 +8,7 @@ from .udfutils import LoopbackTensorT
 from .udfutils import LiteralParameterT
 from .udfutils import ScalarT
 
+import mipengine.algorithms.logistic_regression
 
 __all__ = [
     "UDF_REGISTRY",

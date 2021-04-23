@@ -2,6 +2,7 @@ import json
 
 import pymonetdb
 import pytest
+import uuid as uuid
 
 from mipengine.common.node_tasks_DTOs import ColumnInfo, TableSchema
 from tests.integration_tests import nodes_communication
@@ -35,14 +36,7 @@ local_node_get_remote_tables = (
 )
 local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
 
-context_id = "HISTOGRAMS"
-
-
-@pytest.fixture(autouse=True)
-def cleanup_tables():
-    yield
-
-    local_node_cleanup.delay(context_id=context_id.lower()).get()
+context_id = "sql_injection_protection"
 
 
 def test_sql_injection_get_tables():
@@ -101,6 +95,7 @@ def test_sql_injection_get_merge_tables():
 
 def test_sql_injection_create_merge_table_table_names():
     with pytest.raises(ValueError):
+        print(context_id)
         local_node_create_merge_table.delay(
             context_id=context_id,
             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
@@ -134,8 +129,8 @@ def test_sql_injection_create_view_columns():
             context_id=context_id,
             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
             pathology=pathology,
-            datasets=json.dumps(datasets),
-            columns=json.dumps(columns),
+            datasets=datasets,
+            columns=columns,
             filters_json="filters",
         ).get()
 
@@ -154,8 +149,8 @@ def test_sql_injection_create_view_datasets():
             context_id=context_id,
             command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
             pathology=pathology,
-            datasets=json.dumps(datasets),
-            columns=json.dumps(columns),
+            datasets=datasets,
+            columns=columns,
             filters_json="",
         ).get()
 

@@ -2,7 +2,6 @@ from typing import List
 
 from celery import shared_task
 
-from mipengine import config
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.node.monetdb_interface import remote_tables
 
@@ -37,5 +36,4 @@ def create_remote_table(table_info_json: str, db_socket_address: str):
     remote_tables.create_remote_table(
         table_info=table_info,
         db_socket_address=db_socket_address,
-        db_name=config.monetdb.database,
     )

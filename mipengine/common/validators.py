@@ -1,3 +1,4 @@
+import dataclasses
 from functools import wraps
 import re
 
@@ -5,19 +6,25 @@ import re
 def validate_sql_params(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        all_args = list(args) + list(kwargs.values()) + list(kwargs.keys())
-        for arg in all_args:
-            if isinstance(arg, str):
-                _validate_sql_param(arg)
-            elif isinstance(arg, list):
-                wrapper(*arg)
-            elif isinstance(arg, dict):
-                wrapper(**arg)
-            else:
-                raise ValueError(f"Expected valid SQL parameter, got {arg}")
+        _validate_recursively(*args, **kwargs)
         return func(*args, **kwargs)
 
     return wrapper
+
+
+def _validate_recursively(*args, **kwargs):
+    all_args = list(args) + list(kwargs.values()) + list(kwargs.keys())
+    for arg in all_args:
+        if isinstance(arg, str):
+            _validate_sql_param(arg)
+        elif isinstance(arg, list):
+            _validate_recursively(*arg)
+        elif isinstance(arg, dict):
+            _validate_recursively(**arg)
+        elif dataclasses.is_dataclass(arg):
+            _validate_recursively(dataclasses.asdict(arg))
+        else:
+            raise ValueError(f"Expected valid SQL parameter, got {arg}")
 
 
 def _validate_sql_param(arg):
