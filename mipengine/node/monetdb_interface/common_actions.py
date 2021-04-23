@@ -5,7 +5,7 @@ from mipengine import config
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_exceptions import TablesNotFound
 from mipengine.common.node_tasks_DTOs import TableSchema
-from mipengine.common.sql_injection_guard import sql_injection_guard
+from mipengine.common.validators import validate_sql_params
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 MONETDB_VARCHAR_SIZE = 50
@@ -14,7 +14,7 @@ MONETDB_VARCHAR_SIZE = 50
 # TODO We need to add the PRIVATE/OPEN table logic
 
 
-@sql_injection_guard
+@validate_sql_params
 def create_table_name(
     table_type: str, command_id: str, context_id: str, node_id: str
 ) -> str:
@@ -49,7 +49,7 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     )
 
 
-@sql_injection_guard
+@validate_sql_params
 def get_table_schema(table_name: str) -> TableSchema:
     """
     Retrieves a schema for a specific table name  from the monetdb.
@@ -87,7 +87,7 @@ def get_table_schema(table_name: str) -> TableSchema:
     )
 
 
-@sql_injection_guard
+@validate_sql_params
 def get_table_names(table_type: str, context_id: str) -> List[str]:
     """
     Retrieves a list of table names, which contain the context_id from the monetdb.
@@ -116,7 +116,7 @@ def get_table_names(table_type: str, context_id: str) -> List[str]:
     return [table[0] for table in table_names]
 
 
-@sql_injection_guard
+@validate_sql_params
 def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     """
     Retrieves the data of a table with specific name from the monetdb.
@@ -144,7 +144,7 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     return data
 
 
-@sql_injection_guard
+@validate_sql_params
 def clean_up(context_id: str):
     """
     Deletes all tables of any type with name that contain a specific
@@ -232,7 +232,7 @@ def _convert_monet2mip_column_type(column_type: str) -> str:
     return type_mapping.get(column_type)
 
 
-@sql_injection_guard
+@validate_sql_params
 def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
     """
     Deletes all tables of specific type with name that contain a specific context_id from the monetdb.
