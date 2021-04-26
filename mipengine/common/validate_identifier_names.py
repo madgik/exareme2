@@ -3,29 +3,29 @@ from functools import wraps
 
 
 def validate_identifier_names(func):
-    @wraps(func)
+    wraps(func)
+
     def wrapper(*args, **kwargs):
         all_args = list(args) + list(kwargs.values())
-        validate_argument(all_args)
+        for arg in all_args:
+            if type(arg) == str:
+                if (
+                    not arg.isidentifier()
+                    and not arg.isalnum()
+                    and not has_proper_url_format(arg)
+                ):
+                    raise ValueError(f"Not allowed character in argument: {arg}")
+            elif type(arg) == list:
+                for item in arg:
+                    if (
+                        not item.isidentifier()
+                        and not item.isalnum()
+                        and not has_proper_url_format(item)
+                    ):
+                        raise ValueError(f"Not allowed character in argument: {item}")
         return func(*args, **kwargs)
 
     return wrapper
-
-
-def validate_argument(argument):
-    for arg in argument:
-        if type(arg) == str:
-            if arg.isidentifier():
-                continue
-            elif arg.isalnum():
-                continue
-            elif has_proper_url_format(arg):
-                continue
-            raise ValueError(f"Not allowed character in argument: {arg}")
-        elif type(arg) == list:
-            validate_argument(arg)
-        elif type(arg) == dict:
-            validate_argument(arg)
 
 
 def has_proper_url_format(url: str):
@@ -38,8 +38,5 @@ def has_proper_url_format(url: str):
         f"\.{regex_between_0_to_255}"
     )
     # The format of the URL of a REMOTE TABLE is: mapi:monetdb://<host>:<port>/<dbname>
-    url_match = re.match(
-        f"mapi:monetdb://{ip_regex}:{regex_any_alphanumeric}/{regex_any_alphanumeric}$",
-        url,
-    )
+    url_match = re.match(f"{ip_regex}:{regex_any_alphanumeric}$", url)
     return url_match is not None

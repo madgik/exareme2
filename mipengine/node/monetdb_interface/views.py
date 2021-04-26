@@ -1,6 +1,6 @@
 from typing import List
 
-from mipengine.common.filters import validate_proper_filter, build_filter_clause
+from mipengine.common.filters import build_filter_clause
 from mipengine.common.validate_identifier_names import validate_identifier_names
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
@@ -22,7 +22,7 @@ def create_view(
 ):
     filter_clause = ""
     if filters is not None:
-        filter_clause = f"{build_filter_clause(filters)}"
+        filter_clause = f"AND {build_filter_clause(filters)}"
     dataset_names = ",".join(f"'{dataset}'" for dataset in datasets)
     columns = ", ".join(columns)
 
@@ -31,5 +31,5 @@ def create_view(
         AS SELECT {DATA_TABLE_PRIMARY_KEY}, {columns}
         FROM {pathology}_data
         WHERE dataset IN ({dataset_names})
-        AND {filter_clause}"""
+        {filter_clause}"""
     )
