@@ -52,9 +52,9 @@ POSARGS_relations_to_relation = [
 DEF_relations_to_relation = """\
 CREATE OR REPLACE
 FUNCTION
-udfname(x_col1 int, x_col2 float, y_col1 int, y_col2 float)
+udfname(x_col1 int, x_col2 real, y_col1 int, y_col2 real)
 RETURNS
-TABLE(col1 int, col2 float)
+TABLE(col1 int, col2 real)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -101,9 +101,9 @@ POSARGS_table_to_tensor = [
 DEF_table_to_tensor = """\
 CREATE OR REPLACE
 FUNCTION
-udfname(input__col1 int, input__col2 float)
+udfname(input__col1 int, input__col2 real)
 RETURNS
-TABLE(dim0 int, dim1 int, val float)
+TABLE(dim0 int, dim1 int, val real)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -157,9 +157,9 @@ POSARGS_with_literal = [
 DEF_with_literal = """\
 CREATE OR REPLACE
 FUNCTION
-udfname(X_dim0 int, X_val float)
+udfname(X_dim0 int, X_val real)
 RETURNS
-TABLE(dim0 int, val float)
+TABLE(dim0 int, val real)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -212,9 +212,9 @@ POSARGS_to_scalar = [
 DEF_to_scalar = """\
 CREATE OR REPLACE
 FUNCTION
-udfname(vec1_dim0 int, vec1_val float, vec2_dim0 int, vec2_val float)
+udfname(vec1_dim0 int, vec1_val real, vec2_dim0 int, vec2_val real)
 RETURNS
-float
+real
 LANGUAGE PYTHON
 {
     import pandas as pd
