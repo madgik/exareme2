@@ -107,7 +107,7 @@ def start_monetdb(c, port):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"docker run -d -P -p {container_ports} --name {container_name} jassak/mipenginedb:dev1.1"
+        cmd = f"docker run -d -P -p {container_ports} --name {container_name} madgik/mipenginedb:dev1.2"
         run(c, cmd)
 
 
