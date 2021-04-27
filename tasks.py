@@ -113,11 +113,13 @@ def start_monetdb(c, port):
 
 @task(iterable=["port"])
 def load_data_into_db(c, port):
+    # TODO Refactor method, should use deployment.toml
     """Load data into DB from csv"""
     ports = port
     for port in ports:
         message(f"Loading data on MonetDB at port {port}...", Level.HEADER)
-        cmd = f"poetry run python -m mipengine.node.monetdb_interface.csv_importer -folder ./tests/data/ -user monetdb -pass monetdb -url localhost:{port} -farm db"
+        # TODO Path should not be hardcoded
+        cmd = f"poetry run python -m mipengine.node.monetdb_interface.csv_importer -folder ./tests/integration_tests/data/ -user monetdb -pass monetdb -url localhost:{port} -farm db"
         run(c, cmd)
 
 
