@@ -74,9 +74,7 @@ def _convert_mip_type_to_class_type(type: str):
     }
 
     if type not in type_mapping.keys():
-        raise ValueError(
-            f"MIP type '{type}' cannot be converted to a python class type."
-        )
+        raise KeyError(f"MIP type '{type}' cannot be converted to a python class type.")
 
     return type_mapping.get(type)
 
@@ -86,6 +84,6 @@ def check_if_value_has_proper_type(pathology_name: str, column: str, value):
     column_sql_type = pathology_common_data_elements[column].sql_type
 
     if type(value) is not _convert_mip_type_to_class_type(column_sql_type):
-        raise KeyError(
+        raise TypeError(
             f"Value {value} should be {column_sql_type} but was {type(value)}"
         )

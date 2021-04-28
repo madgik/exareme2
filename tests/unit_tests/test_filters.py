@@ -266,3 +266,93 @@ all_cases = [(all_filter, all_result)]
 def test_all(test_input, expected):
     assert build_filter_clause(test_input) == expected
     validate_proper_filter(PATHOLOGY, test_input)
+
+
+invalid_condition_filter = {
+    "condition": "ANDOR",
+    "rules": [
+        {
+            "id": "age_value",
+            "field": "age_value",
+            "type": "int",
+            "input": "number",
+            "operator": "equal",
+            "value": 17,
+        }
+    ],
+    "valid": True,
+}
+
+
+invalid_operator_filter = {
+    "condition": "AND",
+    "rules": [
+        {
+            "id": "age_value",
+            "field": "age_value",
+            "type": "int",
+            "input": "number",
+            "operator": "invalid operator",
+            "value": 17,
+        }
+    ],
+    "valid": True,
+}
+
+
+@pytest.mark.parametrize("test_input", [invalid_condition_filter])
+def test_invalid_condition_build_filter_clause(test_input):
+    with pytest.raises(ValueError):
+        build_filter_clause(test_input)
+
+
+@pytest.mark.parametrize(
+    "test_input", [invalid_condition_filter, invalid_operator_filter]
+)
+def test_invalid_condition_validate_proper_filter(test_input):
+    with pytest.raises(ValueError):
+        validate_proper_filter(PATHOLOGY, test_input)
+
+
+invalid_column_filter = {
+    "condition": "AND",
+    "rules": [
+        {
+            "id": "invalid column",
+            "field": "age_value",
+            "type": "int",
+            "input": "number",
+            "operator": "equal",
+            "value": 17,
+        }
+    ],
+    "valid": True,
+}
+
+
+@pytest.mark.parametrize("test_input", [invalid_column_filter])
+def test_invalid_condition_validate_proper_filter(test_input):
+    with pytest.raises(KeyError):
+        validate_proper_filter(PATHOLOGY, test_input)
+
+
+invalid_value_type_filter = {
+    "condition": "AND",
+    "rules": [
+        {
+            "id": "age_value",
+            "field": "age_value",
+            "type": "int",
+            "input": "number",
+            "operator": "equal",
+            "value": "17",
+        }
+    ],
+    "valid": True,
+}
+
+
+@pytest.mark.parametrize("test_input", [invalid_value_type_filter])
+def test_invalid_condition_validate_proper_filter(test_input):
+    with pytest.raises(TypeError):
+        validate_proper_filter(PATHOLOGY, test_input)
