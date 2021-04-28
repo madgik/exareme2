@@ -13,6 +13,14 @@ class ColumnInfo:
     name: str
     data_type: str
 
+    def __post_init__(self):
+        allowed_types = {"int", "text", "real"}
+        self.data_type = str.lower(self.data_type)
+        if self.data_type not in allowed_types:
+            raise TypeError(
+                f"Column can have one of the following types: {allowed_types}"
+            )
+
 
 @dataclass_json
 @dataclass
@@ -47,3 +55,10 @@ class TableData:
 class UDFArgument:
     type: str
     value: Any
+
+    def __post_init__(self):
+        allowed_types = {"table", "literal"}
+        if self.type not in allowed_types:
+            raise TypeError(
+                f"UDFArgument type  can have one of the following types: {allowed_types}"
+            )
