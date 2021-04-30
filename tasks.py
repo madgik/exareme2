@@ -13,7 +13,6 @@ from invoke import task
 from termcolor import colored
 
 PROJECT_ROOT = Path(__file__).parent
-print(PROJECT_ROOT)
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
 NODES_CONFIG_DIR = PROJECT_ROOT / "configs/nodes/"
 NODE_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "mipengine/node/config.toml"
@@ -294,17 +293,18 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
 
         message(f"Starting Node {node_id}...", Level.HEADER)
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
-        with c.prefix(
-            f"export CONFIG_FILE={node_config_file} PYTHONPATH={PROJECT_ROOT}"
-        ):
+        with c.prefix(f"export CONFIG_FILE={node_config_file}"):
             outpath = OUTDIR / (node_id + ".out")
             if detached or all_:
-                cmd = f"poetry run python -m mipengine.node.node worker -l {celery_log_level} >> {outpath} 2>&1"
+                cmd = (
+                    f"PYTHONPATH={PROJECT_ROOT} poetry run python "
+                    f"-m mipengine.node.node worker -l {celery_log_level} >> {outpath} 2>&1"
+                )
                 c.run(cmd, disown=True)
                 spin_wheel(time=4)
                 message("Ok", Level.SUCCESS)
             else:
-                cmd = f"poetry run python -m mipengine.node.node worker -l {celery_log_level}"
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run python -m mipengine.node.node worker -l {celery_log_level}"
                 c.run(cmd)
 
 
@@ -327,17 +327,15 @@ def start_controller(c, detached=False):
     kill_controller(c)
 
     message("Starting Controller...", Level.HEADER)
-    with c.prefix(
-        "export QUART_APP=mipengine/controller/api/app:app  PYTHONPATH={PROJECT_ROOT}"
-    ):
+    with c.prefix("export QUART_APP=mipengine/controller/api/app:app"):
         outpath = OUTDIR / "controller.out"
         if detached:
-            cmd = f"poetry run quart run >> {outpath} 2>&1"
+            cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run >> {outpath} 2>&1"
             c.run(cmd, disown=True)
             spin_wheel(time=4)
             message("Ok", Level.SUCCESS)
         else:
-            cmd = f"poetry run quart run"
+            cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run"
             c.run(cmd)
 
 
