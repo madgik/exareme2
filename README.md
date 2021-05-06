@@ -85,11 +85,16 @@
    ```
    inv load-data
    ```
-   
+
 1. _Optional_ Start Flower monitoring tool
 
      ```
      inv start-flower
+     ```
+     you can specify the broker port by adding -p <PORT-NUMBER>
+
+     ```
+     inv start-flower -p 5671
      ```
 
      and then go to http://localhost:5555 on your browser to start monitoring the tasks, the workers and get general info on the .

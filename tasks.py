@@ -417,7 +417,7 @@ def cleanup(c):
         message("Ok", level=Level.SUCCESS)
 
 @task
-def start_flower(c, flower=True):
+def start_flower(c, port = "0000", flower=True):
     """ Remove existing flower container, start monitoring tools """
 
     kill_flower(c)
@@ -431,10 +431,14 @@ def start_flower(c, flower=True):
     with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
         node_config = toml.load(fp)
 
+    if port == "0000":
+        port = str(node_config["rabbitmq"]["port"])
+
     ip = get_deployment_config("ip")
+    flower_url = ip + ":" + port
     user_and_password = node_config['rabbitmq']['user'] + ":" + node_config['rabbitmq']['password']
-    flower_url = ip + ":" + str(node_config["rabbitmq"]["port"])
     vhost = node_config['rabbitmq']['vhost']
+
 
     broker_api = f"amqp://{user_and_password}@{flower_url}/{vhost}"
     message(f"Starting flower container...", Level.HEADER)
