@@ -416,6 +416,46 @@ def cleanup(c):
         OUTDIR.rmdir()
         message("Ok", level=Level.SUCCESS)
 
+@task
+def start_flower(c, flower=True):
+    """ Remove existing flower container, start monitoring tools """
+
+    kill_flower(c)
+    message("Flower is dead and gone", Level.HEADER)
+
+
+    if not path.isfile(DEPLOYMENT_CONFIG_FILE):
+        raise FileNotFoundError("Deployment config file '.deployment.toml' not found.")
+
+
+    with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
+        node_config = toml.load(fp)
+
+    ip = get_deployment_config("ip")
+    user_and_password = node_config['rabbitmq']['user'] + ":" + node_config['rabbitmq']['password']
+    flower_url = ip + ":" + str(node_config["rabbitmq"]["port"])
+    vhost = node_config['rabbitmq']['vhost']
+
+    broker_api = f"amqp://{user_and_password}@{flower_url}/{vhost}"
+    message(f"Starting flower container...", Level.HEADER)
+    command = f"docker run --name flower -p 5555:5555 mher/flower:0.9.5 flower --broker={broker_api} &"
+    run(c, command)
+    c.run("docker ps | grep '[f]lower'", warn=True)
+
+
+@task
+def kill_flower(c):
+    """Kill Flower"""
+    message("Killing Flower...", Level.HEADER)
+    container_ids = c.run(f"docker ps -qa --filter name=flower", hide="out")
+    print(f"container_ids: {container_ids}")
+    if container_ids.stdout:
+        message("Killing Flower instances and removing containers...", Level.HEADER)
+        cmd = "docker container kill flower & docker rm -vf $(docker ps -qa --filter name=flower)"
+        run(c, cmd)
+    else:
+        message(f"No flower container to remove", level=Level.HEADER)
+
 
 def run(c, cmd, finish=True, error_check=True, raise_error=False):
     promise = c.run(cmd, asynchronous=True)

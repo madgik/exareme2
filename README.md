@@ -85,6 +85,20 @@
    ```
    inv load-data
    ```
+   
+1. _Optional_ Start Flower monitoring tool
+
+     ```
+     inv start-flower
+     ```
+
+     and then go to http://localhost:5555 on your browser to start monitoring the tasks, the workers and get general info on the .
+
+1. _Optional_ Kill Flower at any point with
+
+     ```
+     inv kill-flower
+     ```
 
 1. Attach to some service's stdout/stderr with
 
