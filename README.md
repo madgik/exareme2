@@ -97,7 +97,7 @@
      inv start-flower -p 5671
      ```
 
-     and then go to http://localhost:5555 on your browser to start monitoring the tasks, the workers and get general info on the .
+     and then go to http://localhost:5555 on your browser to start monitoring the tasks, the workers and get general info.
 
 1. _Optional_ Kill Flower at any point with
 
