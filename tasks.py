@@ -441,7 +441,7 @@ def start_flower(c, port = "0000", flower=True):
 
 
     broker_api = f"amqp://{user_and_password}@{flower_url}/{vhost}"
-    message(f"Starting flower container...", Level.HEADER)
+    message(f"Starting flower container on port {port}...", Level.HEADER)
     command = f"docker run --name flower -p 5555:5555 mher/flower:0.9.5 flower --broker={broker_api} &"
     run(c, command)
     c.run("docker ps | grep '[f]lower'", warn=True)
