@@ -63,17 +63,13 @@ def run_udf(
             The name of the table where the udf execution results are in.
     """
 
-    result_table_name = create_table_name(
-        "table", command_id, context_id, node_config.identifier
-    )
-
     positional_args = [UDFArgument.from_json(arg) for arg in positional_args_json]
 
     keyword_args = {
         key: UDFArgument.from_json(arg) for key, arg in keyword_args_json.items()
     }
 
-    udf_creation_stmt, udf_execution_stmt = _generate_udf_statements(
+    udf_creation_stmt, udf_execution_stmt, result_table_name = _generate_udf_statements(
         command_id, context_id, func_name, positional_args, keyword_args
     )
 
@@ -89,7 +85,7 @@ def get_run_udf_query(
     func_name: str,
     positional_args_json: List[str],
     keyword_args_json: Dict[str, str],
-) -> Tuple[str, str]:
+) -> Tuple[str, str, str]:
     """
     Returns the sql statements that represent the execution of the udf.
 
@@ -169,18 +165,16 @@ def _generate_udf_statements(
     positional_args: List[UDFArgument],
     keyword_args: Dict[str, UDFArgument],
 ):
-    gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
-
-    udf_creation_stmt, udf_execution_stmt = generate_udf_application_queries(
-        func_name, gen_pos_args, gen_kw_args
-    )
-
     allowed_func_name = func_name.replace(".", "_")  # A dot is not an allowed character
     udf_name = _create_udf_name(allowed_func_name, command_id, context_id)
     result_table_name = create_table_name(
         "table", command_id, context_id, node_config.identifier
     )
 
+    gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
+    udf_creation_stmt, udf_execution_stmt = generate_udf_application_queries(
+        func_name, gen_pos_args, gen_kw_args
+    )
     udf_creation_stmt = udf_creation_stmt.substitute(udf_name=udf_name)
     udf_execution_stmt = udf_execution_stmt.substitute(
         table_name=result_table_name,
@@ -188,4 +182,4 @@ def _generate_udf_statements(
         node_id=node_config.identifier,
     )
 
-    return udf_creation_stmt, udf_execution_stmt
+    return udf_creation_stmt, udf_execution_stmt, result_table_name
