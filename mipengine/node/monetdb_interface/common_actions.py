@@ -52,7 +52,7 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
 @validate_identifier_names
 def get_table_schema(table_name: str) -> TableSchema:
     """
-    Retrieves a schema for a specific table type and table name  from the monetdb.
+    Retrieves a schema for a specific table name from the monetdb.
 
     Parameters
     ----------
@@ -119,7 +119,7 @@ def get_table_names(table_type: str, context_id: str) -> List[str]:
 @validate_identifier_names
 def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     """
-    Retrieves the data of a table with specific type and name  from the monetdb.
+    Retrieves the data of a table with specific name from the monetdb.
 
     Parameters
     ----------
