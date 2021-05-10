@@ -96,7 +96,7 @@ def test_sql_injection_create_remote_table(context_id):
         table_info = TableInfo("table_name", schema)
         local_node_create_remote_table.delay(
             table_info_json=table_info.to_json(),
-            db_socket_address="...:",
+            monetdb_socket_address="...:",
         ).get()
 
 

@@ -196,7 +196,7 @@ def test_validate_tables_can_be_merged_error(table_names):
 
 
 @pytest.mark.parametrize(
-    "table_info,db_socket_address",
+    "table_info,monetdb_socket_address",
     [
         (
             TableInfo(
@@ -209,7 +209,7 @@ def test_validate_tables_can_be_merged_error(table_names):
                     ]
                 ),
             ),
-            "db_socket_address",
+            "monetdb_socket_address",
         ),
         (
             TableInfo(
@@ -222,7 +222,7 @@ def test_validate_tables_can_be_merged_error(table_names):
                     ]
                 ),
             ),
-            "db_socket_address",
+            "monetdb_socket_address",
         ),
         (
             TableInfo(
@@ -239,9 +239,9 @@ def test_validate_tables_can_be_merged_error(table_names):
         ),
     ],
 )
-def test_create_remote_table_error(table_info, db_socket_address):
+def test_create_remote_table_error(table_info, monetdb_socket_address):
     with pytest.raises(ValueError):
-        create_remote_table(table_info, db_socket_address)
+        create_remote_table(table_info, monetdb_socket_address)
 
 
 @pytest.mark.parametrize(
@@ -282,17 +282,6 @@ def test_create_remote_table_error(table_info, db_socket_address):
 def test_create_view_error(view_name, pathology, datasets, columns):
     with pytest.raises(ValueError):
         create_view(view_name, pathology, datasets, columns)
-
-
-@pytest.mark.parametrize(
-    "udf_creation_stmt, udf_execution_query",
-    [
-        ["Robert'); DROP TABLE data; --", "Robert'); DROP TABLE data; --"],
-    ],
-)
-def test_run_udf_error(udf_creation_stmt, udf_execution_query):
-    with pytest.raises(ValueError):
-        run_udf(udf_creation_stmt, udf_execution_query)
 
 
 @pytest.mark.parametrize(

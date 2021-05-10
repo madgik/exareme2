@@ -14,6 +14,7 @@ MONETDB_VARCHAR_SIZE = 50
 # TODO We need to add the PRIVATE/OPEN table logic
 
 
+@validate_sql_params
 def create_table_name(
     table_type: str, command_id: str, context_id: str, node_id: str
 ) -> str:
@@ -143,6 +144,7 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     return data
 
 
+@validate_sql_params
 def clean_up(context_id: str):
     """
     Deletes all tables of any type with name that contain a specific

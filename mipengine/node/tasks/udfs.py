@@ -123,6 +123,7 @@ def get_run_udf_query(
     )
 
 
+@validate_sql_params
 def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
     """
     Creates a udf name with the format <func_name>_<commandId>_<contextId>

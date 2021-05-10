@@ -15,12 +15,12 @@ def get_remote_table_names(context_id: str) -> List[str]:
 
 
 @validate_sql_params
-def create_remote_table(table_info: TableInfo, db_socket_address: str):
+def create_remote_table(table_info: TableInfo, monetdb_socket_address: str):
     columns_schema = convert_schema_to_sql_query_format(table_info.schema)
     MonetDB().execute(
         f"""
         CREATE REMOTE TABLE {table_info.name}
-        ( {columns_schema}) ON 'mapi:monetdb://{db_socket_address}/{config.monetdb.database}'
+        ( {columns_schema}) ON 'mapi:monetdb://{monetdb_socket_address}/{config.monetdb.database}'
         WITH USER 'monetdb' PASSWORD 'monetdb'
         """
     )
