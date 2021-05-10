@@ -1,12 +1,9 @@
 from quart import Quart
 from quart import request
+from requests import codes
 
 from node_registry import NodeRegistry
-from mipengine.common.node_registry_DTOs import Pathology, NodeRecord
-
-import asyncio
-
-import concurrent.futures
+from mipengine.common.node_registry_DTOs import NodeRecord
 
 
 app = Quart(__name__)
@@ -16,31 +13,17 @@ node_catalog = NodeRegistry()
 
 @app.route("/register", methods=["POST"])
 async def register_node():
-    print("(register_node)")
     request_body = await request.data
     node_record = NodeRecord.parse_raw(request_body)
     try:
         await node_catalog.register_node(node_record)
-        print(f"(register_node) registered: {node_record}")
-        return "Sucess", "200"
+        return str(codes.ok)  # "200"
 
     except Exception as exc:
-        print(f"(register_node) FAILED: {exc.message}")
-        return exc.message, "409"
+        return exc.message, str(codes.conflict)  # "409"
 
 
 @app.route("/nodes")
 async def get_all_nodes() -> str:
-    print("(get_all_nodes)")
     all_nodes = await node_catalog.get_all_nodes()
-
-    print(f"all_nodes.json()--> {all_nodes.json()}")
     return all_nodes.json()
-
-
-# all_nodes = [node_record.json() for node_record in all_nodes]
-
-#     import json
-
-#     str_json = json.dumps(all_nodes)
-#     return str_json, "200"

@@ -1,4 +1,4 @@
-from mipengine.common.node_catalog_DTOs import Pathology, NodeRecord, NodeRecordsList
+from mipengine.common.node_registry_DTOs import Pathology, NodeRecord, NodeRecordsList
 from ipaddress import IPv4Address
 import requests
 
@@ -13,7 +13,6 @@ def do_post_request():
         db_queue_port=5678,
         pathologies=[a_pathology],
     )
-
     a_node_record_1_json = a_node_record_1.json()
 
     a_node_record_2 = NodeRecord(
@@ -24,30 +23,34 @@ def do_post_request():
         db_queue_port=5678,
         pathologies=[a_pathology],
     )
-
     a_node_record_2_json = a_node_record_2.json()
 
     url = "http://127.0.0.1:5000/register"
-    print(f"POST to {url}")
-
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
+
+    # register node1
     result = requests.post(url, data=a_node_record_1_json, headers=headers)
-    print(f"node_record1 register result -> {result}")
+    if result.status_code == requests.codes.ok:
+        print(f"\nADDED: \n{a_node_record_1_json}")
+    elif result.status_code == requests.codes.conflict:
+        print(f"\nFAILED TO ADD: \n{a_node_record_1_json} \nREASON: {result.text}")
 
+    # register node2
     result = requests.post(url, data=a_node_record_2_json, headers=headers)
-    print(f"node_record2 register result -> {result.text}")
+    if result.status_code == requests.codes.ok:
+        print(f"\nADDED: \n{a_node_record_2_json}")
+    elif result.status_code == requests.codes.conflict:
+        print(f"\nFAILED TO ADD: \n{a_node_record_2_json} \nREASON: {result.text}")
 
-    # get_all_nodes
+    # get all registered nodes
     url = "http://127.0.0.1:5000/nodes"
     result = requests.get(url)
 
-    print(f"get_all_nodes result -> {result}")
     return result
 
 
 result = do_post_request()
 
-# print(f"FINAL result-> \n{result.text}")
 node_records_list = NodeRecordsList.parse_raw(result.text)
-# print(f"\n\n{node_records_list=}")
+print("\nREGISTERED NODES:")
 [print(record) for record in node_records_list.node_records]

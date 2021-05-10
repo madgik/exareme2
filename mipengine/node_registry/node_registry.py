@@ -13,7 +13,6 @@ class NodeRegistry:
 
     def __init__(self):
         self._registry = NodeRecordsList(node_records=[])
-        # TODO : use da lock....
         self._registry_lock = asyncio.Lock()
 
     async def register_node(self, node_record: NodeRecord):
