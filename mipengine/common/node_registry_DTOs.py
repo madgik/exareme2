@@ -20,4 +20,4 @@ class NodeRecord(BaseModel):
 
 
 class NodeRecordsList(BaseModel):
-    node_records: List[NodeRecord] = []
+    node_records: List[NodeRecord]

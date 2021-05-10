@@ -1,8 +1,8 @@
 from quart import Quart
 from quart import request
 
-from node_catalog import NodeRegistry
-from mipengine.common.node_catalog_DTOs import Pathology, NodeRecord
+from node_registry import NodeRegistry
+from mipengine.common.node_registry_DTOs import Pathology, NodeRecord
 
 import asyncio
 
@@ -34,11 +34,13 @@ async def get_all_nodes() -> str:
     print("(get_all_nodes)")
     all_nodes = await node_catalog.get_all_nodes()
 
-    print(f"all_nodes--> {all_nodes}")
+    print(f"all_nodes.json()--> {all_nodes.json()}")
+    return all_nodes.json()
 
-    all_nodes = [node_record.json() for node_record in all_nodes]
 
-    import json
+# all_nodes = [node_record.json() for node_record in all_nodes]
 
-    str_json = json.dumps(all_nodes)
-    return str_json, "200"
+#     import json
+
+#     str_json = json.dumps(all_nodes)
+#     return str_json, "200"

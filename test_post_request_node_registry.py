@@ -1,4 +1,4 @@
-from mipengine.common.node_catalog_DTOs import Pathology, NodeRecord
+from mipengine.common.node_catalog_DTOs import Pathology, NodeRecord, NodeRecordsList
 from ipaddress import IPv4Address
 import requests
 
@@ -47,7 +47,7 @@ def do_post_request():
 
 result = do_post_request()
 
-print(f"FINAL result-> \n{result.text}")
-node_records=[NodeRecord.parse_raw(i) for i in result.text]
-[print(f"{r=}") for r in node_records]
-# print(f"node_catalog result-> {result.text}")
+# print(f"FINAL result-> \n{result.text}")
+node_records_list = NodeRecordsList.parse_raw(result.text)
+# print(f"\n\n{node_records_list=}")
+[print(record) for record in node_records_list.node_records]

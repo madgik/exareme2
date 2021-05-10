@@ -136,6 +136,7 @@ dmypy.json
 *~
 *.swp
 *.swo
+*#*
 
 # vim stuff
 .vim/

@@ -1,7 +1,7 @@
 import pytest
 from ipaddress import IPv4Address
-from mipengine.common.node_catalog_DTOs import Pathology, NodeRecord
-from mipengine.node_catalog.node_catalog import NodeRegistry
+from mipengine.common.node_registry_DTOs import Pathology, NodeRecord, NodeRecordsList
+from mipengine.node_registry.node_registry import NodeRegistry
 
 
 @pytest.fixture
@@ -51,11 +51,12 @@ async def filled_node_registry(a_node_record1, a_node_record2):
 
 @pytest.mark.asyncio
 async def test_register_node(empty_node_registry, a_node_record1, a_node_record2):
+    print(f"{a_node_record1=}")
     await empty_node_registry.register_node(a_node_record1)
     await empty_node_registry.register_node(a_node_record2)
     the_nodes = await empty_node_registry.get_all_nodes()
-    pytest.assume(a_node_record1 in the_nodes)
-    pytest.assume(a_node_record2 in the_nodes)
+    pytest.assume(a_node_record1 in the_nodes.node_records)
+    pytest.assume(a_node_record2 in the_nodes.node_records)
 
 
 @pytest.mark.asyncio
@@ -103,7 +104,7 @@ async def test_register_same_node_id(empty_node_registry, a_node_record1):
 async def test_deregister_node(filled_node_registry, a_node_record1):
     await filled_node_registry.deregister_node("node1")
     the_nodes = await filled_node_registry.get_all_nodes()
-    pytest.assume(a_node_record1 not in the_nodes)
+    pytest.assume(a_node_record1 not in the_nodes.node_records)
 
 
 @pytest.mark.skip
