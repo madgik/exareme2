@@ -19,7 +19,7 @@ def create_table(table_info: TableInfo):
     MonetDB().execute(f"CREATE TABLE {table_info.name} ( {columns_schema} )")
 
 
-@validate_identifier_names
+# TODO:Should validate the arguments, will be fixed with pydantic
 def insert_data_to_table(table_name: str, values: List[List[Union[str, int, float]]]):
     if all(len(value) != len(values[0]) for value in values):
         raise Exception("Row counts does not match")

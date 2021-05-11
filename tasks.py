@@ -107,17 +107,19 @@ def start_monetdb(c, port):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"docker run -d -P -p {container_ports} --name {container_name} jassak/mipenginedb:dev1.1"
+        cmd = f"docker run -d -P -p {container_ports} --name {container_name} madgik/mipenginedb:dev1.2"
         run(c, cmd)
 
 
 @task(iterable=["port"])
 def load_data_into_db(c, port):
+    # TODO Refactor method, should use deployment.toml
     """Load data into DB from csv"""
     ports = port
     for port in ports:
         message(f"Loading data on MonetDB at port {port}...", Level.HEADER)
-        cmd = f"poetry run python -m mipengine.node.monetdb_interface.csv_importer -folder ./tests/data/ -user monetdb -pass monetdb -url localhost:{port} -farm db"
+        # TODO Path should not be hardcoded
+        cmd = f"poetry run python -m mipengine.node.monetdb_interface.csv_importer -folder ./tests/integration_tests/data/ -user monetdb -pass monetdb -url localhost:{port} -farm db"
         run(c, cmd)
 
 

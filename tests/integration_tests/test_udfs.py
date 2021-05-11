@@ -12,8 +12,8 @@
 # from mipengine.common.node_tasks_DTOs import ColumnInfo
 # from mipengine.common.node_tasks_DTOs import TableSchema
 # from mipengine.common.node_tasks_DTOs import UDFArgument
-# from tests import nodes_communication
-# from tests.node_db_connections import get_node_db_connection
+# from integration_tests import nodes_communication
+# from integration_tests.node_db_connections import get_node_db_connection
 #
 # local_node_id = "localnode1"
 # command_id = "command123"
@@ -25,7 +25,7 @@
 # local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
 #
 # @pytest.fixture()
-# def cleanup_context_id():
+# def context_id():
 #     context_id = "test_udfs_" + str(uuid.uuid4()).replace("-", "")
 #
 #     yield context_id
@@ -44,10 +44,10 @@
 #     assert udfs == fetched_udfs
 #
 #
-# def test_run_udf(cleanup_context_id):
+# def test_run_udf(context_id):
 #     table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "INT"), ColumnInfo("col3", "INT")])
 #
-#     table_1_name = local_node_create_table.delay(context_id=cleanup_context_id,
+#     table_1_name = local_node_create_table.delay(context_id=context_id,
 #                                                  command_id=str(uuid.uuid4()).replace("-", ""),
 #                                                  schema_json=table_schema.to_json()).get()
 #
@@ -64,17 +64,17 @@
 #                        UDFArgument(type="literal", value="15").to_json()]
 #
 #     local_node_run_udf.delay(command_id=command_id,
-#                              context_id=cleanup_context_id,
+#                              context_id=context_id,
 #                              func_name="demo.table_and_literal_arguments",
 #                              positional_args_json=positional_args,
 #                              keyword_args_json={}
 #                              ).get()
 #
 #
-# def test_get_run_udf_query(cleanup_context_id):
+# def test_get_run_udf_query(context_id):
 #     table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "real"), ColumnInfo("col3", "TEXT")])
 #
-#     table_1_name = local_node_create_table.delay(context_id=cleanup_context_id,
+#     table_1_name = local_node_create_table.delay(context_id=context_id,
 #                                                  command_id=str(uuid.uuid4()).replace("-", ""),
 #                                                  schema_json=table_schema.to_json()).get()
 #
@@ -84,15 +84,15 @@
 #     func_name = "demo.table_and_literal_arguments"
 #     udf_creation_statement, execution_statement = \
 #         local_node_get_run_udf_query.delay(command_id=command_id,
-#                                            context_id=cleanup_context_id,
+#                                            context_id=context_id,
 #                                            func_name=func_name,
 #                                            positional_args_json=positional_args,
 #                                            keyword_args_json={}
 #                                            ).get()
 #
-#     udf_name = func_name.replace('.', '_') + "_" + command_id + "_" + cleanup_context_id
+#     udf_name = func_name.replace('.', '_') + "_" + command_id + "_" + context_id
 #     assert udf_creation_statement == proper_udf_creation_statement.substitute(udf_name=udf_name)
-#     output_table_name = "table_" + command_id + "_" + cleanup_context_id + "_" + local_node_id
+#     output_table_name = "table_" + command_id + "_" + context_id + "_" + local_node_id
 #     assert execution_statement == proper_execution_statement.substitute(output_table_name=output_table_name,
 #                                                                         udf_name=udf_name,
 #                                                                         input_table_name=table_1_name)

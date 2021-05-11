@@ -3,7 +3,7 @@
 
 # import requests
 
-# from tests import algorithms_url
+# from integration_tests import algorithms_url
 
 
 # def test_wrong_algorithm_name():
