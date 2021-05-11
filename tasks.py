@@ -296,8 +296,8 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
             outpath = OUTDIR / (node_id + ".out")
             if detached or all_:
                 cmd = (
-                    f"PYTHONPATH={PROJECT_ROOT} poetry run python "
-                    f"-m mipengine.node.node worker -l {celery_log_level} >> {outpath} 2>&1"
+                    f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
+                    f"-A mipengine.node.node worker -l {celery_log_level} >> {outpath} 2>&1"
                 )
                 c.run(cmd, disown=True)
                 spin_wheel(time=4)
