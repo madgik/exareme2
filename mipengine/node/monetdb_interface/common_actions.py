@@ -156,7 +156,7 @@ def clean_up(context_id: str):
         The id of the experiment
     """
 
-    _delete_function_by_context_id(context_id)
+    _drop_udfs_by_context_id(context_id)
     for table_type in ("merge", "remote", "view", "normal"):
         _delete_table_by_type_and_context_id(table_type, context_id)
 
@@ -262,7 +262,7 @@ def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
 
 
 @validate_identifier_names
-def _delete_function_by_context_id(context_id: str):
+def _drop_udfs_by_context_id(context_id: str):
     """
     Deletes all functions of specific context_id from the monetdb.
 
