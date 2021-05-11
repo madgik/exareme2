@@ -29,8 +29,8 @@ def create_remote_table(table_info_json: str, monetdb_socket_address: str):
     ----------
     table_info_json : str(TableInfo)
         A TableInfo object in a jsonified format
-    url : str
-        The url of the monetdb that we want to create the remote table from.
+    monetdb_socket_address : str
+        The monetdb_socket_address of the monetdb that we want to create the remote table from.
     """
     table_info = TableInfo.from_json(table_info_json)
     remote_tables.create_remote_table(
