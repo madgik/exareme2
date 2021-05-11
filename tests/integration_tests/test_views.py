@@ -1,6 +1,5 @@
 import uuid
 
-import pymonetdb
 import pytest
 
 from mipengine.common.node_tasks_DTOs import ColumnInfo
@@ -43,7 +42,7 @@ def test_create_and_get_view(context_id):
     pathology = "tbi"
     view_name = local_node_create_view.delay(
         context_id=context_id,
-        command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+        command_id=str(uuid.uuid1()).replace("-", ""),
         pathology=pathology,
         datasets=datasets,
         columns=columns,
