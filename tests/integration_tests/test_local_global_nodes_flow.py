@@ -1,6 +1,5 @@
 import uuid
 
-import pymonetdb
 import pytest
 
 from mipengine.common.node_catalog import node_catalog
@@ -46,7 +45,7 @@ clean_up_global = nodes_communication.get_celery_cleanup_signature(global_node)
 
 @pytest.fixture(autouse=True)
 def context_id():
-    context_id = "test_local_global_nodes_" + str(uuid.uuid4()).replace("-", "")
+    context_id = "test_flow_" + str(uuid.uuid4()).replace("-", "")
 
     yield context_id
 
@@ -79,12 +78,12 @@ def test_create_merge_table_with_remote_tables(context_id):
     # Create local tables
     local_node_1_table_name = local_node_1_create_table.delay(
         context_id=context_id,
-        command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+        command_id=str(uuid.uuid1()).replace("-", ""),
         schema_json=schema.to_json(),
     ).get()
     local_node_2_table_name = local_node_2_create_table.delay(
         context_id=context_id,
-        command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+        command_id=str(uuid.uuid1()).replace("-", ""),
         schema_json=schema.to_json(),
     ).get()
     # Insert data into local tables
@@ -95,19 +94,19 @@ def test_create_merge_table_with_remote_tables(context_id):
     table_info_local_1 = TableInfo(local_node_1_table_name, schema)
     table_info_local_2 = TableInfo(local_node_2_table_name, schema)
     # TODO remove prefix, db_name on the MIP-16
-    monetdb_url_local_node_1 = (
+    local_node_1_monetdb_sock_address = (
         f"{local_node_1_data.monetdbIp}:{local_node_1_data.monetdbPort}"
     )
-    monetdb_url_local_node_2 = (
+    local_node_2_monetdb_sock_address = (
         f"{local_node_2_data.monetdbIp}:{local_node_2_data.monetdbPort}"
     )
     global_node_create_remote_table.delay(
         table_info_json=table_info_local_1.to_json(),
-        monetdb_socket_address=monetdb_url_local_node_1,
+        monetdb_socket_address=local_node_1_monetdb_sock_address,
     ).get()
     global_node_create_remote_table.delay(
         table_info_json=table_info_local_2.to_json(),
-        monetdb_socket_address=monetdb_url_local_node_2,
+        monetdb_socket_address=local_node_2_monetdb_sock_address,
     ).get()
     remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()
     assert local_node_1_table_name in remote_tables
@@ -116,7 +115,7 @@ def test_create_merge_table_with_remote_tables(context_id):
     # Create merge table
     merge_table_name = global_node_create_merge_table.delay(
         context_id=context_id,
-        command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+        command_id=str(uuid.uuid1()).replace("-", ""),
         table_names=remote_tables,
     ).get()
 

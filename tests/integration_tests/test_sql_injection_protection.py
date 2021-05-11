@@ -1,6 +1,6 @@
 import json
+import uuid
 
-import pymonetdb
 import pytest
 
 from mipengine.common.node_tasks_DTOs import ColumnInfo, TableSchema
@@ -70,7 +70,7 @@ def test_sql_injection_create_table_context_id():
         json_schema = schema.to_json()
         local_node_create_table.delay(
             context_id=invalid_context_id,
-            command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+            command_id=str(uuid.uuid1()).replace("-", ""),
             schema_json=json_schema,
         ).get()
 
@@ -87,7 +87,7 @@ def test_sql_injection_create_table_tableschema_name():
         json_schema = schema.to_json()
         local_node_create_table.delay(
             context_id=context_id,
-            command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+            command_id=str(uuid.uuid1()).replace("-", ""),
             schema_json=json_schema,
         ).get()
 
@@ -103,7 +103,7 @@ def test_sql_injection_create_merge_table_table_names():
     with pytest.raises(ValueError):
         local_node_create_merge_table.delay(
             context_id=context_id,
-            command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+            command_id=str(uuid.uuid1()).replace("-", ""),
             table_names=["Robert'); DROP TABLE data; --"],
         ).get()
 
@@ -132,7 +132,7 @@ def test_sql_injection_create_view_columns():
         pathology = "tbi"
         local_node_create_view.delay(
             context_id=context_id,
-            command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+            command_id=str(uuid.uuid1()).replace("-", ""),
             pathology=pathology,
             datasets=json.dumps(datasets),
             columns=json.dumps(columns),
@@ -152,7 +152,7 @@ def test_sql_injection_create_view_datasets():
         pathology = "tbi"
         local_node_create_view.delay(
             context_id=context_id,
-            command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+            command_id=str(uuid.uuid1()).replace("-", ""),
             pathology=pathology,
             datasets=json.dumps(datasets),
             columns=json.dumps(columns),

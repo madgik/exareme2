@@ -1,6 +1,5 @@
 import uuid
 
-import pymonetdb
 import pytest
 
 from mipengine.common.node_tasks_DTOs import ColumnInfo
@@ -39,7 +38,9 @@ def context_id():
 def test_create_and_get_remote_table(context_id):
     local_node_data = node_catalog.get_node(local_node_id)
     # TODO remove this on the MIP-16
-    local_node_1_url = f"{local_node_data.monetdbIp}:{local_node_data.monetdbPort}"
+    local_node_monetdb_sock_address = (
+        f"{local_node_data.monetdbIp}:{local_node_data.monetdbPort}"
+    )
 
     table_schema = TableSchema(
         [
@@ -51,14 +52,15 @@ def test_create_and_get_remote_table(context_id):
 
     table_name = local_node_create_table.delay(
         context_id=context_id,
-        command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+        command_id=str(uuid.uuid1()).replace("-", ""),
         schema_json=table_schema.to_json(),
     ).get()
 
     table_info = TableInfo(table_name, table_schema)
 
     global_node_create_remote_table.delay(
-        table_info_json=table_info.to_json(), monetdb_socket_address=local_node_1_url
+        table_info_json=table_info.to_json(),
+        monetdb_socket_address=local_node_monetdb_sock_address,
     ).get()
     remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()
     assert table_name.lower() in remote_tables

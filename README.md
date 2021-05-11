@@ -24,7 +24,7 @@
    poetry shell
    ```
 
-1. _Optional_ To install tab completion for `invoke` run (replacing `bash` with you shell)
+1. *Optional* To install tab completion for `invoke` run  (replacing `bash` with your shell)
 
    ```
    source <(poetry run inv --print-completion-script bash)
@@ -101,7 +101,7 @@
 1. Restart services with
 
    ```
-   inv start-node --all
+   inv start-node --all && inv start-controller --detached
    ```
 
 #### Local Deployment (without single configuration file)
