@@ -155,7 +155,8 @@ def clean_up(context_id: str):
     context_id : str
         The id of the experiment
     """
-    # TODO We also need to cleanup the udfs with the specific context_id
+
+    _drop_udfs_by_context_id(context_id)
     for table_type in ("merge", "remote", "view", "normal"):
         _delete_table_by_type_and_context_id(table_type, context_id)
 
@@ -258,3 +259,24 @@ def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
             MonetDB().execute(f"DROP VIEW {name}")
         else:
             MonetDB().execute(f"DROP TABLE {name}")
+
+
+@validate_identifier_names
+def _drop_udfs_by_context_id(context_id: str):
+    """
+    Deletes all functions of specific context_id from the monetdb.
+
+    Parameters
+    ----------
+    context_id : str
+        The id of the experiment
+    """
+    function_names = MonetDB().execute_with_result(
+        f"""
+        SELECT name FROM functions
+        WHERE name LIKE '%{context_id.lower()}%'
+        AND system = false
+        """
+    )
+    for name in function_names:
+        MonetDB().execute(f"DROP FUNCTION {name[0]}")
