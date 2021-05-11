@@ -3,7 +3,7 @@ from typing import List
 
 import pymonetdb
 
-from mipengine.node import config
+from mipengine.node import config as node_config
 
 OCC_MAX_ATTEMPTS = 50
 
@@ -34,11 +34,11 @@ class MonetDB(metaclass=Singleton):
 
     def __init__(self):
         self._connection = pymonetdb.connect(
-            hostname=config.monetdb.ip,
-            port=config.monetdb.port,
-            username=config.monetdb.username,
-            password=config.monetdb.password,
-            database=config.monetdb.database,
+            hostname=node_config.monetdb.ip,
+            port=node_config.monetdb.port,
+            username=node_config.monetdb.username,
+            password=node_config.monetdb.password,
+            database=node_config.monetdb.database,
         )
 
     @contextmanager

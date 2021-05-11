@@ -1,15 +1,17 @@
 from celery import Celery
 
 from mipengine.common.node_catalog import node_catalog
-from mipengine.node import config
+from mipengine.node import config as node_config
 
 
 def get_celery_app(node_id: str):
     node = node_catalog.get_node(node_id)
 
-    rabbitmq_credentials = config.rabbitmq.user + ":" + config.rabbitmq.password
+    rabbitmq_credentials = (
+        node_config.rabbitmq.user + ":" + node_config.rabbitmq.password
+    )
     rabbitmq_url = node.rabbitmqIp + ":" + str(node.rabbitmqPort)
-    vhost = config.rabbitmq.vhost
+    vhost = node_config.rabbitmq.vhost
 
     return Celery(
         "mipengine.node",

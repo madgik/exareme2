@@ -37,7 +37,6 @@ def context_id():
 
 def test_create_and_get_remote_table(context_id):
     local_node_data = node_catalog.get_node(local_node_id)
-    # TODO remove this on the MIP-16
     local_node_monetdb_sock_address = (
         f"{local_node_data.monetdbIp}:{local_node_data.monetdbPort}"
     )

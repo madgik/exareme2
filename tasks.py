@@ -22,7 +22,7 @@ if not OUTDIR.exists():
 
 
 # TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
-# Right now if we call a task from another task, the "pre"
+# Right now if we call a task from another task, the "pre"-task is not executed
 
 
 @task
@@ -293,7 +293,7 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
 
         message(f"Starting Node {node_id}...", Level.HEADER)
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
-        with c.prefix(f"export CONFIG_FILE={node_config_file}"):
+        with c.prefix(f"export MIPENGINE_NODE_CONFIG_FILE={node_config_file}"):
             outpath = OUTDIR / (node_id + ".out")
             if detached or all_:
                 cmd = (

@@ -93,7 +93,6 @@ def test_create_merge_table_with_remote_tables(context_id):
     # Create remote tables
     table_info_local_1 = TableInfo(local_node_1_table_name, schema)
     table_info_local_2 = TableInfo(local_node_2_table_name, schema)
-    # TODO remove prefix, db_name on the MIP-16
     local_node_1_monetdb_sock_address = (
         f"{local_node_1_data.monetdbIp}:{local_node_1_data.monetdbPort}"
     )

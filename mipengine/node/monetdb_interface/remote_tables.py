@@ -1,6 +1,6 @@
 from typing import List
 
-from mipengine.node import config
+from mipengine.node import config as node_config
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.validate_identifier_names import validate_identifier_names
 from mipengine.node.monetdb_interface.common_actions import get_table_names
@@ -20,7 +20,7 @@ def create_remote_table(table_info: TableInfo, monetdb_socket_address: str):
     MonetDB().execute(
         f"""
         CREATE REMOTE TABLE {table_info.name}
-        ( {columns_schema}) ON 'mapi:monetdb://{monetdb_socket_address}/{config.monetdb.database}'
+        ( {columns_schema}) ON 'mapi:monetdb://{monetdb_socket_address}/{node_config.monetdb.database}'
         WITH USER 'monetdb' PASSWORD 'monetdb'
         """
     )

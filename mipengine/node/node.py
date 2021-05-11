@@ -3,15 +3,17 @@ import argparse
 from celery import Celery
 
 from mipengine.common.node_catalog import node_catalog
-from mipengine.node import config
+from mipengine.node import config as node_config
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     extra_args, celery_args = parser.parse_known_args()
 
-    rabbitmq_credentials = config.rabbitmq.user + ":" + config.rabbitmq.password
-    rabbitmq_url = config.rabbitmq.ip + ":" + str(config.rabbitmq.port)
-    vhost = config.rabbitmq.vhost
+    rabbitmq_credentials = (
+        node_config.rabbitmq.user + ":" + node_config.rabbitmq.password
+    )
+    rabbitmq_url = node_config.rabbitmq.ip + ":" + str(node_config.rabbitmq.port)
+    vhost = node_config.rabbitmq.vhost
 
     app = Celery(
         "mipengine.node",
@@ -27,17 +29,17 @@ if __name__ == "__main__":
         ],
     )
 
-    app.conf.worker_concurrency = config.celery.worker_concurrency
-    app.conf.task_soft_time_limit = config.celery.task_soft_time_limit
-    app.conf.task_time_limit = config.celery.task_time_limit
+    app.conf.worker_concurrency = node_config.celery.worker_concurrency
+    app.conf.task_soft_time_limit = node_config.celery.task_soft_time_limit
+    app.conf.task_time_limit = node_config.celery.task_time_limit
 
     # Send information to node_catalog
     node_catalog.set_node(
-        node_id=config.identifier,
-        monetdb_ip=config.monetdb.ip,
-        monetdb_port=config.monetdb.port,
-        rabbitmq_ip=config.rabbitmq.ip,
-        rabbitmq_port=config.rabbitmq.port,
+        node_id=node_config.identifier,
+        monetdb_ip=node_config.monetdb.ip,
+        monetdb_port=node_config.monetdb.port,
+        rabbitmq_ip=node_config.rabbitmq.ip,
+        rabbitmq_port=node_config.rabbitmq.port,
     )
 
     # Start celery

@@ -5,7 +5,6 @@ from mipengine.common.node_exceptions import TablesNotFound
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.common.validate_identifier_names import validate_identifier_names
-from mipengine.node import config
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 MONETDB_VARCHAR_SIZE = 50
@@ -23,8 +22,6 @@ def create_table_name(
     """
     if table_type not in {"table", "view", "merge"}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
-    if node_id not in {"global", config.identifier}:
-        raise TypeError(f"Node Identifier is not acceptable: {node_id}.")
 
     return f"{table_type}_{command_id}_{context_id}_{node_id}"
 
