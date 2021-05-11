@@ -12,12 +12,14 @@ if __name__ == "__main__":
     rabbitmq_credentials = (
         node_config.rabbitmq.user + ":" + node_config.rabbitmq.password
     )
-    rabbitmq_url = node_config.rabbitmq.ip + ":" + str(node_config.rabbitmq.port)
+    rabbitmq_socket_addr = (
+        node_config.rabbitmq.ip + ":" + str(node_config.rabbitmq.port)
+    )
     vhost = node_config.rabbitmq.vhost
 
     app = Celery(
         "mipengine.node",
-        broker=f"amqp://{rabbitmq_credentials}@{rabbitmq_url}/{vhost}",
+        broker=f"amqp://{rabbitmq_credentials}@{rabbitmq_socket_addr}/{vhost}",
         backend="rpc://",
         include=[
             "mipengine.node.tasks.tables",

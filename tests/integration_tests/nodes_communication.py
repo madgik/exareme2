@@ -10,12 +10,12 @@ def get_celery_app(node_id: str):
     rabbitmq_credentials = (
         node_config.rabbitmq.user + ":" + node_config.rabbitmq.password
     )
-    rabbitmq_url = node.rabbitmqIp + ":" + str(node.rabbitmqPort)
+    rabbitmq_socket_addr = node.rabbitmqIp + ":" + str(node.rabbitmqPort)
     vhost = node_config.rabbitmq.vhost
 
     return Celery(
         "mipengine.node",
-        broker=f"amqp://{rabbitmq_credentials}@{rabbitmq_url}/{vhost}",
+        broker=f"amqp://{rabbitmq_credentials}@{rabbitmq_socket_addr}/{vhost}",
         backend="rpc://",
         include=[
             "mipengine.node.tasks.tables",

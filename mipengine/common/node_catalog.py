@@ -142,7 +142,6 @@ class NodeCatalog:
 
 
 def remove_duplicates(lst):
-    print(lst)
     unique_elements = []
     for element in lst:
         if element not in unique_elements:

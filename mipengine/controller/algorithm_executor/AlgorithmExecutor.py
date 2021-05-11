@@ -1,18 +1,20 @@
 from __future__ import annotations
-from typing import Dict, List, Any, Optional, Tuple
 
 import datetime
-import random
 import importlib
+import random
+from typing import Dict
+from typing import List
+from typing import Tuple
 
 from celery import Celery
 
-
 from mipengine.common.node_catalog import NodeCatalog
-from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequestDTO
-from mipengine.common.node_tasks_DTOs import ColumnInfo, TableSchema, TableInfo
-from mipengine.common.node_tasks_DTOs import TableView, TableData
+from mipengine.common.node_tasks_DTOs import TableData
+from mipengine.common.node_tasks_DTOs import TableInfo
+from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.common.node_tasks_DTOs import UDFArgument
+from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequestDTO
 
 # TODO: Too many things happening in all the initialiazers. Especially the AlgorithmExecutor __init__ is called synchronuously from the server
 # TODO: TASK_TIMEOUT
@@ -71,7 +73,7 @@ class AlgorithmExecutor:
         # instantiate the GLOBAL Node object
         self.global_node = self.Node(
             node_id=global_node.nodeId,
-            rabbitmq_url=f"{global_node.rabbitmqIp}:{global_node.rabbitmqPort}",
+            rabbitmq_socket_addr=f"{global_node.rabbitmqIp}:{global_node.rabbitmqPort}",
             monetdb_socket_addr=f"{global_node.monetdbIp}:{global_node.monetdbPort}",
             context_id=self.context_id,
         )
@@ -94,7 +96,7 @@ class AlgorithmExecutor:
             self.local_nodes.append(
                 self.Node(
                     node_id=local_node.nodeId,
-                    rabbitmq_url=f"{local_node.rabbitmqIp}:{local_node.rabbitmqPort}",
+                    rabbitmq_socket_addr=f"{local_node.rabbitmqIp}:{local_node.rabbitmqPort}",
                     monetdb_socket_addr=f"{local_node.monetdbIp}:{local_node.monetdbPort}",
                     initial_view_tables_params=initial_view_tables_params,
                     context_id=self.context_id,
@@ -127,19 +129,18 @@ class AlgorithmExecutor:
         def __init__(
             self,
             node_id,
-            rabbitmq_url,
+            rabbitmq_socket_addr,
             monetdb_socket_addr,
             context_id,
             initial_view_tables_params=None,
         ):
-
             self.node_id = node_id
 
             # TODO: user, pass, vhost how these should be set??
             user = "user"
             password = "password"
             vhost = "user_vhost"
-            broker = f"amqp://{user}:{password}@{rabbitmq_url}/{vhost}"
+            broker = f"amqp://{user}:{password}@{rabbitmq_socket_addr}/{vhost}"
             self.__celery_obj = Celery(broker=broker, backend="rpc://")
 
             self.monetdb_socket_addr = monetdb_socket_addr
@@ -177,7 +178,6 @@ class AlgorithmExecutor:
             return self.__initial_view_tables
 
         def __create_initial_view_tables(self, initial_view_tables_params):
-
             # will contain the views created from the pathology, datasets. Its keys are the variable sets x, y etc
             initial_view_tables = {}
 

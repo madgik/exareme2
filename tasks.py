@@ -2,7 +2,6 @@ import sys
 from enum import Enum
 from itertools import cycle
 from os import listdir
-from os import path
 from pathlib import Path
 from textwrap import indent
 from time import sleep
@@ -14,8 +13,8 @@ from termcolor import colored
 
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
-NODES_CONFIG_DIR = PROJECT_ROOT / "configs/nodes/"
-NODE_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "mipengine/node/config.toml"
+NODES_CONFIG_DIR = PROJECT_ROOT / "configs" / "nodes"
+NODE_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "mipengine" / "node" / "config.toml"
 OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
@@ -31,7 +30,7 @@ def create_node_configs(c):
     This command, using the .deployment.toml file, will create the node configuration files.
     """
 
-    if not path.isfile(DEPLOYMENT_CONFIG_FILE):
+    if not Path(DEPLOYMENT_CONFIG_FILE).is_file():
         raise FileNotFoundError("Deployment config file '.deployment.toml' not found.")
 
     with open(DEPLOYMENT_CONFIG_FILE) as fp:
@@ -49,7 +48,7 @@ def create_node_configs(c):
         node_config["rabbitmq"]["ip"] = deployment_config["ip"]
         node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
 
-        Path(NODES_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        NODES_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
         with open(node_config_file, "w+") as fp:
             toml.dump(node_config, fp)
@@ -104,7 +103,7 @@ def start_monetdb(c, port, monetdb_image=None):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"docker run -d -P -p {container_ports} --name {container_name} madgik/mipenginedb:dev1.2"
+        cmd = f"docker run -d -P -p {container_ports} --name {container_name} {monetdb_image}"
         run(c, cmd)
 
 
@@ -135,7 +134,7 @@ def load_data(c, port=None):
 
     from tests import integration_tests
 
-    data_folder = path.dirname(integration_tests.__file__) + "/data"
+    data_folder = Path(integration_tests.__file__).parent / "data"
     with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
         template_node_config = toml.load(fp)
     for port in local_node_ports:
@@ -272,17 +271,17 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
     node_ids = []
     if all_:
         for node_config_file in listdir(NODES_CONFIG_DIR):
-            filename, file_ext = path.splitext(node_config_file)
+            filename = Path(node_config_file).stem
             node_ids.append(filename)
     elif node:
         node_config_file = NODES_CONFIG_DIR / f"{node}.toml"
-        if not path.isfile(node_config_file):
+        if not Path(node_config_file).is_file():
             message(
                 f"The configuration file for node '{node}', does not exist in directory '{NODES_CONFIG_DIR}'",
                 Level.ERROR,
             )
             sys.exit(1)
-        filename, file_ext = path.splitext(path.basename(node_config_file))
+        filename = Path(node_config_file).stem
         node_ids.append(filename)
     else:
         message("Please specify a node using --node <node> or use --all", Level.WARNING)
@@ -311,7 +310,6 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
 @task
 def kill_controller(c):
     """Kill Controller"""
-    message("Killing Controller...", Level.HEADER)
     res = c.run("ps aux | grep '[q]uart'", hide="both", warn=True)
     if res.ok:
         message("Killing previous Quart instances...", Level.HEADER)
@@ -477,7 +475,7 @@ def spin_wheel(promise=None, time=None):
 
 
 def get_deployment_config(config):
-    if not path.isfile(DEPLOYMENT_CONFIG_FILE):
+    if not Path(DEPLOYMENT_CONFIG_FILE).is_file():
         raise FileNotFoundError(
             f"Please provide a --{config} parameter or create a deployment config file '.deployment.toml'"
         )
