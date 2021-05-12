@@ -19,10 +19,23 @@ def create_table(table_info: TableInfo):
     MonetDB().execute(f"CREATE TABLE {table_info.name} ( {columns_schema} )")
 
 
+def convert_to_sql_string(value):
+    if type(value) == str:
+        return str(f"'{value}'")
+    elif value:
+        return str(value)
+    else:
+        return "null"
+
+
 # TODO:Should validate the arguments, will be fixed with pydantic
-def insert_data_to_table(table_name: str, values: List[List[Union[str, int, float]]]):
-    if all(len(value) != len(values[0]) for value in values):
+def insert_data_to_table(table_name: str, rows: List[List[Union[str, int, float]]]):
+    if all(len(row) != len(rows[0]) for row in rows):
         raise Exception("Row counts does not match")
-    query_for_values = ",".join([str(tuple(value)) for value in values])
-    query_for_values = str(query_for_values).replace(", None", ", null")
-    MonetDB().execute(f"INSERT INTO {table_name} VALUES {query_for_values}")
+
+    sql_values = []
+    for row in rows:
+        sql_row = ",".join([convert_to_sql_string(column) for column in row])
+        sql_values.append(f"({sql_row})")
+
+    MonetDB().execute(f"INSERT INTO {table_name} VALUES {','.join(sql_values)}")
