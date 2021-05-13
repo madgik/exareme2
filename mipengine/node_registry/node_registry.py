@@ -1,86 +1,120 @@
-import asyncio
-import copy
+import consul
+from ipaddress import IPv4Address
+from typing import Optional, List, Dict
+from pydantic import BaseModel
 
-from mipengine.common.node_registry_DTOs import NodeRecord, NodeRecordsList
+from mipengine.common.node_registry_DTOs import (
+    NodeRecord,
+    Pathology,
+    NodeRole,
+)
+
+c = consul.Consul()
+consul_agent = c.agent
+consul_service = consul_agent.service
+kv_store = c.kv
 
 
-class NodeRegistry:
-    # singleton
-    def __new__(cls):
-        if not hasattr(cls, "instance"):
-            cls.instance = super(NodeRegistry, cls).__new__(cls)
-        return cls.instance
+def register_node(node_record: NodeRecord):
+    # register the node as a service
+    consul_service.register(
+        name=node_record.node_id,
+        service_id=node_record.node_id,
+        address=str(node_record.task_queue_ip),
+        port=node_record.task_queue_port,
+        tags=(node_record.node_role.name,),
+    )
+    # register the db as a service
+    consul_service.register(
+        name=node_record.db_id,
+        service_id=node_record.db_id,
+        address=str(node_record.db_ip),
+        port=node_record.db_port,
+        tags=("db",),
+    )
 
-    def __init__(self):
-        self._registry = NodeRecordsList(node_records=[])
-        self._registry_lock = asyncio.Lock()
+    # The node's db is linked to the node by storing the db_id as a value in the key
+    # value store of consul
+    # The node's pathologies are also stored in the consul key/value store
+    node_configuration = NodeConfiguration(
+        db_id=node_record.db_id, pathologies=node_record.pathologies
+    )
+    kv_store.put(node_record.node_id, node_configuration.json())
 
-    async def register_node(self, node_record: NodeRecord):
-        async with self._registry_lock:
-            for nrecord in self._registry.node_records:
-                if nrecord.node_id == node_record.node_id:
-                    raise self.NodeIdAlreadyInRegistryError(nrecord)
-                elif nrecord.task_queue_ip == node_record.task_queue_ip:
-                    raise self.TaskQueueIPAlreadyInUseError(nrecord)
-                elif nrecord.db_ip == node_record.db_ip:
-                    raise self.DatabaseIPAlreadyInUseError(nrecord)
 
-            self._registry.node_records.append(node_record)
+def deregister_node(node_id: str):
+    _, data = kv_store.get(node_id)
 
-    async def deregister_node(self, node_id):
-        self._registry = NodeRecordsList(
-            node_records=[
-                node_record
-                for node_record in self._registry.node_records
-                if node_record.node_id != node_id
-            ]
-        )
+    if not data:
+        raise NodeIDNotInKVStore(node_id)
 
-    # async def update_node(self, node_id: str, node_record: NodeRecord):
-    #     if node_id not in self._registry:
-    #         raise self.UpdateUnknownNodeError()
-    #     else:
-    #         self._registry[node_id] = node_record
+    node_conf = NodeConfiguration.parse_raw(data["Value"])
 
-    # async def get_node(self, node_id):
-    #     try:
-    #         return copy.deepcopy(self._registry[node_id])
-    #     except KeyError:
-    #         raise self.NodeIdNotInResgistry
+    # deregister db service
+    consul_service.deregister(node_conf.db_id)
 
-    async def get_all_nodes(self):
-        return copy.deepcopy(self._registry)
+    # deregister node service
+    consul_service.deregister(service_id=node_id)
 
-    class TaskQueueIPAlreadyInUseError(Exception):
-        def __init__(self, node_record):
-            self.message = (
-                f"Node with node_id:{node_record.node_id} is already registered with "
-                "task_queue_ip: {node_record.task_queue_ip}"
-            )
+    # delete node configuration from kv store
+    kv_store.delete(node_id)
 
-    class DatabaseIPAlreadyInUseError(Exception):
-        def __init__(self, node_record):
-            self.message = (
-                f"Node with node_id:{node_record.node_id} is already registered with "
-                "db_ip: {node_record.db_ip}"
-            )
 
-    class NodeIdAlreadyInRegistryError(Exception):
-        def __init__(self, node_record):
-            self.message = (
-                f"A node with id:{node_record.node_id} already exists in the "
-                "NodeRegistry. Either first deregister the node and then register it "
-                "or update enregistered node"
-            )
+def get_all_nodes() -> Dict[str, "NodeInfo"]:
+    all_services = consul_agent.services()
+    node_roles_str = [node_role.name for node_role in list(NodeRole)]
+    all_nodes = {
+        service_id: NodeInfo(ip=service_info["Address"], port=service_info["Port"])
+        for (service_id, service_info) in all_services.items()
+        if any(x in service_info["Tags"] for x in node_roles_str)
+    }
 
-    class NodeIdNotInResgistry(Exception):
-        def __init__(self, node_record):
-            self.message = (
-                f"NodeId: {node_record.node_id} does not exist in the node registry"
-            )
+    # pathologies are read from the key value store
+    for node_id in all_nodes.keys():
+        _, data = kv_store.get(node_id)
+        if not data:
+            raise NodeIDNotInKVStore(node_id)
+        node_conf = NodeConfiguration.parse_raw(data["Value"])
+        all_nodes[node_id].pathologies = node_conf.pathologies
 
-    class UpdateUnknownNodeIdError(Exception):
-        def __init__(self, node_record):
-            self.message = (
-                f"There are no registered nodes with id: {node_record.node_id}"
-            )
+    return all_nodes
+
+
+def get_db_info(node_id: str) -> "DBInfo":
+    _, data = kv_store.get(node_id, index=None)
+
+    if not data:
+        raise NodeIDNotInKVStore(node_id)
+
+    node_conf = NodeConfiguration.parse_raw(data["Value"])
+    db_id = node_conf.db_id
+
+    all_services = consul_agent.services()
+    db_service = all_services[db_id]
+
+    db_info = DBInfo(
+        id=db_service["ID"], ip=db_service["Address"], port=db_service["Port"]
+    )
+    return db_info
+
+
+class NodeIDNotInKVStore(Exception):
+    def __init__(self, node_id: str):
+        self.message = f"There is no node_id:{node_id} key in the key/value store"
+
+
+class NodeInfo(BaseModel):
+    ip: IPv4Address
+    port: int
+    pathologies: Optional[List[Pathology]]
+
+
+class NodeConfiguration(BaseModel):
+    db_id: str
+    pathologies: Optional[List[Pathology]]
+
+
+class DBInfo(BaseModel):
+    id: str
+    ip: IPv4Address
+    port: int
