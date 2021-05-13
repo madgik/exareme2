@@ -28,7 +28,7 @@ def create_merge_table(table_info: TableInfo):
 @validate_identifier_names
 def get_non_existing_tables(table_names: List[str]) -> List[str]:
     names_clause = str(table_names)[1:-1]
-    existing_tables = MonetDB().execute_with_result(
+    existing_tables = MonetDB().execute_and_fetchall(
         f"SELECT name FROM tables WHERE name IN ({names_clause})"
     )
     existing_table_names = [table[0] for table in existing_tables]
@@ -59,7 +59,7 @@ def add_to_merge_table(merge_table_name: str, table_names: List[str]):
 def validate_tables_can_be_merged(tables_names: List[str]):
     table_names = ",".join(f"'{table}'" for table in tables_names)
 
-    distinct_table_types = MonetDB().execute_with_result(
+    distinct_table_types = MonetDB().execute_and_fetchall(
         f"""
         SELECT DISTINCT(type)
         FROM tables

@@ -50,7 +50,7 @@ def test_create_and_find_tables(context_id):
     tables = local_node_get_tables.delay(context_id=context_id).get()
     assert table_1_name in tables
 
-    values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
+    values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
     local_node_insert_data_to_table.delay(table_name=table_1_name, values=values).get()
 
     table_data_json = local_node_get_table_data.delay(table_name=table_1_name).get()

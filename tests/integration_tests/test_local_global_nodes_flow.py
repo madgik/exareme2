@@ -3,11 +3,10 @@ import uuid
 import pytest
 
 from mipengine.common.node_catalog import node_catalog
-from mipengine.common.node_tasks_DTOs import ColumnInfo
+from mipengine.common.node_tasks_DTOs import ColumnInfo, TableData
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from tests.integration_tests import nodes_communication
-from tests.integration_tests.node_db_connections import get_node_db_connection
 
 local_node_1_id = "localnode1"
 local_node_2_id = "localnode2"
@@ -126,12 +125,9 @@ def test_create_merge_table_with_remote_tables(context_id):
     assert merge_table_name in merge_tables
 
     # Validate merge table row count
-    connection = get_node_db_connection(global_node_id)
-    cursor = connection.cursor()
-    cursor.execute(f"SELECT * FROM tables where system = false")
-    print(cursor.fetchall())
-    cursor.execute(f"SELECT * FROM {merge_table_name}")
-    row_count = len(cursor.fetchall())
+    table_data_json = global_node_get_merge_table_data.delay(
+        table_name=merge_table_name
+    ).get()
+    table_data = TableData.from_json(table_data_json)
+    row_count = len(table_data.data)
     assert row_count == 6
-    connection.commit()
-    connection.close()

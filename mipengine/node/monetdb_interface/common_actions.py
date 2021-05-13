@@ -64,7 +64,7 @@ def get_table_schema(table_name: str) -> TableSchema:
     TableSchema
         A schema which is TableSchema object.
     """
-    schema = MonetDB().execute_with_result(
+    schema = MonetDB().execute_and_fetchall(
         f"""
         SELECT columns.name, columns.type
         FROM columns
@@ -104,7 +104,7 @@ def get_table_names(table_type: str, context_id: str) -> List[str]:
     List[str]
         A list of table names.
     """
-    table_names = MonetDB().execute_with_result(
+    table_names = MonetDB().execute_and_fetchall(
         f"""
         SELECT name FROM tables
         WHERE
@@ -132,7 +132,7 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
         The data of the table.
     """
 
-    data = MonetDB().execute_with_result(
+    data = MonetDB().execute_and_fetchall(
         f"""
         SELECT {table_name}.*
         FROM {table_name}
@@ -246,7 +246,7 @@ def _drop_table_by_type_and_context_id(table_type: str, context_id: str):
     context_id : str
         The id of the experiment
     """
-    table_names_and_types = MonetDB().execute_with_result(
+    table_names_and_types = MonetDB().execute_and_fetchall(
         f"""
         SELECT name, type FROM tables
         WHERE name LIKE '%{context_id.lower()}%'
@@ -271,7 +271,7 @@ def _drop_udfs_by_context_id(context_id: str):
     context_id : str
         The id of the experiment
     """
-    function_names = MonetDB().execute_with_result(
+    function_names = MonetDB().execute_and_fetchall(
         f"""
         SELECT name FROM functions
         WHERE name LIKE '%{context_id.lower()}%'
