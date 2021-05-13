@@ -80,7 +80,7 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
             level=Level.WARNING,
         )
     for name in names:
-        container_ids = c.run(f"docker ps -qa --filter name={name}", hide="out")
+        container_ids = run(c, f"docker ps -qa --filter name={name}", show_ok=False)
         if container_ids.stdout:
             message(f"Removing {name} containers...", Level.HEADER)
             cmd = f"docker rm -vf $(docker ps -qa --filter name={name})"
@@ -89,14 +89,17 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
             message(f"No {name} container to remove", level=Level.HEADER)
 
 
-@task(iterable=["node_id"])
-def start_monetdb(c, node_id, monetdb_image=None):
+@task(iterable=["node"])
+def start_monetdb(c, node, monetdb_image=None):
     """Start MonetDB container(s) of given node(s)"""
+    if not node:
+        message("Please specify a node using --node <node>", Level.WARNING)
+        sys.exit(1)
 
     if not monetdb_image:
         monetdb_image = get_deployment_config("monetdb_image")
 
-    node_ids = node_id
+    node_ids = node
     for node_id in node_ids:
         container_name = f"monetdb-{node_id}"
         rm_containers(c, container_name=container_name)
@@ -156,8 +159,8 @@ def load_data(c, port=None):
         run(c, cmd)
 
 
-@task(iterable=["node_id"])
-def config_rabbitmq(c, node_id):
+@task(iterable=["node"])
+def config_rabbitmq(c, node):
     """Configure users and permissions for RabbitMQ containers of given node(s)"""
     message("Configuring RabbitMQ containers, this may take some time", Level.HEADER)
 
@@ -169,7 +172,7 @@ def config_rabbitmq(c, node_id):
         f"set_user_tags {node_config['rabbitmq']['user']} user_tag",
         f"set_permissions -p {node_config['rabbitmq']['vhost']} {node_config['rabbitmq']['user']} '.*' '.*' '.*'",
     ]
-    node_ids = node_id
+    node_ids = node
     for node_id in node_ids:
         container_name = f"rabbitmq-{node_id}"
 
@@ -191,11 +194,14 @@ def config_rabbitmq(c, node_id):
                 sys.exit(1)
 
 
-@task(iterable=["node_id"])
-def start_rabbitmq(c, node_id):
+@task(iterable=["node"])
+def start_rabbitmq(c, node):
     """Start RabbitMQ container(s) of given node(s)"""
+    if not node:
+        message("Please specify a node using --node <node>", Level.WARNING)
+        sys.exit(1)
 
-    node_ids = node_id
+    node_ids = node
     for node_id in node_ids:
         container_name = f"rabbitmq-{node_id}"
         rm_containers(c, container_name=container_name)
@@ -230,15 +236,17 @@ def kill_node(c, node=None, all_=False):
     else:
         message("Please specify a node using --node <node> or use --all", Level.WARNING)
         sys.exit(1)
-    node_descr = f"{node_pattern}" if node_pattern else "s"
-    res_bin = c.run(
+
+    res_bin = run(
+        c,
         f"ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' ",
-        hide="both",
         warn=True,
+        show_ok=False,
     )
+
     if res_bin.ok:
         message(
-            f"Killing previous celery instance {node_descr} started using celery binary...",
+            f"Killing previous celery instance(s) with pattern '{node_pattern}' ...",
             Level.HEADER,
         )
         cmd = (
@@ -246,8 +254,8 @@ def kill_node(c, node=None, all_=False):
             f"&& pgrep -P $pid | xargs kill -9 "
             f"&& kill -9 $pid "
         )
-        c.run(cmd)
-    if not res_bin.ok:
+        run(c, cmd, warn=True)
+    else:
         message("No celery instances found", Level.HEADER)
 
 
@@ -294,18 +302,16 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
                     f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
                     f"-A mipengine.node.node worker -l {celery_log_level} >> {outpath} 2>&1"
                 )
-                c.run(cmd, disown=True)
-                spin_wheel(time=4)
-                message("Ok", Level.SUCCESS)
+                run(c, cmd, wait=False)
             else:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run python -m mipengine.node.node worker -l {celery_log_level}"
-                c.run(cmd)
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A mipengine.node.node worker -l {celery_log_level}"
+                run(c, cmd, attach_=True)
 
 
 @task
 def kill_controller(c):
     """Kill Controller"""
-    res = c.run("ps aux | grep '[q]uart'", hide="both", warn=True)
+    res = run(c, "ps aux | grep '[q]uart'", warn=True, show_ok=False)
     if res.ok:
         message("Killing previous Quart instances...", Level.HEADER)
         cmd = "ps aux | grep '[q]uart' | awk '{ print $2}' | xargs kill -9 && sleep 5"
@@ -324,12 +330,10 @@ def start_controller(c, detached=False):
         outpath = OUTDIR / "controller.out"
         if detached:
             cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run >> {outpath} 2>&1"
-            c.run(cmd, disown=True)
-            spin_wheel(time=4)
-            message("Ok", Level.SUCCESS)
+            run(c, cmd, wait=False)
         else:
             cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run"
-            c.run(cmd)
+            run(c, cmd, attach_=True)
 
 
 @task
@@ -371,9 +375,9 @@ def deploy(
             node_config = toml.load(fp)
         node_ids.append(node_config["identifier"])
 
-    start_monetdb(c, node_id=node_ids, monetdb_image=monetdb_image)
-    start_rabbitmq(c, node_id=node_ids)
-    config_rabbitmq(c, node_id=node_ids)
+    start_monetdb(c, node=node_ids, monetdb_image=monetdb_image)
+    start_rabbitmq(c, node=node_ids)
+    config_rabbitmq(c, node=node_ids)
 
     if start_nodes or start_all:
         start_node(c, all_=True, celery_log_level=celery_log_level, detached=True)
@@ -386,9 +390,9 @@ def attach(c, node=None, controller=False, db=None):
         fname = node or "controller"
         outpath = OUTDIR / (fname + ".out")
         cmd = f"tail -f {outpath}"
-        c.run(cmd)
+        run(c, cmd, attach_=True)
     elif db:
-        c.run(f"docker exec -it {db} mclient db", pty=True)
+        run(c, f"docker exec -it {db} mclient db", attach_=True)
     else:
         message("You must attach to Node, Controller or DB", Level.WARNING)
         sys.exit(1)
@@ -408,18 +412,26 @@ def cleanup(c):
         message("Ok", level=Level.SUCCESS)
 
 
-def run(c, cmd, finish=True, error_check=True, raise_error=False):
-    promise = c.run(cmd, asynchronous=True)
+def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok=True):
+    if attach_:
+        c.run(cmd, pty=True)
+        return
+
+    if not wait:
+        c.run(cmd, disown=True)
+        spin_wheel(time=4)
+        if show_ok:
+            message("Ok", Level.SUCCESS)
+        return
+
+    promise = c.run(cmd, asynchronous=True, warn=warn)
     spin_wheel(promise=promise)
-    stderr = promise.runner.stderr
-    if error_check and stderr:
-        if raise_error:
-            raise UnexpectedExit(stderr)
-        message("Error", Level.ERROR)
-        message("\n".join(stderr), Level.BODY)
-        sys.exit(promise.runner.returncode())
-    elif finish:
+    if stderr := promise.runner.stderr and raise_error:
+        raise UnexpectedExit(stderr)
+    result = promise.join()
+    if show_ok:
         message("Ok", Level.SUCCESS)
+    return result
 
 
 class Level(Enum):
