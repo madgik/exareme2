@@ -42,7 +42,7 @@ class NodeRegistryClient:
         # The node's db is linked to the node by storing the db_id as a value in the key
         # value store of consul
         # The node's pathologies are also stored in the consul key/value store
-        node_configuration = self.NodeConfiguration(
+        node_configuration = self._NodeParameters(
             db_id=node_record.db_id, pathologies=node_record.pathologies
         )
         self._consul_kv_store.put(node_record.node_id, node_configuration.json())
@@ -53,7 +53,7 @@ class NodeRegistryClient:
         if not data:
             raise NodeIDNotInKVStore(node_id)
 
-        node_conf = self.NodeConfiguration.parse_raw(data["Value"])
+        node_conf = self._NodeParameters.parse_raw(data["Value"])
 
         # deregister db service
         self._consul_service.deregister(node_conf.db_id)
@@ -64,7 +64,7 @@ class NodeRegistryClient:
         # delete node configuration from kv store
         self._consul_kv_store.delete(node_id)
 
-    def get_all_nodes(self) -> Dict[str, "NodeInfo"]:
+    def get_all_nodes_info(self) -> Dict[str, "NodeInfo"]:
         all_services = self._consul_agent.services()
         node_roles_str = [node_role.name for node_role in list(NodeRole)]
         all_nodes = {
@@ -80,7 +80,7 @@ class NodeRegistryClient:
             _, data = self._consul_kv_store.get(node_id)
             if not data:
                 raise self.NodeIDNotInKVStore(node_id)
-            node_conf = self.NodeConfiguration.parse_raw(data["Value"])
+            node_conf = self._NodeParameters.parse_raw(data["Value"])
             all_nodes[node_id].pathologies = node_conf.pathologies
 
         return all_nodes
@@ -91,7 +91,7 @@ class NodeRegistryClient:
         if not data:
             raise self.NodeIDNotInKVStore(node_id)
 
-        node_conf = self.NodeConfiguration.parse_raw(data["Value"])
+        node_conf = self._NodeParameters.parse_raw(data["Value"])
         db_id = node_conf.db_id
 
         all_services = self._consul_agent.services()
@@ -111,7 +111,7 @@ class NodeRegistryClient:
         port: int
         pathologies: Optional[List[Pathology]]
 
-    class NodeConfiguration(BaseModel):
+    class _NodeParameters(BaseModel):
         db_id: str
         pathologies: Optional[List[Pathology]]
 

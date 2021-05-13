@@ -26,8 +26,8 @@ a_node_record_2 = NodeRecord(
     pathologies=[a_pathology2],
 )
 
-nrclient = NodeRegistryClient(consul_server_ip="127.0.0.1", consul_server_port=8200)
-# nrclient = NodeRegistryClient()
+# nrclient = NodeRegistryClient(consul_server_ip="127.0.0.1", consul_server_port=8200)
+nrclient = NodeRegistryClient()
 
 # register 2 nodes
 print("\nREGISTERING node1, node2...")
@@ -35,7 +35,7 @@ nrclient.register_node(a_node_record_1)
 nrclient.register_node(a_node_record_2)
 
 # get all registered nodes
-all_nodes = nrclient.get_all_nodes()
+all_nodes = nrclient.get_all_nodes_info()
 print("\nREGISTERED NODES:")
 {print(f"{node_id=}\n{node_info=}") for (node_id, node_info) in all_nodes.items()}
 
@@ -62,6 +62,6 @@ except nrclient.NodeIDNotInKVStore as exc:
     print(f"{exc.message=}")
 
 
-all_nodes = nrclient.get_all_nodes()
+all_nodes = nrclient.get_all_nodes_info()
 print(f"\nREGISTERED NODES:")
 {print(f"{node_id=}\n{node_info=}") for (node_id, node_info) in all_nodes.items()}
