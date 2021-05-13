@@ -63,7 +63,7 @@ def install_dependencies(c):
 
 
 @task
-def rm_containers(c, monetdb=False, rabbitmq=False):
+def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
     """Remove containers
 
     Removes all containers having either monetdb or rabbitmq in the name."""
@@ -72,6 +72,8 @@ def rm_containers(c, monetdb=False, rabbitmq=False):
         names.append("monetdb")
     if rabbitmq:
         names.append("rabbitmq")
+    if container_name:
+        names.append(container_name)
     if not names:
         message(
             "You must specify at least one container family to remove (monetdb or/and rabbitmq)",
@@ -87,18 +89,22 @@ def rm_containers(c, monetdb=False, rabbitmq=False):
             message(f"No {name} container to remove", level=Level.HEADER)
 
 
-@task(iterable=["port"])
-def start_monetdb(c, port, monetdb_image=None):
-    """Start MonetDB container(s) on given port(s)"""
-    rm_containers(c, monetdb=True)
+@task(iterable=["node_id"])
+def start_monetdb(c, node_id, monetdb_image=None):
+    """Start MonetDB container(s) of given node(s)"""
 
     if not monetdb_image:
         monetdb_image = get_deployment_config("monetdb_image")
 
-    ports = port
-    for i, port in enumerate(ports):
-        container_ports = f"{port}:50000"
-        container_name = f"monetdb-{i}"
+    node_ids = node_id
+    for node_id in node_ids:
+        container_name = f"monetdb-{node_id}"
+        rm_containers(c, container_name=container_name)
+
+        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
+        with open(node_config_file) as fp:
+            node_config = toml.load(fp)
+        container_ports = f"{node_config['monetdb']['port']}:50000"
         message(
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
@@ -150,9 +156,9 @@ def load_data(c, port=None):
         run(c, cmd)
 
 
-@task(iterable=["port"])
-def config_rabbitmq(c, port):
-    """Configure users and permissions for RabbitMQ containers on given port(s)"""
+@task(iterable=["node_id"])
+def config_rabbitmq(c, node_id):
+    """Configure users and permissions for RabbitMQ containers of given node(s)"""
     message("Configuring RabbitMQ containers, this may take some time", Level.HEADER)
 
     with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
@@ -163,9 +169,9 @@ def config_rabbitmq(c, port):
         f"set_user_tags {node_config['rabbitmq']['user']} user_tag",
         f"set_permissions -p {node_config['rabbitmq']['vhost']} {node_config['rabbitmq']['user']} '.*' '.*' '.*'",
     ]
-    ports = port
-    for num, port in enumerate(ports):
-        container_name = f"rabbitmq-{num}"
+    node_ids = node_id
+    for node_id in node_ids:
+        container_name = f"rabbitmq-{node_id}"
 
         for rmq_cmd in rabbitmqctl_cmds:
             message(
@@ -185,14 +191,19 @@ def config_rabbitmq(c, port):
                 sys.exit(1)
 
 
-@task(iterable=["port"])
-def start_rabbitmq(c, port):
-    """Start RabbitMQ container(s) on given port(s)"""
-    rm_containers(c, rabbitmq=True)
-    ports = port
-    for i, port in enumerate(ports):
-        container_name = f"rabbitmq-{i}"
-        container_ports = f"{port}:5672"
+@task(iterable=["node_id"])
+def start_rabbitmq(c, node_id):
+    """Start RabbitMQ container(s) of given node(s)"""
+
+    node_ids = node_id
+    for node_id in node_ids:
+        container_name = f"rabbitmq-{node_id}"
+        rm_containers(c, container_name=container_name)
+
+        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
+        with open(node_config_file) as fp:
+            node_config = toml.load(fp)
+        container_ports = f"{node_config['rabbitmq']['port']}:5672"
         message(
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
@@ -219,20 +230,15 @@ def kill_node(c, node=None, all_=False):
     else:
         message("Please specify a node using --node <node> or use --all", Level.WARNING)
         sys.exit(1)
-    node_descr = f" {node_pattern}" if node_pattern else "s"
+    node_descr = f"{node_pattern}" if node_pattern else "s"
     res_bin = c.run(
         f"ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' ",
         hide="both",
         warn=True,
     )
-    res_py = c.run(
-        f"ps aux | grep '[m]ipengine' | grep 'worker' | grep '{node_pattern}'",
-        hide="both",
-        warn=True,
-    )
     if res_bin.ok:
         message(
-            f"Killing previous celery instance{node_descr} started using celery binary...",
+            f"Killing previous celery instance {node_descr} started using celery binary...",
             Level.HEADER,
         )
         cmd = (
@@ -241,18 +247,7 @@ def kill_node(c, node=None, all_=False):
             f"&& kill -9 $pid "
         )
         c.run(cmd)
-    if res_py.ok:
-        message(
-            f"Killing previous celery instance{node_descr} started as a python module...",
-            Level.HEADER,
-        )
-        cmd = (
-            f"pid=$(ps aux | grep '[m]ipengine' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
-            f"&& pgrep -P $pid | xargs kill -9"
-            f"&& kill -9 $pid"
-        )
-        run(c, cmd)
-    if not res_bin.ok and not res_py.ok:
+    if not res_bin.ok:
         message("No celery instances found", Level.HEADER)
 
 
@@ -370,17 +365,15 @@ def deploy(
         )
         sys.exit(1)
 
-    monetdb_ports = []
-    rabbitmq_ports = []
+    node_ids = []
     for node_config_file in config_files:
         with open(node_config_file) as fp:
             node_config = toml.load(fp)
-        monetdb_ports.append(node_config["monetdb"]["port"])
-        rabbitmq_ports.append(node_config["rabbitmq"]["port"])
+        node_ids.append(node_config["identifier"])
 
-    start_monetdb(c, port=monetdb_ports, monetdb_image=monetdb_image)
-    start_rabbitmq(c, port=rabbitmq_ports)
-    config_rabbitmq(c, port=rabbitmq_ports)
+    start_monetdb(c, node_id=node_ids, monetdb_image=monetdb_image)
+    start_rabbitmq(c, node_id=node_ids)
+    config_rabbitmq(c, node_id=node_ids)
 
     if start_nodes or start_all:
         start_node(c, all_=True, celery_log_level=celery_log_level, detached=True)
