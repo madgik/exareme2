@@ -62,8 +62,10 @@ class MonetDB(metaclass=Singleton):
     def execute_and_fetchall(self, query: str, parameters=None, many=False) -> List:
         """
         Used to execute select queries that return a result.
-
         Should NOT be used to execute "CREATE, DROP, ALTER, UPDATE, ..." statements.
+
+        'many' option to provide the functionality of executemany, all results will be fetched.
+        'parameters' option to provide the functionality of bind-parameters.
         """
 
         # We use a single instance of a connection and by committing before a select query we refresh the state of
@@ -85,6 +87,9 @@ class MonetDB(metaclass=Singleton):
         And handles the *Optimistic Concurrency Control by giving each call X attempts
         if they fail with pymonetdb.exceptions.IntegrityError.
         *https://www.monetdb.org/blog/optimistic-concurrency-control
+
+        'many' option to provide the functionality of executemany.
+        'parameters' option to provide the functionality of bind-parameters.
         """
 
         for _ in range(OCC_MAX_ATTEMPTS):

@@ -20,10 +20,12 @@ def create_table(table_info: TableInfo):
 
 
 # TODO:Should validate the arguments, will be fixed with pydantic
-def insert_data_to_table(table_name: str, values: List[List[Union[str, int, float]]]):
-    len_of_each_row = len(values[0])
-    if all(len(value) != len_of_each_row for value in values):
+def insert_data_to_table(
+    table_name: str, table_values: List[List[Union[str, int, float]]]
+):
+    row_length = len(table_values[0])
+    if all(len(row) != row_length for row in table_values):
         raise Exception("Row counts does not match")
-    params_format = ", ".join(("%s",) * len_of_each_row)
+    params_format = ", ".join(("%s",) * row_length)
     sql_clause = "INSERT INTO %s VALUES (%s)" % (table_name, params_format)
-    MonetDB().execute(query=sql_clause, parameters=values, many=True)
+    MonetDB().execute(query=sql_clause, parameters=table_values, many=True)
