@@ -5,29 +5,21 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.common.node_catalog import node_catalog
-from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmInputDataDTO
-from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
-from mipengine.controller.api.AlgorithmSpecificationsDTOs import (
-    AlgorithmSpecificationDTO,
-)
-from mipengine.controller.api.AlgorithmSpecificationsDTOs import (
-    algorithm_specificationsDTOs,
-)
-from mipengine.controller.api.AlgorithmSpecificationsDTOs import (
-    CrossValidationSpecificationsDTO,
-)
-from mipengine.controller.api.AlgorithmSpecificationsDTOs import (
-    InputDataSpecificationDTO,
-)
-from mipengine.controller.api.AlgorithmSpecificationsDTOs import (
-    InputDataSpecificationsDTO,
-)
-from mipengine.controller.api.exceptions import BadRequest
-from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.algorithms_specifications import GenericParameterSpecification
 from mipengine.common.common_data_elements import CommonDataElement
 from mipengine.common.common_data_elements import common_data_elements
+from mipengine.common.node_catalog import node_catalog
+from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
+from mipengine.controller.algorithms_specifications import (
+    CROSSVALIDATION_ALGORITHM_NAME,
+)
+from mipengine.controller.algorithms_specifications import GenericParameterSpecification
+from mipengine.controller.algorithms_specifications import InputDataSpecification
+from mipengine.controller.algorithms_specifications import InputDataSpecifications
+from mipengine.controller.algorithms_specifications import algorithms_specifications
+from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmInputDataDTO
+from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
+from mipengine.controller.api.exceptions import BadRequest
+from mipengine.controller.api.exceptions import BadUserInput
 
 
 def validate_algorithm(algorithm_name: str, request_body: str):
@@ -41,7 +33,7 @@ def validate_algorithm(algorithm_name: str, request_body: str):
     # Check that algorithm exists
     if (
         str.lower(algorithm_name)
-        not in algorithm_specificationsDTOs.algorithms_dict.keys()
+        not in algorithms_specifications.enabled_algorithms.keys()
     ):
         raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
 
@@ -53,15 +45,15 @@ def validate_algorithm(algorithm_name: str, request_body: str):
             f"Could not parse the algorithm request body. "
             f"Exception: \n {traceback.format_exc()}"
         )
-        raise BadRequest(f"The algorithm body does not have the proper format.")
+        raise BadRequest(f"The algorithm request body does not have the proper format.")
 
     # Get algorithm specification and validate the algorithm input
-    algorithm_specs = algorithm_specificationsDTOs.algorithms_dict[algorithm_name]
+    algorithm_specs = algorithms_specifications.enabled_algorithms[algorithm_name]
     validate_algorithm_parameters(algorithm_specs, algorithm_request)
 
 
 def validate_algorithm_parameters(
-    algorithm_specs: AlgorithmSpecificationDTO, algorithm_request: AlgorithmRequestDTO
+    algorithm_specs: AlgorithmSpecifications, algorithm_request: AlgorithmRequestDTO
 ):
     # Validate inputdata
     validate_inputdata(algorithm_specs.inputdata, algorithm_request.inputdata)
@@ -73,12 +65,12 @@ def validate_algorithm_parameters(
 
     # Validate crossvalidation parameters
     validate_crossvalidation_parameters(
-        algorithm_specs.crossvalidation, algorithm_request.crossvalidation
+        algorithm_specs, algorithm_request.crossvalidation
     )
 
 
 def validate_inputdata(
-    inputdata_specs: InputDataSpecificationsDTO, input_data: AlgorithmInputDataDTO
+    inputdata_specs: InputDataSpecifications, input_data: AlgorithmInputDataDTO
 ):
     """
     Validates that the:
@@ -129,7 +121,7 @@ def validate_inputdata_filter(filter):
 
 
 def validate_inputdata_cdes(
-    input_data_specs: InputDataSpecificationsDTO, input_data: AlgorithmInputDataDTO
+    input_data_specs: InputDataSpecifications, input_data: AlgorithmInputDataDTO
 ):
     """
     Validates that the cdes input data (x,y) follow the specs provided
@@ -141,7 +133,7 @@ def validate_inputdata_cdes(
 
 
 def validate_inputdata_cde(
-    cde_parameter_specs: InputDataSpecificationDTO,
+    cde_parameter_specs: InputDataSpecification,
     cde_parameter_value: Optional[List[str]],
     pathology: str,
 ):
@@ -167,7 +159,7 @@ def validate_inputdata_cde(
 
 
 def validate_inputdata_cdes_length(
-    cde_parameter_value: Any, cde_parameter_specs: InputDataSpecificationDTO
+    cde_parameter_value: Any, cde_parameter_specs: InputDataSpecification
 ):
     """
     Validate that the cde inputdata has proper list length
@@ -182,7 +174,7 @@ def validate_inputdata_cdes_length(
 
 
 def validate_inputdata_cde_value(
-    cde: str, cde_parameter_specs: InputDataSpecificationDTO, pathology: str
+    cde: str, cde_parameter_specs: InputDataSpecification, pathology: str
 ):
     """
     Validation of a specific cde in a parameter for the following:
@@ -209,7 +201,7 @@ def validate_inputdata_cde_value(
 def validate_inputdata_cde_types(
     cde: str,
     cde_metadata: CommonDataElement,
-    cde_parameter_specs: InputDataSpecificationDTO,
+    cde_parameter_specs: InputDataSpecification,
 ):
     # Validate that the cde belongs in the allowed types
     if cde_metadata.sql_type not in cde_parameter_specs.types:
@@ -225,7 +217,7 @@ def validate_inputdata_cde_types(
 def validate_inputdata_cde_stattypes(
     cde: str,
     cde_metadata: CommonDataElement,
-    cde_parameter_specs: InputDataSpecificationDTO,
+    cde_parameter_specs: InputDataSpecification,
 ):
     if cde_metadata.categorical and "nominal" not in cde_parameter_specs.stattypes:
         raise BadUserInput(
@@ -246,7 +238,7 @@ def validate_inputdata_cde_stattypes(
 def validate_inputdata_cde_enumerations(
     cde: str,
     cde_metadata: CommonDataElement,
-    cde_parameter_specs: InputDataSpecificationDTO,
+    cde_parameter_specs: InputDataSpecification,
 ):
     if (
         cde_parameter_specs.enumslen is not None
@@ -384,16 +376,25 @@ def validate_generic_parameter_inside_min_max(
 
 
 def validate_crossvalidation_parameters(
-    crossvalidation_specs: Optional[CrossValidationSpecificationsDTO],
-    crossvalidation: Optional[Dict[str, Any]],
+    algorithm_specs: AlgorithmSpecifications,
+    crossvalidation_parameters: Optional[Dict[str, Any]],
 ):
     """
     If crossvalidation is enabled, it validates that the algorithm's
     crossvalidation parameters follow the specs.
     """
 
-    # Cross validation is optional, if not present, do nothing
-    if crossvalidation_specs is None or crossvalidation is None:
+    if not crossvalidation_parameters:
         return
 
-    validate_generic_parameters(crossvalidation_specs.parameters, crossvalidation)
+    if (
+        crossvalidation_parameters
+        and not algorithm_specs.flags[CROSSVALIDATION_ALGORITHM_NAME]
+    ):
+        raise BadRequest(
+            f"Algorithm {algorithm_specs.label} does not have crossvalidation."
+        )
+
+    validate_generic_parameters(
+        algorithms_specifications.crossvalidation, crossvalidation_parameters
+    )

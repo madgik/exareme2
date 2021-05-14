@@ -19,6 +19,8 @@ import asyncio
 
 import concurrent.futures
 
+from mipengine.controller.api.exceptions import BadUserInput
+from mipengine.controller.api.validate_algorithm import validate_algorithm
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 
@@ -36,13 +38,13 @@ async def post_algorithm(algorithm_name: str) -> str:
 
     request_body = await request.data
 
-    # try:
-    #     validate_algorithm(algorithm_name, request_body)
-    # except (BadRequest, BadUserInput) as exc:
-    #     raise exc
-    # except:
-    #     logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
-    #     raise BadRequest("Algorithm validation failed.")
+    try:
+        validate_algorithm(algorithm_name, request_body)
+    except (BadRequest, BadUserInput) as exc:
+        raise exc
+    except:
+        logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
+        raise BadRequest("Algorithm validation failed.")
 
     try:
         algorithm_request = AlgorithmRequestDTO.from_json(request_body)
@@ -74,5 +76,3 @@ async def post_algorithm(algorithm_name: str) -> str:
             "Something went wrong. "
             "Please inform the system administrator or try again later."
         )
-
-    return "Something did not go quite right...?"
