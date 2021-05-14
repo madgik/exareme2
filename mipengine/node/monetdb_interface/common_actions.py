@@ -61,7 +61,7 @@ def get_table_schema(table_name: str) -> TableSchema:
     TableSchema
         A schema which is TableSchema object.
     """
-    schema = MonetDB().execute_with_result(
+    schema = MonetDB().execute_and_fetchall(
         f"""
         SELECT columns.name, columns.type
         FROM columns
@@ -101,7 +101,7 @@ def get_table_names(table_type: str, context_id: str) -> List[str]:
     List[str]
         A list of table names.
     """
-    table_names = MonetDB().execute_with_result(
+    table_names = MonetDB().execute_and_fetchall(
         f"""
         SELECT name FROM tables
         WHERE
@@ -129,7 +129,7 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
         The data of the table.
     """
 
-    data = MonetDB().execute_with_result(
+    data = MonetDB().execute_and_fetchall(
         f"""
         SELECT {table_name}.*
         FROM {table_name}
@@ -142,9 +142,9 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
 
 
 @validate_identifier_names
-def clean_up(context_id: str):
+def drop_db_artifacts_by_context_id(context_id: str):
     """
-    Deletes all tables of any type with name that contain a specific
+    Drops all tables of any type and functions with name that contain a specific
     context_id from the DB.
 
     Parameters
@@ -155,7 +155,7 @@ def clean_up(context_id: str):
 
     _drop_udfs_by_context_id(context_id)
     for table_type in ("merge", "remote", "view", "normal"):
-        _delete_table_by_type_and_context_id(table_type, context_id)
+        _drop_table_by_type_and_context_id(table_type, context_id)
 
 
 def _convert_monet2mip_table_type(monet_table_type: int) -> str:
@@ -232,9 +232,9 @@ def _convert_monet2mip_column_type(column_type: str) -> str:
 
 
 @validate_identifier_names
-def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
+def _drop_table_by_type_and_context_id(table_type: str, context_id: str):
     """
-    Deletes all tables of specific type with name that contain a specific context_id from the monetdb.
+    Drops all tables of specific type with name that contain a specific context_id from the DB.
 
     Parameters
     ----------
@@ -243,7 +243,7 @@ def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
     context_id : str
         The id of the experiment
     """
-    table_names_and_types = MonetDB().execute_with_result(
+    table_names_and_types = MonetDB().execute_and_fetchall(
         f"""
         SELECT name, type FROM tables
         WHERE name LIKE '%{context_id.lower()}%'
@@ -261,14 +261,14 @@ def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
 @validate_identifier_names
 def _drop_udfs_by_context_id(context_id: str):
     """
-    Deletes all functions of specific context_id from the monetdb.
+    Drops all functions of specific context_id from the DB.
 
     Parameters
     ----------
     context_id : str
         The id of the experiment
     """
-    function_names = MonetDB().execute_with_result(
+    function_names = MonetDB().execute_and_fetchall(
         f"""
         SELECT name FROM functions
         WHERE name LIKE '%{context_id.lower()}%'

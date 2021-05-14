@@ -34,6 +34,10 @@ def get_celery_get_tables_signature(celery_app):
     return celery_app.signature("mipengine.node.tasks.tables.get_tables")
 
 
+def get_celery_insert_data_to_table_signature(celery_app):
+    return celery_app.signature("mipengine.node.tasks.tables.insert_data_to_table")
+
+
 def get_celery_create_view_signature(celery_app):
     return celery_app.signature("mipengine.node.tasks.views.create_view")
 
