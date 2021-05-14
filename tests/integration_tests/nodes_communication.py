@@ -1,23 +1,21 @@
 from celery import Celery
 
 from mipengine.common.node_catalog import node_catalog
-from mipengine import config
+from mipengine.node import config as node_config
 
 
 def get_celery_app(node_id: str):
-    global_node = node_catalog.get_global_node()
-    if global_node.nodeId == node_id:
-        node = global_node
-    else:
-        node = node_catalog.get_local_node(node_id)
+    node = node_catalog.get_node(node_id)
 
-    user = config.rabbitmq.user
-    password = config.rabbitmq.password
-    vhost = config.rabbitmq.vhost
+    rabbitmq_credentials = (
+        node_config.rabbitmq.user + ":" + node_config.rabbitmq.password
+    )
+    rabbitmq_socket_addr = node.rabbitmqIp + ":" + str(node.rabbitmqPort)
+    vhost = node_config.rabbitmq.vhost
 
     return Celery(
         "mipengine.node",
-        broker=f"amqp://{user}:{password}@{node.rabbitmqURL}/{vhost}",
+        broker=f"amqp://{rabbitmq_credentials}@{rabbitmq_socket_addr}/{vhost}",
         backend="rpc://",
         include=[
             "mipengine.node.tasks.tables",

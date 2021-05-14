@@ -25,49 +25,94 @@ def run(algo_interface):
     run_on_global = algo_interface.run_udf_on_global_node
     get_table_schema = algo_interface.get_table_schema
 
-    X_init: "LocalNodeTable" = algo_interface.initial_view_tables['x']
-    X = run_on_locals(func_name="logistic_regression.relation_to_matrix", positional_args={"rel": X_init})  # X = relation_to_matrix(X)
+    X_init: "LocalNodeTable" = algo_interface.initial_view_tables["x"]
+    X = run_on_locals(
+        func_name="logistic_regression.relation_to_matrix",
+        positional_args={"rel": X_init},
+    )  # X = relation_to_matrix(X)
 
-    y_init: "LocalNodeTable" = algo_interface.initial_view_tables['y']
-    y = run_on_locals(func_name="logistic_regression.relation_to_vector", positional_args={"rel": y_init})  # y = relation_to_vector(y)
+    y_init: "LocalNodeTable" = algo_interface.initial_view_tables["y"]
+    y = run_on_locals(
+        func_name="logistic_regression.relation_to_vector",
+        positional_args={"rel": y_init},
+    )  # y = relation_to_vector(y)
 
     # init model
-    table_schema = get_table_schema(X)  #nobs, ncols = X.shape
+    table_schema = get_table_schema(X)  # nobs, ncols = X.shape
     ncols = len(table_schema.columns)
 
-    coeff = run_on_locals(func_name="sql.zeros1", positional_args={"n": ncols})  # coeff = zeros1(ncols)
-
+    coeff = run_on_locals(
+        func_name="sql.zeros1", positional_args={"n": ncols}
+    )  # coeff = zeros1(ncols)
 
     logloss = 1e6
     # loop update coefficients
     while True:
-        z = run_on_locals(func_name="sql.matrix_dot_vector", positional_args={"Μ": X, "v": coeff})  # z = matrix_dot_vector(X, coeff)
+        z = run_on_locals(
+            func_name="sql.matrix_dot_vector", positional_args={"Μ": X, "v": coeff}
+        )  # z = matrix_dot_vector(X, coeff)
 
-        s = run_on_locals(func_name="logistic_regression.tensor_expit", positional_args={"t": z})  # s = tensor_expit(z)
+        s = run_on_locals(
+            func_name="logistic_regression.tensor_expit", positional_args={"t": z}
+        )  # s = tensor_expit(z)
 
-        tmp = run_on_locals(func_name="sql.const_tensor1_sub", positional_args={"const": 1, "t": s})  # tmp = const_tensor_sub(1, s)
+        tmp = run_on_locals(
+            func_name="sql.const_tensor1_sub", positional_args={"const": 1, "t": s}
+        )  # tmp = const_tensor_sub(1, s)
 
-        d = run_on_locals(func_name="sql.tensor1_mult", positional_args={"t1": s, "t2": tmp})  # d = tensor_mult(s, const_tensor_sub(1, s))
+        d = run_on_locals(
+            func_name="sql.tensor1_mult", positional_args={"t1": s, "t2": tmp}
+        )  # d = tensor_mult(s, const_tensor_sub(1, s))
 
-        tmp = run_on_locals(func_name="sql.tensor1_sub", positional_args={"t1": y, "t2": s})
-        y_ratio = run_on_locals(func_name="sql.tensor1_div", positional_args={"t1": tmp, "t2": d})  # y_ratio = tensor_div(tensor_sub(y, s), d)
+        tmp = run_on_locals(
+            func_name="sql.tensor1_sub", positional_args={"t1": y, "t2": s}
+        )
+        y_ratio = run_on_locals(
+            func_name="sql.tensor1_div", positional_args={"t1": tmp, "t2": d}
+        )  # y_ratio = tensor_div(tensor_sub(y, s), d)
 
-        hessian = run_on_locals(func_name="sql.mat_transp_dot_diag_dot_mat", positional_args={"M": X, "d": d}, share_to_global=True)   # hessian = mat_transp_dot_diag_dot_mat(X, d)
+        hessian = run_on_locals(
+            func_name="sql.mat_transp_dot_diag_dot_mat",
+            positional_args={"M": X, "d": d},
+            share_to_global=True,
+        )  # hessian = mat_transp_dot_diag_dot_mat(X, d)
 
-        tmp = run_on_locals(func_name="sql.tensor1_add", positional_args={"t1": z, "t2": y_ratio})
-        grad = run_on_locals(func_name="sql.mat_transp_dot_diag_dot_vec", positional_args={"M": X, "d": d, "v": tmp}, share_to_global=True)  #grad = mat_transp_dot_diag_dot_vec(X, d, tensor_add(z, y_ratio))
+        tmp = run_on_locals(
+            func_name="sql.tensor1_add", positional_args={"t1": z, "t2": y_ratio}
+        )
+        grad = run_on_locals(
+            func_name="sql.mat_transp_dot_diag_dot_vec",
+            positional_args={"M": X, "d": d, "v": tmp},
+            share_to_global=True,
+        )  # grad = mat_transp_dot_diag_dot_vec(X, d, tensor_add(z, y_ratio))
 
-        newlogloss = run_on_locals(func_name="logistic_regression.logistic_loss", positional_args={"v1": y, "v2": s}) # newlogloss = logistic_loss(y, s)
-        newlogloss = sum(newlogloss.get_table_data()) # is not a single value, its one value per local node
+        newlogloss = run_on_locals(
+            func_name="logistic_regression.logistic_loss",
+            positional_args={"v1": y, "v2": s},
+        )  # newlogloss = logistic_loss(y, s)
+        newlogloss = sum(
+            newlogloss.get_table_data()
+        )  # is not a single value, its one value per local node
 
         # ******** Global part ******** #
-        hessian_global = run_on_global(func_name="reduce.sum_tensors",positional_args=[hessian])
+        hessian_global = run_on_global(
+            func_name="reduce.sum_tensors", positional_args=[hessian]
+        )
 
-        tmp = run_on_global(func_name="logistic_regression.mat_inverse", positional_args=[hessian_global])
-        coeff = run_on_global(func_name="sql.matrix_dot_vector", positional_args=[tmp, grad], share_to_locals=True)  # coeff = matrix_dot_vector(mat_inverse(hessian), grad)
+        tmp = run_on_global(
+            func_name="logistic_regression.mat_inverse",
+            positional_args=[hessian_global],
+        )
+        coeff = run_on_global(
+            func_name="sql.matrix_dot_vector",
+            positional_args=[tmp, grad],
+            share_to_locals=True,
+        )  # coeff = matrix_dot_vector(mat_inverse(hessian), grad)
 
         if abs(newlogloss - logloss) <= PREC:
-            coeff = run_on_global(func_name="sql.matrix_dot_vector", positional_args=[tmp, grad])  # coeff = matrix_dot_vector(mat_inverse(hessian), grad)
+            coeff = run_on_global(
+                func_name="sql.matrix_dot_vector", positional_args=[tmp, grad]
+            )  # coeff = matrix_dot_vector(mat_inverse(hessian), grad)
             break
         logloss = newlogloss
 
@@ -164,8 +209,8 @@ def tensor_max_abs_diff(t1: TensorT[DT, ND], t2: TensorT[DT, ND]) -> ScalarT(flo
 
 
 @udf
-def mat_inverse(M: TensorT(Number, 2)) -> TensorT(float, 2):
-    minv = numpy.linalg.inv(M)
+def mat_inverse(m: TensorT(Number, 2)) -> TensorT(float, 2):
+    minv = numpy.linalg.inv(m)
     return minv
 
 

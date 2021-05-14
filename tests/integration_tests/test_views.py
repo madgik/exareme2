@@ -1,6 +1,5 @@
-import json
+import uuid
 
-import pymonetdb
 import pytest
 
 from mipengine.common.node_tasks_DTOs import ColumnInfo
@@ -22,17 +21,17 @@ local_node_get_view_schema = nodes_communication.get_celery_get_table_schema_sig
 )
 local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
 
-context_id = "regrEssion"
-
 
 @pytest.fixture(autouse=True)
-def cleanup_views():
-    yield
+def context_id():
+    context_id = "test_views_" + str(uuid.uuid4()).replace("-", "")
+
+    yield context_id
 
     local_node_cleanup.delay(context_id=context_id.lower()).get()
 
 
-def test_create_and_get_view():
+def test_create_and_get_view(context_id):
     columns = [
         "dataset",
         "age_value",
@@ -43,7 +42,7 @@ def test_create_and_get_view():
     pathology = "tbi"
     view_name = local_node_create_view.delay(
         context_id=context_id,
-        command_id=str(pymonetdb.uuid.uuid1()).replace("-", ""),
+        command_id=str(uuid.uuid1()).replace("-", ""),
         pathology=pathology,
         datasets=datasets,
         columns=columns,

@@ -147,4 +147,5 @@ pyrightconfig.json
 **/.DS_Store
 
 # mip deployment config file
-.mipenv
+.deployment.toml
+/configs
