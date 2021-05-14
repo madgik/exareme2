@@ -1,7 +1,7 @@
 from quart import Quart
 
-from mipengine.controller.api.errors.error_handlers import error_handlers
-from mipengine.controller.api.views.algorithms import algorithms
+from mipengine.controller.api.error_handlers import error_handlers
+from mipengine.controller.api.algorithms import algorithms
 
 app = Quart(__name__)
 app.register_blueprint(algorithms)
