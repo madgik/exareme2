@@ -3,9 +3,9 @@ from typing import List
 from celery import shared_task
 
 from mipengine.common.node_tasks_DTOs import TableInfo
+from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import common_actions
 from mipengine.node.monetdb_interface import merge_tables
-from mipengine.node.monetdb_interface.common_actions import config
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.merge_tables import validate_tables_can_be_merged
 
@@ -46,7 +46,7 @@ def create_merge_table(context_id: str, command_id: str, table_names: List[str])
     validate_tables_can_be_merged(table_names)
     schema = common_actions.get_table_schema(table_names[0])
     merge_table_name = create_table_name(
-        "merge", command_id, context_id, config.node.identifier
+        "merge", command_id, context_id, node_config.identifier
     )
     table_info = TableInfo(merge_table_name.lower(), schema)
     merge_tables.create_merge_table(table_info)
