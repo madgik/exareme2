@@ -2,7 +2,6 @@ import sys
 from enum import Enum
 from itertools import cycle
 from os import listdir
-from os import path
 from pathlib import Path
 from textwrap import indent
 from time import sleep
@@ -14,15 +13,15 @@ from termcolor import colored
 
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
-NODES_CONFIG_DIR = PROJECT_ROOT / "configs/nodes/"
-NODE_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "mipengine/node/config.toml"
+NODES_CONFIG_DIR = PROJECT_ROOT / "configs" / "nodes"
+NODE_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "mipengine" / "node" / "config.toml"
 OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
 
 # TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
-# Right now if we call a task from another task, the "pre"
+# Right now if we call a task from another task, the "pre"-task is not executed
 
 
 @task
@@ -31,7 +30,7 @@ def create_node_configs(c):
     This command, using the .deployment.toml file, will create the node configuration files.
     """
 
-    if not path.isfile(DEPLOYMENT_CONFIG_FILE):
+    if not Path(DEPLOYMENT_CONFIG_FILE).is_file():
         raise FileNotFoundError("Deployment config file '.deployment.toml' not found.")
 
     with open(DEPLOYMENT_CONFIG_FILE) as fp:
@@ -49,7 +48,7 @@ def create_node_configs(c):
         node_config["rabbitmq"]["ip"] = deployment_config["ip"]
         node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
 
-        Path(NODES_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        NODES_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
         with open(node_config_file, "w+") as fp:
             toml.dump(node_config, fp)
@@ -64,7 +63,7 @@ def install_dependencies(c):
 
 
 @task
-def rm_containers(c, monetdb=False, rabbitmq=False):
+def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
     """Remove containers
 
     Removes all containers having either monetdb or rabbitmq in the name."""
@@ -73,13 +72,15 @@ def rm_containers(c, monetdb=False, rabbitmq=False):
         names.append("monetdb")
     if rabbitmq:
         names.append("rabbitmq")
+    if container_name:
+        names.append(container_name)
     if not names:
         message(
             "You must specify at least one container family to remove (monetdb or/and rabbitmq)",
             level=Level.WARNING,
         )
     for name in names:
-        container_ids = c.run(f"docker ps -qa --filter name={name}", hide="out")
+        container_ids = run(c, f"docker ps -qa --filter name={name}", show_ok=False)
         if container_ids.stdout:
             message(f"Removing {name} containers...", Level.HEADER)
             cmd = f"docker rm -vf $(docker ps -qa --filter name={name})"
@@ -88,18 +89,25 @@ def rm_containers(c, monetdb=False, rabbitmq=False):
             message(f"No {name} container to remove", level=Level.HEADER)
 
 
-@task(iterable=["port"])
-def start_monetdb(c, port, monetdb_image=None):
-    """Start MonetDB container(s) on given port(s)"""
-    rm_containers(c, monetdb=True)
+@task(iterable=["node"])
+def start_monetdb(c, node, monetdb_image=None):
+    """Start MonetDB container(s) of given node(s)"""
+    if not node:
+        message("Please specify a node using --node <node>", Level.WARNING)
+        sys.exit(1)
 
     if not monetdb_image:
         monetdb_image = get_deployment_config("monetdb_image")
 
-    ports = port
-    for i, port in enumerate(ports):
-        container_ports = f"{port}:50000"
-        container_name = f"monetdb-{i}"
+    node_ids = node
+    for node_id in node_ids:
+        container_name = f"monetdb-{node_id}"
+        rm_containers(c, container_name=container_name)
+
+        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
+        with open(node_config_file) as fp:
+            node_config = toml.load(fp)
+        container_ports = f"{node_config['monetdb']['port']}:50000"
         message(
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
@@ -135,7 +143,7 @@ def load_data(c, port=None):
 
     from tests import integration_tests
 
-    data_folder = path.dirname(integration_tests.__file__) + "/data"
+    data_folder = Path(integration_tests.__file__).parent / "data"
     with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
         template_node_config = toml.load(fp)
     for port in local_node_ports:
@@ -151,9 +159,9 @@ def load_data(c, port=None):
         run(c, cmd)
 
 
-@task(iterable=["port"])
-def config_rabbitmq(c, port):
-    """Configure users and permissions for RabbitMQ containers on given port(s)"""
+@task(iterable=["node"])
+def config_rabbitmq(c, node):
+    """Configure users and permissions for RabbitMQ containers of given node(s)"""
     message("Configuring RabbitMQ containers, this may take some time", Level.HEADER)
 
     with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
@@ -164,9 +172,9 @@ def config_rabbitmq(c, port):
         f"set_user_tags {node_config['rabbitmq']['user']} user_tag",
         f"set_permissions -p {node_config['rabbitmq']['vhost']} {node_config['rabbitmq']['user']} '.*' '.*' '.*'",
     ]
-    ports = port
-    for num, port in enumerate(ports):
-        container_name = f"rabbitmq-{num}"
+    node_ids = node
+    for node_id in node_ids:
+        container_name = f"rabbitmq-{node_id}"
 
         for rmq_cmd in rabbitmqctl_cmds:
             message(
@@ -186,14 +194,22 @@ def config_rabbitmq(c, port):
                 sys.exit(1)
 
 
-@task(iterable=["port"])
-def start_rabbitmq(c, port):
-    """Start RabbitMQ container(s) on given port(s)"""
-    rm_containers(c, rabbitmq=True)
-    ports = port
-    for i, port in enumerate(ports):
-        container_name = f"rabbitmq-{i}"
-        container_ports = f"{port}:5672"
+@task(iterable=["node"])
+def start_rabbitmq(c, node):
+    """Start RabbitMQ container(s) of given node(s)"""
+    if not node:
+        message("Please specify a node using --node <node>", Level.WARNING)
+        sys.exit(1)
+
+    node_ids = node
+    for node_id in node_ids:
+        container_name = f"rabbitmq-{node_id}"
+        rm_containers(c, container_name=container_name)
+
+        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
+        with open(node_config_file) as fp:
+            node_config = toml.load(fp)
+        container_ports = f"{node_config['rabbitmq']['port']}:5672"
         message(
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
@@ -220,20 +236,17 @@ def kill_node(c, node=None, all_=False):
     else:
         message("Please specify a node using --node <node> or use --all", Level.WARNING)
         sys.exit(1)
-    node_descr = f" {node_pattern}" if node_pattern else "s"
-    res_bin = c.run(
+
+    res_bin = run(
+        c,
         f"ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' ",
-        hide="both",
         warn=True,
+        show_ok=False,
     )
-    res_py = c.run(
-        f"ps aux | grep '[m]ipengine' | grep 'worker' | grep '{node_pattern}'",
-        hide="both",
-        warn=True,
-    )
+
     if res_bin.ok:
         message(
-            f"Killing previous celery instance{node_descr} started using celery binary...",
+            f"Killing previous celery instance(s) with pattern '{node_pattern}' ...",
             Level.HEADER,
         )
         cmd = (
@@ -241,19 +254,8 @@ def kill_node(c, node=None, all_=False):
             f"&& pgrep -P $pid | xargs kill -9 "
             f"&& kill -9 $pid "
         )
-        c.run(cmd)
-    if res_py.ok:
-        message(
-            f"Killing previous celery instance{node_descr} started as a python module...",
-            Level.HEADER,
-        )
-        cmd = (
-            f"pid=$(ps aux | grep '[m]ipengine' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
-            f"&& pgrep -P $pid | xargs kill -9"
-            f"&& kill -9 $pid"
-        )
-        run(c, cmd)
-    if not res_bin.ok and not res_py.ok:
+        run(c, cmd, warn=True)
+    else:
         message("No celery instances found", Level.HEADER)
 
 
@@ -272,17 +274,17 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
     node_ids = []
     if all_:
         for node_config_file in listdir(NODES_CONFIG_DIR):
-            filename, file_ext = path.splitext(node_config_file)
+            filename = Path(node_config_file).stem
             node_ids.append(filename)
     elif node:
         node_config_file = NODES_CONFIG_DIR / f"{node}.toml"
-        if not path.isfile(node_config_file):
+        if not Path(node_config_file).is_file():
             message(
                 f"The configuration file for node '{node}', does not exist in directory '{NODES_CONFIG_DIR}'",
                 Level.ERROR,
             )
             sys.exit(1)
-        filename, file_ext = path.splitext(path.basename(node_config_file))
+        filename = Path(node_config_file).stem
         node_ids.append(filename)
     else:
         message("Please specify a node using --node <node> or use --all", Level.WARNING)
@@ -293,26 +295,23 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
 
         message(f"Starting Node {node_id}...", Level.HEADER)
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
-        with c.prefix(f"export CONFIG_FILE={node_config_file}"):
+        with c.prefix(f"export MIPENGINE_NODE_CONFIG_FILE={node_config_file}"):
             outpath = OUTDIR / (node_id + ".out")
             if detached or all_:
                 cmd = (
-                    f"PYTHONPATH={PROJECT_ROOT} poetry run python "
-                    f"-m mipengine.node.node worker -l {celery_log_level} >> {outpath} 2>&1"
+                    f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
+                    f"-A mipengine.node.node worker -l {celery_log_level} >> {outpath} 2>&1"
                 )
-                c.run(cmd, disown=True)
-                spin_wheel(time=4)
-                message("Ok", Level.SUCCESS)
+                run(c, cmd, wait=False)
             else:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run python -m mipengine.node.node worker -l {celery_log_level}"
-                c.run(cmd)
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A mipengine.node.node worker -l {celery_log_level}"
+                run(c, cmd, attach_=True)
 
 
 @task
 def kill_controller(c):
     """Kill Controller"""
-    message("Killing Controller...", Level.HEADER)
-    res = c.run("ps aux | grep '[q]uart'", hide="both", warn=True)
+    res = run(c, "ps aux | grep '[q]uart'", warn=True, show_ok=False)
     if res.ok:
         message("Killing previous Quart instances...", Level.HEADER)
         cmd = "ps aux | grep '[q]uart' | awk '{ print $2}' | xargs kill -9 && sleep 5"
@@ -331,12 +330,10 @@ def start_controller(c, detached=False):
         outpath = OUTDIR / "controller.out"
         if detached:
             cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run >> {outpath} 2>&1"
-            c.run(cmd, disown=True)
-            spin_wheel(time=4)
-            message("Ok", Level.SUCCESS)
+            run(c, cmd, wait=False)
         else:
             cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run"
-            c.run(cmd)
+            run(c, cmd, attach_=True)
 
 
 @task
@@ -372,17 +369,15 @@ def deploy(
         )
         sys.exit(1)
 
-    monetdb_ports = []
-    rabbitmq_ports = []
+    node_ids = []
     for node_config_file in config_files:
         with open(node_config_file) as fp:
             node_config = toml.load(fp)
-        monetdb_ports.append(node_config["monetdb"]["port"])
-        rabbitmq_ports.append(node_config["rabbitmq"]["port"])
+        node_ids.append(node_config["identifier"])
 
-    start_monetdb(c, port=monetdb_ports, monetdb_image=monetdb_image)
-    start_rabbitmq(c, port=rabbitmq_ports)
-    config_rabbitmq(c, port=rabbitmq_ports)
+    start_monetdb(c, node=node_ids, monetdb_image=monetdb_image)
+    start_rabbitmq(c, node=node_ids)
+    config_rabbitmq(c, node=node_ids)
 
     if start_nodes or start_all:
         start_node(c, all_=True, celery_log_level=celery_log_level, detached=True)
@@ -395,9 +390,9 @@ def attach(c, node=None, controller=False, db=None):
         fname = node or "controller"
         outpath = OUTDIR / (fname + ".out")
         cmd = f"tail -f {outpath}"
-        c.run(cmd)
+        run(c, cmd, attach_=True)
     elif db:
-        c.run(f"docker exec -it {db} mclient db", pty=True)
+        run(c, f"docker exec -it {db} mclient db", attach_=True)
     else:
         message("You must attach to Node, Controller or DB", Level.WARNING)
         sys.exit(1)
@@ -461,18 +456,26 @@ def kill_flower(c):
         message(f"No flower container to remove", level=Level.HEADER)
 
 
-def run(c, cmd, finish=True, error_check=True, raise_error=False):
-    promise = c.run(cmd, asynchronous=True)
+def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok=True):
+    if attach_:
+        c.run(cmd, pty=True)
+        return
+
+    if not wait:
+        c.run(cmd, disown=True)
+        spin_wheel(time=4)
+        if show_ok:
+            message("Ok", Level.SUCCESS)
+        return
+
+    promise = c.run(cmd, asynchronous=True, warn=warn)
     spin_wheel(promise=promise)
-    stderr = promise.runner.stderr
-    if error_check and stderr:
-        if raise_error:
-            raise UnexpectedExit(stderr)
-        message("Error", Level.ERROR)
-        message("\n".join(stderr), Level.BODY)
-        sys.exit(promise.runner.returncode())
-    elif finish:
+    if stderr := promise.runner.stderr and raise_error:
+        raise UnexpectedExit(stderr)
+    result = promise.join()
+    if show_ok:
         message("Ok", Level.SUCCESS)
+    return result
 
 
 class Level(Enum):
@@ -521,7 +524,7 @@ def spin_wheel(promise=None, time=None):
 
 
 def get_deployment_config(config):
-    if not path.isfile(DEPLOYMENT_CONFIG_FILE):
+    if not Path(DEPLOYMENT_CONFIG_FILE).is_file():
         raise FileNotFoundError(
             f"Please provide a --{config} parameter or create a deployment config file '.deployment.toml'"
         )

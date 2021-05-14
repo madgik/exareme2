@@ -24,7 +24,7 @@
    poetry shell
    ```
 
-1. _Optional_ To install tab completion for `invoke` run (replacing `bash` with you shell)
+1. *Optional* To install tab completion for `invoke` run  (replacing `bash` with your shell)
 
    ```
    source <(poetry run inv --print-completion-script bash)
@@ -50,7 +50,7 @@
    ip = "192.168.63.129"
    log_level = "INFO"
    celery_log_level ="INFO"
-   monetdb_image = "jassak/mipenginedb:dev1.1"
+   monetdb_image = "madgik/mipenginedb:dev1.2"
 
    [[nodes]]
    id = "globalnode"
@@ -120,7 +120,7 @@
 1. Restart services with
 
    ```
-   inv start-node --all
+   inv start-node --all && inv start-controller --detached
    ```
 
 #### Local Deployment (without single configuration file)
@@ -130,7 +130,7 @@
 1. Deploy everything with:
 
    ```
-   inv deploy --start-all --monetdb-image jassak/mipenginedb:dev1.1 --celery-log-level info
+   inv deploy --start-all --monetdb-image madgik/mipenginedb:dev1.2 --celery-log-level info
    ```
 
 #### Algorithm Run

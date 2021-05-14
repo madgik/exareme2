@@ -5,7 +5,6 @@ from mipengine.common.node_exceptions import TablesNotFound
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.common.validate_identifier_names import validate_identifier_names
-from mipengine.node import config
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 MONETDB_VARCHAR_SIZE = 50
@@ -23,8 +22,6 @@ def create_table_name(
     """
     if table_type not in {"table", "view", "merge"}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
-    if node_id not in {"global", config.identifier}:
-        raise TypeError(f"Node Identifier is not acceptable: {node_id}.")
 
     return f"{table_type}_{command_id}_{context_id}_{node_id}"
 
@@ -52,7 +49,7 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
 @validate_identifier_names
 def get_table_schema(table_name: str) -> TableSchema:
     """
-    Retrieves a schema for a specific table type and table name  from the monetdb.
+    Retrieves a schema for a specific table name from the monetdb.
 
     Parameters
     ----------
@@ -119,7 +116,7 @@ def get_table_names(table_type: str, context_id: str) -> List[str]:
 @validate_identifier_names
 def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     """
-    Retrieves the data of a table with specific type and name  from the monetdb.
+    Retrieves the data of a table with specific name from the monetdb.
 
     Parameters
     ----------
@@ -155,7 +152,8 @@ def clean_up(context_id: str):
     context_id : str
         The id of the experiment
     """
-    # TODO We also need to cleanup the udfs with the specific context_id
+
+    _drop_udfs_by_context_id(context_id)
     for table_type in ("merge", "remote", "view", "normal"):
         _delete_table_by_type_and_context_id(table_type, context_id)
 
@@ -258,3 +256,24 @@ def _delete_table_by_type_and_context_id(table_type: str, context_id: str):
             MonetDB().execute(f"DROP VIEW {name}")
         else:
             MonetDB().execute(f"DROP TABLE {name}")
+
+
+@validate_identifier_names
+def _drop_udfs_by_context_id(context_id: str):
+    """
+    Deletes all functions of specific context_id from the monetdb.
+
+    Parameters
+    ----------
+    context_id : str
+        The id of the experiment
+    """
+    function_names = MonetDB().execute_with_result(
+        f"""
+        SELECT name FROM functions
+        WHERE name LIKE '%{context_id.lower()}%'
+        AND system = false
+        """
+    )
+    for name in function_names:
+        MonetDB().execute(f"DROP FUNCTION {name[0]}")

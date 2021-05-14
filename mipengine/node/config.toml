@@ -10,14 +10,14 @@ run_udf_time_limit = 120
 
 [rabbitmq]
 ip = "127.0.0.1"
-port = "5672"
+port = 5672
 user = "user"
 password = "password"
 vhost = "user_vhost"
 
 [monetdb]
 ip = "127.0.0.1"
-port = "50000"
+port = 50000
 database = "db"
 username = "monetdb"
 password = "monetdb"

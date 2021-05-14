@@ -86,7 +86,7 @@ class NodeCatalog:
         resources_folder_path = Path(resources.__file__).parent
         node_catalog_path = Path(resources_folder_path, "node_catalog.json")
 
-        with open(node_catalog_path, 'w') as fp:
+        with open(node_catalog_path, "w") as fp:
             fp.write(self._nodes.to_json())
 
     def pathology_exists(self, pathology: str) -> bool:
@@ -96,15 +96,15 @@ class NodeCatalog:
         return dataset in self._datasets[pathology]
 
     def get_nodes_with_any_of_datasets(self, datasets: List[str]) -> List[LocalNode]:
-        if not (nodes := [self._nodes_per_dataset[dataset] for dataset in datasets]):
+        if not (
+            nodes_per_dataset := [
+                self._nodes_per_dataset[dataset] for dataset in datasets
+            ]
+        ):
             raise Exception(f"There are no nodes with any of the datasets->{datasets}")
 
-        local_nodes = [nodes[0][0]]
-        for nodes in nodes:
-            for node in nodes:
-                if node not in local_nodes:
-                    local_nodes.append(node)
-        return local_nodes
+        local_nodes = [node for nodes in nodes_per_dataset for node in nodes]
+        return remove_duplicates(local_nodes)
 
     def get_node(self, node_id: str) -> Union[LocalNode, GlobalNode]:
         if self._nodes.globalNode.nodeId == node_id:
@@ -139,6 +139,14 @@ class NodeCatalog:
                 local_node.rabbitmqPort = rabbitmq_port
                 self._save_node_catalog()
                 return
+
+
+def remove_duplicates(lst):
+    unique_elements = []
+    for element in lst:
+        if element not in unique_elements:
+            unique_elements.append(element)
+    return unique_elements
 
 
 node_catalog = NodeCatalog()

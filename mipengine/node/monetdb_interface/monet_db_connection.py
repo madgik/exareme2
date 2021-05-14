@@ -3,7 +3,7 @@ from typing import List
 
 import pymonetdb
 
-from mipengine.node import config
+from mipengine.node import config as node_config
 
 OCC_MAX_ATTEMPTS = 50
 
@@ -34,11 +34,11 @@ class MonetDB(metaclass=Singleton):
 
     def __init__(self):
         self._connection = pymonetdb.connect(
-            hostname=config.monetdb.ip,
-            port=config.monetdb.port,
-            username=config.monetdb.username,
-            password=config.monetdb.password,
-            database=config.monetdb.database,
+            hostname=node_config.monetdb.ip,
+            port=node_config.monetdb.port,
+            username=node_config.monetdb.username,
+            password=node_config.monetdb.password,
+            database=node_config.monetdb.database,
         )
 
     @contextmanager
@@ -58,8 +58,10 @@ class MonetDB(metaclass=Singleton):
         Should NOT be used to execute "CREATE, DROP, ALTER, UPDATE, ..." statements.
         """
 
-        # We use a single instance of a connection and by committing before a select query we refresh the state of the database.
-        # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made-on-another-connect.
+        # We use a single instance of a connection and by committing before a select query we refresh the state of
+        # the connection so that it sees changes from other processes/connections.
+        # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
+        # -on-another-connect.
         self._connection.commit()
 
         with self.cursor() as cur:
