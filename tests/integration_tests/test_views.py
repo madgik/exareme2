@@ -1,5 +1,6 @@
-import pytest
 import uuid
+
+import pytest
 
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableData

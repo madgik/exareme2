@@ -1,12 +1,12 @@
-import pytest
 import uuid
+
+import pytest
 
 from mipengine.common.node_exceptions import IncompatibleSchemasMergeException
 from mipengine.common.node_exceptions import TablesNotFound
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from tests.integration_tests import nodes_communication
-from tests.integration_tests.node_db_connections import get_node_db_connection
 
 local_node_id = "localnode1"
 local_node = nodes_communication.get_celery_app(local_node_id)
@@ -15,6 +15,9 @@ local_node_create_table = nodes_communication.get_celery_create_table_signature(
 )
 local_node_create_merge_table = (
     nodes_communication.get_celery_create_merge_table_signature(local_node)
+)
+local_node_insert_data_to_table = (
+    nodes_communication.get_celery_insert_data_to_table_signature(local_node)
 )
 local_node_get_merge_tables = nodes_communication.get_celery_get_merge_tables_signature(
     local_node
@@ -55,10 +58,9 @@ def create_three_column_table_with_data(context_id, table_id: int):
         schema_json=table_schema.to_json(),
     ).get()
 
-    connection = get_node_db_connection(local_node_id)
-    connection.cursor().execute(f"INSERT INTO {table_name} VALUES ( 1, 2.0, '3')")
-    connection.commit()
-    connection.close()
+    values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
+    local_node_insert_data_to_table.delay(table_name=table_name, values=values).get()
+
     return table_name
 
 

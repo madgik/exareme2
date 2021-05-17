@@ -3,8 +3,7 @@ from typing import List
 
 import pymonetdb
 
-from mipengine import config
-from mipengine.common.node_catalog import node_catalog
+from mipengine.node import config as node_config
 
 OCC_MAX_ATTEMPTS = 50
 
@@ -34,19 +33,12 @@ class MonetDB(metaclass=Singleton):
     """
 
     def __init__(self):
-        global_node = node_catalog.get_global_node()
-        if global_node.nodeId == config.node.identifier:
-            node = global_node
-        else:
-            node = node_catalog.get_local_node(config.node.identifier)
-        monetdb_hostname = node.monetdbHostname
-        monetdb_port = node.monetdbPort
         self._connection = pymonetdb.connect(
-            username=config.monetdb.username,
-            port=monetdb_port,
-            password=config.monetdb.password,
-            hostname=monetdb_hostname,
-            database=config.monetdb.database,
+            hostname=node_config.monetdb.ip,
+            port=node_config.monetdb.port,
+            username=node_config.monetdb.username,
+            password=node_config.monetdb.password,
+            database=node_config.monetdb.database,
         )
 
     @contextmanager
@@ -59,33 +51,44 @@ class MonetDB(metaclass=Singleton):
         finally:
             cur.close()
 
-    def execute_with_result(self, query: str) -> List:
+    def execute_and_fetchall(self, query: str, parameters=None, many=False) -> List:
         """
         Used to execute select queries that return a result.
-
         Should NOT be used to execute "CREATE, DROP, ALTER, UPDATE, ..." statements.
+
+        'many' option to provide the functionality of executemany, all results will be fetched.
+        'parameters' option to provide the functionality of bind-parameters.
         """
 
-        # We use a single instance of a connection and by committing before a select query we refresh the state of the database.
-        # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made-on-another-connect.
+        # We use a single instance of a connection and by committing before a select query we refresh the state of
+        # the connection so that it sees changes from other processes/connections.
+        # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
+        # -on-another-connect.
         self._connection.commit()
 
         with self.cursor() as cur:
-            cur.execute(query)
+            cur.executemany(query, parameters) if many else cur.execute(
+                query, parameters
+            )
             result = cur.fetchall()
             return result
 
-    def execute(self, query: str):
+    def execute(self, query: str, parameters=None, many=False):
         """
         Executes statements that don't have a result. For example "CREATE,DROP,UPDATE".
         And handles the *Optimistic Concurrency Control by giving each call X attempts
-        if they fail with pymonetdb.exceptions.IntegrityError .
+        if they fail with pymonetdb.exceptions.IntegrityError.
         *https://www.monetdb.org/blog/optimistic-concurrency-control
+
+        'many' option to provide the functionality of executemany.
+        'parameters' option to provide the functionality of bind-parameters.
         """
         for _ in range(OCC_MAX_ATTEMPTS):
             with self.cursor() as cur:
                 try:
-                    cur.execute(query)
+                    cur.executemany(query, parameters) if many else cur.execute(
+                        query, parameters
+                    )
                     self._connection.commit()
                     break
                 except pymonetdb.exceptions.IntegrityError as exc:

@@ -2,8 +2,8 @@ from typing import List
 
 from celery import shared_task
 
-from mipengine import config
 from mipengine.node.monetdb_interface import views
+from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 
 
@@ -54,7 +54,7 @@ def create_view(
         The name of the created view in lower case
     """
     view_name = create_table_name(
-        "view", command_id, context_id, config.node.identifier
+        "view", command_id, context_id, node_config.identifier
     )
     views.create_view(
         view_name=view_name,

@@ -1,16 +1,18 @@
 {
   "globalNode": {
     "nodeId": "globalnode",
-    "rabbitmqURL": "127.0.0.1:5670",
-    "monetdbHostname": "192.168.124.129",
-    "monetdbPort": "50000"
+    "rabbitmqIp": "192.168.63.129",
+    "rabbitmqPort": 5670,
+    "monetdbIp": "192.168.63.129",
+    "monetdbPort": 50000
   },
   "localNodes": [
     {
       "nodeId": "localnode1",
-      "rabbitmqURL": "127.0.0.1:5671",
-      "monetdbHostname": "192.168.124.129",
-      "monetdbPort": "50001",
+      "rabbitmqIp": "192.168.63.129",
+      "rabbitmqPort": 5671,
+      "monetdbIp": "192.168.63.129",
+      "monetdbPort": 50001,
       "data": {
         "pathologies": [
           {
@@ -32,7 +34,7 @@
           {
             "name": "tbi",
             "datasets": [
-              "dummy_tbi"
+              "tbi_demo2"
             ]
           }
         ]
@@ -40,9 +42,10 @@
     },
     {
       "nodeId": "localnode2",
-      "rabbitmqURL": "127.0.0.1:5672",
-      "monetdbHostname": "192.168.124.129",
-      "monetdbPort": "50002",
+      "rabbitmqIp": "192.168.63.129",
+      "rabbitmqPort": 5672,
+      "monetdbIp": "192.168.63.129",
+      "monetdbPort": 50002,
       "data": {
         "pathologies": [
           {
