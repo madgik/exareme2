@@ -31,10 +31,7 @@ def validate_algorithm(algorithm_name: str, request_body: str):
     """
 
     # Check that algorithm exists
-    if (
-        str.lower(algorithm_name)
-        not in algorithms_specifications.enabled_algorithms.keys()
-    ):
+    if algorithm_name not in algorithms_specifications.enabled_algorithms.keys():
         raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
 
     # Validate algorithm body has proper format
@@ -49,27 +46,27 @@ def validate_algorithm(algorithm_name: str, request_body: str):
 
     # Get algorithm specification and validate the algorithm input
     algorithm_specs = algorithms_specifications.enabled_algorithms[algorithm_name]
-    validate_algorithm_parameters(algorithm_specs, algorithm_request)
+    _validate_algorithm_parameters(algorithm_specs, algorithm_request)
 
 
-def validate_algorithm_parameters(
+def _validate_algorithm_parameters(
     algorithm_specs: AlgorithmSpecifications, algorithm_request: AlgorithmRequestDTO
 ):
     # Validate inputdata
-    validate_inputdata(algorithm_specs.inputdata, algorithm_request.inputdata)
+    _validate_inputdata(algorithm_specs.inputdata, algorithm_request.inputdata)
 
     # Validate generic parameters
-    validate_generic_parameters(
+    _validate_generic_parameters(
         algorithm_specs.parameters, algorithm_request.parameters
     )
 
     # Validate crossvalidation parameters
-    validate_crossvalidation_parameters(
+    _validate_crossvalidation_parameters(
         algorithm_specs, algorithm_request.crossvalidation
     )
 
 
-def validate_inputdata(
+def _validate_inputdata(
     inputdata_specs: InputDataSpecifications, input_data: AlgorithmInputDataDTO
 ):
     """
@@ -82,16 +79,16 @@ def validate_inputdata(
     Validates that the algorithm's input data follow the specs.
 
     """
-    validate_inputdata_pathology_and_dataset_values(
+    _validate_inputdata_pathology_and_dataset_values(
         input_data.pathology, input_data.datasets
     )
 
-    validate_inputdata_filter(input_data.filters)
+    _validate_inputdata_filter(input_data.filters)
 
-    validate_inputdata_cdes(inputdata_specs, input_data)
+    _validate_inputdata_cdes(inputdata_specs, input_data)
 
 
-def validate_inputdata_pathology_and_dataset_values(
+def _validate_inputdata_pathology_and_dataset_values(
     pathology: str, datasets: List[str]
 ):
     """
@@ -111,7 +108,7 @@ def validate_inputdata_pathology_and_dataset_values(
         )
 
 
-def validate_inputdata_filter(filter):
+def _validate_inputdata_filter(filter):
     """
     Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
@@ -120,7 +117,7 @@ def validate_inputdata_filter(filter):
     pass
 
 
-def validate_inputdata_cdes(
+def _validate_inputdata_cdes(
     input_data_specs: InputDataSpecifications, input_data: AlgorithmInputDataDTO
 ):
     """
@@ -128,17 +125,17 @@ def validate_inputdata_cdes(
     in the algorithm specifications.
     """
 
-    validate_inputdata_cde(input_data_specs.x, input_data.x, input_data.pathology)
-    validate_inputdata_cde(input_data_specs.y, input_data.y, input_data.pathology)
+    _validate_inputdata_cde(input_data_specs.x, input_data.x, input_data.pathology)
+    _validate_inputdata_cde(input_data_specs.y, input_data.y, input_data.pathology)
 
 
-def validate_inputdata_cde(
+def _validate_inputdata_cde(
     cde_parameter_specs: InputDataSpecification,
     cde_parameter_value: Optional[List[str]],
     pathology: str,
 ):
     """
-    Validates that the cde, x or y,  follows the specs provided
+    Validates that the cde x or y follows the specs provided
     in the algorithm specification.
     """
 
@@ -152,13 +149,13 @@ def validate_inputdata_cde(
     if cde_parameter_value is None:
         return
 
-    validate_inputdata_cdes_length(cde_parameter_value, cde_parameter_specs)
+    _validate_inputdata_cdes_length(cde_parameter_value, cde_parameter_specs)
 
     for cde in cde_parameter_value:
-        validate_inputdata_cde_value(cde, cde_parameter_specs, pathology)
+        _validate_inputdata_cde_value(cde, cde_parameter_specs, pathology)
 
 
-def validate_inputdata_cdes_length(
+def _validate_inputdata_cdes_length(
     cde_parameter_value: Any, cde_parameter_specs: InputDataSpecification
 ):
     """
@@ -173,7 +170,7 @@ def validate_inputdata_cdes_length(
         )
 
 
-def validate_inputdata_cde_value(
+def _validate_inputdata_cde_value(
     cde: str, cde_parameter_specs: InputDataSpecification, pathology: str
 ):
     """
@@ -193,12 +190,12 @@ def validate_inputdata_cde_value(
         )
 
     cde_metadata: CommonDataElement = pathology_cdes[cde]
-    validate_inputdata_cde_types(cde, cde_metadata, cde_parameter_specs)
-    validate_inputdata_cde_stattypes(cde, cde_metadata, cde_parameter_specs)
-    validate_inputdata_cde_enumerations(cde, cde_metadata, cde_parameter_specs)
+    _validate_inputdata_cde_types(cde, cde_metadata, cde_parameter_specs)
+    _validate_inputdata_cde_stattypes(cde, cde_metadata, cde_parameter_specs)
+    _validate_inputdata_cde_enumerations(cde, cde_metadata, cde_parameter_specs)
 
 
-def validate_inputdata_cde_types(
+def _validate_inputdata_cde_types(
     cde: str,
     cde_metadata: CommonDataElement,
     cde_parameter_specs: InputDataSpecification,
@@ -214,7 +211,7 @@ def validate_inputdata_cde_types(
             )
 
 
-def validate_inputdata_cde_stattypes(
+def _validate_inputdata_cde_stattypes(
     cde: str,
     cde_metadata: CommonDataElement,
     cde_parameter_specs: InputDataSpecification,
@@ -235,7 +232,7 @@ def validate_inputdata_cde_stattypes(
         )
 
 
-def validate_inputdata_cde_enumerations(
+def _validate_inputdata_cde_enumerations(
     cde: str,
     cde_metadata: CommonDataElement,
     cde_parameter_specs: InputDataSpecification,
@@ -250,7 +247,7 @@ def validate_inputdata_cde_enumerations(
         )
 
 
-def validate_generic_parameters(
+def _validate_generic_parameters(
     parameters_specs: Optional[Dict[str, GenericParameterSpecification]],
     parameters: Optional[Dict[str, Any]],
 ):
@@ -271,7 +268,7 @@ def validate_generic_parameters(
             raise BadUserInput(f"Parameter '{parameter_name}' should not be blank.")
 
         parameter_value = parameters[parameter_name]
-        validate_generic_parameter_values(
+        _validate_generic_parameter_values(
             parameter_name,
             parameter_value,
             parameter_spec.type,
@@ -282,7 +279,7 @@ def validate_generic_parameters(
         )
 
 
-def validate_generic_parameter_values(
+def _validate_generic_parameter_values(
     parameter_name: str,
     parameter_value: Any,
     parameter_type: str,
@@ -304,28 +301,30 @@ def validate_generic_parameter_values(
     # If the parameter value is a list, check each elements
     if multiple_allowed:
         for element in parameter_value:
-            validate_generic_parameter_type(parameter_name, element, parameter_type)
+            _validate_generic_parameter_type(parameter_name, element, parameter_type)
 
-            validate_generic_parameter_enumerations(
+            _validate_generic_parameter_enumerations(
                 parameter_name, element, parameter_enums
             )
 
-            validate_generic_parameter_inside_min_max(
+            _validate_generic_parameter_inside_min_max(
                 parameter_name, element, parameter_min_value, parameter_max_value
             )
     else:
-        validate_generic_parameter_type(parameter_name, parameter_value, parameter_type)
+        _validate_generic_parameter_type(
+            parameter_name, parameter_value, parameter_type
+        )
 
-        validate_generic_parameter_enumerations(
+        _validate_generic_parameter_enumerations(
             parameter_name, parameter_value, parameter_enums
         )
 
-        validate_generic_parameter_inside_min_max(
+        _validate_generic_parameter_inside_min_max(
             parameter_name, parameter_value, parameter_min_value, parameter_max_value
         )
 
 
-def validate_generic_parameter_type(
+def _validate_generic_parameter_type(
     parameter_name: str, parameter_value: Any, parameter_type: str
 ):
     mip_types_to_python_types = {
@@ -340,7 +339,7 @@ def validate_generic_parameter_type(
         )
 
 
-def validate_generic_parameter_enumerations(
+def _validate_generic_parameter_enumerations(
     parameter_name: str, parameter_value: Any, parameter_enums: Optional[List[Any]]
 ):
     if parameter_enums is None:
@@ -353,7 +352,7 @@ def validate_generic_parameter_enumerations(
         )
 
 
-def validate_generic_parameter_inside_min_max(
+def _validate_generic_parameter_inside_min_max(
     parameter_name: str,
     parameter_value: Any,
     parameter_min_value: Optional[int],
@@ -375,7 +374,7 @@ def validate_generic_parameter_inside_min_max(
         )
 
 
-def validate_crossvalidation_parameters(
+def _validate_crossvalidation_parameters(
     algorithm_specs: AlgorithmSpecifications,
     crossvalidation_parameters: Optional[Dict[str, Any]],
 ):
@@ -395,6 +394,6 @@ def validate_crossvalidation_parameters(
             f"Algorithm {algorithm_specs.label} does not have crossvalidation."
         )
 
-    validate_generic_parameters(
+    _validate_generic_parameters(
         algorithms_specifications.crossvalidation, crossvalidation_parameters
     )
