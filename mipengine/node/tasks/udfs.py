@@ -87,7 +87,7 @@ def get_run_udf_query(
     keyword_args_json: Dict[str, str],
 ) -> Tuple[str, str, str]:
     """
-    Returns the sql statements that represent the execution of the udf.
+    Fetches the sql statements that represent the execution of the udf.
 
     Parameters
     ----------
@@ -105,7 +105,9 @@ def get_run_udf_query(
     Returns
     -------
         str
-            The name of the table where the udf execution results are in.
+            The name of the result table,
+            the statement that creates the udf and
+            the statement that executes the udf.
     """
 
     positional_args = [UDFArgument.from_json(arg) for arg in positional_args_json]
