@@ -6,8 +6,8 @@ from enum import Enum, unique
 
 @unique
 class NodeRole(Enum):
-    GLOBAL_NODE = 0
-    LOCAL_NODE = 1
+    GLOBALNODE = 0
+    LOCALNODE = 1
 
 
 class Pathology(BaseModel):
@@ -26,7 +26,3 @@ class NodeRecord(BaseModel):
     db_port: int
 
     pathologies: Optional[List[Pathology]]
-
-
-# class NodeRecordsList(BaseModel):
-#     node_records: List[NodeRecord]

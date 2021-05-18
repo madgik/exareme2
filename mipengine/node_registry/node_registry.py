@@ -41,9 +41,10 @@ class NodeRegistryClient:
 
         # The node's db is linked to the node by storing the db_id as a value in the key
         # value store of consul
-        # The node's pathologies are also stored in the consul key/value store
+        # Pathologies are also stored in the consul key/value store
         node_configuration = self._NodeParameters(
-            db_id=node_record.db_id, pathologies=node_record.pathologies
+            db_id=node_record.db_id,
+            pathologies=node_record.pathologies,
         )
         self._consul_kv_store.put(node_record.node_id, node_configuration.json())
 
@@ -51,7 +52,7 @@ class NodeRegistryClient:
         _, data = self._consul_kv_store.get(node_id)
 
         if not data:
-            raise NodeIDNotInKVStore(node_id)
+            raise self.NodeIDNotInKVStore(node_id)
 
         node_conf = self._NodeParameters.parse_raw(data["Value"])
 
@@ -64,28 +65,83 @@ class NodeRegistryClient:
         # delete node configuration from kv store
         self._consul_kv_store.delete(node_id)
 
-    def get_all_nodes_info(self) -> Dict[str, "NodeInfo"]:
+    def get_all_nodes(self) -> Dict[str, "NodeInfo"]:
         all_services = self._consul_agent.services()
-        node_roles_str = [node_role.name for node_role in list(NodeRole)]
-        all_nodes = {
-            service_id: self.NodeInfo(
-                ip=service_info["Address"], port=service_info["Port"]
-            )
-            for (service_id, service_info) in all_services.items()
-            if any(x in service_info["Tags"] for x in node_roles_str)
-        }
+
+        all_nodes = self._parse_nodes_from_services(all_services)
 
         # pathologies are read from the key value store
         for node_id in all_nodes.keys():
             _, data = self._consul_kv_store.get(node_id)
             if not data:
                 raise self.NodeIDNotInKVStore(node_id)
-            node_conf = self._NodeParameters.parse_raw(data["Value"])
-            all_nodes[node_id].pathologies = node_conf.pathologies
+            node_params = self._NodeParameters.parse_raw(data["Value"])
+            all_nodes[node_id].pathologies = node_params.pathologies
 
         return all_nodes
 
-    def get_db_info(self, node_id: str) -> "DBInfo":
+    def _parse_nodes_from_services(
+        self, all_services: Dict[str, str]
+    ) -> Dict[str, "NodeInfo"]:
+        nodes = {}
+        for (service_id, service_info) in all_services.items():
+            tags = service_info["Tags"]
+            role = ""
+            if NodeRole.GLOBALNODE.name in tags:
+                role = NodeRole.GLOBALNODE
+            elif NodeRole.LOCALNODE.name in tags:
+                role = NodeRole.LOCALNODE
+            else:
+                continue
+
+            node_info = self.NodeInfo(
+                ip=service_info["Address"],
+                port=service_info["Port"],
+                role=role,
+            )
+            nodes[service_id] = node_info
+
+        return nodes
+
+    def get_all_global_nodes(self):
+        all_nodes = self.get_all_nodes()
+        return {
+            node_id: node_info
+            for node_id, node_info in all_nodes.items()
+            if node_info.role == NodeRole.GLOBALNODE
+        }
+
+    def get_all_local_nodes(self):
+        all_nodes = self.get_all_nodes()
+        return {
+            node_id: node_info
+            for node_id, node_info in all_nodes.items()
+            if node_info.role == NodeRole.LOCALNODE
+        }
+
+    def get_nodes_with_pathologies(self, pathologies: List[str]):
+        all_local_nodes = self.get_all_local_nodes()
+
+        local_nodes_with_pathologies = {}
+        for node_id, node_info in all_local_nodes.items():
+            if all(p in [p.name for p in node_info.pathologies] for p in pathologies):
+                local_nodes_with_pathologies[node_id] = node_info
+
+        return local_nodes_with_pathologies
+
+    def get_nodes_with_datasets(self, datasets: List[str]):
+        all_local_nodes = self.get_all_local_nodes()
+
+        local_nodes_with_datasets = {}
+        for node_id, node_info in all_local_nodes.items():
+            node_datasets = []
+            for p in node_info.pathologies:
+                node_datasets.extend(p.datasets)
+            if all(d in node_datasets for d in datasets):
+                local_nodes_with_datasets[node_id] = node_info
+        return local_nodes_with_datasets
+
+    def get_db(self, node_id: str) -> "DBInfo":
         _, data = self._consul_kv_store.get(node_id, index=None)
 
         if not data:
@@ -102,6 +158,9 @@ class NodeRegistryClient:
         )
         return db_info
 
+    def get_dbs(self, node_ids: List[str]) -> Dict[str, "DBInfo"]:
+        return {node_id: self.get_db(node_id) for node_id in node_ids}
+
     class NodeIDNotInKVStore(Exception):
         def __init__(self, node_id: str):
             self.message = f"There is no node_id:{node_id} key in the key/value store"
@@ -109,6 +168,7 @@ class NodeRegistryClient:
     class NodeInfo(BaseModel):
         ip: IPv4Address
         port: int
+        role: NodeRole
         pathologies: Optional[List[Pathology]]
 
     class _NodeParameters(BaseModel):
