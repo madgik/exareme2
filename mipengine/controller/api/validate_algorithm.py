@@ -99,7 +99,7 @@ def _validate_inputdata_pathology_and_dataset_values(
     if not node_catalog.pathology_exists(pathology):
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
 
-    if type(datasets) is not list:
+    if not isinstance(datasets, list):
         raise BadRequest(f"Datasets parameter should be a list.")
 
     if not all(node_catalog.dataset_exists(pathology, dataset) for dataset in datasets):
