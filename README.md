@@ -88,18 +88,21 @@
 
 1. _Optional_ Start Flower monitoring tool
 
-     ```
-     inv start-flower
-     ```
-     you can specify the broker port by adding -p <PORT-NUMBER>
+     by choosing a specific node to monitor
 
      ```
-     inv start-flower -p 5671
+     inv start-flower --node <NODE-NAME>
      ```
 
-     and then go to http://localhost:5555 on your browser to start monitoring the tasks, the workers and get general info.
+     or start a separate flower instance for all of the nodes with
 
-1. _Optional_ Kill Flower at any point with
+     ```
+     inv start-flower --all
+     ```
+
+     Then go to the respective address on your browser to start monitoring the nodes.
+
+1. _Optional_ Kill all flower instances at any point with
 
      ```
      inv kill-flower

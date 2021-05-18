@@ -412,41 +412,58 @@ def cleanup(c):
         message("Ok", level=Level.SUCCESS)
 
 @task
-def start_flower(c, port = "0000", flower=True):
+def start_flower(c, node=None, all_=False, flower=True):
     """ Remove existing flower container, start monitoring tools """
 
     kill_flower(c)
-    message("Flower is dead and gone", Level.HEADER)
+    message("Flower has withered away", Level.HEADER)
 
+    node_ids = []
+    if all_:
+        for node_config_file in listdir(NODES_CONFIG_DIR):
+            filename = Path(node_config_file).stem
+            node_ids.append(filename)
+    elif node:
+        node_config_file = NODES_CONFIG_DIR / f"{node}.toml"
+        if not Path(node_config_file).is_file():
+            message(
+                f"The configuration file for node '{node}', does not exist in directory '{NODES_CONFIG_DIR}'",
+                Level.ERROR,
+            )
+            sys.exit(1)
+        filename = Path(node_config_file).stem
+        node_ids.append(filename)
+    else:
+        message("Please specify a node using --node <node> or use --all", Level.WARNING)
+        sys.exit(1)
 
-    if not path.isfile(DEPLOYMENT_CONFIG_FILE):
-        raise FileNotFoundError("Deployment config file '.deployment.toml' not found.")
+    for node_id in node_ids:
+        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
+        with open(node_config_file) as fp:
+            node_config = toml.load(fp)
 
+        ip = node_config['rabbitmq']['ip']
+        port = node_config['rabbitmq']['port']
+        user_and_password = node_config['rabbitmq']['user'] + ":" + node_config['rabbitmq']['password']
+        vhost = node_config['rabbitmq']['vhost']
+        flower_url = ip + ":" + str(port)
+        broker_api = f"amqp://{user_and_password}@{flower_url}/{vhost}"
 
-    with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
-        node_config = toml.load(fp)
+        flower_index = node_ids.index(node_id)
+        flower_port = 5555 + flower_index
 
-    if port == "0000":
-        port = str(node_config["rabbitmq"]["port"])
-
-    ip = get_deployment_config("ip")
-    flower_url = ip + ":" + port
-    user_and_password = node_config['rabbitmq']['user'] + ":" + node_config['rabbitmq']['password']
-    vhost = node_config['rabbitmq']['vhost']
-
-
-    broker_api = f"amqp://{user_and_password}@{flower_url}/{vhost}"
-    message(f"Starting flower container on port {port}...", Level.HEADER)
-    command = f"docker run --name flower -p 5555:5555 mher/flower:0.9.5 flower --broker={broker_api} &"
-    run(c, command)
-    c.run("docker ps | grep '[f]lower'", warn=True)
-
+        message(f"Starting flower container for node {node_id}...", Level.HEADER)
+        command = f"docker run --name flower{flower_index} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker_api} "
+        run(c, command)
+        cmd = "docker ps | grep '[f]lower'"
+        run(c, cmd, warn=True)
+        message(f"Visit me at http://localhost:{flower_port}", Level.HEADER)
 
 @task
 def kill_flower(c):
     """Kill Flower"""
     message("Killing Flower...", Level.HEADER)
-    container_ids = c.run(f"docker ps -qa --filter name=flower", hide="out")
+    container_ids = run(c, "docker ps -qa --filter name=flower", show_ok=False)
     print(f"container_ids: {container_ids}")
     if container_ids.stdout:
         message("Killing Flower instances and removing containers...", Level.HEADER)
