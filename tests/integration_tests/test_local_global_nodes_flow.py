@@ -6,46 +6,44 @@ from mipengine.common.node_catalog import node_catalog
 from mipengine.common.node_tasks_DTOs import ColumnInfo, TableData
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
-from tests.integration_tests import nodes_communication
+from tests.integration_tests.nodes_communication import get_celery_task_signature
+from tests.integration_tests.nodes_communication import get_celery_app
 
 local_node_1_id = "localnode1"
 local_node_2_id = "localnode2"
 global_node_id = "globalnode"
-local_node_1 = nodes_communication.get_celery_app(local_node_1_id)
-local_node_2 = nodes_communication.get_celery_app(local_node_2_id)
-global_node = nodes_communication.get_celery_app(global_node_id)
+local_node_1 = get_celery_app(local_node_1_id)
+local_node_2 = get_celery_app(local_node_2_id)
+global_node = get_celery_app(global_node_id)
 
-local_node_1_create_table = nodes_communication.get_celery_create_table_signature(
-    local_node_1
+local_node_1_create_table = get_celery_task_signature(local_node_1, "create_table")
+local_node_2_create_table = get_celery_task_signature(local_node_2, "create_table")
+local_node_1_insert_data_to_table = get_celery_task_signature(
+    local_node_1, "insert_data_to_table"
 )
-local_node_2_create_table = nodes_communication.get_celery_create_table_signature(
-    local_node_2
+local_node_2_insert_data_to_table = get_celery_task_signature(
+    local_node_2, "insert_data_to_table"
 )
-local_node_1_insert_data_to_table = (
-    nodes_communication.get_celery_insert_data_to_table_signature(local_node_1)
+global_node_create_remote_table = get_celery_task_signature(
+    global_node, "create_remote_table"
 )
-local_node_2_insert_data_to_table = (
-    nodes_communication.get_celery_insert_data_to_table_signature(local_node_2)
+global_node_get_remote_tables = get_celery_task_signature(
+    global_node, "get_remote_tables"
 )
-global_node_create_remote_table = (
-    nodes_communication.get_celery_create_remote_table_signature(global_node)
+global_node_create_merge_table = get_celery_task_signature(
+    global_node, "create_merge_table"
 )
-global_node_get_remote_tables = (
-    nodes_communication.get_celery_get_remote_tables_signature(global_node)
+global_node_get_merge_tables = get_celery_task_signature(
+    global_node, "get_merge_tables"
 )
-global_node_create_merge_table = (
-    nodes_communication.get_celery_create_merge_table_signature(global_node)
-)
-global_node_get_merge_tables = (
-    nodes_communication.get_celery_get_merge_tables_signature(global_node)
-)
-global_node_get_merge_table_data = (
-    nodes_communication.get_celery_get_table_data_signature(global_node)
+global_node_get_merge_table_data = get_celery_task_signature(
+    global_node, "get_table_data"
 )
 
-clean_up_node1 = nodes_communication.get_celery_cleanup_signature(local_node_1)
-clean_up_node2 = nodes_communication.get_celery_cleanup_signature(local_node_2)
-clean_up_global = nodes_communication.get_celery_cleanup_signature(global_node)
+clean_up_node1 = get_celery_task_signature(local_node_1, "clean_up")
+
+clean_up_node2 = get_celery_task_signature(local_node_2, "clean_up")
+clean_up_global = get_celery_task_signature(global_node, "clean_up")
 
 
 @pytest.fixture(autouse=True)

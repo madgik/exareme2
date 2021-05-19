@@ -4,36 +4,29 @@ import uuid
 import pytest
 
 from mipengine.common.node_tasks_DTOs import ColumnInfo, TableSchema
-from tests.integration_tests import nodes_communication
+from tests.integration_tests.nodes_communication import get_celery_app
+from tests.integration_tests.nodes_communication import get_celery_task_signature
 
-local_node = nodes_communication.get_celery_app("localnode1")
-local_node_create_table = nodes_communication.get_celery_create_table_signature(
-    local_node
+local_node = get_celery_app("localnode1")
+local_node_create_table = get_celery_task_signature(local_node, "create_table")
+local_node_get_tables = get_celery_task_signature(local_node, "get_tables")
+local_node_get_table_schema = get_celery_task_signature(local_node, "get_table_schema")
+local_node_get_table_data = get_celery_task_signature(local_node, "get_table_data")
+local_node_create_merge_table = get_celery_task_signature(
+    local_node, "create_merge_table"
 )
-local_node_get_tables = nodes_communication.get_celery_get_tables_signature(local_node)
-local_node_get_table_schema = nodes_communication.get_celery_get_table_schema_signature(
-    local_node
+local_node_get_merge_tables = get_celery_task_signature(local_node, "get_merge_tables")
+local_node_create_pathology_view = get_celery_task_signature(
+    local_node, "create_pathology_view"
 )
-local_node_get_table_data = nodes_communication.get_celery_get_table_data_signature(
-    local_node
+local_node_get_views = get_celery_task_signature(local_node, "get_views")
+local_node_create_remote_table = get_celery_task_signature(
+    local_node, "create_remote_table"
 )
-local_node_create_merge_table = (
-    nodes_communication.get_celery_create_merge_table_signature(local_node)
+local_node_get_remote_tables = get_celery_task_signature(
+    local_node, "get_remote_tables"
 )
-local_node_get_merge_tables = nodes_communication.get_celery_get_merge_tables_signature(
-    local_node
-)
-local_node_create_view = nodes_communication.get_celery_create_view_signature(
-    local_node
-)
-local_node_get_views = nodes_communication.get_celery_get_views_signature(local_node)
-local_node_create_remote_table = (
-    nodes_communication.get_celery_create_remote_table_signature(local_node)
-)
-local_node_get_remote_tables = (
-    nodes_communication.get_celery_get_remote_tables_signature(local_node)
-)
-local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
+local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
 context_id = "HISTOGRAMS"
 
@@ -130,13 +123,13 @@ def test_sql_injection_create_view_columns():
         ]
         datasets = ["edsd"]
         pathology = "tbi"
-        local_node_create_view.delay(
+        local_node_create_pathology_view.delay(
             context_id=context_id,
             command_id=str(uuid.uuid1()).replace("-", ""),
             pathology=pathology,
-            datasets=json.dumps(datasets),
-            columns=json.dumps(columns),
-            filters_json="filters",
+            datasets=datasets,
+            columns=columns,
+            filters_json="filters_json",
         ).get()
 
 
@@ -150,12 +143,12 @@ def test_sql_injection_create_view_datasets():
         ]
         datasets = ["Robert'); DROP TABLE data; --"]
         pathology = "tbi"
-        local_node_create_view.delay(
+        local_node_create_pathology_view.delay(
             context_id=context_id,
             command_id=str(uuid.uuid1()).replace("-", ""),
             pathology=pathology,
-            datasets=json.dumps(datasets),
-            columns=json.dumps(columns),
+            datasets=datasets,
+            columns=columns,
             filters_json="",
         ).get()
 

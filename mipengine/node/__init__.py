@@ -6,6 +6,8 @@ from importlib.resources import open_text
 from mipengine import node
 from mipengine.utils import AttrDict
 
+DATA_TABLE_PRIMARY_KEY = "row_id"
+
 if config_file := os.getenv("MIPENGINE_NODE_CONFIG_FILE"):
     with open(config_file) as fp:
         config = AttrDict(toml.load(fp))

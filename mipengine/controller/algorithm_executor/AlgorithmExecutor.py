@@ -153,7 +153,7 @@ class AlgorithmExecutor:
                 "get_table_data": "mipengine.node.tasks.common.get_table_data",
                 "create_table": "mipengine.node.tasks.tables.create_table",
                 "get_views": "mipengine.node.tasks.views.get_views",
-                "create_view": "mipengine.node.tasks.views.create_view",
+                "create_pathology_view": "mipengine.node.tasks.views.create_pathology_view",
                 "get_remote_tables": "mipengine.node.tasks.remote_tables.get_remote_tables",
                 "create_remote_table": "mipengine.node.tasks.remote_tables.create_remote_table",
                 "get_merge_tables": "mipengine.node.tasks.merge_tables.get_merge_tables",
@@ -184,7 +184,7 @@ class AlgorithmExecutor:
             # initial view for variables in X
             variable = "x"
             command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_view(
+            view_name = self.create_pathology_view(
                 command_id=command_id,
                 pathology=initial_view_tables_params["pathology"],
                 datasets=initial_view_tables_params["datasets"],
@@ -197,7 +197,7 @@ class AlgorithmExecutor:
             # initial view for variables in Y
             variable = "y"
             command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_view(
+            view_name = self.create_pathology_view(
                 command_id=command_id,
                 pathology=initial_view_tables_params["pathology"],
                 datasets=initial_view_tables_params["datasets"],
@@ -250,7 +250,7 @@ class AlgorithmExecutor:
             return [TableName(table_name) for table_name in result]
 
         # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
-        def create_view(
+        def create_pathology_view(
             self,
             command_id: str,
             pathology: str,
@@ -259,7 +259,7 @@ class AlgorithmExecutor:
             filters: List[str],
         ) -> TableName:
             task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["create_view"]
+                self.task_signatures_str["create_pathology_view"]
             )
 
             # -----------DEBUG
