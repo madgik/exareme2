@@ -71,7 +71,7 @@
    and then run the following command to create the node config files
 
    ```
-   inv create_node_configs
+   inv create-node-configs
    ```
 
 1. Deploy everything with
