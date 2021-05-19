@@ -42,6 +42,7 @@ def create_node_configs(c):
     for node in deployment_config["nodes"]:
         node_config = template_node_config.copy()
         node_config["identifier"] = node["id"]
+        node_config["role"]=node["role"]
         node_config["log_level"] = deployment_config["log_level"]
         node_config["monetdb"]["ip"] = deployment_config["ip"]
         node_config["monetdb"]["port"] = node["monetdb_port"]

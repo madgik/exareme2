@@ -9,12 +9,15 @@ from typing import Tuple
 
 from celery import Celery
 
-from mipengine.common.node_catalog import NodeCatalog
+from mipengine.node_registry.node_registry import NodeRegistryClient
+from mipengine.common.node_registry_DTOs import Pathology, NodeRole
+
 from mipengine.common.node_tasks_DTOs import TableData
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.common.node_tasks_DTOs import UDFArgument
 from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequestDTO
+
 
 # TODO: Too many things happening in all the initialiazers. Especially the AlgorithmExecutor __init__ is called synchronuously from the server
 # TODO: TASK_TIMEOUT
@@ -63,18 +66,28 @@ class AlgorithmExecutor:
 
         self.algorithm_name = algorithm_name
         self.context_id = get_a_uniqueid()  # TODO should this be passed as a param??
+        # TODO access to the NodeRegistryClient must be in a higher layer.
+        # AlgorithmExecutor must not spent time contacting the consul agent, it must
+        # just get the nodes it has to execute on
+        nrclient = NodeRegistryClient()
 
-        node_catalog = NodeCatalog()
-        global_node = node_catalog.get_node("globalnode")
-        local_nodes = node_catalog.get_nodes_with_any_of_datasets(
+        global_nodes = nrclient.get_all_global_nodes()
+        # TODO for now just use the first global node found, in the future multiple
+        # global nodes can be availablde
+        global_node_id = list(global_nodes.keys())[0]
+        global_node = global_nodes[global_node_id]
+        global_node_db_info = nrclient.get_db(global_node_id)
+
+        local_nodes = nrclient.get_nodes_with_datasets(
             algorithm_request_dto.inputdata.datasets
         )
+        local_nodes_dbs_info = nrclient.get_dbs(list(local_nodes.keys()))
 
         # instantiate the GLOBAL Node object
         self.global_node = self.Node(
-            node_id=global_node.nodeId,
-            rabbitmq_socket_addr=f"{global_node.rabbitmqIp}:{global_node.rabbitmqPort}",
-            monetdb_socket_addr=f"{global_node.monetdbIp}:{global_node.monetdbPort}",
+            node_id=global_node_id,
+            rabbitmq_socket_addr=f"{global_node.ip}:{global_node.port}",
+            monetdb_socket_addr=f"{global_node_db_info.ip}:{global_node_db_info.port}",
             context_id=self.context_id,
         )
 
@@ -92,12 +105,12 @@ class AlgorithmExecutor:
 
         # instantiate the LOCAL Node objects
         self.local_nodes = []
-        for local_node in local_nodes:
+        for node_id, node_info in local_nodes.items():
             self.local_nodes.append(
                 self.Node(
-                    node_id=local_node.nodeId,
-                    rabbitmq_socket_addr=f"{local_node.rabbitmqIp}:{local_node.rabbitmqPort}",
-                    monetdb_socket_addr=f"{local_node.monetdbIp}:{local_node.monetdbPort}",
+                    node_id=node_id,
+                    rabbitmq_socket_addr=f"{node_info.ip}:{node_info.port}",
+                    monetdb_socket_addr=f"{local_nodes_dbs_info[node_id].ip}:{local_nodes_dbs_info[node_id].port}",
                     initial_view_tables_params=initial_view_tables_params,
                     context_id=self.context_id,
                 )
@@ -178,7 +191,8 @@ class AlgorithmExecutor:
             return self.__initial_view_tables
 
         def __create_initial_view_tables(self, initial_view_tables_params):
-            # will contain the views created from the pathology, datasets. Its keys are the variable sets x, y etc
+            # will contain the views created from the pathology, datasets. Its keys are
+            # the variable sets x, y etc
             initial_view_tables = {}
 
             # initial view for variables in X
@@ -249,7 +263,8 @@ class AlgorithmExecutor:
             result = task_signature.delay(context_id=self.__context_id).get()
             return [TableName(table_name) for table_name in result]
 
-        # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
+        # TODO: this is very specific to mip, very inconsistent with the rest, has to
+        # be abstracted somehow
         def create_view(
             self,
             command_id: str,

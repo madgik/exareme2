@@ -7,44 +7,47 @@ from mipengine.node_registry.node_registry import NodeRegistryClient
 from mipengine.common.node_registry_DTOs import NodeRecord, Pathology, NodeRole
 from ipaddress import IPv4Address
 
+# ----------- NodeRegistryClient stuff
+DB_SERVICE_ID_SUFFIX = "_db"
 
-
-# Send information to node_catalog
-# node_catalog.set_node(
-#     node_id=node_config.identifier,
-#     monetdb_ip=node_config.monetdb.ip,
-#     monetdb_port=node_config.monetdb.port,
-#     rabbitmq_ip=node_config.rabbitmq.ip,
-#     rabbitmq_port=node_config.rabbitmq.port,
-# )
-
-DB_ID_SUFFIX = "_db"
-
-# TODO where to get pathologies from??
-pathology_dementia = Pathology(name="dementia", datasets=["edsd", "ppmi","desd-synthdata","fake_longitudina"])
-pathology_mentalhealth = Pathology(name="mentalhealth", datasets=["demo"])
-pathology_tbi = Pathology(name="tbi", datasets=["tbi_demo2"])
+node_role = (
+    NodeRole.LOCALNODE
+    if node_config.role == NodeRole.LOCALNODE.name
+    else NodeRole.GLOBALNODE
+)
 
 node_record = NodeRecord(
     node_id=node_config.identifier,
-    node_role=NodeRole.GLOBAL_NODE,  # ?? #TODO where get local/global flag??
+    node_role=node_role,
     task_queue_ip=IPv4Address(node_config.rabbitmq.ip),
     task_queue_port=node_config.rabbitmq.port,
-    db_id=node_config.identifier + DB_ID_SUFFIX,  # not sure about that..
+    db_id=node_config.identifier + DB_SERVICE_ID_SUFFIX,
     db_ip=IPv4Address(node_config.monetdb.ip),
     db_port=node_config.monetdb.port,
-    pathologies=[pathology_dementia,pathology_mentalhealth,pathology_tbi],
 )
 
-nrcclient = NodeRegistryClient()  # TODO pass consul ip, port from config??
+# TODO we need some mechanism that reads pathologies and datasets form the dbs
+# For now they are hardcoded here
+pathology_dementia = Pathology(
+    name="dementia",
+    datasets=["edsd", "ppmi", "desd-synthdata", "fake_longitudinal", "demo_data"],
+)
+pathology_mentalhealth = Pathology(name="mentalhealth", datasets=["demo"])
+pathology_tbi = Pathology(name="tbi", datasets=["tbi_demo2"])
+
+if node_role == NodeRole.LOCALNODE:
+    node_record.pathologies = [
+        pathology_dementia,
+        pathology_mentalhealth,
+        pathology_tbi,
+    ]
+
+# TODO pass consul ip, port from config??
+nrcclient = NodeRegistryClient(
+    consul_server_ip=IPv4Address("127.0.0.1"), consul_server_port=8500
+)
 nrcclient.register_node(node_record)
-
-
-rabbitmq_credentials = node_config.rabbitmq.user + ":" + node_config.rabbitmq.password
-rabbitmq_socket_addr = node_config.rabbitmq.ip + ":" + str(node_config.rabbitmq.port)
-vhost = node_config.rabbitmq.vhost
->>>>>>> Stashed changes
->>>>>>> Stashed changes
+# ----------- END of NodeRegistryClient stuff
 
 rabbitmq_credentials = node_config.rabbitmq.user + ":" + node_config.rabbitmq.password
 rabbitmq_socket_addr = node_config.rabbitmq.ip + ":" + str(node_config.rabbitmq.port)

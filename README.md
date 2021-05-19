@@ -37,7 +37,12 @@
    ```
 
 #### Local Deployment
+1. Start consul agent in a container
+   (TODO: integrate this to invoke)
 
+   ```
+   docker run -d --name=dev-consul  -p 8500:8500 consul
+   ```
 1. Find your machine's local ip address, _e.g._ with
 
    ```

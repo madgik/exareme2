@@ -169,7 +169,7 @@ def expected_dbs_info():
 
 @pytest.fixture
 def node_registry_client():
-    # nrclient = NodeRegistryClient(consul_server_ip="127.0.0.1", consul_server_port=8200)
+    # nrclient = NodeRegistryClient(consul_server_ip="127.0.0.1", consul_server_port=8500)
     nrclient = NodeRegistryClient()
     return nrclient
 
