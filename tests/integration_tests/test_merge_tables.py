@@ -6,23 +6,20 @@ from mipengine.common.node_exceptions import IncompatibleSchemasMergeException
 from mipengine.common.node_exceptions import TablesNotFound
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
-from tests.integration_tests import nodes_communication
+from tests.integration_tests.nodes_communication import get_celery_task_signature
+from tests.integration_tests.nodes_communication import get_celery_app
 
 local_node_id = "localnode1"
-local_node = nodes_communication.get_celery_app(local_node_id)
-local_node_create_table = nodes_communication.get_celery_create_table_signature(
-    local_node
+local_node = get_celery_app(local_node_id)
+local_node_create_table = get_celery_task_signature(local_node, "create_table")
+local_node_create_merge_table = get_celery_task_signature(
+    local_node, "create_merge_table"
 )
-local_node_create_merge_table = (
-    nodes_communication.get_celery_create_merge_table_signature(local_node)
+local_node_insert_data_to_table = get_celery_task_signature(
+    local_node, "insert_data_to_table"
 )
-local_node_insert_data_to_table = (
-    nodes_communication.get_celery_insert_data_to_table_signature(local_node)
-)
-local_node_get_merge_tables = nodes_communication.get_celery_get_merge_tables_signature(
-    local_node
-)
-local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
+local_node_get_merge_tables = get_celery_task_signature(local_node, "get_merge_tables")
+local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
 
 @pytest.fixture(autouse=True)

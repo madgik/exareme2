@@ -6,23 +6,22 @@ from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.common.node_catalog import node_catalog
-from tests.integration_tests import nodes_communication
+from tests.integration_tests.nodes_communication import get_celery_task_signature
+from tests.integration_tests.nodes_communication import get_celery_app
 
 global_node_id = "globalnode"
 local_node_id = "localnode1"
-global_node = nodes_communication.get_celery_app(global_node_id)
-local_node = nodes_communication.get_celery_app(local_node_id)
-local_node_create_table = nodes_communication.get_celery_create_table_signature(
-    local_node
+global_node = get_celery_app(global_node_id)
+local_node = get_celery_app(local_node_id)
+local_node_create_table = get_celery_task_signature(local_node, "create_table")
+global_node_create_remote_table = get_celery_task_signature(
+    global_node, "create_remote_table"
 )
-global_node_create_remote_table = (
-    nodes_communication.get_celery_create_remote_table_signature(global_node)
+global_node_get_remote_tables = get_celery_task_signature(
+    global_node, "get_remote_tables"
 )
-global_node_get_remote_tables = (
-    nodes_communication.get_celery_get_remote_tables_signature(global_node)
-)
-local_node_cleanup = nodes_communication.get_celery_cleanup_signature(local_node)
-global_node_cleanup = nodes_communication.get_celery_cleanup_signature(global_node)
+local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
+global_node_cleanup = get_celery_task_signature(global_node, "clean_up")
 
 
 @pytest.fixture(autouse=True)
@@ -62,4 +61,4 @@ def test_create_and_get_remote_table(context_id):
         monetdb_socket_address=local_node_monetdb_sock_address,
     ).get()
     remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()
-    assert table_name.lower() in remote_tables
+    assert table_name in remote_tables

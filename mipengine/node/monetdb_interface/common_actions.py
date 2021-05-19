@@ -18,12 +18,12 @@ def create_table_name(
     table_type: str, command_id: str, context_id: str, node_id: str
 ) -> str:
     """
-    Creates a table name with the format <tableType>_<commandId>_<contextId>_<nodeId>
+    Creates and returns in lower case a table name with the format <tableType>_<commandId>_<contextId>_<nodeId>
     """
     if table_type not in {"table", "view", "merge"}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
 
-    return f"{table_type}_{command_id}_{context_id}_{node_id}"
+    return f"{table_type}_{command_id}_{context_id}_{node_id}".lower()
 
 
 def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
