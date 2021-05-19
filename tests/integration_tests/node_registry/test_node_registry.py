@@ -6,7 +6,7 @@ from ipaddress import IPv4Address
 # TESTS PREREQUISITES
 # these tests expect consul agent to be running at 127.0.0.1:8500 and without any
 # services registered
-# To start consul: $./consul agent -dev
+# To start consul: $./consul agent -dev or $docker run -d --name=dev-consul  -p 8500:8500 consul
 
 
 @pytest.fixture
