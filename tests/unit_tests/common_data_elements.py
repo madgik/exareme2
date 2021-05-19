@@ -32,6 +32,30 @@ common_data_elements.pathologies = {
             MetadataVariable(
                 code="test_cde3",
                 label="test cde3",
+                sql_type="text",
+                isCategorical=True,
+                enumerations=[
+                    MetadataEnumeration(code="male", label="male"),
+                    MetadataEnumeration(code="female", label="female"),
+                ],
+                min=None,
+                max=None,
+            )
+        ),
+        "test_cde4": CommonDataElement(
+            MetadataVariable(
+                code="test_cde4",
+                label="test cde4",
+                sql_type="text",
+                isCategorical=False,
+                min=None,
+                max=None,
+            )
+        ),
+        "test_cde5": CommonDataElement(
+            MetadataVariable(
+                code="test_cde5",
+                label="test cde5",
                 sql_type="int",
                 isCategorical=True,
                 enumerations=[
@@ -42,5 +66,58 @@ common_data_elements.pathologies = {
                 max=None,
             )
         ),
-    }
+        "test_cde6": CommonDataElement(
+            MetadataVariable(
+                code="test_cde6",
+                label="test cde6",
+                sql_type="text",
+                isCategorical=True,
+                enumerations=[
+                    MetadataEnumeration(code="male", label="male"),
+                    MetadataEnumeration(code="female", label="female"),
+                    MetadataEnumeration(code="Other", label="Other"),
+                ],
+                min=None,
+                max=None,
+            )
+        ),
+    },
+    "test_pathology2": {
+        "test_cde1": CommonDataElement(
+            MetadataVariable(
+                code="test_cde1",
+                label="test cde1",
+                sql_type="int",
+                isCategorical=False,
+                enumerations=None,
+                min=None,
+                max=None,
+            )
+        ),
+        "test_cde2": CommonDataElement(
+            MetadataVariable(
+                code="test_cde2",
+                label="test cde2",
+                sql_type="real",
+                isCategorical=False,
+                enumerations=None,
+                min=None,
+                max=None,
+            )
+        ),
+        "test_cde3": CommonDataElement(
+            MetadataVariable(
+                code="test_cde3",
+                label="test cde3",
+                sql_type="text",
+                isCategorical=True,
+                enumerations=[
+                    MetadataEnumeration(code="male", label="male"),
+                    MetadataEnumeration(code="female", label="female"),
+                ],
+                min=None,
+                max=None,
+            )
+        ),
+    },
 }

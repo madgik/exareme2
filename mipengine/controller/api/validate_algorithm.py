@@ -99,7 +99,7 @@ def _validate_inputdata_pathology_and_dataset_values(
     if not node_catalog.pathology_exists(pathology):
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
 
-    if not isinstance(datasets, list):
+    if type(datasets) is not list:
         raise BadRequest(f"Datasets parameter should be a list.")
 
     if not all(node_catalog.dataset_exists(pathology, dataset) for dataset in datasets):
@@ -140,13 +140,13 @@ def _validate_inputdata_cde(
     """
 
     # Validate that the cde parameters were provided, if required.
-    if cde_parameter_specs.notblank and cde_parameter_value is None:
+    if cde_parameter_specs.notblank and not cde_parameter_value:
         raise BadUserInput(
             f"Inputdata '{cde_parameter_specs.label}' should be provided."
         )
 
     # Continue if the cde parameter was not provided
-    if cde_parameter_value is None:
+    if not cde_parameter_value:
         return
 
     _validate_inputdata_cdes_length(cde_parameter_value, cde_parameter_specs)
@@ -216,16 +216,16 @@ def _validate_inputdata_cde_stattypes(
     cde_metadata: CommonDataElement,
     cde_parameter_specs: InputDataSpecification,
 ):
-    if cde_metadata.categorical and "nominal" not in cde_parameter_specs.stattypes:
+    if (
+        not cde_metadata.categorical
+        and "numerical" not in cde_parameter_specs.stattypes
+    ):
         raise BadUserInput(
             f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
             f"should be categorical."
         )
 
-    if (
-        not cde_metadata.categorical
-        and "numerical" not in cde_parameter_specs.stattypes
-    ):
+    if cde_metadata.categorical and "nominal" not in cde_parameter_specs.stattypes:
         raise BadUserInput(
             f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
             f"should NOT be categorical."
@@ -260,23 +260,23 @@ def _validate_generic_parameters(
 
     # Validating that the parameters match with the notblank spec.
     for parameter_name, parameter_spec in parameters_specs.items():
-        if not parameter_spec.notblank:
-            continue
-        if not parameters:
-            raise BadRequest(f"Algorithm parameters not provided.")
-        if parameter_name not in parameters.keys():
-            raise BadUserInput(f"Parameter '{parameter_name}' should not be blank.")
+        if parameter_spec.notblank:
+            if not parameters:
+                raise BadUserInput(f"Algorithm parameters not provided.")
+            if parameter_name not in parameters.keys():
+                raise BadUserInput(f"Parameter '{parameter_name}' should not be blank.")
 
-        parameter_value = parameters[parameter_name]
-        _validate_generic_parameter_values(
-            parameter_name,
-            parameter_value,
-            parameter_spec.type,
-            parameter_spec.enums,
-            parameter_spec.min,
-            parameter_spec.max,
-            parameter_spec.multiple,
-        )
+        parameter_value = parameters.get(parameter_name)
+        if parameter_value:
+            _validate_generic_parameter_values(
+                parameter_name,
+                parameter_value,
+                parameter_spec.type,
+                parameter_spec.enums,
+                parameter_spec.min,
+                parameter_spec.max,
+                parameter_spec.multiple,
+            )
 
 
 def _validate_generic_parameter_values(
@@ -295,32 +295,22 @@ def _validate_generic_parameter_values(
     3) is inside the min-max limits, if any,
     4) and follows the multiple values rule.
     """
-    if multiple_allowed and not isinstance(parameter_value, list):
+    if multiple_allowed and type(parameter_value) is not list:
         raise BadUserInput(f"Parameter '{parameter_name}' should be a list.")
 
     # If the parameter value is a list, check each elements
-    if multiple_allowed:
-        for element in parameter_value:
-            _validate_generic_parameter_type(parameter_name, element, parameter_type)
+    if not multiple_allowed:
+        parameter_value = [parameter_value]
 
-            _validate_generic_parameter_enumerations(
-                parameter_name, element, parameter_enums
-            )
-
-            _validate_generic_parameter_inside_min_max(
-                parameter_name, element, parameter_min_value, parameter_max_value
-            )
-    else:
-        _validate_generic_parameter_type(
-            parameter_name, parameter_value, parameter_type
-        )
+    for element in parameter_value:
+        _validate_generic_parameter_type(parameter_name, element, parameter_type)
 
         _validate_generic_parameter_enumerations(
-            parameter_name, parameter_value, parameter_enums
+            parameter_name, element, parameter_enums
         )
 
         _validate_generic_parameter_inside_min_max(
-            parameter_name, parameter_value, parameter_min_value, parameter_max_value
+            parameter_name, element, parameter_min_value, parameter_max_value
         )
 
 
@@ -370,7 +360,7 @@ def _validate_generic_parameter_inside_min_max(
     if parameter_max_value is not None and parameter_value > parameter_max_value:
         raise BadUserInput(
             f"Parameter '{parameter_name}' values "
-            f"should be lower than {parameter_max_value} ."
+            f"should be less than {parameter_max_value} ."
         )
 
 
