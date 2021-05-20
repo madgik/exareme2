@@ -3,10 +3,63 @@ from mipengine.node_registry.node_registry import NodeRegistryClient
 from mipengine.common.node_registry_DTOs import NodeRecord, Pathology, NodeRole
 from ipaddress import IPv4Address
 
-# TESTS PREREQUISITES
-# these tests expect consul agent to be running at 127.0.0.1:8500 and without any
-# services registered
-# To start consul: $./consul agent -dev
+# A consul container will be started at the following port just for these tests
+# After the tests finish the consul container is removed
+CONSUL_TEST_PORT = 9500
+CONSUL_TEST_CONTAINER_NAME = "pytest-consul"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def start_test_consul_instance(request):
+
+    import subprocess
+
+    # start the consul container
+    cmd = f"docker run -d --name={CONSUL_TEST_CONTAINER_NAME}  -p {CONSUL_TEST_PORT}:8500 consul"
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+
+    import time
+
+    timeout = time.time() + 10  # 10secs timeout
+    is_container_running = False
+    # check when container is in running state
+    while not is_container_running:
+        try:
+            cmd = (
+                "docker container inspect -f '{{.State.Running}}' "
+                + CONSUL_TEST_CONTAINER_NAME
+            )
+            output = subprocess.check_output(cmd, shell=True)
+            is_container_running = True if "true" in str(output) else False
+        except subprocess.CalledProcessError:
+            print("pytest-consul container is not RUNNING yet, retrying...")
+            pass
+
+        time.sleep(0.5)
+        if time.time() > timeout:
+            break
+
+    # remove the consul container
+    def teardown_container():
+        cmd = f"docker rm -f {CONSUL_TEST_CONTAINER_NAME}"
+        subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+
+    request.addfinalizer(teardown_container)
+
+
+@pytest.fixture
+def node_registry_client():
+    nrclient = NodeRegistryClient(
+        consul_server_ip="127.0.0.1", consul_server_port=CONSUL_TEST_PORT
+    )
+    return nrclient
+
+
+@pytest.fixture(autouse=True)
+def test_register_nodes(node_registry_client, node_records):
+    node_registry_client.register_node(node_records[0])
+    node_registry_client.register_node(node_records[1])
+    node_registry_client.register_node(node_records[2])
 
 
 @pytest.fixture
@@ -167,61 +220,18 @@ def expected_dbs_info():
     return dbs_info
 
 
-@pytest.fixture
-def node_registry_client():
-    # nrclient = NodeRegistryClient(consul_server_ip="127.0.0.1", consul_server_port=8500)
-    nrclient = NodeRegistryClient()
-    return nrclient
-
-
-def test_register_nodes(node_registry_client, node_records):
-    node_registry_client.register_node(node_records[0])
-    node_registry_client.register_node(node_records[1])
-    node_registry_client.register_node(node_records[2])
-    assert True
-
-
 def test_get_registered_nodes(node_registry_client, expected_all_nodes_output):
     all_nodes = node_registry_client.get_all_nodes()
-    print("NodeRegistryClient returned:")
-    {print(f"{node_id=}\n{node_info=}") for (node_id, node_info) in all_nodes.items()}
-    print("\n DO NOT MATCH EXPECTED-->\n")
-    print("expected_registered_nodes_output:")
-    {
-        print(f"{node_id=}\n{node_info=}")
-        for (node_id, node_info) in expected_all_nodes_output.items()
-    }
     assert all_nodes == expected_all_nodes_output
 
 
 def test_get_global_nodes(node_registry_client, expected_global_nodes_output):
     global_nodes = node_registry_client.get_all_global_nodes()
-    print("NodeRegistryClient returned:")
-    {
-        print(f"{node_id=}\n{node_info=}")
-        for (node_id, node_info) in global_nodes.items()
-    }
-    print("\n DO NOT MATCH EXPECTED-->\n")
-    print("expected_global_nodes_output:")
-    {
-        print(f"{node_id=}\n{node_info=}")
-        for (node_id, node_info) in expected_global_nodes_output.items()
-    }
-
     assert global_nodes == expected_global_nodes_output
 
 
 def test_get_local_nodes(node_registry_client, expected_local_nodes_output):
     local_nodes = node_registry_client.get_all_local_nodes()
-    print("NodeRegistryClient returned:")
-    {print(f"{node_id=}\n{node_info=}") for (node_id, node_info) in local_nodes.items()}
-    print("\n DO NOT MATCH EXPECTED-->\n")
-    print("expected_local_nodes_output:")
-    {
-        print(f"{node_id=}\n{node_info=}")
-        for (node_id, node_info) in expected_local_nodes_output.items()
-    }
-
     assert local_nodes == expected_local_nodes_output
 
 
@@ -231,21 +241,6 @@ def test_get_nodes_with_pathologies(
     nodes_with_pathologies = node_registry_client.get_nodes_with_pathologies(
         ["pathology2", "pathology3"]
     )
-    print("NodeRegistryClient returned:")
-    {
-        print(f"{node_id=}\n{node_info=}")
-        for (node_id, node_info) in nodes_with_pathologies.items()
-    }
-    print("\n DO NOT MATCH EXPECTED-->\n")
-    print("expected_nodes_with_pathology2_and_pathology3:")
-    {
-        print(f"{node_id=}\n{node_info=}")
-        for (
-            node_id,
-            node_info,
-        ) in expected_nodes_with_pathology2_and_pathology3.items()
-    }
-
     assert nodes_with_pathologies == expected_nodes_with_pathology2_and_pathology3
 
 
@@ -255,43 +250,16 @@ def test_get_nodes_with_datasets(
     nodes_with_datasets = node_registry_client.get_nodes_with_datasets(
         ["dataset2", "dataset3"]
     )
-    print("NodeRegistryClient returned:")
-    {
-        print(f"{node_id=}\n{node_info=}")
-        for (node_id, node_info) in nodes_with_datasets.items()
-    }
-    print("\n DO NOT MATCH EXPECTED-->\n")
-    print("expected_nodes_with_dataset2_and_dataset3:")
-    {
-        print(f"{node_id=}\n{node_info=}")
-        for (node_id, node_info) in expected_nodes_with_dataset2_and_dataset3.items()
-    }
-
     assert nodes_with_datasets == expected_nodes_with_dataset2_and_dataset3
 
 
 def test_get_db_info_for_node1(node_registry_client, expected_db_info_for_node1):
     db_info_node1 = node_registry_client.get_db("node1")
-    print("NodeRegistryClient returned:")
-    print(f"{db_info_node1=}")
-    print("\n DO NOT MATCH EXPECTED-->\n")
-    print("expected_db_info_for_node1:")
-    print(f"{expected_db_info_for_node1}")
-
     assert db_info_node1 == expected_db_info_for_node1
 
 
 def test_get_dbs_info(node_registry_client, expected_dbs_info):
     dbs_info = node_registry_client.get_dbs(["node1", "node2", "node3"])
-    print("NodeRegistryClient returned:")
-    {print(f"{node_id=}\n{db_info=}") for (node_id, db_info) in dbs_info.items()}
-    print("\n DO NOT MATCH EXPECTED-->\n")
-    print("expected_all_dbs_info:")
-    {
-        print(f"{node_id=}\n{node_info=}")
-        for (node_id, node_info) in expected_dbs_info.items()
-    }
-
     assert dbs_info == expected_dbs_info
 
 
