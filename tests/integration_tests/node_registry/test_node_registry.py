@@ -3,6 +3,9 @@ from mipengine.node_registry.node_registry import NodeRegistryClient
 from mipengine.common.node_registry_DTOs import NodeRecord, Pathology, NodeRole
 from ipaddress import IPv4Address
 
+import subprocess
+import time
+
 # A consul container will be started at the following port just for these tests
 # After the tests finish the consul container is removed
 CONSUL_TEST_PORT = 9500
@@ -12,13 +15,9 @@ CONSUL_TEST_CONTAINER_NAME = "pytest-consul"
 @pytest.fixture(scope="session", autouse=True)
 def start_test_consul_instance(request):
 
-    import subprocess
-
     # start the consul container
     cmd = f"docker run -d --name={CONSUL_TEST_CONTAINER_NAME}  -p {CONSUL_TEST_PORT}:8500 consul"
     subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
-
-    import time
 
     timeout = time.time() + 10  # 10secs timeout
     is_container_running = False
