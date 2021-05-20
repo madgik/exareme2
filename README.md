@@ -86,27 +86,6 @@
    inv load-data
    ```
 
-1. _Optional_ Start Flower monitoring tool
-
-     by choosing a specific node to monitor
-
-     ```
-     inv start-flower --node <NODE-NAME>
-     ```
-
-     or start a separate flower instance for all of the nodes with
-
-     ```
-     inv start-flower --all
-     ```
-
-     Then go to the respective address on your browser to start monitoring the nodes.
-
-1. _Optional_ Kill all flower instances at any point with
-
-     ```
-     inv kill-flower
-     ```
 
 1. Attach to some service's stdout/stderr with
 
@@ -135,6 +114,30 @@
    ```
    inv deploy --start-all --monetdb-image madgik/mipenginedb:dev1.2 --celery-log-level info
    ```
+
+#### Start monitoring tools
+
+1. Start Flower monitoring tool
+
+    by choosing a specific node to monitor
+
+    ```
+    inv start-flower --node <NODE-NAME>
+    ```
+
+    or start a separate flower instance for all of the nodes with
+
+    ```
+    inv start-flower --all
+    ```
+
+    Then go to the respective address on your browser to start monitoring the nodes.
+
+1. Kill all flower instances at any point with
+
+    ```
+    inv kill-flower
+    ```
 
 #### Algorithm Run
 

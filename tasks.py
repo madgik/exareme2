@@ -271,24 +271,7 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
     if not celery_log_level:
         celery_log_level = get_deployment_config("celery_log_level")
 
-    node_ids = []
-    if all_:
-        for node_config_file in listdir(NODES_CONFIG_DIR):
-            filename = Path(node_config_file).stem
-            node_ids.append(filename)
-    elif node:
-        node_config_file = NODES_CONFIG_DIR / f"{node}.toml"
-        if not Path(node_config_file).is_file():
-            message(
-                f"The configuration file for node '{node}', does not exist in directory '{NODES_CONFIG_DIR}'",
-                Level.ERROR,
-            )
-            sys.exit(1)
-        filename = Path(node_config_file).stem
-        node_ids.append(filename)
-    else:
-        message("Please specify a node using --node <node> or use --all", Level.WARNING)
-        sys.exit(1)
+    node_ids = get_node_ids(all_, node)
 
     for node_id in node_ids:
         kill_node(c, node_id)
@@ -415,27 +398,10 @@ def cleanup(c):
 def start_flower(c, node=None, all_=False, flower=True):
     """ Remove existing flower container, start monitoring tools """
 
-    kill_flower(c)
+    kill_all_flowers(c)
     message("Flower has withered away", Level.HEADER)
 
-    node_ids = []
-    if all_:
-        for node_config_file in listdir(NODES_CONFIG_DIR):
-            filename = Path(node_config_file).stem
-            node_ids.append(filename)
-    elif node:
-        node_config_file = NODES_CONFIG_DIR / f"{node}.toml"
-        if not Path(node_config_file).is_file():
-            message(
-                f"The configuration file for node '{node}', does not exist in directory '{NODES_CONFIG_DIR}'",
-                Level.ERROR,
-            )
-            sys.exit(1)
-        filename = Path(node_config_file).stem
-        node_ids.append(filename)
-    else:
-        message("Please specify a node using --node <node> or use --all", Level.WARNING)
-        sys.exit(1)
+    node_ids = get_node_ids(all_, node)
 
     for node_id in node_ids:
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
@@ -450,24 +416,22 @@ def start_flower(c, node=None, all_=False, flower=True):
         broker_api = f"amqp://{user_and_password}@{flower_url}/{vhost}"
 
         flower_index = node_ids.index(node_id)
-        flower_port = 5555 + flower_index
+        flower_port = 5550 + flower_index
 
         message(f"Starting flower container for node {node_id}...", Level.HEADER)
-        command = f"docker run --name flower{flower_index} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker_api} "
+        command = f"docker run --name flower-{node_id} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker_api} "
         run(c, command)
         cmd = "docker ps | grep '[f]lower'"
-        run(c, cmd, warn=True)
+        run(c, cmd, warn=True, show_ok=False)
         message(f"Visit me at http://localhost:{flower_port}", Level.HEADER)
 
 @task
-def kill_flower(c):
-    """Kill Flower"""
-    message("Killing Flower...", Level.HEADER)
+def kill_all_flowers(c):
+    """Kill Flower Instances"""
     container_ids = run(c, "docker ps -qa --filter name=flower", show_ok=False)
-    print(f"container_ids: {container_ids}")
     if container_ids.stdout:
         message("Killing Flower instances and removing containers...", Level.HEADER)
-        cmd = "docker container kill flower & docker rm -vf $(docker ps -qa --filter name=flower)"
+        cmd = f"docker container kill flower & docker rm -vf $(docker ps -qa --filter name=flower)"
         run(c, cmd)
     else:
         message(f"No flower container to remove", level=Level.HEADER)
@@ -548,3 +512,25 @@ def get_deployment_config(config):
 
     with open(DEPLOYMENT_CONFIG_FILE) as fp:
         return toml.load(fp)[config]
+
+def get_node_ids(all_=False, node=None):
+    node_ids = []
+    if all_:
+        for node_config_file in listdir(NODES_CONFIG_DIR):
+            filename = Path(node_config_file).stem
+            node_ids.append(filename)
+    elif node:
+        node_config_file = NODES_CONFIG_DIR / f"{node}.toml"
+        if not Path(node_config_file).is_file():
+            message(
+                f"The configuration file for node '{node}', does not exist in directory '{NODES_CONFIG_DIR}'",
+                Level.ERROR,
+            )
+            sys.exit(1)
+        filename = Path(node_config_file).stem
+        node_ids.append(filename)
+    else:
+        message("Please specify a node using --node <node> or use --all", Level.WARNING)
+        sys.exit(1)
+
+    return node_ids
