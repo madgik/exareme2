@@ -36,8 +36,8 @@ jobs:
           source .venv/bin/activate
           PYTHONPATH=src/ poetry run pytest --cov=. --cov-report=xml tests/unit_tests
 
-    - name: Upload coverage
-      uses: codecov/codecov-action@v1
-      with:
-        file: ./coverage.xml
-        fail_ci_if_error: true
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: true
