@@ -38,16 +38,10 @@
 
 #### Local Deployment
 
-1. Find your machine's local ip address, _e.g._ with
-
-   ```
-   ifconfig | grep "inet "
-   ```
-
 1. Create a deployment configuration file `.deployment.toml` using the following template
 
    ```
-   ip = "192.168.63.129"
+   ip = "172.17.0.1"
    log_level = "INFO"
    celery_log_level ="INFO"
    monetdb_image = "madgik/mipenginedb:dev1.2"
