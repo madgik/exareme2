@@ -15,21 +15,47 @@ FILTER_OPERATORS = {
 
 
 def build_filter_clause(rules):
+    """
+    Converts and returns a given filter in jQuery format to an sql clause. This function will not check the validity of the
+    filters (the only exception is the SQL Injection which will be handled by padantic)
+    """
+    if rules is None:
+        return
+
     if "condition" in rules:
+        check_proper_condition(rules["condition"])
         cond = rules["condition"]
-        check_proper_condition(cond)
         rules = rules["rules"]
         return f" {cond} ".join([build_filter_clause(rule) for rule in rules])
-    elif "id" in rules:
-        var_name = rules["id"]
+
+    if "id" in rules:
+        column_name = rules["id"]
         op = FILTER_OPERATORS[rules["operator"]]
         val = rules["value"]
         if rules["input"] == "text":
             val = f"'{val}'"
-        return op(var_name, val)
+        return op(column_name, val)
+
+    raise ValueError(f"Invalid filters format. Filters did not contain the keys: 'condition' or 'id'.")
 
 
 def validate_proper_filter(pathology_name: str, rules):
+    """
+    Validates a given filter in jQuery format.
+    This function will check the validity of:
+        1. The type of the filter
+        2. The column name (if it exists in the metadata of the pathology)
+        3. The pathology name (if the pathology exists)
+        4. All the conditions that the filter contains
+        5. All the operators that the filter contains
+        6. The type of the given value (if the column of the pathology and the value are the same type)
+    """
+    if rules is None:
+        return
+
+    check_filter_type(rules)
+    check_pathology_exists(pathology_name)
+
     if "condition" in rules:
         check_proper_condition(rules["condition"])
         rules = rules["rules"]
@@ -38,13 +64,15 @@ def validate_proper_filter(pathology_name: str, rules):
         column_name = rules["id"]
         val = rules["value"]
         check_proper_operator(rules["operator"])
-        check_if_column_exists(pathology_name, column_name)
-        if val is not None:
-            if type(val) is list:
-                for item in val:
-                    check_if_value_has_proper_type(pathology_name, column_name, item)
-            else:
-                check_if_value_has_proper_type(pathology_name, column_name, val)
+        check_column_exists(pathology_name, column_name)
+        check_value_type(pathology_name, column_name, val)
+    else:
+        raise ValueError(f"Invalid filters format. Filters did not contain the keys: 'condition' or 'id'.")
+
+
+def check_filter_type(rules):
+    if not isinstance(rules, dict):
+        raise TypeError(f"Filter type can only be dict but was:{type(rules)}")
 
 
 def check_proper_condition(condition: str):
@@ -57,13 +85,18 @@ def check_proper_operator(operator: str):
         raise ValueError(f"Operator: {operator} is not acceptable.")
 
 
-def check_if_column_exists(pathology_name: str, column: str):
+def check_column_exists(pathology_name: str, column: str):
     pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
     if column not in pathology_common_data_elements.keys():
-        raise KeyError(f"Column {column} does not exist in the metadata!")
+        raise KeyError(f"Column {column} does not exist in the metadata of the {pathology_name}!")
 
 
-def _convert_mip_type_to_class_type(type: str):
+def check_pathology_exists(pathology_name: str):
+    if pathology_name not in common_data_elements.pathologies.keys():
+        raise KeyError(f"Pathology:{pathology_name} does not exist in the metadata!")
+
+
+def _convert_mip_type_to_class_type(mip_type: str):
     """
     Converts MIP's types to the according class.
     """
@@ -73,17 +106,27 @@ def _convert_mip_type_to_class_type(type: str):
         "text": str,
     }
 
-    if type not in type_mapping.keys():
-        raise KeyError(f"MIP type '{type}' cannot be converted to a python class type.")
+    if mip_type not in type_mapping.keys():
+        raise KeyError(f"MIP type '{mip_type}' cannot be converted to a python class type.")
 
-    return type_mapping.get(type)
+    return type_mapping.get(mip_type)
 
 
-def check_if_value_has_proper_type(pathology_name: str, column: str, value):
-    pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
-    column_sql_type = pathology_common_data_elements[column].sql_type
+def check_value_type(pathology_name: str, column: str, value):
+    if value is None:
+        return
+    elif isinstance(value, list):
+        for item in value:
+            check_value_type(pathology_name, column, item)
+    elif isinstance(value, (int, str, float)):
+        pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
+        column_sql_type = pathology_common_data_elements[column].sql_type
 
-    if type(value) is not _convert_mip_type_to_class_type(column_sql_type):
+        if type(value) is not _convert_mip_type_to_class_type(column_sql_type):
+            raise TypeError(
+                f"{column}'s type: {column_sql_type} was different from the type of the given value:{type(value)}"
+            )
+    else:
         raise TypeError(
-            f"Value {value} should be {column_sql_type} but was {type(value)}"
+            f"Value {value} should be of type int, str, float but was {type(value)}"
         )

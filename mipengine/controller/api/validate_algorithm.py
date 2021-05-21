@@ -5,6 +5,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from mipengine.common.filters import validate_proper_filter
 from mipengine.common.common_data_elements import CommonDataElement
 from mipengine.common.common_data_elements import common_data_elements
 from mipengine.common.node_catalog import node_catalog
@@ -86,7 +87,7 @@ def validate_inputdata(
         input_data.pathology, input_data.datasets
     )
 
-    validate_inputdata_filter(input_data.filters)
+    validate_inputdata_filter(input_data.pathology, input_data.filters)
 
     validate_inputdata_cdes(inputdata_specs, input_data)
 
@@ -111,13 +112,12 @@ def validate_inputdata_pathology_and_dataset_values(
         )
 
 
-def validate_inputdata_filter(filter):
+def validate_inputdata_filter(pathology, filters):
     """
     Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
     """
-    # TODO Add filter
-    pass
+    validate_proper_filter(pathology, filters)
 
 
 def validate_inputdata_cdes(

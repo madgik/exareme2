@@ -4,355 +4,385 @@ from mipengine.common.filters import build_filter_clause, validate_proper_filter
 
 PATHOLOGY = "tbi"
 
-equal_filter = {
-    "condition": "AND",
-    "rules": [
-        {
-            "id": "age_value",
-            "field": "age_value",
-            "type": "int",
-            "input": "number",
-            "operator": "equal",
-            "value": 17,
-        }
-    ],
-    "valid": True,
-}
-equal_result = "age_value = 17"
-
-not_equal_filter = {
-    "condition": "AND",
-    "rules": [
-        {
-            "id": "pupil_reactivity_right_eye_result",
-            "field": "pupil_reactivity_right_eye_result",
-            "type": "string",
-            "input": "text",
-            "operator": "not_equal",
-            "value": "Nonreactive",
-        }
-    ],
-    "valid": True,
-}
-not_equal_result = "pupil_reactivity_right_eye_result <> 'Nonreactive'"
-
-equal_or_not_equal_filter = {
-    "condition": "OR",
-    "rules": [
-        {
-            "id": "age_value",
-            "field": "age_value",
-            "type": "int",
-            "input": "number",
-            "operator": "equal",
-            "value": 17,
-        },
-        {
-            "id": "pupil_reactivity_right_eye_result",
-            "field": "pupil_reactivity_right_eye_result",
-            "type": "string",
-            "input": "text",
-            "operator": "not_equal",
-            "value": "Nonreactive",
-        },
-    ],
-    "valid": True,
-}
-equal_or_not_equal_result = (
-    "age_value = 17 OR pupil_reactivity_right_eye_result <> 'Nonreactive'"
-)
-
-equal_not_equal_cases = [
-    (equal_filter, equal_result),
-    (not_equal_filter, not_equal_result),
-    (equal_or_not_equal_filter, equal_or_not_equal_result),
-]
-
-
-@pytest.mark.parametrize("test_input,expected", equal_not_equal_cases)
-def test_equal_or_not_equal(test_input, expected):
-    assert build_filter_clause(test_input) == expected
-    validate_proper_filter(PATHOLOGY, test_input)
-
-
-less_and_greater_filter = {
-    "condition": "AND",
-    "rules": [
-        {
-            "id": "age_value",
-            "field": "age_value",
-            "type": "int",
-            "input": "number",
-            "operator": "less",
-            "value": 50,
-        },
-        {
-            "id": "age_value",
-            "field": "age_value",
-            "type": "int",
-            "input": "number",
-            "operator": "greater",
-            "value": 20,
-        },
-    ],
-    "valid": True,
-}
-
-less_and_greater_result = "age_value < 50 AND age_value > 20"
-less_and_greater_cases = [(less_and_greater_filter, less_and_greater_result)]
-
-
-@pytest.mark.parametrize("test_input,expected", less_and_greater_cases)
-def test_less_and_greater(test_input, expected):
-    assert build_filter_clause(test_input) == expected
-    validate_proper_filter(PATHOLOGY, test_input)
-
-
-between_and_not_between_filter = {
-    "condition": "AND",
-    "rules": [
-        {
-            "id": "age_value",
-            "field": "age_value",
-            "type": "int",
-            "input": "number",
-            "operator": "not_between",
-            "value": [60, 90],
-        },
-        {
-            "id": "mortality_core",
-            "field": "mortality_core",
-            "type": "double",
-            "input": "number",
-            "operator": "between",
-            "value": [0.3, 0.8],
-        },
-    ],
-    "valid": True,
-}
-
-between_and_not_between_result = (
-    "NOT age_value BETWEEN 60 AND 90 AND mortality_core BETWEEN 0.3 AND 0.8"
-)
-between_and_not_between_cases = [
-    (between_and_not_between_filter, between_and_not_between_result)
-]
-
-
-@pytest.mark.parametrize("test_input,expected", between_and_not_between_cases)
-def test_between_and_not_between(test_input, expected):
-    assert build_filter_clause(test_input) == expected
-    validate_proper_filter(PATHOLOGY, test_input)
-
-
-is_null_or_is_not_null_filter = {
-    "condition": "OR",
-    "rules": [
-        {
-            "id": "gose_score",
-            "field": "gose_score",
-            "type": "text",
-            "input": "text",
-            "operator": "is_null",
-            "value": None,
-        },
-        {
-            "id": "gcs_total_score",
-            "field": "gcs_total_score",
-            "type": "int",
-            "input": "number",
-            "operator": "is_not_null",
-            "value": None,
-        },
-    ],
-    "valid": True,
-}
-
-is_null_or_is_not_null_result = "gose_score IS NULL OR gcs_total_score IS NOT NULL"
-is_null_or_is_not_null_cases = [
-    (is_null_or_is_not_null_filter, is_null_or_is_not_null_result)
-]
-
-
-@pytest.mark.parametrize("test_input,expected", is_null_or_is_not_null_cases)
-def test_is_null_or_is_not_null(test_input, expected):
-    assert build_filter_clause(test_input) == expected
-    validate_proper_filter(PATHOLOGY, test_input)
-
-
-all_filter = {
-    "condition": "OR",
-    "rules": [
+all_success_cases = [
+    (
         {
             "condition": "AND",
             "rules": [
                 {
-                    "id": "gender_type",
-                    "field": "gender_type",
-                    "type": "string",
-                    "input": "text",
+                    "id": "age_value",
+                    "field": "age_value",
+                    "type": "int",
+                    "input": "number",
                     "operator": "equal",
-                    "value": "F",
-                },
-                {
-                    "condition": "AND",
-                    "rules": [
-                        {
-                            "id": "age_value",
-                            "field": "age_value",
-                            "type": "int",
-                            "input": "number",
-                            "operator": "between",
-                            "value": [20, 30],
-                        },
-                        {
-                            "id": "gose_score",
-                            "field": "gose_score",
-                            "type": "text",
-                            "input": "text",
-                            "operator": "is_not_null",
-                            "value": None,
-                        },
-                    ],
-                },
+                    "value": 17,
+                }
             ],
+            "valid": True,
         },
+        "age_value = 17"
+    ),
+    (
         {
             "condition": "AND",
             "rules": [
                 {
-                    "id": "gender_type",
-                    "field": "gender_type",
+                    "id": "pupil_reactivity_right_eye_result",
+                    "field": "pupil_reactivity_right_eye_result",
                     "type": "string",
                     "input": "text",
                     "operator": "not_equal",
-                    "value": "F",
+                    "value": "Nonreactive",
+                }
+            ],
+            "valid": True,
+        }
+        , "pupil_reactivity_right_eye_result <> 'Nonreactive'"),
+    (
+        {
+            "condition": "OR",
+            "rules": [
+                {
+                    "id": "age_value",
+                    "field": "age_value",
+                    "type": "int",
+                    "input": "number",
+                    "operator": "equal",
+                    "value": 17,
+                },
+                {
+                    "id": "pupil_reactivity_right_eye_result",
+                    "field": "pupil_reactivity_right_eye_result",
+                    "type": "string",
+                    "input": "text",
+                    "operator": "not_equal",
+                    "value": "Nonreactive",
+                },
+            ],
+            "valid": True,
+        }, "age_value = 17 OR pupil_reactivity_right_eye_result <> 'Nonreactive'"
+    ),
+    (
+        {
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "age_value",
+                    "field": "age_value",
+                    "type": "int",
+                    "input": "number",
+                    "operator": "less",
+                    "value": 50,
+                },
+                {
+                    "id": "age_value",
+                    "field": "age_value",
+                    "type": "int",
+                    "input": "number",
+                    "operator": "greater",
+                    "value": 20,
+                },
+            ],
+            "valid": True,
+        }, "age_value < 50 AND age_value > 20"
+    ),
+    (
+        {
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "age_value",
+                    "field": "age_value",
+                    "type": "int",
+                    "input": "number",
+                    "operator": "not_between",
+                    "value": [60, 90],
+                },
+                {
+                    "id": "mortality_core",
+                    "field": "mortality_core",
+                    "type": "double",
+                    "input": "number",
+                    "operator": "between",
+                    "value": [0.3, 0.8],
+                },
+            ],
+            "valid": True,
+        }, "NOT age_value BETWEEN 60 AND 90 AND mortality_core BETWEEN 0.3 AND 0.8"
+    ),
+    (
+        {
+            "condition": "OR",
+            "rules": [
+                {
+                    "id": "gose_score",
+                    "field": "gose_score",
+                    "type": "text",
+                    "input": "text",
+                    "operator": "is_null",
+                    "value": None,
+                },
+                {
+                    "id": "gcs_total_score",
+                    "field": "gcs_total_score",
+                    "type": "int",
+                    "input": "number",
+                    "operator": "is_not_null",
+                    "value": None,
+                },
+            ],
+            "valid": True,
+        }, "gose_score IS NULL OR gcs_total_score IS NOT NULL"
+    ),
+    (
+        {
+            "condition": "OR",
+            "rules": [
+                {
+                    "condition": "AND",
+                    "rules": [
+                        {
+                            "id": "gender_type",
+                            "field": "gender_type",
+                            "type": "string",
+                            "input": "text",
+                            "operator": "equal",
+                            "value": "F",
+                        },
+                        {
+                            "condition": "AND",
+                            "rules": [
+                                {
+                                    "id": "age_value",
+                                    "field": "age_value",
+                                    "type": "int",
+                                    "input": "number",
+                                    "operator": "between",
+                                    "value": [20, 30],
+                                },
+                                {
+                                    "id": "gose_score",
+                                    "field": "gose_score",
+                                    "type": "text",
+                                    "input": "text",
+                                    "operator": "is_not_null",
+                                    "value": None,
+                                },
+                            ],
+                        },
+                    ],
                 },
                 {
                     "condition": "AND",
                     "rules": [
                         {
-                            "id": "mortality_core",
-                            "field": "mortality_core",
-                            "type": "double",
-                            "input": "number",
-                            "operator": "greater",
-                            "value": 0.5,
+                            "id": "gender_type",
+                            "field": "gender_type",
+                            "type": "string",
+                            "input": "text",
+                            "operator": "not_equal",
+                            "value": "F",
                         },
                         {
-                            "id": "mortality_core",
-                            "field": "mortality_core",
-                            "type": "double",
-                            "input": "number",
-                            "operator": "less_or_equal",
-                            "value": 0.8,
+                            "condition": "AND",
+                            "rules": [
+                                {
+                                    "id": "mortality_core",
+                                    "field": "mortality_core",
+                                    "type": "double",
+                                    "input": "number",
+                                    "operator": "greater",
+                                    "value": 0.5,
+                                },
+                                {
+                                    "id": "mortality_core",
+                                    "field": "mortality_core",
+                                    "type": "double",
+                                    "input": "number",
+                                    "operator": "less_or_equal",
+                                    "value": 0.8,
+                                },
+                            ],
                         },
                     ],
                 },
             ],
-        },
-    ],
-    "valid": True,
-}
-
-all_result = (
-    "gender_type = 'F' AND age_value BETWEEN 20 AND 30 AND gose_score IS NOT NULL OR gender_type <> 'F' AND "
-    "mortality_core > 0.5 AND mortality_core <= 0.8"
-)
-all_cases = [(all_filter, all_result)]
+            "valid": True,
+        }, (
+            "gender_type = 'F' AND age_value BETWEEN 20 AND 30 AND gose_score IS NOT NULL OR gender_type <> 'F' AND "
+            "mortality_core > 0.5 AND mortality_core <= 0.8"
+        )
+    ),
+]
 
 
-@pytest.mark.parametrize("test_input,expected", all_cases)
-def test_all(test_input, expected):
+@pytest.mark.parametrize("test_input,expected", all_success_cases)
+def test_build_filter_clause(test_input, expected):
     assert build_filter_clause(test_input) == expected
+
+
+@pytest.mark.parametrize("test_input,expected", all_success_cases)
+def test_validate_proper_filter(test_input, expected):
     validate_proper_filter(PATHOLOGY, test_input)
 
 
-invalid_condition_filter = {
-    "condition": "ANDOR",
-    "rules": [
+all_build_filter_clause_fail_cases = [
+    (
         {
-            "id": "age_value",
-            "field": "age_value",
-            "type": "int",
-            "input": "number",
-            "operator": "equal",
-            "value": 17,
-        }
-    ],
-    "valid": True,
-}
+            "condition": "ANDOR",
+            "rules": [
+                {
+                    "id": "age_value",
+                    "field": "age_value",
+                    "type": "int",
+                    "input": "number",
+                    "operator": "equal",
+                    "value": 17,
+                }
+            ],
+            "valid": True,
+        }, ValueError
+    ),
+    (
+        0, TypeError
+    ),
+    (
+        "not_a_filter", ValueError
+    ),
+    (
+        {"data": 0}, ValueError
+    ),
+    (
+        {0}, ValueError
+    ),
+]
 
-
-invalid_operator_filter = {
-    "condition": "AND",
-    "rules": [
+all_validate_proper_filter_fail_cases = [
+    (
         {
-            "id": "age_value",
-            "field": "age_value",
-            "type": "int",
-            "input": "number",
-            "operator": "invalid operator",
-            "value": 17,
+            "condition": "ANDOR",
+            "rules": [
+                {
+                    "id": "age_value",
+                    "field": "age_value",
+                    "type": "int",
+                    "input": "number",
+                    "operator": "equal",
+                    "value": 17,
+                }
+            ],
+            "valid": True,
+        }, ValueError
+    ),
+    (
+        0, TypeError
+    ),
+    (
+        "not_a_filter", TypeError
+    ),
+    (
+        {"data": 0}, ValueError
+    ),
+    (
+        {0}, TypeError
+    ),
+    (
+        {
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "age_value",
+                    "field": "age_value",
+                    "type": "int",
+                    "input": "number",
+                    "operator": "invalid operator",
+                    "value": 17,
+                }
+            ],
+            "valid": True,
+        }, ValueError
+    ),
+    (
+        {
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "invalid column",
+                    "field": "age_value",
+                    "type": "int",
+                    "input": "number",
+                    "operator": "equal",
+                    "value": 17,
+                }
+            ],
+            "valid": True,
         }
-    ],
-    "valid": True,
-}
+        , KeyError
+    ),
+    (
+        {
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "age_value",
+                    "field": "age_value",
+                    "type": "int",
+                    "input": "number",
+                    "operator": "equal",
+                    "value": "17",
+                }
+            ],
+            "valid": True,
+        }, TypeError
+    ),
+    (
+        {
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "age_value",
+                    "field": "age_value",
+                    "type": "int",
+                    "input": "number",
+                    "operator": "equal",
+                    "value": True,
+                }
+            ],
+            "valid": True,
+        }, TypeError
+    ),
+]
 
 
-@pytest.mark.parametrize("test_input", [invalid_condition_filter])
-def test_invalid_condition_build_filter_clause(test_input):
-    with pytest.raises(ValueError):
+@pytest.mark.parametrize("test_input,expected_error", all_validate_proper_filter_fail_cases)
+def test_validate_proper_filter_fail_cases(test_input, expected_error):
+    with pytest.raises(expected_error):
+        validate_proper_filter(PATHOLOGY, test_input)
+
+
+@pytest.mark.parametrize("test_input,expected_error", all_build_filter_clause_fail_cases)
+def test_build_filter_clause_fail_cases(test_input, expected_error):
+    with pytest.raises(expected_error):
         build_filter_clause(test_input)
 
 
-@pytest.mark.parametrize(
-    "test_input", [invalid_condition_filter, invalid_operator_filter]
-)
-def test_invalid_condition_validate_proper_filter(test_input):
-    with pytest.raises(ValueError):
-        validate_proper_filter(PATHOLOGY, test_input)
+invalid_pathology_case = ["non_existing_pathology", 0, True]
 
 
-invalid_column_filter = {
-    "condition": "AND",
-    "rules": [
-        {
-            "id": "invalid column",
-            "field": "age_value",
-            "type": "int",
-            "input": "number",
-            "operator": "equal",
-            "value": 17,
-        }
-    ],
-    "valid": True,
-}
-
-
-@pytest.mark.parametrize("test_input", [invalid_column_filter])
-def test_invalid_condition_validate_proper_filter(test_input):
+@pytest.mark.parametrize("pathology", invalid_pathology_case)
+def test_validate_proper_filter_fail_cases(pathology):
     with pytest.raises(KeyError):
-        validate_proper_filter(PATHOLOGY, test_input)
-
-
-invalid_value_type_filter = {
-    "condition": "AND",
-    "rules": [
-        {
-            "id": "age_value",
-            "field": "age_value",
-            "type": "int",
-            "input": "number",
-            "operator": "equal",
-            "value": "17",
-        }
-    ],
-    "valid": True,
-}
-
-
-@pytest.mark.parametrize("test_input", [invalid_value_type_filter])
-def test_invalid_condition_validate_proper_filter(test_input):
-    with pytest.raises(TypeError):
-        validate_proper_filter(PATHOLOGY, test_input)
+        validate_proper_filter(pathology, {
+                              "condition": "AND",
+                              "rules": [
+                                  {
+                                      "id": "age_value",
+                                      "field": "age_value",
+                                      "type": "int",
+                                      "input": "number",
+                                      "operator": "equal",
+                                      "value": 17,
+                                  }
+                              ],
+                              "valid": True,
+                          })

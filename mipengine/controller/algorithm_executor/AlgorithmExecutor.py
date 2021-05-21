@@ -278,7 +278,7 @@ class AlgorithmExecutor:
                 pathology=pathology,
                 datasets=datasets,
                 columns=columns,
-                filters_json=filters,
+                filters=filters,
             ).get()
 
             return TableName(result)
