@@ -1,4 +1,4 @@
-# MIP-Engine
+# MIP-Engine [![codecov](https://codecov.io/gh/madgik/MIP-Engine/branch/master/graph/badge.svg?token=SZQ9S269RP)](https://codecov.io/gh/madgik/MIP-Engine)
 
 ### Prerequisites
 
