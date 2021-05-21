@@ -16,7 +16,7 @@ Schema2 = TypeVar("Schema2")
 DT1 = TypeVar("DT1")
 ND1 = TypeVar("ND1")
 DT2 = TypeVar("DT2")
-ND2 = TypeVar("ND2")  
+ND2 = TypeVar("ND2")
 
 UDFNAME = "udfname"
 TABLENAME = "tablename"

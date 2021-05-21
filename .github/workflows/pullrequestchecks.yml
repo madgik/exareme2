@@ -3,10 +3,9 @@ name: Pull-Request-Checks
 on: pull_request
 
 jobs:
-  test:
+  unit_tests:
     runs-on: ubuntu-latest
     steps:
-
       - name: Check out repository
         uses: actions/checkout@v2
       - name: Set up python 
@@ -35,4 +34,10 @@ jobs:
       - name: Run unit tests
         run: |
           source .venv/bin/activate
-          PYTHONPATH=src/ poetry run python -m pytest tests/unit_tests
+          PYTHONPATH=src/ poetry run pytest --cov=. --cov-report=xml tests/unit_tests
+
+    - name: Upload coverage
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: true
