@@ -22,7 +22,7 @@ from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 
 
-def validate_algorithm(algorithm_name: str, request_body: str):
+def validate_algorithm_request(algorithm_name: str, request_body: str):
     """
     Validates the proper usage of the algorithm:
     1) algorithm exists,
@@ -30,11 +30,9 @@ def validate_algorithm(algorithm_name: str, request_body: str):
     3) algorithm input matches the algorithm specifications.
     """
 
-    # Check that algorithm exists
     if algorithm_name not in algorithms_specifications.enabled_algorithms.keys():
         raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
 
-    # Validate algorithm body has proper format
     try:
         algorithm_request = AlgorithmRequestDTO.from_json(request_body)
     except Exception:
@@ -44,7 +42,6 @@ def validate_algorithm(algorithm_name: str, request_body: str):
         )
         raise BadRequest(f"The algorithm request body does not have the proper format.")
 
-    # Get algorithm specification and validate the algorithm input
     algorithm_specs = algorithms_specifications.enabled_algorithms[algorithm_name]
     _validate_algorithm_parameters(algorithm_specs, algorithm_request)
 
@@ -52,15 +49,12 @@ def validate_algorithm(algorithm_name: str, request_body: str):
 def _validate_algorithm_parameters(
     algorithm_specs: AlgorithmSpecifications, algorithm_request: AlgorithmRequestDTO
 ):
-    # Validate inputdata
     _validate_inputdata(algorithm_specs.inputdata, algorithm_request.inputdata)
 
-    # Validate generic parameters
     _validate_generic_parameters(
         algorithm_specs.parameters, algorithm_request.parameters
     )
 
-    # Validate crossvalidation parameters
     _validate_crossvalidation_parameters(
         algorithm_specs, algorithm_request.crossvalidation
     )
@@ -139,13 +133,11 @@ def _validate_inputdata_cde(
     in the algorithm specification.
     """
 
-    # Validate that the cde parameters were provided, if required.
     if cde_parameter_specs.notblank and not cde_parameter_value:
         raise BadUserInput(
             f"Inputdata '{cde_parameter_specs.label}' should be provided."
         )
 
-    # Continue if the cde parameter was not provided
     if not cde_parameter_value:
         return
 
@@ -200,7 +192,6 @@ def _validate_inputdata_cde_types(
     cde_metadata: CommonDataElement,
     cde_parameter_specs: InputDataSpecification,
 ):
-    # Validate that the cde belongs in the allowed types
     if cde_metadata.sql_type not in cde_parameter_specs.types:
         # If "real" is allowed, "int" is allowed as well
         if cde_metadata.sql_type != "int" or "real" not in cde_parameter_specs.types:
@@ -258,7 +249,6 @@ def _validate_generic_parameters(
     if parameters_specs is None:
         return
 
-    # Validating that the parameters match with the notblank spec.
     for parameter_name, parameter_spec in parameters_specs.items():
         if parameter_spec.notblank:
             if not parameters:
@@ -298,7 +288,6 @@ def _validate_generic_parameter_values(
     if multiple_allowed and type(parameter_value) is not list:
         raise BadUserInput(f"Parameter '{parameter_name}' should be a list.")
 
-    # If the parameter value is a list, check each elements
     if not multiple_allowed:
         parameter_value = [parameter_value]
 

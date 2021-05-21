@@ -20,7 +20,7 @@ import asyncio
 import concurrent.futures
 
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.api.validate_algorithm import validate_algorithm
+from mipengine.controller.api.validator import validate_algorithm_request
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 
@@ -40,7 +40,7 @@ async def post_algorithm(algorithm_name: str) -> str:
     request_body = await request.data
 
     try:
-        validate_algorithm(algorithm_name, request_body)
+        validate_algorithm_request(algorithm_name, request_body)
     except (BadRequest, BadUserInput) as exc:
         raise exc
     except:

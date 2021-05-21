@@ -6,7 +6,7 @@ import pytest
 
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.api.validate_algorithm import validate_algorithm
+from mipengine.controller.api.validator import validate_algorithm_request
 from tests.unit_tests.common_data_elements import (
     common_data_elements as mocked_common_data_elements,
 )
@@ -18,7 +18,7 @@ from tests.unit_tests.algorithms_specifications import (
 @pytest.fixture(scope="module", autouse=True)
 def mock_cdes():
     with patch(
-        "mipengine.controller.api.validate_algorithm.common_data_elements",
+        "mipengine.controller.api.validator.common_data_elements",
         mocked_common_data_elements,
     ):
         yield
@@ -59,7 +59,7 @@ def mock_node_catalog():
 @pytest.fixture(scope="module", autouse=True)
 def mock_algorithms_specs():
     with patch(
-        "mipengine.controller.api.validate_algorithm.algorithms_specifications",
+        "mipengine.controller.api.validator.algorithms_specifications",
         mocked_algorithms_specifications,
     ):
         yield
@@ -101,7 +101,7 @@ def test_validate_algorithm_success(
     algorithm_name,
     request_body_dict,
 ):
-    validate_algorithm(algorithm_name, json.dumps(request_body_dict))
+    validate_algorithm_request(algorithm_name, json.dumps(request_body_dict))
 
 
 test_cases_validate_algorithm_exceptions = [
@@ -342,4 +342,4 @@ test_cases_validate_algorithm_exceptions = [
 def test_validate_algorithm_exceptions(algorithm_name, request_body_dict, exception):
     exception_type, exception_message = exception
     with pytest.raises(exception_type, match=exception_message):
-        validate_algorithm(algorithm_name, json.dumps(request_body_dict))
+        validate_algorithm_request(algorithm_name, json.dumps(request_body_dict))
