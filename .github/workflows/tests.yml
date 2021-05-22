@@ -43,11 +43,19 @@ jobs:
           source .venv/bin/activate
           PYTHONPATH=src/ poetry run pytest --cov=. --cov-report=xml tests/unit_tests
 
-      - name: Upload coverage
+      - name: Publish coverage on codecov
         uses: codecov/codecov-action@v1
         with:
           file: ./coverage.xml
           fail_ci_if_error: true
+      
+      - name: Publish coverage on codeclimate
+        uses: paambaati/codeclimate-action@v2.7.5
+        env:
+          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+        with:
+          coverageLocations: |
+            ./coverage.xml:coverage.py
 
   integration_tests:
     runs-on: ubuntu-latest
