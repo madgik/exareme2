@@ -1,4 +1,4 @@
-# MIP-Engine [![codecov](https://codecov.io/gh/madgik/MIP-Engine/branch/master/graph/badge.svg?token=SZQ9S269RP)](https://codecov.io/gh/madgik/MIP-Engine)
+# MIP-Engine [![Maintainability](https://api.codeclimate.com/v1/badges/3e022eaf87579b79cf0f/maintainability)](https://codeclimate.com/github/madgik/MIP-Engine/maintainability) <a href="https://codeclimate.com/github/madgik/MIP-Engine/test_coverage"><img src="https://api.codeclimate.com/v1/badges/3e022eaf87579b79cf0f/test_coverage" /></a>
 
 ### Prerequisites
 
