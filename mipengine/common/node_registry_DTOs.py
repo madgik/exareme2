@@ -1,13 +1,13 @@
 from pydantic import BaseModel
 from ipaddress import IPv4Address
 from typing import Optional, List
-from enum import Enum, unique
+from enum import Enum, unique, auto
 
 
 @unique
 class NodeRole(Enum):
-    GLOBALNODE = 0
-    LOCALNODE = 1
+    GLOBALNODE = auto()
+    LOCALNODE = auto()
 
 
 class Pathology(BaseModel):
