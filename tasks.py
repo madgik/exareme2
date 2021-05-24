@@ -399,7 +399,6 @@ def start_flower(c, node=None, all_=False, flower=True):
     """ Remove existing flower container, start monitoring tools """
 
     kill_all_flowers(c)
-    message("Flower has withered away", Level.HEADER)
 
     node_ids = get_node_ids(all_, node)
 
@@ -433,6 +432,7 @@ def kill_all_flowers(c):
         message("Killing Flower instances and removing containers...", Level.HEADER)
         cmd = f"docker container kill flower & docker rm -vf $(docker ps -qa --filter name=flower)"
         run(c, cmd)
+        message("Flower has withered away", Level.HEADER)
     else:
         message(f"No flower container to remove", level=Level.HEADER)
 
