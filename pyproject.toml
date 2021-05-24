@@ -21,7 +21,6 @@ python-consul2 = "^0.1.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"
-pytest-asyncio = "^0.15.1"
 pytest-xdist = "^2.2.1"
 requests = "^2.25.1"
 ipython = "^7.22.0"
