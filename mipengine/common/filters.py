@@ -1,16 +1,18 @@
 from mipengine.common.common_data_elements import common_data_elements
 
 FILTER_OPERATORS = {
-    "equal": lambda a, b: f"{a} = {b}",
-    "not_equal": lambda a, b: f"{a} <> {b}",
-    "less": lambda a, b: f"{a} < {b}",
-    "greater": lambda a, b: f"{a} > {b}",
-    "less_or_equal": lambda a, b: f"{a} <= {b}",
-    "greater_or_equal": lambda a, b: f"{a} >= {b}",
-    "between": lambda a, b: f"{a} BETWEEN {b[0]} AND {b[1]}",
-    "not_between": lambda a, b: f"NOT {a} BETWEEN {b[0]} AND {b[1]}",
-    "is_null": lambda a, b: f"{a} IS NULL",
-    "is_not_null": lambda a, b: f"{a} IS NOT NULL",
+    "equal": lambda column, value: f"{column} = {value}",
+    "not_equal": lambda column, value: f"{column} <> {value}",
+    "less": lambda column, value: f"{column} < {value}",
+    "greater": lambda column, value: f"{column} > {value}",
+    "less_or_equal": lambda column, value: f"{column} <= {value}",
+    "greater_or_equal": lambda column, value: f"{column} >= {value}",
+    "between": lambda column, values: f"{column} BETWEEN {values[0]} AND {values[1]}",
+    "not_between": lambda column, value: f"NOT {column} BETWEEN {value[0]} AND {value[1]}",
+    "is_null": lambda column, value: f"{column} IS NULL",
+    "is_not_null": lambda column, value: f"{column} IS NOT NULL",
+    "in": lambda column, values: f"{column} IN ({','.join(str(value) for value in values)})",
+    "not_in": lambda column, values: f"{column} NOT IN ({','.join(str(value) for value in values)})",
 }
 
 
@@ -32,8 +34,8 @@ def build_filter_clause(rules):
         column_name = rules["id"]
         op = FILTER_OPERATORS[rules["operator"]]
         val = rules["value"]
-        if rules["input"] == "text":
-            val = f"'{val}'"
+        if rules["type"] == "string":
+            val = [f"'{item}'" for item in val] if isinstance(val, list) else f"'{val}'"
         return op(column_name, val)
 
     raise ValueError(f"Invalid filters format. Filters did not contain the keys: 'condition' or 'id'.")

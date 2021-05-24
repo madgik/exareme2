@@ -37,6 +37,7 @@ from mipengine.algorithms import LoopbackTensorT
 from mipengine.algorithms import LiteralParameterT
 from mipengine.algorithms import ScalarT
 import mipengine.algorithms
+from mipengine.node import DATA_TABLE_PRIMARY_KEY
 from mipengine.node.udfgen.reduce import SQL_REDUCE_QUERIES
 from mipengine.node.udfgen.sql_linalg import SQL_LINALG_QUERIES
 
@@ -153,9 +154,9 @@ class RelationV(TableV):
 
     @classmethod
     def from_table_info(cls, name, table_info):
-        if "row_id" not in (col.name for col in table_info.schema):
+        if DATA_TABLE_PRIMARY_KEY not in (col.name for col in table_info.schema):
             raise ValueError(f"{TableInfo} doesn't have a row_id column")
-        schema = [col for col in table_info.schema if col.name != "row_id"]
+        schema = [col for col in table_info.schema if col.name != DATA_TABLE_PRIMARY_KEY]
         return cls(name=name, schema=schema)
 
 
@@ -185,7 +186,7 @@ class TensorV(TableV):
                 continue
             if re.fullmatch(dim_pattern, col.name):
                 continue
-            if col.name == "row_id":
+            if col.name == DATA_TABLE_PRIMARY_KEY:
                 continue
             if col.name == "node_id":
                 continue
@@ -649,7 +650,7 @@ def generate_udf_select_stmt(
         f"{table}.{column}"
         for table, columns in zip(table_names, table_schemas)
         for column in columns
-        if column not in ("row_id", "node_id")
+        if column not in (DATA_TABLE_PRIMARY_KEY, "node_id")
     ]
     udf_call_args = prettify(SEP.join(udf_arguments))
 

@@ -18,6 +18,7 @@ from sqlalchemy.exc import OperationalError
 
 from mipengine.common.common_data_elements import CommonDataElement
 from mipengine.common.common_data_elements import common_data_elements
+from mipengine.node import DATA_TABLE_PRIMARY_KEY
 
 AMOUNT_OF_ROWS_TO_INSERT_INTO_SQL_PER_CALL = 100
 
@@ -90,7 +91,7 @@ def create_pathology_data_table(pathology: str,
                for column_name, column_type in zip(column_names, column_types)]
 
     # The row_id column, the primary key of the table, it's not part of the metadata
-    row_id_column = Column('row_id',
+    row_id_column = Column(DATA_TABLE_PRIMARY_KEY,
                            convert_sql_type_to_monetdb_type("int"),
                            primary_key=True,
                            autoincrement=True)

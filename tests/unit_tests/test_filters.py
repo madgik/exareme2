@@ -136,6 +136,38 @@ all_success_cases = [
     ),
     (
         {
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "age_value",
+                    "field": "age_value",
+                    "type": "integer",
+                    "input": "number",
+                    "operator": "in",
+                    "value": [17, 19],
+                }
+            ],
+            "valid": True,
+        }, "age_value IN (17,19)"
+    ),
+    (
+        {
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "gender_type",
+                    "field": "gender_type",
+                    "type": "string",
+                    "input": "text",
+                    "operator": "in",
+                    "value": ["F", "M"],
+                }
+            ],
+            "valid": True,
+        }, "gender_type IN ('F','M')"
+    ),
+    (
+        {
             "condition": "OR",
             "rules": [
                 {
