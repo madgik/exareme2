@@ -43,18 +43,11 @@ def validate_name(name):
         return name.lower()
     return name
 
-
-def validate_dtype(dtype):
-    if not type(dtype) == DBDataType:
-        print(f"mn: {DBDataType._member_names_}")
-        print(f"dtype instance: {type(dtype)}")
-        raise ValueError(f"Expected DBDataType.INT, DBDataType.FLOAT or DBDataType.TEXT, got {dtype}")
-    return dtype
 # ~~~~~~~~~~~~~~~~~~~ DTOs ~~~~~~~~~~~~~~~~~~~~~~ #
 
 
 class ColumnInfo(BaseModel):
-    name: StrictStr
+    name: str
     dtype: DBDataType
 
     _validate_name = validator("name", allow_reuse=True)(validate_name)
@@ -65,15 +58,15 @@ class TableSchema(BaseModel):
 
 
 class TableInfo(BaseModel):
-    name: StrictStr
+    name: str
     schema_: TableSchema
 
     _validate_name = validator("name", allow_reuse=True)(validate_name)
 
 
 class TableView(BaseModel):
-    datasets: List[StrictStr]
-    columns: List[StrictStr]
+    datasets: List[str]
+    columns: List[str]
     filter: Optional[dict]
 
     _validate_names = validator(
@@ -111,19 +104,18 @@ class DataFieldMetadata(BaseModel):
     max_: Optional[float]
 
     _validate_name = validator("name", allow_reuse=True)(validate_name)
-    # _validate_dtype = validator("dtype", allow_reuse=True)(validate_dtype)
 
 
 class AlgorithmInputData(BaseModel):
-    pathology: str
-    datasets: List[str]
+    pathology: StrictStr
+    datasets: List[StrictStr]
     filter: Optional[dict]
-    var_groups: Dict[str, List[str]]
+    var_groups: Dict[StrictStr, List[StrictStr]]
 
 
 class AlgorithmRequest(BaseModel):
     inputdata: AlgorithmInputData
-    parameters: Optional[Dict[str, Any]]
+    parameters: Optional[Dict[StrictStr, Any]]
 
 
 class MetadataEnumeration(BaseModel):
@@ -139,9 +131,6 @@ class MetadataVariable(BaseModel):
     enumerations: Optional[List[MetadataEnumeration]] = None
     min: Optional[float] = None
     max: Optional[float] = None
-
-    _validate_dtype = validator("dtype", allow_reuse=True)(validate_dtype)
-
 
 
 class MetadataGroup(BaseModel):
@@ -161,12 +150,9 @@ class CommonDataElement(BaseModel):
     min: Optional[float] = None
     max: Optional[float] = None
 
-    _validate_dtype = validator("dtype", allow_reuse=True)(validate_dtype)
-
-
 
 class CommonDataElements(BaseModel):
-    pathologies: Dict[str, Dict[str, CommonDataElement]]
+    pathologies: Dict[StrictStr, Dict[StrictStr, CommonDataElement]]
 
 
 # ~~~~~~~~~~~~~~~~~~~ Tests ~~~~~~~~~~~~~~~~~~~~~~ #
@@ -282,13 +268,11 @@ def test_categorical_field_enum():
 def test_data_field_metadata():
     # Should warn for indentifier
     with pytest.raises(ValidationError) as e:
-        DataFieldMetadata(name='me',
-                          label='you',
-                          dtype='hkdfsh',
-                          is_categorical=False,
-                          enumerations=[],
-                          min_= 1,
-                          max_= 10)
+        DataFieldMetadata(name=34,
+                          label=34,
+                          dtype=1,
+                          is_categorical=False)
+    print(e.value.json())
 
 def test_algorithm_input_data():
     with pytest.raises(ValidationError) as e:
