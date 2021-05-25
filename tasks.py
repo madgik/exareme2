@@ -395,7 +395,7 @@ def cleanup(c):
         message("Ok", level=Level.SUCCESS)
 
 @task
-def start_flower(c, node=None, all_=False, flower=True):
+def start_flower(c, node=None, all_=False):
     """ Remove existing flower container, start monitoring tools """
 
     kill_all_flowers(c)
