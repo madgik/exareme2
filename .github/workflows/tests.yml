@@ -41,14 +41,14 @@ jobs:
       - name: Run unit tests
         run: |
           source .venv/bin/activate
-          PYTHONPATH=src/ poetry run pytest --cov=. --cov-report=xml tests/unit_tests
+          poetry run pytest --cov=. --cov-report=xml tests/unit_tests
 
       - name: Publish coverage on codecov
         uses: codecov/codecov-action@v1
         with:
           file: ./coverage.xml
           fail_ci_if_error: true
-      
+
       - name: Publish coverage on codeclimate
         uses: paambaati/codeclimate-action@v2.7.5
         env:
