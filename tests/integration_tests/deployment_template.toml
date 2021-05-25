@@ -5,7 +5,7 @@ monetdb_image = "madgik/mipenginedb_with_data:dev1.2"
 
 [[nodes]]
 id = "globalnode"
-role="globalnode"
+role="GLOBALNODE"
 monetdb_port=50000
 rabbitmq_port=5670
 
