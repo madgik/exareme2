@@ -1,6 +1,5 @@
 from celery import Celery
 
-# from mipengine.common.node_catalog import node_catalog
 from mipengine.node import config as node_config
 
 from mipengine.node_registry.node_registry import NodeRegistryClient
@@ -43,10 +42,16 @@ if node_role == NodeRole.LOCALNODE:
     ]
 
 # TODO pass consul ip, port from config??
-nrcclient = NodeRegistryClient(
-    consul_server_ip=IPv4Address("127.0.0.1"), consul_server_port=8500
+nrclient_ip = node_config.node_registry.ip
+nrclient_port = node_config.node_registry.port
+nrclient = NodeRegistryClient(
+    consul_server_ip=IPv4Address(nrclient_ip), consul_server_port=nrclient_port
 )
-nrcclient.register_node(node_record)
+
+# nrclient = NodeRegistryClient(
+#     consul_server_ip=IPv4Address("127.0.0.1"), consul_server_port=8500
+# )
+nrclient.register_node(node_record)
 # ----------- END of NodeRegistryClient stuff
 
 rabbitmq_credentials = node_config.rabbitmq.user + ":" + node_config.rabbitmq.password

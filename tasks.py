@@ -19,6 +19,7 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
+CONSUL_AGENT_CONTAINER_NAME = "consul-agent"
 
 # TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
 # Right now if we call a task from another task, the "pre"-task is not executed
@@ -41,11 +42,17 @@ def create_node_configs(c):
 
     for node in deployment_config["nodes"]:
         node_config = template_node_config.copy()
+
+        node_config["node_registry"]["ip"] = deployment_config["ip"]
+        node_config["node_registry"]["port"] = deployment_config["node_registry_port"]
+
         node_config["identifier"] = node["id"]
-        node_config["role"]=node["role"]
+        node_config["role"] = node["role"]
         node_config["log_level"] = deployment_config["log_level"]
+
         node_config["monetdb"]["ip"] = deployment_config["ip"]
         node_config["monetdb"]["port"] = node["monetdb_port"]
+
         node_config["rabbitmq"]["ip"] = deployment_config["ip"]
         node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
 
@@ -83,11 +90,47 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
     for name in names:
         container_ids = run(c, f"docker ps -qa --filter name={name}", show_ok=False)
         if container_ids.stdout:
-            message(f"Removing {name} containers...", Level.HEADER)
+            message(f"Removing {name} container...", Level.HEADER)
             cmd = f"docker rm -vf $(docker ps -qa --filter name={name})"
             run(c, cmd)
         else:
             message(f"No {name} container to remove", level=Level.HEADER)
+
+
+@task
+def start_node_registry(context, container_name=None, port=None):
+    if not container_name:
+        container_name = CONSUL_AGENT_CONTAINER_NAME
+    if not port:
+        port = get_deployment_config("node_registry_port")
+
+    # TODO killing the existing container is not obvious from the task name
+    kill_node_registry(context)
+
+    message(
+        f"Starting container {container_name} on port {port}...",
+        Level.HEADER,
+    )
+    # start the consul container
+    cmd = f"docker run -d --name={container_name}  -p {port}:8500 consul"
+    try:
+        run(context, cmd, raise_error=True)
+    # TODO this does not catch all exceptions, I think due to the async in the run function
+    except (UnexpectedExit, AttributeError) as exc:
+        print(
+            "\n\nSOME ERROR.. you probably need to first $inv kill_node_registry and try again.. \n\n"
+        )
+
+        # print(f"{exc=}")
+
+
+@task
+def kill_node_registry(context, container_name=None):
+    if not container_name:
+        container_name = CONSUL_AGENT_CONTAINER_NAME
+
+    # remove the consul container
+    rm_containers(context, container_name=container_name)
 
 
 @task(iterable=["node"])
@@ -376,6 +419,7 @@ def deploy(
             node_config = toml.load(fp)
         node_ids.append(node_config["identifier"])
 
+    start_node_registry(c)
     start_monetdb(c, node=node_ids, monetdb_image=monetdb_image)
     start_rabbitmq(c, node=node_ids)
     config_rabbitmq(c, node=node_ids)
@@ -405,6 +449,7 @@ def cleanup(c):
     kill_controller(c)
     kill_node(c, all_=True)
     rm_containers(c, monetdb=True, rabbitmq=True)
+    kill_node_registry(c)
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
         for outpath in OUTDIR.glob("*.out"):

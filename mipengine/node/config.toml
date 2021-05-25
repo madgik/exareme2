@@ -1,6 +1,10 @@
 identifier = "localnode1"
 log_level = "INFO"
 
+[node_registry]
+ip="127.0.0.1"
+port=8500
+
 [celery]
 worker_concurrency = 1
 task_soft_time_limit = 30
