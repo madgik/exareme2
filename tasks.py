@@ -117,11 +117,7 @@ def start_node_registry(context, container_name=None, port=None):
         run(context, cmd, raise_error=True)
     # TODO this does not catch all exceptions, I think due to the async in the run function
     except (UnexpectedExit, AttributeError) as exc:
-        print(
-            "\n\nSOME ERROR.. you probably need to first $inv kill_node_registry and try again.. \n\n"
-        )
-
-        # print(f"{exc=}")
+        print(f"{exc=}")
 
 
 @task
@@ -402,9 +398,10 @@ def deploy(
     if install_dep:
         install_dependencies(c)
 
-    if start_controller_ or start_all:
-        start_controller(c, detached=True)
+    #start NODE SERVICE service
+    start_node_registry(c)
 
+    #start NODE services
     config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
     if not config_files:
         message(
@@ -419,7 +416,6 @@ def deploy(
             node_config = toml.load(fp)
         node_ids.append(node_config["identifier"])
 
-    start_node_registry(c)
     start_monetdb(c, node=node_ids, monetdb_image=monetdb_image)
     start_rabbitmq(c, node=node_ids)
     config_rabbitmq(c, node=node_ids)
@@ -427,6 +423,9 @@ def deploy(
     if start_nodes or start_all:
         start_node(c, all_=True, celery_log_level=celery_log_level, detached=True)
 
+    #start CONTROLLER service
+    if start_controller_ or start_all:
+        start_controller(c, detached=True)
 
 @task
 def attach(c, node=None, controller=False, db=None):
@@ -464,15 +463,22 @@ def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok
         return
 
     if not wait:
+        # TODO disown=True will make c.run(..) return immediatelly
         c.run(cmd, disown=True)
+        # TODO wait is False to get in here
+        # nevertheless, it will wait (sleep) for 4 seconds here, why??
         spin_wheel(time=4)
         if show_ok:
             message("Ok", Level.SUCCESS)
         return
 
+    # TODO this is supposed to run when wait=True, yet asynchronous=True
     promise = c.run(cmd, asynchronous=True, warn=warn)
+    # TODO and then it blocks here, what is the point of asynchronous=True?
     spin_wheel(promise=promise)
-    if stderr := promise.runner.stderr and raise_error:
+    # TODO this is also obscure. := makes it obscure
+    stderr = promise.runner.stderr
+    if stderr and raise_error:
         raise UnexpectedExit(stderr)
     result = promise.join()
     if show_ok:
