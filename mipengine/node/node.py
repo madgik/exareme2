@@ -41,7 +41,6 @@ if node_role == NodeRole.LOCALNODE:
         pathology_tbi,
     ]
 
-# TODO pass consul ip, port from config??
 nrclient_ip = node_config.node_registry.ip
 nrclient_port = node_config.node_registry.port
 nrclient = NodeRegistryClient(
