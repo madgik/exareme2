@@ -37,12 +37,7 @@
    ```
 
 #### Local Deployment
-1. Start consul agent in a container
-   (TODO: integrate this to invoke)
 
-   ```
-   docker run -d --name=dev-consul  -p 8500:8500 consul
-   ```
 1. Find your machine's local ip address, _e.g._ with
 
    ```
@@ -52,28 +47,26 @@
 1. Create a deployment configuration file `.deployment.toml` using the following template
 
    ```
-   ip = "192.168.63.129"
+   ip = "172.17.0.1"
    log_level = "INFO"
    celery_log_level ="INFO"
    monetdb_image = "madgik/mipenginedb:dev1.2"
 
    [[nodes]]
    id = "globalnode"
-   role = "GLOBALNODE"
    monetdb_port=50000
    rabbitmq_port=5670
 
    [[nodes]]
    id = "localnode1"
-   role = "LOCALNODE"
    monetdb_port=50001
    rabbitmq_port=5671
 
    [[nodes]]
    id = "localnode2"
-   role = "LOCALNODE"
    monetdb_port=50002
    rabbitmq_port=5672
+
    ```
 
    and then run the following command to create the node config files
