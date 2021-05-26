@@ -115,6 +115,11 @@ def create_view(
 
 
 def update_filters_with_datasets(filters, datasets):
+    """
+    In the case of pathology views datasets will be provided.
+    This function will handle and update the given filter to include the datasets(in the filters) in a proper jQuery format.
+    The datasets will be handled here to avoid mip specific implementations in the monetdb_interface.
+    """
     rules = [
         {
             "id": "dataset",

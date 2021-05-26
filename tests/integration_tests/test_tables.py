@@ -18,9 +18,6 @@ local_node_get_table_schema = get_celery_task_signature(local_node, "get_table_s
 local_node_get_table_data = get_celery_task_signature(local_node, "get_table_data")
 local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
-context_id_1 = "regrEssion"
-context_id_2 = "HISTOGRAMS"
-
 
 @pytest.fixture(autouse=True)
 def context_id():

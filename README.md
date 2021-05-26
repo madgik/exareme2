@@ -1,4 +1,4 @@
-# MIP-Engine
+# MIP-Engine [![Maintainability](https://api.codeclimate.com/v1/badges/3e022eaf87579b79cf0f/maintainability)](https://codeclimate.com/github/madgik/MIP-Engine/maintainability) <a href="https://codeclimate.com/github/madgik/MIP-Engine/test_coverage"><img src="https://api.codeclimate.com/v1/badges/3e022eaf87579b79cf0f/test_coverage" /></a>
 
 ### Prerequisites
 
@@ -38,16 +38,10 @@
 
 #### Local Deployment
 
-1. Find your machine's local ip address, _e.g._ with
-
-   ```
-   ifconfig | grep "inet "
-   ```
-
 1. Create a deployment configuration file `.deployment.toml` using the following template
 
    ```
-   ip = "192.168.63.129"
+   ip = "172.17.0.1"
    log_level = "INFO"
    celery_log_level ="INFO"
    monetdb_image = "madgik/mipenginedb:dev1.2"
