@@ -33,12 +33,16 @@ def build_filter_clause(rules):
     if "id" in rules:
         column_name = rules["id"]
         op = FILTER_OPERATORS[rules["operator"]]
-        val = rules["value"]
-        if rules["type"] == "string":
-            val = [f"'{item}'" for item in val] if isinstance(val, list) else f"'{val}'"
-        return op(column_name, val)
+        value = format_value_if_string(rules["type"], rules["value"])
+        return op(column_name, value)
 
-    raise ValueError(f"Invalid filters format. Filters did not contain the keys: 'condition' or 'id'.")
+    raise ValueError(f"Filters did not contain the keys: 'condition' or 'id'.")
+
+
+def format_value_if_string(column_type, val):
+    if column_type == "string":
+        return [f"'{item}'" for item in val] if isinstance(val, list) else f"'{val}'"
+    return val
 
 
 def validate_proper_filter(pathology_name: str, rules):
@@ -117,18 +121,21 @@ def _convert_mip_type_to_class_type(mip_type: str):
 def check_value_type(pathology_name: str, column: str, value):
     if value is None:
         return
-    elif isinstance(value, list):
-        for item in value:
-            check_value_type(pathology_name, column, item)
-    elif isinstance(value, (int, str, float)):
-        pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
-        column_sql_type = pathology_common_data_elements[column].sql_type
 
-        if type(value) is not _convert_mip_type_to_class_type(column_sql_type):
-            raise TypeError(
-                f"{column}'s type: {column_sql_type} was different from the type of the given value:{type(value)}"
-            )
+    if isinstance(value, list):
+        [check_value_type(pathology_name, column, item) for item in value]
+    elif isinstance(value, (int, str, float)):
+        check_value_column_same_type(pathology_name, column, value)
     else:
         raise TypeError(
             f"Value {value} should be of type int, str, float but was {type(value)}"
+        )
+
+
+def check_value_column_same_type(pathology_name, column, value):
+    pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
+    column_sql_type = pathology_common_data_elements[column].sql_type
+    if type(value) is not _convert_mip_type_to_class_type(column_sql_type):
+        raise TypeError(
+            f"{column}'s type: {column_sql_type} was different from the type of the given value:{type(value)}"
         )
