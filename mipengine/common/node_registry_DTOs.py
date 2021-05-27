@@ -5,9 +5,9 @@ from enum import Enum, unique, auto
 
 
 @unique
-class NodeRole(Enum):
-    GLOBALNODE = auto()
-    LOCALNODE = auto()
+class NodeRole(str, Enum):
+    GLOBALNODE = "GLOBALNODE"
+    LOCALNODE = "LOCALNODE"
 
 
 class Pathology(BaseModel):

@@ -11,7 +11,7 @@ DB_SERVICE_ID_SUFFIX = "_db"
 
 node_role = (
     NodeRole.LOCALNODE
-    if node_config.role == NodeRole.LOCALNODE.name
+    if node_config.role == NodeRole.LOCALNODE
     else NodeRole.GLOBALNODE
 )
 
@@ -46,10 +46,6 @@ nrclient_port = node_config.node_registry.port
 nrclient = NodeRegistryClient(
     consul_server_ip=IPv4Address(nrclient_ip), consul_server_port=nrclient_port
 )
-
-# nrclient = NodeRegistryClient(
-#     consul_server_ip=IPv4Address("127.0.0.1"), consul_server_port=8500
-# )
 nrclient.register_node(node_record)
 # ----------- END of NodeRegistryClient stuff
 

@@ -28,7 +28,7 @@ class NodeRegistryClient:
             service_id=node_record.node_id,
             address=str(node_record.task_queue_ip),
             port=node_record.task_queue_port,
-            tags=(node_record.node_role.name,),
+            tags=(node_record.node_role,),
         )
         # register the db as a service
         self._consul_service.register(
@@ -87,9 +87,9 @@ class NodeRegistryClient:
         for (service_id, service_info) in all_services.items():
             tags = service_info["Tags"]
             role = ""
-            if NodeRole.GLOBALNODE.name in tags:
+            if NodeRole.GLOBALNODE in tags:
                 role = NodeRole.GLOBALNODE
-            elif NodeRole.LOCALNODE.name in tags:
+            elif NodeRole.LOCALNODE in tags:
                 role = NodeRole.LOCALNODE
             else:
                 continue
