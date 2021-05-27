@@ -82,6 +82,7 @@
    ```
 
 1. _Optional_ Load the data into the db with
+   (It is compulsory if you want to run an algorithm)
 
    ```
    inv load-data
