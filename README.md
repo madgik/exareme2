@@ -52,18 +52,23 @@
    celery_log_level ="INFO"
    monetdb_image = "madgik/mipenginedb:dev1.2"
 
+   node_registry_port = 8500
+
    [[nodes]]
    id = "globalnode"
+   role = "GLOBALNODE"
    monetdb_port=50000
    rabbitmq_port=5670
 
    [[nodes]]
    id = "localnode1"
+   role = "LOCALNODE"
    monetdb_port=50001
    rabbitmq_port=5671
 
    [[nodes]]
    id = "localnode2"
+   role = "LOCALNODE"
    monetdb_port=50002
    rabbitmq_port=5672
 
