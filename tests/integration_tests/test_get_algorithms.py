@@ -14,7 +14,6 @@ def test_get_algorithms():
 
 
 def test_get_logistic_regression():
-    logging.info("---------- TEST : Get logistic regression algorithm")
     request = requests.get(algorithms_url)
     algorithms = json.loads(request.text)
 

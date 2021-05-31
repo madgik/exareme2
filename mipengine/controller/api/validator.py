@@ -1,4 +1,5 @@
 import logging
+import numbers
 import traceback
 from typing import Any
 from typing import Dict
@@ -9,9 +10,6 @@ from mipengine.common.common_data_elements import CommonDataElement
 from mipengine.common.common_data_elements import common_data_elements
 from mipengine.common.node_catalog import node_catalog
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
-from mipengine.controller.algorithms_specifications import (
-    CROSSVALIDATION_ALGORITHM_NAME,
-)
 from mipengine.controller.algorithms_specifications import GenericParameterSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecifications
@@ -22,17 +20,14 @@ from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 
 
+# TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
+# TODO With pydantic remove checks of type "if x is list"
+
+
 def validate_algorithm_request(algorithm_name: str, request_body: str):
-    """
-    Validates the proper usage of the algorithm:
-    1) algorithm exists,
-    2) algorithm body has proper format and
-    3) algorithm input matches the algorithm specifications.
-    """
 
-    if algorithm_name not in algorithms_specifications.enabled_algorithms.keys():
-        raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
-
+    # Validate proper algorithm request body
+    # TODO Should be removed with pydantic
     try:
         algorithm_request = AlgorithmRequestDTO.from_json(request_body)
     except Exception:
@@ -42,8 +37,14 @@ def validate_algorithm_request(algorithm_name: str, request_body: str):
         )
         raise BadRequest(f"The algorithm request body does not have the proper format.")
 
-    algorithm_specs = algorithms_specifications.enabled_algorithms[algorithm_name]
+    algorithm_specs = _get_algorithm_specs(algorithm_name)
     _validate_algorithm_parameters(algorithm_specs, algorithm_request)
+
+
+def _get_algorithm_specs(algorithm_name):
+    if algorithm_name not in algorithms_specifications.enabled_algorithms.keys():
+        raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
+    return algorithms_specifications.enabled_algorithms[algorithm_name]
 
 
 def _validate_algorithm_parameters(
@@ -55,45 +56,28 @@ def _validate_algorithm_parameters(
         algorithm_specs.parameters, algorithm_request.parameters
     )
 
-    _validate_crossvalidation_parameters(
-        algorithm_specs, algorithm_request.crossvalidation
-    )
-
 
 def _validate_inputdata(
     inputdata_specs: InputDataSpecifications, input_data: AlgorithmInputDataDTO
 ):
-    """
-    Validates that the:
-    1) datasets/pathology exist,
-    2) datasets belong in the pathology,
-    3) filter have proper format
-    4) and the cdes parameters have proper values.
-
-    Validates that the algorithm's input data follow the specs.
-
-    """
-    _validate_inputdata_pathology_and_dataset_values(
-        input_data.pathology, input_data.datasets
-    )
+    _validate_pathology_and_dataset_values(input_data.pathology, input_data.datasets)
 
     _validate_inputdata_filter(input_data.filters)
 
     _validate_inputdata_cdes(inputdata_specs, input_data)
 
 
-def _validate_inputdata_pathology_and_dataset_values(
-    pathology: str, datasets: List[str]
-):
+def _validate_pathology_and_dataset_values(pathology: str, datasets: List[str]):
     """
-    Validates that the pathology, dataset values exists and
+    Validates that the pathology, dataset values exist and
     that the datasets belong in the pathology.
     """
 
     if not node_catalog.pathology_exists(pathology):
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
 
-    if type(datasets) is not list:
+    # TODO Remove with pydantic
+    if not isinstance(datasets, list):
         raise BadRequest(f"Datasets parameter should be a list.")
 
     if not all(node_catalog.dataset_exists(pathology, dataset) for dataset in datasets):
@@ -114,11 +98,6 @@ def _validate_inputdata_filter(filter):
 def _validate_inputdata_cdes(
     input_data_specs: InputDataSpecifications, input_data: AlgorithmInputDataDTO
 ):
-    """
-    Validates that the cdes input data (x,y) follow the specs provided
-    in the algorithm specifications.
-    """
-
     _validate_inputdata_cde(input_data_specs.x, input_data.x, input_data.pathology)
     _validate_inputdata_cde(input_data_specs.y, input_data.y, input_data.pathology)
 
@@ -128,11 +107,6 @@ def _validate_inputdata_cde(
     cde_parameter_value: Optional[List[str]],
     pathology: str,
 ):
-    """
-    Validates that the cde x or y follows the specs provided
-    in the algorithm specification.
-    """
-
     if cde_parameter_specs.notblank and not cde_parameter_value:
         raise BadUserInput(
             f"Inputdata '{cde_parameter_specs.label}' should be provided."
@@ -150,10 +124,7 @@ def _validate_inputdata_cde(
 def _validate_inputdata_cdes_length(
     cde_parameter_value: Any, cde_parameter_specs: InputDataSpecification
 ):
-    """
-    Validate that the cde inputdata has proper list length
-    """
-    if type(cde_parameter_value) is not list:
+    if not isinstance(cde_parameter_value, list):
         raise BadRequest(f"Inputdata '{cde_parameter_specs.label}' should be a list.")
 
     if not cde_parameter_specs.multiple and len(cde_parameter_value) > 1:
@@ -165,13 +136,13 @@ def _validate_inputdata_cdes_length(
 def _validate_inputdata_cde_value(
     cde: str, cde_parameter_specs: InputDataSpecification, pathology: str
 ):
-    """
-    Validation of a specific cde in a parameter for the following:
-    1) that it exists in the pathology CDEs,
-    2) that it has a type allowed from the specification,
-    3) that it has a statistical type allowed from the specification and
-    4) that it has the proper amount of enumerations.
-    """
+    cde_metadata = _get_pathology_cde(cde, cde_parameter_specs, pathology)
+    _validate_inputdata_cde_types(cde, cde_metadata, cde_parameter_specs)
+    _validate_inputdata_cde_stattypes(cde, cde_metadata, cde_parameter_specs)
+    _validate_inputdata_cde_enumerations(cde, cde_metadata, cde_parameter_specs)
+
+
+def _get_pathology_cde(cde, cde_parameter_specs, pathology):
     pathology_cdes: Dict[str, CommonDataElement] = common_data_elements.pathologies[
         pathology
     ]
@@ -180,11 +151,7 @@ def _validate_inputdata_cde_value(
             f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
             f"does not exist in pathology '{pathology}'."
         )
-
-    cde_metadata: CommonDataElement = pathology_cdes[cde]
-    _validate_inputdata_cde_types(cde, cde_metadata, cde_parameter_specs)
-    _validate_inputdata_cde_stattypes(cde, cde_metadata, cde_parameter_specs)
-    _validate_inputdata_cde_enumerations(cde, cde_metadata, cde_parameter_specs)
+    return pathology_cdes[cde]
 
 
 def _validate_inputdata_cde_types(
@@ -192,14 +159,17 @@ def _validate_inputdata_cde_types(
     cde_metadata: CommonDataElement,
     cde_parameter_specs: InputDataSpecification,
 ):
-    if cde_metadata.sql_type not in cde_parameter_specs.types:
-        # If "real" is allowed, "int" is allowed as well
-        if cde_metadata.sql_type != "int" or "real" not in cde_parameter_specs.types:
-            raise BadUserInput(
-                f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
-                f"doesn't have one of the allowed types "
-                f"'{cde_parameter_specs.types}'."
-            )
+    dtype = cde_metadata.sql_type
+    dtypes = cde_parameter_specs.types
+    if dtype in dtypes:
+        return
+    if "real" in dtypes and dtype in ("int", "real"):
+        return
+    raise BadUserInput(
+        f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
+        f"doesn't have one of the allowed types "
+        f"'{cde_parameter_specs.types}'."
+    )
 
 
 def _validate_inputdata_cde_stattypes(
@@ -207,16 +177,14 @@ def _validate_inputdata_cde_stattypes(
     cde_metadata: CommonDataElement,
     cde_parameter_specs: InputDataSpecification,
 ):
-    if (
-        not cde_metadata.categorical
-        and "numerical" not in cde_parameter_specs.stattypes
-    ):
+    can_be_numerical = "numerical" in cde_parameter_specs.stattypes
+    can_be_nominal = "nominal" in cde_parameter_specs.stattypes
+    if not cde_metadata.is_categorical and not can_be_numerical:
         raise BadUserInput(
             f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
             f"should be categorical."
         )
-
-    if cde_metadata.categorical and "nominal" not in cde_parameter_specs.stattypes:
+    if cde_metadata.is_categorical and not can_be_nominal:
         raise BadUserInput(
             f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
             f"should NOT be categorical."
@@ -278,19 +246,11 @@ def _validate_generic_parameter_values(
     parameter_max_value: Optional[int],
     multiple_allowed: bool,
 ):
-    """
-    Validates that the parameter value follows the specs and :
-    1) has proper type,
-    2) has proper enumerations, if any,
-    3) is inside the min-max limits, if any,
-    4) and follows the multiple values rule.
-    """
-    if multiple_allowed and type(parameter_value) is not list:
+    if multiple_allowed and not isinstance(parameter_value, list):
         raise BadUserInput(f"Parameter '{parameter_name}' should be a list.")
 
     if not multiple_allowed:
         parameter_value = [parameter_value]
-
     for element in parameter_value:
         _validate_generic_parameter_type(parameter_name, element, parameter_type)
 
@@ -307,12 +267,11 @@ def _validate_generic_parameter_type(
     parameter_name: str, parameter_value: Any, parameter_type: str
 ):
     mip_types_to_python_types = {
-        "text": [str],
-        "int": [int],
-        "real": [float, int],
-        "jsonObject": [dict],
+        "text": str,
+        "int": int,
+        "real": numbers.Real,
     }
-    if type(parameter_value) not in mip_types_to_python_types[parameter_type]:
+    if not isinstance(parameter_value, mip_types_to_python_types[parameter_type]):
         raise BadUserInput(
             f"Parameter '{parameter_name}' values should be of type '{parameter_type}'."
         )
@@ -351,28 +310,3 @@ def _validate_generic_parameter_inside_min_max(
             f"Parameter '{parameter_name}' values "
             f"should be less than {parameter_max_value} ."
         )
-
-
-def _validate_crossvalidation_parameters(
-    algorithm_specs: AlgorithmSpecifications,
-    crossvalidation_parameters: Optional[Dict[str, Any]],
-):
-    """
-    If crossvalidation is enabled, it validates that the algorithm's
-    crossvalidation parameters follow the specs.
-    """
-
-    if not crossvalidation_parameters:
-        return
-
-    if (
-        crossvalidation_parameters
-        and not algorithm_specs.flags[CROSSVALIDATION_ALGORITHM_NAME]
-    ):
-        raise BadRequest(
-            f"Algorithm {algorithm_specs.label} does not have crossvalidation."
-        )
-
-    _validate_generic_parameters(
-        algorithms_specifications.crossvalidation, crossvalidation_parameters
-    )
