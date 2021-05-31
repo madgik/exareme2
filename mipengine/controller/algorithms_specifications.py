@@ -95,7 +95,7 @@ class AlgorithmsSpecifications:
 
         # The algorithm key should be in snake case format, to make searching for an algorithm easier.
         self.enabled_algorithms = {
-            str.lower(algorithm.name).replace(" ", "_"): algorithm
+            algorithm.name: algorithm
             for algorithm in all_algorithms.values()
             if algorithm.enabled and algorithm.name != CROSSVALIDATION_ALGORITHM_NAME
         }

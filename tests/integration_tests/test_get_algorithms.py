@@ -20,7 +20,7 @@ def test_get_logistic_regression():
 
     found = False
     for algorithm in algorithms:
-        if algorithm["name"] == "Logistic Regression":
+        if algorithm["name"] == "logistic_regression":
             assert algorithm == json.loads(logistic_regression_json)
             found = True
     assert found is True
@@ -84,7 +84,7 @@ logistic_regression_json = """
     },
     "parameters": {},
     "desc": "Logistic Regression",
-    "name": "Logistic Regression",
+    "name": "logistic_regression",
     "crossvalidation": null
 }
 """

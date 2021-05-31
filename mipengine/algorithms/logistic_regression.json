@@ -1,5 +1,5 @@
 {
-    "name": "Logistic Regression",
+    "name": "logistic_regression",
     "desc": "Logistic Regression",
     "label": "Logistic Regression",
     "enabled": true,
@@ -37,4 +37,3 @@
         "crossvalidation": false
     }
 }
-
