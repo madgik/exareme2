@@ -400,6 +400,8 @@ def start_flower(c, node=None, all_=False):
 
     kill_all_flowers(c)
 
+    FLOWER_PORT = 5550
+
     node_ids = get_node_ids(all_, node)
 
     for node_id in node_ids:
@@ -415,7 +417,7 @@ def start_flower(c, node=None, all_=False):
         broker_api = f"amqp://{user_and_password}@{flower_url}/{vhost}"
 
         flower_index = node_ids.index(node_id)
-        flower_port = 5550 + flower_index
+        flower_port = FLOWER_PORT + flower_index
 
         message(f"Starting flower container for node {node_id}...", Level.HEADER)
         command = f"docker run --name flower-{node_id} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker_api} "
