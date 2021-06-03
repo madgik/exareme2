@@ -12,9 +12,7 @@ from mipengine.common.node_catalog import node_catalog
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
 from mipengine.controller.algorithms_specifications import GenericParameterSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecification
-from mipengine.controller.algorithms_specifications import InputDataSpecifications
 from mipengine.controller.algorithms_specifications import algorithms_specifications
-from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmInputDataDTO
 from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
@@ -29,6 +27,7 @@ def validate_algorithm_request(algorithm_name: str, request_body: str):
     # Validate proper algorithm request body
     # TODO Should be removed with pydantic
     try:
+        print(request_body)
         algorithm_request = AlgorithmRequestDTO.from_json(request_body)
     except Exception:
         logging.error(
@@ -58,28 +57,38 @@ def _validate_algorithm_parameters(
 
 
 def _validate_inputdata(
-    inputdata_specs: InputDataSpecifications, input_data: AlgorithmInputDataDTO
+    inputdata_specs: Dict[str, InputDataSpecification], inputdata: Dict[str, Any]
 ):
-    _validate_pathology_and_dataset_values(input_data.pathology, input_data.datasets)
+    _validate_pathology_and_dataset_values(
+        inputdata.get("pathology"), inputdata.get("datasets")
+    )
 
-    _validate_inputdata_filter(input_data.filters)
+    _validate_inputdata_filter(inputdata.get("filter"))
 
-    _validate_inputdata_cdes(inputdata_specs, input_data)
+    for inputdata_name, inputdata_spec in inputdata_specs.items():
+        _validate_inputdata_cde(
+            inputdata_spec, inputdata.get(inputdata_name), inputdata.get("pathology")
+        )
 
 
-def _validate_pathology_and_dataset_values(pathology: str, datasets: List[str]):
+def _validate_pathology_and_dataset_values(
+    pathology: Optional[str], datasets: Optional[List[str]]
+):
     """
     Validates that the pathology, dataset values exist and
     that the datasets belong in the pathology.
     """
+    # TODO Refactor with pydantic
 
+    if not pathology:
+        raise BadRequest("Pathology inputdata not provided.")
     if not node_catalog.pathology_exists(pathology):
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
 
-    # TODO Remove with pydantic
+    if not datasets:
+        raise BadRequest("Datasets inputdata not provided.")
     if not isinstance(datasets, list):
         raise BadRequest(f"Datasets parameter should be a list.")
-
     if not all(node_catalog.dataset_exists(pathology, dataset) for dataset in datasets):
         raise BadUserInput(
             f"Datasets '{datasets}' do not belong in pathology '{pathology}'."
@@ -93,13 +102,6 @@ def _validate_inputdata_filter(filter):
     """
     # TODO Add filter
     pass
-
-
-def _validate_inputdata_cdes(
-    input_data_specs: InputDataSpecifications, input_data: AlgorithmInputDataDTO
-):
-    _validate_inputdata_cde(input_data_specs.x, input_data.x, input_data.pathology)
-    _validate_inputdata_cde(input_data_specs.y, input_data.y, input_data.pathology)
 
 
 def _validate_inputdata_cde(

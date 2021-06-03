@@ -42,7 +42,8 @@ async def post_algorithm(algorithm_name: str) -> str:
         validate_algorithm_request(algorithm_name, request_body)
     except (BadRequest, BadUserInput) as exc:
         raise exc
-    except:
+    except Exception as exc:
+        print(exc)
         logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
         raise BadRequest("Algorithm validation failed.")
 

@@ -1,8 +1,5 @@
 import requests
-from mipengine.controller.api.AlgorithmRequestDTO import (
-    AlgorithmInputDataDTO,
-    AlgorithmRequestDTO,
-)
+from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
 
 
 def do_post_request():
@@ -17,13 +14,13 @@ def do_post_request():
     #                                              y=["leftamygdala"])
 
     # example request 2
-    algorithm_input_data = AlgorithmInputDataDTO(
-        pathology="dementia",
-        datasets=["demo_data"],
-        filters=None,
-        x=["lefthippocampus", "righthippocampus"],
-        y=["alzheimerbroadcategory_bin"],
-    )
+    algorithm_input_data = {
+        "pathology": "dementia",
+        "datasets": ["demo_data"],
+        "filter": None,
+        "x": ["lefthippocampus", "righthippocampus"],
+        "y": ["alzheimerbroadcategory_bin"],
+    }
 
     algorithm_request = AlgorithmRequestDTO(
         inputdata=algorithm_input_data, parameters=None

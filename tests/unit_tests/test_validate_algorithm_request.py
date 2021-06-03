@@ -12,7 +12,6 @@ from mipengine.controller.algorithms_specifications import AlgorithmSpecificatio
 from mipengine.controller.algorithms_specifications import AlgorithmsSpecifications
 from mipengine.controller.algorithms_specifications import GenericParameterSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecification
-from mipengine.controller.algorithms_specifications import InputDataSpecifications
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.api.validator import validate_algorithm_request
@@ -188,8 +187,8 @@ def mock_algorithms_specs():
             desc="test algorithm1",
             label="test algorithm1",
             enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
+            inputdata={
+                "x": InputDataSpecification(
                     label="features",
                     desc="Features",
                     types=["real"],
@@ -198,7 +197,7 @@ def mock_algorithms_specs():
                     multiple=True,
                     enumslen=None,
                 ),
-                y=InputDataSpecification(
+                "y": InputDataSpecification(
                     label="target",
                     desc="Target variable",
                     types=["text"],
@@ -207,7 +206,7 @@ def mock_algorithms_specs():
                     multiple=False,
                     enumslen=2,
                 ),
-            ),
+            },
             parameters={
                 "parameter1": GenericParameterSpecification(
                     label="paremeter1",
@@ -311,7 +310,7 @@ test_cases_validate_algorithm_exceptions = [
                 "y": ["alzheimerbroadcategory_bin"],
             },
         },
-        (BadRequest, "The algorithm request body .*"),
+        (BadRequest, "Datasets parameter should be a list."),
     ),
     (
         "non_existing_algorithm",
@@ -372,19 +371,18 @@ test_cases_validate_algorithm_exceptions = [
         },
         (BadUserInput, "Inputdata .* should be provided."),
     ),
-    # TODO Should be enabled again when the dataclasses are replaced with pydantic
-    # (
-    #     "test_algorithm1",
-    #     {
-    #         "inputdata": {
-    #             "pathology": "test_pathology1",
-    #             "datasets": ["test_dataset1"],
-    #             "x": "test_cde1",
-    #             "y": ["test_cde3"],
-    #         },
-    #     },
-    #     (BadUserInput, "Inputdata .* should be a list."),
-    # ),
+    (
+        "test_algorithm1",
+        {
+            "inputdata": {
+                "pathology": "test_pathology1",
+                "datasets": ["test_dataset1"],
+                "x": "test_cde1",
+                "y": ["test_cde3"],
+            },
+        },
+        (BadRequest, "Inputdata .* should be a list."),
+    ),
     (
         "test_algorithm1",
         {

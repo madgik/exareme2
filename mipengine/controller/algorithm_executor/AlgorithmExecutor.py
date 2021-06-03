@@ -14,6 +14,7 @@ from mipengine.common.node_tasks_DTOs import TableData
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.common.node_tasks_DTOs import UDFArgument
+from mipengine.controller.algorithms_specifications import algorithms_specifications
 from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
 
 # TODO: Too many things happening in all the initialiazers. Especially the AlgorithmExecutor __init__ is called synchronuously from the server
@@ -67,7 +68,7 @@ class AlgorithmExecutor:
         node_catalog = NodeCatalog()
         global_node = node_catalog.get_node("globalnode")
         local_nodes = node_catalog.get_nodes_with_any_of_datasets(
-            algorithm_request_dto.inputdata.datasets
+            algorithm_request_dto.inputdata.get("datasets")
         )
 
         # instantiate the GLOBAL Node object
@@ -78,17 +79,20 @@ class AlgorithmExecutor:
             context_id=self.context_id,
         )
 
-        # adding dataset column to the initial view tables
-        # algorithm_request_dto.inputdata.x.append("dataset")
-        # algorithm_request_dto.inputdata.y.append("dataset")
-        initial_view_tables_params = {
+        # Information needed to create the initial views
+        initial_views_params = {
             "commandId": get_next_command_id(),
-            "pathology": algorithm_request_dto.inputdata.pathology,
-            "datasets": algorithm_request_dto.inputdata.datasets,
-            "x": algorithm_request_dto.inputdata.x,
-            "y": algorithm_request_dto.inputdata.y,
-            "filters": algorithm_request_dto.inputdata.filters,
+            "pathology": algorithm_request_dto.inputdata.get("pathology"),
+            "datasets": algorithm_request_dto.inputdata.get("datasets"),
+            "filters": algorithm_request_dto.inputdata.get("filter"),
         }
+        algorithm_inputdata = algorithms_specifications.enabled_algorithms[
+            algorithm_name
+        ].inputdata
+        for inputdata_name in algorithm_inputdata.keys():
+            initial_views_params[inputdata_name] = algorithm_request_dto.inputdata.get(
+                inputdata_name
+            )
 
         # instantiate the LOCAL Node objects
         self.local_nodes = []
@@ -98,8 +102,9 @@ class AlgorithmExecutor:
                     node_id=local_node.nodeId,
                     rabbitmq_socket_addr=f"{local_node.rabbitmqIp}:{local_node.rabbitmqPort}",
                     monetdb_socket_addr=f"{local_node.monetdbIp}:{local_node.monetdbPort}",
-                    initial_view_tables_params=initial_view_tables_params,
                     context_id=self.context_id,
+                    algorithm_inputdata_names=algorithm_inputdata.keys(),
+                    initial_views_params=initial_views_params,
                 )
             )
 
@@ -132,7 +137,8 @@ class AlgorithmExecutor:
             rabbitmq_socket_addr,
             monetdb_socket_addr,
             context_id,
-            initial_view_tables_params=None,
+            algorithm_inputdata_names=None,
+            initial_views_params=None,
         ):
             self.node_id = node_id
 
@@ -165,9 +171,9 @@ class AlgorithmExecutor:
             }
 
             self.__initial_view_tables = None
-            if initial_view_tables_params is not None:
+            if initial_views_params is not None:
                 self.__initial_view_tables = self.__create_initial_view_tables(
-                    initial_view_tables_params
+                    algorithm_inputdata_names, initial_views_params
                 )
 
         def __repr__(self):
@@ -177,36 +183,23 @@ class AlgorithmExecutor:
         def initial_view_tables(self):
             return self.__initial_view_tables
 
-        def __create_initial_view_tables(self, initial_view_tables_params):
-            # will contain the views created from the pathology, datasets. Its keys are the variable sets x, y etc
+        def __create_initial_view_tables(
+            self, algorithm_inputdata_names, initial_view_tables_params
+        ):
+            # Will contain the views required from the algorithm, his inputdata.
             initial_view_tables = {}
-
-            # initial view for variables in X
-            variable = "x"
-            command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_pathology_view(
-                command_id=command_id,
-                pathology=initial_view_tables_params["pathology"],
-                datasets=initial_view_tables_params["datasets"],
-                columns=initial_view_tables_params[variable],
-                filters=initial_view_tables_params["filters"],
-            )
-
-            initial_view_tables["x"] = view_name
-
-            # initial view for variables in Y
-            variable = "y"
-            command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_pathology_view(
-                command_id=command_id,
-                pathology=initial_view_tables_params["pathology"],
-                datasets=initial_view_tables_params["datasets"],
-                columns=initial_view_tables_params[variable],
-                filters=initial_view_tables_params["filters"],
-            )
-
-            initial_view_tables["y"] = view_name
-
+            for inputdata_name in algorithm_inputdata_names:
+                command_id = (
+                    str(initial_view_tables_params["commandId"]) + inputdata_name
+                )
+                view_name = self.create_pathology_view(
+                    command_id=command_id,
+                    pathology=initial_view_tables_params["pathology"],
+                    datasets=initial_view_tables_params["datasets"],
+                    columns=initial_view_tables_params[inputdata_name],
+                    filters=initial_view_tables_params["filters"],
+                )
+                initial_view_tables[inputdata_name] = view_name
             return initial_view_tables
 
         # TABLES functionality

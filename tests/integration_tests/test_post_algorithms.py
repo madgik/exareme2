@@ -1,7 +1,5 @@
 import json
-import logging
 import re
-import threading
 
 import pytest
 import requests
@@ -33,6 +31,7 @@ def test_post_algorithm_success(algorithm_name, request_body):
         algorithm_url, data=json.dumps(request_body), headers=headers
     )
     assert response.status_code == 200
+    assert re.search("[.*]", response.text)
 
 
 test_cases_post_algorithm_failure = [

@@ -35,13 +35,6 @@ class InputDataSpecification:
 
 @dataclass_json
 @dataclass
-class InputDataSpecifications:
-    x: Optional[InputDataSpecification]
-    y: Optional[InputDataSpecification]
-
-
-@dataclass_json
-@dataclass
 class GenericParameterSpecification:
     label: str
     desc: str
@@ -68,7 +61,7 @@ class AlgorithmSpecifications:
     desc: str
     label: str
     enabled: bool
-    inputdata: Optional[InputDataSpecifications] = None
+    inputdata: Optional[Dict[str, InputDataSpecification]] = None
     parameters: Optional[Dict[str, GenericParameterSpecification]] = None
     flags: Optional[Dict[str, bool]] = None
 
