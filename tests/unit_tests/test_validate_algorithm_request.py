@@ -182,7 +182,6 @@ def mock_node_catalog():
 @pytest.fixture(scope="module", autouse=True)
 def mock_algorithms_specs():
     algorithms_specifications = AlgorithmsSpecifications()
-    algorithms_specifications.crossvalidation = None
     algorithms_specifications.enabled_algorithms = {
         "test_algorithm1": AlgorithmSpecifications(
             name="test algorithm1",
@@ -246,7 +245,7 @@ def mock_algorithms_specs():
                     default=1,
                 ),
             },
-            flags={"formula": False, "crossvalidation": False},
+            flags={"formula": False},
         )
     }
 

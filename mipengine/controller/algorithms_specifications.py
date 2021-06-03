@@ -11,8 +11,6 @@ from dataclasses_json import dataclass_json
 
 from mipengine import algorithms
 
-CROSSVALIDATION_ALGORITHM_NAME = "crossvalidation"
-
 
 @dataclass_json
 @dataclass
@@ -76,7 +74,6 @@ class AlgorithmSpecifications:
 
 
 class AlgorithmsSpecifications:
-    crossvalidation: AlgorithmSpecifications
     enabled_algorithms: Dict[str, AlgorithmSpecifications]
 
     def __init__(self):
@@ -97,15 +94,8 @@ class AlgorithmsSpecifications:
         self.enabled_algorithms = {
             algorithm.name: algorithm
             for algorithm in all_algorithms.values()
-            if algorithm.enabled and algorithm.name != CROSSVALIDATION_ALGORITHM_NAME
+            if algorithm.enabled
         }
-
-        self.crossvalidation = None
-        if (
-            CROSSVALIDATION_ALGORITHM_NAME in all_algorithms.keys()
-            and all_algorithms[CROSSVALIDATION_ALGORITHM_NAME].enabled
-        ):
-            self.crossvalidation = all_algorithms[CROSSVALIDATION_ALGORITHM_NAME]
 
 
 algorithms_specifications = AlgorithmsSpecifications()

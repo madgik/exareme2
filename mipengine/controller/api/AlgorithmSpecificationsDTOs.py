@@ -6,9 +6,6 @@ from typing import Optional
 from dataclasses_json import dataclass_json
 
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
-from mipengine.controller.algorithms_specifications import (
-    CROSSVALIDATION_ALGORITHM_NAME,
-)
 from mipengine.controller.algorithms_specifications import GenericParameterSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecifications
 from mipengine.controller.algorithms_specifications import algorithms_specifications
@@ -107,19 +104,6 @@ class GenericParameterSpecificationDTO(GenericParameterSpecification):
 
 @dataclass_json
 @dataclass
-class CrossValidationSpecificationsDTO:
-    """
-    CrossValidationDTO is a nested object, that contains
-    all the information need to run crossvalidation on an algorithm.
-    """
-
-    desc: str
-    label: str
-    parameters: Dict[str, GenericParameterSpecification]
-
-
-@dataclass_json
-@dataclass
 class AlgorithmSpecificationDTO:
     """
     AlgorithmDTO is used to provide the UI the requirements
@@ -132,29 +116,16 @@ class AlgorithmSpecificationDTO:
     label: str
     inputdata: InputDataSpecificationsDTO
     parameters: Optional[Dict[str, GenericParameterSpecification]] = None
-    crossvalidation: Optional[CrossValidationSpecificationsDTO] = None
 
     def __init__(
         self,
         algorithm: AlgorithmSpecifications,
-        crossvalidation: AlgorithmSpecifications,
     ):
         self.name = algorithm.name
         self.desc = algorithm.desc
         self.label = algorithm.label
         self.parameters = algorithm.parameters
         self.inputdata = InputDataSpecificationsDTO(algorithm.inputdata)
-
-        # Adding the crossvalidation algorithm as a nested algorithm
-        if (
-            CROSSVALIDATION_ALGORITHM_NAME in algorithm.flags.keys()
-            and algorithm.flags[CROSSVALIDATION_ALGORITHM_NAME]
-        ):
-            self.crossvalidation = CrossValidationSpecificationsDTO(
-                crossvalidation.desc,
-                crossvalidation.label,
-                crossvalidation.parameters,
-            )
 
 
 class AlgorithmSpecificationsDTOs:
@@ -163,16 +134,12 @@ class AlgorithmSpecificationsDTOs:
 
     def __init__(self):
         self.algorithms_list = [
-            AlgorithmSpecificationDTO(
-                algorithm, algorithms_specifications.crossvalidation
-            )
+            AlgorithmSpecificationDTO(algorithm)
             for algorithm in algorithms_specifications.enabled_algorithms.values()
         ]
 
         self.algorithms_dict = {
-            algorithm.name: AlgorithmSpecificationDTO(
-                algorithm, algorithms_specifications.crossvalidation
-            )
+            algorithm.name: AlgorithmSpecificationDTO(algorithm)
             for algorithm in algorithms_specifications.enabled_algorithms.values()
         }
 

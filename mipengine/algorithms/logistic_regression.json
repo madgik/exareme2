@@ -33,7 +33,6 @@
     "parameters": {
     },
     "flags": {
-        "formula": false,
-        "crossvalidation": false
+        "formula": false
     }
 }

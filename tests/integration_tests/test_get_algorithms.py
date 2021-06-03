@@ -83,7 +83,6 @@ logistic_regression_json = """
     },
     "parameters": {},
     "desc": "Logistic Regression",
-    "name": "logistic_regression",
-    "crossvalidation": null
+    "name": "logistic_regression"
 }
 """
