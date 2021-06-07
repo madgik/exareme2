@@ -10,6 +10,8 @@ from mipengine.common.common_data_elements import CommonDataElement
 from mipengine.common.common_data_elements import common_data_elements
 from mipengine.common.node_catalog import node_catalog
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
+from mipengine.controller.algorithms_specifications import InputDataStatType
+from mipengine.controller.algorithms_specifications import InputDataType
 from mipengine.controller.algorithms_specifications import GenericParameterSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecifications
@@ -21,7 +23,6 @@ from mipengine.controller.api.exceptions import BadUserInput
 
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
-# TODO With pydantic remove checks of type "if x is list"
 
 
 def validate_algorithm_request(algorithm_name: str, request_body: str):
@@ -163,7 +164,10 @@ def _validate_inputdata_cde_types(
     dtypes = cde_parameter_specs.types
     if dtype in dtypes:
         return
-    if "real" in dtypes and dtype in ("int", "real"):
+    if InputDataType.REAL in dtypes and dtype in (
+        InputDataType.INT,
+        InputDataType.REAL,
+    ):
         return
     raise BadUserInput(
         f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
@@ -177,8 +181,8 @@ def _validate_inputdata_cde_stattypes(
     cde_metadata: CommonDataElement,
     cde_parameter_specs: InputDataSpecification,
 ):
-    can_be_numerical = "numerical" in cde_parameter_specs.stattypes
-    can_be_nominal = "nominal" in cde_parameter_specs.stattypes
+    can_be_numerical = InputDataStatType.NUMERICAL in cde_parameter_specs.stattypes
+    can_be_nominal = InputDataStatType.NOMINAL in cde_parameter_specs.stattypes
     if not cde_metadata.is_categorical and not can_be_numerical:
         raise BadUserInput(
             f"The CDE '{cde}', of inputdata '{cde_parameter_specs.label}', "
