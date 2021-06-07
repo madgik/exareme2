@@ -10,7 +10,7 @@ from mipengine.common.common_data_elements import MetadataEnumeration
 from mipengine.common.common_data_elements import MetadataVariable
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
 from mipengine.controller.algorithms_specifications import AlgorithmsSpecifications
-from mipengine.controller.algorithms_specifications import GenericParameterSpecification
+from mipengine.controller.algorithms_specifications import ParameterSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecifications
 from mipengine.controller.api.exceptions import BadRequest
@@ -209,7 +209,7 @@ def mock_algorithms_specs():
                 ),
             ),
             parameters={
-                "parameter1": GenericParameterSpecification(
+                "parameter1": ParameterSpecification(
                     label="paremeter1",
                     desc="parameter 1",
                     type="real",
@@ -218,7 +218,7 @@ def mock_algorithms_specs():
                     default=1,
                     enums=[1, 2, 3],
                 ),
-                "parameter2": GenericParameterSpecification(
+                "parameter2": ParameterSpecification(
                     label="paremeter2",
                     desc="parameter 2",
                     type="int",
@@ -228,7 +228,7 @@ def mock_algorithms_specs():
                     min=2,
                     max=5,
                 ),
-                "parameter3": GenericParameterSpecification(
+                "parameter3": ParameterSpecification(
                     label="paremeter3",
                     desc="parameter 3",
                     type="text",
@@ -236,7 +236,7 @@ def mock_algorithms_specs():
                     multiple=False,
                     default=None,
                 ),
-                "parameter4": GenericParameterSpecification(
+                "parameter4": ParameterSpecification(
                     label="paremeter4",
                     desc="parameter 4",
                     type="int",

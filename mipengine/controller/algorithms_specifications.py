@@ -95,7 +95,7 @@ class ParameterType(str, Enum):
 
 @dataclass_json
 @dataclass
-class GenericParameterSpecification:
+class ParameterSpecification:
     label: str
     desc: str
     type: str
@@ -115,7 +115,7 @@ class AlgorithmSpecifications:
     label: str
     enabled: bool
     inputdata: Optional[InputDataSpecifications] = None
-    parameters: Optional[Dict[str, GenericParameterSpecification]] = None
+    parameters: Optional[Dict[str, ParameterSpecification]] = None
     flags: Optional[Dict[str, bool]] = None
 
 

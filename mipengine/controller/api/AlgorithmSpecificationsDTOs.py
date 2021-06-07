@@ -6,7 +6,7 @@ from typing import Optional
 from dataclasses_json import dataclass_json
 
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
-from mipengine.controller.algorithms_specifications import GenericParameterSpecification
+from mipengine.controller.algorithms_specifications import ParameterSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecifications
 from mipengine.controller.algorithms_specifications import algorithms_specifications
 
@@ -93,9 +93,9 @@ class InputDataSpecificationsDTO:
 
 @dataclass_json
 @dataclass
-class GenericParameterSpecificationDTO(GenericParameterSpecification):
+class ParameterSpecificationDTO(ParameterSpecification):
     """
-    GenericParameterDTO is identical to the GenericParameterSpecification
+    ParameterDTO is identical to the ParameterSpecification
     but exists for consistency and future use if needed.
     """
 
@@ -115,7 +115,7 @@ class AlgorithmSpecificationDTO:
     desc: str
     label: str
     inputdata: InputDataSpecificationsDTO
-    parameters: Optional[Dict[str, GenericParameterSpecification]] = None
+    parameters: Optional[Dict[str, ParameterSpecification]] = None
 
     def __init__(
         self,
