@@ -1,6 +1,8 @@
 import logging
 import typing
 from dataclasses import dataclass
+from enum import Enum
+from enum import unique
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -10,6 +12,39 @@ from typing import Optional
 from dataclasses_json import dataclass_json
 
 from mipengine import algorithms
+
+# TODO Enums are not supported from the dataclass_json library
+# For now some helper methods are added.
+# All of the helper methods and the __post_init methods should be removed with pydantic.
+
+
+@unique
+class InputDataStatType(str, Enum):
+    NUMERICAL = "numerical"
+    NOMINAL = "nominal"
+
+    @classmethod
+    def has_value(cls, item):
+        return item in [v.value for v in cls.__members__.values()]
+
+    @classmethod
+    def get_values(cls):
+        return [v.value for v in cls.__members__.values()]
+
+
+@unique
+class InputDataType(str, Enum):
+    REAL = "real"
+    INT = "int"
+    TEXT = "text"
+
+    @classmethod
+    def has_value(cls, item):
+        return item in [v.value for v in cls.__members__.values()]
+
+    @classmethod
+    def get_values(cls):
+        return [v.value for v in cls.__members__.values()]
 
 
 @dataclass_json
@@ -24,18 +59,36 @@ class InputDataSpecification:
     enumslen: Optional[int] = None
 
     def __post_init__(self):
-        allowed_types = ["real", "int", "text", "boolean"]
-        if not all(elem in allowed_types for elem in self.types):
-            raise ValueError(f"Input data types can include: {allowed_types}")
+        if not all(InputDataType.has_value(elem) for elem in self.types):
+            raise ValueError(
+                f"Input data types can include: {InputDataType.get_values()}"
+            )
 
-        allowed_stattypes = ["numerical", "nominal"]
-        if not all(elem in allowed_stattypes for elem in self.stattypes):
-            raise ValueError(f"Input data stattypes can include: {allowed_stattypes}")
+        if not all(InputDataStatType.has_value(elem) for elem in self.stattypes):
+            raise ValueError(
+                f"Input data stattypes can include: {InputDataStatType.get_values()}"
+            )
+
+
+@unique
+class ParameterType(str, Enum):
+    REAL = "real"
+    INT = "int"
+    TEXT = "text"
+    BOOLEAN = "boolean"
+
+    @classmethod
+    def has_value(cls, item):
+        return item in [v.value for v in cls.__members__.values()]
+
+    @classmethod
+    def get_values(cls):
+        return [v.value for v in cls.__members__.values()]
 
 
 @dataclass_json
 @dataclass
-class GenericParameterSpecification:
+class ParameterSpecification:
     label: str
     desc: str
     type: str
@@ -46,13 +99,6 @@ class GenericParameterSpecification:
     min: Optional[int] = None
     max: Optional[int] = None
 
-    def __post_init__(self):
-        allowed_types = ["real", "int", "text", "boolean"]
-        if self.type not in allowed_types:
-            raise ValueError(
-                f"Generic parameter type can be one of the following: {allowed_types}"
-            )
-
 
 @dataclass_json
 @dataclass
@@ -62,7 +108,7 @@ class AlgorithmSpecifications:
     label: str
     enabled: bool
     inputdata: Optional[Dict[str, InputDataSpecification]] = None
-    parameters: Optional[Dict[str, GenericParameterSpecification]] = None
+    parameters: Optional[Dict[str, ParameterSpecification]] = None
     flags: Optional[Dict[str, bool]] = None
 
 

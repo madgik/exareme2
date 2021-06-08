@@ -6,7 +6,7 @@ from typing import Optional
 from dataclasses_json import dataclass_json
 
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
-from mipengine.controller.algorithms_specifications import GenericParameterSpecification
+from mipengine.controller.algorithms_specifications import ParameterSpecification
 from mipengine.controller.algorithms_specifications import algorithms_specifications
 
 
@@ -29,26 +29,13 @@ class InputDataSpecificationDTO:
 
 @dataclass_json
 @dataclass
-class GenericParameterSpecificationDTO(GenericParameterSpecification):
+class ParameterSpecificationDTO(ParameterSpecification):
     """
-    GenericParameterDTO is identical to the GenericParameterSpecification
+    ParameterDTO is identical to the ParameterSpecification
     but exists for consistency and future use if needed.
     """
 
     pass
-
-
-@dataclass_json
-@dataclass
-class CrossValidationSpecificationsDTO:
-    """
-    CrossValidationDTO is a nested object, that contains
-    all the information need to run crossvalidation on an algorithm.
-    """
-
-    desc: str
-    label: str
-    parameters: Dict[str, GenericParameterSpecification]
 
 
 @dataclass_json
@@ -64,7 +51,7 @@ class AlgorithmSpecificationDTO:
     desc: str
     label: str
     inputdata: Dict[str, InputDataSpecificationDTO]
-    parameters: Optional[Dict[str, GenericParameterSpecification]] = None
+    parameters: Optional[Dict[str, ParameterSpecification]] = None
 
     def __init__(self, algorithm: AlgorithmSpecifications):
         self.name = algorithm.name
