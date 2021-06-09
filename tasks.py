@@ -271,24 +271,7 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
     if not celery_log_level:
         celery_log_level = get_deployment_config("celery_log_level")
 
-    node_ids = []
-    if all_:
-        for node_config_file in listdir(NODES_CONFIG_DIR):
-            filename = Path(node_config_file).stem
-            node_ids.append(filename)
-    elif node:
-        node_config_file = NODES_CONFIG_DIR / f"{node}.toml"
-        if not Path(node_config_file).is_file():
-            message(
-                f"The configuration file for node '{node}', does not exist in directory '{NODES_CONFIG_DIR}'",
-                Level.ERROR,
-            )
-            sys.exit(1)
-        filename = Path(node_config_file).stem
-        node_ids.append(filename)
-    else:
-        message("Please specify a node using --node <node> or use --all", Level.WARNING)
-        sys.exit(1)
+    node_ids = get_node_ids(all_, node)
 
     for node_id in node_ids:
         kill_node(c, node_id)
@@ -411,6 +394,50 @@ def cleanup(c):
         OUTDIR.rmdir()
         message("Ok", level=Level.SUCCESS)
 
+@task
+def start_flower(c, node=None, all_=False):
+    """ Remove existing flower container, start monitoring tools """
+
+    kill_all_flowers(c)
+
+    FLOWER_PORT = 5550
+
+    node_ids = get_node_ids(all_, node)
+
+    for node_id in node_ids:
+        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
+        with open(node_config_file) as fp:
+            node_config = toml.load(fp)
+
+        ip = node_config['rabbitmq']['ip']
+        port = node_config['rabbitmq']['port']
+        user_and_password = node_config['rabbitmq']['user'] + ":" + node_config['rabbitmq']['password']
+        vhost = node_config['rabbitmq']['vhost']
+        flower_url = ip + ":" + str(port)
+        broker_api = f"amqp://{user_and_password}@{flower_url}/{vhost}"
+
+        flower_index = node_ids.index(node_id)
+        flower_port = FLOWER_PORT + flower_index
+
+        message(f"Starting flower container for node {node_id}...", Level.HEADER)
+        command = f"docker run --name flower-{node_id} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker_api} "
+        run(c, command)
+        cmd = "docker ps | grep '[f]lower'"
+        run(c, cmd, warn=True, show_ok=False)
+        message(f"Visit me at http://localhost:{flower_port}", Level.HEADER)
+
+@task
+def kill_all_flowers(c):
+    """Kill Flower Instances"""
+    container_ids = run(c, "docker ps -qa --filter name=flower", show_ok=False)
+    if container_ids.stdout:
+        message("Killing Flower instances and removing containers...", Level.HEADER)
+        cmd = f"docker container kill flower & docker rm -vf $(docker ps -qa --filter name=flower)"
+        run(c, cmd)
+        message("Flower has withered away", Level.HEADER)
+    else:
+        message(f"No flower container to remove", level=Level.HEADER)
+
 
 def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok=True):
     if attach_:
@@ -487,3 +514,25 @@ def get_deployment_config(config):
 
     with open(DEPLOYMENT_CONFIG_FILE) as fp:
         return toml.load(fp)[config]
+
+def get_node_ids(all_=False, node=None):
+    node_ids = []
+    if all_:
+        for node_config_file in listdir(NODES_CONFIG_DIR):
+            filename = Path(node_config_file).stem
+            node_ids.append(filename)
+    elif node:
+        node_config_file = NODES_CONFIG_DIR / f"{node}.toml"
+        if not Path(node_config_file).is_file():
+            message(
+                f"The configuration file for node '{node}', does not exist in directory '{NODES_CONFIG_DIR}'",
+                Level.ERROR,
+            )
+            sys.exit(1)
+        filename = Path(node_config_file).stem
+        node_ids.append(filename)
+    else:
+        message("Please specify a node using --node <node> or use --all", Level.WARNING)
+        sys.exit(1)
+
+    return node_ids
