@@ -394,6 +394,7 @@ def cleanup(c):
         OUTDIR.rmdir()
         message("Ok", level=Level.SUCCESS)
 
+
 @task
 def start_flower(c, node=None, all_=False):
     """ Remove existing flower container, start monitoring tools """
@@ -409,10 +410,12 @@ def start_flower(c, node=None, all_=False):
         with open(node_config_file) as fp:
             node_config = toml.load(fp)
 
-        ip = node_config['rabbitmq']['ip']
-        port = node_config['rabbitmq']['port']
-        user_and_password = node_config['rabbitmq']['user'] + ":" + node_config['rabbitmq']['password']
-        vhost = node_config['rabbitmq']['vhost']
+        ip = node_config["rabbitmq"]["ip"]
+        port = node_config["rabbitmq"]["port"]
+        user_and_password = (
+            node_config["rabbitmq"]["user"] + ":" + node_config["rabbitmq"]["password"]
+        )
+        vhost = node_config["rabbitmq"]["vhost"]
         flower_url = ip + ":" + str(port)
         broker_api = f"amqp://{user_and_password}@{flower_url}/{vhost}"
 
@@ -425,6 +428,7 @@ def start_flower(c, node=None, all_=False):
         cmd = "docker ps | grep '[f]lower'"
         run(c, cmd, warn=True, show_ok=False)
         message(f"Visit me at http://localhost:{flower_port}", Level.HEADER)
+
 
 @task
 def kill_all_flowers(c):
@@ -514,6 +518,7 @@ def get_deployment_config(config):
 
     with open(DEPLOYMENT_CONFIG_FILE) as fp:
         return toml.load(fp)[config]
+
 
 def get_node_ids(all_=False, node=None):
     node_ids = []

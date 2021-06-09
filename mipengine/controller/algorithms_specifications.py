@@ -50,7 +50,7 @@ class GenericParameterSpecification:
     type: str
     notblank: bool
     multiple: bool
-    default: 'typing.Any'
+    default: "typing.Any"
     enums: Optional[List[Any]] = None
     min: Optional[int] = None
     max: Optional[int] = None
@@ -58,7 +58,9 @@ class GenericParameterSpecification:
     def __post_init__(self):
         allowed_types = ["real", "int", "text", "boolean"]
         if self.type not in allowed_types:
-            raise ValueError(f"Generic parameter type can be one of the following: {allowed_types}")
+            raise ValueError(
+                f"Generic parameter type can be one of the following: {allowed_types}"
+            )
 
 
 @dataclass_json
@@ -81,9 +83,11 @@ class AlgorithmsSpecifications:
         algorithms_path = Path(algorithms.__file__).parent
 
         all_algorithms = {}
-        for algorithm_property_path in algorithms_path.glob('*.json'):
+        for algorithm_property_path in algorithms_path.glob("*.json"):
             try:
-                algorithm = AlgorithmSpecifications.from_json(open(algorithm_property_path).read())
+                algorithm = AlgorithmSpecifications.from_json(
+                    open(algorithm_property_path).read()
+                )
             except Exception as e:
                 logging.error(f"Parsing property file: {algorithm_property_path}")
                 raise e
@@ -92,11 +96,14 @@ class AlgorithmsSpecifications:
         self.enabled_algorithms = {
             algorithm.name: algorithm
             for algorithm in all_algorithms.values()
-            if algorithm.enabled and algorithm.name != CROSSVALIDATION_ALGORITHM_NAME}
+            if algorithm.enabled and algorithm.name != CROSSVALIDATION_ALGORITHM_NAME
+        }
 
         self.crossvalidation = None
-        if (CROSSVALIDATION_ALGORITHM_NAME in all_algorithms.keys() and
-                all_algorithms[CROSSVALIDATION_ALGORITHM_NAME].enabled):
+        if (
+            CROSSVALIDATION_ALGORITHM_NAME in all_algorithms.keys()
+            and all_algorithms[CROSSVALIDATION_ALGORITHM_NAME].enabled
+        ):
             self.crossvalidation = all_algorithms[CROSSVALIDATION_ALGORITHM_NAME]
 
 
