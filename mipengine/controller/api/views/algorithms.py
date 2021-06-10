@@ -4,13 +4,20 @@ import traceback
 from quart import Blueprint
 from quart import request
 
-from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import AlgorithmSpecificationDTO
-from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import algorithm_specificationsDTOs
+from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import (
+    AlgorithmSpecificationDTO,
+)
+from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import (
+    algorithm_specificationsDTOs,
+)
 from mipengine.controller.api.errors.exceptions import BadRequest
 from mipengine.controller.api.errors.exceptions import BadUserInput
 from mipengine.controller.api.services.validate_algorithm import validate_algorithm
 
-from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmInputDataDTO, AlgorithmRequestDTO
+from mipengine.controller.api.DTOs.AlgorithmRequestDTO import (
+    AlgorithmInputDataDTO,
+    AlgorithmRequestDTO,
+)
 from mipengine.controller.algorithm_executor.AlgorithmExecutor import AlgorithmExecutor
 
 import asyncio
@@ -18,7 +25,7 @@ import asyncio
 import concurrent.futures
 
 
-algorithms = Blueprint('algorithms_endpoint', __name__)
+algorithms = Blueprint("algorithms_endpoint", __name__)
 
 
 @algorithms.route("/algorithms")
@@ -28,7 +35,7 @@ async def get_algorithms() -> str:
     return AlgorithmSpecificationDTO.schema().dumps(algorithm_specifications, many=True)
 
 
-@algorithms.route("/algorithms/<algorithm_name>", methods=['POST'])
+@algorithms.route("/algorithms/<algorithm_name>", methods=["POST"])
 async def post_algorithm(algorithm_name: str) -> str:
     logging.info(f"Algorithm execution with name {algorithm_name}.")
 
@@ -58,12 +65,19 @@ async def post_algorithm(algorithm_name: str) -> str:
                 return result
 
         loop = asyncio.get_running_loop()
-        algorithm_result = await loop.run_in_executor(None, run_algorithm_executor_in_threadpool, algorithm_name, algorithm_request)
+        algorithm_result = await loop.run_in_executor(
+            None,
+            run_algorithm_executor_in_threadpool,
+            algorithm_name,
+            algorithm_request,
+        )
         return str(algorithm_result)
 
     except:
         logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
-        raise BadRequest("Something went wrong. "
-                         "Please inform the system administrator or try again later.")
+        raise BadRequest(
+            "Something went wrong. "
+            "Please inform the system administrator or try again later."
+        )
 
     return "Something did not go quite right...?"

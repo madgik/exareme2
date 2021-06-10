@@ -33,7 +33,9 @@ class MetadataVariable:
     def __post_init__(self):
         allowed_types = {"int", "real", "text"}
         if self.sql_type not in allowed_types:
-            raise ValueError(f"Metadata sql_type can be one of the following: {allowed_types}")
+            raise ValueError(
+                f"Metadata sql_type can be one of the following: {allowed_types}"
+            )
 
 
 @dataclass_json
@@ -42,6 +44,7 @@ class MetadataGroup:
     """
     MetadataGroup is used to map the pathology metadata .json to an object.
     """
+
     code: str
     label: str
     variables: Optional[List[MetadataVariable]] = field(default_factory=list)
@@ -67,7 +70,9 @@ class CommonDataElement:
         self.sql_type = variable.sql_type
         self.categorical = variable.isCategorical
         if variable.enumerations:
-            self.enumerations = {enumeration.code for enumeration in variable.enumerations}
+            self.enumerations = {
+                enumeration.code for enumeration in variable.enumerations
+            }
         self.min = variable.min
         self.max = variable.max
 
@@ -79,9 +84,11 @@ class CommonDataElements:
         metadata_path = Path(pathologies_metadata.__file__).parent
 
         self.pathologies = {}
-        for pathology_metadata_filepath in metadata_path.glob('*.json'):
+        for pathology_metadata_filepath in metadata_path.glob("*.json"):
             try:
-                pathology_metadata: MetadataGroup = MetadataGroup.from_json(open(pathology_metadata_filepath).read())
+                pathology_metadata: MetadataGroup = MetadataGroup.from_json(
+                    open(pathology_metadata_filepath).read()
+                )
                 self.pathologies[pathology_metadata.code] = {
                     variable.code: CommonDataElement(variable)
                     for group in pathology_metadata
@@ -91,15 +98,17 @@ class CommonDataElements:
                 logging.error(f"Parsing metadata file: {pathology_metadata_filepath}")
                 raise e
                 # Adding the subject code cde that doesn't exist in the metadata
-            self.pathologies[pathology_metadata.code]['subjectcode'] = CommonDataElement(
+            self.pathologies[pathology_metadata.code][
+                "subjectcode"
+            ] = CommonDataElement(
                 MetadataVariable(
-                    code='subjectcode',
-                    label='The unique identifier of the record',
-                    sql_type='text',
+                    code="subjectcode",
+                    label="The unique identifier of the record",
+                    sql_type="text",
                     isCategorical=False,
                     enumerations=None,
                     min=None,
-                    max=None
+                    max=None,
                 )
             )
 
