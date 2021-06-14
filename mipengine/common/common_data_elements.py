@@ -60,7 +60,7 @@ class MetadataGroup:
 class CommonDataElement:
     label: str
     sql_type: str
-    categorical: bool
+    is_categorical: bool
     enumerations: Optional[Set] = None
     min: Optional[float] = None
     max: Optional[float] = None
@@ -68,7 +68,7 @@ class CommonDataElement:
     def __init__(self, variable: MetadataVariable):
         self.label = variable.label
         self.sql_type = variable.sql_type
-        self.categorical = variable.isCategorical
+        self.is_categorical = variable.isCategorical
         if variable.enumerations:
             self.enumerations = {
                 enumeration.code for enumeration in variable.enumerations

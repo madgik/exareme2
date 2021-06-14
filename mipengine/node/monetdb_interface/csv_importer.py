@@ -67,7 +67,7 @@ def create_pathology_metadata_table(
             "code": common_data_element_code,
             "label": common_data_element.label,
             "sql_type": common_data_element.sql_type,
-            "categorical": common_data_element.categorical,
+            "categorical": common_data_element.is_categorical,
             "enumerations": enumerations_sql_value,
             "min": min_sql_value,
             "max": max_sql_value,
