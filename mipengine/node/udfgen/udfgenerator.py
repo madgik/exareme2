@@ -156,7 +156,9 @@ class RelationV(TableV):
     def from_table_info(cls, name, table_info):
         if DATA_TABLE_PRIMARY_KEY not in (col.name for col in table_info.schema):
             raise ValueError(f"{TableInfo} doesn't have a row_id column")
-        schema = [col for col in table_info.schema if col.name != DATA_TABLE_PRIMARY_KEY]
+        schema = [
+            col for col in table_info.schema if col.name != DATA_TABLE_PRIMARY_KEY
+        ]
         return cls(name=name, schema=schema)
 
 
