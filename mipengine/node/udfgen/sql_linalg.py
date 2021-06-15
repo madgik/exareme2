@@ -1,7 +1,7 @@
 from string import Template
 
 
-node_id_type = 'varchar(50)'
+node_id_type = "varchar(50)"
 nodeid_column = f"CAST('$node_id' AS {node_id_type}) AS node_id"
 
 

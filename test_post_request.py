@@ -26,7 +26,7 @@ def do_post_request():
     )
 
     algorithm_request = AlgorithmRequestDTO(
-        inputdata=algorithm_input_data, parameters=None, crossvalidation=None
+        inputdata=algorithm_input_data, parameters=None
     )
 
     request_json = algorithm_request.to_json()
