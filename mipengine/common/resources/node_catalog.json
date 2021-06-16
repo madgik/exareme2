@@ -1,1 +1,77 @@
-{"globalNode": {"nodeId": "globalnode", "rabbitmqIp": "192.168.124.129", "rabbitmqPort": 5670, "monetdbIp": "192.168.124.129", "monetdbPort": 50000}, "localNodes": [{"nodeId": "localnode1", "rabbitmqIp": "192.168.124.129", "rabbitmqPort": 5671, "monetdbIp": "192.168.124.129", "monetdbPort": 50001, "data": {"pathologies": [{"name": "dementia", "datasets": ["edsd", "ppmi", "desd-synthdata", "fake_longitudinal", "demo_data"]}, {"name": "mentalhealth", "datasets": ["demo"]}, {"name": "tbi", "datasets": ["tbi_demo2"]}]}}, {"nodeId": "localnode2", "rabbitmqIp": "192.168.124.129", "rabbitmqPort": 5672, "monetdbIp": "192.168.124.129", "monetdbPort": 50002, "data": {"pathologies": [{"name": "dementia", "datasets": ["edsd", "ppmi", "desd-synthdata", "fake_longitudinal", "demo_data"]}, {"name": "mentalhealth", "datasets": ["demo"]}, {"name": "tbi", "datasets": ["dummy_tbi"]}]}}]}
+{
+  "globalNode": {
+    "nodeId": "globalnode",
+    "rabbitmqIp": "192.168.63.129",
+    "rabbitmqPort": 5670,
+    "monetdbIp": "192.168.63.129",
+    "monetdbPort": 50000
+  },
+  "localNodes": [
+    {
+      "nodeId": "localnode1",
+      "rabbitmqIp": "192.168.63.129",
+      "rabbitmqPort": 5671,
+      "monetdbIp": "192.168.63.129",
+      "monetdbPort": 50001,
+      "data": {
+        "pathologies": [
+          {
+            "name": "dementia",
+            "datasets": [
+              "edsd",
+              "ppmi",
+              "desd-synthdata",
+              "fake_longitudinal",
+              "demo_data"
+            ]
+          },
+          {
+            "name": "mentalhealth",
+            "datasets": [
+              "demo"
+            ]
+          },
+          {
+            "name": "tbi",
+            "datasets": [
+              "tbi_demo2"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "nodeId": "localnode2",
+      "rabbitmqIp": "192.168.63.129",
+      "rabbitmqPort": 5672,
+      "monetdbIp": "192.168.63.129",
+      "monetdbPort": 50002,
+      "data": {
+        "pathologies": [
+          {
+            "name": "dementia",
+            "datasets": [
+              "edsd",
+              "ppmi",
+              "desd-synthdata",
+              "fake_longitudinal",
+              "demo_data"
+            ]
+          },
+          {
+            "name": "mentalhealth",
+            "datasets": [
+              "demo"
+            ]
+          },
+          {
+            "name": "tbi",
+            "datasets": [
+              "dummy_tbi"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
