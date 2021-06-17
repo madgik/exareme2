@@ -1,9 +1,9 @@
 from quart import Blueprint
 
-from mipengine.controller.api.errors.exceptions import BadRequest
-from mipengine.controller.api.errors.exceptions import BadUserInput
+from mipengine.controller.api.exceptions import BadRequest
+from mipengine.controller.api.exceptions import BadUserInput
 
-error_handlers = Blueprint('error_handlers', __name__)
+error_handlers = Blueprint("error_handlers", __name__)
 
 
 @error_handlers.app_errorhandler(BadRequest)
