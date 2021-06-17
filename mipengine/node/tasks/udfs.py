@@ -6,7 +6,7 @@ from typing import Tuple
 from celery import shared_task
 
 from mipengine.node import config as node_config
-from mipengine.algorithms import UDF_REGISTRY
+from mipengine import algorithms
 
 # from mipengine.algorithms import demo  # TODO Split the actual and testing algorithms
 from mipengine.common.node_tasks_DTOs import (
