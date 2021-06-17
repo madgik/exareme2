@@ -1,27 +1,6 @@
 from enum import Enum
 
 
-# class DType(Enum):
-#     INT = 0
-#     FLOAT = 1
-#     STR = 2
-
-
-# DTYPE2SQL = {
-#     DType.INT: "INT",
-#     DType.FLOAT: "FLOAT",
-#     DType.STR: "TEXT",
-# }
-# SQL2DTYPE = mapping_inverse(DTYPE2SQL)
-
-# DTYPE2PY = {
-#     DType.INT: int,
-#     DType.FLOAT: float,
-#     DType.STR: str,
-# }
-# PY2DTYPE = mapping_inverse(DTYPE2PY)
-
-
 class DType(Enum):
     """Members of DType represent data types in any language (python or sql).
     Each member has methods to_py and to_sql to convert its value to a concrete
