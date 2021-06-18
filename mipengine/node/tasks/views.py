@@ -62,7 +62,7 @@ def create_pathology_view(
     )
     columns.insert(0, DATA_TABLE_PRIMARY_KEY)
 
-    filter_with_datasets = update_filters_with_datasets(filters, datasets)
+    filter_with_datasets = __update_filters_with_datasets(filters, datasets)
 
     views.create_view(
         view_name=view_name,
