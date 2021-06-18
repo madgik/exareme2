@@ -114,7 +114,7 @@ def create_view(
     return view_name
 
 
-def update_filters_with_datasets(filters, datasets):
+def __update_filters_with_datasets(filters, datasets):
     """
     In the case of pathology views datasets will be provided.
     This function will handle and update the given filter to include the datasets(in the filters) in a proper jQuery format.

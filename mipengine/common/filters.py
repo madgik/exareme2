@@ -25,7 +25,7 @@ def build_filter_clause(rules):
         return
 
     if "condition" in rules:
-        check_proper_condition(rules["condition"])
+        __check_proper_condition(rules["condition"])
         cond = rules["condition"]
         rules = rules["rules"]
         return f" {cond} ".join([build_filter_clause(rule) for rule in rules])
@@ -33,16 +33,10 @@ def build_filter_clause(rules):
     if "id" in rules:
         column_name = rules["id"]
         op = FILTER_OPERATORS[rules["operator"]]
-        value = format_value_if_string(rules["type"], rules["value"])
+        value = __format_value_if_string(rules["type"], rules["value"])
         return op(column_name, value)
 
     raise ValueError(f"Filters did not contain the keys: 'condition' or 'id'.")
-
-
-def format_value_if_string(column_type, val):
-    if column_type == "string":
-        return [f"'{item}'" for item in val] if isinstance(val, list) else f"'{val}'"
-    return val
 
 
 def validate_proper_filter(pathology_name: str, rules):
@@ -59,50 +53,56 @@ def validate_proper_filter(pathology_name: str, rules):
     if rules is None:
         return
 
-    check_filter_type(rules)
-    check_pathology_exists(pathology_name)
+    __check_filter_type(rules)
+    __check_pathology_exists(pathology_name)
 
     if "condition" in rules:
-        check_proper_condition(rules["condition"])
+        __check_proper_condition(rules["condition"])
         rules = rules["rules"]
         [validate_proper_filter(pathology_name, rule) for rule in rules]
     elif "id" in rules:
         column_name = rules["id"]
         val = rules["value"]
-        check_proper_operator(rules["operator"])
-        check_column_exists(pathology_name, column_name)
-        check_value_type(pathology_name, column_name, val)
+        __check_proper_operator(rules["operator"])
+        __check_column_exists(pathology_name, column_name)
+        __check_value_type(pathology_name, column_name, val)
     else:
         raise ValueError(f"Invalid filters format. Filters did not contain the keys: 'condition' or 'id'.")
 
 
-def check_filter_type(rules):
+def __format_value_if_string(column_type, val):
+    if column_type == "string":
+        return [f"'{item}'" for item in val] if isinstance(val, list) else f"'{val}'"
+    return val
+
+
+def __check_filter_type(rules):
     if not isinstance(rules, dict):
         raise TypeError(f"Filter type can only be dict but was:{type(rules)}")
 
 
-def check_proper_condition(condition: str):
+def __check_proper_condition(condition: str):
     if condition not in ["OR", "AND"]:
         raise ValueError(f"Condition: {condition} is not acceptable.")
 
 
-def check_proper_operator(operator: str):
+def __check_proper_operator(operator: str):
     if operator not in FILTER_OPERATORS:
         raise ValueError(f"Operator: {operator} is not acceptable.")
 
 
-def check_column_exists(pathology_name: str, column: str):
+def __check_column_exists(pathology_name: str, column: str):
     pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
     if column not in pathology_common_data_elements.keys():
         raise KeyError(f"Column {column} does not exist in the metadata of the {pathology_name}!")
 
 
-def check_pathology_exists(pathology_name: str):
+def __check_pathology_exists(pathology_name: str):
     if pathology_name not in common_data_elements.pathologies.keys():
         raise KeyError(f"Pathology:{pathology_name} does not exist in the metadata!")
 
 
-def _convert_mip_type_to_class_type(mip_type: str):
+def __convert_mip_type_to_class_type(mip_type: str):
     """
     Converts MIP's types to the according class.
     """
@@ -118,24 +118,24 @@ def _convert_mip_type_to_class_type(mip_type: str):
     return type_mapping.get(mip_type)
 
 
-def check_value_type(pathology_name: str, column: str, value):
+def __check_value_type(pathology_name: str, column: str, value):
     if value is None:
         return
 
     if isinstance(value, list):
-        [check_value_type(pathology_name, column, item) for item in value]
+        [__check_value_type(pathology_name, column, item) for item in value]
     elif isinstance(value, (int, str, float)):
-        check_value_column_same_type(pathology_name, column, value)
+        __check_value_column_same_type(pathology_name, column, value)
     else:
         raise TypeError(
             f"Value {value} should be of type int, str, float but was {type(value)}"
         )
 
 
-def check_value_column_same_type(pathology_name, column, value):
+def __check_value_column_same_type(pathology_name, column, value):
     pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
     column_sql_type = pathology_common_data_elements[column].sql_type
-    if type(value) is not _convert_mip_type_to_class_type(column_sql_type):
+    if type(value) is not __convert_mip_type_to_class_type(column_sql_type):
         raise TypeError(
             f"{column}'s type: {column_sql_type} was different from the type of the given value:{type(value)}"
         )
