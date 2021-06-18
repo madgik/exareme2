@@ -18,7 +18,7 @@ def create_view(
     filters: dict,
 ):
     filter_clause = ""
-    if filters is not None:
+    if filters:
         filter_clause = f"WHERE {build_filter_clause(filters)}"
     columns_clause = ", ".join(columns)
 
