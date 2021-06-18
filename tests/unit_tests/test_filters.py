@@ -20,7 +20,7 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "age_value = 17"
+        "age_value = 17",
     ),
     (
         {
@@ -36,8 +36,9 @@ all_success_cases = [
                 }
             ],
             "valid": True,
-        }
-        , "pupil_reactivity_right_eye_result <> 'Nonreactive'"),
+        },
+        "pupil_reactivity_right_eye_result <> 'Nonreactive'",
+    ),
     (
         {
             "condition": "OR",
@@ -60,7 +61,8 @@ all_success_cases = [
                 },
             ],
             "valid": True,
-        }, "age_value = 17 OR pupil_reactivity_right_eye_result <> 'Nonreactive'"
+        },
+        "age_value = 17 OR pupil_reactivity_right_eye_result <> 'Nonreactive'",
     ),
     (
         {
@@ -84,7 +86,8 @@ all_success_cases = [
                 },
             ],
             "valid": True,
-        }, "age_value < 50 AND age_value > 20"
+        },
+        "age_value < 50 AND age_value > 20",
     ),
     (
         {
@@ -108,7 +111,8 @@ all_success_cases = [
                 },
             ],
             "valid": True,
-        }, "NOT age_value BETWEEN 60 AND 90 AND mortality_core BETWEEN 0.3 AND 0.8"
+        },
+        "NOT age_value BETWEEN 60 AND 90 AND mortality_core BETWEEN 0.3 AND 0.8",
     ),
     (
         {
@@ -132,7 +136,8 @@ all_success_cases = [
                 },
             ],
             "valid": True,
-        }, "gose_score IS NULL OR gcs_total_score IS NOT NULL"
+        },
+        "gose_score IS NULL OR gcs_total_score IS NOT NULL",
     ),
     (
         {
@@ -148,7 +153,8 @@ all_success_cases = [
                 }
             ],
             "valid": True,
-        }, "age_value IN (17,19)"
+        },
+        "age_value IN (17,19)",
     ),
     (
         {
@@ -164,7 +170,8 @@ all_success_cases = [
                 }
             ],
             "valid": True,
-        }, "gender_type IN ('F','M')"
+        },
+        "gender_type IN ('F','M')",
     ),
     (
         {
@@ -240,10 +247,11 @@ all_success_cases = [
                 },
             ],
             "valid": True,
-        }, (
+        },
+        (
             "gender_type = 'F' AND age_value BETWEEN 20 AND 30 AND gose_score IS NOT NULL OR gender_type <> 'F' AND "
             "mortality_core > 0.5 AND mortality_core <= 0.8"
-        )
+        ),
     ),
 ]
 
@@ -273,20 +281,13 @@ all_build_filter_clause_fail_cases = [
                 }
             ],
             "valid": True,
-        }, ValueError
+        },
+        ValueError,
     ),
-    (
-        0, TypeError
-    ),
-    (
-        "not_a_filter", ValueError
-    ),
-    (
-        {"data": 0}, ValueError
-    ),
-    (
-        {0}, ValueError
-    ),
+    (0, TypeError),
+    ("not_a_filter", ValueError),
+    ({"data": 0}, ValueError),
+    ({0}, ValueError),
 ]
 
 all_validate_proper_filter_fail_cases = [
@@ -304,20 +305,13 @@ all_validate_proper_filter_fail_cases = [
                 }
             ],
             "valid": True,
-        }, ValueError
+        },
+        ValueError,
     ),
-    (
-        0, TypeError
-    ),
-    (
-        "not_a_filter", TypeError
-    ),
-    (
-        {"data": 0}, ValueError
-    ),
-    (
-        {0}, TypeError
-    ),
+    (0, TypeError),
+    ("not_a_filter", TypeError),
+    ({"data": 0}, ValueError),
+    ({0}, TypeError),
     (
         {
             "condition": "AND",
@@ -332,7 +326,8 @@ all_validate_proper_filter_fail_cases = [
                 }
             ],
             "valid": True,
-        }, ValueError
+        },
+        ValueError,
     ),
     (
         {
@@ -348,8 +343,8 @@ all_validate_proper_filter_fail_cases = [
                 }
             ],
             "valid": True,
-        }
-        , KeyError
+        },
+        KeyError,
     ),
     (
         {
@@ -365,7 +360,8 @@ all_validate_proper_filter_fail_cases = [
                 }
             ],
             "valid": True,
-        }, TypeError
+        },
+        TypeError,
     ),
     (
         {
@@ -381,18 +377,23 @@ all_validate_proper_filter_fail_cases = [
                 }
             ],
             "valid": True,
-        }, TypeError
+        },
+        TypeError,
     ),
 ]
 
 
-@pytest.mark.parametrize("test_input,expected_error", all_validate_proper_filter_fail_cases)
+@pytest.mark.parametrize(
+    "test_input,expected_error", all_validate_proper_filter_fail_cases
+)
 def test_validate_proper_filter_fail_cases(test_input, expected_error):
     with pytest.raises(expected_error):
         validate_proper_filter(PATHOLOGY, test_input)
 
 
-@pytest.mark.parametrize("test_input,expected_error", all_build_filter_clause_fail_cases)
+@pytest.mark.parametrize(
+    "test_input,expected_error", all_build_filter_clause_fail_cases
+)
 def test_build_filter_clause_fail_cases(test_input, expected_error):
     with pytest.raises(expected_error):
         build_filter_clause(test_input)
@@ -404,17 +405,20 @@ invalid_pathology_case = ["non_existing_pathology", 0, True]
 @pytest.mark.parametrize("pathology", invalid_pathology_case)
 def test_validate_proper_filter_fail_cases(pathology):
     with pytest.raises(KeyError):
-        validate_proper_filter(pathology, {
-                              "condition": "AND",
-                              "rules": [
-                                  {
-                                      "id": "age_value",
-                                      "field": "age_value",
-                                      "type": "int",
-                                      "input": "number",
-                                      "operator": "equal",
-                                      "value": 17,
-                                  }
-                              ],
-                              "valid": True,
-                          })
+        validate_proper_filter(
+            pathology,
+            {
+                "condition": "AND",
+                "rules": [
+                    {
+                        "id": "age_value",
+                        "field": "age_value",
+                        "type": "int",
+                        "input": "number",
+                        "operator": "equal",
+                        "value": 17,
+                    }
+                ],
+                "valid": True,
+            },
+        )

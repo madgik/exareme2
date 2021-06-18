@@ -27,12 +27,12 @@ def get_views(context_id: str) -> List[str]:
 
 @shared_task
 def create_pathology_view(
-        context_id: str,
-        command_id: str,
-        pathology: str,
-        datasets: List[str],
-        columns: List[str],
-        filters: str = None,
+    context_id: str,
+    command_id: str,
+    pathology: str,
+    datasets: List[str],
+    columns: List[str],
+    filters: str = None,
 ) -> str:
     """
     Creates a MIP specific view of a pathology with specific columns, filters and datasets to the DB.
@@ -75,11 +75,11 @@ def create_pathology_view(
 
 @shared_task
 def create_view(
-        context_id: str,
-        command_id: str,
-        table_name: str,
-        columns: List[str],
-        filters: dict,
+    context_id: str,
+    command_id: str,
+    table_name: str,
+    columns: List[str],
+    filters: dict,
 ) -> str:
     """
     Creates a view of a table with specific columns and filters to the DB.
@@ -128,7 +128,8 @@ def __update_filters_with_datasets(filters, datasets):
             "input": "text",
             "operator": "in",
             "value": datasets,
-        }]
+        }
+    ]
 
     if filters is not None:
         rules.append(filters)

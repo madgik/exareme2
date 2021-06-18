@@ -26,6 +26,24 @@ def create_table_name(
     return f"{table_type}_{command_id}_{context_id}_{node_id}".lower()
 
 
+def convert_mip_type_to_class_type(mip_type: str):
+    """
+    Converts MIP's types to the according class.
+    """
+    type_mapping = {
+        "int": int,
+        "real": float,
+        "text": str,
+    }
+
+    if mip_type not in type_mapping.keys():
+        raise KeyError(
+            f"MIP type '{mip_type}' cannot be converted to a python class type."
+        )
+
+    return type_mapping.get(mip_type)
+
+
 def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     """
     Converts a table's schema to a sql query.

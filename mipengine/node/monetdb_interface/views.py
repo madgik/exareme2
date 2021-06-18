@@ -27,7 +27,6 @@ def create_view(
             CREATE VIEW {view_name}
             AS SELECT {columns_clause}
             FROM {table_name}
-            {filter_clause} 
+            {filter_clause}
         """
     )
-
