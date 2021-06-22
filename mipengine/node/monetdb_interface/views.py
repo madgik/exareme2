@@ -24,9 +24,9 @@ def create_view(
 
     MonetDB().execute(
         f"""
-            CREATE VIEW {view_name}
-            AS SELECT {columns_clause}
-            FROM {table_name}
-            {filter_clause}
+        CREATE VIEW {view_name}
+        AS SELECT {columns_clause}
+        FROM {table_name}
+        {filter_clause}
         """
     )
