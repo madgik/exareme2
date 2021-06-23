@@ -56,7 +56,7 @@ def test_create_view_and_get_view(context_id):
         command_id=str(uuid.uuid1()).replace("-", ""),
         table_name=table_name,
         columns=columns,
-        filters_json="filters_json",
+        filters=None,
     ).get()
 
     views = local_node_get_views.delay(context_id=context_id).get()
@@ -93,7 +93,7 @@ def test_create_pathology_view_and_get_view(context_id):
         pathology=pathology,
         datasets=datasets,
         columns=columns,
-        filters_json="filters_json",
+        filters=None,
     ).get()
     views = local_node_get_views.delay(context_id=context_id).get()
     assert view_name in views

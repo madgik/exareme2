@@ -83,7 +83,6 @@ class MonetDB(metaclass=Singleton):
         'many' option to provide the functionality of executemany.
         'parameters' option to provide the functionality of bind-parameters.
         """
-
         for _ in range(OCC_MAX_ATTEMPTS):
             with self.cursor() as cur:
                 try:
