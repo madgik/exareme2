@@ -28,16 +28,19 @@ def run(algo_interface):
     global_run = algo_interface.run_udf_on_global_node
     get_table_schema = algo_interface.get_table_schema
 
+    classes = algo_interface.algorithm_parameters["classes"]
+
     X_relation: "LocalNodeTable" = algo_interface.initial_view_tables["x"]
+    y_relation: "LocalNodeTable" = algo_interface.initial_view_tables["y"]
+
     X = local_run(
         func_name=make_unique_func_name(relation_to_matrix),
         positional_args={"rel": X_relation},
     )
 
-    y_relation: "LocalNodeTable" = algo_interface.initial_view_tables["y"]
     y = local_run(
-        func_name=make_unique_func_name(relation_to_vector),
-        positional_args={"rel": y_relation},
+        func_name=make_unique_func_name(label_binarize),
+        positional_args={"y": y_relation, "classes": classes},
     )
 
     # init model
@@ -146,7 +149,9 @@ def run(algo_interface):
     return coeff.get_table_data()
 
 
-def logistic_regression_py(y, X):
+def logistic_regression_py(y, X, classes):
+    y = label_binarize(y, classes)
+    X = X.to_numpy()
     nobs, ncols = X.shape
     coeff = zeros1(ncols)
     logloss = 1e6
@@ -182,6 +187,14 @@ def logistic_regression_py(y, X):
 T = TypeVar("T")
 N = TypeVar("N")
 S = TypeVar("S")
+
+
+@udf(y=relation(S), classes=literal(), return_type=tensor(int, 1))
+def label_binarize(y, classes):
+    from sklearn import preprocessing
+
+    ybin = preprocessing.label_binarize(y, classes=classes).T[0]
+    return ybin
 
 
 @udf(n=literal(), return_type=tensor(float, 1))
@@ -244,8 +257,22 @@ def sum_tensors(xs):
 
 
 def test_logistic_regression():
-    data = pd.read_csv("tests/integration_tests/data/dementia/logistic_data.csv")
-    y = data["alzheimerbroadcategory_bin"].to_numpy()
-    X = data[["lefthippocampus", "righthippocampus"]].to_numpy()
-    coeff = logistic_regression_py(y, X)
-    assert numpy.isclose(coeff, numpy.array([-1.37934764, 1.22089536])).all()
+    data = pd.read_csv("tests/integration_tests/data/dementia/edsd.csv")
+    y_name = "alzheimerbroadcategory"
+    x_names = [
+        "lefthippocampus",
+        "righthippocampus",
+        "rightppplanumpolare",
+        "leftamygdala",
+        "rightamygdala",
+    ]
+    classes = ["AD", "CN"]
+
+    data = data[[y_name] + x_names].dropna()
+    data = data[data[y_name].isin(classes)]
+    y = data[y_name]
+    X = data[x_names]
+
+    coeff = logistic_regression_py(y, X, classes=classes)
+    expected = numpy.array([4.5790059, -5.680588, -6.193766, 1.807270, 19.584665])
+    assert numpy.isclose(coeff, expected).all()

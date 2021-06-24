@@ -7,36 +7,61 @@ from mipengine.controller.api.AlgorithmRequestDTO import (
 
 def do_post_request():
     url = "http://127.0.0.1:5000/algorithms" + "/logistic_regression"
+
+    x = [
+        "lefthippocampus",
+        "righthippocampus",
+        "rightppplanumpolare",
+        "leftamygdala",
+        "rightamygdala",
+    ]
+    y = ["parkinsonbroadcategory"]
+    classes = ["PD", "CN"]
+
+    pathology = "dementia"
+    datasets = ["ppmi"]
+
     print(f"POST to {url}")
+    print(f"X: {x}")
+    print(f"y: {y}")
+    print(f"Target classes: {classes}")
+    print(f"Pathology: {pathology}, datasets: {datasets}")
 
-    # example request 1
-    # algorithm_input_data = AlgorithmInputDataDTO(pathology="mentalhealth",
-    #                                              datasets=["demo"],
-    #                                              filters=None,
-    #                                              x=["rightaccumbensarea", "leftaccumbensarea", "rightamygdala"],
-    #                                              y=["leftamygdala"])
+    filters = {
+        "condition": "AND",
+        "rules": [
+            {
+                "id": variable,
+                "type": "string",
+                "operator": "is_not_null",
+                "value": None,
+            }
+            for variable in x + y
+        ],
+        "valid": True,
+    }
 
-    # example request 2
     algorithm_input_data = AlgorithmInputDataDTO(
-        pathology="dementia",
-        datasets=["demo_data"],
-        filters=None,
-        x=["lefthippocampus", "righthippocampus"],
-        y=["alzheimerbroadcategory_bin"],
+        pathology=pathology,
+        datasets=datasets,
+        filters=filters,
+        x=x,
+        y=y,
     )
 
     algorithm_request = AlgorithmRequestDTO(
-        inputdata=algorithm_input_data, parameters=None
+        inputdata=algorithm_input_data,
+        parameters={"classes": classes},
     )
 
     request_json = algorithm_request.to_json()
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    algorithm_result = requests.post(url, data=request_json, headers=headers)
+    response = requests.post(url, data=request_json, headers=headers)
 
-    return algorithm_result
+    return response
 
 
-result = do_post_request()
-
-print(f"Algorithm result-> {result.text}")
+if __name__ == "__main__":
+    response = do_post_request()
+    print(f"Algorithm result-> {response.text}")

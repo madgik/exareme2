@@ -1,3 +1,4 @@
+import json
 import logging
 import traceback
 
@@ -68,7 +69,7 @@ async def post_algorithm(algorithm_name: str) -> str:
             algorithm_name,
             algorithm_request,
         )
-        return str(algorithm_result)
+        return json.dumps(algorithm_result)
 
     except:
         logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
