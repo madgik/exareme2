@@ -14,7 +14,7 @@ from mipengine.controller.api.AlgorithmSpecificationsDTOs import (
 from mipengine.controller.api.exceptions import BadRequest
 
 from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
-from mipengine.controller.algorithm_executor.AlgorithmExecutor import AlgorithmExecutor
+from mipengine.controller.algorithm_executor.algorithm_executor import AlgorithmExecutor
 
 import asyncio
 
