@@ -6,17 +6,19 @@ from typing import Tuple
 from celery import shared_task
 
 from mipengine.node import config as node_config
-from mipengine.algorithms import UDF_REGISTRY
+from mipengine import algorithms
 
 # from mipengine.algorithms import demo  # TODO Split the actual and testing algorithms
-from mipengine.common.node_tasks_DTOs import UDFArgument
+from mipengine.common.node_tasks_DTOs import (
+    UDFArgument,
+    ColumnInfo,
+    TableInfo,
+)
 from mipengine.common.validate_identifier_names import validate_identifier_names
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
-from mipengine.node.udfgen import ColumnInfo
-from mipengine.node.udfgen import TableInfo
-from mipengine.node.udfgen import generate_udf_application_queries
+from mipengine.node.udfgen import generate_udf_queries
 
 
 @shared_task
@@ -174,7 +176,7 @@ def _generate_udf_statements(
     )
 
     gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
-    udf_creation_stmt, udf_execution_stmt = generate_udf_application_queries(
+    udf_creation_stmt, udf_execution_stmt = generate_udf_queries(
         func_name, gen_pos_args, gen_kw_args
     )
     udf_creation_stmt = udf_creation_stmt.substitute(udf_name=udf_name)

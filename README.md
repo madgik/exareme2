@@ -44,7 +44,7 @@
    ip = "172.17.0.1"
    log_level = "INFO"
    celery_log_level ="INFO"
-   monetdb_image = "madgik/mipenginedb:dev1.2"
+   monetdb_image = "madgik/mipenginedb:dev1.3"
 
    [[nodes]]
    id = "globalnode"
@@ -80,7 +80,6 @@
    inv load-data
    ```
 
-
 1. Attach to some service's stdout/stderr with
 
    ```
@@ -113,25 +112,25 @@
 
 1. Start Flower monitoring tool
 
-    by choosing a specific node to monitor
+   by choosing a specific node to monitor
 
-    ```
-    inv start-flower --node <NODE-NAME>
-    ```
+   ```
+   inv start-flower --node <NODE-NAME>
+   ```
 
-    or start a separate flower instance for all of the nodes with
+   or start a separate flower instance for all of the nodes with
 
-    ```
-    inv start-flower --all
-    ```
+   ```
+   inv start-flower --all
+   ```
 
-    Then go to the respective address on your browser to start monitoring the nodes.
+   Then go to the respective address on your browser to start monitoring the nodes.
 
 1. Kill all flower instances at any point with
 
-    ```
-    inv kill-flower
-    ```
+   ```
+   inv kill-flower
+   ```
 
 #### Algorithm Run
 
