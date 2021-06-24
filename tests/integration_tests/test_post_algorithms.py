@@ -1,10 +1,9 @@
 import json
-import logging
 import re
-import threading
 
 import pytest
 import requests
+import numpy as np
 
 from tests.integration_tests import algorithms_url
 
@@ -14,10 +13,17 @@ test_cases_post_algorithm_success = [
         {
             "inputdata": {
                 "pathology": "dementia",
-                "datasets": ["demo_data"],
-                "x": ["lefthippocampus", "righthippocampus"],
-                "y": ["alzheimerbroadcategory_bin"],
+                "datasets": ["ppmi"],
+                "x": [
+                    "lefthippocampus",
+                    "righthippocampus",
+                    "rightppplanumpolare",
+                    "leftamygdala",
+                    "rightamygdala",
+                ],
+                "y": ["parkinsonbroadcategory"],
             },
+            "parameters": {"classes": ["PD", "CN"]},
         },
     ),
 ]
@@ -33,6 +39,9 @@ def test_post_algorithm_success(algorithm_name, request_body):
         algorithm_url, data=json.dumps(request_body), headers=headers
     )
     assert response.status_code == 200
+    result = [coeff for _, _, coeff in json.loads(response.text)]
+    expected = np.array([0.864517, 0.3577170, 0.475236, -2.682983, -2.615825])
+    assert np.isclose(result, expected).all()
 
 
 test_cases_post_algorithm_failure = [

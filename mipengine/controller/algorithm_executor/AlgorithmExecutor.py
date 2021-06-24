@@ -107,6 +107,7 @@ class AlgorithmExecutor:
             global_node=self.global_node,
             local_nodes=self.local_nodes,
             algorithm_name=self.algorithm_name,
+            algorithm_parameters=algorithm_request_dto.parameters,
         )
 
         # import the algorithm flow module
@@ -375,10 +376,17 @@ class AlgorithmExecutor:
             task_signature.delay(self.__context_id)
 
     class AlgorithmExecutionInterface:
-        def __init__(self, global_node, local_nodes, algorithm_name):
+        def __init__(
+            self,
+            global_node,
+            local_nodes,
+            algorithm_name,
+            algorithm_parameters,
+        ):
             self._global_node = global_node
             self._local_nodes = local_nodes
             self._algorithm_name = algorithm_name
+            self._algorithm_parameters = algorithm_parameters
 
             # TODO: validate all local nodes have created the base_view_table??
             self._initial_view_tables = {}  # {variable:LocalTable}
@@ -405,6 +413,10 @@ class AlgorithmExecutor:
         @property
         def initial_view_tables(self):
             return self._initial_view_tables
+
+        @property
+        def algorithm_parameters(self):
+            return self._algorithm_parameters
 
         # UDFs functionality
         def run_udf_on_local_nodes(
