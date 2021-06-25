@@ -15,11 +15,11 @@ def do_post_request():
         "leftamygdala",
         "rightamygdala",
     ]
-    y = ["parkinsonbroadcategory"]
-    classes = ["PD", "CN"]
+    y = ["alzheimerbroadcategory"]
+    classes = ["AD", "CN"]
 
     pathology = "dementia"
-    datasets = ["ppmi"]
+    datasets = ["edsd"]
 
     print(f"POST to {url}")
     print(f"X: {x}")

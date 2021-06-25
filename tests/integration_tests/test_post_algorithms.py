@@ -13,7 +13,7 @@ test_cases_post_algorithm_success = [
         {
             "inputdata": {
                 "pathology": "dementia",
-                "datasets": ["ppmi"],
+                "datasets": ["edsd"],
                 "x": [
                     "lefthippocampus",
                     "righthippocampus",
@@ -21,9 +21,29 @@ test_cases_post_algorithm_success = [
                     "leftamygdala",
                     "rightamygdala",
                 ],
-                "y": ["parkinsonbroadcategory"],
+                "y": ["alzheimerbroadcategory"],
+                "filters": {
+                    "condition": "AND",
+                    "rules": [
+                        {
+                            "id": variable,
+                            "type": "string",
+                            "operator": "is_not_null",
+                            "value": None,
+                        }
+                        for variable in [
+                            "lefthippocampus",
+                            "righthippocampus",
+                            "rightppplanumpolare",
+                            "leftamygdala",
+                            "rightamygdala",
+                            "alzheimerbroadcategory",
+                        ]
+                    ],
+                    "valid": True,
+                },
             },
-            "parameters": {"classes": ["PD", "CN"]},
+            "parameters": {"classes": ["AD", "CN"]},
         },
     ),
 ]
@@ -40,7 +60,7 @@ def test_post_algorithm_success(algorithm_name, request_body):
     )
     assert response.status_code == 200
     result = [coeff for _, _, coeff in json.loads(response.text)]
-    expected = np.array([0.864517, 0.3577170, 0.475236, -2.682983, -2.615825])
+    expected = np.array([-3.809188, 4.595969, 3.6549711, -2.4617643, -11.787596])
     assert np.isclose(result, expected).all()
 
 
