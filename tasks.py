@@ -1,3 +1,53 @@
+"""
+Deployment script used for the development of the MIP-Engine.
+
+In order to understand this script a basic knowledge of the system is required, this script
+does not contain the documentation of the engine. The documentation of the tasks,
+in this script, is targeted to the specifics of the development deployment process.
+
+This script deploys all the containers and services natively on your machine.
+It deploys the containers on different ports and then configures the services to use the appropriate ports.
+
+A node service uses a configuration file either on the default location './mipengine/node/config.toml'
+or in the location of the env variable 'MIPENGINE_NODE_CONFIG_FILE', if the env variable is set.
+This deployment script used for development, uses the env variable logic, therefore before deploying each
+node service the env variable is changed to the location of the node services' config file.
+
+In order for this script's tasks to work the './configs/nodes' folder should contain all the node's config files
+following the './mipengine/node/config.toml' as template.
+You can either create the files manually or using a '.deployment.toml' file with the following template
+```
+ip = "172.17.0.1"
+log_level = "INFO"
+celery_log_level ="INFO"
+monetdb_image = "madgik/mipenginedb:dev1.3"
+
+[[nodes]]
+id = "globalnode"
+monetdb_port=50000
+rabbitmq_port=5670
+
+[[nodes]]
+id = "localnode1"
+monetdb_port=50001
+rabbitmq_port=5671
+
+[[nodes]]
+id = "localnode2"
+monetdb_port=50002
+rabbitmq_port=5672
+```
+
+and by running the command 'inv create-node-configs'.
+
+The node services are named after their config file. If a config file is named './configs/nodes/localnode1.toml'
+the node service will be called 'localnode1' and should be referenced using that in the following tasks.
+
+Paths are subject to change so in the following documentation the global variables will be used.
+
+"""
+
+
 import sys
 from enum import Enum
 from itertools import cycle
@@ -11,6 +61,8 @@ from invoke import UnexpectedExit
 from invoke import task
 from termcolor import colored
 
+from tests import integration_tests
+
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
 NODES_CONFIG_DIR = PROJECT_ROOT / "configs" / "nodes"
@@ -19,6 +71,7 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
+DEMO_DATA_FOLDER = Path(integration_tests.__file__).parent / "data"
 
 # TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
 # Right now if we call a task from another task, the "pre"-task is not executed
@@ -27,11 +80,13 @@ if not OUTDIR.exists():
 @task
 def create_node_configs(c):
     """
-    Create the node configuration files, using the '.deployment.toml' and store them in the `configs` folder.
+    Create the node services config files, using 'DEPLOYMENT_CONFIG_FILE' and store them in `NODES_CONFIG_DIR` folder.
     """
 
     if not Path(DEPLOYMENT_CONFIG_FILE).is_file():
-        raise FileNotFoundError("Deployment config file '.deployment.toml' not found.")
+        raise FileNotFoundError(
+            f"Deployment config file '{DEPLOYMENT_CONFIG_FILE}' not found."
+        )
 
     with open(DEPLOYMENT_CONFIG_FILE) as fp:
         deployment_config = toml.load(fp)
@@ -70,6 +125,8 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
     :param container_name: If set, removes the container with the specified name.
     :param monetdb: If True, it will remove all monetdb containers.
     :param rabbitmq: If True, it will remove all rabbitmq containers.
+
+    If nothing is set, nothing is removed.
     """
     names = []
     if monetdb:
@@ -97,10 +154,14 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
 def create_monetdb(c, node, monetdb_image=None):
     """
     (Re)Create MonetDB container(s) for given node(s). If the container exists, it will remove it and create it again.
-    If an image is not provided it will use `.deployment.toml`.
 
     :param node: A list of nodes for which it will create the monetdb containers.
-    :param monetdb_image: The image to deploy. If not set, it will read it from the `.deployment.toml`.
+    :param monetdb_image: The image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+
+    If an image is not provided it will use the 'monetdb_image' field from
+    the 'DEPLOYMENT_CONFIG_FILE' ex. monetdb_image = "madgik/mipenginedb:dev1.2"
+
+    The data of the monetdb container are not persisted. If the container is recreated, all data will be lost.
     """
     if not node:
         message("Please specify a node using --node <node>", Level.WARNING)
@@ -129,9 +190,9 @@ def create_monetdb(c, node, monetdb_image=None):
 @task(iterable=["port"])
 def load_data(c, port=None):
     """
-    Load data into the specified DB from the integration_tests/data folder.
+    Load data into the specified DB from the 'DEMO_DATA_FOLDER'.
 
-    :param port: A list of ports, in which it will load the data. If not set, it will use the `configs` folder files.
+    :param port: A list of ports, in which it will load the data. If not set, it will use the `NODES_CONFIG_DIR` files.
     """
 
     local_node_ports = port
@@ -151,16 +212,13 @@ def load_data(c, port=None):
             if "local" in node_config["identifier"]:
                 local_node_ports.append(node_config["monetdb"]["port"])
 
-    from tests import integration_tests
-
-    data_folder = Path(integration_tests.__file__).parent / "data"
     with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
         template_node_config = toml.load(fp)
     for port in local_node_ports:
         message(f"Loading data on MonetDB at port {port}...", Level.HEADER)
         cmd = (
             f"poetry run python -m mipengine.node.monetdb_interface.csv_importer "
-            f"-folder {data_folder} "
+            f"-folder {DEMO_DATA_FOLDER} "
             f"-user {template_node_config['monetdb']['username']} "
             f"-pass {template_node_config['monetdb']['password']} "
             f"-url localhost:{port} "
@@ -174,7 +232,7 @@ def config_rabbitmq(c, node):
     """
     Configure users and permissions for RabbitMQ container(s) of given node(s).
 
-    :param node: A list of rabbitmq containers which it will configure.
+    :param node: A list of nodes for which to configure the rabbitmq containers.
     """
     message("Configuring RabbitMQ containers, this may take some time", Level.HEADER)
 
@@ -214,7 +272,7 @@ def create_rabbitmq(c, node):
     """
     (Re)Create RabbitMQ container(s) of given node(s). If the container exists, remove it and create it again.
 
-    :param node: A list of rabbitmq containers which it will (re)create.
+    :param node: A list of nodes for which to (re)create the rabbitmq containers.
     """
     if not node:
         message("Please specify a node using --node <node>", Level.WARNING)
@@ -266,8 +324,8 @@ def kill_node(c, node=None, all_=False):
             f"Killing previous celery instance(s) with pattern '{node_pattern}' ...",
             Level.HEADER,
         )
-        # In order for the node processes to be killed, we need to kill both
-        # the parent process with the 'node_identifier' and it's child.
+        # In order for the node service to be killed, we need to kill the celery worker process with the "node_pattern"
+        # in it's name and it's parent process, the celery main process.
         cmd = (
             f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
             f"&& pgrep -P $pid | xargs kill -9 "
@@ -283,11 +341,12 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
     """
     (Re)Start the node(s) service(s). If a node service is running, stop and start it again.
 
-    If the --detached argument is given, it will start the node service in the background.
-    :param node: The node to start, using the proper file in the `configs` folder.
+    :param node: The node to start, using the proper file in the `NODES_CONFIG_DIR`.
     :param all_: If set, the nodes of which the configuration file exists, will be started.
-    :param celery_log_level: If not provided, it will look into the `.deployment.toml`.
+    :param celery_log_level: If not provided, it will look into the `DEPLOYMENT_CONFIG_FILE`.
     :param detached: If set to True, it will start the service in the background.
+
+    The containers related to the services remain unchanged.
     """
 
     if not celery_log_level:
@@ -362,8 +421,8 @@ def deploy(
     :param start_all: Start all node/controller services flag.
     :param start_controller_: Start controller services flag.
     :param start_nodes: Start all nodes flag.
-    :param celery_log_level: Used for the engine services. If not provided, it will look into the `.deployment.toml`.
-    :param monetdb_image: Used for the db containers. If not provided, it will look into the `.deployment.toml`.
+    :param celery_log_level: Used for the engine services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param monetdb_image: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     """
 
     if not celery_log_level:
@@ -441,7 +500,7 @@ def start_flower(c, node=None, all_=False):
     (Re)Start flower monitoring tool. If flower is already running, stop ir and start it again.
 
     :param node: The node service, for which to create the flower monitoring.
-    :param all_: If set, it will create monitoring for all node services in the `configs` folder.
+    :param all_: If set, it will create monitoring for all node services in the `NODES_CONFIG_DIR`.
     """
 
     kill_all_flowers(c)
@@ -558,7 +617,7 @@ def spin_wheel(promise=None, time=None):
 def get_deployment_config(config):
     if not Path(DEPLOYMENT_CONFIG_FILE).is_file():
         raise FileNotFoundError(
-            f"Please provide a --{config} parameter or create a deployment config file '.deployment.toml'"
+            f"Please provide a --{config} parameter or create a deployment config file '{DEPLOYMENT_CONFIG_FILE}'"
         )
 
     with open(DEPLOYMENT_CONFIG_FILE) as fp:

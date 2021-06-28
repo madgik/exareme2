@@ -62,13 +62,13 @@
    rabbitmq_port=5672
    ```
 
-   and then run the following command to create the node config files
+   and then run the following command to create the config files that the node services will use
 
    ```
    inv create-node-configs
    ```
 
-1. Install dependencies, start the containers and then the services with:
+1. Install dependencies, start the containers and then the services with
 
    ```
    inv deploy
@@ -92,7 +92,7 @@
    inv attach --node <NODE-NAME>
    ```
 
-1. Restart all node/controller services with
+1. Restart all the node/controller services and keep the same containers with
 
    ```
    inv start-node --all && inv start-controller --detached
@@ -102,7 +102,7 @@
 
 1. Create the node configuration files inside the `./configs/nodes/` directory following the `./mipengine/node/config.toml` template.
 
-1. Deploy everything with:
+1. Install dependencies, start the containers and then the services with
 
    ```
    inv deploy --monetdb-image madgik/mipenginedb:dev1.2 --celery-log-level info
