@@ -1,5 +1,5 @@
 import requests
-from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
+from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 
 
 def do_post_request():

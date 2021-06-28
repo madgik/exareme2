@@ -15,7 +15,7 @@ from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.common.node_tasks_DTOs import UDFArgument
 from mipengine.controller.algorithms_specifications import algorithms_specifications
-from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
+from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 
 # TODO: Too many things happening in all the initialiazers. Especially the AlgorithmExecutor __init__ is called synchronuously from the server
 # TODO: TASK_TIMEOUT

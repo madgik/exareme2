@@ -4,15 +4,15 @@ import traceback
 from quart import Blueprint
 from quart import request
 
-from mipengine.controller.api.AlgorithmSpecificationsDTOs import (
+from mipengine.controller.api.algorithm_specifications_dtos import (
     AlgorithmSpecificationDTO,
 )
-from mipengine.controller.api.AlgorithmSpecificationsDTOs import (
+from mipengine.controller.api.algorithm_specifications_dtos import (
     algorithm_specificationsDTOs,
 )
 from mipengine.controller.api.exceptions import BadRequest
 
-from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
+from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.algorithm_executor.AlgorithmExecutor import AlgorithmExecutor
 
 import asyncio
