@@ -7,223 +7,245 @@ from typing import Any
 import numpy
 import pandas as pd
 
-from mipengine.algorithms import udf
-from mipengine.algorithms import TableT
-from mipengine.algorithms import TensorT
-from mipengine.algorithms import LiteralParameterT
-from mipengine.algorithms import ScalarT
-from mipengine.algorithms import RelationT
+from mipengine.node.udfgen import (
+    TensorBinaryOp,
+    TensorUnaryOp,
+    literal,
+    make_unique_func_name,
+    merge_tensor,
+    relation,
+    scalar,
+    tensor,
+    udf,
+)
 
 
 PREC = 1e-6
 
 
 def run(algo_interface):
-
-    # y: TableT, X: TableT
-    run_on_locals = algo_interface.run_udf_on_local_nodes
-    run_on_global = algo_interface.run_udf_on_global_node
+    local_run = algo_interface.run_udf_on_local_nodes
+    global_run = algo_interface.run_udf_on_global_node
     get_table_schema = algo_interface.get_table_schema
 
-    X_init: "LocalNodeTable" = algo_interface.initial_view_tables["x"]
-    X = run_on_locals(
-        func_name="logistic_regression.relation_to_matrix",
-        positional_args={"rel": X_init},
-    )  # X = relation_to_matrix(X)
+    X_relation: "LocalNodeTable" = algo_interface.initial_view_tables["x"]
+    X = local_run(
+        func_name=make_unique_func_name(relation_to_matrix),
+        positional_args={"rel": X_relation},
+    )
 
-    y_init: "LocalNodeTable" = algo_interface.initial_view_tables["y"]
-    y = run_on_locals(
-        func_name="logistic_regression.relation_to_vector",
-        positional_args={"rel": y_init},
-    )  # y = relation_to_vector(y)
+    y_relation: "LocalNodeTable" = algo_interface.initial_view_tables["y"]
+    y = local_run(
+        func_name=make_unique_func_name(relation_to_vector),
+        positional_args={"rel": y_relation},
+    )
 
     # init model
-    table_schema = get_table_schema(X)  # nobs, ncols = X.shape
+    table_schema = get_table_schema(X)
     ncols = len(table_schema.columns)
-
-    coeff = run_on_locals(
-        func_name="sql.zeros1", positional_args={"n": ncols}
-    )  # coeff = zeros1(ncols)
+    coeff = local_run(
+        func_name=make_unique_func_name(zeros1),
+        positional_args={"n": ncols},
+    )
 
     logloss = 1e6
-    # loop update coefficients
     while True:
-        z = run_on_locals(
-            func_name="sql.matrix_dot_vector", positional_args={"Μ": X, "v": coeff}
-        )  # z = matrix_dot_vector(X, coeff)
-
-        s = run_on_locals(
-            func_name="logistic_regression.tensor_expit", positional_args={"t": z}
-        )  # s = tensor_expit(z)
-
-        tmp = run_on_locals(
-            func_name="sql.const_tensor1_sub", positional_args={"const": 1, "t": s}
-        )  # tmp = const_tensor_sub(1, s)
-
-        d = run_on_locals(
-            func_name="sql.tensor1_mult", positional_args={"t1": s, "t2": tmp}
-        )  # d = tensor_mult(s, const_tensor_sub(1, s))
-
-        tmp = run_on_locals(
-            func_name="sql.tensor1_sub", positional_args={"t1": y, "t2": s}
+        z = local_run(
+            func_name=TensorBinaryOp.MATMUL.name,
+            positional_args={"Μ": X, "v": coeff},
         )
-        y_ratio = run_on_locals(
-            func_name="sql.tensor1_div", positional_args={"t1": tmp, "t2": d}
-        )  # y_ratio = tensor_div(tensor_sub(y, s), d)
 
-        hessian = run_on_locals(
-            func_name="sql.mat_transp_dot_diag_dot_mat",
-            positional_args={"M": X, "d": d},
-            share_to_global=True,
-        )  # hessian = mat_transp_dot_diag_dot_mat(X, d)
-
-        tmp = run_on_locals(
-            func_name="sql.tensor1_add", positional_args={"t1": z, "t2": y_ratio}
+        s = local_run(
+            func_name=make_unique_func_name(tensor_expit),
+            positional_args={"t": z},
         )
-        grad = run_on_locals(
-            func_name="sql.mat_transp_dot_diag_dot_vec",
-            positional_args={"M": X, "d": d, "v": tmp},
-            share_to_global=True,
-        )  # grad = mat_transp_dot_diag_dot_vec(X, d, tensor_add(z, y_ratio))
 
-        newlogloss = run_on_locals(
-            func_name="logistic_regression.logistic_loss",
+        one_minus_s = local_run(
+            func_name=TensorBinaryOp.SUB.name,
+            positional_args={"const": 1, "t": s},
+        )
+
+        d = local_run(
+            func_name=TensorBinaryOp.MUL.name,
+            positional_args={"t1": s, "t2": one_minus_s},
+        )
+
+        y_minus_s = local_run(
+            func_name=TensorBinaryOp.SUB.name,
+            positional_args={"t1": y, "t2": s},
+        )
+
+        y_ratio = local_run(
+            func_name=TensorBinaryOp.DIV.name,
+            positional_args={"t1": y_minus_s, "t2": d},
+        )
+
+        X_transpose = local_run(
+            func_name=TensorUnaryOp.TRANSPOSE.name,
+            positional_args={"t1": X},
+        )
+
+        d_diag = local_run(
+            func_name=make_unique_func_name(diag),
+            positional_args={"vec": d},
+        )
+
+        Xtranspose_dot_ddiag = local_run(
+            func_name=TensorBinaryOp.MATMUL.name,
+            positional_args={"t1": X_transpose, "t2": d_diag},
+        )
+
+        hessian = local_run(
+            func_name=TensorBinaryOp.MATMUL.name,
+            positional_args={"t1": Xtranspose_dot_ddiag, "t2": X},
+            share_to_global=True,
+        )
+
+        z_plus_yratio = local_run(
+            func_name=TensorBinaryOp.ADD.name,
+            positional_args={"t1": z, "t2": y_ratio},
+        )
+
+        grad = local_run(
+            func_name=TensorBinaryOp.MATMUL.name,
+            positional_args={"t1": Xtranspose_dot_ddiag, "t2": z_plus_yratio},
+            share_to_global=True,
+        )
+
+        newlogloss = local_run(
+            func_name=make_unique_func_name(logistic_loss),
             positional_args={"v1": y, "v2": s},
-        )  # newlogloss = logistic_loss(y, s)
-        newlogloss = sum(
-            newlogloss.get_table_data()
-        )  # is not a single value, its one value per local node
-
-        # ******** Global part ******** #
-        hessian_global = run_on_global(
-            func_name="reduce.sum_tensors", positional_args=[hessian]
         )
 
-        tmp = run_on_global(
-            func_name="logistic_regression.mat_inverse",
+        newlogloss = sum(newlogloss.get_table_data())
+
+        # ~~~~~~~~ Global part ~~~~~~~~ #
+        hessian_global = global_run(
+            func_name=make_unique_func_name(sum_tensors),
+            positional_args=[hessian],
+        )
+
+        hessian_inverse = global_run(
+            func_name=make_unique_func_name(mat_inverse),
             positional_args=[hessian_global],
         )
-        coeff = run_on_global(
-            func_name="sql.matrix_dot_vector",
-            positional_args=[tmp, grad],
+        coeff = global_run(
+            func_name=TensorBinaryOp.MATMUL.name,
+            positional_args=[hessian_inverse, grad],
             share_to_locals=True,
-        )  # coeff = matrix_dot_vector(mat_inverse(hessian), grad)
+        )
 
         if abs(newlogloss - logloss) <= PREC:
-            coeff = run_on_global(
-                func_name="sql.matrix_dot_vector", positional_args=[tmp, grad]
-            )  # coeff = matrix_dot_vector(mat_inverse(hessian), grad)
+            coeff = global_run(
+                func_name=TensorBinaryOp.MATMUL.name,
+                positional_args=[hessian_inverse, grad],
+            )
             break
         logloss = newlogloss
 
     return coeff.get_table_data()
 
 
-DT = TypeVar("DT")
-ND = TypeVar("ND")
+def logistic_regression_py(y, X):
+    nobs, ncols = X.shape
+    coeff = zeros1(ncols)
+    logloss = 1e6
+    while True:
+        z = X @ coeff
+        s = tensor_expit(z)
+        one_minus_s = 1 - s
+        d = s * one_minus_s
+        y_minus_s = y - s
+        y_ratio = y_minus_s / d
+
+        X_transpose = X.T
+        d_diag = diag(d)
+        Xtranspose_dot_ddiag = X_transpose @ d_diag
+        hessian = Xtranspose_dot_ddiag @ X
+
+        z_plus_yratio = z + y_ratio
+        grad = Xtranspose_dot_ddiag @ z_plus_yratio
+        newlogloss = logistic_loss(y, s)
+
+        hessian_inverse = mat_inverse(hessian)
+        coeff = hessian_inverse @ grad
+
+        if abs(newlogloss - logloss) <= PREC:
+            break
+        logloss = newlogloss
+    return coeff
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~ UDFs ~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+
+
+T = TypeVar("T")
+N = TypeVar("N")
 S = TypeVar("S")
 
-# SQL UDF
+
+@udf(n=literal(), return_type=tensor(float, 1))
 def zeros1(n):
-    return numpy.zeros((n,))
-
-
-# SQL UDF
-def matrix_dot_vector(M, v):
-    result = M @ v
+    result = numpy.zeros((n,))
     return result
 
 
-@udf
-def relation_to_matrix(rel: RelationT[S]) -> TensorT(float, 2):
+@udf(rel=relation(S), return_type=tensor(float, 2))
+def relation_to_matrix(rel):
     return rel
 
 
-@udf
-def relation_to_vector(rel: RelationT[S]) -> TensorT(float, 1):
+@udf(rel=relation(S), return_type=tensor(float, 1))
+def relation_to_vector(rel):
     return rel
 
 
-@udf
-def tensor_expit(t: TensorT[DT, ND]) -> TensorT[DT, ND]:
+@udf(t=tensor(T, N), return_type=tensor(float, N))
+def tensor_expit(t):
     from scipy import special
 
     result = special.expit(t)
     return result
 
 
-# SQL UDF
-def tensor_mult(t1, t2):
-    result = t1 * t2
+@udf(vec=tensor(T, 1), return_type=tensor(T, 2))
+def diag(vec):
+    result = numpy.diag(vec)
     return result
 
 
-# SQL UDF
-def tensor_add(t1, t2):
-    result = t1 + t2
-    return result
-
-
-# SQL UDF
-def tensor_sub(t1, t2):
-    result = t1 - t2
-    return result
-
-
-# SQL UDF
-def tensor_div(t1, t2):
-    result = t1 / t2
-    return result
-
-
-# SQL UDF
-def const_tensor_sub(const, t):
-    result = const - t
-    return result
-
-
-# SQL UDF
-def mat_transp_dot_diag_dot_mat(M, d):
-    result = M.T @ numpy.diag(d) @ M
-    return result
-
-
-# SQL UDF
-def mat_transp_dot_diag_dot_vec(M, d, v):
-    result = M.T @ numpy.diag(d) @ v
-    return result
-
-
-@udf
-def logistic_loss(v1: TensorT[DT, ND], v2: TensorT[DT, ND]) -> ScalarT(float):
+@udf(v1=tensor(T, N), v2=tensor(T, N), return_type=scalar(float))
+def logistic_loss(v1, v2):
     from scipy import special
 
     ll = numpy.sum(special.xlogy(v1, v2) + special.xlogy(1 - v1, 1 - v2))
     return ll
 
 
-@udf
-def tensor_max_abs_diff(t1: TensorT[DT, ND], t2: TensorT[DT, ND]) -> ScalarT(float):
+@udf(t1=tensor(T, N), t2=tensor(T, N), return_type=scalar(float))
+def tensor_max_abs_diff(t1, t2):
     result = numpy.max(numpy.abs(t1 - t2))
     return result
 
 
-@udf
-def mat_inverse(m: TensorT(Number, 2)) -> TensorT(float, 2):
+@udf(m=tensor(T, 2), return_type=tensor(float, 2))
+def mat_inverse(m):
     minv = numpy.linalg.inv(m)
     return minv
 
 
-# -------------------------------------------------------- #
-# Examples                                                 #
-# -------------------------------------------------------- #
-def true_run():
-    data = pd.read_csv("mipengine/algorithms/auxfiles/logistic_data.csv")
-    y = data["alzheimerbroadcategory"].to_numpy()
+@udf(xs=merge_tensor(dtype=T, ndims=N), return_type=tensor(dtype=T, ndims=N))
+def sum_tensors(xs):
+    from functools import reduce
+
+    reduced = reduce(lambda a, b: a + b, xs)
+    reduced = numpy.array(reduced)
+    return reduced
+
+
+def test_logistic_regression():
+    data = pd.read_csv("tests/integration_tests/data/dementia/logistic_data.csv")
+    y = data["alzheimerbroadcategory_bin"].to_numpy()
     X = data[["lefthippocampus", "righthippocampus"]].to_numpy()
-    coeff = logistic_regression(y, X)
-    print(coeff)
-
-
-if __name__ == "__main__":
-    true_run()
+    coeff = logistic_regression_py(y, X)
+    assert numpy.isclose(coeff, numpy.array([-1.37934764, 1.22089536])).all()

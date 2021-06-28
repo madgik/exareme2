@@ -432,7 +432,7 @@ class AlgorithmExecutor:
                             "(run_udf_on_local_nodes) GlobalNodeTable types are not accepted from run_udf_on_local_nodes"
                         )
                     else:
-                        udf_argument = UDFArgument(type="literal", value=str(val))
+                        udf_argument = UDFArgument(type="literal", value=val)
                     positional_args_transfrormed.append(udf_argument.to_json())
                     keyword_args_transformed[var_name] = udf_argument.to_json()
 
