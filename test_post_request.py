@@ -20,7 +20,36 @@ def do_post_request():
     algorithm_input_data = AlgorithmInputDataDTO(
         pathology="dementia",
         datasets=["demo_data"],
-        filters=None,
+        filters={
+            "valid": True,
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "alzheimerbroadcategory_bin",
+                    "type": "column",
+                    "value": None,
+                    "operator": "is_not_null",
+                },
+                {
+                    "id": "dataset",
+                    "type": "string",
+                    "value": ["demo_data"],
+                    "operator": "in",
+                },
+                {
+                    "id": "lefthippocampus",
+                    "type": "column",
+                    "value": None,
+                    "operator": "is_not_null",
+                },
+                {
+                    "id": "righthippocampus",
+                    "type": "column",
+                    "value": None,
+                    "operator": "is_not_null",
+                },
+            ],
+        },
         x=["lefthippocampus", "righthippocampus"],
         y=["alzheimerbroadcategory_bin"],
     )

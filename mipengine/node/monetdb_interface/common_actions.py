@@ -4,7 +4,6 @@ from typing import Union
 from mipengine.common.node_exceptions import TablesNotFound
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
-from mipengine.common.validate_identifier_names import validate_identifier_names
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 MONETDB_VARCHAR_SIZE = 50
@@ -13,7 +12,6 @@ MONETDB_VARCHAR_SIZE = 50
 # TODO We need to add the PRIVATE/OPEN table logic
 
 
-@validate_identifier_names
 def create_table_name(
     table_type: str, command_id: str, context_id: str, node_id: str
 ) -> str:
@@ -64,7 +62,6 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     )
 
 
-@validate_identifier_names
 def get_table_schema(table_name: str) -> TableSchema:
     """
     Retrieves a schema for a specific table name from the monetdb.
@@ -102,7 +99,6 @@ def get_table_schema(table_name: str) -> TableSchema:
     )
 
 
-@validate_identifier_names
 def get_table_names(table_type: str, context_id: str) -> List[str]:
     """
     Retrieves a list of table names, which contain the context_id from the monetdb.
@@ -131,7 +127,6 @@ def get_table_names(table_type: str, context_id: str) -> List[str]:
     return [table[0] for table in table_names]
 
 
-@validate_identifier_names
 def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     """
     Retrieves the data of a table with specific name from the monetdb.
@@ -159,7 +154,6 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     return data
 
 
-@validate_identifier_names
 def drop_db_artifacts_by_context_id(context_id: str):
     """
     Drops all tables of any type and functions with name that contain a specific
@@ -249,7 +243,6 @@ def _convert_monet2mip_column_type(column_type: str) -> str:
     return type_mapping.get(column_type)
 
 
-@validate_identifier_names
 def _drop_table_by_type_and_context_id(table_type: str, context_id: str):
     """
     Drops all tables of specific type with name that contain a specific context_id from the DB.
@@ -276,7 +269,6 @@ def _drop_table_by_type_and_context_id(table_type: str, context_id: str):
             MonetDB().execute(f"DROP TABLE {name}")
 
 
-@validate_identifier_names
 def _drop_udfs_by_context_id(context_id: str):
     """
     Drops all functions of specific context_id from the DB.
