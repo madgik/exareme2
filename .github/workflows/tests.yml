@@ -89,5 +89,8 @@ jobs:
       - name: Deploy all services
         run: poetry run inv deploy --no-install-dep --start-all
 
+      - name: Load data into DBs
+        run: poetry run inv load-data
+
       - name: Run integration tests tests
         run: poetry run pytest tests/integration_tests
