@@ -64,12 +64,6 @@ class TableView:
                 raise ValueError(
                     f"Column : {column} has inappropriate characters for a sql query."
                 )
-        # TODO Do we need to check the filters or is Jason's parser handle it?
-        # for key in filter:
-        #     if not key.isidentifier():
-        #         raise ValueError(f"Filter's key : {key} has inappropriate characters for a sql query.")
-        #     if not filter[key].isidentifier():
-        #         raise ValueError(f"Filter's value : {filter[key]} has inappropriate characters for a sql query.")
 
 
 @dataclass_json

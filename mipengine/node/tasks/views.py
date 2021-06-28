@@ -32,9 +32,8 @@ def create_pathology_view(
     pathology: str,
     datasets: List[str],
     columns: List[str],
-    filters_json: str,
+    filters: str = None,
 ) -> str:
-    # TODO We need to add the filters
     """
     Creates a MIP specific view of a pathology with specific columns, filters and datasets to the DB.
 
@@ -50,7 +49,7 @@ def create_pathology_view(
         A list of dataset names
     columns : List[str]
         A list of column names
-    filters_json : str(dict)
+    filters : dict
         A Jquery filters object
 
     Returns
@@ -62,11 +61,14 @@ def create_pathology_view(
         "view", command_id, context_id, node_config.identifier
     )
     columns.insert(0, DATA_TABLE_PRIMARY_KEY)
+
+    filter_with_datasets = __update_filters_with_datasets(filters, datasets)
+
     views.create_view(
         view_name=view_name,
         table_name=f"{pathology}_data",
         columns=columns,
-        datasets=datasets,
+        filters=filter_with_datasets,
     )
     return view_name
 
@@ -77,7 +79,7 @@ def create_view(
     command_id: str,
     table_name: str,
     columns: List[str],
-    filters_json: str,
+    filters: dict,
 ) -> str:
     """
     Creates a view of a table with specific columns and filters to the DB.
@@ -92,8 +94,8 @@ def create_view(
         The name of the table
     columns : List[str]
         A list of column names
-    filters_json : str(dict)
-        A Jquery filters object
+    filters : dict
+        A Jquery filters in a dict
 
     Returns
     ------
@@ -103,5 +105,36 @@ def create_view(
     view_name = create_table_name(
         "view", command_id, context_id, node_config.identifier
     )
-    views.create_view(view_name=view_name, table_name=table_name, columns=columns)
+    views.create_view(
+        view_name=view_name,
+        table_name=table_name,
+        columns=columns,
+        filters=filters,
+    )
     return view_name
+
+
+def __update_filters_with_datasets(filters, datasets):
+    """
+    In the case of pathology views datasets will be provided.
+    This function will handle and update the given filter to include the datasets(in the filters) in a proper jQuery format.
+    The datasets will be handled here to avoid mip specific implementations in the monetdb_interface.
+    """
+    rules = [
+        {
+            "id": "dataset",
+            "field": "dataset",
+            "type": "string",
+            "input": "text",
+            "operator": "in",
+            "value": datasets,
+        }
+    ]
+
+    if filters is not None:
+        rules.append(filters)
+    return {
+        "condition": "AND",
+        "rules": rules,
+        "valid": True,
+    }
