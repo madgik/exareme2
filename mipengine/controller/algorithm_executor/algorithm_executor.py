@@ -108,6 +108,8 @@ class AlgorithmExecutor:
             local_nodes=self.local_nodes,
             algorithm_name=self.algorithm_name,
             algorithm_parameters=algorithm_request_dto.parameters,
+            x_variables=algorithm_request_dto.inputdata.x,
+            y_variables=algorithm_request_dto.inputdata.y,
         )
 
         # import the algorithm flow module
@@ -382,11 +384,15 @@ class AlgorithmExecutor:
             local_nodes,
             algorithm_name,
             algorithm_parameters,
+            x_variables,
+            y_variables,
         ):
             self._global_node = global_node
             self._local_nodes = local_nodes
             self._algorithm_name = algorithm_name
             self._algorithm_parameters = algorithm_parameters
+            self._x_variables = x_variables
+            self._y_variables = y_variables
 
             # TODO: validate all local nodes have created the base_view_table??
             self._initial_view_tables = {}  # {variable:LocalTable}
@@ -417,6 +423,14 @@ class AlgorithmExecutor:
         @property
         def algorithm_parameters(self):
             return self._algorithm_parameters
+
+        @property
+        def x_variables(self):
+            return self._x_variables
+
+        @property
+        def y_variables(self):
+            return self._y_variables
 
         # UDFs functionality
         def run_udf_on_local_nodes(

@@ -59,9 +59,19 @@ def test_post_algorithm_success(algorithm_name, request_body):
         algorithm_url, data=json.dumps(request_body), headers=headers
     )
     assert response.status_code == 200
-    result = [coeff for _, _, coeff in json.loads(response.text)]
-    expected = np.array([-3.809188, 4.595969, 3.6549711, -2.4617643, -11.787596])
-    assert np.isclose(result, expected).all()
+    result = json.loads(response.text)
+    expected = {
+        "title": "Logistic Regression Coefficients",
+        "columns": [
+            "lefthippocampus",
+            "righthippocampus",
+            "rightppplanumpolare",
+            "leftamygdala",
+            "rightamygdala",
+        ],
+        "data": [[-3.809188, 4.595969, 3.6549711, -2.4617643, -11.787596]],
+    }
+    assert result == expected
 
 
 test_cases_post_algorithm_failure = [

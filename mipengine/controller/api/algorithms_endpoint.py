@@ -69,7 +69,7 @@ async def post_algorithm(algorithm_name: str) -> str:
             algorithm_name,
             algorithm_request,
         )
-        return json.dumps(algorithm_result)
+        return algorithm_result.json()
 
     except:
         logging.error(f"Unhandled exception: \n {traceback.format_exc()}")

@@ -18,6 +18,7 @@ from mipengine.node.udfgen import (
     tensor,
     udf,
 )
+from mipengine.algorithms.result import TabularDataResult
 
 
 PREC = 1e-6
@@ -146,7 +147,14 @@ def run(algo_interface):
             break
         logloss = newlogloss
 
-    return coeff.get_table_data()
+    coeff_values = [c for _, _, c in coeff.get_table_data()]
+    x_variables = algo_interface.x_variables
+    result = TabularDataResult(
+        title="Logistic Regression Coefficients",
+        columns=x_variables,
+        data=[coeff_values],
+    )
+    return result
 
 
 def logistic_regression_py(y, X, classes):
