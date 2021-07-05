@@ -151,8 +151,11 @@ def run(algo_interface):
     x_variables = algo_interface.x_variables
     result = TabularDataResult(
         title="Logistic Regression Coefficients",
-        columns=[{"name": varname, "type": "number"} for varname in x_variables],
-        data=[coeff_values],
+        columns=[
+            {"name": "variable", "type": "string"},
+            {"name": "coefficient", "type": "number"},
+        ],
+        data=[[varname, coeff] for varname, coeff in zip(x_variables, coeff_values)],
     )
     return result
 
