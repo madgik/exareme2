@@ -60,18 +60,8 @@ def test_post_algorithm_success(algorithm_name, request_body):
     )
     assert response.status_code == 200
     result = json.loads(response.text)
-    expected = {
-        "title": "Logistic Regression Coefficients",
-        "columns": [
-            "lefthippocampus",
-            "righthippocampus",
-            "rightppplanumpolare",
-            "leftamygdala",
-            "rightamygdala",
-        ],
-        "data": [[-3.809188, 4.595969, 3.6549711, -2.4617643, -11.787596]],
-    }
-    assert result == expected
+    expected_data = [[-3.809188, 4.595969, 3.6549711, -2.4617643, -11.787596]]
+    assert result["data"] == expected_data
 
 
 test_cases_post_algorithm_failure = [
