@@ -7,6 +7,7 @@ from typing import Optional
 
 from dataclasses_json import dataclass_json
 
+
 @dataclass_json
 @dataclass
 class AlgorithmInputDataDTO:
@@ -22,7 +23,6 @@ class AlgorithmInputDataDTO:
 class AlgorithmRequestDTO:
     inputdata: AlgorithmInputDataDTO
     parameters: Optional[Dict[str, Any]] = None
-    crossvalidation: Optional[Dict[str, Any]] = None
 
 
 # @dataclass_json

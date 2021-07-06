@@ -51,11 +51,13 @@ class MonetDB(metaclass=Singleton):
         finally:
             cur.close()
 
-    def execute_with_result(self, query: str) -> List:
+    def execute_and_fetchall(self, query: str, parameters=None, many=False) -> List:
         """
         Used to execute select queries that return a result.
-
         Should NOT be used to execute "CREATE, DROP, ALTER, UPDATE, ..." statements.
+
+        'many' option to provide the functionality of executemany, all results will be fetched.
+        'parameters' option to provide the functionality of bind-parameters.
         """
 
         # We use a single instance of a connection and by committing before a select query we refresh the state of
@@ -65,22 +67,28 @@ class MonetDB(metaclass=Singleton):
         self._connection.commit()
 
         with self.cursor() as cur:
-            cur.execute(query)
+            cur.executemany(query, parameters) if many else cur.execute(
+                query, parameters
+            )
             result = cur.fetchall()
             return result
 
-    def execute(self, query: str):
+    def execute(self, query: str, parameters=None, many=False):
         """
         Executes statements that don't have a result. For example "CREATE,DROP,UPDATE".
         And handles the *Optimistic Concurrency Control by giving each call X attempts
-        if they fail with pymonetdb.exceptions.IntegrityError .
+        if they fail with pymonetdb.exceptions.IntegrityError.
         *https://www.monetdb.org/blog/optimistic-concurrency-control
-        """
 
+        'many' option to provide the functionality of executemany.
+        'parameters' option to provide the functionality of bind-parameters.
+        """
         for _ in range(OCC_MAX_ATTEMPTS):
             with self.cursor() as cur:
                 try:
-                    cur.execute(query)
+                    cur.executemany(query, parameters) if many else cur.execute(
+                        query, parameters
+                    )
                     self._connection.commit()
                     break
                 except pymonetdb.exceptions.IntegrityError as exc:

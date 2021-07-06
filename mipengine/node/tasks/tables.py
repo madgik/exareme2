@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 
 from celery import shared_task
 
@@ -46,6 +46,21 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
     table_name = create_table_name(
         "table", command_id, context_id, node_config.identifier
     )
-    table_info = TableInfo(table_name.lower(), schema_object)
+    table_info = TableInfo(table_name, schema_object)
     tables.create_table(table_info)
-    return table_name.lower()
+    return table_name
+
+
+@shared_task
+def insert_data_to_table(
+    table_name: str, values: List[List[Union[str, int, float, bool]]]
+):
+    """
+    Parameters
+    ----------
+    table_name : str
+    The name of the table
+    values : List[List[Union[str, int, float, bool]]
+    The data of the table to be inserted
+    """
+    tables.insert_data_to_table(table_name, values)

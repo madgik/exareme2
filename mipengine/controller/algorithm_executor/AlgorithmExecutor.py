@@ -22,7 +22,7 @@ from mipengine.common.node_tasks_DTOs import TableData
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from mipengine.common.node_tasks_DTOs import UDFArgument
-from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequestDTO
+from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
 
 
 # TODO: Too many things happening in all the initialiazers. Especially the
@@ -182,7 +182,7 @@ class AlgorithmExecutor:
                 "get_table_data": "mipengine.node.tasks.common.get_table_data",
                 "create_table": "mipengine.node.tasks.tables.create_table",
                 "get_views": "mipengine.node.tasks.views.get_views",
-                "create_view": "mipengine.node.tasks.views.create_view",
+                "create_pathology_view": "mipengine.node.tasks.views.create_pathology_view",
                 "get_remote_tables": "mipengine.node.tasks.remote_tables.get_remote_tables",
                 "create_remote_table": "mipengine.node.tasks.remote_tables.create_remote_table",
                 "get_merge_tables": "mipengine.node.tasks.merge_tables.get_merge_tables",
@@ -214,7 +214,7 @@ class AlgorithmExecutor:
             # initial view for variables in X
             variable = "x"
             command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_view(
+            view_name = self.create_pathology_view(
                 command_id=command_id,
                 pathology=initial_view_tables_params["pathology"],
                 datasets=initial_view_tables_params["datasets"],
@@ -227,7 +227,7 @@ class AlgorithmExecutor:
             # initial view for variables in Y
             variable = "y"
             command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_view(
+            view_name = self.create_pathology_view(
                 command_id=command_id,
                 pathology=initial_view_tables_params["pathology"],
                 datasets=initial_view_tables_params["datasets"],
@@ -279,9 +279,8 @@ class AlgorithmExecutor:
             result = task_signature.delay(context_id=self.__context_id).get()
             return [TableName(table_name) for table_name in result]
 
-        # TODO: this is very specific to mip, very inconsistent with the rest, has to
-        # be abstracted somehow
-        def create_view(
+        # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
+        def create_pathology_view(
             self,
             command_id: str,
             pathology: str,
@@ -290,7 +289,7 @@ class AlgorithmExecutor:
             filters: List[str],
         ) -> TableName:
             task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["create_view"]
+                self.task_signatures_str["create_pathology_view"]
             )
 
             # -----------DEBUG
@@ -309,7 +308,7 @@ class AlgorithmExecutor:
                 pathology=pathology,
                 datasets=datasets,
                 columns=columns,
-                filters_json=filters,
+                filters=filters,
             ).get()
 
             return TableName(result)
@@ -467,7 +466,7 @@ class AlgorithmExecutor:
                             "(run_udf_on_local_nodes) GlobalNodeTable types are not accepted from run_udf_on_local_nodes"
                         )
                     else:
-                        udf_argument = UDFArgument(type="literal", value=str(val))
+                        udf_argument = UDFArgument(type="literal", value=val)
                     positional_args_transfrormed.append(udf_argument.to_json())
                     keyword_args_transformed[var_name] = udf_argument.to_json()
 

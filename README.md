@@ -1,4 +1,4 @@
-# MIP-Engine
+# MIP-Engine [![Maintainability](https://api.codeclimate.com/v1/badges/3e022eaf87579b79cf0f/maintainability)](https://codeclimate.com/github/madgik/MIP-Engine/maintainability) <a href="https://codeclimate.com/github/madgik/MIP-Engine/test_coverage"><img src="https://api.codeclimate.com/v1/badges/3e022eaf87579b79cf0f/test_coverage" /></a>
 
 ### Prerequisites
 
@@ -38,19 +38,13 @@
 
 #### Local Deployment
 
-1. Find your machine's local ip address, _e.g._ with
-
-   ```
-   ifconfig | grep "inet "
-   ```
-
 1. Create a deployment configuration file `.deployment.toml` using the following template
 
    ```
    ip = "172.17.0.1"
    log_level = "INFO"
    celery_log_level ="INFO"
-   monetdb_image = "madgik/mipenginedb:dev1.2"
+   monetdb_image = "madgik/mipenginedb:dev1.3"
 
    node_registry_port = 8500
 
@@ -74,16 +68,16 @@
 
    ```
 
-   and then run the following command to create the node config files
+   and then run the following command to create the config files that the node services will use
 
    ```
-   inv create_node_configs
+   inv create-node-configs
    ```
 
-1. Deploy everything with
+1. Install dependencies, start the containers and then the services with
 
    ```
-   inv deploy --start-all
+   inv deploy
    ```
 
 1. _Optional_ Load the data into the db with
@@ -105,7 +99,7 @@
    inv attach --node <NODE-NAME>
    ```
 
-1. Restart services with
+1. Restart all the node/controller services and keep the same containers with
 
    ```
    inv start-node --all && inv start-controller --detached
@@ -115,10 +109,34 @@
 
 1. Create the node configuration files inside the `./configs/nodes/` directory following the `./mipengine/node/config.toml` template.
 
-1. Deploy everything with:
+1. Install dependencies, start the containers and then the services with
 
    ```
-   inv deploy --start-all --monetdb-image madgik/mipenginedb:dev1.2 --celery-log-level info
+   inv deploy --monetdb-image madgik/mipenginedb:dev1.2 --celery-log-level info
+   ```
+
+#### Start monitoring tools
+
+1. Start Flower monitoring tool
+
+   by choosing a specific node to monitor
+
+   ```
+   inv start-flower --node <NODE-NAME>
+   ```
+
+   or start a separate flower instance for all of the nodes with
+
+   ```
+   inv start-flower --all
+   ```
+
+   Then go to the respective address on your browser to start monitoring the nodes.
+
+1. Kill all flower instances at any point with
+
+   ```
+   inv kill-flower
    ```
 
 #### Algorithm Run

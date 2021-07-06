@@ -6,17 +6,19 @@ from typing import Tuple
 from celery import shared_task
 
 from mipengine.node import config as node_config
-from mipengine.algorithms import UDF_REGISTRY
+from mipengine import algorithms
 
 # from mipengine.algorithms import demo  # TODO Split the actual and testing algorithms
-from mipengine.common.node_tasks_DTOs import UDFArgument
+from mipengine.common.node_tasks_DTOs import (
+    UDFArgument,
+    ColumnInfo,
+    TableInfo,
+)
 from mipengine.common.validate_identifier_names import validate_identifier_names
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
-from mipengine.node.udfgen import ColumnInfo
-from mipengine.node.udfgen import TableInfo
-from mipengine.node.udfgen import generate_udf_application_queries
+from mipengine.node.udfgen import generate_udf_queries
 
 
 @shared_task
@@ -63,17 +65,13 @@ def run_udf(
             The name of the table where the udf execution results are in.
     """
 
-    result_table_name = create_table_name(
-        "table", command_id, context_id, node_config.identifier
-    )
-
     positional_args = [UDFArgument.from_json(arg) for arg in positional_args_json]
 
     keyword_args = {
         key: UDFArgument.from_json(arg) for key, arg in keyword_args_json.items()
     }
 
-    udf_creation_stmt, udf_execution_stmt = _generate_udf_statements(
+    udf_creation_stmt, udf_execution_stmt, result_table_name = _generate_udf_statements(
         command_id, context_id, func_name, positional_args, keyword_args
     )
 
@@ -89,9 +87,9 @@ def get_run_udf_query(
     func_name: str,
     positional_args_json: List[str],
     keyword_args_json: Dict[str, str],
-) -> Tuple[str, str]:
+) -> Tuple[str, str, str]:
     """
-    Returns the sql statements that represent the execution of the udf.
+    Fetches the sql statements that represent the execution of the udf.
 
     Parameters
     ----------
@@ -109,7 +107,9 @@ def get_run_udf_query(
     Returns
     -------
         str
-            The name of the table where the udf execution results are in.
+            The name of the result table,
+            the statement that creates the udf and
+            the statement that executes the udf.
     """
 
     positional_args = [UDFArgument.from_json(arg) for arg in positional_args_json]
@@ -169,18 +169,16 @@ def _generate_udf_statements(
     positional_args: List[UDFArgument],
     keyword_args: Dict[str, UDFArgument],
 ):
-    gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
-
-    udf_creation_stmt, udf_execution_stmt = generate_udf_application_queries(
-        func_name, gen_pos_args, gen_kw_args
-    )
-
     allowed_func_name = func_name.replace(".", "_")  # A dot is not an allowed character
     udf_name = _create_udf_name(allowed_func_name, command_id, context_id)
     result_table_name = create_table_name(
         "table", command_id, context_id, node_config.identifier
     )
 
+    gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
+    udf_creation_stmt, udf_execution_stmt = generate_udf_queries(
+        func_name, gen_pos_args, gen_kw_args
+    )
     udf_creation_stmt = udf_creation_stmt.substitute(udf_name=udf_name)
     udf_execution_stmt = udf_execution_stmt.substitute(
         table_name=result_table_name,
@@ -188,4 +186,4 @@ def _generate_udf_statements(
         node_id=node_config.identifier,
     )
 
-    return udf_creation_stmt, udf_execution_stmt
+    return udf_creation_stmt, udf_execution_stmt, result_table_name

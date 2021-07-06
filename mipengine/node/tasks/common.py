@@ -47,4 +47,4 @@ def clean_up(context_id: str):
     context_id : str
         The id of the experiment
     """
-    common_actions.clean_up(context_id)
+    common_actions.drop_db_artifacts_by_context_id(context_id)
