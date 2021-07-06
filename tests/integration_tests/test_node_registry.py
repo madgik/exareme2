@@ -274,8 +274,8 @@ def test_get_db_params_for_node1(node_registry_client, expected_db_for_localnode
 
 def test_get_node_id_by_db_id(node_registry_client, expected_all_nodes):
     for expected_node in expected_all_nodes:
-        node = node_registry_client.get_node_id_by_db_id(expected_node.db_id)
-        assert node == expected_node
+        node_id = node_registry_client.get_node_id_by_db_id(expected_node.db_id)
+        assert node_id == expected_node.id
 
 
 def test_get_all_dbs(node_registry_client, expected_all_dbs):
@@ -294,8 +294,6 @@ def test_deregister_node(node_registry_client):
 
 
 # test for exceptions...
-# check what happens if existing key tries to be put to kvstore
-# pip install pytest-assume
 def test_get_node_unknown_node_id(node_registry_client):
     with pytest.raises(NodeIDUnknown):
         node_registry_client.get_node_by_node_id("this_is_a_non_existing_node_id")

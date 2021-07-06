@@ -15,7 +15,6 @@ from mipengine.node import config as node_config
 def get_celery_app(node_id: str):
     nrclient = NodeRegistryClient()
     node = nrclient.get_node_by_node_id(node_id)
-    # node = node_catalog.get_node(node_id)
 
     rabbitmq_credentials = (
         node_config.rabbitmq.user + ":" + node_config.rabbitmq.password

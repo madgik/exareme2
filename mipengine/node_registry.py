@@ -125,7 +125,7 @@ class NodeRegistryClient:
                 db_id = service_id
 
                 _, data = self._consul_kv_store.get(db_id)
-                if data:  # global node's db do not contain primal data
+                if data:  # global node's db do not contain primary data
                     pathologies = Pathologies.parse_raw(data["Value"])
                 else:
                     pathologies = None
@@ -167,7 +167,7 @@ class NodeRegistryClient:
         all_nodes = self.get_all_nodes()
         for node in all_nodes:
             if node.db_id == db_id:
-                return node
+                return node.id
 
         raise DBIdUnknown(db_id)
 

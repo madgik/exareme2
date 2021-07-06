@@ -398,7 +398,7 @@ def deploy(
     if install_dep:
         install_dependencies(c)
 
-    #start NODE SERVICE service
+    #start NODE REGISTRY service
     start_node_registry(c)
 
     #start NODE services
@@ -476,7 +476,6 @@ def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok
     promise = c.run(cmd, asynchronous=True, warn=warn)
     # TODO and then it blocks here, what is the point of asynchronous=True?
     spin_wheel(promise=promise)
-    # TODO this is also obscure. := makes it obscure
     stderr = promise.runner.stderr
     if stderr and raise_error:
         raise UnexpectedExit(stderr)

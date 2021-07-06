@@ -16,7 +16,6 @@ from mipengine.node import config as node_config
 def get_node_db_connection(node_id: str) -> Connection:
     nrclient = NodeRegistryClient()
     db = nrclient.get_db_by_node_id(node_id)
-    # node = node_catalog.get_node(node_id)
     connection = pymonetdb.connect(
         hostname=str(db.ip),
         port=db.port,
