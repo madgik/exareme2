@@ -25,7 +25,9 @@ from mipengine.common.node_tasks_DTOs import UDFArgument
 from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequestDTO
 
 
-# TODO: Too many things happening in all the initialiazers. Especially the AlgorithmExecutor __init__ is called synchronuously from the server
+# TODO: Too many things happening in all the initialiazers. Especially the
+# AlgorithmExecutor __init__ is called synchronuously from the server
+
 # TODO: TASK_TIMEOUT
 
 ALGORITHMS_FOLDER = "mipengine.algorithms"
