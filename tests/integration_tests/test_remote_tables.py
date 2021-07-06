@@ -14,7 +14,6 @@ from mipengine.node_registry import (
     DBParams,
 )
 
-# from mipengine.common.node_catalog import node_catalog
 from tests.integration_tests import nodes_communication
 
 global_node_id = "globalnode"
