@@ -5,7 +5,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-# from mipengine.common.node_catalog import node_catalog
 from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmInputDataDTO
 from mipengine.controller.api.DTOs.AlgorithmRequestDTO import AlgorithmRequestDTO
 from mipengine.controller.api.DTOs.AlgorithmSpecificationsDTOs import (
@@ -28,6 +27,15 @@ from mipengine.controller.api.errors.exceptions import BadUserInput
 from mipengine.controller.algorithms_specifications import GenericParameterSpecification
 from mipengine.common.common_data_elements import CommonDataElement
 from mipengine.common.common_data_elements import common_data_elements
+
+from mipengine.node_registry import (
+    NodeRegistryClient,
+    Pathologies,
+    Pathology,
+    NodeRole,
+    NodeParams,
+    DBParams,
+)
 
 
 def validate_algorithm(algorithm_name: str, request_body: str):
@@ -107,16 +115,30 @@ def validate_inputdata_pathology_and_dataset_values(
     that the datasets belong in the pathology.
     """
 
-    # if not node_catalog.pathology_exists(pathology):
-    #     raise BadUserInput(f"Pathology '{pathology}' does not exist.")
+    # TODO: The validator should not contact the Node Registry every time it is called
+    # to validate an algorithm request, this would be very expensive. One way to solve
+    # this is to contact the Node Registry service every couple of seconds and update
+    # its cache. Another way would be that the Controller passes a some kind of list
+    # with datasets and pathologies for the validation as a parameter. When we make
+    # this change we might need to add specific methods to the NodeRegistryClient
+    # module,like pathology_exists() and dataset_exists.
+    nrclient = NodeRegistryClient()
 
-    # if type(datasets) is not list:
-    #     raise BadRequest(f"Datasets parameter should be a list.")
+    # if not node_catalog.pathology_exists(pathology):
+    if not nrclient.get_nodes_with_all_of_pathologies([pathology]):
+        raise BadUserInput(f"Pathology '{pathology}' does not exist.")
+
+    if type(datasets) is not list:
+        raise BadRequest(f"Datasets parameter should be a list.")
 
     # if not all(node_catalog.dataset_exists(pathology, dataset) for dataset in datasets):
     #     raise BadUserInput(
     #         f"Datasets '{datasets}' do not belong in pathology '{pathology}'."
     #     )
+    nodes = [nrclient.get_nodes_with_any_of_datasets([dataset]) for dataset in datasets]
+    non_existing_datasets = [i for i, x in enumerate(nodes) if x == []]
+    if non_existing_datasets:
+        raise BadUserInput(f"Datasets '{non_existing_datasets}' do not exist.")
 
 
 def validate_inputdata_filter(filter):
