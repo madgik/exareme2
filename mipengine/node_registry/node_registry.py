@@ -1,13 +1,9 @@
 import consul
 from ipaddress import IPv4Address
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
-from mipengine.common.node_registry_DTOs import (
-    NodeRecord,
-    Pathology,
-    NodeRole,
-)
+from enum import Enum, unique, auto
 
 
 class NodeRegistryClient:
@@ -21,43 +17,60 @@ class NodeRegistryClient:
         self._consul_service = c.agent.service
         self._consul_kv_store = c.kv
 
-    def register_node(self, node_record: NodeRecord):
+    def register_node(self, node_params: "NodeParams", db_params: "DBParams"):
+        # TODO: As is, if a node calls register_node with the same node_params.id as an
+        # existing node service, it will overwrite the existing node service parameters
+
+        if node_params.db_id != db_params.id:
+            raise DBParamsIdNotMatchingNodeDBId(node_params.db_id, db_params.id)
+
+        if node_params.role == NodeRole.GLOBALNODE and db_params.pathologies != None:
+            raise GlobalNodeCannotContainPrimaryData(node_params, db_params)
+
+        if node_params.role == NodeRole.LOCALNODE and db_params.pathologies == None:
+            raise LocalNodeMustContainPrimaryData(node_params, db_params)
+
         # register the node as a service
         self._consul_service.register(
-            name=node_record.node_id,
-            service_id=node_record.node_id,
-            address=str(node_record.task_queue_ip),
-            port=node_record.task_queue_port,
-            tags=(node_record.node_role,),
-        )
-        # register the db as a service
-        self._consul_service.register(
-            name=node_record.db_id,
-            service_id=node_record.db_id,
-            address=str(node_record.db_ip),
-            port=node_record.db_port,
-            tags=("db",),
+            name=node_params.id,
+            service_id=node_params.id,
+            address=str(node_params.ip),
+            port=node_params.port,
+            tags=(node_params.role,),
+            enable_tag_override=True,
         )
 
-        # The node's db is linked to the node by storing the db_id as a value in the key
-        # value store of consul
-        # Pathologies are also stored in the consul key/value store
-        node_configuration = self._NodeParameters(
-            db_id=node_record.db_id,
-            pathologies=node_record.pathologies,
+        # register the db as a service
+        self._consul_service.register(
+            name=db_params.id,
+            service_id=db_params.id,
+            address=str(db_params.ip),
+            port=db_params.port,
+            tags=("db",),
+            enable_tag_override=True,
         )
-        self._consul_kv_store.put(node_record.node_id, node_configuration.json())
+
+        # The mapping between node service and database service is stored in the consul
+        # key/value store as node_id:db_id
+        self._consul_kv_store.put(node_params.id, node_params.db_id)
+
+        # global nodes do not contain primary data(pathologies..)
+        if db_params.pathologies:
+            # The mapping between a database service and the primary data(pathologies)
+            # it contains are dstored in the cosnul key/value store
+            self._consul_kv_store.put(db_params.id, db_params.pathologies.json())
 
     def deregister_node(self, node_id: str):
         _, data = self._consul_kv_store.get(node_id)
 
         if not data:
-            raise self.NodeIDNotInKVStore(node_id)
+            raise NodeIDUnknown(node_id)
 
-        node_conf = self._NodeParameters.parse_raw(data["Value"])
+        db_id = str(data["Value"], "UTF-8")
 
         # deregister db service
-        self._consul_service.deregister(node_conf.db_id)
+        self._consul_service.deregister(service_id=db_id)
+        self._consul_kv_store.delete(db_id)
 
         # deregister node service
         self._consul_service.deregister(service_id=node_id)
@@ -65,27 +78,17 @@ class NodeRegistryClient:
         # delete node configuration from kv store
         self._consul_kv_store.delete(node_id)
 
-    def get_all_nodes(self) -> Dict[str, "NodeInfo"]:
+    def get_all_nodes(self) -> List["NodeParams"]:
         all_services = self._consul_agent.services()
-
         all_nodes = self._parse_nodes_from_services(all_services)
-
-        # pathologies are read from the key value store
-        for node_id in all_nodes.keys():
-            _, data = self._consul_kv_store.get(node_id)
-            if not data:
-                raise self.NodeIDNotInKVStore(node_id)
-            node_params = self._NodeParameters.parse_raw(data["Value"])
-            all_nodes[node_id].pathologies = node_params.pathologies
-
         return all_nodes
 
     def _parse_nodes_from_services(
-        self, all_services: Dict[str, str]
-    ) -> Dict[str, "NodeInfo"]:
-        nodes = {}
-        for (service_id, service_info) in all_services.items():
-            tags = service_info["Tags"]
+        self, services: Dict[str, str]
+    ) -> List["NodeParams"]:
+        nodes = []
+        for (node_service_id, node_service_info) in services.items():
+            tags = node_service_info["Tags"]
             role = ""
             if NodeRole.GLOBALNODE in tags:
                 role = NodeRole.GLOBALNODE
@@ -94,88 +97,215 @@ class NodeRegistryClient:
             else:
                 continue
 
-            node_info = self.NodeInfo(
-                ip=service_info["Address"],
-                port=service_info["Port"],
+            db_id = self.get_db_id_by_node_id(node_service_id)
+
+            node_params = NodeParams(
+                id=node_service_id,
+                ip=node_service_info["Address"],
+                port=node_service_info["Port"],
                 role=role,
+                db_id=db_id,
             )
-            nodes[service_id] = node_info
+            nodes.append(node_params)
 
         return nodes
 
+    def get_all_dbs(self) -> List["DBParams"]:
+        all_services = self._consul_agent.services()
+        all_dbs = self._parse_dbs_from_services(all_services)
+        print(f"----------->(get_all_dbs) {all_dbs=}")
+        return all_dbs
+
+    def _parse_dbs_from_services(
+        self, services: Dict[str, str]
+    ) -> Dict[str, "DBParams"]:
+        dbs = []
+        for (service_id, service_info) in services.items():
+            tags = service_info["Tags"]
+            if "db" in tags:
+                db_id = service_id
+
+                _, data = self._consul_kv_store.get(db_id)
+                if data:  # global node's db do not contain primal data
+                    pathologies = Pathologies.parse_raw(data["Value"])
+                else:
+                    pathologies = None
+
+                db_params = DBParams(
+                    id=db_id,
+                    ip=service_info["Address"],
+                    port=service_info["Port"],
+                    pathologies=pathologies,
+                )
+                dbs.append(db_params)
+        return dbs
+
+    def get_node_by_node_id(self, node_id):
+        all_nodes = self.get_all_nodes()
+        for node in all_nodes:
+            if node.id == node_id:
+                return node
+
+        raise NodeIDUnknown(node_id)
+
     def get_all_global_nodes(self):
         all_nodes = self.get_all_nodes()
-        return {
-            node_id: node_info
-            for node_id, node_info in all_nodes.items()
-            if node_info.role == NodeRole.GLOBALNODE
-        }
+        print(f"(node_registry) get_all_global_nodes {all_nodes=}")
+        return [
+            node_params
+            for node_params in all_nodes
+            if node_params.role == NodeRole.GLOBALNODE
+        ]
 
-    def get_all_local_nodes(self):
+    def get_all_local_nodes(self) -> List["NodeParams"]:
         all_nodes = self.get_all_nodes()
-        return {
-            node_id: node_info
-            for node_id, node_info in all_nodes.items()
-            if node_info.role == NodeRole.LOCALNODE
-        }
+        return [
+            node_params
+            for node_params in all_nodes
+            if node_params.role == NodeRole.LOCALNODE
+        ]
 
-    def get_nodes_with_pathologies(self, pathologies: List[str]):
+    def get_node_id_by_db_id(self, db_id: str) -> str:
+        all_nodes = self.get_all_nodes()
+        for node in all_nodes:
+            if node.db_id == db_id:
+                return node
+
+        raise DBIdUnknown(db_id)
+
+    def get_nodes_with_all_of_pathologies(
+        self, pathologies: List[str]
+    ) -> List["NodeParams"]:
         all_local_nodes = self.get_all_local_nodes()
 
-        local_nodes_with_pathologies = {}
-        for node_id, node_info in all_local_nodes.items():
-            if all(p in [p.name for p in node_info.pathologies] for p in pathologies):
-                local_nodes_with_pathologies[node_id] = node_info
+        local_nodes_with_pathologies = []
+        for node_params in all_local_nodes:
+            db_id = node_params.db_id
+
+            db_pathologies = self.get_pathologies_by_db_id(db_id)
+            db_pathologies_list = [
+                db_p.name for db_p in db_pathologies.pathologies_list
+            ]
+            if all(p in db_pathologies_list for p in pathologies):
+                local_nodes_with_pathologies.append(node_params)
 
         return local_nodes_with_pathologies
 
-    def get_nodes_with_datasets(self, datasets: List[str]):
+    def get_nodes_with_any_of_datasets(self, datasets: List[str]) -> List["NodeParams"]:
         all_local_nodes = self.get_all_local_nodes()
-
-        local_nodes_with_datasets = {}
-        for node_id, node_info in all_local_nodes.items():
-            node_datasets = []
-            for p in node_info.pathologies:
-                node_datasets.extend(p.datasets)
-            if all(d in node_datasets for d in datasets):
-                local_nodes_with_datasets[node_id] = node_info
+        local_nodes_with_datasets = []
+        for node_params in all_local_nodes:
+            db_id = node_params.db_id
+            db_datasets = self.get_datasets_by_db_id(db_id)
+            if _compare_unordered(db_datasets, datasets):
+                local_nodes_with_datasets.append(node_params)
         return local_nodes_with_datasets
 
-    def get_db(self, node_id: str) -> "DBInfo":
+    def get_db_id_by_node_id(self, node_id) -> str:
+        _, data = self._consul_kv_store.get(node_id)
+        db_id = str(data["Value"], "UTF-8")
+        return db_id
+
+    def get_db_by_node_id(self, node_id: str) -> "DBParams":
         _, data = self._consul_kv_store.get(node_id, index=None)
-
         if not data:
-            raise self.NodeIDNotInKVStore(node_id)
+            raise NodeIdNotFoundInKVStore(node_id)
+        db_id = str(data["Value"], "UTF-8")
+        print(f"(get_db_by_db_id) {db_id=}")
+        db_params = self.get_db_by_db_id(db_id)
+        return db_params
 
-        node_conf = self._NodeParameters.parse_raw(data["Value"])
-        db_id = node_conf.db_id
+    def get_db_by_db_id(self, db_id: str) -> "DBParams":
+        all_dbs = self.get_all_dbs()
+        for db in all_dbs:
+            if db.id == db_id:
+                return db
+        raise DBIdUnknown(db_id)
 
-        all_services = self._consul_agent.services()
-        db_service = all_services[db_id]
+    def get_pathologies_by_db_id(self, db_id: str) -> "Pathologies":
+        _, data = self._consul_kv_store.get(db_id, index=None)
+        if data:
+            pathologies_json = data["Value"]
+            pathologies = Pathologies.parse_raw(pathologies_json)
+            return pathologies
 
-        db_info = self.DBInfo(
-            id=db_service["ID"], ip=db_service["Address"], port=db_service["Port"]
-        )
-        return db_info
+    def get_datasets_by_db_id(self, db_id: str) -> List[str]:
+        _, data = self._consul_kv_store.get(db_id, index=None)
 
-    def get_dbs(self, node_ids: List[str]) -> Dict[str, "DBInfo"]:
-        return {node_id: self.get_db(node_id) for node_id in node_ids}
+        # global node dbs do not contain pathologies
+        if data:
+            pathologies_json = data["Value"]
+            pathologies = Pathologies.parse_raw(pathologies_json)
+            datasets = []
+            for pathology in pathologies.pathologies_list:
+                for dataset in pathology.datasets:
+                    datasets.append(dataset)
+            return datasets
 
-    class NodeIDNotInKVStore(Exception):
-        def __init__(self, node_id: str):
-            self.message = f"There is no node_id:{node_id} key in the key/value store"
 
-    class NodeInfo(BaseModel):
-        ip: IPv4Address
-        port: int
-        role: NodeRole
-        pathologies: Optional[List[Pathology]]
+def _compare_unordered(a: List[Any], b: List[Any]):
+    a_set = set(a)
+    b_set = set(b)
+    if len(a_set.intersection(b_set)) > 0:
+        return True
+    return False
 
-    class _NodeParameters(BaseModel):
-        db_id: str
-        pathologies: Optional[List[Pathology]]
 
-    class DBInfo(BaseModel):
-        id: str
-        ip: IPv4Address
-        port: int
+class DBParamsIdNotMatchingNodeDBId(Exception):
+    def __init__(self, node_params_db_id: str, db_params_db_id):
+        self.message = f"NodeParams db_id:{node_params_db_id} not matching DBParams id:{db_params_db_id}"
+
+
+class NodeIdNotFoundInKVStore(Exception):
+    def __init__(self, node_id: str):
+        self.message = f"There is no node_id:{node_id} in the key/value store"
+
+
+class NodeIDUnknown(Exception):
+    def __init__(self, node_id: str):
+        self.message = f"There is no Node service with node_id:{node_id} registered"
+
+
+class DBIdUnknown(Exception):
+    def __init__(self, db_id: str):
+        self.message = f"There is no registered DB service with db_id:{db_id}"
+
+
+class GlobalNodeCannotContainPrimaryData(Exception):
+    def __init__(self, node_params: "NodeParams", db_params: "DBParams"):
+        self.message = f"Global Node: \n{node_params} \ncannot be registered and paired with database:\n {db_params} \ncontaining primary data"
+
+
+class LocalNodeMustContainPrimaryData(Exception):
+    def __init__(self, node_params: "NodeParams", db_params: "DBParams"):
+        self.message = f"Local Node: \n{node_params} \ncannot be registered and paired with database:\n {db_params} \nlacking primary data"
+
+
+class Pathology(BaseModel):
+    name: str
+    datasets: List[str]
+
+
+class Pathologies(BaseModel):
+    pathologies_list: List["Pathology"]
+
+
+@unique
+class NodeRole(str, Enum):
+    GLOBALNODE = "GLOBALNODE"
+    LOCALNODE = "LOCALNODE"
+
+
+class NodeParams(BaseModel):
+    id: str
+    ip: IPv4Address
+    port: int
+    role: "NodeRole"
+    db_id: str
+
+
+class DBParams(BaseModel):
+    id: str
+    ip: IPv4Address
+    port: int
+    pathologies: Optional["Pathologies"]
