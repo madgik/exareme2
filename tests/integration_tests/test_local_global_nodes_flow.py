@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 
-from mipengine.node_registry.node_registry import (
+from mipengine.node_registry import (
     NodeRegistryClient,
     Pathologies,
     Pathology,

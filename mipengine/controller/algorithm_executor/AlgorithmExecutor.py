@@ -9,7 +9,7 @@ from typing import Tuple
 
 from celery import Celery
 
-from mipengine.node_registry.node_registry import (
+from mipengine.node_registry import (
     NodeRegistryClient,
     Pathologies,
     Pathology,

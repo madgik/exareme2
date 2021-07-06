@@ -2,7 +2,7 @@ import pymonetdb
 from pymonetdb import Connection
 
 # from mipengine.common.node_catalog import node_catalog
-from mipengine.node_registry.node_registry import (
+from mipengine.node_registry import (
     NodeRegistryClient,
     Pathologies,
     Pathology,

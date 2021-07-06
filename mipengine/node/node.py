@@ -2,7 +2,7 @@ from celery import Celery
 
 from mipengine.node import config as node_config
 
-from mipengine.node_registry.node_registry import (
+from mipengine.node_registry import (
     NodeRegistryClient,
     Pathologies,
     Pathology,

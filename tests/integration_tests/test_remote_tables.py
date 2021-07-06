@@ -5,7 +5,7 @@ import pytest
 from mipengine.common.node_tasks_DTOs import ColumnInfo
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
-from mipengine.node_registry.node_registry import (
+from mipengine.node_registry import (
     NodeRegistryClient,
     Pathologies,
     Pathology,
