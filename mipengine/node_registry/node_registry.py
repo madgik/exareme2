@@ -113,7 +113,6 @@ class NodeRegistryClient:
     def get_all_dbs(self) -> List["DBParams"]:
         all_services = self._consul_agent.services()
         all_dbs = self._parse_dbs_from_services(all_services)
-        print(f"----------->(get_all_dbs) {all_dbs=}")
         return all_dbs
 
     def _parse_dbs_from_services(
@@ -150,7 +149,6 @@ class NodeRegistryClient:
 
     def get_all_global_nodes(self):
         all_nodes = self.get_all_nodes()
-        print(f"(node_registry) get_all_global_nodes {all_nodes=}")
         return [
             node_params
             for node_params in all_nodes
@@ -211,7 +209,6 @@ class NodeRegistryClient:
         if not data:
             raise NodeIdNotFoundInKVStore(node_id)
         db_id = str(data["Value"], "UTF-8")
-        print(f"(get_db_by_db_id) {db_id=}")
         db_params = self.get_db_by_db_id(db_id)
         return db_params
 
