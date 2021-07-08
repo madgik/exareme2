@@ -71,11 +71,9 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
-<<<<<<< HEAD
 CONSUL_AGENT_CONTAINER_NAME = "consul-agent"
-=======
+
 DEMO_DATA_FOLDER = Path(integration_tests.__file__).parent / "data"
->>>>>>> master
 
 # TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
 # Right now if we call a task from another task, the "pre"-task is not executed
