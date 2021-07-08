@@ -239,6 +239,23 @@ class NodeRegistryClient:
                     datasets.append(dataset)
             return datasets
 
+    def pathology_exists(self, pathology: str):
+        if self.get_nodes_with_all_of_pathologies([pathology]):
+            return True
+        return False
+
+    # def dataset_exists(self, dataset: str):
+    #     if self.get_nodes_with_any_of_datasets([dataset]):
+    #         return True
+    #     return False
+    def dataset_exists(self, pathology: str, dataset: str):
+        nodes = self.get_nodes_with_all_of_pathologies([pathology])
+        for node in nodes:
+            datasets = self.get_datasets_by_db_id(node.db_id)
+            if dataset in datasets:
+                return True
+        return False
+
 
 def _compare_unordered(a: List[Any], b: List[Any]):
     a_set = set(a)

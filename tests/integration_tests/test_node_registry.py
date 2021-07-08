@@ -293,6 +293,24 @@ def test_deregister_node(node_registry_client):
         node_registry_client.get_db_by_node_id(node_id)
 
 
+def test_pathology_exists(node_registry_client):
+    pytest.assume(node_registry_client.pathology_exists("pathology1"))
+    pytest.assume(not node_registry_client.pathology_exists("non_existing_pathology"))
+
+
+# def test_dataset_exists(node_registry_client):
+#     pytest.assume(node_registry_client.dataset_exists("dataset1"))
+#     pytest.assume(not node_registry_client.dataset_exists("non_existing_dataset"))
+def test_dataset_exists(node_registry_client):
+    pytest.assume(node_registry_client.dataset_exists("pathology1", "dataset1"))
+    pytest.assume(
+        not node_registry_client.dataset_exists("pathology1", "non_existing_dataset")
+    )
+    pytest.assume(
+        not node_registry_client.dataset_exists("non_existing_pathology", "dataset1")
+    )
+
+
 # test for exceptions...
 def test_get_node_unknown_node_id(node_registry_client):
     with pytest.raises(NodeIDUnknown):
