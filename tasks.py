@@ -175,12 +175,15 @@ def start_node_registry(context, container_name=None, port=None):
     )
     # start the consul container
     cmd = f"docker run -d --name={container_name}  -p {port}:8500 consul"
-    # try:
-    print(f"(start_node_registry) {cmd=}")
-    run(context, cmd, raise_error=True)
+    try:
+        # raise_error set to false
+        # when docker tries to run an image which needs to be downloaded, run() raises
+        # an error with code 125, so the quick solution is to just ignore it. It then
+        # starts the container correctly
+        run(context, cmd, raise_error=False)
     # TODO this does not catch all exceptions, I think due to the async in the run function
-    # except (UnexpectedExit, AttributeError) as exc:
-    # print(f"{exc=}")
+    except (UnexpectedExit, AttributeError) as exc:
+        print(f"{exc=}")
 
 
 @task
@@ -476,10 +479,10 @@ def deploy(
     if install_dep:
         install_dependencies(c)
 
-    # start NODE REGISTRY service
+    #start NODE REGISTRY service
     start_node_registry(c)
 
-    # start NODE services
+    #start NODE services
     config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
     if not config_files:
         message(
@@ -501,10 +504,9 @@ def deploy(
     if start_nodes or start_all:
         start_node(c, all_=True, celery_log_level=celery_log_level, detached=True)
 
-    # start CONTROLLER service
+    #start CONTROLLER service
     if start_controller_ or start_all:
         start_controller(c, detached=True)
-
 
 @task
 def attach(c, node=None, controller=False, db=None):
