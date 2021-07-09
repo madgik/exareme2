@@ -147,14 +147,14 @@ def mock_cdes():
 
 
 @pytest.fixture(scope="module", autouse=True)
-def mock_node_catalog():
+def mock_node_registry():
     with patch.multiple(
-        "mipengine.common.node_catalog.NodeCatalog",
+        "mipengine.controller.api.validator.NodeRegistryClient",
         pathology_exists=DEFAULT,
         dataset_exists=DEFAULT,
         autospec=True,
-    ) as mock_node_catalog:
-        mock_node_catalog["pathology_exists"].side_effect = (
+    ) as mock_node_registry:
+        mock_node_registry["pathology_exists"].side_effect = (
             lambda self, pathology: True
             if pathology
             in {
@@ -164,7 +164,7 @@ def mock_node_catalog():
             else False
         )
 
-        mock_node_catalog["dataset_exists"].side_effect = (
+        mock_node_registry["dataset_exists"].side_effect = (
             lambda self, pathology, dataset: True
             if (pathology, dataset)
             in {
@@ -175,8 +175,40 @@ def mock_node_catalog():
             }
             else False
         )
-
         yield
+
+
+# @pytest.fixture(scope="module", autouse=True)
+# def mock_node_catalog():
+#     with patch.multiple(
+#         "mipengine.common.node_catalog.NodeCatalog",
+#         pathology_exists=DEFAULT,
+#         dataset_exists=DEFAULT,
+#         autospec=True,
+#     ) as mock_node_catalog:
+#         mock_node_catalog["pathology_exists"].side_effect = (
+#             lambda self, pathology: True
+#             if pathology
+#             in {
+#                 "test_pathology1",
+#                 "test_pathology2",
+#             }
+#             else False
+#         )
+
+#         mock_node_catalog["dataset_exists"].side_effect = (
+#             lambda self, pathology, dataset: True
+#             if (pathology, dataset)
+#             in {
+#                 ("test_pathology1", "test_dataset1"),
+#                 ("test_pathology1", "test_dataset2"),
+#                 ("test_pathology2", "test_dataset2"),
+#                 ("test_pathology2", "test_dataset3"),
+#             }
+#             else False
+#         )
+
+#         yield
 
 
 @pytest.fixture(scope="module", autouse=True)

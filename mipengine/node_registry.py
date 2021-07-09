@@ -244,10 +244,6 @@ class NodeRegistryClient:
             return True
         return False
 
-    # def dataset_exists(self, dataset: str):
-    #     if self.get_nodes_with_any_of_datasets([dataset]):
-    #         return True
-    #     return False
     def dataset_exists(self, pathology: str, dataset: str):
         nodes = self.get_nodes_with_all_of_pathologies([pathology])
         for node in nodes:
