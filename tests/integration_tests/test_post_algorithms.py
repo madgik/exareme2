@@ -48,10 +48,10 @@ test_cases_post_algorithm_success = [
                                     "rightamygdala",
                                     "alzheimerbroadcategory",
                                 ]
-                            ],
-                            "valid": True,
+                            ]
                         },
                     ],
+                    "valid": True,
                 },
             },
             "parameters": {"classes": ["AD", "CN"]},

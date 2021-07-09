@@ -33,7 +33,7 @@ def do_post_request():
             {
                 "id": "dataset",
                 "type": "string",
-                "value": ["edsd"],
+                "value": datasets,
                 "operator": "in",
             },
             {
@@ -49,6 +49,7 @@ def do_post_request():
                 ],
             },
         ],
+        "valid": True,
     }
 
     algorithm_input_data = AlgorithmInputDataDTO(
