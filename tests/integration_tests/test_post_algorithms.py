@@ -1,10 +1,9 @@
 import json
-import logging
 import re
-import threading
 
 import pytest
 import requests
+import numpy as np
 
 from tests.integration_tests import algorithms_url
 
@@ -14,40 +13,48 @@ test_cases_post_algorithm_success = [
         {
             "inputdata": {
                 "pathology": "dementia",
-                "datasets": ["demo_data"],
+                "datasets": ["edsd"],
+                "x": [
+                    "lefthippocampus",
+                    "righthippocampus",
+                    "rightppplanumpolare",
+                    "leftamygdala",
+                    "rightamygdala",
+                ],
+                "y": ["alzheimerbroadcategory"],
                 "filters": {
-                    "valid": True,
                     "condition": "AND",
                     "rules": [
                         {
-                            "id": "alzheimerbroadcategory_bin",
-                            "type": "column",
-                            "value": None,
-                            "operator": "is_not_null",
-                        },
-                        {
                             "id": "dataset",
                             "type": "string",
-                            "value": ["demo_data"],
+                            "value": ["edsd"],
                             "operator": "in",
                         },
                         {
-                            "id": "lefthippocampus",
-                            "type": "column",
-                            "value": None,
-                            "operator": "is_not_null",
-                        },
-                        {
-                            "id": "righthippocampus",
-                            "type": "column",
-                            "value": None,
-                            "operator": "is_not_null",
+                            "condition": "AND",
+                            "rules": [
+                                {
+                                    "id": variable,
+                                    "type": "string",
+                                    "operator": "is_not_null",
+                                    "value": None,
+                                }
+                                for variable in [
+                                    "lefthippocampus",
+                                    "righthippocampus",
+                                    "rightppplanumpolare",
+                                    "leftamygdala",
+                                    "rightamygdala",
+                                    "alzheimerbroadcategory",
+                                ]
+                            ],
+                            "valid": True,
                         },
                     ],
                 },
-                "x": ["lefthippocampus", "righthippocampus"],
-                "y": ["alzheimerbroadcategory_bin"],
             },
+            "parameters": {"classes": ["AD", "CN"]},
         },
     ),
 ]
@@ -63,6 +70,15 @@ def test_post_algorithm_success(algorithm_name, request_body):
         algorithm_url, data=json.dumps(request_body), headers=headers
     )
     assert response.status_code == 200
+    result = json.loads(response.text)
+    expected_data = [
+        ["lefthippocampus", -3.809188],
+        ["righthippocampus", 4.595969],
+        ["rightppplanumpolare", 3.6549711],
+        ["leftamygdala", -2.4617643],
+        ["rightamygdala", -11.787596],
+    ]
+    assert result["data"] == expected_data
 
 
 test_cases_post_algorithm_failure = [
