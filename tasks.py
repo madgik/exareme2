@@ -176,6 +176,7 @@ def start_node_registry(context, container_name=None, port=None):
     # start the consul container
     cmd = f"docker run -d --name={container_name}  -p {port}:8500 consul"
     # try:
+    print(f"(start_node_registry) {cmd=}")
     run(context, cmd, raise_error=True)
     # TODO this does not catch all exceptions, I think due to the async in the run function
     # except (UnexpectedExit, AttributeError) as exc:
