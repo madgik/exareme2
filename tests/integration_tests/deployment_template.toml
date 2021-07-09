@@ -1,24 +1,25 @@
 ip = "172.17.0.1"
 log_level = "INFO"
-celery_log_level = "INFO"
-monetdb_image = "madgik/mipenginedb:dev1.3"
+celery_log_level ="INFO"
+monetdb_image = "madgik/mipenginedb:dev1.4"
 
 node_registry_port = 8500
 
+
 [[nodes]]
 id = "globalnode"
-role = "GLOBALNODE"
-monetdb_port = 50000
-rabbitmq_port = 5670
+role="GLOBALNODE"
+monetdb_port=50000
+rabbitmq_port=5670
 
 [[nodes]]
 id = "localnode1"
-role = "LOCALNODE"
-monetdb_port = 50001
-rabbitmq_port = 5671
+role="LOCALNODE"
+monetdb_port=50001
+rabbitmq_port=5671
 
 [[nodes]]
 id = "localnode2"
-role = "LOCALNODE"
-monetdb_port = 50002
-rabbitmq_port = 5672
+role="LOCALNODE"
+monetdb_port=50002
+rabbitmq_port=5672
