@@ -30,6 +30,8 @@ from mipengine.node_registry import (
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
 
+nrclient = NodeRegistryClient()
+
 
 def validate_algorithm_request(algorithm_name: str, request_body: str):
 
@@ -89,10 +91,9 @@ def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str
     # with datasets and pathologies for the validation as a parameter. When we make
     # this change we might need to add specific methods to the NodeRegistryClient
     # module,like pathology_exists() and dataset_exists.
-    nrclient = NodeRegistryClient()
 
     # if not node_catalog.pathology_exists(pathology):
-    if not nrclient.get_nodes_with_all_of_pathologies([pathology]):
+    if not nrclient.pathology_exists(pathology):
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
 
     # TODO Remove with pydantic
@@ -103,10 +104,15 @@ def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str
     #     raise BadUserInput(
     #         f"Datasets '{datasets}' do not belong in pathology '{pathology}'."
     #     )
-    nodes = [nrclient.get_nodes_with_any_of_datasets([dataset]) for dataset in datasets]
-    non_existing_datasets = [i for i, x in enumerate(nodes) if x == []]
+    non_existing_datasets = [
+        dataset
+        for dataset in datasets
+        if nrclient.dataset_exists(pathology=pathology, dataset=dataset) == False
+    ]
     if non_existing_datasets:
-        raise BadUserInput(f"Datasets '{non_existing_datasets}' do not exist.")
+        raise BadUserInput(
+            f"Datasets '{non_existing_datasets}' could not be found for pathology:{pathology}"
+        )
 
 
 def _validate_inputdata_filter(filter):
