@@ -1,5 +1,6 @@
 FROM ubuntu:20.04
 MAINTAINER Thanasis Karampatsis <tkarabatsis@athenarc.gr>
+LABEL version="1.4"
 
 ENV LANG=C.UTF-8
 
@@ -69,6 +70,7 @@ RUN chmod 775 /home/bootstrap.sh
 #######################################################
 RUN pip3 install scipy
 RUN pip3 install pandas
+RUN pip3 install scikit-learn
 
 #######################################################
 # Add /home/udflib to python path and copy

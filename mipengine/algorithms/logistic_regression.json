@@ -20,17 +20,24 @@
             "label": "target",
             "desc": "Target variable",
             "types": [
-                "int"
+                "int", "text"
             ],
             "stattypes": [
                 "nominal"
             ],
-            "enumslen": 2,
             "notblank": true,
             "multiple": false
         }
     },
     "parameters": {
+        "classes" : {
+            "label": "classes",
+            "desc": "Positive and negative classes to use as binary classification targets",
+            "type": "text",
+            "default": null,
+            "notblank": true,
+            "multiple": true
+        }
     },
     "flags": {
         "formula": false

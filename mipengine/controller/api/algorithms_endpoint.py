@@ -1,3 +1,4 @@
+import json
 import logging
 import traceback
 
@@ -13,7 +14,7 @@ from mipengine.controller.api.AlgorithmSpecificationsDTOs import (
 from mipengine.controller.api.exceptions import BadRequest
 
 from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
-from mipengine.controller.algorithm_executor.AlgorithmExecutor import AlgorithmExecutor
+from mipengine.controller.algorithm_executor.algorithm_executor import AlgorithmExecutor
 
 import asyncio
 
@@ -68,7 +69,7 @@ async def post_algorithm(algorithm_name: str) -> str:
             algorithm_name,
             algorithm_request,
         )
-        return str(algorithm_result)
+        return algorithm_result.json()
 
     except:
         logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
