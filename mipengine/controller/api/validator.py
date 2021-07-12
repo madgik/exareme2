@@ -111,7 +111,7 @@ def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str
     ]
     if non_existing_datasets:
         raise BadUserInput(
-            f"Datasets '{non_existing_datasets}' could not be found for pathology:{pathology}"
+            f"Datasets:'{non_existing_datasets}' could not be found for pathology:{pathology}"
         )
 
 

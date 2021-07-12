@@ -367,7 +367,11 @@ test_cases_validate_algorithm_exceptions = [
                 "y": ["alzheimerbroadcategory_bin"],
             },
         },
-        (BadUserInput, "Datasets .* do not belong in pathology .*"),
+        # (BadUserInput, "Datasets .* do not belong in pathology .*"),
+        (
+            BadUserInput,
+            "Datasets:.* could not be found for pathology:.*",
+        ),
     ),
     (
         "test_algorithm1",
@@ -391,7 +395,11 @@ test_cases_validate_algorithm_exceptions = [
                 "y": ["alzheimerbroadcategory_bin"],
             },
         },
-        (BadUserInput, "Datasets .* do not belong in pathology .*"),
+        # (BadUserInput, "Datasets .* do not belong in pathology .*"),
+        (
+            BadUserInput,
+            "Datasets:.* could not be found for pathology:.*",
+        ),
     ),
     (
         "test_algorithm1",
