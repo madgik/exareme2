@@ -123,13 +123,7 @@ class NodeRegistryClient:
             tags = service_info["Tags"]
             if "db" in tags:
                 db_id = service_id
-
-                _, data = self._consul_kv_store.get(db_id)
-                if data:  # global node's db do not contain primary data
-                    pathologies = Pathologies.parse_raw(data["Value"])
-                else:
-                    pathologies = None
-
+                pathologies = self.get_pathologies_by_db_id(db_id)
                 db_params = DBParams(
                     id=db_id,
                     ip=service_info["Address"],
@@ -227,17 +221,12 @@ class NodeRegistryClient:
             return pathologies
 
     def get_datasets_by_db_id(self, db_id: str) -> List[str]:
-        _, data = self._consul_kv_store.get(db_id, index=None)
-
-        # global node dbs do not contain pathologies
-        if data:
-            pathologies_json = data["Value"]
-            pathologies = Pathologies.parse_raw(pathologies_json)
-            datasets = []
-            for pathology in pathologies.pathologies_list:
-                for dataset in pathology.datasets:
-                    datasets.append(dataset)
-            return datasets
+        pathologies = self.get_pathologies_by_db_id(db_id)
+        datasets = []
+        for pathology in pathologies.pathologies_list:
+            for dataset in pathology.datasets:
+                datasets.append(dataset)
+        return datasets
 
     def pathology_exists(self, pathology: str):
         if self.get_nodes_with_all_of_pathologies([pathology]):
