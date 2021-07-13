@@ -102,7 +102,8 @@ class NodeRegistryClient:
             else:
                 continue
 
-            db_id = self.get_db_id_by_node_id(node_service_id)
+            _, data = self._consul_kv_store.get(node_service_id)
+            db_id = str(data["Value"], "UTF-8")
 
             node_params = NodeParams(
                 id=node_service_id,
@@ -191,11 +192,6 @@ class NodeRegistryClient:
             if _compare_unordered(db_datasets, datasets):
                 local_nodes_with_datasets.append(node_params)
         return local_nodes_with_datasets
-
-    def get_db_id_by_node_id(self, node_id) -> str:
-        _, data = self._consul_kv_store.get(node_id)
-        db_id = str(data["Value"], "UTF-8")
-        return db_id
 
     def get_db_by_node_id(self, node_id: str) -> "DBParams":
         _, data = self._consul_kv_store.get(node_id, index=None)
