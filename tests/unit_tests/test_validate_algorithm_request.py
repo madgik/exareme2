@@ -178,39 +178,6 @@ def mock_node_registry():
         yield
 
 
-# @pytest.fixture(scope="module", autouse=True)
-# def mock_node_catalog():
-#     with patch.multiple(
-#         "mipengine.common.node_catalog.NodeCatalog",
-#         pathology_exists=DEFAULT,
-#         dataset_exists=DEFAULT,
-#         autospec=True,
-#     ) as mock_node_catalog:
-#         mock_node_catalog["pathology_exists"].side_effect = (
-#             lambda self, pathology: True
-#             if pathology
-#             in {
-#                 "test_pathology1",
-#                 "test_pathology2",
-#             }
-#             else False
-#         )
-
-#         mock_node_catalog["dataset_exists"].side_effect = (
-#             lambda self, pathology, dataset: True
-#             if (pathology, dataset)
-#             in {
-#                 ("test_pathology1", "test_dataset1"),
-#                 ("test_pathology1", "test_dataset2"),
-#                 ("test_pathology2", "test_dataset2"),
-#                 ("test_pathology2", "test_dataset3"),
-#             }
-#             else False
-#         )
-
-#         yield
-
-
 @pytest.fixture(scope="module", autouse=True)
 def mock_algorithms_specs():
     algorithms_specifications = AlgorithmsSpecifications()
@@ -367,7 +334,6 @@ test_cases_validate_algorithm_exceptions = [
                 "y": ["alzheimerbroadcategory_bin"],
             },
         },
-        # (BadUserInput, "Datasets .* do not belong in pathology .*"),
         (
             BadUserInput,
             "Datasets:.* could not be found for pathology:.*",
@@ -395,7 +361,6 @@ test_cases_validate_algorithm_exceptions = [
                 "y": ["alzheimerbroadcategory_bin"],
             },
         },
-        # (BadUserInput, "Datasets .* do not belong in pathology .*"),
         (
             BadUserInput,
             "Datasets:.* could not be found for pathology:.*",

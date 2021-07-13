@@ -1,6 +1,5 @@
 from celery import Celery
 
-# from mipengine.common.node_catalog import node_catalog
 from mipengine.node_registry import (
     NodeRegistryClient,
     Pathologies,

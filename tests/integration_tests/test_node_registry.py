@@ -115,31 +115,36 @@ def test_dbs():
 
     dbs_params = {}
 
-    dbs_params["globalnode1"] = DBParams(
+    globalnode1_db_params = DBParams(
         id="globalnode1_db", ip=IPv4Address("127.0.0.1"), port=5678
     )
 
-    dbs_params["localnode1"] = DBParams(
+    localnode1_db_params = DBParams(
         id="localnode1_db",
         ip=IPv4Address("127.0.0.2"),
         port=5679,
         pathologies=Pathologies(pathologies_list=[pathology1, pathology2]),
     )
 
-    dbs_params["localnode2"] = DBParams(
+    localnode2_db_params = DBParams(
         id="localnode2_db",
         ip=IPv4Address("127.0.0.3"),
         port=5680,
         pathologies=Pathologies(pathologies_list=[pathology2, pathology3]),
     )
 
-    dbs_params["localnode3"] = DBParams(
+    localnode3_db_params = DBParams(
         id="localnode3_db",
         ip=IPv4Address("127.0.0.4"),
         port=5681,
         pathologies=Pathologies(pathologies_list=[pathology3, pathology4]),
     )
-    return dbs_params
+    return {
+        "globalnode1": globalnode1_db_params,
+        "localnode1": localnode1_db_params,
+        "localnode2": localnode2_db_params,
+        "localnode3": localnode3_db_params,
+    }
 
 
 @pytest.fixture(autouse=True)
@@ -298,9 +303,6 @@ def test_pathology_exists(node_registry_client):
     pytest.assume(not node_registry_client.pathology_exists("non_existing_pathology"))
 
 
-# def test_dataset_exists(node_registry_client):
-#     pytest.assume(node_registry_client.dataset_exists("dataset1"))
-#     pytest.assume(not node_registry_client.dataset_exists("non_existing_dataset"))
 def test_dataset_exists(node_registry_client):
     pytest.assume(node_registry_client.dataset_exists("pathology1", "dataset1"))
     pytest.assume(
