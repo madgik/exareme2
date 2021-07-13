@@ -7,14 +7,7 @@ from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
 from tests.integration_tests.nodes_communication import get_celery_app
-from mipengine.node_registry import (
-    NodeRegistryClient,
-    Pathologies,
-    Pathology,
-    NodeRole,
-    NodeParams,
-    DBParams,
-)
+from mipengine.node_registry import NodeRegistryClient
 
 global_node_id = "globalnode"
 local_node_id = "localnode1"
