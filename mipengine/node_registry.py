@@ -21,7 +21,7 @@ class NodeRegistryClient:
         # TODO: As is, if a node calls register_node with the same node_params.id as an
         # existing node service, it will overwrite the existing node service parameters
 
-        self._validate_params(node_params, db_params)
+        self._check_params(node_params, db_params)
 
         # register the node as a service
         self._consul_service.register(
@@ -53,15 +53,23 @@ class NodeRegistryClient:
             # it contains are dstored in the cosnul key/value store
             self._consul_kv_store.put(db_params.id, db_params.pathologies.json())
 
-    def _validate_params(self, node_params: "NodeParams", db_params: "DBParams"):
+    def _check_params(self, node_params: "NodeParams", db_params: "DBParams"):
         if node_params.db_id != db_params.id:
             raise DBParamsIdNotMatchingNodeDBId(node_params.db_id, db_params.id)
 
-        if node_params.role == NodeRole.GLOBALNODE and db_params.pathologies != None:
-            raise GlobalNodeCannotContainPrimaryData(node_params, db_params)
+        if node_params.role == NodeRole.GLOBALNODE:
+            self._check_global_db_params(db_params)
 
-        if node_params.role == NodeRole.LOCALNODE and db_params.pathologies == None:
-            raise LocalNodeMustContainPrimaryData(node_params, db_params)
+        if node_params.role == NodeRole.LOCALNODE:
+            self._check_local_db_params(db_params)
+
+    def _check_global_db_params(self, db_params: "DBParams"):
+        if db_params.pathologies != None:
+            raise GlobalNodeCannotContainPrimaryData(db_params)
+
+    def _check_local_db_params(self, db_params: "DBParams"):
+        if db_params.pathologies == None:
+            raise LocalNodeMustContainPrimaryData(db_params)
 
     def deregister_node(self, node_id: str):
         _, data = self._consul_kv_store.get(node_id)
@@ -262,13 +270,13 @@ class DBIdUnknown(Exception):
 
 
 class GlobalNodeCannotContainPrimaryData(Exception):
-    def __init__(self, node_params: "NodeParams", db_params: "DBParams"):
-        self.message = f"Global Node: \n{node_params} \ncannot be registered and paired with database:\n {db_params} \ncontaining primary data"
+    def __init__(self, db_params: "DBParams"):
+        self.message = f"database parameters:\n {db_params} \ncannot be paired with a GLOBAL node because it contains primary data(pathologies)"
 
 
 class LocalNodeMustContainPrimaryData(Exception):
-    def __init__(self, node_params: "NodeParams", db_params: "DBParams"):
-        self.message = f"Local Node: \n{node_params} \ncannot be registered and paired with database:\n {db_params} \nlacking primary data"
+    def __init__(self, db_params: "DBParams"):
+        self.message = f"database parameters:\n {db_params} \ncannot be paired with a LOCAL node because it does contain primary data(pathologies)"
 
 
 class Pathology(BaseModel):
