@@ -86,13 +86,9 @@ def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str
 
     # TODO: The validator should not contact the Node Registry every time it is called
     # to validate an algorithm request, this would be very expensive. One way to solve
-    # this is to contact the Node Registry service every couple of seconds and update
-    # its cache. Another way would be that the Controller passes a some kind of list
-    # with datasets and pathologies for the validation as a parameter. When we make
-    # this change we might need to add specific methods to the NodeRegistryClient
-    # module,like pathology_exists() and dataset_exists.
+    # this would be that the Controller passes a some kind of list
+    # with datasets and pathologies for the validation as a parameter.
 
-    # if not node_catalog.pathology_exists(pathology):
     if not nrclient.pathology_exists(pathology):
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
 
@@ -100,10 +96,6 @@ def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str
     if not isinstance(datasets, list):
         raise BadRequest(f"Datasets parameter should be a list.")
 
-    # if not all(node_catalog.dataset_exists(pathology, dataset) for dataset in datasets):
-    #     raise BadUserInput(
-    #         f"Datasets '{datasets}' do not belong in pathology '{pathology}'."
-    #     )
     non_existing_datasets = [
         dataset
         for dataset in datasets
