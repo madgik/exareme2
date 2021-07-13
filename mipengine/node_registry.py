@@ -21,14 +21,7 @@ class NodeRegistryClient:
         # TODO: As is, if a node calls register_node with the same node_params.id as an
         # existing node service, it will overwrite the existing node service parameters
 
-        if node_params.db_id != db_params.id:
-            raise DBParamsIdNotMatchingNodeDBId(node_params.db_id, db_params.id)
-
-        if node_params.role == NodeRole.GLOBALNODE and db_params.pathologies != None:
-            raise GlobalNodeCannotContainPrimaryData(node_params, db_params)
-
-        if node_params.role == NodeRole.LOCALNODE and db_params.pathologies == None:
-            raise LocalNodeMustContainPrimaryData(node_params, db_params)
+        self._validate_params(node_params, db_params)
 
         # register the node as a service
         self._consul_service.register(
@@ -60,6 +53,16 @@ class NodeRegistryClient:
             # it contains are dstored in the cosnul key/value store
             self._consul_kv_store.put(db_params.id, db_params.pathologies.json())
 
+    def _validate_params(self, node_params: "NodeParams", db_params: "DBParams"):
+        if node_params.db_id != db_params.id:
+            raise DBParamsIdNotMatchingNodeDBId(node_params.db_id, db_params.id)
+
+        if node_params.role == NodeRole.GLOBALNODE and db_params.pathologies != None:
+            raise GlobalNodeCannotContainPrimaryData(node_params, db_params)
+
+        if node_params.role == NodeRole.LOCALNODE and db_params.pathologies == None:
+            raise LocalNodeMustContainPrimaryData(node_params, db_params)
+
     def deregister_node(self, node_id: str):
         _, data = self._consul_kv_store.get(node_id)
 
@@ -80,14 +83,8 @@ class NodeRegistryClient:
 
     def get_all_nodes(self) -> List["NodeParams"]:
         all_services = self._consul_agent.services()
-        all_nodes = self._parse_nodes_from_services(all_services)
-        return all_nodes
-
-    def _parse_nodes_from_services(
-        self, services: Dict[str, str]
-    ) -> List["NodeParams"]:
-        nodes = []
-        for (node_service_id, node_service_info) in services.items():
+        all_nodes = []
+        for (node_service_id, node_service_info) in all_services.items():
             tags = node_service_info["Tags"]
             role = ""
             if NodeRole.GLOBALNODE in tags:
@@ -106,20 +103,14 @@ class NodeRegistryClient:
                 role=role,
                 db_id=db_id,
             )
-            nodes.append(node_params)
+            all_nodes.append(node_params)
 
-        return nodes
+        return all_nodes
 
     def get_all_dbs(self) -> List["DBParams"]:
         all_services = self._consul_agent.services()
-        all_dbs = self._parse_dbs_from_services(all_services)
-        return all_dbs
-
-    def _parse_dbs_from_services(
-        self, services: Dict[str, str]
-    ) -> Dict[str, "DBParams"]:
-        dbs = []
-        for (service_id, service_info) in services.items():
+        all_dbs = []
+        for (service_id, service_info) in all_services.items():
             tags = service_info["Tags"]
             if "db" in tags:
                 db_id = service_id
@@ -130,8 +121,8 @@ class NodeRegistryClient:
                     port=service_info["Port"],
                     pathologies=pathologies,
                 )
-                dbs.append(db_params)
-        return dbs
+                all_dbs.append(db_params)
+        return all_dbs
 
     def get_node_by_node_id(self, node_id):
         all_nodes = self.get_all_nodes()
