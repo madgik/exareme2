@@ -21,11 +21,6 @@ from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.node_registry import (
     NodeRegistryClient,
-    Pathologies,
-    Pathology,
-    NodeRole,
-    NodeParams,
-    DBParams,
 )
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
@@ -88,6 +83,7 @@ def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str
     # to validate an algorithm request, this would be very expensive. One way to solve
     # this would be that the Controller passes a some kind of list
     # with datasets and pathologies for the validation as a parameter.
+    # https://team-1617704806227.atlassian.net/browse/MIP-195
 
     if not nrclient.pathology_exists(pathology):
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
