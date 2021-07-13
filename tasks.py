@@ -176,12 +176,14 @@ def start_node_registry(context, container_name=None, port=None):
     # start the consul container
     cmd = f"docker run -d --name={container_name}  -p {port}:8500 consul"
     try:
-        # raise_error set to false
-        # when docker tries to run an image which needs to be downloaded, run() raises
-        # an error with code 125, so the quick solution is to just ignore it. It then
-        # starts the container correctly
+        # When docker tries to run an image which needs to be downloaded, run() raises
+        # an error with code 125 and returns only after pulling the image without also
+        # starting the container. So the quick solution is to just ignore the error,
+        # this is why raise_error is set to false. It then starts the container
+        # correctly
+
         run(context, cmd, raise_error=False)
-    # TODO this does not catch all exceptions, I think due to the async in the run function
+
     except (UnexpectedExit, AttributeError) as exc:
         print(f"{exc=}")
 
