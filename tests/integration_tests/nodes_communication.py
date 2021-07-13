@@ -1,13 +1,6 @@
 from celery import Celery
 
-from mipengine.node_registry import (
-    NodeRegistryClient,
-    Pathologies,
-    Pathology,
-    NodeRole,
-    NodeParams,
-    DBParams,
-)
+from mipengine.node_registry import NodeRegistryClient
 from mipengine.node import config as node_config
 
 

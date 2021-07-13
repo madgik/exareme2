@@ -19,9 +19,7 @@ from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmInputDataDTO
 from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.node_registry import (
-    NodeRegistryClient,
-)
+from mipengine.node_registry import NodeRegistryClient
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
 

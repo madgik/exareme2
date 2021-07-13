@@ -9,15 +9,7 @@ from typing import Tuple
 
 from celery import Celery
 
-from mipengine.node_registry import (
-    NodeRegistryClient,
-    Pathologies,
-    Pathology,
-    NodeRole,
-    NodeParams,
-    DBParams,
-)
-
+from mipengine.node_registry import NodeRegistryClient
 from mipengine.common.node_tasks_DTOs import TableData
 from mipengine.common.node_tasks_DTOs import TableInfo
 from mipengine.common.node_tasks_DTOs import TableSchema
