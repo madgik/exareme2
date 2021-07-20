@@ -31,12 +31,23 @@ def do_post_request():
         "condition": "AND",
         "rules": [
             {
-                "id": variable,
+                "id": "dataset",
                 "type": "string",
-                "operator": "is_not_null",
-                "value": None,
-            }
-            for variable in x + y
+                "value": datasets,
+                "operator": "in",
+            },
+            {
+                "condition": "AND",
+                "rules": [
+                    {
+                        "id": variable,
+                        "type": "string",
+                        "operator": "is_not_null",
+                        "value": None,
+                    }
+                    for variable in x + y
+                ],
+            },
         ],
         "valid": True,
     }

@@ -85,13 +85,11 @@ def test_create_pathology_view_and_get_view(context_id):
         "gcs_motor_response_scale",
         "pupil_reactivity_right_eye_result",
     ]
-    datasets = ["dummy_tbi"]
     pathology = "tbi"
     view_name = local_node_create_pathology_view.delay(
         context_id=context_id,
         command_id=str(uuid.uuid1()).replace("-", ""),
         pathology=pathology,
-        datasets=datasets,
         columns=columns,
         filters=None,
     ).get()

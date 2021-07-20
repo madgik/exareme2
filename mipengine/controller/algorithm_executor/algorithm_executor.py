@@ -190,7 +190,6 @@ class AlgorithmExecutor:
             view_name = self.create_pathology_view(
                 command_id=command_id,
                 pathology=initial_view_tables_params["pathology"],
-                datasets=initial_view_tables_params["datasets"],
                 columns=initial_view_tables_params[variable],
                 filters=initial_view_tables_params["filters"],
             )
@@ -203,7 +202,6 @@ class AlgorithmExecutor:
             view_name = self.create_pathology_view(
                 command_id=command_id,
                 pathology=initial_view_tables_params["pathology"],
-                datasets=initial_view_tables_params["datasets"],
                 columns=initial_view_tables_params[variable],
                 filters=initial_view_tables_params["filters"],
             )
@@ -257,7 +255,6 @@ class AlgorithmExecutor:
             self,
             command_id: str,
             pathology: str,
-            datasets: List[str],
             columns: List[str],
             filters: List[str],
         ) -> TableName:
@@ -279,7 +276,6 @@ class AlgorithmExecutor:
                 context_id=self.__context_id,
                 command_id=command_id,
                 pathology=pathology,
-                datasets=datasets,
                 columns=columns,
                 filters=filters,
             ).get()
