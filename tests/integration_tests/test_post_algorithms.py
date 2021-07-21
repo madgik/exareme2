@@ -26,19 +26,30 @@ test_cases_post_algorithm_success = [
                     "condition": "AND",
                     "rules": [
                         {
-                            "id": variable,
+                            "id": "dataset",
                             "type": "string",
-                            "operator": "is_not_null",
-                            "value": None,
-                        }
-                        for variable in [
-                            "lefthippocampus",
-                            "righthippocampus",
-                            "rightppplanumpolare",
-                            "leftamygdala",
-                            "rightamygdala",
-                            "alzheimerbroadcategory",
-                        ]
+                            "value": ["edsd"],
+                            "operator": "in",
+                        },
+                        {
+                            "condition": "AND",
+                            "rules": [
+                                {
+                                    "id": variable,
+                                    "type": "string",
+                                    "operator": "is_not_null",
+                                    "value": None,
+                                }
+                                for variable in [
+                                    "lefthippocampus",
+                                    "righthippocampus",
+                                    "rightppplanumpolare",
+                                    "leftamygdala",
+                                    "rightamygdala",
+                                    "alzheimerbroadcategory",
+                                ]
+                            ]
+                        },
                     ],
                     "valid": True,
                 },
