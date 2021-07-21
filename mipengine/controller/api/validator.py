@@ -8,7 +8,6 @@ from typing import Optional
 
 from mipengine.common.common_data_elements import CommonDataElement
 from mipengine.common.common_data_elements import common_data_elements
-from mipengine.common.node_catalog import node_catalog
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
 from mipengine.controller.algorithms_specifications import InputDataStatType
 from mipengine.controller.algorithms_specifications import InputDataType
@@ -20,9 +19,11 @@ from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmInputDataDTO
 from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-
+from mipengine.node_registry import NodeRegistryClient
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
+
+nrclient = NodeRegistryClient()
 
 
 def validate_algorithm_request(algorithm_name: str, request_body: str):
@@ -76,16 +77,27 @@ def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str
     that the datasets belong in the pathology.
     """
 
-    if not node_catalog.pathology_exists(pathology):
+    # TODO: The validator should not contact the Node Registry every time it is called
+    # to validate an algorithm request, this would be very expensive. One way to solve
+    # this would be that the Controller passes a some kind of list
+    # with datasets and pathologies for the validation as a parameter.
+    # https://team-1617704806227.atlassian.net/browse/MIP-195
+
+    if not nrclient.pathology_exists(pathology):
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
 
     # TODO Remove with pydantic
     if not isinstance(datasets, list):
         raise BadRequest(f"Datasets parameter should be a list.")
 
-    if not all(node_catalog.dataset_exists(pathology, dataset) for dataset in datasets):
+    non_existing_datasets = [
+        dataset
+        for dataset in datasets
+        if nrclient.dataset_exists(pathology=pathology, dataset=dataset) == False
+    ]
+    if non_existing_datasets:
         raise BadUserInput(
-            f"Datasets '{datasets}' do not belong in pathology '{pathology}'."
+            f"Datasets:'{non_existing_datasets}' could not be found for pathology:{pathology}"
         )
 
 

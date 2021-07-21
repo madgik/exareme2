@@ -46,20 +46,26 @@
    celery_log_level ="INFO"
    monetdb_image = "madgik/mipenginedb:dev1.4"
 
+   node_registry_port = 8500
+
    [[nodes]]
    id = "globalnode"
+   role = "GLOBALNODE"
    monetdb_port=50000
    rabbitmq_port=5670
 
    [[nodes]]
    id = "localnode1"
+   role = "LOCALNODE"
    monetdb_port=50001
    rabbitmq_port=5671
 
    [[nodes]]
    id = "localnode2"
+   role = "LOCALNODE"
    monetdb_port=50002
    rabbitmq_port=5672
+
    ```
 
    and then run the following command to create the config files that the node services will use
@@ -75,6 +81,7 @@
    ```
 
 1. _Optional_ Load the data into the db with
+   (It is compulsory if you want to run an algorithm)
 
    ```
    inv load-data

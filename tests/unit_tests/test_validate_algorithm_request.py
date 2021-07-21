@@ -147,14 +147,14 @@ def mock_cdes():
 
 
 @pytest.fixture(scope="module", autouse=True)
-def mock_node_catalog():
+def mock_node_registry():
     with patch.multiple(
-        "mipengine.common.node_catalog.NodeCatalog",
+        "mipengine.controller.api.validator.NodeRegistryClient",
         pathology_exists=DEFAULT,
         dataset_exists=DEFAULT,
         autospec=True,
-    ) as mock_node_catalog:
-        mock_node_catalog["pathology_exists"].side_effect = (
+    ) as mock_node_registry:
+        mock_node_registry["pathology_exists"].side_effect = (
             lambda self, pathology: True
             if pathology
             in {
@@ -164,7 +164,7 @@ def mock_node_catalog():
             else False
         )
 
-        mock_node_catalog["dataset_exists"].side_effect = (
+        mock_node_registry["dataset_exists"].side_effect = (
             lambda self, pathology, dataset: True
             if (pathology, dataset)
             in {
@@ -175,7 +175,6 @@ def mock_node_catalog():
             }
             else False
         )
-
         yield
 
 
@@ -335,7 +334,10 @@ test_cases_validate_algorithm_exceptions = [
                 "y": ["alzheimerbroadcategory_bin"],
             },
         },
-        (BadUserInput, "Datasets .* do not belong in pathology .*"),
+        (
+            BadUserInput,
+            "Datasets:.* could not be found for pathology:.*",
+        ),
     ),
     (
         "test_algorithm1",
@@ -359,7 +361,10 @@ test_cases_validate_algorithm_exceptions = [
                 "y": ["alzheimerbroadcategory_bin"],
             },
         },
-        (BadUserInput, "Datasets .* do not belong in pathology .*"),
+        (
+            BadUserInput,
+            "Datasets:.* could not be found for pathology:.*",
+        ),
     ),
     (
         "test_algorithm1",

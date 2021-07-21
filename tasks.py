@@ -71,6 +71,8 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
+CONSUL_AGENT_CONTAINER_NAME = "consul-agent"
+
 DEMO_DATA_FOLDER = Path(integration_tests.__file__).parent / "data"
 
 # TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
@@ -96,10 +98,17 @@ def create_node_configs(c):
 
     for node in deployment_config["nodes"]:
         node_config = template_node_config.copy()
+
+        node_config["node_registry"]["ip"] = deployment_config["ip"]
+        node_config["node_registry"]["port"] = deployment_config["node_registry_port"]
+
         node_config["identifier"] = node["id"]
+        node_config["role"] = node["role"]
         node_config["log_level"] = deployment_config["log_level"]
+
         node_config["monetdb"]["ip"] = deployment_config["ip"]
         node_config["monetdb"]["port"] = node["monetdb_port"]
+
         node_config["rabbitmq"]["ip"] = deployment_config["ip"]
         node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
 
@@ -143,11 +152,49 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
     for name in names:
         container_ids = run(c, f"docker ps -qa --filter name={name}", show_ok=False)
         if container_ids.stdout:
-            message(f"Removing {name} containers...", Level.HEADER)
+            message(f"Removing {name} container...", Level.HEADER)
             cmd = f"docker rm -vf $(docker ps -qa --filter name={name})"
             run(c, cmd)
         else:
             message(f"No {name} container to remove", level=Level.HEADER)
+
+
+@task
+def start_node_registry(context, container_name=None, port=None):
+    if not container_name:
+        container_name = CONSUL_AGENT_CONTAINER_NAME
+    if not port:
+        port = get_deployment_config("node_registry_port")
+
+    # TODO killing the existing container is not obvious from the task name
+    kill_node_registry(context)
+
+    message(
+        f"Starting container {container_name} on port {port}...",
+        Level.HEADER,
+    )
+    # start the consul container
+    cmd = f"docker run -d --name={container_name}  -p {port}:8500 consul"
+    try:
+        # When docker tries to run an image which needs to be downloaded, run() raises
+        # an error with code 125 and returns only after pulling the image without also
+        # starting the container. So the quick solution is to just ignore the error,
+        # this is why raise_error is set to false. It then starts the container
+        # correctly
+
+        run(context, cmd, raise_error=False)
+
+    except (UnexpectedExit, AttributeError) as exc:
+        print(f"{exc=}")
+
+
+@task
+def kill_node_registry(context, container_name=None):
+    if not container_name:
+        container_name = CONSUL_AGENT_CONTAINER_NAME
+
+    # remove the consul container
+    rm_containers(context, container_name=container_name)
 
 
 @task(iterable=["node"])
@@ -434,9 +481,10 @@ def deploy(
     if install_dep:
         install_dependencies(c)
 
-    if start_controller_ or start_all:
-        start_controller(c, detached=True)
+    #start NODE REGISTRY service
+    start_node_registry(c)
 
+    #start NODE services
     config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
     if not config_files:
         message(
@@ -458,6 +506,9 @@ def deploy(
     if start_nodes or start_all:
         start_node(c, all_=True, celery_log_level=celery_log_level, detached=True)
 
+    #start CONTROLLER service
+    if start_controller_ or start_all:
+        start_controller(c, detached=True)
 
 @task
 def attach(c, node=None, controller=False, db=None):
@@ -486,6 +537,7 @@ def cleanup(c):
     kill_controller(c)
     kill_node(c, all_=True)
     rm_containers(c, monetdb=True, rabbitmq=True)
+    kill_node_registry(c)
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
         for outpath in OUTDIR.glob("*.out"):
@@ -553,15 +605,21 @@ def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok
         return
 
     if not wait:
+        # TODO disown=True will make c.run(..) return immediatelly
         c.run(cmd, disown=True)
+        # TODO wait is False to get in here
+        # nevertheless, it will wait (sleep) for 4 seconds here, why??
         spin_wheel(time=4)
         if show_ok:
             message("Ok", Level.SUCCESS)
         return
 
+    # TODO this is supposed to run when wait=True, yet asynchronous=True
     promise = c.run(cmd, asynchronous=True, warn=warn)
+    # TODO and then it blocks here, what is the point of asynchronous=True?
     spin_wheel(promise=promise)
-    if stderr := promise.runner.stderr and raise_error:
+    stderr = promise.runner.stderr
+    if stderr and raise_error:
         raise UnexpectedExit(stderr)
     result = promise.join()
     if show_ok:
