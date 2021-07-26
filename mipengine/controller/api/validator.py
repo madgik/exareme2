@@ -15,8 +15,8 @@ from mipengine.controller.algorithms_specifications import ParameterSpecificatio
 from mipengine.controller.algorithms_specifications import InputDataSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecifications
 from mipengine.controller.algorithms_specifications import algorithms_specifications
-from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmInputDataDTO
-from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
+from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
+from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.node_registry import NodeRegistryClient

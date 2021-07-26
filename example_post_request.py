@@ -1,5 +1,5 @@
 import requests
-from mipengine.controller.api.AlgorithmRequestDTO import (
+from mipengine.controller.api.algorithm_request_dto import (
     AlgorithmInputDataDTO,
     AlgorithmRequestDTO,
 )
