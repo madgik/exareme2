@@ -19,6 +19,7 @@ pandas = "~1.2.3"
 python-consul2 = "^0.1.5"
 scikit-learn = "^0.24.2"
 pydantic = "^1.8.2"
+envtoml = "~0.1.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"
