@@ -5,7 +5,8 @@ description = "Core engine for the Medical Informatics Platform"
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = "~3.8"
+# Python version should be the same as in the Dockerfiles.
+python = "=3.8.11"
 Quart = "~0.14.1"
 celery = "5.0.5"
 pymonetdb = "~1.4.1"
@@ -49,5 +50,6 @@ show_missing = true
 show_contexts = true
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+# Poetry-core version should be the same as in the Dockerfiles.
+requires = ["poetry-core=1.0.3"]
 build-backend = "poetry.core.masonry.api"
