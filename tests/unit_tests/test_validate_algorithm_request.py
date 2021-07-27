@@ -4,10 +4,10 @@ from unittest.mock import patch
 
 import pytest
 
-from mipengine.common.common_data_elements import CommonDataElement
-from mipengine.common.common_data_elements import CommonDataElements
-from mipengine.common.common_data_elements import MetadataEnumeration
-from mipengine.common.common_data_elements import MetadataVariable
+from mipengine.common_data_elements import CommonDataElement
+from mipengine.common_data_elements import CommonDataElements
+from mipengine.common_data_elements import MetadataEnumeration
+from mipengine.common_data_elements import MetadataVariable
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
 from mipengine.controller.algorithms_specifications import AlgorithmsSpecifications
 from mipengine.controller.algorithms_specifications import ParameterSpecification

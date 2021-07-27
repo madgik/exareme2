@@ -4,7 +4,7 @@ import toml
 from importlib.resources import open_text
 
 from mipengine import controller
-from mipengine.utils import AttrDict
+from mipengine import AttrDict
 
 if config_file := os.getenv("MIPENGINE_NODE_CONTROLLER_FILE"):
     with open(config_file) as fp:

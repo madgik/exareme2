@@ -1,6 +1,6 @@
 import pytest
 
-from mipengine.common.filters import build_filter_clause, validate_proper_filter
+from mipengine.filters import build_filter_clause, validate_proper_filter
 
 PATHOLOGY = "tbi"
 

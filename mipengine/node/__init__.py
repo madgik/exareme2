@@ -4,7 +4,7 @@ import envtoml
 from importlib.resources import open_text
 
 from mipengine import node
-from mipengine.utils import AttrDict
+from mipengine import AttrDict
 
 DATA_TABLE_PRIMARY_KEY = "row_id"
 

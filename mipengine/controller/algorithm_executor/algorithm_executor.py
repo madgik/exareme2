@@ -10,10 +10,11 @@ from typing import Tuple
 from celery import Celery
 
 from mipengine.node_registry import NodeRegistryClient
-from mipengine.common.node_tasks_DTOs import TableData
-from mipengine.common.node_tasks_DTOs import TableInfo
-from mipengine.common.node_tasks_DTOs import TableSchema
-from mipengine.common.node_tasks_DTOs import UDFArgument
+
+from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 
 

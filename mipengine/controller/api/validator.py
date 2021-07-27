@@ -6,8 +6,8 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.common.common_data_elements import CommonDataElement
-from mipengine.common.common_data_elements import common_data_elements
+from mipengine.common_data_elements import CommonDataElement
+from mipengine.common_data_elements import common_data_elements
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
 from mipengine.controller.algorithms_specifications import InputDataStatType
 from mipengine.controller.algorithms_specifications import InputDataType

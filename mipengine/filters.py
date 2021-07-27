@@ -1,7 +1,5 @@
-from mipengine.common.common_data_elements import common_data_elements
-from mipengine.node.monetdb_interface.common_actions import (
-    convert_mip_type_to_class_type,
-)
+from mipengine.common_data_elements import common_data_elements
+from mipengine.datatypes import convert_mip_type_to_python_type
 
 FILTER_OPERATORS = {
     "equal": lambda column, value: f"{column} = {value}",
@@ -130,7 +128,7 @@ def _check_value_type(pathology_name: str, column: str, value):
 def _check_value_column_same_type(pathology_name, column, value):
     pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
     column_sql_type = pathology_common_data_elements[column].sql_type
-    if type(value) is not convert_mip_type_to_class_type(column_sql_type):
+    if type(value) is not convert_mip_type_to_python_type(column_sql_type):
         raise TypeError(
             f"{column}'s type: {column_sql_type} was different from the type of the given value:{type(value)}"
         )

@@ -197,7 +197,7 @@ from typing import (
 import numpy
 import astor
 
-from mipengine.common.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine import DType as dt
 
 __all__ = [
