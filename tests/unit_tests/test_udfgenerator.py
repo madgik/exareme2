@@ -4,7 +4,7 @@ from typing import TypeVar
 import pytest
 
 from mipengine.datatypes import DType
-from mipengine.node.udfgen.udfgenerator import (
+from mipengine.udfgen.udfgenerator import (
     Column,
     IOType,
     LiteralArg,
