@@ -9,7 +9,37 @@ on:
       - master
 
 jobs:
+  cache_poetry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Set up python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
+
   unit_tests:
+    needs: cache_poetry
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -51,6 +81,7 @@ jobs:
             ./coverage.xml:coverage.py
 
   integration_tests:
+    needs: cache_poetry
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -62,9 +93,8 @@ jobs:
           python-version: 3.8
 
       - name: Install Poetry
-        uses: snok/install-poetry@v1.1.4
+        uses: snok/install-poetry@v1
         with:
-          version: 1.1.6
           virtualenvs-create: true
           virtualenvs-in-project: true
 
@@ -93,3 +123,127 @@ jobs:
 
       - name: Run integration tests
         run: poetry run pytest tests/integration_tests
+
+  e2e_tests:
+    needs: cache_poetry
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Set up python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Load MONETDB cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/monetdb
+          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles( 'monetdb/**' )}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-monetdb-
+
+      - name: Build MONETDB docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: monetdb/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipenginedb:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/monetdb
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
+
+      - name: Load NODE service cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/node
+          key: ${{ runner.os }}-buildx-node-${{hashFiles('mipengine/**')}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-node-
+
+      - name: Build NODE service docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: mipengine/node/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipengine_node:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/node
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/node
+
+      - name: Load CONTROLLER service cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/controller
+          key: ${{ runner.os }}-buildx-controller-${{hashFiles('mipengine/**')}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-controller-
+
+      - name: Build CONTROLLER service docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: mipengine/controller/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipengine_controller:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/controller
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/controller
+
+        # Temp fix
+        # https://github.com/docker/build-push-action/issues/252
+        # https://github.com/moby/buildkit/issues/1896
+      - name: Move Docker images cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Copy .deployment.toml file
+        run: cp ./tests/e2e_tests/deployment_template.toml .deployment.toml
+
+      - name: Create NODE configs
+        run: poetry run inv create-node-configs
+
+      - name: Start MONETDB and RABBITMQ containers
+        run: poetry run inv deploy --no-start-all
+
+      - name: Start GLOBALNODE container
+        run:  docker run -d --name globalnode -e NODE_IDENTIFIER=globalnode -e NODE_ROLE=GLOBALNODE -e LOG_LEVEL=INFO -e NODE_REGISTRY_IP=172.17.0.1 -e NODE_REGISTRY_PORT=8500 -e RABBITMQ_IP=172.17.0.1 -e RABBITMQ_PORT=5670 -e MONETDB_IP=172.17.0.1 -e MONETDB_PORT=50000 madgik/mipengine_node:latest
+
+      - name: Start LOCALNODE1 container
+        run:  docker run -d --name localnode1 -e NODE_IDENTIFIER=localnode1 -e NODE_ROLE=LOCALNODE -e LOG_LEVEL=INFO -e NODE_REGISTRY_IP=172.17.0.1 -e NODE_REGISTRY_PORT=8500 -e RABBITMQ_IP=172.17.0.1 -e RABBITMQ_PORT=5671 -e MONETDB_IP=172.17.0.1 -e MONETDB_PORT=50001 madgik/mipengine_node:latest
+
+      - name: Start LOCALNODE2 container
+        run:  docker run -d --name localnode2 -e NODE_IDENTIFIER=localnode2 -e NODE_ROLE=LOCALNODE -e LOG_LEVEL=INFO -e NODE_REGISTRY_IP=172.17.0.1 -e NODE_REGISTRY_PORT=8500 -e RABBITMQ_IP=172.17.0.1 -e RABBITMQ_PORT=5672 -e MONETDB_IP=172.17.0.1 -e MONETDB_PORT=50002 madgik/mipengine_node:latest
+
+      - name: Start CONTROLLER container
+        run:  docker run -d --name controller -p 5000:5000 -e NODE_REGISTRY_IP=172.17.0.1 -e NODE_REGISTRY_PORT=8500 madgik/mipengine_controller:latest
+
+      - name: Load data into DBs
+        run: poetry run inv load-data
+
+      - name: Run e2e tests
+        run: poetry run pytest tests/e2e_tests
