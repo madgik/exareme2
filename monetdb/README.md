@@ -2,13 +2,12 @@
 
 ### Build
 
-In order to change the initial monetdb configuration, go to the `bootstrap.sh`
-inside the *config* folder.
+In order to change the initial monetdb configuration, go to the `bootstrap.sh`.
 
 To build a new image you must be on the project root `MIP-Engine/`, then
 
 ```
-docker build -t <USERNAME>/mipenginedb:<IMAGETAG> -f monetdb_dockerized/Dockerfile .
+docker build -t <USERNAME>/mipenginedb:<IMAGETAG> -f monetdb/Dockerfile .
 ```
 
 ## Run
