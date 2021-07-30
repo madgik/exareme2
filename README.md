@@ -45,6 +45,7 @@
    log_level = "INFO"
    celery_log_level ="INFO"
    monetdb_image = "madgik/mipenginedb:dev1.4"
+   rabbitmq_image = "madgik/mipengine_rabbitmq:0.1"
 
    node_registry_port = 8500
 

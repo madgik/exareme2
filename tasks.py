@@ -294,55 +294,20 @@ def load_data(c, port=None):
 
 
 @task(iterable=["node"])
-def config_rabbitmq(c, node):
-    """
-    Configure users and permissions for RabbitMQ container(s) of given node(s).
-
-    :param node: A list of nodes for which to configure the rabbitmq containers.
-    """
-    message("Configuring RabbitMQ containers, this may take some time", Level.HEADER)
-
-    with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
-        node_config = toml.load(fp)
-    rabbitmqctl_cmds = [
-        f"add_user {node_config['rabbitmq']['user']} {node_config['rabbitmq']['password']}",
-        f"add_vhost {node_config['rabbitmq']['vhost']}",
-        f"set_user_tags {node_config['rabbitmq']['user']} user_tag",
-        f"set_permissions -p {node_config['rabbitmq']['vhost']} {node_config['rabbitmq']['user']} '.*' '.*' '.*'",
-    ]
-    node_ids = node
-    for node_id in node_ids:
-        container_name = f"rabbitmq-{node_id}"
-
-        for rmq_cmd in rabbitmqctl_cmds:
-            message(
-                f"Configuring container {container_name}: rabbitmqctl {rmq_cmd}...",
-                Level.HEADER,
-            )
-            cmd = f"docker exec {container_name} rabbitmqctl {rmq_cmd}"
-            # If the rabbitmq container is not operational, try again some times.
-            for _ in range(30):
-                try:
-                    run(c, cmd, raise_error=True)
-                except UnexpectedExit:
-                    spin_wheel(time=2)
-                else:
-                    break
-            else:
-                message("Cannot configure RabbitMQ", Level.ERROR)
-                sys.exit(1)
-
-
-@task(iterable=["node"])
-def create_rabbitmq(c, node):
+def create_rabbitmq(c, node, rabbitmq_image=None):
     """
     (Re)Create RabbitMQ container(s) of given node(s). If the container exists, remove it and create it again.
 
     :param node: A list of nodes for which to (re)create the rabbitmq containers.
+    :param rabbitmq_image: The image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+
     """
     if not node:
         message("Please specify a node using --node <node>", Level.WARNING)
         sys.exit(1)
+
+    if not rabbitmq_image:
+        rabbitmq_image = get_deployment_config("rabbitmq_image")
 
     node_ids = node
     for node_id in node_ids:
@@ -357,8 +322,33 @@ def create_rabbitmq(c, node):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"docker run -d -p {container_ports} --name {container_name} rabbitmq"
+        cmd = (
+            f"docker run -d -p {container_ports} --name {container_name} "
+            f"--health-cmd 'rabbitmq-diagnostics -q ping' --health-interval 30s "
+            f"--health-timeout 30s --health-retries 3 {rabbitmq_image}"
+        )
         run(c, cmd)
+
+    for node_id in node_ids:
+        container_name = f"rabbitmq-{node_id}"
+
+        cmd = f"docker inspect --format='{{{{json .State.Health}}}}' {container_name}"
+        # Wait until rabbitmq is healthy
+        message(
+            f"Waiting for container {container_name} to become healthy...",
+            Level.HEADER,
+        )
+        for _ in range(30):
+            status = run(c, cmd, raise_error=True, wait=True, show_ok=False)
+
+            if '"Status":"healthy"' not in status.stdout:
+                spin_wheel(time=2)
+            else:
+                message("Ok", Level.SUCCESS)
+                break
+        else:
+            message("Cannot configure RabbitMQ", Level.ERROR)
+            sys.exit(1)
 
 
 @task
@@ -522,7 +512,7 @@ def deploy(
 
     create_monetdb(c, node=node_ids, monetdb_image=monetdb_image)
     create_rabbitmq(c, node=node_ids)
-    config_rabbitmq(c, node=node_ids)
+    # config_rabbitmq(c, node=node_ids)
 
     if start_nodes or start_all:
         start_node(c, all_=True, celery_log_level=celery_log_level, detached=True)
