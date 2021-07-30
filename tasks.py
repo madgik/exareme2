@@ -67,6 +67,10 @@ PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
 NODES_CONFIG_DIR = PROJECT_ROOT / "configs" / "nodes"
 NODE_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "mipengine" / "node" / "config.toml"
+CONTROLLER_CONFIG_DIR = PROJECT_ROOT / "configs" / "controller"
+CONTROLLER_CONFIG_TEMPLATE_FILE = (
+    PROJECT_ROOT / "mipengine" / "controller" / "config.toml"
+)
 OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
@@ -82,7 +86,7 @@ DEMO_DATA_FOLDER = Path(integration_tests.__file__).parent / "data"
 @task
 def create_node_configs(c):
     """
-    Create the node services config files, using 'DEPLOYMENT_CONFIG_FILE' and store them in `NODES_CONFIG_DIR` folder.
+    Create the node and controller services config files, using 'DEPLOYMENT_CONFIG_FILE'.
     """
 
     if not Path(DEPLOYMENT_CONFIG_FILE).is_file():
@@ -93,6 +97,7 @@ def create_node_configs(c):
     with open(DEPLOYMENT_CONFIG_FILE) as fp:
         deployment_config = toml.load(fp)
 
+    # Create the nodes config files
     with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
         template_node_config = toml.load(fp)
 
@@ -116,6 +121,20 @@ def create_node_configs(c):
         node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
         with open(node_config_file, "w+") as fp:
             toml.dump(node_config, fp)
+
+    # Create the controller config file
+    with open(CONTROLLER_CONFIG_TEMPLATE_FILE) as fp:
+        template_controller_config = toml.load(fp)
+
+    controller_config = template_controller_config.copy()
+
+    controller_config["node_registry"]["ip"] = deployment_config["ip"]
+    controller_config["node_registry"]["port"] = deployment_config["node_registry_port"]
+
+    CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
+    with open(controller_config_file, "w+") as fp:
+        toml.dump(node_config, fp)
 
 
 @task
@@ -441,14 +460,16 @@ def start_controller(c, detached=False):
     kill_controller(c)
 
     message("Starting Controller...", Level.HEADER)
-    with c.prefix("export QUART_APP=mipengine/controller/api/app:app"):
-        outpath = OUTDIR / "controller.out"
-        if detached:
-            cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0>> {outpath} 2>&1"
-            run(c, cmd, wait=False)
-        else:
-            cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0"
-            run(c, cmd, attach_=True)
+    controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
+    with c.prefix(f"export MIPENGINE_CONTROLLER_CONFIG_FILE={controller_config_file}"):
+        with c.prefix("export QUART_APP=mipengine/controller/api/app:app"):
+            outpath = OUTDIR / "controller.out"
+            if detached:
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0>> {outpath} 2>&1"
+                run(c, cmd, wait=False)
+            else:
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0"
+                run(c, cmd, attach_=True)
 
 
 @task
@@ -481,10 +502,10 @@ def deploy(
     if install_dep:
         install_dependencies(c)
 
-    #start NODE REGISTRY service
+    # start NODE REGISTRY service
     start_node_registry(c)
 
-    #start NODE services
+    # start NODE services
     config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
     if not config_files:
         message(
@@ -506,9 +527,10 @@ def deploy(
     if start_nodes or start_all:
         start_node(c, all_=True, celery_log_level=celery_log_level, detached=True)
 
-    #start CONTROLLER service
+    # start CONTROLLER service
     if start_controller_ or start_all:
         start_controller(c, detached=True)
+
 
 @task
 def attach(c, node=None, controller=False, db=None):

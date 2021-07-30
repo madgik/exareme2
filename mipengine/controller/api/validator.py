@@ -26,8 +26,13 @@ from mipengine.node_registry import NodeRegistryClient
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
 
+# TODO This will be removed with node registry. Hardcoding the ip/port to pass unit tests
 nrclient_ip = controller_config.node_registry.ip
+if not nrclient_ip:
+    nrclient_ip = "127.0.0.1"
 nrclient_port = controller_config.node_registry.port
+if not nrclient_port:
+    nrclient_port = 8500
 nrclient = NodeRegistryClient(
     consul_server_ip=IPv4Address(nrclient_ip), consul_server_port=nrclient_port
 )
