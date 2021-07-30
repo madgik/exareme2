@@ -1,9 +1,10 @@
-identifier = "localnode1"
-log_level = "INFO"
+identifier = "$NODE_IDENTIFIER"
+log_level = "$LOG_LEVEL"
+role = "$NODE_ROLE"
 
 [node_registry]
-ip="127.0.0.1"
-port=8500
+ip="$NODE_REGISTRY_IP"
+port="$NODE_REGISTRY_PORT"
 
 [celery]
 worker_concurrency = 1
@@ -13,15 +14,15 @@ run_udf_soft_time_limit = 60
 run_udf_time_limit = 120
 
 [rabbitmq]
-ip = "127.0.0.1"
-port = 5672
+ip = "$RABBITMQ_IP"
+port = "$RABBITMQ_PORT"
 user = "user"
 password = "password"
 vhost = "user_vhost"
 
 [monetdb]
-ip = "127.0.0.1"
-port = 50000
+ip = "$MONETDB_IP"
+port = "$MONETDB_PORT"
 database = "db"
 username = "monetdb"
 password = "monetdb"

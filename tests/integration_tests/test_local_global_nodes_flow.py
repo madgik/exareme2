@@ -1,8 +1,8 @@
 import uuid
 import pytest
-from mipengine.common.node_tasks_DTOs import ColumnInfo, TableData
-from mipengine.common.node_tasks_DTOs import TableInfo
-from mipengine.common.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import ColumnInfo, TableData
+from mipengine.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
 from tests.integration_tests.nodes_communication import get_celery_app
 from mipengine.node_registry import NodeRegistryClient

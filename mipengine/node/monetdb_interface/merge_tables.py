@@ -2,10 +2,10 @@ from typing import List
 
 import pymonetdb
 
-from mipengine.common.node_exceptions import IncompatibleSchemasMergeException
-from mipengine.common.node_exceptions import IncompatibleTableTypes
-from mipengine.common.node_exceptions import TablesNotFound
-from mipengine.common.node_tasks_DTOs import TableInfo
+from mipengine.node_exceptions import IncompatibleSchemasMergeException
+from mipengine.node_exceptions import IncompatibleTableTypes
+from mipengine.node_exceptions import TablesNotFound
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node.monetdb_interface.common_actions import (
     convert_schema_to_sql_query_format,
 )

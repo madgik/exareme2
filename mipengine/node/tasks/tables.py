@@ -2,8 +2,8 @@ from typing import List, Union
 
 from celery import shared_task
 
-from mipengine.common.node_tasks_DTOs import TableInfo
-from mipengine.common.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import tables
 from mipengine.node.monetdb_interface.common_actions import create_table_name

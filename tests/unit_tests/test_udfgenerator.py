@@ -4,19 +4,16 @@ from typing import TypeVar
 import pytest
 
 from mipengine.datatypes import DType
-from mipengine.node.udfgen.udfgenerator import (
+from mipengine.udfgen.udfgenerator import (
     Column,
     IOType,
     LiteralArg,
-    MergeTensorArg,
     MergeTensorType,
     RelationArg,
     RelationType,
     ScalarFunction,
-    ScalarType,
     Select,
     Table,
-    TableArg,
     TableFunction,
     TensorArg,
     TensorBinaryOp,
@@ -26,11 +23,8 @@ from mipengine.node.udfgen.udfgenerator import (
     copy_types_from_udfargs,
     generate_udf_queries,
     get_funcparts_from_udf_registry,
-    get_items_of_type,
     get_tensor_binary_op_template,
     get_matrix_transpose_template,
-    get_udf_definition_template,
-    get_udf_select_template,
     get_udf_templates_using_udfregistry,
     literal,
     map_unknown_to_known_typeparams,
@@ -44,7 +38,7 @@ from mipengine.node.udfgen.udfgenerator import (
     udf,
     verify_declared_typeparams_match_passed_type,
 )
-from mipengine.common.node_tasks_DTOs import ColumnInfo, TableInfo
+from mipengine.node_tasks_DTOs import ColumnInfo, TableInfo
 
 
 @pytest.fixture(autouse=True)

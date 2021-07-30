@@ -5,11 +5,10 @@ from typing import Tuple
 
 from celery import shared_task
 
-from mipengine.node import config as node_config
-from mipengine import algorithms
+from mipengine import algorithms  # DO NOT REMOVE, NEEDED FOR ALGORITHM IMPORT
 
-# from mipengine.algorithms import demo  # TODO Split the actual and testing algorithms
-from mipengine.common.node_tasks_DTOs import (
+from mipengine.node import config as node_config
+from mipengine.node_tasks_DTOs import (
     UDFArgument,
     ColumnInfo,
     TableInfo,
@@ -17,7 +16,7 @@ from mipengine.common.node_tasks_DTOs import (
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
-from mipengine.node.udfgen import generate_udf_queries
+from mipengine.udfgen import generate_udf_queries
 
 
 @shared_task

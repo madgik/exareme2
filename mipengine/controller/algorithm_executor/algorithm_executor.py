@@ -3,17 +3,21 @@ from __future__ import annotations
 import datetime
 import importlib
 import random
+from ipaddress import IPv4Address
 from typing import Dict
 from typing import List
 from typing import Tuple
 
 from celery import Celery
 
+from mipengine.controller import config as controller_config
+
 from mipengine.node_registry import NodeRegistryClient
-from mipengine.common.node_tasks_DTOs import TableData
-from mipengine.common.node_tasks_DTOs import TableInfo
-from mipengine.common.node_tasks_DTOs import TableSchema
-from mipengine.common.node_tasks_DTOs import UDFArgument
+
+from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 
 
@@ -71,7 +75,11 @@ class AlgorithmExecutor:
         # TODO access to the NodeRegistryClient must be in a higher layer(Controller).
         # AlgorithmExecutor must not spent time contacting the consul agent, it must
         # just get the nodes it has to execute on
-        nrclient = NodeRegistryClient()
+        nrclient_ip = controller_config.node_registry.ip
+        nrclient_port = controller_config.node_registry.port
+        nrclient = NodeRegistryClient(
+            consul_server_ip=IPv4Address(nrclient_ip), consul_server_port=nrclient_port
+        )
 
         global_nodes = nrclient.get_all_global_nodes()
         # TODO for now just use the first global node found, in the future multiple

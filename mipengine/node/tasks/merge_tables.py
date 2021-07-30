@@ -2,7 +2,7 @@ from typing import List
 
 from celery import shared_task
 
-from mipengine.common.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import common_actions
 from mipengine.node.monetdb_interface import merge_tables
