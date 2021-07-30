@@ -1,1 +1,5 @@
 log_level = "INFO"
+
+[node_registry]
+ip="$NODE_REGISTRY_IP"
+port="$NODE_REGISTRY_PORT"

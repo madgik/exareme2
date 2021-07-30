@@ -47,3 +47,28 @@ class DType(Enum):
     def __repr__(self):
         cls = type(self).__name__
         return f"{cls}.{self.name}"
+
+
+# ----- Methods related to type conversions (not yet unified) -----
+# TODO Refactor into unified functions
+
+
+def convert_mip_type_to_python_type(mip_type: str):
+    """
+    Converts MIP's types to the relative python class.
+
+    The "MIP" type that this method is expecting is related to
+    the "sql_type" enumerations contained in the CDEsMetadata.
+    """
+    type_mapping = {
+        "int": int,
+        "real": float,
+        "text": str,
+    }
+
+    if mip_type not in type_mapping.keys():
+        raise KeyError(
+            f"MIP type '{mip_type}' cannot be converted to a python class type."
+        )
+
+    return type_mapping.get(mip_type)

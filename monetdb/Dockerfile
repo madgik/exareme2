@@ -62,7 +62,7 @@ RUN dpkg -i libstreams0v5_0.7.8-2.2_amd64.deb libstreams-dev_0.7.8-2.2_amd64.deb
 #######################################################
 # Setup bootstrap file
 #######################################################
-COPY monetdb_dockerized/config/bootstrap.sh /home/bootstrap.sh
+COPY monetdb/bootstrap.sh /home/bootstrap.sh
 RUN chmod 775 /home/bootstrap.sh
 
 #######################################################
@@ -76,7 +76,7 @@ RUN pip3 install scikit-learn
 # Add /home/udflib to python path and copy
 # necessary tools
 #######################################################
-COPY mipengine/node/udfgen/udfio.py /home/udflib/
+COPY mipengine/udfgen/udfio.py /home/udflib/
 ENV PYTHONPATH "/home/udflib/"
 
 #######################################################

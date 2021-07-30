@@ -16,8 +16,8 @@ from sqlalchemy import create_engine
 from sqlalchemy import null
 from sqlalchemy.exc import OperationalError
 
-from mipengine.common.common_data_elements import CommonDataElement
-from mipengine.common.common_data_elements import common_data_elements
+from mipengine.common_data_elements import CommonDataElement
+from mipengine.common_data_elements import common_data_elements
 from mipengine.node import DATA_TABLE_PRIMARY_KEY
 
 AMOUNT_OF_ROWS_TO_INSERT_INTO_SQL_PER_CALL = 100

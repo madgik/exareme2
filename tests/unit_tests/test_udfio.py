@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from mipengine.node.udfgen.udfio import merge_tensor_to_list
+from mipengine.udfgen.udfio import merge_tensor_to_list
 
 
 def test_merge_tensor_to_list_2tables_0D():

@@ -5,9 +5,10 @@ description = "Core engine for the Medical Informatics Platform"
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = "~3.8"
+# Python version should be the same as in the Dockerfiles.
+python = "=3.8.11"
 Quart = "~0.14.1"
-celery = "~5.0.5"
+celery = "5.0.5"
 pymonetdb = "~1.4.1"
 dataclasses-json = "~0.5.2"
 SQLAlchemy = "~1.3.0"
@@ -16,12 +17,15 @@ astor = "~0.8.1"
 numpy = "~1.20.2"
 scipy = "~1.6.2"
 pandas = "~1.2.3"
+python-consul2 = "^0.1.5"
 scikit-learn = "^0.24.2"
 pydantic = "^1.8.2"
+envtoml = "~0.1.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"
 pytest-xdist = "^2.2.1"
+pytest-assume="2.4.3"
 requests = "^2.25.1"
 ipython = "^7.22.0"
 pdbpp = "^0.10.2"
@@ -46,5 +50,6 @@ show_missing = true
 show_contexts = true
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+# Poetry-core version should be the same as in the Dockerfiles.
+requires = ["poetry-core=1.0.3"]
 build-backend = "poetry.core.masonry.api"

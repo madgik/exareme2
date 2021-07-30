@@ -1,6 +1,6 @@
 from typing import List
 
-from mipengine.common.filters import build_filter_clause
+from mipengine.filters import build_filter_clause
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 

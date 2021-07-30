@@ -3,20 +3,27 @@ from __future__ import annotations
 import datetime
 import importlib
 import random
+from ipaddress import IPv4Address
 from typing import Dict
 from typing import List
 from typing import Tuple
 
 from celery import Celery
 
-from mipengine.common.node_catalog import NodeCatalog
-from mipengine.common.node_tasks_DTOs import TableData
-from mipengine.common.node_tasks_DTOs import TableInfo
-from mipengine.common.node_tasks_DTOs import TableSchema
-from mipengine.common.node_tasks_DTOs import UDFArgument
-from mipengine.controller.api.AlgorithmRequestDTO import AlgorithmRequestDTO
+from mipengine.controller import config as controller_config
 
-# TODO: Too many things happening in all the initialiazers. Especially the AlgorithmExecutor __init__ is called synchronuously from the server
+from mipengine.node_registry import NodeRegistryClient
+
+from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import UDFArgument
+from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+
+
+# TODO: Too many things happening in all the initialiazers. Especially the
+# AlgorithmExecutor __init__ is called synchronuously from the server
+
 # TODO: TASK_TIMEOUT
 
 ALGORITHMS_FOLDER = "mipengine.algorithms"
@@ -62,19 +69,41 @@ class AlgorithmExecutor:
     def __init__(self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO):
 
         self.algorithm_name = algorithm_name
-        self.context_id = get_a_uniqueid()  # TODO should this be passed as a param??
+        # TODO context_id should be passed as a param from Controller
+        self.context_id = get_a_uniqueid()
 
-        node_catalog = NodeCatalog()
-        global_node = node_catalog.get_node("globalnode")
-        local_nodes = node_catalog.get_nodes_with_any_of_datasets(
+        # TODO access to the NodeRegistryClient must be in a higher layer(Controller).
+        # AlgorithmExecutor must not spent time contacting the consul agent, it must
+        # just get the nodes it has to execute on
+        nrclient_ip = controller_config.node_registry.ip
+        nrclient_port = controller_config.node_registry.port
+        nrclient = NodeRegistryClient(
+            consul_server_ip=IPv4Address(nrclient_ip), consul_server_port=nrclient_port
+        )
+
+        global_nodes = nrclient.get_all_global_nodes()
+        # TODO for now just use the first global node found, in the future multiple
+        # global nodes can be available
+        global_node = global_nodes[0]
+        global_node_db = nrclient.get_db_by_node_id(global_node.id)
+
+        local_nodes = nrclient.get_nodes_with_any_of_datasets(
             algorithm_request_dto.inputdata.datasets
         )
 
+        local_nodes_dbs = {
+            node.id: nrclient.get_db_by_node_id(node.id) for node in local_nodes
+        }
+
+        local_nodes = {node.id: node for node in local_nodes}
+
+        # ---end of contacting node registry-----
+
         # instantiate the GLOBAL Node object
         self.global_node = self.Node(
-            node_id=global_node.nodeId,
-            rabbitmq_socket_addr=f"{global_node.rabbitmqIp}:{global_node.rabbitmqPort}",
-            monetdb_socket_addr=f"{global_node.monetdbIp}:{global_node.monetdbPort}",
+            node_id=global_node.id,
+            rabbitmq_socket_addr=f"{global_node.ip}:{global_node.port}",
+            monetdb_socket_addr=f"{global_node_db.ip}:{global_node_db.port}",
             context_id=self.context_id,
         )
 
@@ -92,12 +121,12 @@ class AlgorithmExecutor:
 
         # instantiate the LOCAL Node objects
         self.local_nodes = []
-        for local_node in local_nodes:
+        for node_id, node_info in local_nodes.items():
             self.local_nodes.append(
                 self.Node(
-                    node_id=local_node.nodeId,
-                    rabbitmq_socket_addr=f"{local_node.rabbitmqIp}:{local_node.rabbitmqPort}",
-                    monetdb_socket_addr=f"{local_node.monetdbIp}:{local_node.monetdbPort}",
+                    node_id=node_id,
+                    rabbitmq_socket_addr=f"{node_info.ip}:{node_info.port}",
+                    monetdb_socket_addr=f"{local_nodes_dbs[node_id].ip}:{local_nodes_dbs[node_id].port}",
                     initial_view_tables_params=initial_view_tables_params,
                     context_id=self.context_id,
                 )
@@ -181,7 +210,8 @@ class AlgorithmExecutor:
             return self.__initial_view_tables
 
         def __create_initial_view_tables(self, initial_view_tables_params):
-            # will contain the views created from the pathology, datasets. Its keys are the variable sets x, y etc
+            # will contain the views created from the pathology, datasets. Its keys are
+            # the variable sets x, y etc
             initial_view_tables = {}
 
             # initial view for variables in X
@@ -396,16 +426,13 @@ class AlgorithmExecutor:
 
             # TODO: clean up this mindfuck??
             for node in self._local_nodes:
-                # print(f"node -> {node.node_id}")
                 for (variable_name, table_name) in node.initial_view_tables.items():
-                    # print(f"\t\tvariable_name -> {variable_name}    table_name->{table_name.full_table_name}")
                     if variable_name in tmp_variable_node_table:
                         tmp_variable_node_table[variable_name].update(
                             {node: table_name}
                         )
                     else:
                         tmp_variable_node_table[variable_name] = {node: table_name}
-                    # print(f"tmp_variable_node_table-> {tmp_variable_node_table}\n\n")
 
             self._initial_view_tables = {
                 variable_name: self.LocalNodeTable(node_table)
