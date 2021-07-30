@@ -61,7 +61,7 @@ from invoke import UnexpectedExit
 from invoke import task
 from termcolor import colored
 
-from tests import integration_tests
+import tests
 
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
@@ -77,7 +77,7 @@ if not OUTDIR.exists():
 
 CONSUL_AGENT_CONTAINER_NAME = "consul-agent"
 
-DEMO_DATA_FOLDER = Path(integration_tests.__file__).parent / "data"
+DEMO_DATA_FOLDER = Path(tests.__file__).parent / "demo_data"
 
 # TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
 # Right now if we call a task from another task, the "pre"-task is not executed
