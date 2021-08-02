@@ -1,4 +1,4 @@
-FROM rabbitmq:3.9
+FROM rabbitmq:3.8
 
 ENV RABBITMQ_ADMIN_USER user
 ENV RABBITMQ_ADMIN_PASSWORD password
