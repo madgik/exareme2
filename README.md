@@ -44,7 +44,8 @@
    ip = "172.17.0.1"
    log_level = "INFO"
    celery_log_level ="INFO"
-   monetdb_image = "madgik/mipenginedb:dev1.4"
+   monetdb_image = "madgik/mipenginedb:0.1"
+   rabbitmq_image = "madgik/mipengine_rabbitmq:0.1"
 
    node_registry_port = 8500
 
@@ -143,5 +144,5 @@
 
 1. Make a post request, _e.g._
    ```
-   python test_post_request.py
+   python example_post_request.py
    ```

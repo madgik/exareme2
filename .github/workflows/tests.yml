@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  cache_poetry:
+  setup_cache_poetry:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -37,9 +37,65 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
 
+  setup_cache_monetdb:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Load MONETDB cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/monetdb
+          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles( 'monetdb/**' )}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-monetdb-
+
+      - name: Build MONETDB docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: monetdb/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipenginedb:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/monetdb
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
+
+
+  setup_cache_rabbitmq:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Load RABBITMQ cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/rabbitmq
+          key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-rabbitmq-
+
+      - name: Build RABBITMQ docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: rabbitmq/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipengine_rabbitmq:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
 
   unit_tests:
-    needs: cache_poetry
+    needs: setup_cache_poetry
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -81,7 +137,7 @@ jobs:
             ./coverage.xml:coverage.py
 
   integration_tests:
-    needs: cache_poetry
+    needs: [setup_cache_poetry, setup_cache_monetdb, setup_cache_rabbitmq]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -105,6 +161,47 @@ jobs:
           path: .venv
           key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Load MONETDB cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/monetdb
+          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles( 'monetdb/**' )}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-monetdb-
+
+      - name: Build MONETDB docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: monetdb/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipenginedb:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/monetdb
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
+
+      - name: Load RABBITMQ cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/rabbitmq
+          key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-rabbitmq-
+
+      - name: Build RABBITMQ docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: rabbitmq/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipengine_rabbitmq:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
+
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
@@ -125,7 +222,7 @@ jobs:
         run: poetry run pytest tests/integration_tests
 
   e2e_tests:
-    needs: cache_poetry
+    needs: [setup_cache_poetry, setup_cache_monetdb, setup_cache_rabbitmq]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -174,6 +271,25 @@ jobs:
           tags: madgik/mipenginedb:latest
           cache-from: type=local,src=/tmp/.buildx-cache/monetdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
+
+      - name: Load RABBITMQ cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/rabbitmq
+          key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-rabbitmq-
+
+      - name: Build RABBITMQ docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: rabbitmq/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipengine_rabbitmq:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
 
       - name: Load NODE service cached image
         uses: actions/cache@v2
