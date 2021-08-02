@@ -512,7 +512,6 @@ def deploy(
 
     create_monetdb(c, node=node_ids, monetdb_image=monetdb_image)
     create_rabbitmq(c, node=node_ids)
-    # config_rabbitmq(c, node=node_ids)
 
     if start_nodes or start_all:
         start_node(c, all_=True, celery_log_level=celery_log_level, detached=True)
