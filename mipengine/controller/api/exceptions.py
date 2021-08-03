@@ -8,9 +8,11 @@ class BadRequest(Exception):
 class BadUserInput(Exception):
     def __init__(self, message):
         super().__init__(message)
-        self.status_code = 200
-        self.message = create_response("text/plain+user_error", message)
+        self.status_code = 460
+        self.message = message
 
 
-def create_response(mime_type: str, message: str):
-    return {mime_type: message}
+class UnexpectedException(Exception):
+    def __init__(self):
+        super().__init__()
+        self.status_code = 500

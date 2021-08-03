@@ -134,7 +134,7 @@ def create_node_configs(c):
     CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
     with open(controller_config_file, "w+") as fp:
-        toml.dump(node_config, fp)
+        toml.dump(controller_config, fp)
 
 
 @task
@@ -322,11 +322,7 @@ def create_rabbitmq(c, node, rabbitmq_image=None):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = (
-            f"docker run -d -p {container_ports} --name {container_name} "
-            f"--health-cmd 'rabbitmq-diagnostics -q ping' --health-interval 30s "
-            f"--health-timeout 30s --health-retries 3 {rabbitmq_image}"
-        )
+        cmd = f"docker run -d -p {container_ports} --name {container_name} {rabbitmq_image}"
         run(c, cmd)
 
     for node_id in node_ids:
@@ -338,7 +334,7 @@ def create_rabbitmq(c, node, rabbitmq_image=None):
             f"Waiting for container {container_name} to become healthy...",
             Level.HEADER,
         )
-        for _ in range(30):
+        for _ in range(100):
             status = run(c, cmd, raise_error=True, wait=True, show_ok=False)
 
             if '"Status":"healthy"' not in status.stdout:
