@@ -104,7 +104,7 @@ test_cases_post_algorithm_failure = [
                 "y": ["test_cde3"],
             },
         },
-        (200, "Pathology .* does not exist.*"),
+        (460, "Pathology .* does not exist.*"),
     ),
 ]
 
