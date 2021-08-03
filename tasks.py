@@ -134,7 +134,7 @@ def create_node_configs(c):
     CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
     with open(controller_config_file, "w+") as fp:
-        toml.dump(node_config, fp)
+        toml.dump(controller_config, fp)
 
 
 @task
@@ -325,7 +325,8 @@ def create_rabbitmq(c, node, rabbitmq_image=None):
         cmd = (
             f"docker run -d -p {container_ports} --name {container_name} "
             f"--health-cmd 'rabbitmq-diagnostics -q ping' --health-interval 30s "
-            f"--health-timeout 30s --health-retries 3 {rabbitmq_image}"
+            f"--health-timeout 30s --health-retries 3 "
+            f"-e RABBITMQ_SLEEP_BEFORE_CONFIGURATION=60 {rabbitmq_image}"
         )
         run(c, cmd)
 
