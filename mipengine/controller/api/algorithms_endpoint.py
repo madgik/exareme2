@@ -1,4 +1,3 @@
-import json
 import logging
 import traceback
 
@@ -21,6 +20,7 @@ import asyncio
 import concurrent.futures
 
 from mipengine.controller.api.exceptions import BadUserInput
+from mipengine.controller.api.exceptions import UnexpectedException
 from mipengine.controller.api.validator import validate_algorithm_request
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
@@ -44,8 +44,10 @@ async def post_algorithm(algorithm_name: str) -> str:
     except (BadRequest, BadUserInput) as exc:
         raise exc
     except:
-        logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
-        raise BadRequest("Algorithm validation failed.")
+        logging.error(
+            f"Algorithm validation failed. Exception stack trace: \n {traceback.format_exc()}"
+        )
+        raise UnexpectedException()
 
     try:
         algorithm_request = AlgorithmRequestDTO.from_json(request_body)
@@ -72,8 +74,7 @@ async def post_algorithm(algorithm_name: str) -> str:
         return algorithm_result.json()
 
     except:
-        logging.error(f"Unhandled exception: \n {traceback.format_exc()}")
-        raise BadRequest(
-            "Something went wrong. "
-            "Please inform the system administrator or try again later."
+        logging.error(
+            f"Algorithm execution failed. Unexpected exception: \n {traceback.format_exc()}"
         )
+        raise UnexpectedException()
