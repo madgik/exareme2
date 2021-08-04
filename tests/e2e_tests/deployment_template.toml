@@ -4,6 +4,8 @@ celery_log_level ="INFO"
 monetdb_image = "madgik/mipenginedb:latest"
 rabbitmq_image = "madgik/mipengine_rabbitmq:latest"
 
+cdes_metadata_path = "./tests/demo_data"
+
 node_registry_port = 8500
 
 
