@@ -128,6 +128,7 @@ def create_node_configs(c):
 
     controller_config = template_controller_config.copy()
 
+    controller_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
     controller_config["node_registry"]["ip"] = deployment_config["ip"]
     controller_config["node_registry"]["port"] = deployment_config["node_registry_port"]
 

@@ -9,7 +9,9 @@ from typing import Set
 
 from dataclasses_json import dataclass_json
 
-from mipengine.resources import pathologies_metadata
+from mipengine.controller import config as controller_config
+
+PATHOLOGY_METADATA_FILENAME = "CDEsMetadata.json"
 
 
 @dataclass_json
@@ -81,10 +83,21 @@ class CommonDataElements:
     pathologies: Dict[str, Dict[str, CommonDataElement]]
 
     def __init__(self):
-        metadata_path = Path(pathologies_metadata.__file__).parent
-
         self.pathologies = {}
-        for pathology_metadata_filepath in metadata_path.glob("*.json"):
+        if not controller_config.cdes_metadata_path:
+            return
+
+        cdes_metadata_path = Path(controller_config.cdes_metadata_path)
+        cdes_pathology_metadata_folders = [
+            pathology_folder
+            for pathology_folder in cdes_metadata_path.iterdir()
+            if pathology_folder.is_dir()
+        ]
+
+        for pathology_metadata_folder in cdes_pathology_metadata_folders:
+            pathology_metadata_filepath = (
+                pathology_metadata_folder / PATHOLOGY_METADATA_FILENAME
+            )
             try:
                 pathology_metadata: MetadataGroup = MetadataGroup.from_json(
                     open(pathology_metadata_filepath).read()
@@ -95,9 +108,12 @@ class CommonDataElements:
                     for variable in group.variables
                 }
             except Exception as e:
-                logging.error(f"Parsing metadata file: {pathology_metadata_filepath}")
+                logging.error(
+                    f"Error parsing metadata file: {pathology_metadata_filepath}"
+                )
                 raise e
-                # Adding the subject code cde that doesn't exist in the metadata
+
+            # Adding the subject code cde that doesn't exist in the metadata
             self.pathologies[pathology_metadata.code][
                 "subjectcode"
             ] = CommonDataElement(

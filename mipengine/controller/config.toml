@@ -1,4 +1,5 @@
 log_level = "INFO"
+cdes_metadata_path = "$CDES_METADATA_PATH"
 
 [node_registry]
 ip="$NODE_REGISTRY_IP"
