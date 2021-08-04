@@ -17,7 +17,7 @@ from sqlalchemy import null
 from sqlalchemy.exc import OperationalError
 
 from mipengine.common_data_elements import CommonDataElement
-from mipengine.common_data_elements import common_data_elements
+from mipengine.common_data_elements import CommonDataElements
 from mipengine.node import DATA_TABLE_PRIMARY_KEY
 
 AMOUNT_OF_ROWS_TO_INSERT_INTO_SQL_PER_CALL = 100
@@ -324,6 +324,9 @@ monetdb_username = args.monetdb_username
 monetdb_password = args.monetdb_password
 monetdb_url = args.monetdb_url
 monetdb_farm = args.monetdb_farm
+
+print(f"Importing metadata of pathologies in {data_path}")
+common_data_elements = CommonDataElements(Path(data_path))
 
 db_engine_metadata = MetaData()
 db_engine = create_engine(

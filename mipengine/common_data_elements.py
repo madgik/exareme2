@@ -82,12 +82,14 @@ class CommonDataElement:
 class CommonDataElements:
     pathologies: Dict[str, Dict[str, CommonDataElement]]
 
-    def __init__(self):
+    def __init__(self, cdes_metadata_path: Path = None):
         self.pathologies = {}
-        if not controller_config.cdes_metadata_path:
-            return
 
-        cdes_metadata_path = Path(controller_config.cdes_metadata_path)
+        if not cdes_metadata_path:
+            if not controller_config.cdes_metadata_path:
+                return
+            cdes_metadata_path = Path(controller_config.cdes_metadata_path)
+
         cdes_pathology_metadata_folders = [
             pathology_folder
             for pathology_folder in cdes_metadata_path.iterdir()
