@@ -382,6 +382,7 @@ jobs:
       - name: Contrainers' statuses
         run: docker logs rabbitmq-localnode2
 
+
       - name: Start GLOBALNODE container
         run:  docker run -d --name globalnode -e NODE_IDENTIFIER=globalnode -e NODE_ROLE=GLOBALNODE -e LOG_LEVEL=INFO -e NODE_REGISTRY_IP=172.17.0.1 -e NODE_REGISTRY_PORT=8500 -e RABBITMQ_IP=172.17.0.1 -e RABBITMQ_PORT=5670 -e MONETDB_IP=172.17.0.1 -e MONETDB_PORT=50000 madgik/mipengine_node:latest
 
