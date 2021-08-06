@@ -326,7 +326,7 @@ monetdb_url = args.monetdb_url
 monetdb_farm = args.monetdb_farm
 
 print(f"Importing metadata of pathologies in {data_path}")
-common_data_elements = CommonDataElements(Path(data_path))
+common_data_elements = CommonDataElements(data_path)
 
 db_engine_metadata = MetaData()
 db_engine = create_engine(

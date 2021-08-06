@@ -9,8 +9,6 @@ from typing import Set
 
 from dataclasses_json import dataclass_json
 
-from mipengine.controller import config as controller_config
-
 PATHOLOGY_METADATA_FILENAME = "CDEsMetadata.json"
 
 
@@ -82,13 +80,13 @@ class CommonDataElement:
 class CommonDataElements:
     pathologies: Dict[str, Dict[str, CommonDataElement]]
 
-    def __init__(self, cdes_metadata_path: Path = None):
+    def __init__(self, cdes_metadata_path: str = None):
         self.pathologies = {}
 
         if not cdes_metadata_path:
-            if not controller_config.cdes_metadata_path:
-                return
-            cdes_metadata_path = Path(controller_config.cdes_metadata_path)
+            return
+
+        cdes_metadata_path = Path(cdes_metadata_path)
 
         cdes_pathology_metadata_folders = [
             pathology_folder
@@ -129,6 +127,3 @@ class CommonDataElements:
                     max=None,
                 )
             )
-
-
-common_data_elements = CommonDataElements()

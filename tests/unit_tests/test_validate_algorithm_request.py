@@ -140,7 +140,7 @@ def mock_cdes():
     }
 
     with patch(
-        "mipengine.controller.api.validator.common_data_elements",
+        "mipengine.controller.api.validator.controller_common_data_elements",
         common_data_elements,
     ):
         yield

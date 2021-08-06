@@ -2,6 +2,8 @@ identifier = "$NODE_IDENTIFIER"
 log_level = "$LOG_LEVEL"
 role = "$NODE_ROLE"
 
+cdes_metadata_path = "./tests/demo_data"
+
 [node_registry]
 ip="$NODE_REGISTRY_IP"
 port="$NODE_REGISTRY_PORT"

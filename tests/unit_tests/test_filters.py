@@ -11,8 +11,8 @@ from mipengine.filters import build_filter_clause, validate_proper_filter
 PATHOLOGY = "test_pathology1"
 
 
-@pytest.fixture(scope="module", autouse=True)
-def mock_cdes():
+@pytest.fixture()
+def common_data_elements():
     common_data_elements = CommonDataElements()
     common_data_elements.pathologies = {
         "test_pathology1": {
@@ -123,11 +123,7 @@ def mock_cdes():
         },
     }
 
-    with patch(
-        "mipengine.filters.common_data_elements",
-        common_data_elements,
-    ):
-        yield
+    return common_data_elements
 
 
 all_success_cases = [
@@ -388,8 +384,8 @@ def test_build_filter_clause(test_input, expected):
 
 
 @pytest.mark.parametrize("test_input,expected", all_success_cases)
-def test_validate_proper_filter(test_input, expected):
-    validate_proper_filter(PATHOLOGY, test_input)
+def test_validate_proper_filter(test_input, expected, common_data_elements):
+    validate_proper_filter(common_data_elements, PATHOLOGY, test_input)
 
 
 all_build_filter_clause_fail_cases = [
@@ -512,9 +508,11 @@ all_validate_proper_filter_fail_cases = [
 @pytest.mark.parametrize(
     "test_input,expected_error", all_validate_proper_filter_fail_cases
 )
-def test_validate_proper_filter_fail_cases(test_input, expected_error):
+def test_validate_proper_filter_fail_cases(
+    test_input, expected_error, common_data_elements
+):
     with pytest.raises(expected_error):
-        validate_proper_filter(PATHOLOGY, test_input)
+        validate_proper_filter(common_data_elements, PATHOLOGY, test_input)
 
 
 @pytest.mark.parametrize(
@@ -529,9 +527,10 @@ invalid_pathology_case = ["non_existing_pathology", 0, True]
 
 
 @pytest.mark.parametrize("pathology", invalid_pathology_case)
-def test_validate_proper_filter_fail_cases(pathology):
+def test_validate_proper_filter_fail_cases(pathology, common_data_elements):
     with pytest.raises(KeyError):
         validate_proper_filter(
+            common_data_elements,
             pathology,
             {
                 "condition": "AND",

@@ -104,6 +104,8 @@ def create_node_configs(c):
     for node in deployment_config["nodes"]:
         node_config = template_node_config.copy()
 
+        node_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
+
         node_config["node_registry"]["ip"] = deployment_config["ip"]
         node_config["node_registry"]["port"] = deployment_config["node_registry_port"]
 
@@ -127,7 +129,6 @@ def create_node_configs(c):
         template_controller_config = toml.load(fp)
 
     controller_config = template_controller_config.copy()
-
     controller_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
     controller_config["node_registry"]["ip"] = deployment_config["ip"]
     controller_config["node_registry"]["port"] = deployment_config["node_registry_port"]
