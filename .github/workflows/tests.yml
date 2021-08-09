@@ -370,6 +370,9 @@ jobs:
       - name: Start MONETDB and RABBITMQ containers
         run: poetry run inv deploy --no-start-all
 
+      - name: Load data into DBs
+        run: poetry run inv load-data
+
       - name: Start GLOBALNODE container
         run:  docker run -d --name globalnode -e NODE_IDENTIFIER=globalnode -e NODE_ROLE=GLOBALNODE -e LOG_LEVEL=INFO -e NODE_REGISTRY_IP=172.17.0.1 -e NODE_REGISTRY_PORT=8500 -e RABBITMQ_IP=172.17.0.1 -e RABBITMQ_PORT=5670 -e MONETDB_IP=172.17.0.1 -e MONETDB_PORT=50000 madgik/mipengine_node:latest
 
@@ -380,10 +383,12 @@ jobs:
         run:  docker run -d --name localnode2 -e NODE_IDENTIFIER=localnode2 -e NODE_ROLE=LOCALNODE -e LOG_LEVEL=INFO -e NODE_REGISTRY_IP=172.17.0.1 -e NODE_REGISTRY_PORT=8500 -e RABBITMQ_IP=172.17.0.1 -e RABBITMQ_PORT=5672 -e MONETDB_IP=172.17.0.1 -e MONETDB_PORT=50002 madgik/mipengine_node:latest
 
       - name: Start CONTROLLER container
-        run:  docker run -d --name controller -p 5000:5000 -e NODE_REGISTRY_IP=172.17.0.1 -e NODE_REGISTRY_PORT=8500 madgik/mipengine_controller:latest
+        run:  docker run -d --name controller -p 5000:5000 -v $GITHUB_WORKSPACE/tests/demo_data:/opt/data -e CDES_METADATA_PATH=/opt/data -e NODE_REGISTRY_IP=172.17.0.1 -e NODE_REGISTRY_PORT=8500 madgik/mipengine_controller:latest
 
-      - name: Load data into DBs
-        run: poetry run inv load-data
+      - name: Wait for services to start
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '20s'
 
       - name: Run e2e tests
         run: poetry run pytest tests/e2e_tests

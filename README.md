@@ -47,6 +47,8 @@
    monetdb_image = "madgik/mipenginedb:0.1"
    rabbitmq_image = "madgik/mipengine_rabbitmq:0.1"
 
+   cdes_metadata_path = "./tests/demo_data"
+
    node_registry_port = 8500
 
    [[nodes]]

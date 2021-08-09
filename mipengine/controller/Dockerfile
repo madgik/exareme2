@@ -23,6 +23,12 @@ ENV PATH="$POETRY_HOME/bin:$CODE_PATH:$PATH"
 WORKDIR $CODE_PATH
 
 #######################################################
+# Creating the metadata folder
+#######################################################
+ENV CDES_METADATA_PATH="/opt/data"
+RUN mkdir $CDES_METADATA_PATH
+
+#######################################################
 # Installing poetry and dependencies
 #######################################################
 RUN pip install poetry==$POETRY_VERSION

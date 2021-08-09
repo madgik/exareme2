@@ -1,8 +1,130 @@
+from unittest.mock import patch
+
 import pytest
 
+from mipengine.common_data_elements import CommonDataElement
+from mipengine.common_data_elements import CommonDataElements
+from mipengine.common_data_elements import MetadataEnumeration
+from mipengine.common_data_elements import MetadataVariable
 from mipengine.filters import build_filter_clause, validate_proper_filter
 
-PATHOLOGY = "tbi"
+PATHOLOGY = "test_pathology1"
+
+
+@pytest.fixture()
+def common_data_elements():
+    common_data_elements = CommonDataElements()
+    common_data_elements.pathologies = {
+        "test_pathology1": {
+            "test_age_value": CommonDataElement(
+                MetadataVariable(
+                    code="test_age_value",
+                    label="test test_age_value",
+                    sql_type="int",
+                    isCategorical=False,
+                    enumerations=None,
+                    min=0,
+                    max=130,
+                )
+            ),
+            "test_pupil_reactivity_right_eye_result": CommonDataElement(
+                MetadataVariable(
+                    code="test_pupil_reactivity_right_eye_result",
+                    label="test test_pupil_reactivity_right_eye_result",
+                    sql_type="text",
+                    isCategorical=True,
+                    enumerations=[
+                        MetadataEnumeration(code="Sluggish", label="Sluggish"),
+                        MetadataEnumeration(code="Nonreactive", label="Nonreactive"),
+                        MetadataEnumeration(code="Brisk", label="Brisk"),
+                        MetadataEnumeration(code="Untestable", label="Untestable"),
+                        MetadataEnumeration(code="Unknown", label="Unknown"),
+                    ],
+                    min=None,
+                    max=None,
+                )
+            ),
+            "test_mortality_core": CommonDataElement(
+                MetadataVariable(
+                    code="test_mortality_core",
+                    label="test_mortality_core",
+                    sql_type="real",
+                    isCategorical=False,
+                    enumerations=None,
+                    min=None,
+                    max=None,
+                )
+            ),
+            "test_gose_score": CommonDataElement(
+                MetadataVariable(
+                    code="test_gose_score",
+                    label="test_gose_score",
+                    sql_type="text",
+                    isCategorical=True,
+                    enumerations=[
+                        MetadataEnumeration(code="1", label="Dead"),
+                        MetadataEnumeration(code="2", label="Vegetative State"),
+                        MetadataEnumeration(code="3", label="Lower Severe Disability"),
+                        MetadataEnumeration(code="4", label="Upper Severe Disability"),
+                        MetadataEnumeration(
+                            code="5", label="Lower Moderate Disability"
+                        ),
+                        MetadataEnumeration(
+                            code="6", label="Upper Moderate Disability"
+                        ),
+                        MetadataEnumeration(code="7", label="Lower Good Recovery"),
+                        MetadataEnumeration(code="8", label="Upper Good Recovery"),
+                    ],
+                    min=None,
+                    max=None,
+                )
+            ),
+            "test_gcs_total_score": CommonDataElement(
+                MetadataVariable(
+                    code="test_gcs_total_score",
+                    label="test_gcs_total_score",
+                    sql_type="text",
+                    isCategorical=True,
+                    enumerations=[
+                        MetadataEnumeration(code="3", label="3"),
+                        MetadataEnumeration(code="4", label="4"),
+                        MetadataEnumeration(code="5", label="5"),
+                        MetadataEnumeration(code="6", label="6"),
+                        MetadataEnumeration(code="7", label="7"),
+                        MetadataEnumeration(code="8", label="8"),
+                        MetadataEnumeration(code="9", label="9"),
+                        MetadataEnumeration(code="10", label="10"),
+                        MetadataEnumeration(code="11", label="11"),
+                        MetadataEnumeration(code="12", label="12"),
+                        MetadataEnumeration(code="13", label="13"),
+                        MetadataEnumeration(code="14", label="14"),
+                        MetadataEnumeration(code="15", label="15"),
+                        MetadataEnumeration(code="untestable", label="untestable"),
+                        MetadataEnumeration(code="unknown", label="unknown"),
+                    ],
+                    min=None,
+                    max=None,
+                )
+            ),
+            "test_gender_type": CommonDataElement(
+                MetadataVariable(
+                    code="test_gender_type",
+                    label="test_gender_type",
+                    sql_type="text",
+                    isCategorical=True,
+                    enumerations=[
+                        MetadataEnumeration(code="M", label="Male"),
+                        MetadataEnumeration(code="F", label="Female"),
+                    ],
+                    min=None,
+                    max=None,
+                )
+            ),
+        },
+    }
+
+    return common_data_elements
+
 
 all_success_cases = [
     (
@@ -10,8 +132,8 @@ all_success_cases = [
             "condition": "AND",
             "rules": [
                 {
-                    "id": "age_value",
-                    "field": "age_value",
+                    "id": "test_age_value",
+                    "field": "test_age_value",
                     "type": "int",
                     "input": "number",
                     "operator": "equal",
@@ -20,15 +142,15 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "age_value = 17",
+        "test_age_value = 17",
     ),
     (
         {
             "condition": "AND",
             "rules": [
                 {
-                    "id": "pupil_reactivity_right_eye_result",
-                    "field": "pupil_reactivity_right_eye_result",
+                    "id": "test_pupil_reactivity_right_eye_result",
+                    "field": "test_pupil_reactivity_right_eye_result",
                     "type": "string",
                     "input": "text",
                     "operator": "not_equal",
@@ -37,23 +159,23 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "pupil_reactivity_right_eye_result <> 'Nonreactive'",
+        "test_pupil_reactivity_right_eye_result <> 'Nonreactive'",
     ),
     (
         {
             "condition": "OR",
             "rules": [
                 {
-                    "id": "age_value",
-                    "field": "age_value",
+                    "id": "test_age_value",
+                    "field": "test_age_value",
                     "type": "int",
                     "input": "number",
                     "operator": "equal",
                     "value": 17,
                 },
                 {
-                    "id": "pupil_reactivity_right_eye_result",
-                    "field": "pupil_reactivity_right_eye_result",
+                    "id": "test_pupil_reactivity_right_eye_result",
+                    "field": "test_pupil_reactivity_right_eye_result",
                     "type": "string",
                     "input": "text",
                     "operator": "not_equal",
@@ -62,23 +184,23 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "age_value = 17 OR pupil_reactivity_right_eye_result <> 'Nonreactive'",
+        "test_age_value = 17 OR test_pupil_reactivity_right_eye_result <> 'Nonreactive'",
     ),
     (
         {
             "condition": "AND",
             "rules": [
                 {
-                    "id": "age_value",
-                    "field": "age_value",
+                    "id": "test_age_value",
+                    "field": "test_age_value",
                     "type": "int",
                     "input": "number",
                     "operator": "less",
                     "value": 50,
                 },
                 {
-                    "id": "age_value",
-                    "field": "age_value",
+                    "id": "test_age_value",
+                    "field": "test_age_value",
                     "type": "int",
                     "input": "number",
                     "operator": "greater",
@@ -87,23 +209,23 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "age_value < 50 AND age_value > 20",
+        "test_age_value < 50 AND test_age_value > 20",
     ),
     (
         {
             "condition": "AND",
             "rules": [
                 {
-                    "id": "age_value",
-                    "field": "age_value",
+                    "id": "test_age_value",
+                    "field": "test_age_value",
                     "type": "int",
                     "input": "number",
                     "operator": "not_between",
                     "value": [60, 90],
                 },
                 {
-                    "id": "mortality_core",
-                    "field": "mortality_core",
+                    "id": "test_mortality_core",
+                    "field": "test_mortality_core",
                     "type": "double",
                     "input": "number",
                     "operator": "between",
@@ -112,23 +234,23 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "NOT age_value BETWEEN 60 AND 90 AND mortality_core BETWEEN 0.3 AND 0.8",
+        "NOT test_age_value BETWEEN 60 AND 90 AND test_mortality_core BETWEEN 0.3 AND 0.8",
     ),
     (
         {
             "condition": "OR",
             "rules": [
                 {
-                    "id": "gose_score",
-                    "field": "gose_score",
+                    "id": "test_gose_score",
+                    "field": "test_gose_score",
                     "type": "text",
                     "input": "text",
                     "operator": "is_null",
                     "value": None,
                 },
                 {
-                    "id": "gcs_total_score",
-                    "field": "gcs_total_score",
+                    "id": "test_gcs_total_score",
+                    "field": "test_gcs_total_score",
                     "type": "int",
                     "input": "number",
                     "operator": "is_not_null",
@@ -137,15 +259,15 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "gose_score IS NULL OR gcs_total_score IS NOT NULL",
+        "test_gose_score IS NULL OR test_gcs_total_score IS NOT NULL",
     ),
     (
         {
             "condition": "AND",
             "rules": [
                 {
-                    "id": "age_value",
-                    "field": "age_value",
+                    "id": "test_age_value",
+                    "field": "test_age_value",
                     "type": "integer",
                     "input": "number",
                     "operator": "in",
@@ -154,15 +276,15 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "age_value IN (17,19)",
+        "test_age_value IN (17,19)",
     ),
     (
         {
             "condition": "AND",
             "rules": [
                 {
-                    "id": "gender_type",
-                    "field": "gender_type",
+                    "id": "test_gender_type",
+                    "field": "test_gender_type",
                     "type": "string",
                     "input": "text",
                     "operator": "in",
@@ -171,7 +293,7 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "gender_type IN ('F','M')",
+        "test_gender_type IN ('F','M')",
     ),
     (
         {
@@ -181,8 +303,8 @@ all_success_cases = [
                     "condition": "AND",
                     "rules": [
                         {
-                            "id": "gender_type",
-                            "field": "gender_type",
+                            "id": "test_gender_type",
+                            "field": "test_gender_type",
                             "type": "string",
                             "input": "text",
                             "operator": "equal",
@@ -192,16 +314,16 @@ all_success_cases = [
                             "condition": "AND",
                             "rules": [
                                 {
-                                    "id": "age_value",
-                                    "field": "age_value",
+                                    "id": "test_age_value",
+                                    "field": "test_age_value",
                                     "type": "int",
                                     "input": "number",
                                     "operator": "between",
                                     "value": [20, 30],
                                 },
                                 {
-                                    "id": "gose_score",
-                                    "field": "gose_score",
+                                    "id": "test_gose_score",
+                                    "field": "test_gose_score",
                                     "type": "text",
                                     "input": "text",
                                     "operator": "is_not_null",
@@ -215,8 +337,8 @@ all_success_cases = [
                     "condition": "AND",
                     "rules": [
                         {
-                            "id": "gender_type",
-                            "field": "gender_type",
+                            "id": "test_gender_type",
+                            "field": "test_gender_type",
                             "type": "string",
                             "input": "text",
                             "operator": "not_equal",
@@ -226,16 +348,16 @@ all_success_cases = [
                             "condition": "AND",
                             "rules": [
                                 {
-                                    "id": "mortality_core",
-                                    "field": "mortality_core",
+                                    "id": "test_mortality_core",
+                                    "field": "test_mortality_core",
                                     "type": "double",
                                     "input": "number",
                                     "operator": "greater",
                                     "value": 0.5,
                                 },
                                 {
-                                    "id": "mortality_core",
-                                    "field": "mortality_core",
+                                    "id": "test_mortality_core",
+                                    "field": "test_mortality_core",
                                     "type": "double",
                                     "input": "number",
                                     "operator": "less_or_equal",
@@ -249,8 +371,8 @@ all_success_cases = [
             "valid": True,
         },
         (
-            "gender_type = 'F' AND age_value BETWEEN 20 AND 30 AND gose_score IS NOT NULL OR gender_type <> 'F' AND "
-            "mortality_core > 0.5 AND mortality_core <= 0.8"
+            "test_gender_type = 'F' AND test_age_value BETWEEN 20 AND 30 AND test_gose_score IS NOT NULL OR test_gender_type <> 'F' AND "
+            "test_mortality_core > 0.5 AND test_mortality_core <= 0.8"
         ),
     ),
 ]
@@ -262,8 +384,8 @@ def test_build_filter_clause(test_input, expected):
 
 
 @pytest.mark.parametrize("test_input,expected", all_success_cases)
-def test_validate_proper_filter(test_input, expected):
-    validate_proper_filter(PATHOLOGY, test_input)
+def test_validate_proper_filter(test_input, expected, common_data_elements):
+    validate_proper_filter(common_data_elements, PATHOLOGY, test_input)
 
 
 all_build_filter_clause_fail_cases = [
@@ -272,8 +394,8 @@ all_build_filter_clause_fail_cases = [
             "condition": "ANDOR",
             "rules": [
                 {
-                    "id": "age_value",
-                    "field": "age_value",
+                    "id": "test_age_value",
+                    "field": "test_age_value",
                     "type": "int",
                     "input": "number",
                     "operator": "equal",
@@ -296,8 +418,8 @@ all_validate_proper_filter_fail_cases = [
             "condition": "ANDOR",
             "rules": [
                 {
-                    "id": "age_value",
-                    "field": "age_value",
+                    "id": "test_age_value",
+                    "field": "test_age_value",
                     "type": "int",
                     "input": "number",
                     "operator": "equal",
@@ -317,8 +439,8 @@ all_validate_proper_filter_fail_cases = [
             "condition": "AND",
             "rules": [
                 {
-                    "id": "age_value",
-                    "field": "age_value",
+                    "id": "test_age_value",
+                    "field": "test_age_value",
                     "type": "int",
                     "input": "number",
                     "operator": "invalid operator",
@@ -335,7 +457,7 @@ all_validate_proper_filter_fail_cases = [
             "rules": [
                 {
                     "id": "invalid column",
-                    "field": "age_value",
+                    "field": "test_age_value",
                     "type": "int",
                     "input": "number",
                     "operator": "equal",
@@ -351,8 +473,8 @@ all_validate_proper_filter_fail_cases = [
             "condition": "AND",
             "rules": [
                 {
-                    "id": "age_value",
-                    "field": "age_value",
+                    "id": "test_age_value",
+                    "field": "test_age_value",
                     "type": "int",
                     "input": "number",
                     "operator": "equal",
@@ -368,8 +490,8 @@ all_validate_proper_filter_fail_cases = [
             "condition": "AND",
             "rules": [
                 {
-                    "id": "age_value",
-                    "field": "age_value",
+                    "id": "test_age_value",
+                    "field": "test_age_value",
                     "type": "int",
                     "input": "number",
                     "operator": "equal",
@@ -386,9 +508,11 @@ all_validate_proper_filter_fail_cases = [
 @pytest.mark.parametrize(
     "test_input,expected_error", all_validate_proper_filter_fail_cases
 )
-def test_validate_proper_filter_fail_cases(test_input, expected_error):
+def test_validate_proper_filter_fail_cases(
+    test_input, expected_error, common_data_elements
+):
     with pytest.raises(expected_error):
-        validate_proper_filter(PATHOLOGY, test_input)
+        validate_proper_filter(common_data_elements, PATHOLOGY, test_input)
 
 
 @pytest.mark.parametrize(
@@ -403,16 +527,17 @@ invalid_pathology_case = ["non_existing_pathology", 0, True]
 
 
 @pytest.mark.parametrize("pathology", invalid_pathology_case)
-def test_validate_proper_filter_fail_cases(pathology):
+def test_validate_proper_filter_fail_cases(pathology, common_data_elements):
     with pytest.raises(KeyError):
         validate_proper_filter(
+            common_data_elements,
             pathology,
             {
                 "condition": "AND",
                 "rules": [
                     {
-                        "id": "age_value",
-                        "field": "age_value",
+                        "id": "test_age_value",
+                        "field": "test_age_value",
                         "type": "int",
                         "input": "number",
                         "operator": "equal",

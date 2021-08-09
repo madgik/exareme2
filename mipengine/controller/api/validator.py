@@ -10,7 +10,9 @@ from typing import Optional
 from mipengine.controller import config as controller_config
 
 from mipengine.common_data_elements import CommonDataElement
-from mipengine.common_data_elements import common_data_elements
+from mipengine.controller.controller_common_data_elements import (
+    controller_common_data_elements,
+)
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
 from mipengine.controller.algorithms_specifications import InputDataStatType
 from mipengine.controller.algorithms_specifications import InputDataType
@@ -78,7 +80,7 @@ def _validate_inputdata(
 ):
     _validate_inputdata_pathology_and_dataset(inputdata.pathology, inputdata.datasets)
 
-    _validate_inputdata_filter(inputdata.filters)
+    _validate_inputdata_filter(inputdata.pathology, inputdata.filters)
 
     _validate_algorithm_inputdatas(inputdata, inputdata_specs)
 
@@ -113,12 +115,17 @@ def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str
         )
 
 
-def _validate_inputdata_filter(filter):
+def _validate_inputdata_filter(pathology, filter):
     """
     Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
     """
-    # TODO Add filter
+    # TODO Add filters
+    # validate_proper_filter(
+    #     common_data_elements=common_data_elements,
+    #     pathology_name=pathology,
+    #     rules=filter
+    # )
     pass
 
 
@@ -177,9 +184,9 @@ def _validate_inputdata_value(
 
 
 def _get_cde_metadata(cde, pathology):
-    pathology_cdes: Dict[str, CommonDataElement] = common_data_elements.pathologies[
-        pathology
-    ]
+    pathology_cdes: Dict[
+        str, CommonDataElement
+    ] = controller_common_data_elements.pathologies[pathology]
     if cde not in pathology_cdes.keys():
         raise BadUserInput(
             f"The CDE '{cde}' does not exist in pathology '{pathology}'."

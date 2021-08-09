@@ -1,4 +1,4 @@
-from mipengine.common_data_elements import common_data_elements
+from mipengine.common_data_elements import CommonDataElements
 from mipengine.datatypes import convert_mip_type_to_python_type
 
 FILTER_OPERATORS = {
@@ -43,7 +43,9 @@ def build_filter_clause(rules):
     raise ValueError(f"Filters did not contain the keys: 'condition' or 'id'.")
 
 
-def validate_proper_filter(pathology_name: str, rules):
+def validate_proper_filter(
+    common_data_elements: CommonDataElements, pathology_name: str, rules: dict
+):
     """
     Validates a given filter in jQuery format.
     This function will check the validity of:
@@ -58,19 +60,19 @@ def validate_proper_filter(pathology_name: str, rules):
         return
 
     _check_filter_type(rules)
-    _check_pathology_exists(pathology_name)
+    _check_pathology_exists(common_data_elements, pathology_name)
 
     if "condition" in rules:
         _check_proper_condition(rules["condition"])
         rules = rules["rules"]
         for rule in rules:
-            validate_proper_filter(pathology_name, rule)
+            validate_proper_filter(common_data_elements, pathology_name, rule)
     elif "id" in rules:
         column_name = rules["id"]
         val = rules["value"]
         _check_proper_operator(rules["operator"])
-        _check_column_exists(pathology_name, column_name)
-        _check_value_type(pathology_name, column_name, val)
+        _check_column_exists(common_data_elements, pathology_name, column_name)
+        _check_value_type(common_data_elements, pathology_name, column_name, val)
     else:
         raise ValueError(
             f"Invalid filters format. Filters did not contain the keys: 'condition' or 'id'."
@@ -98,7 +100,7 @@ def _check_proper_operator(operator: str):
         raise ValueError(f"Operator: {operator} is not acceptable.")
 
 
-def _check_column_exists(pathology_name: str, column: str):
+def _check_column_exists(common_data_elements, pathology_name: str, column: str):
     pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
     if column not in pathology_common_data_elements.keys():
         raise KeyError(
@@ -106,26 +108,31 @@ def _check_column_exists(pathology_name: str, column: str):
         )
 
 
-def _check_pathology_exists(pathology_name: str):
+def _check_pathology_exists(common_data_elements, pathology_name: str):
     if pathology_name not in common_data_elements.pathologies.keys():
         raise KeyError(f"Pathology:{pathology_name} does not exist in the metadata!")
 
 
-def _check_value_type(pathology_name: str, column: str, value):
+def _check_value_type(common_data_elements, pathology_name: str, column: str, value):
     if value is None:
         return
 
     if isinstance(value, list):
-        [_check_value_type(pathology_name, column, item) for item in value]
+        [
+            _check_value_type(common_data_elements, pathology_name, column, item)
+            for item in value
+        ]
     elif isinstance(value, (int, str, float)):
-        _check_value_column_same_type(pathology_name, column, value)
+        _check_value_column_same_type(
+            common_data_elements, pathology_name, column, value
+        )
     else:
         raise TypeError(
             f"Value {value} should be of type int, str, float but was {type(value)}"
         )
 
 
-def _check_value_column_same_type(pathology_name, column, value):
+def _check_value_column_same_type(common_data_elements, pathology_name, column, value):
     pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
     column_sql_type = pathology_common_data_elements[column].sql_type
     if type(value) is not convert_mip_type_to_python_type(column_sql_type):
