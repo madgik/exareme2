@@ -5,7 +5,7 @@ import pytest
 import requests
 import numpy as np
 
-from tests.integration_tests import algorithms_url
+from tests.e2e_tests import algorithms_url
 
 test_cases_post_algorithm_success = [
     (

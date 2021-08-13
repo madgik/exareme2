@@ -18,7 +18,7 @@ spec:
         nodeType: master
       containers:
       - name: mipengine-controller
-        image: madgik/mipengine_controller:0.1.0
+        image: thanasulas/mipengine_controller:latest
         ports:
           - containerPort: 5000
         volumeMounts:
@@ -26,9 +26,9 @@ spec:
           name: metadata
         env:
         - name: NODE_REGISTRY_IP
-          value: "192.168.38.132"
+          value: "mipengine-noderegistry-service"
         - name: NODE_REGISTRY_PORT
-          value: "30000"
+          value: "8500"
       volumes:
       - name: metadata
         hostPath:

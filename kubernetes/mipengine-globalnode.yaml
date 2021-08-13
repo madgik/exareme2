@@ -17,12 +17,12 @@ spec:
       nodeSelector:
         nodeType: master
       containers:
-      - name: mipengine-globalnode-monetdb
+      - name: mipengine-monetdb
         image: madgik/mipenginedb:0.1.0
         ports:
           - containerPort: 50000
 
-      - name: mipengine-globalnode-rabbitmq
+      - name: mipengine-rabbitmq
         image: madgik/mipengine_rabbitmq:0.1.0
         env:
         - name: RABBITMQ_ADMIN_USER
@@ -37,7 +37,7 @@ spec:
           - containerPort: 5672
 
       - name: mipengine-node
-        image: madgik/mipengine_node:0.1.0
+        image: thanasulas/mipengine_node:latest
         env:
         - name: NODE_IDENTIFIER
           value: "globalnode"
@@ -46,9 +46,9 @@ spec:
         - name: LOG_LEVEL
           value: "INFO"
         - name: NODE_REGISTRY_IP
-          value: "192.168.38.132"
+          value: "mipengine-noderegistry-service"
         - name: NODE_REGISTRY_PORT
-          value: "30000"
+          value: "8500"
         - name: RABBITMQ_IP
           valueFrom:
             fieldRef:
