@@ -78,7 +78,7 @@ class AlgorithmExecutor:
         nrclient_ip = controller_config.node_registry.ip
         nrclient_port = controller_config.node_registry.port
         nrclient = NodeRegistryClient(
-            consul_server_ip=IPv4Address(nrclient_ip), consul_server_port=nrclient_port
+            consul_server_ip=nrclient_ip, consul_server_port=nrclient_port
         )
 
         global_nodes = nrclient.get_all_global_nodes()

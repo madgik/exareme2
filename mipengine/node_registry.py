@@ -1,3 +1,4 @@
+import socket
 import consul
 from ipaddress import IPv4Address
 from typing import Optional, List, Dict, Any
@@ -9,9 +10,10 @@ from enum import Enum, unique, auto
 class NodeRegistryClient:
     def __init__(
         self,
-        consul_server_ip: IPv4Address = IPv4Address("127.0.0.1"),
+        consul_server_ip: str = "127.0.0.1",
         consul_server_port: int = 8500,
     ):
+        consul_server_ip = IPv4Address(socket.gethostbyname(consul_server_ip))
         c = consul.Consul(host=consul_server_ip, port=consul_server_port)
         self._consul_agent = c.agent
         self._consul_service = c.agent.service

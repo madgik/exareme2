@@ -79,7 +79,7 @@ def _register_node():
     nrclient_ip = node_config.node_registry.ip
     nrclient_port = node_config.node_registry.port
     nrclient = NodeRegistryClient(
-        consul_server_ip=IPv4Address(nrclient_ip), consul_server_port=nrclient_port
+        consul_server_ip=nrclient_ip, consul_server_port=nrclient_port
     )
 
     nrclient.register_node(node_params, db_params)
