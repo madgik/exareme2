@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mipengine-controller-deployment
+  labels:
+    app: mipengine-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mipengine-controller
+  template:
+    metadata:
+      labels:
+        app: mipengine-controller
+    spec:
+      nodeSelector:
+        nodeType: master
+      containers:
+      - name: mipengine-controller
+        image: madgik/mipengine_controller:0.1.0
+        ports:
+          - containerPort: 5000
+        volumeMounts:
+        - mountPath: /opt/data
+          name: metadata
+        env:
+        - name: NODE_REGISTRY_IP
+          value: "192.168.38.132"
+        - name: NODE_REGISTRY_PORT
+          value: "30000"
+      volumes:
+      - name: metadata
+        hostPath:
+          path: /home/thanasis1/MIP-Engine/tests/demo_data
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mipengine-controller-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: mipengine-controller
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+      nodePort: 30050

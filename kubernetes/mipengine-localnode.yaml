@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mipengine-localnode-deployment
+  labels:
+    app: mipengine-localnode
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mipengine-localnode
+  template:
+    metadata:
+      labels:
+        app: mipengine-localnode
+    spec:
+      nodeSelector:
+        nodeType: worker
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - mipengine-localnode
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: mipengine-localnode-monetdb
+        image: madgik/mipenginedb_with_data:0.1.0
+        ports:
+          - containerPort: 50000
+
+      - name: mipengine-localnode-rabbitmq
+        image: madgik/mipengine_rabbitmq:0.1.0
+        env:
+        - name: RABBITMQ_ADMIN_USER
+          value: "user"
+        - name: RABBITMQ_ADMIN_PASSWORD
+          value: "password"
+        - name: RABBITMQ_ADMIN_VHOST
+          value: "user_vhost"
+        - name: RABBITMQ_SLEEP_BEFORE_CONFIGURATION
+          value: "30"
+        ports:
+          - containerPort: 5672
+
+      - name: mipengine-node
+        image: madgik/mipengine_node:0.1.0
+        env:
+        - name: NODE_IDENTIFIER
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NODE_ROLE
+          value: "LOCALNODE"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: NODE_REGISTRY_IP
+          value: "192.168.38.132"
+        - name: NODE_REGISTRY_PORT
+          value: "30000"
+        - name: RABBITMQ_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: RABBITMQ_PORT
+          value: "5672"
+        - name: MONETDB_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: MONETDB_PORT
+          value: "50000"

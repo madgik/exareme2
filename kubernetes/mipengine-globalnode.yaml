@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mipengine-globalnode-deployment
+  labels:
+    app: mipengine-globalnode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mipengine-globalnode
+  template:
+    metadata:
+      labels:
+        app: mipengine-globalnode
+    spec:
+      nodeSelector:
+        nodeType: master
+      containers:
+      - name: mipengine-globalnode-monetdb
+        image: madgik/mipenginedb:0.1.0
+        ports:
+          - containerPort: 50000
+
+      - name: mipengine-globalnode-rabbitmq
+        image: madgik/mipengine_rabbitmq:0.1.0
+        env:
+        - name: RABBITMQ_ADMIN_USER
+          value: "user"
+        - name: RABBITMQ_ADMIN_PASSWORD
+          value: "password"
+        - name: RABBITMQ_ADMIN_VHOST
+          value: "user_vhost"
+        - name: RABBITMQ_SLEEP_BEFORE_CONFIGURATION
+          value: "30"
+        ports:
+          - containerPort: 5672
+
+      - name: mipengine-node
+        image: madgik/mipengine_node:0.1.0
+        env:
+        - name: NODE_IDENTIFIER
+          value: "globalnode"
+        - name: NODE_ROLE
+          value: "GLOBALNODE"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: NODE_REGISTRY_IP
+          value: "192.168.38.132"
+        - name: NODE_REGISTRY_PORT
+          value: "30000"
+        - name: RABBITMQ_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: RABBITMQ_PORT
+          value: "5672"
+        - name: MONETDB_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: MONETDB_PORT
+          value: "50000"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mipengine-globalnode-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: mipengine-globalnode
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090
+      nodePort: 30090
