@@ -1,29 +1,41 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mipengine-globalnode-deployment
+  name: mipengine-localnode-deployment
   labels:
-    app: mipengine-globalnode
+    app: mipengine-localnode
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      app: mipengine-globalnode
+      app: mipengine-localnode
   template:
     metadata:
       labels:
-        app: mipengine-globalnode
+        app: mipengine-localnode
     spec:
       nodeSelector:
-        nodeType: master
+        nodeType: worker
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - mipengine-localnode
+            topologyKey: "kubernetes.io/hostname"
       containers:
       - name: mipengine-monetdb
-        image: madgik/mipenginedb:0.1.0
+        image: {{ .Values.mipengine_images.repository }}/mipenginedb_with_data:{{ .Values.mipengine_images.version }}
+        imagePullPolicy: IfNotPresent
         ports:
           - containerPort: 50000
 
       - name: mipengine-rabbitmq
-        image: madgik/mipengine_rabbitmq:0.1.0
+        image: {{ .Values.mipengine_images.repository }}/mipengine_rabbitmq:{{ .Values.mipengine_images.version }}
+        imagePullPolicy: IfNotPresent
         env:
         - name: RABBITMQ_ADMIN_USER
           value: "user"
@@ -37,12 +49,15 @@ spec:
           - containerPort: 5672
 
       - name: mipengine-node
-        image: thanasulas/mipengine_node:latest
+        image: {{ .Values.mipengine_images.repository }}/mipengine_node:{{ .Values.mipengine_images.version }}
+        imagePullPolicy: IfNotPresent
         env:
         - name: NODE_IDENTIFIER
-          value: "globalnode"
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         - name: NODE_ROLE
-          value: "GLOBALNODE"
+          value: "LOCALNODE"
         - name: LOG_LEVEL
           value: "INFO"
         - name: NODE_REGISTRY_IP
@@ -61,19 +76,3 @@ spec:
               fieldPath: status.podIP
         - name: MONETDB_PORT
           value: "50000"
-
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: mipengine-globalnode-service
-spec:
-  type: LoadBalancer
-  selector:
-    app: mipengine-globalnode
-  ports:
-    - protocol: TCP
-      port: 9090
-      targetPort: 9090
-      nodePort: 30090

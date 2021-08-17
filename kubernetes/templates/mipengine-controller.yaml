@@ -18,7 +18,8 @@ spec:
         nodeType: master
       containers:
       - name: mipengine-controller
-        image: thanasulas/mipengine_controller:latest
+        image: {{ .Values.mipengine_images.repository }}/mipengine_controller:{{ .Values.mipengine_images.version }}
+        imagePullPolicy: IfNotPresent
         ports:
           - containerPort: 5000
         volumeMounts:
@@ -32,7 +33,7 @@ spec:
       volumes:
       - name: metadata
         hostPath:
-          path: /home/thanasis1/MIP-Engine/tests/demo_data
+          path: {{ .Values.cdes_path }}
 
 ---
 

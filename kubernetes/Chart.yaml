@@ -1,0 +1,8 @@
+apiVersion: v2
+name: mipengine
+description: A helm chart for Kubernetes deployment of the MIP-Engine
+
+version: 0.1.0
+
+type: application
+
