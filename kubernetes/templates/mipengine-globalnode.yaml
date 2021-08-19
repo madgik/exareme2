@@ -65,18 +65,3 @@ spec:
         - name: MONETDB_PORT
           value: "50000"
 
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: mipengine-globalnode-service
-spec:
-  type: LoadBalancer
-  selector:
-    app: mipengine-globalnode
-  ports:
-    - protocol: TCP
-      port: 9090
-      targetPort: 9090
-      nodePort: 30090

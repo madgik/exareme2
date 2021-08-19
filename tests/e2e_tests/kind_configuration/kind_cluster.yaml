@@ -10,13 +10,13 @@ nodes:
   extraMounts:
   - hostPath: ./tests/demo_data
     containerPath: /opt/data
-  - hostPath: ./.github/workflows/kind_configuration/hostname_master
+  - hostPath: ./tests/e2e_tests/kind_configuration/hostname_master
     containerPath: /etc/hostname
 - role: worker
   extraMounts:
-  - hostPath: ./.github/workflows/kind_configuration/hostname_worker1
+  - hostPath: ./tests/e2e_tests/kind_configuration/hostname_worker1
     containerPath: /etc/hostname
 - role: worker
   extraMounts:
-  - hostPath: ./.github/workflows/kind_configuration/hostname_worker2
+  - hostPath: ./tests/e2e_tests/kind_configuration/hostname_worker2
     containerPath: /etc/hostname
