@@ -59,6 +59,10 @@ Use the provided on the **worker** node, with `sudo`, to join the cluster.
 kubectl label node <worker-node-name> nodeType=worker
 ```
 
+3) If the node has status `Ready,SchedulingDisabled` run:
+```
+kubectl uncordon <node-name>
+```
 
 ### Remove a worker node from the cluster
 
@@ -73,7 +77,7 @@ kubectl delete node <node-name>
 
 1) Configure the [helm chart values](values.yaml).
 	- The `mipengine_images -> version` should be the mip-engine services version in dockerhub.
-	- The `cdes_path` should be set to the master node hostpath that contains the pathologies metadata.
+	- The `cdes_path` should be set to the **master** node hostpath that contains the pathologies metadata.
 	- The `localnodes` is a counter for the localnodes. Should be equal to the number of local nodes that exist in the cluster.
 
 2) From the `MIP-Engine` folder, deploy the services:
@@ -104,3 +108,22 @@ You can restart the federation with helm by running:
 ```
 helm uninstall mipengine
 helm install mipengine kubernetes
+```
+
+## Firewall Configuration
+Using firewalld the following rules should apply,
+
+in the **master** node:
+```
+firewall-cmd --permanent --add-port=6443/tcp       # Kubelet api port
+firewall-cmd --permanent --add-port=30000/tcp      # MIPEngine Controller port
+```
+
+on all nodes:
+```
+firewall-cmd --zone=public --permanent --add-rich-rule='rule protocol value="ipip" accept'  # Protocol "4" for "calico"-network-plugin.
+```
+
+These rules allow for kubectl to only be run on the **master** node.
+
+
