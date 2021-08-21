@@ -191,22 +191,19 @@ def start_node_registry(context, container_name=None, port=None):
     kill_node_registry(context)
 
     message(
+        f"Pulling image bitnami/consul:1.10.1 ...",
+        Level.HEADER,
+    )
+    cmd = f"docker pull bitnami/consul:1.10.1"
+    run(context, cmd, raise_error=False)
+
+    message(
         f"Starting container {container_name} on port {port}...",
         Level.HEADER,
     )
     # start the consul container
-    cmd = f"docker run -d --name={container_name}  -p {port}:8500 consul"
-    try:
-        # When docker tries to run an image which needs to be downloaded, run() raises
-        # an error with code 125 and returns only after pulling the image without also
-        # starting the container. So the quick solution is to just ignore the error,
-        # this is why raise_error is set to false. It then starts the container
-        # correctly
-
-        run(context, cmd, raise_error=False)
-
-    except (UnexpectedExit, AttributeError) as exc:
-        print(f"{exc=}")
+    cmd = f"docker run -d --name={container_name}  -p {port}:8500 bitnami/consul:1.10.1"
+    run(context, cmd, raise_error=False)
 
 
 @task
@@ -237,6 +234,13 @@ def create_monetdb(c, node, monetdb_image=None):
 
     if not monetdb_image:
         monetdb_image = get_deployment_config("monetdb_image")
+
+    message(
+        f"Pulling image {monetdb_image} ...",
+        Level.HEADER,
+    )
+    cmd = f"docker pull {monetdb_image}"
+    run(c, cmd, raise_error=False)
 
     node_ids = node
     for node_id in node_ids:
@@ -310,6 +314,13 @@ def create_rabbitmq(c, node, rabbitmq_image=None):
 
     if not rabbitmq_image:
         rabbitmq_image = get_deployment_config("rabbitmq_image")
+
+    message(
+        f"Pulling image {rabbitmq_image} ...",
+        Level.HEADER,
+    )
+    cmd = f"docker pull {rabbitmq_image}"
+    run(c, cmd, raise_error=False)
 
     node_ids = node
     for node_id in node_ids:
