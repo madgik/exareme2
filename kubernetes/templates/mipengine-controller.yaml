@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mipengine-controller-deployment
+  labels:
+    app: mipengine-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mipengine-controller
+  template:
+    metadata:
+      labels:
+        app: mipengine-controller
+    spec:
+      nodeSelector:
+        nodeType: master
+      containers:
+      - name: mipengine-controller
+        image: {{ .Values.mipengine_images.repository }}/mipengine_controller:{{ .Values.mipengine_images.version }}
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 5000
+        volumeMounts:
+        - mountPath: /opt/data
+          name: metadata
+        env:
+        - name: NODE_REGISTRY_IP
+          value: "mipengine-noderegistry-service"
+        - name: NODE_REGISTRY_PORT
+          value: "8500"
+      volumes:
+      - name: metadata
+        hostPath:
+          path: {{ .Values.cdes_path }}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mipengine-controller-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: mipengine-controller
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+      nodePort: 30050

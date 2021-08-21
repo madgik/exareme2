@@ -1,0 +1,7 @@
+mipengine_images:
+  repository: madgik
+  version: latest
+
+cdes_path: /opt/data
+
+localnodes: 2

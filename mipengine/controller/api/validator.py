@@ -36,7 +36,7 @@ nrclient_port = controller_config.node_registry.port
 if not nrclient_port:
     nrclient_port = 8500
 nrclient = NodeRegistryClient(
-    consul_server_ip=IPv4Address(nrclient_ip), consul_server_port=nrclient_port
+    consul_server_ip=nrclient_ip, consul_server_port=nrclient_port
 )
 
 

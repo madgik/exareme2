@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mipengine-localnode-deployment
+  labels:
+    app: mipengine-localnode
+spec:
+  replicas: {{ .Values.localnodes }}
+  selector:
+    matchLabels:
+      app: mipengine-localnode
+  template:
+    metadata:
+      labels:
+        app: mipengine-localnode
+    spec:
+      nodeSelector:
+        nodeType: worker
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - mipengine-localnode
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: mipengine-monetdb
+        image: {{ .Values.mipengine_images.repository }}/mipenginedb_with_data:{{ .Values.mipengine_images.version }}
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 50000
+
+      - name: mipengine-rabbitmq
+        image: {{ .Values.mipengine_images.repository }}/mipengine_rabbitmq:{{ .Values.mipengine_images.version }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: RABBITMQ_ADMIN_USER
+          value: "user"
+        - name: RABBITMQ_ADMIN_PASSWORD
+          value: "password"
+        - name: RABBITMQ_ADMIN_VHOST
+          value: "user_vhost"
+        - name: RABBITMQ_SLEEP_BEFORE_CONFIGURATION
+          value: "30"
+        ports:
+          - containerPort: 5672
+
+      - name: mipengine-node
+        image: {{ .Values.mipengine_images.repository }}/mipengine_node:{{ .Values.mipengine_images.version }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: NODE_IDENTIFIER
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NODE_ROLE
+          value: "LOCALNODE"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: NODE_REGISTRY_IP
+          value: "mipengine-noderegistry-service"
+        - name: NODE_REGISTRY_PORT
+          value: "8500"
+        - name: RABBITMQ_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: RABBITMQ_PORT
+          value: "5672"
+        - name: MONETDB_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: MONETDB_PORT
+          value: "50000"

@@ -2,7 +2,7 @@ import json
 
 import requests
 
-from tests.integration_tests import algorithms_url
+from tests.e2e_tests import algorithms_url
 
 
 def test_get_algorithms():

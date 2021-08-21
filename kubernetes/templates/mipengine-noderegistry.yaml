@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mipengine-noderegistry-deployment
+  labels:
+    app: mipengine-noderegistry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mipengine-noderegistry
+  template:
+    metadata:
+      labels:
+        app: mipengine-noderegistry
+    spec:
+      nodeSelector:
+        nodeType: master
+      containers:
+      - name: exareme-keystore
+        image: bitnami/consul:1.10.1
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 8500
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mipengine-noderegistry-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: mipengine-noderegistry
+  ports:
+    - protocol: TCP
+      port: 8500
+      targetPort: 8500
+      nodePort: 30000
