@@ -4,4 +4,6 @@ mipengine_images:
 
 cdes_path: /opt/data
 
+monetdb_storage: /opt/monetdb
+
 localnodes: 2

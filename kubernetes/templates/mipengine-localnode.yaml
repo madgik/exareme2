@@ -28,10 +28,13 @@ spec:
             topologyKey: "kubernetes.io/hostname"
       containers:
       - name: mipengine-monetdb
-        image: {{ .Values.mipengine_images.repository }}/mipenginedb_with_data:{{ .Values.mipengine_images.version }}
+        image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
         ports:
           - containerPort: 50000
+        volumeMounts:
+        - mountPath: /home/monetdb
+          name: monetdb-data
 
       - name: mipengine-rabbitmq
         image: {{ .Values.mipengine_images.repository }}/mipengine_rabbitmq:{{ .Values.mipengine_images.version }}
@@ -76,3 +79,8 @@ spec:
               fieldPath: status.podIP
         - name: MONETDB_PORT
           value: "50000"
+
+      volumes:
+      - name: monetdb-data
+        hostPath:
+          path: {{ .Values.monetdb_storage }}
