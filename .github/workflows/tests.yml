@@ -8,7 +8,7 @@ on:
     branches:
       - master
 
-jobs: 
+jobs:
   setup_cache_poetry:
     runs-on: ubuntu-latest
     steps:
@@ -296,24 +296,6 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache/monetdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
 
-      - name: Start MONETDB container
-        run: docker run -d --name monetdb -p 50000:50000 madgik/mipenginedb:latest
-      
-      - name: Wait for MONETDB container to start
-        uses: jakejarvis/wait-action@master
-        with:
-          time: '10s'
-
-      - name: Load data into DBs
-        run: poetry run inv load-data --port 50000
-
-      - name: Commit MONETDB container with data
-        run: docker commit monetdb madgik/mipenginedb_with_data:latest
-
-      - name: Stop and remove MONETDB container
-        run: |
-          docker stop monetdb && docker rm monetdb
-
       - name: Load RABBITMQ cached image
         uses: actions/cache@v2
         with:
@@ -379,6 +361,13 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
+      - name: Create MONETDB demo data folders
+        run: |
+          mkdir /opt/monetdb1
+          mkdir /opt/monetdb2
+          tar -zxvf tests/e2e_tests/kind_configuration/monetdb_demo_data.tar.gz -C /opt/monetdb1
+          cp -r /opt/monetdb1 /opt/monetdb2
+
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.2.0
         with:
@@ -409,7 +398,7 @@ jobs:
       - name: Deploy Helm
         run: |
           helm install mipengine kubernetes/
-      
+
       - name: Wait for MIPENGINE services to start
         uses: jakejarvis/wait-action@master
         with:
