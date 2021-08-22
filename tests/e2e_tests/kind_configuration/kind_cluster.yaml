@@ -8,15 +8,19 @@ nodes:
   - containerPort: 30050
     hostPort: 30050
   extraMounts:
-  - hostPath: ./tests/demo_data
-    containerPath: /opt/data
   - hostPath: ./tests/e2e_tests/kind_configuration/hostname_master
     containerPath: /etc/hostname
+  - hostPath: ./tests/demo_data
+    containerPath: /opt/data
 - role: worker
   extraMounts:
   - hostPath: ./tests/e2e_tests/kind_configuration/hostname_worker1
     containerPath: /etc/hostname
+  - hostPath: /opt/monetdb1
+    containerPath: /opt/monetdb
 - role: worker
   extraMounts:
   - hostPath: ./tests/e2e_tests/kind_configuration/hostname_worker2
     containerPath: /etc/hostname
+  - hostPath: /opt/monetdb2
+    containerPath: /opt/monetdb

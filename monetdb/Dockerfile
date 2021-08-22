@@ -85,5 +85,11 @@ ENV PYTHONPATH "/home/udflib/"
 RUN echo "user=monetdb" > /home/.monetdb
 RUN echo "password=monetdb" >> /home/.monetdb
 
+#######################################################
+# Setup MONETDB Volume
+#######################################################
+ENV MONETDB_STORAGE=/home/monetdb
+VOLUME $MONETDB_STORAGE
+
 WORKDIR /home
 CMD ["/bin/bash","/home/bootstrap.sh"]
