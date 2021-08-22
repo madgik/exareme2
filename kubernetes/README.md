@@ -148,16 +148,25 @@ These rules allow for kubectl to only be run on the **master** node.
 
 The global/local Node data are stored in the `monetdb_storage` path defined in the [helm chart values](values.yaml). This is the same for all the nodes.
 
-In order to backup the global/local node data you first need to stop the federation with:
+In order to backup the global/local node data,
+
+1. Get the pod id of the node to backup:
 
 ```
-helm uninstall mipengine
+kubectl get pods -o wide
 ```
 
-You can then copy the contents of the `monetdb_storage` path.
-
-Afterwards you can start the federation again with:
+2. Stop the pod's database:
 
 ```
-helm install mipengine kubernetes
+kubectl exec -i <pod_id> --container mipengine-monetdb -- monetdb lock db
+kubectl exec -i <pod_id> --container mipengine-monetdb -- monetdb stop db
+```
+
+3. You can then copy the contents in the `monetdb_storage` of the monetdb and store them.
+
+1. Start the pod's database again:
+
+```
+kubectl exec -i <pod_id> --container mipengine-monetdb -- monetdb start db
 ```
