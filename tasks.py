@@ -190,12 +190,7 @@ def start_node_registry(context, container_name=None, port=None):
     # TODO killing the existing container is not obvious from the task name
     kill_node_registry(context)
 
-    message(
-        f"Pulling image bitnami/consul:1.10.1 ...",
-        Level.HEADER,
-    )
-    cmd = f"docker pull bitnami/consul:1.10.1"
-    run(context, cmd, raise_error=False)
+    get_docker_image(context, "bitnami/consul:1.10.1")
 
     message(
         f"Starting container {container_name} on port {port}...",
@@ -235,12 +230,7 @@ def create_monetdb(c, node, monetdb_image=None):
     if not monetdb_image:
         monetdb_image = get_deployment_config("monetdb_image")
 
-    message(
-        f"Pulling image {monetdb_image} ...",
-        Level.HEADER,
-    )
-    cmd = f"docker pull {monetdb_image}"
-    run(c, cmd, raise_error=False)
+    get_docker_image(c, monetdb_image)
 
     node_ids = node
     for node_id in node_ids:
@@ -315,12 +305,7 @@ def create_rabbitmq(c, node, rabbitmq_image=None):
     if not rabbitmq_image:
         rabbitmq_image = get_deployment_config("rabbitmq_image")
 
-    message(
-        f"Pulling image {rabbitmq_image} ...",
-        Level.HEADER,
-    )
-    cmd = f"docker pull {rabbitmq_image}"
-    run(c, cmd, raise_error=False)
+    get_docker_image(c, rabbitmq_image)
 
     node_ids = node
     for node_id in node_ids:
@@ -723,3 +708,21 @@ def get_node_ids(all_=False, node=None):
         sys.exit(1)
 
     return node_ids
+
+
+def get_docker_image(c, image, always_pull=False):
+    """
+    Fetches a docker image locally.
+
+    :param image: The image to pull from dockerhub.
+    :param always_pull: Will pull the image even if it exists locally.
+    """
+
+    cmd = f"docker images -q {image}"
+    result = run(c, cmd, show_ok=False)
+    if result.stdout != "":
+        return
+
+    message(f"Pulling image {image} ...", Level.HEADER)
+    cmd = f"docker pull {image}"
+    run(c, cmd)
