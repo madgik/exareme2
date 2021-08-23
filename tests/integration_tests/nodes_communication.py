@@ -1,17 +1,25 @@
+import toml
 from celery import Celery
 
-from mipengine.node_registry import NodeRegistryClient
-from mipengine.node import config as node_config
+from mipengine import AttrDict
+from tasks import NODES_CONFIG_DIR
+
+
+def get_node_config_by_id(node_id: str):
+    with open(NODES_CONFIG_DIR / f"{node_id}.toml") as fp:
+        node_config = AttrDict(toml.load(fp))
+    return node_config
 
 
 def get_celery_app(node_id: str):
-    nrclient = NodeRegistryClient()
-    node = nrclient.get_node_by_node_id(node_id)
+    node_config = get_node_config_by_id(node_id)
 
     rabbitmq_credentials = (
         node_config.rabbitmq.user + ":" + node_config.rabbitmq.password
     )
-    rabbitmq_socket_addr = str(node.ip) + ":" + str(node.port)
+    rabbitmq_socket_addr = (
+        node_config.rabbitmq.ip + ":" + str(node_config.rabbitmq.port)
+    )
     vhost = node_config.rabbitmq.vhost
 
     return Celery(

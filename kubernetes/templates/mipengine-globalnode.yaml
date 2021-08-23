@@ -17,7 +17,7 @@ spec:
       nodeSelector:
         nodeType: master
       containers:
-      - name: mipengine-monetdb
+      - name: monetdb
         image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
         ports:
@@ -26,7 +26,7 @@ spec:
         - mountPath: /home/monetdb
           name: monetdb-data
 
-      - name: mipengine-rabbitmq
+      - name: rabbitmq
         image: {{ .Values.mipengine_images.repository }}/mipengine_rabbitmq:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
         env:
@@ -41,7 +41,7 @@ spec:
         ports:
           - containerPort: 5672
 
-      - name: mipengine-node
+      - name: node
         image: {{ .Values.mipengine_images.repository }}/mipengine_node:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
         env:
@@ -51,10 +51,6 @@ spec:
           value: "GLOBALNODE"
         - name: LOG_LEVEL
           value: "INFO"
-        - name: NODE_REGISTRY_IP
-          value: "mipengine-noderegistry-service"
-        - name: NODE_REGISTRY_PORT
-          value: "8500"
         - name: RABBITMQ_IP
           valueFrom:
             fieldRef:

@@ -7,7 +7,7 @@ from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
 from tests.integration_tests.nodes_communication import get_celery_app
-from mipengine.node_registry import NodeRegistryClient
+from tests.integration_tests.nodes_communication import get_node_config_by_id
 
 global_node_id = "globalnode"
 local_node_id = "localnode1"
@@ -35,10 +35,11 @@ def context_id():
 
 
 def test_create_and_get_remote_table(context_id):
-    nrclient = NodeRegistryClient()
-    db = nrclient.get_db_by_node_id(local_node_id)
+    node_config = get_node_config_by_id(local_node_id)
 
-    local_node_monetdb_sock_address = f"{str(db.ip)}:{db.port}"
+    local_node_monetdb_sock_address = (
+        f"{str(node_config.monetdb.ip)}:{node_config.monetdb.port}"
+    )
 
     table_schema = TableSchema(
         [

@@ -4,10 +4,6 @@ role = "$NODE_ROLE"
 
 cdes_metadata_path = "./tests/demo_data"
 
-[node_registry]
-ip="$NODE_REGISTRY_IP"
-port="$NODE_REGISTRY_PORT"
-
 [celery]
 worker_concurrency = 1
 task_soft_time_limit = 30

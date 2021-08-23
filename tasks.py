@@ -46,8 +46,7 @@ the node service will be called 'localnode1' and should be referenced using that
 Paths are subject to change so in the following documentation the global variables will be used.
 
 """
-
-
+import json
 import sys
 from enum import Enum
 from itertools import cycle
@@ -68,14 +67,15 @@ DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
 NODES_CONFIG_DIR = PROJECT_ROOT / "configs" / "nodes"
 NODE_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "mipengine" / "node" / "config.toml"
 CONTROLLER_CONFIG_DIR = PROJECT_ROOT / "configs" / "controller"
+CONTROLLER_LOCALNODES_CONFIG_FILE = (
+    PROJECT_ROOT / "configs" / "controller" / "localnodes_config.json"
+)
 CONTROLLER_CONFIG_TEMPLATE_FILE = (
     PROJECT_ROOT / "mipengine" / "controller" / "config.toml"
 )
 OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
-
-CONSUL_AGENT_CONTAINER_NAME = "consul-agent"
 
 DEMO_DATA_FOLDER = Path(tests.__file__).parent / "demo_data"
 
@@ -106,9 +106,6 @@ def create_node_configs(c):
 
         node_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
 
-        node_config["node_registry"]["ip"] = deployment_config["ip"]
-        node_config["node_registry"]["port"] = deployment_config["node_registry_port"]
-
         node_config["identifier"] = node["id"]
         node_config["role"] = node["role"]
         node_config["log_level"] = deployment_config["log_level"]
@@ -130,13 +127,26 @@ def create_node_configs(c):
 
     controller_config = template_controller_config.copy()
     controller_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
-    controller_config["node_registry"]["ip"] = deployment_config["ip"]
-    controller_config["node_registry"]["port"] = deployment_config["node_registry_port"]
+    controller_config["deployment_type"] = "LOCAL"
+
+    controller_config["localnodes"]["config_file"] = str(
+        CONTROLLER_LOCALNODES_CONFIG_FILE
+    )
+    controller_config["localnodes"]["dns"] = ""
+    controller_config["localnodes"]["port"] = ""
 
     CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
     with open(controller_config_file, "w+") as fp:
         toml.dump(controller_config, fp)
+
+    # Create the controller localnodes config file
+    localnodes_addresses = [
+        f"{deployment_config['ip']}:{node['rabbitmq_port']}"
+        for node in deployment_config["nodes"]
+    ]
+    with open(CONTROLLER_LOCALNODES_CONFIG_FILE, "w+") as fp:
+        json.dump(localnodes_addresses, fp)
 
 
 @task
@@ -178,36 +188,6 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
             run(c, cmd)
         else:
             message(f"No {name} container to remove", level=Level.HEADER)
-
-
-@task
-def start_node_registry(context, container_name=None, port=None):
-    if not container_name:
-        container_name = CONSUL_AGENT_CONTAINER_NAME
-    if not port:
-        port = get_deployment_config("node_registry_port")
-
-    # TODO killing the existing container is not obvious from the task name
-    kill_node_registry(context)
-
-    get_docker_image(context, "bitnami/consul:1.10.1")
-
-    message(
-        f"Starting container {container_name} on port {port}...",
-        Level.HEADER,
-    )
-    # start the consul container
-    cmd = f"docker run -d --name={container_name}  -p {port}:8500 bitnami/consul:1.10.1"
-    run(context, cmd, raise_error=False)
-
-
-@task
-def kill_node_registry(context, container_name=None):
-    if not container_name:
-        container_name = CONSUL_AGENT_CONTAINER_NAME
-
-    # remove the consul container
-    rm_containers(context, container_name=container_name)
 
 
 @task(iterable=["node"])
@@ -486,9 +466,6 @@ def deploy(
     if install_dep:
         install_dependencies(c)
 
-    # start NODE REGISTRY service
-    start_node_registry(c)
-
     # start NODE services
     config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
     if not config_files:
@@ -542,7 +519,6 @@ def cleanup(c):
     kill_controller(c)
     kill_node(c, all_=True)
     rm_containers(c, monetdb=True, rabbitmq=True)
-    kill_node_registry(c)
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
         for outpath in OUTDIR.glob("*.out"):

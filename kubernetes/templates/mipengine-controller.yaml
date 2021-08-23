@@ -17,7 +17,7 @@ spec:
       nodeSelector:
         nodeType: master
       containers:
-      - name: mipengine-controller
+      - name: controller
         image: {{ .Values.mipengine_images.repository }}/mipengine_controller:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
         ports:
@@ -26,10 +26,10 @@ spec:
         - mountPath: /opt/data
           name: metadata
         env:
-        - name: NODE_REGISTRY_IP
-          value: "mipengine-noderegistry-service"
-        - name: NODE_REGISTRY_PORT
-          value: "8500"
+        - name: LOCALNODES_DNS
+          value: "mipengine-localnode-service"
+        - name: LOCALNODES_PORT
+          value: "5672"
       volumes:
       - name: metadata
         hostPath:

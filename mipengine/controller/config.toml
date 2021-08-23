@@ -1,6 +1,9 @@
 log_level = "INFO"
 cdes_metadata_path = "$CDES_METADATA_PATH"
 
-[node_registry]
-ip="$NODE_REGISTRY_IP"
-port="$NODE_REGISTRY_PORT"
+deployment_type="$DEPLOYMENT_TYPE"
+
+[localnodes]
+config_file="$LOCALNODES_CONFIG_FILE"
+dns="$LOCALNODES_DNS"
+port="$LOCALNODES_PORT"
