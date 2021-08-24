@@ -20,12 +20,12 @@ dnspython = "~2.1.0"
 scikit-learn = "^0.24.2"
 pydantic = "^1.8.2"
 envtoml = "~0.1.2"
+requests = "^2.26.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"
 pytest-xdist = "^2.2.1"
 pytest-assume="2.4.3"
-requests = "^2.25.1"
 ipython = "^7.22.0"
 pdbpp = "^0.10.2"
 invoke = "^1.5.0"
