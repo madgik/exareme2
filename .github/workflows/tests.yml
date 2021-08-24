@@ -409,8 +409,7 @@ jobs:
           kind load docker-image madgik/mipengine_rabbitmq:latest
 
       - name: Deploy Helm
-        run: |
-          helm install mipengine kubernetes/
+        run: helm install mipengine kubernetes/
 
       - name: Wait for MIPENGINE services to start
         uses: jakejarvis/wait-action@master

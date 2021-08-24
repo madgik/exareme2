@@ -39,6 +39,9 @@ def get_celery_app(node_id: str):
 
 def get_celery_task_signature(celery_app, task):
     signature_mapping = {
+        "get_node_info": celery_app.signature(
+            "mipengine.node.tasks.common.get_node_info"
+        ),
         "create_table": celery_app.signature(
             "mipengine.node.tasks.tables.create_table"
         ),
