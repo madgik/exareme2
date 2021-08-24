@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   name: mipengine-localnode-deployment
   labels:
-    app: mipengine-localnode
+    app: mipengine-node
 spec:
   replicas: {{ .Values.localnodes }}
   selector:
     matchLabels:
-      app: mipengine-localnode
+      app: mipengine-node
   template:
     metadata:
       labels:
-        app: mipengine-localnode
+        app: mipengine-node
     spec:
       nodeSelector:
         nodeType: worker
@@ -24,7 +24,7 @@ spec:
               - key: app
                 operator: In
                 values:
-                - mipengine-localnode
+                - mipengine-node
             topologyKey: "kubernetes.io/hostname"
       containers:
       - name: monetdb
@@ -80,18 +80,3 @@ spec:
       - name: monetdb-data
         hostPath:
           path: {{ .Values.monetdb_storage }}
-
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: mipengine-localnode-service
-spec:
-  clusterIP: None
-  selector:
-    app: mipengine-localnode
-  ports:
-    - protocol: TCP
-      port: 5672
-      targetPort: 5672

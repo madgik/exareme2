@@ -22,6 +22,7 @@ import concurrent.futures
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.api.exceptions import UnexpectedException
 from mipengine.controller.api.validator import validate_algorithm_request
+from mipengine.controller.node_registry import node_registry
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 
@@ -39,6 +40,9 @@ async def post_algorithm(algorithm_name: str) -> str:
 
     request_body = await request.data
 
+    # TODO load the NodeRegistry in the background.
+    # AlgorithmExecutor must not spent time contacting all the nodes
+    node_registry.reload()
     try:
         validate_algorithm_request(algorithm_name, request_body)
     except (BadRequest, BadUserInput) as exc:

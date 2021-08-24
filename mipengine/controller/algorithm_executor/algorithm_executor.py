@@ -10,9 +10,7 @@ from typing import Tuple
 
 from celery import Celery
 
-from mipengine.controller import config as controller_config
-
-from mipengine.controller.node_registry import NodeRegistry
+from mipengine.controller.node_registry import node_registry
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
@@ -71,10 +69,6 @@ class AlgorithmExecutor:
         self.algorithm_name = algorithm_name
         # TODO context_id should be passed as a param from Controller
         self.context_id = get_a_uniqueid()
-
-        # TODO load the NodeRegistry in the background and in a higher layer(Controller).
-        # AlgorithmExecutor must not spent time contacting all the nodes
-        node_registry = NodeRegistry()
 
         global_nodes = node_registry.get_all_global_nodes()
         # TODO for now just use the first global node found, in the future multiple

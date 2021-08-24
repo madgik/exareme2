@@ -41,8 +41,19 @@ def _get_node_info(node_socket_addr, user, password, vhost) -> NodeInfo:
     return NodeInfo.parse_raw(task_signature.delay().get())
 
 
+def _have_common_elements(a: List[Any], b: List[Any]):
+    a_set = set(a)
+    b_set = set(b)
+    if len(a_set.intersection(b_set)) > 0:
+        return True
+    return False
+
+
 class NodeRegistry:
     def __init__(self):
+        self.nodes = []
+
+    def reload(self):
         self.nodes: List[NodeInfo] = [
             _get_node_info(address, "user", "password", "user_vhost")
             for address in _get_nodes_addresses()
@@ -102,9 +113,4 @@ class NodeRegistry:
         return False
 
 
-def _have_common_elements(a: List[Any], b: List[Any]):
-    a_set = set(a)
-    b_set = set(b)
-    if len(a_set.intersection(b_set)) > 0:
-        return True
-    return False
+node_registry = NodeRegistry()

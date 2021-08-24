@@ -21,11 +21,9 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.node_registry import NodeRegistry
+from mipengine.controller.node_registry import node_registry
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
-
-node_registry = NodeRegistry()
 
 
 def validate_algorithm_request(algorithm_name: str, request_body: str):

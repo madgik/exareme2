@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   name: mipengine-globalnode-deployment
   labels:
-    app: mipengine-globalnode
+    app: mipengine-node
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mipengine-globalnode
+      app: mipengine-node
   template:
     metadata:
       labels:
-        app: mipengine-globalnode
+        app: mipengine-node
     spec:
       nodeSelector:
         nodeType: master
