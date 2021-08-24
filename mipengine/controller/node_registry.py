@@ -12,12 +12,12 @@ from mipengine.node_info_DTOs import NodeRole
 GET_NODE_INFO_SIGNATURE = "mipengine.node.tasks.common.get_node_info"
 
 
-def get_nodes_addresses_from_file() -> List[str]:
+def _get_nodes_addresses_from_file() -> List[str]:
     with open(controller_config.localnodes.config_file) as fp:
         return json.load(fp)
 
 
-def get_nodes_addresses_from_dns() -> List[str]:
+def _get_nodes_addresses_from_dns() -> List[str]:
     localnodes_ips = dns.resolver.query(controller_config.localnodes.dns, "A")
     localnodes_addresses = [
         f"{ip}:{controller_config.localnodes.port}" for ip in localnodes_ips
@@ -25,16 +25,16 @@ def get_nodes_addresses_from_dns() -> List[str]:
     return localnodes_addresses
 
 
-def get_nodes_addresses() -> List[str]:
+def _get_nodes_addresses() -> List[str]:
     if controller_config.deployment_type == DeploymentType.LOCAL:
-        return get_nodes_addresses_from_file()
+        return _get_nodes_addresses_from_file()
     elif controller_config.deployment_type == DeploymentType.KUBERNETES:
-        return get_nodes_addresses_from_dns()
+        return _get_nodes_addresses_from_dns()
     else:
         return []
 
 
-def get_node_info(node_socket_addr, user, password, vhost) -> NodeInfo:
+def _get_node_info(node_socket_addr, user, password, vhost) -> NodeInfo:
     broker = f"amqp://{user}:{password}@{node_socket_addr}/{vhost}"
     cel = Celery(broker=broker, backend="rpc://")
     task_signature = cel.signature(GET_NODE_INFO_SIGNATURE)
@@ -44,8 +44,8 @@ def get_node_info(node_socket_addr, user, password, vhost) -> NodeInfo:
 class NodeRegistry:
     def __init__(self):
         self.nodes: List[NodeInfo] = [
-            get_node_info(address, "user", "password", "user_vhost")
-            for address in get_nodes_addresses()
+            _get_node_info(address, "user", "password", "user_vhost")
+            for address in _get_nodes_addresses()
         ]
 
     def get_all_global_nodes(self) -> List[NodeInfo]:
