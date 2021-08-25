@@ -4,9 +4,7 @@ nodes:
 - role: control-plane
   extraPortMappings:
   - containerPort: 30000
-    hostPort: 30000
-  - containerPort: 30050
-    hostPort: 30050
+    hostPort: 5000
   extraMounts:
   - hostPath: ./tests/e2e_tests/kind_configuration/hostname_master
     containerPath: /etc/hostname
