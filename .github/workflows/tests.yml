@@ -234,7 +234,7 @@ jobs:
         run: cp ./tests/integration_tests/deployment_template.toml .deployment.toml
 
       - name: Create config files
-        run: poetry run inv create-node-configs
+        run: poetry run inv create-configs
 
       - name: Deploy all services
         run: poetry run inv deploy --no-install-dep --start-all

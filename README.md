@@ -49,8 +49,6 @@
 
    cdes_metadata_path = "./tests/demo_data"
 
-   node_registry_port = 8500
-
    [[nodes]]
    id = "globalnode"
    role = "GLOBALNODE"
@@ -74,7 +72,7 @@
    and then run the following command to create the config files that the node services will use
 
    ```
-   inv create-node-configs
+   inv create-configs
    ```
 
 1. Install dependencies, start the containers and then the services with

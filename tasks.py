@@ -38,7 +38,7 @@ monetdb_port=50002
 rabbitmq_port=5672
 ```
 
-and by running the command 'inv create-node-configs'.
+and by running the command 'inv create-configs'.
 
 The node services are named after their config file. If a config file is named './configs/nodes/localnode1.toml'
 the node service will be called 'localnode1' and should be referenced using that in the following tasks.
@@ -84,7 +84,7 @@ DEMO_DATA_FOLDER = Path(tests.__file__).parent / "demo_data"
 
 
 @task
-def create_node_configs(c):
+def create_configs(c):
     """
     Create the node and controller services config files, using 'DEPLOYMENT_CONFIG_FILE'.
     """
