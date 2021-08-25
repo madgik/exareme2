@@ -2,8 +2,9 @@ from celery import shared_task
 
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import common_actions
+from mipengine.node.monetdb_interface.common_actions import get_dataset_schemas
+from mipengine.node.monetdb_interface.common_actions import get_schema_datasets
 from mipengine.node_info_DTOs import NodeInfo
-from mipengine.node_info_DTOs import NodeRole
 from mipengine.node_tasks_DTOs import TableData
 
 
@@ -15,20 +16,9 @@ def get_node_info():
     str(NodeInfo)
         A NodeInfo object in a jsonified format
     """
-    if node_config.role == NodeRole.LOCALNODE:
-        datasets_per_schema = {
-            "dementia": [
-                "edsd",
-                "ppmi",
-                "desd-synthdata",
-                "fake_longitudinal",
-                "demo_data",
-            ],
-            "mentalhealth": ["demo"],
-            "tbi": ["tbi_demo2"],
-        }
-    else:
-        datasets_per_schema = None
+    datasets_per_schema = {}
+    for schema in get_dataset_schemas():
+        datasets_per_schema[schema] = get_schema_datasets(schema)
 
     node_info = NodeInfo(
         id=node_config.identifier,

@@ -136,6 +136,61 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     return data
 
 
+def get_dataset_schemas():
+    """
+    Retrieves the dataset schemas of the database.
+
+    Returns
+    ------
+    List[str]
+        The dataset schemas in the database.
+    """
+
+    schema_table_names = MonetDB().execute_and_fetchall(
+        f"""
+            SELECT name FROM tables
+            WHERE name LIKE '%\\\\_data' ESCAPE '\\\\'
+            AND system = false"""
+    )
+
+    # Flatten the list
+    schema_table_names = [
+        schema_table_name
+        for schema_table in schema_table_names
+        for schema_table_name in schema_table
+    ]
+
+    # The first part of the table is the dataset schema (pathology)
+    # Table name convention = <schema_name>_data
+    schema_names = [table_name.split("_")[0] for table_name in schema_table_names]
+
+    return schema_names
+
+
+def get_schema_datasets(schema_name):
+    """
+    Retrieves the schema datasets.
+
+    Returns
+    ------
+    List[str]
+        The datasets of the schema.
+    """
+
+    datasets_rows = MonetDB().execute_and_fetchall(
+        f"""
+        SELECT DISTINCT(dataset) FROM {schema_name}_data
+        """
+    )
+
+    # Flatten the list
+    datasets = [
+        dataset_name for dataset_row in datasets_rows for dataset_name in dataset_row
+    ]
+
+    return datasets
+
+
 def drop_db_artifacts_by_context_id(context_id: str):
     """
     Drops all tables of any type and functions with name that contain a specific
