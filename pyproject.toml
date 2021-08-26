@@ -6,7 +6,7 @@ authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
 python = "~3.8"
-Quart = "~0.14.1"
+Quart = "^0.15.1"
 celery = "5.0.5"
 pymonetdb = "~1.4.1"
 dataclasses-json = "~0.5.2"

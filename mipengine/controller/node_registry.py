@@ -1,15 +1,23 @@
+import asyncio
 import json
+import sys
 from typing import Any
 from typing import List
+
 from celery import Celery
 import dns.resolver
 
 from mipengine.controller import DeploymentType
 from mipengine.controller import config as controller_config
+from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 
 GET_NODE_INFO_SIGNATURE = "mipengine.node.tasks.common.get_node_info"
+NODE_REGISTRY_UPDATE_INTERVAL = controller_config.node_registry_update_interval
+NODE_REGISTRY_GET_NODE_INFO_TIMEOUT = (
+    controller_config.node_registry_get_node_info_timeout
+)
 
 
 def _get_nodes_addresses_from_file() -> List[str]:
@@ -34,11 +42,27 @@ def _get_nodes_addresses() -> List[str]:
         return []
 
 
-def _get_node_info(node_socket_addr, user, password, vhost) -> NodeInfo:
-    broker = f"amqp://{user}:{password}@{node_socket_addr}/{vhost}"
-    cel = Celery(broker=broker, backend="rpc://")
-    task_signature = cel.signature(GET_NODE_INFO_SIGNATURE)
-    return NodeInfo.parse_raw(task_signature.delay().get())
+def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
+    cel_apps = [get_node_celery_app(socket_addr) for socket_addr in nodes_socket_addr]
+    nodes_task_signature = [app.signature(GET_NODE_INFO_SIGNATURE) for app in cel_apps]
+
+    tasks_promise = []
+    for task_signature in nodes_task_signature:
+        try:
+            tasks_promise.append(task_signature.delay())
+        except:
+            continue
+
+    nodes_info = []
+    for promise in tasks_promise:
+        try:
+            node_info = NodeInfo.parse_raw(
+                promise.get(timeout=NODE_REGISTRY_GET_NODE_INFO_TIMEOUT)
+            )
+            nodes_info.append(node_info)
+        except:
+            continue
+    return nodes_info
 
 
 def _have_common_elements(a: List[Any], b: List[Any]):
@@ -53,11 +77,11 @@ class NodeRegistry:
     def __init__(self):
         self.nodes = []
 
-    def reload(self):
-        self.nodes: List[NodeInfo] = [
-            _get_node_info(address, "user", "password", "user_vhost")
-            for address in _get_nodes_addresses()
-        ]
+    async def update(self):
+        while True:
+            nodes_addresses = _get_nodes_addresses()
+            self.nodes: List[NodeInfo] = _get_nodes_info(nodes_addresses)
+            await asyncio.sleep(NODE_REGISTRY_UPDATE_INTERVAL)
 
     def get_all_global_nodes(self) -> List[NodeInfo]:
         return [

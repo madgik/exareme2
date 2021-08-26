@@ -10,6 +10,7 @@ from typing import Tuple
 
 from celery import Celery
 
+from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.node_registry import node_registry
 
 from mipengine.node_tasks_DTOs import TableData
@@ -151,12 +152,7 @@ class AlgorithmExecutor:
         ):
             self.node_id = node_id
 
-            # TODO: user, pass, vhost how these should be set??
-            user = "user"
-            password = "password"
-            vhost = "user_vhost"
-            broker = f"amqp://{user}:{password}@{rabbitmq_socket_addr}/{vhost}"
-            self.__celery_obj = Celery(broker=broker, backend="rpc://")
+            self.__celery_obj = get_node_celery_app(rabbitmq_socket_addr)
 
             self.monetdb_socket_addr = monetdb_socket_addr
 

@@ -27,6 +27,20 @@ from mipengine.controller.node_registry import node_registry
 algorithms = Blueprint("algorithms_endpoint", __name__)
 
 
+@algorithms.before_app_serving
+async def startup():
+    asyncio.create_task(node_registry.update())
+
+
+@algorithms.route("/datasets")
+async def get_datasets() -> dict:
+    datasets = {}
+    for node in node_registry.get_all_local_nodes():
+        datasets[node.id] = node.datasets_per_schema
+
+    return datasets
+
+
 @algorithms.route("/algorithms")
 async def get_algorithms() -> str:
     algorithm_specifications = algorithm_specificationsDTOs.algorithms_list
@@ -39,10 +53,6 @@ async def post_algorithm(algorithm_name: str) -> str:
     logging.info(f"Algorithm execution with name {algorithm_name}.")
 
     request_body = await request.data
-
-    # TODO load the NodeRegistry in the background.
-    # AlgorithmExecutor must not spent time contacting all the nodes
-    node_registry.reload()
     try:
         validate_algorithm_request(algorithm_name, request_body)
     except (BadRequest, BadUserInput) as exc:
