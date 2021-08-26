@@ -10,9 +10,8 @@ from typing import Tuple
 
 from celery import Celery
 
-from mipengine.controller import config as controller_config
-
-from mipengine.node_registry import NodeRegistryClient
+from mipengine.controller.celery_app import get_node_celery_app
+from mipengine.controller.node_registry import node_registry
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
@@ -72,38 +71,23 @@ class AlgorithmExecutor:
         # TODO context_id should be passed as a param from Controller
         self.context_id = get_a_uniqueid()
 
-        # TODO access to the NodeRegistryClient must be in a higher layer(Controller).
-        # AlgorithmExecutor must not spent time contacting the consul agent, it must
-        # just get the nodes it has to execute on
-        nrclient_ip = controller_config.node_registry.ip
-        nrclient_port = controller_config.node_registry.port
-        nrclient = NodeRegistryClient(
-            consul_server_ip=nrclient_ip, consul_server_port=nrclient_port
-        )
-
-        global_nodes = nrclient.get_all_global_nodes()
+        global_nodes = node_registry.get_all_global_nodes()
         # TODO for now just use the first global node found, in the future multiple
         # global nodes can be available
         global_node = global_nodes[0]
-        global_node_db = nrclient.get_db_by_node_id(global_node.id)
 
-        local_nodes = nrclient.get_nodes_with_any_of_datasets(
-            algorithm_request_dto.inputdata.datasets
+        local_nodes_list = node_registry.get_nodes_with_any_of_datasets(
+            algorithm_request_dto.inputdata.pathology,
+            algorithm_request_dto.inputdata.datasets,
         )
-
-        local_nodes_dbs = {
-            node.id: nrclient.get_db_by_node_id(node.id) for node in local_nodes
-        }
-
-        local_nodes = {node.id: node for node in local_nodes}
-
-        # ---end of contacting node registry-----
+        local_nodes = {node.id: node for node in local_nodes_list}
+        # ---end of creating the node registry-----
 
         # instantiate the GLOBAL Node object
         self.global_node = self.Node(
             node_id=global_node.id,
             rabbitmq_socket_addr=f"{global_node.ip}:{global_node.port}",
-            monetdb_socket_addr=f"{global_node_db.ip}:{global_node_db.port}",
+            monetdb_socket_addr=f"{global_node.db_ip}:{global_node.db_port}",
             context_id=self.context_id,
         )
 
@@ -126,7 +110,7 @@ class AlgorithmExecutor:
                 self.Node(
                     node_id=node_id,
                     rabbitmq_socket_addr=f"{node_info.ip}:{node_info.port}",
-                    monetdb_socket_addr=f"{local_nodes_dbs[node_id].ip}:{local_nodes_dbs[node_id].port}",
+                    monetdb_socket_addr=f"{node_info.db_ip}:{node_info.db_port}",
                     initial_view_tables_params=initial_view_tables_params,
                     context_id=self.context_id,
                 )
@@ -168,12 +152,7 @@ class AlgorithmExecutor:
         ):
             self.node_id = node_id
 
-            # TODO: user, pass, vhost how these should be set??
-            user = "user"
-            password = "password"
-            vhost = "user_vhost"
-            broker = f"amqp://{user}:{password}@{rabbitmq_socket_addr}/{vhost}"
-            self.__celery_obj = Celery(broker=broker, backend="rpc://")
+            self.__celery_obj = get_node_celery_app(rabbitmq_socket_addr)
 
             self.monetdb_socket_addr = monetdb_socket_addr
 

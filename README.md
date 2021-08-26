@@ -49,7 +49,8 @@
 
    cdes_metadata_path = "./tests/demo_data"
 
-   node_registry_port = 8500
+   node_registry_update_interval = 30
+   celery_tasks_timeout = 10
 
    [[nodes]]
    id = "globalnode"
@@ -74,7 +75,7 @@
    and then run the following command to create the config files that the node services will use
 
    ```
-   inv create-node-configs
+   inv create-configs
    ```
 
 1. Install dependencies, start the containers and then the services with

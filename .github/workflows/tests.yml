@@ -234,13 +234,32 @@ jobs:
         run: cp ./tests/integration_tests/deployment_template.toml .deployment.toml
 
       - name: Create config files
-        run: poetry run inv create-node-configs
+        run: poetry run inv create-configs
 
       - name: Deploy all services
-        run: poetry run inv deploy --no-install-dep --start-all
+        run: poetry run inv deploy --no-install-dep --no-start-all
 
-      - name: Load data into DBs
-        run: poetry run inv load-data
+#      - name: Load data into DBs
+#        run: poetry run inv load-data
+
+      # Temp fix due to MONETDB bug with memory leak
+      - name: Load data into LOCALNODE1
+        run: |
+          poetry run inv load-data --port 50001
+          docker stop monetdb-localnode1
+          docker start monetdb-localnode1
+
+      - name: Load data into LOCALNODE2
+        run: |
+          poetry run inv load-data --port 50002
+          docker stop monetdb-localnode2
+          docker start monetdb-localnode2
+
+      - name: Start services after data loading
+        run: |
+          poetry run inv start-node --all
+          poetry run inv start-controller --detached
+      # End of temp fix
 
       - name: Run integration tests
         run: poetry run pytest tests/integration_tests
@@ -408,9 +427,11 @@ jobs:
           kind load docker-image madgik/mipenginedb:latest
           kind load docker-image madgik/mipengine_rabbitmq:latest
 
+      - name: Copy e2e_tests values.yaml
+        run: cp -r tests/e2e_tests/kubernetes_values.yaml kubernetes/values.yaml
+
       - name: Deploy Helm
-        run: |
-          helm install mipengine kubernetes/
+        run: helm install mipengine kubernetes/
 
       - name: Wait for MIPENGINE services to start
         uses: jakejarvis/wait-action@master

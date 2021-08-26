@@ -5,7 +5,7 @@ from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
 from tests.integration_tests.nodes_communication import get_celery_app
-from mipengine.node_registry import NodeRegistryClient
+from tests.integration_tests.nodes_communication import get_node_config_by_id
 
 local_node_1_id = "localnode1"
 local_node_2_id = "localnode2"
@@ -56,9 +56,8 @@ def context_id():
 
 
 def test_create_merge_table_with_remote_tables(context_id):
-    nrclient = NodeRegistryClient()
-    local_node_1_db = nrclient.get_db_by_node_id(local_node_1_id)
-    local_node_2_db = nrclient.get_db_by_node_id(local_node_2_id)
+    node_config_1 = get_node_config_by_id(local_node_1_id)
+    node_config_2 = get_node_config_by_id(local_node_2_id)
 
     schema = TableSchema(
         [
@@ -92,10 +91,10 @@ def test_create_merge_table_with_remote_tables(context_id):
     table_info_local_1 = TableInfo(local_node_1_table_name, schema)
     table_info_local_2 = TableInfo(local_node_2_table_name, schema)
     local_node_1_monetdb_sock_address = (
-        f"{str(local_node_1_db.ip)}:{local_node_1_db.port}"
+        f"{str(node_config_1.monetdb.ip)}:{node_config_1.monetdb.port}"
     )
     local_node_2_monetdb_sock_address = (
-        f"{str(local_node_2_db.ip)}:{local_node_2_db.port}"
+        f"{str(node_config_2.monetdb.ip)}:{node_config_2.monetdb.port}"
     )
     global_node_create_remote_table.delay(
         table_info_json=table_info_local_1.to_json(),
