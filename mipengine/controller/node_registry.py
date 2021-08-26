@@ -70,11 +70,11 @@ class NodeRegistry:
 
     async def update(self):
         while True:
+            await asyncio.sleep(NODE_REGISTRY_UPDATE_INTERVAL)
             nodes_addresses = _get_nodes_addresses()
             self.nodes: List[NodeInfo] = await _get_nodes_info(nodes_addresses)
             print(f"NodeRegistry updated! \nNodes: {str(self.nodes)}")
             sys.stdout.flush()
-            await asyncio.sleep(NODE_REGISTRY_UPDATE_INTERVAL)
 
     def get_all_global_nodes(self) -> List[NodeInfo]:
         return [

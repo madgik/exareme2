@@ -5,7 +5,7 @@ from celery import Celery
 
 from mipengine.controller import config as controller_config
 
-CELERY_TASKS_RESPONSE_TIMEOUT = controller_config.celery_tasks_response_timeout
+CELERY_TASKS_TIMEOUT = controller_config.celery_tasks_timeout
 
 
 def get_node_celery_app(socket_addr):
@@ -25,8 +25,8 @@ def get_node_celery_app(socket_addr):
     return cel_app
 
 
-# Converts a Celery tasks to an async function
-# Celery doesn't currently support asyncio while waiting
+# Converts a Celery task to an async function
+# Celery doesn't currently support asyncio "await" while "getting" a result
 # Copied from https://github.com/celery/celery/issues/6603
 def task_to_async(task):
     async def wrapper(*args, **kwargs):
@@ -35,12 +35,12 @@ def task_to_async(task):
         async_result = await sync_to_async(task.delay)(*args, **kwargs)
         while not async_result.ready():
             total_delay += delay
-            if total_delay > CELERY_TASKS_RESPONSE_TIMEOUT:
+            if total_delay > CELERY_TASKS_TIMEOUT:
                 raise TimeoutError(
-                    f"Celery task: {task} didn't respond in {CELERY_TASKS_RESPONSE_TIMEOUT}s."
+                    f"Celery task: {task} didn't respond in {CELERY_TASKS_TIMEOUT}s."
                 )
             await asyncio.sleep(delay)
             delay = min(delay * 1.5, 2)  # exponential backoff, max 2 seconds
-        return async_result.get(timeout=CELERY_TASKS_RESPONSE_TIMEOUT - total_delay)
+        return async_result.get(timeout=CELERY_TASKS_TIMEOUT - total_delay)
 
     return wrapper

@@ -28,6 +28,10 @@ spec:
         env:
         - name: DEPLOYMENT_TYPE
           value: "KUBERNETES"
+        - name: NODE_REGISTRY_UPDATE_INTERVAL
+          value: "{{ .Values.controller.node_registry_update_interval }}"
+        - name: CELERY_TASKS_TIMEOUT
+          value: "{{ .Values.controller.celery_tasks_timeout }}"
         - name: LOCALNODES_DNS
           value: "mipengine-nodes-service"
         - name: LOCALNODES_PORT
