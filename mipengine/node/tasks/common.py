@@ -2,7 +2,7 @@ from celery import shared_task
 
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import common_actions
-from mipengine.node.monetdb_interface.common_actions import get_dataset_schemas
+from mipengine.node.monetdb_interface.common_actions import get_initial_data_schemas
 from mipengine.node.monetdb_interface.common_actions import get_schema_datasets
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import TableData
@@ -17,7 +17,7 @@ def get_node_info():
         A NodeInfo object in a jsonified format
     """
     datasets_per_schema = {}
-    for schema in get_dataset_schemas():
+    for schema in get_initial_data_schemas():
         datasets_per_schema[schema] = get_schema_datasets(schema)
 
     node_info = NodeInfo(

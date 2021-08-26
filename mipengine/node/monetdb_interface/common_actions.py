@@ -136,9 +136,9 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     return data
 
 
-def get_dataset_schemas():
+def get_initial_data_schemas() -> List[str]:
     """
-    Retrieves the dataset schemas of the database.
+    Retrieves all the different schemas that the initial datasets have.
 
     Returns
     ------
@@ -167,9 +167,9 @@ def get_dataset_schemas():
     return schema_names
 
 
-def get_schema_datasets(schema_name):
+def get_schema_datasets(schema_name) -> List[str]:
     """
-    Retrieves the schema datasets.
+    Retrieves the datasets with the specific schema.
 
     Returns
     ------
