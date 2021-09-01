@@ -44,8 +44,8 @@
    ip = "172.17.0.1"
    log_level = "INFO"
    celery_log_level ="INFO"
-   monetdb_image = "madgik/mipenginedb:0.1"
-   rabbitmq_image = "madgik/mipengine_rabbitmq:0.1"
+   monetdb_image = "madgik/mipenginedb:latest"
+   rabbitmq_image = "madgik/mipengine_rabbitmq:latest"
 
    cdes_metadata_path = "./tests/demo_data"
 
