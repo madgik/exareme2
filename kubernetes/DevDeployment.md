@@ -57,7 +57,7 @@ kind create cluster --config tests/e2e_tests/kind_configuration/kind_cluster.yam
 ```
 
 3. After the nodes are started, you need to taint them properly:
-<br /><br />The following 2 sets of commands taint and label the master (kubernetes) nodes. Both command sets, taint and label the same node (master kubernetes node), referenced with diffent name due to `kind` naming the nodes differently from time to time.
+<br /><br />The following 2 sets of commands taint and label the master (kubernetes) node. Both command sets, taint and label the same node (master kubernetes node), referenced with different name due to `kind` naming the nodes differently from time to time.
 
 <br />Run command set 1:
 ```
@@ -76,7 +76,7 @@ kubectl label node worker1 nodeType=worker
 kubectl label node worker2 nodeType=worker
 ```
 
-4. (Optional) Build and load the docker images for the kuberentes cluster. If this step is ommited, the images will be pulled from dockerhub, which most likely will be slower, depending on the speed of your connection
+4. (Optional) Build and load the docker images for the kuberentes cluster. If this step is ommited, the images will be pulled from dockerhub, which will most likely be slower, depending on the speed of your connection
 
 First, build the images:
 <br />(you can execute these in separate terminals, concurrently) 
