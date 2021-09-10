@@ -5,6 +5,7 @@ import pymonetdb
 
 from mipengine.node import config as node_config
 
+BROKEN_PIPE_MAX_ATTEMPTS = 50
 OCC_MAX_ATTEMPTS = 50
 
 
@@ -21,6 +22,16 @@ class Singleton(type):
         return cls._instances[cls]
 
 
+def restart_connection():
+    return pymonetdb.connect(
+        hostname=node_config.monetdb.ip,
+        port=node_config.monetdb.port,
+        username=node_config.monetdb.username,
+        password=node_config.monetdb.password,
+        database=node_config.monetdb.database,
+    )
+
+
 class MonetDB(metaclass=Singleton):
     """
     MonetDB is a Singleton class because we want it to be initialized at runtime.
@@ -33,29 +44,27 @@ class MonetDB(metaclass=Singleton):
     """
 
     def __init__(self):
-        self._connection = pymonetdb.connect(
-            hostname=node_config.monetdb.ip,
-            port=node_config.monetdb.port,
-            username=node_config.monetdb.username,
-            password=node_config.monetdb.password,
-            database=node_config.monetdb.database,
-        )
+        self._connection = restart_connection()
 
     @contextmanager
     def cursor(self):
-        try:
-            # We use a single instance of a connection and by committing before a select query we refresh the state of
-            # the connection so that it sees changes from other processes/connections.
-            # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
-            # -on-another-connect.
-            self._connection.commit()
+        for _ in range(BROKEN_PIPE_MAX_ATTEMPTS):
+            try:
+                # We use a single instance of a connection and by committing before a select query we refresh the state of
+                # the connection so that it sees changes from other processes/connections.
+                # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
+                # -on-another-connect.
+                self._connection.commit()
 
-            cur = self._connection.cursor()
-            yield cur
-        except Exception as exc:
-            raise exc
-        finally:
-            cur.close()
+                cur = self._connection.cursor()
+                yield cur
+                cur.close()
+                break
+            except BrokenPipeError:
+                self._connection = restart_connection()
+                continue
+            except Exception as exc:
+                raise exc
 
     def execute_and_fetchall(self, query: str, parameters=None, many=False) -> List:
         """
