@@ -22,16 +22,6 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-def restart_connection():
-    return pymonetdb.connect(
-        hostname=node_config.monetdb.ip,
-        port=node_config.monetdb.port,
-        username=node_config.monetdb.username,
-        password=node_config.monetdb.password,
-        database=node_config.monetdb.database,
-    )
-
-
 class MonetDB(metaclass=Singleton):
     """
     MonetDB is a Singleton class because we want it to be initialized at runtime.
@@ -44,10 +34,22 @@ class MonetDB(metaclass=Singleton):
     """
 
     def __init__(self):
-        self._connection = restart_connection()
+        self._connection = None
+        self.refresh_connection()
+
+    def refresh_connection(self):
+        self._connection = pymonetdb.connect(
+            hostname=node_config.monetdb.ip,
+            port=node_config.monetdb.port,
+            username=node_config.monetdb.username,
+            password=node_config.monetdb.password,
+            database=node_config.monetdb.database,
+        )
 
     @contextmanager
     def cursor(self):
+
+        broken_pipe_error = None
         for _ in range(BROKEN_PIPE_MAX_ATTEMPTS):
             try:
                 # We use a single instance of a connection and by committing before a select query we refresh the state of
@@ -60,11 +62,14 @@ class MonetDB(metaclass=Singleton):
                 yield cur
                 cur.close()
                 break
-            except BrokenPipeError:
-                self._connection = restart_connection()
+            except BrokenPipeError as exc:
+                broken_pipe_error = exc
+                self.refresh_connection()
                 continue
             except Exception as exc:
                 raise exc
+        else:
+            raise broken_pipe_error
 
     def execute_and_fetchall(self, query: str, parameters=None, many=False) -> List:
         """
