@@ -23,7 +23,7 @@ from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.node_registry import node_registry
 from mipengine.controller import config
-from mipengine.filters import validate_proper_filter
+from mipengine.filters import validate_filter
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
 
@@ -109,7 +109,7 @@ def _validate_inputdata_filter(pathology, filter):
     following: https://querybuilder.js.org/
     """
     common_data_elements = CommonDataElements(config.cdes_metadata_path)
-    validate_proper_filter(common_data_elements, pathology, filter)
+    validate_filter(common_data_elements, pathology, filter)
 
 
 # TODO This will be removed with the dynamic inputdata logic.
