@@ -26,7 +26,7 @@ global_node_cleanup = get_celery_task_signature(global_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def context_id():
-    context_id = "test_remote_tables_" + str(uuid.uuid4()).replace("-", "")
+    context_id = "test_remote_tables_" + uuid.uuid4().hex
 
     yield context_id
 
@@ -51,7 +51,7 @@ def test_create_and_get_remote_table(context_id):
 
     table_name = local_node_create_table.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid1()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         schema_json=table_schema.to_json(),
     ).get()
 
