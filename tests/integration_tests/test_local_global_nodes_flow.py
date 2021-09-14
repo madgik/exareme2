@@ -46,7 +46,7 @@ clean_up_global = get_celery_task_signature(global_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def context_id():
-    context_id = "test_flow_" + str(uuid.uuid4()).replace("-", "")
+    context_id = "test_flow_" + uuid.uuid4().hex
 
     yield context_id
 
@@ -70,12 +70,12 @@ def test_create_merge_table_with_remote_tables(context_id):
     # Create local tables
     local_node_1_table_name = local_node_1_create_table.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid1()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         schema_json=schema.to_json(),
     ).get()
     local_node_2_table_name = local_node_2_create_table.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid1()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         schema_json=schema.to_json(),
     ).get()
     # Insert data into local tables
@@ -111,7 +111,7 @@ def test_create_merge_table_with_remote_tables(context_id):
     # Create merge table
     merge_table_name = global_node_create_merge_table.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid1()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         table_names=remote_tables,
     ).get()
 

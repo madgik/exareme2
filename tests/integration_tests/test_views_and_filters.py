@@ -26,7 +26,7 @@ local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def context_id():
-    context_id = "test_views_" + str(uuid.uuid4()).replace("-", "")
+    context_id = "test_views_" + uuid.uuid4().hex
 
     yield context_id
 
@@ -44,7 +44,7 @@ def test_create_view_and_get_view_without_filters(context_id):
 
     table_name = local_node_create_table.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid4()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         schema_json=table_schema.to_json(),
     ).get()
 
@@ -53,7 +53,7 @@ def test_create_view_and_get_view_without_filters(context_id):
     columns = ["col1", "col3"]
     view_name = local_node_create_view.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid1()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         table_name=table_name,
         columns=columns,
         filters=None,
@@ -89,7 +89,7 @@ def test_create_view_and_get_view_with_filters(context_id):
 
     table_name = local_node_create_table.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid4()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         schema_json=table_schema.to_json(),
     ).get()
 
@@ -117,7 +117,7 @@ def test_create_view_and_get_view_with_filters(context_id):
     }
     view_name = local_node_create_view.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid1()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         table_name=table_name,
         columns=columns,
         filters=rules,
@@ -153,7 +153,7 @@ def test_create_pathology_view_and_get_view_without_filters(context_id):
     pathology = "tbi"
     view_name = local_node_create_pathology_view.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid1()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         pathology=pathology,
         columns=columns,
         filters=None,
@@ -212,7 +212,7 @@ def test_create_pathology_view_and_get_view_with_filters(context_id):
     }
     view_name = local_node_create_pathology_view.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid1()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         pathology=pathology,
         columns=columns,
         filters=rules,

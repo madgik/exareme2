@@ -24,7 +24,7 @@ local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def context_id():
-    context_id = "test_merge_tables_" + str(uuid.uuid4()).replace("-", "")
+    context_id = "test_merge_tables_" + uuid.uuid4().hex
 
     yield context_id
 
@@ -35,7 +35,7 @@ def create_two_column_table(context_id, table_id: int):
     table_schema = TableSchema([ColumnInfo("col1", "int"), ColumnInfo("col2", "real")])
     table_name = local_node_create_table.delay(
         context_id=f"{context_id}_table_{table_id}",
-        command_id=str(uuid.uuid1()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         schema_json=table_schema.to_json(),
     ).get()
     return table_name
@@ -51,7 +51,7 @@ def create_three_column_table_with_data(context_id, table_id: int):
     )
     table_name = local_node_create_table.delay(
         context_id=f"{context_id}_table_{table_id}",
-        command_id=str(uuid.uuid1()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         schema_json=table_schema.to_json(),
     ).get()
 
@@ -70,7 +70,7 @@ def test_create_and_get_merge_table(context_id):
     ]
     merge_table_1_name = local_node_create_merge_table.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid1()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         table_names=tables_to_be_merged,
     ).get()
     merge_tables = local_node_get_merge_tables.delay(context_id=context_id).get()
@@ -87,7 +87,7 @@ def test_incompatible_schemas_merge(context_id):
         ]
         local_node_create_merge_table.delay(
             context_id=context_id,
-            command_id=str(uuid.uuid1()).replace("-", ""),
+            command_id=uuid.uuid4().hex,
             table_names=incompatible_partition_tables,
         ).get()
 
@@ -102,6 +102,6 @@ def test_table_cannot_be_found(context_id):
 
         local_node_create_merge_table.delay(
             context_id=context_id,
-            command_id=str(uuid.uuid1()).replace("-", ""),
+            command_id=uuid.uuid4().hex,
             table_names=not_found_tables,
         ).get()

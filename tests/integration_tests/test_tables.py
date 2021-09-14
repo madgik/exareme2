@@ -21,7 +21,7 @@ local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def context_id():
-    context_id = "test_tables_" + str(uuid.uuid4()).replace("-", "")
+    context_id = "test_tables_" + uuid.uuid4().hex
 
     yield context_id
 
@@ -39,7 +39,7 @@ def test_create_and_find_tables(context_id):
 
     table_1_name = local_node_create_table.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid4()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         schema_json=table_schema.to_json(),
     ).get()
     tables = local_node_get_tables.delay(context_id=context_id).get()
@@ -55,7 +55,7 @@ def test_create_and_find_tables(context_id):
 
     table_2_name = local_node_create_table.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid4()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         schema_json=table_schema.to_json(),
     ).get()
     tables = local_node_get_tables.delay(context_id=context_id).get()
