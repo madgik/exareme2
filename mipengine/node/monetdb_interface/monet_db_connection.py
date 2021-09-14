@@ -5,6 +5,7 @@ import pymonetdb
 
 from mipengine.node import config as node_config
 
+BROKEN_PIPE_MAX_ATTEMPTS = 50
 OCC_MAX_ATTEMPTS = 50
 
 
@@ -33,6 +34,10 @@ class MonetDB(metaclass=Singleton):
     """
 
     def __init__(self):
+        self._connection = None
+        self.refresh_connection()
+
+    def refresh_connection(self):
         self._connection = pymonetdb.connect(
             hostname=node_config.monetdb.ip,
             port=node_config.monetdb.port,
@@ -43,19 +48,28 @@ class MonetDB(metaclass=Singleton):
 
     @contextmanager
     def cursor(self):
-        try:
-            # We use a single instance of a connection and by committing before a select query we refresh the state of
-            # the connection so that it sees changes from other processes/connections.
-            # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
-            # -on-another-connect.
-            self._connection.commit()
 
-            cur = self._connection.cursor()
-            yield cur
-        except Exception as exc:
-            raise exc
-        finally:
-            cur.close()
+        broken_pipe_error = None
+        for _ in range(BROKEN_PIPE_MAX_ATTEMPTS):
+            try:
+                # We use a single instance of a connection and by committing before a select query we refresh the state of
+                # the connection so that it sees changes from other processes/connections.
+                # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
+                # -on-another-connect.
+                self._connection.commit()
+
+                cur = self._connection.cursor()
+                yield cur
+                cur.close()
+                break
+            except BrokenPipeError as exc:
+                broken_pipe_error = exc
+                self.refresh_connection()
+                continue
+            except Exception as exc:
+                raise exc
+        else:
+            raise broken_pipe_error
 
     def execute_and_fetchall(self, query: str, parameters=None, many=False) -> List:
         """
