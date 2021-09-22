@@ -48,11 +48,14 @@ def node_task_handler():
         node_id=tmp["identifier"]
         celery_params = tmp["celery"]
         rabbitmq_params = tmp["rabbitmq"]
+        monetdb_params=tmp["monetdb"]
         # print(f"{celery_params=}")
         # print(f"{rabbitmq_params=}")
         celery_params_dto = CeleryParamsDTO(
             task_queue_domain=rabbitmq_params["ip"],
             task_queue_port=rabbitmq_params["port"],
+            db_domain=monetdb_params["ip"],
+            db_port=monetdb_params["port"],
             user=controller_config.rabbitmq.user,
             password=controller_config.rabbitmq.password,
             vhost=controller_config.rabbitmq.vhost,
@@ -63,7 +66,7 @@ def node_task_handler():
         )
 
     node_task_handler = NodeTasksHandlerCelery(
-        node_id= node_id,celery_params=celery_params_dto, context_id=TASKS_CONTEXT_ID
+        node_id= node_id,celery_params=celery_params_dto
     )
     # print(f"{node_task_handler=}")
     # node_task_handler.clean_up()
@@ -85,14 +88,14 @@ def a_test_table_params():
 def cleanup(node_task_handler):
     yield
     # teardown
-    node_task_handler.clean_up()
+    node_task_handler.clean_up(context_id=TASKS_CONTEXT_ID)
 
 @pytest.mark.usefixtures("cleanup")
 def test_create_table(node_task_handler,a_test_table_params):
     command_id = a_test_table_params[0]
     schema = a_test_table_params[1]
    
-    table_name = node_task_handler.create_table(command_id=command_id, schema=schema)
+    table_name = node_task_handler.create_table(context_id=TASKS_CONTEXT_ID,command_id=command_id, schema=schema)
     print(f"{table_name=}")
 
     if table_name.startswith(f"table_{command_id}_{TASKS_CONTEXT_ID}_"):
@@ -104,8 +107,8 @@ def test_create_table(node_task_handler,a_test_table_params):
 def test_get_tables(node_task_handler,a_test_table_params):
     command_id = a_test_table_params[0]
     schema = a_test_table_params[1]
-    table_name = node_task_handler.create_table(command_id=command_id, schema=schema)
-    tables = node_task_handler.get_tables()
+    table_name = node_task_handler.create_table(context_id=TASKS_CONTEXT_ID,command_id=command_id, schema=schema)
+    tables = node_task_handler.get_tables(context_id=TASKS_CONTEXT_ID)
     if table_name in tables:
         assert True
     else:
@@ -116,7 +119,7 @@ def test_get_tables(node_task_handler,a_test_table_params):
 def test_get_table_schema(node_task_handler,a_test_table_params):
     command_id = a_test_table_params[0]
     schema = a_test_table_params[1]
-    table_name = node_task_handler.create_table(command_id=command_id, schema=schema)
+    table_name = node_task_handler.create_table(context_id=TASKS_CONTEXT_ID,command_id=command_id, schema=schema)
     schema_result = node_task_handler.get_table_schema(table_name)
     # print(f"{schema_result=}")
     if schema_result==schema:

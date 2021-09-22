@@ -158,6 +158,12 @@ class Controller:
         node_registry.keep_updating = False
 
 
+    def get_all_datasets_per_node(self):
+        datasets = {}
+        for node in node_registry.get_all_local_nodes():
+            datasets[node.id] = node.datasets_per_schema
+        return datasets
+
 def get_a_uniqueid():
     return "{}".format(
         datetime.datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)

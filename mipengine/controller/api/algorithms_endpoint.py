@@ -14,7 +14,12 @@ from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.api.exceptions import UnexpectedException
 from mipengine.controller.api.validator import validate_algorithm_request
 
-
+from mipengine.controller.api.algorithm_specifications_dtos import (
+    AlgorithmSpecificationDTO,
+)
+from mipengine.controller.api.algorithm_specifications_dtos import (
+    algorithm_specificationsDTOs,
+)
 algorithms = Blueprint("algorithms_endpoint", __name__)
 controller = Controller()
 
@@ -31,12 +36,7 @@ async def shutdown():
 
 @algorithms.route("/datasets")
 async def get_datasets() -> dict:
-    datasets = {}
-    for node in node_registry.get_all_local_nodes():
-        datasets[node.id] = node.datasets_per_schema
-
-    return datasets
-
+    return controller.get_all_datasets_per_node()
 
 @algorithms.route("/algorithms")  # TODO methods=["GET"]
 async def get_algorithms() -> str:
