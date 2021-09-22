@@ -1,13 +1,13 @@
 import requests
-from mipengine.controller.api.algorithm_request_dto import (
-    AlgorithmInputDataDTO,
-    AlgorithmRequestDTO,
-)
+
+from mipengine.controller.algorithm_execution_DTOs import AlgorithmRequestDTO
 
 
 def do_post_request():
     url = "http://127.0.0.1:5000/algorithms" + "/logistic_regression"
 
+    pathology = "dementia"
+    datasets = ["edsd"]
     x = [
         "lefthippocampus",
         "righthippocampus",
@@ -16,17 +16,6 @@ def do_post_request():
         "rightamygdala",
     ]
     y = ["alzheimerbroadcategory"]
-    classes = ["AD", "CN"]
-
-    pathology = "dementia"
-    datasets = ["edsd"]
-
-    print(f"POST to {url}")
-    print(f"X: {x}")
-    print(f"y: {y}")
-    print(f"Target classes: {classes}")
-    print(f"Pathology: {pathology}, datasets: {datasets}")
-
     filters = {
         "condition": "AND",
         "rules": [
@@ -51,24 +40,41 @@ def do_post_request():
         ],
         "valid": True,
     }
+    algorithm_params = {"classes": ["AD", "CN"]}
 
-    algorithm_input_data = AlgorithmInputDataDTO(
+    algorithm_request_dto = AlgorithmRequestDTO(
         pathology=pathology,
         datasets=datasets,
-        filters=filters,
         x=x,
         y=y,
+        filters=filters,
+        algorithm_params=algorithm_params,
     )
 
-    algorithm_request = AlgorithmRequestDTO(
-        inputdata=algorithm_input_data,
-        parameters={"classes": classes},
-    )
+    # DEBUG
+    print(f"POST to {url}")
+    # print("algorithm_request_dto:")
+    # import pprint
+    # pprint.PrettyPrinter(indent=0, sort_dicts=False).pprint(
+    #     algorithm_request_dto.dict()
+    # )
 
-    request_json = algorithm_request.to_json()
+    from devtools import debug
+
+    debug(algorithm_request_dto)
+    # DEBUG end
+
+    algorithm_request_dto_json = algorithm_request_dto.json()
+
+    # # DEBUG
+    # import json
+    # formatted = json.dumps(json.loads(algorithm_request_dto_json), indent=2)
+    # print("\nalgorithm_request_dto_json:")
+    # print(formatted)
+    # # DEBUG end
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    response = requests.post(url, data=request_json, headers=headers)
+    response = requests.post(url, data=algorithm_request_dto_json, headers=headers)
 
     return response
 

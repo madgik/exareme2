@@ -67,14 +67,24 @@ def _have_common_elements(a: List[Any], b: List[Any]):
 class NodeRegistry:
     def __init__(self):
         self.nodes = []
+        self.keep_updating = True
 
     async def update(self):
-        while True:
-            await asyncio.sleep(NODE_REGISTRY_UPDATE_INTERVAL)
+        while self.keep_updating:
             nodes_addresses = _get_nodes_addresses()
             self.nodes: List[NodeInfo] = await _get_nodes_info(nodes_addresses)
-            print(f"NodeRegistry updated! \nNodes: {str(self.nodes)}")
+
+            # DEBUG
+            print(
+                f"--> NodeRegistry just updated. Nodes:{[node.id for node in self.nodes]}"
+            )
+            # ..for full nodes info
+            # from devtools import debug
+            # debug(self.nodes)
+            # DEBUG end
+
             sys.stdout.flush()
+            await asyncio.sleep(NODE_REGISTRY_UPDATE_INTERVAL)
 
     def get_all_global_nodes(self) -> List[NodeInfo]:
         return [

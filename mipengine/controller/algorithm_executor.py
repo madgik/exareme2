@@ -1,12 +1,8 @@
 from __future__ import annotations
+from typing import Dict, List, Tuple, Optional, Any
 
-import datetime
 import importlib
-import random
-from ipaddress import IPv4Address
-from typing import Dict
-from typing import List
-from typing import Tuple
+
 
 from celery import Celery
 
@@ -17,117 +13,104 @@ from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
-from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 
 
-# TODO: Too many things happening in all the initialiazers. Especially the
-# AlgorithmExecutor __init__ is called synchronuously from the server
+from mipengine.controller.algorithm_execution_DTOs import (
+    AlgorithmExecutionDTO,
+    NodesTasksHandlersDTO,
+)
+from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 
-# TODO: TASK_TIMEOUT
 
 ALGORITHMS_FOLDER = "mipengine.algorithms"
 
 
 class TableName:
     def __init__(self, table_name):
-        self.__full_name = table_name
-        full_name_split = self.__full_name.split("_")
-        self.__table_type = full_name_split[0]
-        self.__command_id = full_name_split[1]
-        self.__context_id = full_name_split[2]
-        self.__node_id = full_name_split[3]
+        self._full_name = table_name
+        full_name_split = self._full_name.split("_")
+        self._table_type = full_name_split[0]
+        self._command_id = full_name_split[1]
+        self._context_id = full_name_split[2]
+        self._node_id = full_name_split[3]
 
     @property
     def full_table_name(self):
-        return self.__full_name
+        return self._full_name
 
     @property
     def table_type(self):
-        return self.__table_type
+        return self._table_type
 
     @property
     def command_id(self):
-        return self.__command_id
+        return self._command_id
 
     @property
     def context_id(self):
-        return self.__context_id
+        return self._context_id
 
     @property
     def node_id(self):
-        return self.__node_id
+        return self._node_id
 
     def without_node_id(self):
-        return self.__table_type + "_" + self.__command_id + "_" + self.__context_id
+        return self._table_type + "_" + self._command_id + "_" + self._context_id
 
     def __repr__(self):
         return self.full_table_name
 
 
 class AlgorithmExecutor:
-    def __init__(self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO):
-
-        self.algorithm_name = algorithm_name
-        # TODO context_id should be passed as a param from Controller
-        self.context_id = get_a_uniqueid()
-
-        global_nodes = node_registry.get_all_global_nodes()
-        # TODO for now just use the first global node found, in the future multiple
-        # global nodes can be available
-        global_node = global_nodes[0]
-
-        local_nodes_list = node_registry.get_nodes_with_any_of_datasets(
-            algorithm_request_dto.inputdata.pathology,
-            algorithm_request_dto.inputdata.datasets,
-        )
-        local_nodes = {node.id: node for node in local_nodes_list}
-        # ---end of creating the node registry-----
+    def __init__(
+        self,
+        algorithm_execution_dto: AlgorithmExecutionDTO,
+        nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
+    ):
+        self._context_id = algorithm_execution_dto.context_id
+        self._algorithm_name = algorithm_execution_dto.algorithm_name
 
         # instantiate the GLOBAL Node object
         self.global_node = self.Node(
-            node_id=global_node.id,
-            rabbitmq_socket_addr=f"{global_node.ip}:{global_node.port}",
-            monetdb_socket_addr=f"{global_node.db_ip}:{global_node.db_port}",
-            context_id=self.context_id,
+            context_id=self._context_id,
+            node_tasks_handler=nodes_tasks_handlers_dto.global_node_tasks_handler,
         )
 
-        # adding dataset column to the initial view tables
-        # algorithm_request_dto.inputdata.x.append("dataset")
-        # algorithm_request_dto.inputdata.y.append("dataset")
+        # Parameters for the creation of the view tables in the db. Each of the LOCAL
+        # nodes will have access only to these view tables and not on the primary data
+        # tables
         initial_view_tables_params = {
             "commandId": get_next_command_id(),
-            "pathology": algorithm_request_dto.inputdata.pathology,
-            "datasets": algorithm_request_dto.inputdata.datasets,
-            "x": algorithm_request_dto.inputdata.x,
-            "y": algorithm_request_dto.inputdata.y,
-            "filters": algorithm_request_dto.inputdata.filters,
+            "pathology": algorithm_execution_dto.algorithm_request_dto.pathology,
+            "datasets": algorithm_execution_dto.algorithm_request_dto.datasets,
+            "x": algorithm_execution_dto.algorithm_request_dto.x,
+            "y": algorithm_execution_dto.algorithm_request_dto.y,
+            "filters": algorithm_execution_dto.algorithm_request_dto.filters,
         }
 
         # instantiate the LOCAL Node objects
         self.local_nodes = []
-        for node_id, node_info in local_nodes.items():
+        for node_tasks_handler in nodes_tasks_handlers_dto.local_nodes_tasks_handlers:
             self.local_nodes.append(
                 self.Node(
-                    node_id=node_id,
-                    rabbitmq_socket_addr=f"{node_info.ip}:{node_info.port}",
-                    monetdb_socket_addr=f"{node_info.db_ip}:{node_info.db_port}",
+                    context_id=self._context_id,
+                    node_tasks_handler=node_tasks_handler,
                     initial_view_tables_params=initial_view_tables_params,
-                    context_id=self.context_id,
                 )
             )
 
         self.execution_interface = self.AlgorithmExecutionInterface(
             global_node=self.global_node,
             local_nodes=self.local_nodes,
-            algorithm_name=self.algorithm_name,
-            algorithm_parameters=algorithm_request_dto.parameters,
-            x_variables=algorithm_request_dto.inputdata.x,
-            y_variables=algorithm_request_dto.inputdata.y,
+            algorithm_name=self._algorithm_name,
+            algorithm_parameters=algorithm_execution_dto.algorithm_request_dto.algorithm_params,
+            x_variables=algorithm_execution_dto.algorithm_request_dto.x,
+            y_variables=algorithm_execution_dto.algorithm_request_dto.y,
         )
 
         # import the algorithm flow module
         self.algorithm_flow_module = importlib.import_module(
-            f"{ALGORITHMS_FOLDER}.{self.algorithm_name}"
+            f"{ALGORITHMS_FOLDER}.{self._algorithm_name}"
         )
 
     def run(self):
@@ -144,40 +127,18 @@ class AlgorithmExecutor:
     class Node:
         def __init__(
             self,
-            node_id,
-            rabbitmq_socket_addr,
-            monetdb_socket_addr,
-            context_id,
-            initial_view_tables_params=None,
+            context_id: str,
+            node_tasks_handler: INodeTasksHandler,
+            initial_view_tables_params: Dict[Any] = None,
         ):
-            self.node_id = node_id
+            self.node_tasks_handler = node_tasks_handler
+            self.node_id = self.node_tasks_handler.node_id
 
-            self.__celery_obj = get_node_celery_app(rabbitmq_socket_addr)
+            self.context_id = context_id
 
-            self.monetdb_socket_addr = monetdb_socket_addr
-
-            self.__context_id = context_id
-
-            self.task_signatures_str = {
-                "get_table": "mipengine.node.tasks.tables.get_tables",
-                "get_table_schema": "mipengine.node.tasks.common.get_table_schema",
-                "get_table_data": "mipengine.node.tasks.common.get_table_data",
-                "create_table": "mipengine.node.tasks.tables.create_table",
-                "get_views": "mipengine.node.tasks.views.get_views",
-                "create_pathology_view": "mipengine.node.tasks.views.create_pathology_view",
-                "get_remote_tables": "mipengine.node.tasks.remote_tables.get_remote_tables",
-                "create_remote_table": "mipengine.node.tasks.remote_tables.create_remote_table",
-                "get_merge_tables": "mipengine.node.tasks.merge_tables.get_merge_tables",
-                "create_merge_table": "mipengine.node.tasks.merge_tables.create_merge_table",
-                "get_udfs": "mipengine.node.tasks.udfs.get_udfs",
-                "run_udf": "mipengine.node.tasks.udfs.run_udf",
-                "get_run_udf_query": "mipengine.node.tasks.udfs.get_run_udf_query",
-                "clean_up": "mipengine.node.tasks.common.clean_up",
-            }
-
-            self.__initial_view_tables = None
+            self._initial_view_tables = None
             if initial_view_tables_params is not None:
-                self.__initial_view_tables = self.__create_initial_view_tables(
+                self._initial_view_tables = self._create_initial_view_tables(
                     initial_view_tables_params
                 )
 
@@ -186,9 +147,9 @@ class AlgorithmExecutor:
 
         @property
         def initial_view_tables(self):
-            return self.__initial_view_tables
+            return self._initial_view_tables
 
-        def __create_initial_view_tables(self, initial_view_tables_params):
+        def _create_initial_view_tables(self, initial_view_tables_params):
             # will contain the views created from the pathology, datasets. Its keys are
             # the variable sets x, y etc
             initial_view_tables = {}
@@ -219,44 +180,33 @@ class AlgorithmExecutor:
 
             return initial_view_tables
 
+        @property
+        def node_address(self):
+            return self.node_tasks_handler.node_data_address
+
         # TABLES functionality
         def get_tables(self) -> List[TableName]:
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["get_tables"]
-            )
-            result = task_signature.delay(context_id=self.__context_id).get()
-            return [TableName(table_name) for table_name in result]
+            return self.node_tasks_handler.get_tables(context_id=self.context_id)
 
         def get_table_schema(self, table_name: TableName):
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["get_table_schema"]
+            return self.node_tasks_handler.get_table_schema(
+                table_name=table_name.full_table_name
             )
-            result = task_signature.delay(table_name=table_name.full_table_name).get()
-            return TableSchema.from_json(result)
 
         def get_table_data(self, table_name: TableName) -> TableData:
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["get_table_data"]
-            )
-            result = task_signature.delay(table_name=table_name.full_table_name).get()
-            return TableData.from_json(result)
+            return self.node_tasks_handler.get_table_data(table_name.full_table_name)
 
         def create_table(self, command_id: str, schema: TableSchema) -> TableName:
             schema_json = schema.to_json()
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["create_table"]
+            return self.node_tasks_handler.create_table(
+                context_id=self.context_id,
+                command_id=command_id,
+                schema_json=schema_json,
             )
-            result = task_signature.delay(
-                context_id=self.__context_id, schema_json=schema_json
-            ).get()
-            return TableName(result)
 
         # VIEWS functionality
         def get_views(self) -> List[TableName]:
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["get_views"]
-            )
-            result = task_signature.delay(context_id=self.__context_id).get()
+            result = self.node_tasks_handler.get_views(context_id=self.context_id)
             return [TableName(table_name) for table_name in result]
 
         # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
@@ -267,120 +217,73 @@ class AlgorithmExecutor:
             columns: List[str],
             filters: List[str],
         ) -> TableName:
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["create_pathology_view"]
-            )
-
-            # -----------DEBUG
-            # print(f"(Node::create_view) node_id->{self.node_id} ")
-            # print(f"(Node::create_view) context_id->{self.__context_id} type->{type(self.__context_id)}")
-            # print(f"(Node::create_view) command_id->{command_id} type->{type(command_id)}")
-            # print(f"(Node::create_view) pathology->{pathology} type->{type(pathology)}")
-            # print(f"(Node::create_view) datasets->{datasets} type->{type(datasets)}")
-            # print(f"(Node::create_view) columns->{columns} type->{type(columns)}")
-            # print(f"(Node::create_view) filters->{filters} type->{type(filters)}\n")
-            # --------------
-
-            result = task_signature.delay(
-                context_id=self.__context_id,
+            result = self.node_tasks_handler.create_pathology_view(
+                context_id=self.context_id,
                 command_id=command_id,
                 pathology=pathology,
                 columns=columns,
                 filters=filters,
-            ).get()
-
+            )
             return TableName(result)
 
         # MERGE TABLES functionality
         def get_merge_tables(self) -> List[TableName]:
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["get_merge_tables"]
+            result = self.node_tasks_handler.get_merge_tables(
+                context_id=self.context_id
             )
-            result = task_signature.delay(context_id=self.__context_id).get()
             return [TableName(table_name) for table_name in result]
 
-        def create_merge_table(
-            self, command_id: str, table_names: List[TableName]
-        ):  # noqa: F821
+        def create_merge_table(self, command_id: str, table_names: List[TableName]):
             table_names = [table_name.full_table_name for table_name in table_names]
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["create_merge_table"]
-            )
-            result = task_signature.delay(
+            result = self.node_tasks_handler.create_merge_table(
+                context_id=self.context_id,
                 command_id=command_id,
-                context_id=self.__context_id,
                 table_names=table_names,
-            ).get()
+            )
             return TableName(result)
 
         # REMOTE TABLES functionality
         def get_remote_tables(self) -> List["TableInfo"]:
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["get_remote_tables"]
-            )
-            return task_signature.delay(context_id=self.__context_id)
+            return self.node_tasks_handler.get_remote_tables(context_id=self.context_id)
 
         def create_remote_table(
             self, table_info: TableInfo, native_node: Node
-        ) -> TableName:  # noqa: F821
-            table_info_json = table_info.to_json()
-            monetdb_socket_addr = native_node.monetdb_socket_addr
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["create_remote_table"]
+        ) -> TableName:
+
+            monetdb_socket_addr = native_node.node_address
+            return self.node_tasks_handler.create_remote_table(
+                table_info=table_info, original_db_url=monetdb_socket_addr
             )
-            task_signature.delay(
-                table_info_json=table_info_json,
-                monetdb_socket_address=monetdb_socket_addr,
-            ).get()  # does not return anything, get() so it blocks until complete
 
         # UDFs functionality
         def queue_run_udf(
             self, command_id: str, func_name: str, positional_args, keyword_args
-        ) -> "AsyncResult":  #: positional_args: List[TableName or str]
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["run_udf"]
-            )
-            return task_signature.delay(
+        ) -> "AsyncResult":
+            return self.node_tasks_handler.queue_run_udf(
+                context_id=self.context_id,
                 command_id=command_id,
-                context_id=self.__context_id,
                 func_name=func_name,
-                positional_args_json=positional_args,
-                keyword_args_json=keyword_args,
+                positional_args=positional_args,
+                keyword_args=keyword_args,
             )
-
-        # def get_result_run_udf(self, async_result) -> str:
-        #     result = async_result.get()
-        #     return TableName(result)
 
         def get_udfs(self, algorithm_name) -> List[str]:
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["get_udfs"]
-            )
-            result = task_signature.delay(algorithm_name).get()
-            return result
+            return self.node_tasks_handler.get_udfs(algorithm_name)
 
         # return the generated monetdb pythonudf
         def get_run_udf_query(
             self, command_id: str, func_name: str, positional_args: List[NodeTable]
         ) -> Tuple[str, str]:
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["get_run_udf_query"]
-            )
-            result = task_signature.delay(
+            return self.node_tasks_handler.get_run_udf_query(
+                context_id=self.context_id,
                 command_id=command_id,
-                context_id=self.__context_id,
                 func_name=func_name,
-                positional_args_json=positional_args,
-                keyword_args_json={},
-            ).get()
-            return result
+                positional_args=positional_args,
+            )
 
         # CLEANUP functionality
         def clean_up(self):
-            task_signature = self.__celery_obj.signature(
-                self.task_signatures_str["clean_up"]
-            )
-            task_signature.delay(self.__context_id)
+            self.node_tasks_handler.clean_up(context_id=self.context_id)
 
     class AlgorithmExecutionInterface:
         def __init__(
@@ -400,7 +303,7 @@ class AlgorithmExecutor:
             self._y_variables = y_variables
 
             # TODO: validate all local nodes have created the base_view_table??
-            self._initial_view_tables = {}  # {variable:LocalTable}
+            self._initial_view_tables = {}
             tmp_variable_node_table = {}
 
             # TODO: clean up this mindfuck??
@@ -447,7 +350,7 @@ class AlgorithmExecutor:
             # queue create_remote_table on global for each of the generated tables
             # create merge table on global node to merge the remote tables
 
-            command_id = get_a_uniqueid()
+            command_id = get_next_command_id()
 
             tasks = {}
             for (
@@ -524,7 +427,7 @@ class AlgorithmExecutor:
             # queue create_remote_table on each of the local nodes for the ganerated table
 
             # TODO: try/catches tasks can throw exceptions
-            command_id = get_a_uniqueid()
+            command_id = get_next_command_id()
 
             positional_args_transfrormed = []
             # keyword_args_transformed = {}
@@ -591,10 +494,10 @@ class AlgorithmExecutor:
 
         class LocalNodeTable:
             def __init__(self, nodes_tables: dict[Node, TableName]):  # noqa: F821
-                self.__nodes_tables = nodes_tables  # {node: TableName(table_name) for (node, table_name) in nodes_tables.items()}
+                self._nodes_tables = nodes_tables
 
                 if not self._validate_matching_table_names(
-                    list(self.__nodes_tables.values())
+                    list(self._nodes_tables.values())
                 ):
                     raise self.MismatchingTableNamesException(
                         [
@@ -605,7 +508,7 @@ class AlgorithmExecutor:
 
             @property
             def nodes_tables(self):
-                return self.__nodes_tables
+                return self._nodes_tables
 
             # TODO this is redundant, either remove it or overload all node methods here?
             def get_table_schema(self):
@@ -635,9 +538,7 @@ class AlgorithmExecutor:
                     r += "\n"
                 return r
 
-            def _validate_matching_table_names(
-                self, table_names: List[TableName]
-            ):  # noqa: F821
+            def _validate_matching_table_names(self, table_names: List[TableName]):
                 table_name_without_node_id = table_names[0].without_node_id()
                 for table_name in table_names:
                     if table_name.without_node_id() != table_name_without_node_id:
@@ -649,12 +550,12 @@ class AlgorithmExecutor:
                     self.message = f"Mismatched table names ->{table_names}"
 
         class GlobalNodeTable:
-            def __init__(self, node_table: dict[Node, TableName]):  # noqa: F821
-                self.__node_table = node_table
+            def __init__(self, node_table: dict[Node, TableName]):
+                self._node_table = node_table
 
             @property
             def node_table(self):
-                return self.__node_table
+                return self._node_table
 
             # TODO this is redundant, either remove it or overload all node methods here?
             def get_table_schema(self):
@@ -678,12 +579,6 @@ class AlgorithmExecutor:
                 tmp = [str(row) for row in self.get_table_data()[0:20]]
                 r += "\n".join(tmp)
                 return r
-
-
-def get_a_uniqueid():
-    return "{}".format(
-        datetime.datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
-    )
 
 
 def get_next_command_id():
