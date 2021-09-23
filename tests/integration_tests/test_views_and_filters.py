@@ -33,7 +33,7 @@ def context_id():
     local_node_cleanup.delay(context_id=context_id.lower()).get()
 
 
-def test_create_view_and_get_view_without_filters(context_id):
+def test_view_without_filters(context_id):
     table_schema = TableSchema(
         [
             ColumnInfo("col1", "int"),
@@ -78,7 +78,7 @@ def test_create_view_and_get_view_without_filters(context_id):
     assert view_data.schema == view_intended_schema
 
 
-def test_create_view_and_get_view_with_filters(context_id):
+def test_view_with_filters(context_id):
     table_schema = TableSchema(
         [
             ColumnInfo("col1", "int"),
@@ -143,7 +143,7 @@ def test_create_view_and_get_view_with_filters(context_id):
     assert view_data.schema == view_intended_schema
 
 
-def test_create_pathology_view_and_get_view_without_filters(context_id):
+def test_pathology_view_without_filters(context_id):
     columns = [
         "dataset",
         "age_value",
@@ -183,7 +183,7 @@ def test_create_pathology_view_and_get_view_without_filters(context_id):
     assert view_schema == schema
 
 
-def test_create_pathology_view_and_get_view_with_filters(context_id):
+def test_pathology_view_with_filters(context_id):
     columns = [
         "dataset",
         "age_value",
