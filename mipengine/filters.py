@@ -29,7 +29,7 @@ def build_filter_clause(rules):
         return
 
     if "condition" in rules:
-        _check_proper_condition(rules["condition"])
+        _check_condition(rules["condition"])
         cond = rules["condition"]
         rules = rules["rules"]
         return f" {cond} ".join([build_filter_clause(rule) for rule in rules])
@@ -63,14 +63,14 @@ def validate_filter(
     _check_pathology_exists(common_data_elements, pathology_name)
 
     if "condition" in rules:
-        _check_proper_condition(rules["condition"])
+        _check_condition(rules["condition"])
         rules = rules["rules"]
         for rule in rules:
             validate_filter(common_data_elements, pathology_name, rule)
     elif "id" in rules:
         column_name = rules["id"]
         val = rules["value"]
-        _check_proper_operator(rules["operator"])
+        _check_operator(rules["operator"])
         _check_column_exists(common_data_elements, pathology_name, column_name)
         _check_value_type(common_data_elements, pathology_name, column_name, val)
     else:
@@ -90,12 +90,12 @@ def _check_filter_type(rules):
         raise TypeError(f"Filter type can only be dict but was:{type(rules)}")
 
 
-def _check_proper_condition(condition: str):
+def _check_condition(condition: str):
     if condition not in ["OR", "AND"]:
         raise ValueError(f"Condition: {condition} is not acceptable.")
 
 
-def _check_proper_operator(operator: str):
+def _check_operator(operator: str):
     if operator not in FILTER_OPERATORS:
         raise ValueError(f"Operator: {operator} is not acceptable.")
 
