@@ -6,7 +6,7 @@ from mipengine.common_data_elements import CommonDataElement
 from mipengine.common_data_elements import CommonDataElements
 from mipengine.common_data_elements import MetadataEnumeration
 from mipengine.common_data_elements import MetadataVariable
-from mipengine.filters import build_filter_clause, validate_proper_filter
+from mipengine.filters import build_filter_clause, validate_filter
 
 PATHOLOGY = "test_pathology1"
 
@@ -385,7 +385,7 @@ def test_build_filter_clause(test_input, expected):
 
 @pytest.mark.parametrize("test_input,expected", all_success_cases)
 def test_validate_proper_filter(test_input, expected, common_data_elements):
-    validate_proper_filter(common_data_elements, PATHOLOGY, test_input)
+    validate_filter(common_data_elements, PATHOLOGY, test_input)
 
 
 all_build_filter_clause_fail_cases = [
@@ -512,7 +512,7 @@ def test_validate_proper_filter_fail_cases(
     test_input, expected_error, common_data_elements
 ):
     with pytest.raises(expected_error):
-        validate_proper_filter(common_data_elements, PATHOLOGY, test_input)
+        validate_filter(common_data_elements, PATHOLOGY, test_input)
 
 
 @pytest.mark.parametrize(
@@ -529,7 +529,7 @@ invalid_pathology_case = ["non_existing_pathology", 0, True]
 @pytest.mark.parametrize("pathology", invalid_pathology_case)
 def test_validate_proper_filter_fail_cases(pathology, common_data_elements):
     with pytest.raises(KeyError):
-        validate_proper_filter(
+        validate_filter(
             common_data_elements,
             pathology,
             {

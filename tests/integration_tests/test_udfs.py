@@ -26,7 +26,7 @@
 #
 # @pytest.fixture()
 # def context_id():
-#     context_id = "test_udfs_" + str(uuid.uuid4()).replace("-", "")
+#     context_id = "test_udfs_" + uuid.uuid4().hex
 #
 #     yield context_id
 #
@@ -48,7 +48,7 @@
 #     table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "INT"), ColumnInfo("col3", "INT")])
 #
 #     table_1_name = local_node_create_table.delay(context_id=context_id,
-#                                                  command_id=str(uuid.uuid4()).replace("-", ""),
+#                                                  command_id=uuid.uuid4().hex,
 #                                                  schema_json=table_schema.to_json()).get()
 #
 #     # Add data to table_1
@@ -75,7 +75,7 @@
 #     table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "real"), ColumnInfo("col3", "TEXT")])
 #
 #     table_1_name = local_node_create_table.delay(context_id=context_id,
-#                                                  command_id=str(uuid.uuid4()).replace("-", ""),
+#                                                  command_id=uuid.uuid4().hex,
 #                                                  schema_json=table_schema.to_json()).get()
 #
 #     positional_args = [UDFArgument(type="table", value=table_1_name).to_json(),

@@ -16,7 +16,7 @@ FILTER_OPERATORS = {
     "not_in": lambda column, values: f"{column} NOT IN ({','.join(str(value) for value in values)})",
 }
 
-__all__ = ["build_filter_clause", "validate_proper_filter"]
+__all__ = ["build_filter_clause", "validate_filter"]
 
 
 def build_filter_clause(rules):
@@ -43,7 +43,7 @@ def build_filter_clause(rules):
     raise ValueError(f"Filters did not contain the keys: 'condition' or 'id'.")
 
 
-def validate_proper_filter(
+def validate_filter(
     common_data_elements: CommonDataElements, pathology_name: str, rules: dict
 ):
     """
@@ -66,7 +66,7 @@ def validate_proper_filter(
         _check_proper_condition(rules["condition"])
         rules = rules["rules"]
         for rule in rules:
-            validate_proper_filter(common_data_elements, pathology_name, rule)
+            validate_filter(common_data_elements, pathology_name, rule)
     elif "id" in rules:
         column_name = rules["id"]
         val = rules["value"]

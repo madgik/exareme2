@@ -6,7 +6,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.common_data_elements import CommonDataElement
+from mipengine.common_data_elements import CommonDataElement, CommonDataElements
 from mipengine.controller.controller_common_data_elements import (
     controller_common_data_elements,
 )
@@ -22,6 +22,8 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.node_registry import node_registry
+from mipengine.controller import config
+from mipengine.filters import validate_filter
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
 
@@ -106,13 +108,8 @@ def _validate_inputdata_filter(pathology, filter):
     Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
     """
-    # TODO Add filters
-    # validate_proper_filter(
-    #     common_data_elements=common_data_elements,
-    #     pathology_name=pathology,
-    #     rules=filter
-    # )
-    pass
+    common_data_elements = CommonDataElements(config.cdes_metadata_path)
+    validate_filter(common_data_elements, pathology, filter)
 
 
 # TODO This will be removed with the dynamic inputdata logic.
