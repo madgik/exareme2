@@ -23,6 +23,7 @@ from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.node_registry import node_registry
 from mipengine.controller import config
+from mipengine.filters import validate_filter
 
 # from mipengine.filters import validate_filter
 
