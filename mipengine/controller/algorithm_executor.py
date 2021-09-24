@@ -1,9 +1,7 @@
 from __future__ import annotations
 from typing import Dict, List, Tuple, Any
 import importlib
-from celery import Celery
 
-from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
