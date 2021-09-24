@@ -6,7 +6,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.common_data_elements import CommonDataElement
+from mipengine.common_data_elements import CommonDataElement, CommonDataElements
 from mipengine.controller.controller_common_data_elements import (
     controller_common_data_elements,
 )
@@ -18,56 +18,61 @@ from mipengine.controller.algorithms_specifications import InputDataSpecificatio
 from mipengine.controller.algorithms_specifications import InputDataSpecifications
 from mipengine.controller.algorithms_specifications import algorithms_specifications
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
-
-from mipengine.controller.algorithm_execution_DTOs import AlgorithmRequestDTO
-
+from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.node_registry import node_registry
+from mipengine.controller import config
 
-# TODO mip-68 is set to CANCELED, please update accordingly..
+# from mipengine.filters import validate_filter
+
+# TODO MIP-68 is set to CANCELED, update accordingly..
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
 
 
-def validate_algorithm_request(
-    algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
-):
+def validate_algorithm_request(algorithm_name: str, request_body: str):
+
+    # Validate proper algorithm request body
+    # TODO Should be removed with pydantic
+    try:
+        algorithm_request = AlgorithmRequestDTO.from_json(request_body)
+    except Exception:
+        logging.error(
+            f"Could not parse the algorithm request body. "
+            f"Exception: \n {traceback.format_exc()}"
+        )
+        raise BadRequest(f"The algorithm request body does not have the proper format.")
 
     algorithm_specs = _get_algorithm_specs(algorithm_name)
-    _validate_algorithm_request_body(algorithm_request_dto, algorithm_specs)
+    _validate_algorithm_request_body(algorithm_request, algorithm_specs)
 
 
-def _get_algorithm_specs(algorithm_name: str):
+def _get_algorithm_specs(algorithm_name):
     if algorithm_name not in algorithms_specifications.enabled_algorithms.keys():
         raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
     return algorithms_specifications.enabled_algorithms[algorithm_name]
 
 
 def _validate_algorithm_request_body(
-    algorithm_request_dto: AlgorithmRequestDTO,
+    algorithm_request_body: AlgorithmRequestDTO,
     algorithm_specs: AlgorithmSpecifications,
 ):
-    _validate_inputdata(algorithm_request_dto, algorithm_specs.inputdata)
+    _validate_inputdata(algorithm_request_body.inputdata, algorithm_specs.inputdata)
 
     _validate_parameters(
-        algorithm_request_dto.algorithm_params,
+        algorithm_request_body.parameters,
         algorithm_specs.parameters,
     )
 
 
 def _validate_inputdata(
-    algorithm_request_dto: AlgorithmRequestDTO, inputdata_specs: InputDataSpecifications
+    inputdata: AlgorithmInputDataDTO, inputdata_specs: InputDataSpecifications
 ):
-    _validate_inputdata_pathology_and_dataset(
-        algorithm_request_dto.pathology, algorithm_request_dto.datasets
-    )
+    _validate_inputdata_pathology_and_dataset(inputdata.pathology, inputdata.datasets)
 
-    _validate_inputdata_filter(
-        algorithm_request_dto.pathology, algorithm_request_dto.filters
-    )
+    _validate_inputdata_filter(inputdata.pathology, inputdata.filters)
 
-    # datas? really? datas?
-    _validate_algorithm_inputdatas(algorithm_request_dto, inputdata_specs)
+    _validate_algorithm_inputdatas(inputdata, inputdata_specs)
 
 
 def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str]):
@@ -75,6 +80,12 @@ def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str
     Validates that the pathology, dataset values exist and
     that the datasets belong in the pathology.
     """
+
+    # TODO: The validator should not contact the Node Registry every time it is called
+    # to validate an algorithm request, this would be very expensive. One way to solve
+    # this would be that the Controller passes a some kind of list
+    # with datasets and pathologies for the validation as a parameter.
+    # https://team-1617704806227.atlassian.net/browse/MIP-195
 
     if not node_registry.schema_exists(pathology):
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
@@ -99,25 +110,16 @@ def _validate_inputdata_filter(pathology, filter):
     Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
     """
-    # TODO Add filters
-    # validate_proper_filter(
-    #     common_data_elements=common_data_elements,
-    #     pathology_name=pathology,
-    #     rules=filter
-    # )
-    pass
+    common_data_elements = CommonDataElements(config.cdes_metadata_path)
+    validate_filter(common_data_elements, pathology, filter)
 
 
 # TODO This will be removed with the dynamic inputdata logic.
 def _validate_algorithm_inputdatas(
-    algorithm_request_dto: AlgorithmRequestDTO, inputdata_specs: InputDataSpecifications
+    inputdata: AlgorithmInputDataDTO, inputdata_specs: InputDataSpecifications
 ):
-    _validate_algorithm_inputdata(
-        algorithm_request_dto.x, inputdata_specs.x, algorithm_request_dto.pathology
-    )
-    _validate_algorithm_inputdata(
-        algorithm_request_dto.y, inputdata_specs.y, algorithm_request_dto.pathology
-    )
+    _validate_algorithm_inputdata(inputdata.x, inputdata_specs.x, inputdata.pathology)
+    _validate_algorithm_inputdata(inputdata.y, inputdata_specs.y, inputdata.pathology)
 
 
 def _validate_algorithm_inputdata(

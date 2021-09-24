@@ -66,12 +66,13 @@ class Controller:
 
             loop = asyncio.get_running_loop()
 
-            #DEBUG(future logging..)
+            # DEBUG(future logging..)
             print(
-                f"\n(controller.py::exec_algorithm) starting executing->  {algorithm_name=} with {context_id=}\n"
+                f"\n(controller.py::exec_algorithm) starts executing-> "
+                f"{algorithm_name=} with {context_id=}\n"
             )
-            #DEBUG end
-            
+            # DEBUG end
+
             algorithm_result = await loop.run_in_executor(
                 None,
                 run_algorithm_executor_in_threadpool,
@@ -79,19 +80,54 @@ class Controller:
                 all_nodes_tasks_handlers,
             )
 
-            #DEBUG(future logging..)
+            # DEBUG(future logging..)
             print(
-                f"\n(controller.py::exec_algorithm) FINISHED->  {algorithm_name=} with {context_id=}"
+                f"\n(controller.py::exec_algorithm) FINISHED->  {algorithm_name=} "
+                f"with {context_id=}"
             )
             print(f"{algorithm_result.json()=}\n")
-            #DEBUG end
-            
+            # DEBUG end
+
             return algorithm_result.json()
 
         except:
             logging.error(
-                f"Algorithm execution failed. Unexpected exception: \n {traceback.format_exc()}"
+                f"Algorithm execution failed. Unexpected exception: \n "
+                f"{traceback.format_exc()}"
             )
+
+    def validate_algorithm_execution_request():
+        pass
+        # TODO DISABLED!!!
+        # all_local_nodes_info = self.get_all_local_nodes()
+        # available_datasets_per_schema = self.get_all_available_datasets_per_schema()
+
+        # validate_algorithm_request(
+        #     algorithm_name=algorithm_name,
+        #     algorithm_request_dto=algorithm_request_dto,
+        #     existing_datasets_per_schema=existing_datasets_per_schema,
+        # )
+
+    async def start_node_registry(self):
+        asyncio.create_task(node_registry.update())
+
+    async def stop_node_registry(self):
+        node_registry.keep_updating = False
+
+    def get_all_datasets_per_node(self):
+        datasets = {}
+        for node in node_registry.get_all_local_nodes():
+            datasets[node.id] = node.datasets_per_schema
+        return datasets
+
+    def get_all_available_schemas(self):
+        return node_registry.get_all_existing_schemas()
+
+    def get_all_available_datasets_per_schema(self):
+        return node_registry.get_all_existing_datasets_per_schema()
+
+    def get_all_local_nodes(self):
+        return node_registry.get_all_local_nodes()
 
     def _create_nodes_tasks_handlers(
         self, context_id: str, pathology: str, datasets: List[str]
@@ -151,18 +187,6 @@ class Controller:
             local_nodes_tasks_handlers=local_nodes_tasks_handlers,
         )
 
-    async def start_node_registry(self):
-        asyncio.create_task(node_registry.update())
-
-    async def stop_node_registry(self):
-        node_registry.keep_updating = False
-
-
-    def get_all_datasets_per_node(self):
-        datasets = {}
-        for node in node_registry.get_all_local_nodes():
-            datasets[node.id] = node.datasets_per_schema
-        return datasets
 
 def get_a_uniqueid():
     return "{}".format(

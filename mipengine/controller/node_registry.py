@@ -2,7 +2,7 @@ import asyncio
 import json
 import sys
 from typing import Any
-from typing import List
+from typing import List, Dict
 
 import dns.resolver
 
@@ -12,6 +12,9 @@ from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.celery_app import task_to_async
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
+
+# TODO remove import get_node_celery_app, pass the celery app  (invreverse dependency)
+# so the module can be easily unit tested
 
 GET_NODE_INFO_SIGNATURE = "mipengine.node.tasks.common.get_node_info"
 NODE_REGISTRY_UPDATE_INTERVAL = controller_config.node_registry_update_interval
@@ -57,6 +60,8 @@ async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
 
 
 def _have_common_elements(a: List[Any], b: List[Any]):
+    if not a or not b:
+        return False
     a_set = set(a)
     b_set = set(b)
     if len(a_set.intersection(b_set)) > 0:
@@ -78,7 +83,7 @@ class NodeRegistry:
             print(
                 f"--> NodeRegistry just updated. Nodes:{[node.id for node in self.nodes]}"
             )
-            # ..for full nodes info
+            # ..to print full nodes info
             # from devtools import debug
             # debug(self.nodes)
             # DEBUG end
@@ -117,6 +122,33 @@ class NodeRegistry:
             local_nodes_with_datasets.append(node_info)
 
         return local_nodes_with_datasets
+
+    # returns a list of all the currently availiable schemas(patholgies) on the system
+    # without duplicates
+    def get_all_available_schemas(self) -> List[str]:
+        all_local_nodes = self.get_all_local_nodes()
+        tmp = [schemas for schemas in all_local_nodes.datasets_per_schema]
+        all_existing_schemas = set().union(*tmp)
+        return list(all_existing_schemas)
+
+    # returns a dictionary with all the currently availiable schemas(patholgies) on the
+    # system as keys and lists of datasets as values. Without duplicates
+    # without duplicates
+    def get_all_available_datasets_per_schema(self) -> Dict[str, List[str]]:
+        all_local_nodes = self.get_all_local_nodes()
+        tmp = [node_info.datasets_per_schema for node_info in all_local_nodes]
+        all_existing_schemas = list(set().union(*tmp))
+
+        # {for schema in all_existing_schemas}
+        from collections import defaultdict
+        from itertools import chain
+        from operator import methodcaller
+
+        dd = defaultdict(list)
+        dict_items = map(methodcaller("items"), tmp)
+        for k, v in chain.from_iterable(dict_items):
+            dd[k].extend(v)
+        return dict(dd)
 
     def schema_exists(self, schema: str):
         for node_info in self.get_all_local_nodes():

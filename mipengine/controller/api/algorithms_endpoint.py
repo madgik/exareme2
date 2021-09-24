@@ -54,7 +54,7 @@ async def post_algorithm(algorithm_name: str) -> str:
     )
     #DEBUG end
 
-    #1. Parse the request body to ALgorithmRequestDTO
+    #Parse the request body to ALgorithmRequestDTO
     algorithm_request_dto = None
     try:
         request_body = await request.json
@@ -69,19 +69,11 @@ async def post_algorithm(algorithm_name: str) -> str:
         print(error_msg)
         return error_msg
 
-    #2. Validate the request
-    try:
-        validate_algorithm_request(
-            algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
-        )
-    except (BadRequest, BadUserInput) as exc:
-        error_msg = f"\nAlgorithm request validation FAILED: {exc=}\n"
-        print(error_msg)
-        return error_msg
-    except:
-        error_msg = f"Algorithm validation failed. Exception stack trace: \n {traceback.format_exc()}"
-        print(error_msg)
-        return error_msg
+    #Validate the request
+    # try:
+    #     controller.validate_algorithm_execution_request(algorithm_request_dto)
+    # except:
+    #     ...
 
     #DEBUG
     # ..for printing the full algorithm_request_dto object
@@ -89,7 +81,7 @@ async def post_algorithm(algorithm_name: str) -> str:
     # debug(algorithm_request_dto)
     #DEBUG end
 
-    #3. Excute the requested Algorithm
+    #Excute the requested Algorithm
     algorithm_result = await controller.exec_algorithm(
         algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
     )
