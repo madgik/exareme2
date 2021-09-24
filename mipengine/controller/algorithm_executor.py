@@ -1,26 +1,19 @@
 from __future__ import annotations
-from typing import Dict, List, Tuple, Optional, Any
-
+from typing import Dict, List, Tuple, Any
 import importlib
-
-
 from celery import Celery
 
 from mipengine.controller.celery_app import get_node_celery_app
-from mipengine.controller.node_registry import node_registry
-
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
-
 
 from mipengine.controller.algorithm_execution_DTOs import (
     AlgorithmExecutionDTO,
     NodesTasksHandlersDTO,
 )
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
-
 
 ALGORITHMS_FOLDER = "mipengine.algorithms"
 
