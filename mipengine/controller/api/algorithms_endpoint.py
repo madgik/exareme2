@@ -7,8 +7,8 @@ from quart import request
 
 from werkzeug.exceptions import BadRequest
 
+from mipengine.algorithm_request_DTO import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
-from mipengine.controller.algorithm_execution_DTOs import AlgorithmRequestDTO
 from mipengine.controller.controller import Controller
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.api.exceptions import UnexpectedException
