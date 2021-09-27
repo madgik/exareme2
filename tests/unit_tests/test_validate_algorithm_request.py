@@ -254,9 +254,6 @@ def mock_algorithms_specs():
     ):
         yield
 
-
-# #EVERYTHING COMMENTED OUT FROM HERE ON
-
 # # # @Thanasis parametrization has to be changed like that
 # # test_cases_proper_validate_algorithm = [
 # #     (
@@ -281,7 +278,6 @@ def mock_algorithms_specs():
 # #         ),
 # #     ),
 # # ]
-
 
 # test_cases_proper_validate_algorithm = [
 #     (
