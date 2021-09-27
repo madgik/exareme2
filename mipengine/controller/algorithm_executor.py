@@ -572,6 +572,9 @@ class _GlobalNodeTable:
         return r
 
 
+# NOTE tried to turn this into a generator, the problem is there are multiple consumers
+# so the generator should be singleton in some way, the solutions were more complicated
+# than this simple implementation
 def get_next_command_id():
     if hasattr(get_next_command_id, "index"):
         get_next_command_id.index += 1
