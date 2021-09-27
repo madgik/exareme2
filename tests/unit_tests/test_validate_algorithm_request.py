@@ -255,7 +255,7 @@ def mock_algorithms_specs():
         yield
 
 
-test_cases_proper_validate_algorithm = [
+test_cases_validate_algorithm = [
     (
         "test_algorithm1",
         {
@@ -285,7 +285,7 @@ test_cases_proper_validate_algorithm = [
 
 
 @pytest.mark.parametrize(
-    "algorithm_name, request_body_dict", test_cases_proper_validate_algorithm
+    "algorithm_name, request_body_dict", test_cases_validate_algorithm
 )
 def test_validate_algorithm_success(
     algorithm_name,
