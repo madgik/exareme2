@@ -13,7 +13,7 @@ from mipengine.controller.celery_app import task_to_async
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 
-# TODO remove import get_node_celery_app, pass the celery app  (invreverse dependency)
+# TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
 # so the module can be easily unit tested
 
 GET_NODE_INFO_SIGNATURE = "mipengine.node.tasks.common.get_node_info"
