@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Dict, List, Tuple, Any
 import importlib
+from pydantic import BaseModel
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
@@ -16,7 +17,7 @@ from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 ALGORITHMS_FOLDER = "mipengine.algorithms"
 
 
-class TableName:
+class _TableName:
     def __init__(self, table_name):
         self._full_name = table_name
         full_name_split = self._full_name.split("_")
@@ -62,7 +63,7 @@ class AlgorithmExecutor:
         self._algorithm_name = algorithm_execution_dto.algorithm_name
 
         # instantiate the GLOBAL Node object
-        self.global_node = self.Node(
+        self.global_node = _Node(
             context_id=self._context_id,
             node_tasks_handler=nodes_tasks_handlers_dto.global_node_tasks_handler,
         )
@@ -83,20 +84,23 @@ class AlgorithmExecutor:
         self.local_nodes = []
         for node_tasks_handler in nodes_tasks_handlers_dto.local_nodes_tasks_handlers:
             self.local_nodes.append(
-                self.Node(
+                _Node(
                     context_id=self._context_id,
                     node_tasks_handler=node_tasks_handler,
                     initial_view_tables_params=initial_view_tables_params,
                 )
             )
 
-        self.execution_interface = self.AlgorithmExecutionInterface(
+        algo_execution_interface_dto = _AlgorithmExecutionInterfaceDTO(
             global_node=self.global_node,
             local_nodes=self.local_nodes,
             algorithm_name=self._algorithm_name,
             algorithm_parameters=algorithm_execution_dto.algorithm_request_dto.algorithm_params,
             x_variables=algorithm_execution_dto.algorithm_request_dto.x,
             y_variables=algorithm_execution_dto.algorithm_request_dto.y,
+        )
+        self.execution_interface = _AlgorithmExecutionInterface(
+            algo_execution_interface_dto
         )
 
         # import the algorithm flow module
@@ -115,461 +119,457 @@ class AlgorithmExecutor:
         self.global_node.clean_up()
         [node.clean_up() for node in self.local_nodes]
 
-    class Node:
-        def __init__(
-            self,
-            context_id: str,
-            node_tasks_handler: INodeTasksHandler,
-            initial_view_tables_params: Dict[Any] = None,
-        ):
-            self.node_tasks_handler = node_tasks_handler
-            self.node_id = self.node_tasks_handler.node_id
 
-            self.context_id = context_id
+class _Node:
+    def __init__(
+        self,
+        context_id: str,
+        node_tasks_handler: INodeTasksHandler,
+        initial_view_tables_params: Dict[Any] = None,
+    ):
+        self.node_tasks_handler = node_tasks_handler
+        self.node_id = self.node_tasks_handler.node_id
 
-            self._initial_view_tables = None
-            if initial_view_tables_params is not None:
-                self._initial_view_tables = self._create_initial_view_tables(
-                    initial_view_tables_params
-                )
+        self.context_id = context_id
 
-        def __repr__(self):
-            return f"node_id: {self.node_id}"
-
-        @property
-        def initial_view_tables(self):
-            return self._initial_view_tables
-
-        def _create_initial_view_tables(self, initial_view_tables_params):
-            # will contain the views created from the pathology, datasets. Its keys are
-            # the variable sets x, y etc
-            initial_view_tables = {}
-
-            # initial view for variables in X
-            variable = "x"
-            command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_pathology_view(
-                command_id=command_id,
-                pathology=initial_view_tables_params["pathology"],
-                columns=initial_view_tables_params[variable],
-                filters=initial_view_tables_params["filters"],
+        self._initial_view_tables = None
+        if initial_view_tables_params is not None:
+            self._initial_view_tables = self._create_initial_view_tables(
+                initial_view_tables_params
             )
 
-            initial_view_tables["x"] = view_name
+    def __repr__(self):
+        return f"node_id: {self.node_id}"
 
-            # initial view for variables in Y
-            variable = "y"
-            command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_pathology_view(
-                command_id=command_id,
-                pathology=initial_view_tables_params["pathology"],
-                columns=initial_view_tables_params[variable],
-                filters=initial_view_tables_params["filters"],
-            )
+    @property
+    def initial_view_tables(self):
+        return self._initial_view_tables
 
-            initial_view_tables["y"] = view_name
+    def _create_initial_view_tables(self, initial_view_tables_params):
+        # will contain the views created from the pathology, datasets. Its keys are
+        # the variable sets x, y etc
+        initial_view_tables = {}
 
-            return initial_view_tables
+        # initial view for variables in X
+        variable = "x"
+        command_id = str(initial_view_tables_params["commandId"]) + variable
+        view_name = self.create_pathology_view(
+            command_id=command_id,
+            pathology=initial_view_tables_params["pathology"],
+            columns=initial_view_tables_params[variable],
+            filters=initial_view_tables_params["filters"],
+        )
 
-        @property
-        def node_address(self):
-            return self.node_tasks_handler.node_data_address
+        initial_view_tables["x"] = view_name
 
-        # TABLES functionality
-        def get_tables(self) -> List[TableName]:
-            return self.node_tasks_handler.get_tables(context_id=self.context_id)
+        # initial view for variables in Y
+        variable = "y"
+        command_id = str(initial_view_tables_params["commandId"]) + variable
+        view_name = self.create_pathology_view(
+            command_id=command_id,
+            pathology=initial_view_tables_params["pathology"],
+            columns=initial_view_tables_params[variable],
+            filters=initial_view_tables_params["filters"],
+        )
 
-        def get_table_schema(self, table_name: TableName):
-            return self.node_tasks_handler.get_table_schema(
-                table_name=table_name.full_table_name
-            )
+        initial_view_tables["y"] = view_name
 
-        def get_table_data(self, table_name: TableName) -> TableData:
-            return self.node_tasks_handler.get_table_data(table_name.full_table_name)
+        return initial_view_tables
 
-        def create_table(self, command_id: str, schema: TableSchema) -> TableName:
-            schema_json = schema.to_json()
-            return self.node_tasks_handler.create_table(
-                context_id=self.context_id,
-                command_id=command_id,
-                schema_json=schema_json,
-            )
+    @property
+    def node_address(self):
+        return self.node_tasks_handler.node_data_address
 
-        # VIEWS functionality
-        def get_views(self) -> List[TableName]:
-            result = self.node_tasks_handler.get_views(context_id=self.context_id)
-            return [TableName(table_name) for table_name in result]
+    # TABLES functionality
+    def get_tables(self) -> List[_TableName]:
+        return self.node_tasks_handler.get_tables(context_id=self.context_id)
 
-        # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
-        def create_pathology_view(
-            self,
-            command_id: str,
-            pathology: str,
-            columns: List[str],
-            filters: List[str],
-        ) -> TableName:
-            result = self.node_tasks_handler.create_pathology_view(
-                context_id=self.context_id,
-                command_id=command_id,
-                pathology=pathology,
-                columns=columns,
-                filters=filters,
-            )
-            return TableName(result)
+    def get_table_schema(self, table_name: _TableName):
+        return self.node_tasks_handler.get_table_schema(
+            table_name=table_name.full_table_name
+        )
 
-        # MERGE TABLES functionality
-        def get_merge_tables(self) -> List[TableName]:
-            result = self.node_tasks_handler.get_merge_tables(
-                context_id=self.context_id
-            )
-            return [TableName(table_name) for table_name in result]
+    def get_table_data(self, table_name: _TableName) -> TableData:
+        return self.node_tasks_handler.get_table_data(table_name.full_table_name)
 
-        def create_merge_table(self, command_id: str, table_names: List[TableName]):
-            table_names = [table_name.full_table_name for table_name in table_names]
-            result = self.node_tasks_handler.create_merge_table(
-                context_id=self.context_id,
-                command_id=command_id,
-                table_names=table_names,
-            )
-            return TableName(result)
+    def create_table(self, command_id: str, schema: TableSchema) -> _TableName:
+        schema_json = schema.to_json()
+        return self.node_tasks_handler.create_table(
+            context_id=self.context_id,
+            command_id=command_id,
+            schema_json=schema_json,
+        )
 
-        # REMOTE TABLES functionality
-        def get_remote_tables(self) -> List["TableInfo"]:
-            return self.node_tasks_handler.get_remote_tables(context_id=self.context_id)
+    # VIEWS functionality
+    def get_views(self) -> List[_TableName]:
+        result = self.node_tasks_handler.get_views(context_id=self.context_id)
+        return [_TableName(table_name) for table_name in result]
 
-        def create_remote_table(
-            self, table_info: TableInfo, native_node: Node
-        ) -> TableName:
+    # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
+    def create_pathology_view(
+        self,
+        command_id: str,
+        pathology: str,
+        columns: List[str],
+        filters: List[str],
+    ) -> _TableName:
+        result = self.node_tasks_handler.create_pathology_view(
+            context_id=self.context_id,
+            command_id=command_id,
+            pathology=pathology,
+            columns=columns,
+            filters=filters,
+        )
+        return _TableName(result)
 
-            monetdb_socket_addr = native_node.node_address
-            return self.node_tasks_handler.create_remote_table(
-                table_info=table_info, original_db_url=monetdb_socket_addr
-            )
+    # MERGE TABLES functionality
+    def get_merge_tables(self) -> List[_TableName]:
+        result = self.node_tasks_handler.get_merge_tables(context_id=self.context_id)
+        return [_TableName(table_name) for table_name in result]
 
-        # UDFs functionality
-        def queue_run_udf(
-            self, command_id: str, func_name: str, positional_args, keyword_args
-        ) -> "AsyncResult":
-            return self.node_tasks_handler.queue_run_udf(
-                context_id=self.context_id,
-                command_id=command_id,
-                func_name=func_name,
-                positional_args=positional_args,
-                keyword_args=keyword_args,
-            )
+    def create_merge_table(self, command_id: str, table_names: List[_TableName]):
+        table_names = [table_name.full_table_name for table_name in table_names]
+        result = self.node_tasks_handler.create_merge_table(
+            context_id=self.context_id,
+            command_id=command_id,
+            table_names=table_names,
+        )
+        return _TableName(result)
 
-        def get_udfs(self, algorithm_name) -> List[str]:
-            return self.node_tasks_handler.get_udfs(algorithm_name)
+    # REMOTE TABLES functionality
+    def get_remote_tables(self) -> List["TableInfo"]:
+        return self.node_tasks_handler.get_remote_tables(context_id=self.context_id)
 
-        # return the generated monetdb pythonudf
-        def get_run_udf_query(
-            self, command_id: str, func_name: str, positional_args: List[NodeTable]
-        ) -> Tuple[str, str]:
-            return self.node_tasks_handler.get_run_udf_query(
-                context_id=self.context_id,
-                command_id=command_id,
-                func_name=func_name,
-                positional_args=positional_args,
-            )
+    def create_remote_table(
+        self, table_info: TableInfo, native_node: _Node
+    ) -> _TableName:
 
-        # CLEANUP functionality
-        def clean_up(self):
-            self.node_tasks_handler.clean_up(context_id=self.context_id)
+        monetdb_socket_addr = native_node.node_address
+        return self.node_tasks_handler.create_remote_table(
+            table_info=table_info, original_db_url=monetdb_socket_addr
+        )
 
-    class AlgorithmExecutionInterface:
-        def __init__(
-            self,
-            global_node,
-            local_nodes,
-            algorithm_name,
-            algorithm_parameters,
-            x_variables,
-            y_variables,
-        ):
-            self._global_node = global_node
-            self._local_nodes = local_nodes
-            self._algorithm_name = algorithm_name
-            self._algorithm_parameters = algorithm_parameters
-            self._x_variables = x_variables
-            self._y_variables = y_variables
+    # UDFs functionality
+    def queue_run_udf(
+        self, command_id: str, func_name: str, positional_args, keyword_args
+    ) -> "AsyncResult":
+        return self.node_tasks_handler.queue_run_udf(
+            context_id=self.context_id,
+            command_id=command_id,
+            func_name=func_name,
+            positional_args=positional_args,
+            keyword_args=keyword_args,
+        )
 
-            # TODO: validate all local nodes have created the base_view_table??
-            self._initial_view_tables = {}
-            tmp_variable_node_table = {}
+    def get_udfs(self, algorithm_name) -> List[str]:
+        return self.node_tasks_handler.get_udfs(algorithm_name)
 
-            # TODO: clean up this mindfuck??
-            for node in self._local_nodes:
-                for (variable_name, table_name) in node.initial_view_tables.items():
-                    if variable_name in tmp_variable_node_table:
-                        tmp_variable_node_table[variable_name].update(
-                            {node: table_name}
-                        )
-                    else:
-                        tmp_variable_node_table[variable_name] = {node: table_name}
+    # return the generated monetdb pythonudf
+    def get_run_udf_query(
+        self, command_id: str, func_name: str, positional_args: List[_NodeTable]
+    ) -> Tuple[str, str]:
+        return self.node_tasks_handler.get_run_udf_query(
+            context_id=self.context_id,
+            command_id=command_id,
+            func_name=func_name,
+            positional_args=positional_args,
+        )
 
-            self._initial_view_tables = {
-                variable_name: self.LocalNodeTable(node_table)
-                for (variable_name, node_table) in tmp_variable_node_table.items()
-            }
+    # CLEANUP functionality
+    def clean_up(self):
+        self.node_tasks_handler.clean_up(context_id=self.context_id)
 
-        @property
-        def initial_view_tables(self):
-            return self._initial_view_tables
 
-        @property
-        def algorithm_parameters(self):
-            return self._algorithm_parameters
+class _AlgorithmExecutionInterfaceDTO(BaseModel):
+    global_node: _Node
+    local_nodes: List[_Node]
+    algorithm_name: str
+    algorithm_parameters: Dict[str, List[str]]
+    x_variables: List[str]
+    y_variables: List[str]
 
-        @property
-        def x_variables(self):
-            return self._x_variables
+    class Config:
+        arbitrary_types_allowed = True
 
-        @property
-        def y_variables(self):
-            return self._y_variables
 
-        # UDFs functionality
-        def run_udf_on_local_nodes(
-            self,
-            func_name: str,
-            positional_args: Dict[LocalNodeTable],
-            share_to_global: bool = False,
-        ):  # -> GlobalNodeTable or LocalNodeTable
-            # queue exec_udf task on all local nodes
-            # wait for all nodes to complete the tasks execution
-            # one new table per local node was generated
-            # queue create_remote_table on global for each of the generated tables
-            # create merge table on global node to merge the remote tables
+class _AlgorithmExecutionInterface:
+    def __init__(self, algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO):
+        self._global_node = algo_execution_interface_dto.global_node
+        self._local_nodes = algo_execution_interface_dto.local_nodes
+        self._algorithm_name = algo_execution_interface_dto.algorithm_name
+        self._algorithm_parameters = algo_execution_interface_dto.algorithm_parameters
+        self._x_variables = algo_execution_interface_dto.x_variables
+        self._y_variables = algo_execution_interface_dto.y_variables
 
-            command_id = get_next_command_id()
+        # TODO: validate all local nodes have created the base_view_table??
+        self._initial_view_tables = {}
+        tmp_variable_node_table = {}
 
-            tasks = {}
-            for (
-                node
-            ) in (
-                self._local_nodes
-            ):  # TODO get the nodes from the LocalNodeTables in the positional_args
-                positional_args_transfrormed = []
-                keyword_args_transformed = {}
-                for var_name, val in positional_args.items():
-                    if isinstance(val, self.LocalNodeTable):
-                        udf_argument = UDFArgument(
-                            type="table", value=val.nodes_tables[node].full_table_name
-                        )
-                    elif isinstance(val, self.GlobalNodeTable):
-                        raise Exception(
-                            "(run_udf_on_local_nodes) GlobalNodeTable types are not accepted from run_udf_on_local_nodes"
-                        )
-                    else:
-                        udf_argument = UDFArgument(type="literal", value=val)
-                    positional_args_transfrormed.append(udf_argument.to_json())
-                    keyword_args_transformed[var_name] = udf_argument.to_json()
+        # TODO: clean up this mindfuck??
+        for node in self._local_nodes:
+            for (variable_name, table_name) in node.initial_view_tables.items():
+                if variable_name in tmp_variable_node_table:
+                    tmp_variable_node_table[variable_name].update({node: table_name})
+                else:
+                    tmp_variable_node_table[variable_name] = {node: table_name}
 
-                task = node.queue_run_udf(
-                    command_id=command_id,
-                    func_name=func_name,
-                    positional_args=positional_args_transfrormed,
-                    keyword_args={},
-                )
-                tasks[node] = task
+        self._initial_view_tables = {
+            variable_name: _LocalNodeTable(node_table)
+            for (variable_name, node_table) in tmp_variable_node_table.items()
+        }
 
-            udf_result_tables = {}
-            for node, task in tasks.items():
-                table_name = TableName(task.get())
-                udf_result_tables[node] = table_name
+    @property
+    def initial_view_tables(self):
+        return self._initial_view_tables
 
-                # ceate remote table on global node
-                if share_to_global:
-                    # TODO: try block missing
-                    table_schema = node.get_table_schema(table_name)
-                    table_info = TableInfo(
-                        name=table_name.full_table_name, schema=table_schema
-                    )
-                    self._global_node.create_remote_table(
-                        table_info=table_info, native_node=node
-                    )
+    @property
+    def algorithm_parameters(self):
+        return self._algorithm_parameters
 
-            # create merge table on global
-            if share_to_global:
-                remote_tables_info = list(udf_result_tables.values())
-                remote_table_names = [
-                    remote_table_info for remote_table_info in remote_tables_info
-                ]
-                merge_table_global = self._global_node.create_merge_table(
-                    command_id=command_id, table_names=remote_table_names
-                )
-                return self.GlobalNodeTable(
-                    node_table={self._global_node: merge_table_global}
-                )
+    @property
+    def x_variables(self):
+        return self._x_variables
 
-            else:
-                return self.LocalNodeTable(nodes_tables=udf_result_tables)
+    @property
+    def y_variables(self):
+        return self._y_variables
 
-        def run_udf_on_global_node(
-            self,
-            func_name: str,
-            positional_args: List[GlobalNodeTable],
-            share_to_locals: bool = False,
-        ):  # -> GlobalNodeTable or LocalNodeTable
-            # check the input tables are GlobalNodeTable(s)
-            # queue exec_udf on the global node
-            # wait for it to complete
-            # a new table was generated on global node
-            # queue create_remote_table on each of the local nodes for the ganerated table
+    # UDFs functionality
+    def run_udf_on_local_nodes(
+        self,
+        func_name: str,
+        positional_args: Dict[_LocalNodeTable],
+        share_to_global: bool = False,
+    ):  # -> GlobalNodeTable or LocalNodeTable
+        # queue exec_udf task on all local nodes
+        # wait for all nodes to complete the tasks execution
+        # one new table per local node was generated
+        # queue create_remote_table on global for each of the generated tables
+        # create merge table on global node to merge the remote tables
 
-            # TODO: try/catches tasks can throw exceptions
-            command_id = get_next_command_id()
+        command_id = get_next_command_id()
 
+        tasks = {}
+        for (
+            node
+        ) in (
+            self._local_nodes
+        ):  # TODO get the nodes from the LocalNodeTables in the positional_args
             positional_args_transfrormed = []
-            # keyword_args_transformed = {}
-            for val in positional_args:
-                if isinstance(val, self.GlobalNodeTable):
+            keyword_args_transformed = {}
+            for var_name, val in positional_args.items():
+                if isinstance(val, _LocalNodeTable):
                     udf_argument = UDFArgument(
-                        type="table",
-                        value=list(val.node_table.values())[0].full_table_name,
-                    )  # TODO: da fuck is dat
-                elif isinstance(val, self.LocalNodeTable):
+                        type="table", value=val.nodes_tables[node].full_table_name
+                    )
+                elif isinstance(val, _GlobalNodeTable):
                     raise Exception(
-                        "(run_udf_on_global_node) LocalNodeTable types are not accepted from run_udf_on_global_nodes"
+                        "(run_udf_on_local_nodes) GlobalNodeTable types are not accepted from run_udf_on_local_nodes"
                     )
                 else:
-                    udf_argument = UDFArgument(type="literal", value=str(val))
+                    udf_argument = UDFArgument(type="literal", value=val)
                 positional_args_transfrormed.append(udf_argument.to_json())
+                keyword_args_transformed[var_name] = udf_argument.to_json()
 
-            udf_result_table: str = self._global_node.queue_run_udf(
+            task = node.queue_run_udf(
                 command_id=command_id,
                 func_name=func_name,
                 positional_args=positional_args_transfrormed,
                 keyword_args={},
-            ).get()
+            )
+            tasks[node] = task
 
-            if share_to_locals:
-                table_schema: TableSchema = self._global_node.get_table_schema(
-                    TableName(udf_result_table)
+        udf_result_tables = {}
+        for node, task in tasks.items():
+            table_name = _TableName(task.get())
+            udf_result_tables[node] = table_name
+
+            # ceate remote table on global node
+            if share_to_global:
+                # TODO: try block missing
+                table_schema = node.get_table_schema(table_name)
+                table_info = TableInfo(
+                    name=table_name.full_table_name, schema=table_schema
                 )
-                table_info: TableInfo = TableInfo(
-                    name=udf_result_table, schema=table_schema
+                self._global_node.create_remote_table(
+                    table_info=table_info, native_node=node
                 )
-                local_nodes_tables = {}
-                for node in self._local_nodes:
-                    # TODO do not block here, first send the request to all local nodes and then block for the result
-                    node.create_remote_table(
-                        table_info=table_info, native_node=self._global_node
-                    )
-                    local_nodes_tables[node] = TableName(udf_result_table)
 
-                return self.LocalNodeTable(nodes_tables=local_nodes_tables)
+        # create merge table on global
+        if share_to_global:
+            remote_tables_info = list(udf_result_tables.values())
+            remote_table_names = [
+                remote_table_info for remote_table_info in remote_tables_info
+            ]
+            merge_table_global = self._global_node.create_merge_table(
+                command_id=command_id, table_names=remote_table_names
+            )
+            return _GlobalNodeTable(node_table={self._global_node: merge_table_global})
 
-            return self.GlobalNodeTable(
-                node_table={self._global_node: TableName(udf_result_table)}
+        else:
+            return _LocalNodeTable(nodes_tables=udf_result_tables)
+
+    def run_udf_on_global_node(
+        self,
+        func_name: str,
+        positional_args: List[_GlobalNodeTable],
+        share_to_locals: bool = False,
+    ):  # -> GlobalNodeTable or LocalNodeTable
+        # check the input tables are GlobalNodeTable(s)
+        # queue exec_udf on the global node
+        # wait for it to complete
+        # a new table was generated on global node
+        # queue create_remote_table on each of the local nodes for the ganerated table
+
+        # TODO: try/catches tasks can throw exceptions
+        command_id = get_next_command_id()
+
+        positional_args_transfrormed = []
+        # keyword_args_transformed = {}
+        for val in positional_args:
+            if isinstance(val, _GlobalNodeTable):
+                udf_argument = UDFArgument(
+                    type="table",
+                    value=list(val.node_table.values())[0].full_table_name,
+                )  # TODO: da fuck is dat
+            elif isinstance(val, _LocalNodeTable):
+                raise Exception(
+                    "(run_udf_on_global_node) LocalNodeTable types are not accepted from run_udf_on_global_nodes"
+                )
+            else:
+                udf_argument = UDFArgument(type="literal", value=str(val))
+            positional_args_transfrormed.append(udf_argument.to_json())
+
+        udf_result_table: str = self._global_node.queue_run_udf(
+            command_id=command_id,
+            func_name=func_name,
+            positional_args=positional_args_transfrormed,
+            keyword_args={},
+        ).get()
+
+        if share_to_locals:
+            table_schema: TableSchema = self._global_node.get_table_schema(
+                _TableName(udf_result_table)
+            )
+            table_info: TableInfo = TableInfo(
+                name=udf_result_table, schema=table_schema
+            )
+            local_nodes_tables = {}
+            for node in self._local_nodes:
+                # TODO do not block here, first send the request to all local nodes and then block for the result
+                node.create_remote_table(
+                    table_info=table_info, native_node=self._global_node
+                )
+                local_nodes_tables[node] = _TableName(udf_result_table)
+
+            return _LocalNodeTable(nodes_tables=local_nodes_tables)
+
+        return _GlobalNodeTable(
+            node_table={self._global_node: _TableName(udf_result_table)}
+        )
+
+    # TABLES functionality
+    def get_table_data(self, node_table) -> "TableData":
+        return node_table.get_table_data()
+
+    def get_table_schema(self, node_table) -> "TableData":
+        # TODO create super class NodeTable??
+        if isinstance(node_table, _LocalNodeTable) or isinstance(
+            node_table, _GlobalNodeTable
+        ):
+            return node_table.get_table_schema()
+        else:
+            raise Exception(
+                "(AlgorithmExecutionInterface::get_table_schema) node_table type-> {type(node_table)} not acceptable"
             )
 
-        # TABLES functionality
-        def get_table_data(self, node_table) -> "TableData":
-            return node_table.get_table_data()
 
-        def get_table_schema(self, node_table) -> "TableData":
-            # TODO create super class NodeTable??
-            if isinstance(node_table, self.LocalNodeTable) or isinstance(
-                node_table, self.GlobalNodeTable
-            ):
-                return node_table.get_table_schema()
-            else:
-                raise Exception(
-                    "(AlgorithmExecutionInterface::get_table_schema) node_table type-> {type(node_table)} not acceptable"
-                )
+class _NodeTable:
+    # TODO: better abstraction here...
+    pass
 
-        class NodeTable:
-            # TODO: better abstraction here...
-            pass
 
-        class LocalNodeTable:
-            def __init__(self, nodes_tables: dict[Node, TableName]):  # noqa: F821
-                self._nodes_tables = nodes_tables
+class _LocalNodeTable:
+    def __init__(self, nodes_tables: dict[Node, TableName]):  # noqa: F821
+        self._nodes_tables = nodes_tables
 
-                if not self._validate_matching_table_names(
-                    list(self._nodes_tables.values())
-                ):
-                    raise self.MismatchingTableNamesException(
-                        [
-                            table_name.full_table_name
-                            for table_name in nodes_tables.values()
-                        ]
-                    )
+        if not self._validate_matching_table_names(list(self._nodes_tables.values())):
+            raise self.MismatchingTableNamesException(
+                [table_name.full_table_name for table_name in nodes_tables.values()]
+            )
 
-            @property
-            def nodes_tables(self):
-                return self._nodes_tables
+    @property
+    def nodes_tables(self):
+        return self._nodes_tables
 
-            # TODO this is redundant, either remove it or overload all node methods here?
-            def get_table_schema(self):
-                node = list(self.nodes_tables.keys())[0]
-                table = self.nodes_tables[node]
-                return node.get_table_schema(table)
+    # TODO this is redundant, either remove it or overload all node methods here?
+    def get_table_schema(self):
+        node = list(self.nodes_tables.keys())[0]
+        table = self.nodes_tables[node]
+        return node.get_table_schema(table)
 
-            def get_table_data(self):  # -> {Node:TableData}
-                tables_data = []
-                for node, table_name in self.nodes_tables.items():
-                    tables_data.append(node.get_table_data(table_name))
-                tables_data_flat = [table_data.data for table_data in tables_data]
-                tables_data_flat = [
-                    k for i in tables_data_flat for j in i for k in j
-                ]  # TODO bejesus..
-                return tables_data_flat
+    def get_table_data(self):  # -> {Node:TableData}
+        tables_data = []
+        for node, table_name in self.nodes_tables.items():
+            tables_data.append(node.get_table_data(table_name))
+        tables_data_flat = [table_data.data for table_data in tables_data]
+        tables_data_flat = [
+            k for i in tables_data_flat for j in i for k in j
+        ]  # TODO bejesus..
+        return tables_data_flat
 
-            def __repr__(self):
-                r = "LocalNodeTable:\n"
-                r += f"schema: {self.get_table_schema()}\n"
-                for node, table_name in self.nodes_tables.items():
-                    r += f"{node} - {table_name} \ndata(LIMIT 20):\n"
-                    tmp = [
-                        str(row) for row in node.get_table_data(table_name).data[0:20]
-                    ]
-                    r += "\n".join(tmp)
-                    r += "\n"
-                return r
+    def __repr__(self):
+        r = "LocalNodeTable:\n"
+        r += f"schema: {self.get_table_schema()}\n"
+        for node, table_name in self.nodes_tables.items():
+            r += f"{node} - {table_name} \ndata(LIMIT 20):\n"
+            tmp = [str(row) for row in node.get_table_data(table_name).data[0:20]]
+            r += "\n".join(tmp)
+            r += "\n"
+        return r
 
-            def _validate_matching_table_names(self, table_names: List[TableName]):
-                table_name_without_node_id = table_names[0].without_node_id()
-                for table_name in table_names:
-                    if table_name.without_node_id() != table_name_without_node_id:
-                        return False
-                return True
+    def _validate_matching_table_names(self, table_names: List[_TableName]):
+        table_name_without_node_id = table_names[0].without_node_id()
+        for table_name in table_names:
+            if table_name.without_node_id() != table_name_without_node_id:
+                return False
+        return True
 
-            class MismatchingTableNamesException(Exception):
-                def __init__(self, table_names):
-                    self.message = f"Mismatched table names ->{table_names}"
+    class MismatchingTableNamesException(Exception):
+        def __init__(self, table_names):
+            self.message = f"Mismatched table names ->{table_names}"
 
-        class GlobalNodeTable:
-            def __init__(self, node_table: dict[Node, TableName]):
-                self._node_table = node_table
 
-            @property
-            def node_table(self):
-                return self._node_table
+class _GlobalNodeTable:
+    def __init__(self, node_table: dict[_Node, _TableName]):
+        self._node_table = node_table
 
-            # TODO this is redundant, either remove it or overload all node methods here?
-            def get_table_schema(self):
-                node = list(self.node_table.keys())[0]
-                table_name: TableName = list(self.node_table.values())[0]
-                table_schema: TableSchema = node.get_table_schema(table_name).columns
-                return table_schema
+    @property
+    def node_table(self):
+        return self._node_table
 
-            def get_table_data(self):  # -> {Node:TableData}
-                node = list(self.node_table.keys())[0]
-                table_name: TableName = list(self.node_table.values())[0]
-                table_data = node.get_table_data(table_name).data
-                return table_data
+    # TODO this is redundant, either remove it or overload all node methods here?
+    def get_table_schema(self):
+        node = list(self.node_table.keys())[0]
+        table_name: _TableName = list(self.node_table.values())[0]
+        table_schema: TableSchema = node.get_table_schema(table_name).columns
+        return table_schema
 
-            def __repr__(self):
-                node = list(self.node_table.keys())[0]
-                table_name: TableName = list(self.node_table.values())[0]
-                r = f"GlobalNodeTable: {table_name.full_table_name}"
-                r += f"\nschema: {self.get_table_schema()}"
-                r += f"\ndata (LIMIT 20): \n"
-                tmp = [str(row) for row in self.get_table_data()[0:20]]
-                r += "\n".join(tmp)
-                return r
+    def get_table_data(self):  # -> {Node:TableData}
+        node = list(self.node_table.keys())[0]
+        table_name: _TableName = list(self.node_table.values())[0]
+        table_data = node.get_table_data(table_name).data
+        return table_data
+
+    def __repr__(self):
+        node = list(self.node_table.keys())[0]
+        table_name: _TableName = list(self.node_table.values())[0]
+        r = f"GlobalNodeTable: {table_name.full_table_name}"
+        r += f"\nschema: {self.get_table_schema()}"
+        r += f"\ndata (LIMIT 20): \n"
+        tmp = [str(row) for row in self.get_table_data()[0:20]]
+        r += "\n".join(tmp)
+        return r
 
 
 def get_next_command_id():
