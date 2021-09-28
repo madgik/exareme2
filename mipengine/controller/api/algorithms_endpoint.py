@@ -70,8 +70,8 @@ async def post_algorithm(algorithm_name: str) -> str:
         return error_msg
 
     #Validate the request
-    # try:
-    #     controller.validate_algorithm_execution_request(algorithm_request_dto)
+    #try:
+    controller.validate_algorithm_execution_request(algorithm_request_dto)
     # except:
     #     ...
 
