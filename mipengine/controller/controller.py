@@ -97,16 +97,15 @@ class Controller:
             )
 
     def validate_algorithm_execution_request():
-        pass
-        # TODO DISABLED!!!
-        # all_local_nodes_info = self.get_all_local_nodes()
-        # available_datasets_per_schema = self.get_all_available_datasets_per_schema()
+        #pass
+        #TODO DISABLED!!!
+        available_datasets_per_schema = self.get_all_available_datasets_per_schema()
 
-        # validate_algorithm_request(
-        #     algorithm_name=algorithm_name,
-        #     algorithm_request_dto=algorithm_request_dto,
-        #     existing_datasets_per_schema=existing_datasets_per_schema,
-        # )
+        validate_algorithm_request(
+            algorithm_name=algorithm_name,
+            algorithm_request_dto=algorithm_request_dto,
+            existing_datasets_per_schema=existing_datasets_per_schema,
+        )
 
     async def start_node_registry(self):
         asyncio.create_task(node_registry.update())
