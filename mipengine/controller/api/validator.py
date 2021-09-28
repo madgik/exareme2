@@ -18,10 +18,13 @@ from mipengine.controller.algorithms_specifications import InputDataSpecificatio
 from mipengine.controller.algorithms_specifications import InputDataSpecifications
 from mipengine.controller.algorithms_specifications import algorithms_specifications
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
-from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+
+#from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from mipengine.algorithm_request_DTO import AlgorithmRequestDTO
+
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.node_registry import node_registry
+#from mipengine.controller.node_registry import node_registry
 from mipengine.controller import config
 from mipengine.filters import validate_filter
 
@@ -31,8 +34,12 @@ from mipengine.filters import validate_filter
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
 
 
-def validate_algorithm_request(algorithm_name: str, request_body: str):
-
+# def validate_algorithm_request(algorithm_name: str, request_body: str):
+def _validate_inputdata_pathology_and_dataset(
+    requested_pathology: str,
+    requested_datasets: List[str],
+    all_datasets_per_schema: Dict[str, List[str]],
+):
     # Validate proper algorithm request body
     # TODO Should be removed with pydantic
     try:
@@ -76,7 +83,10 @@ def _validate_inputdata(
     _validate_algorithm_inputdatas(inputdata, inputdata_specs)
 
 
-def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str]):
+def _validate_inputdata_pathology_and_dataset(
+    pathology: str, 
+    datasets: List[str], 
+    all_datasets_per_schema: Dict[strList[str]]):
     """
     Validates that the pathology, dataset values exist and
     that the datasets belong in the pathology.
