@@ -38,7 +38,7 @@ from mipengine.udfgen.udfgenerator import (
     udf,
     verify_declared_typeparams_match_passed_type,
 )
-from mipengine.node_tasks_DTOs import ColumnInfo, TableInfo
+from mipengine.node_tasks_DTOs import ColumnInfo, TableInfo, DBDataType, TableSchema
 
 
 @pytest.fixture(autouse=True)
@@ -330,11 +330,13 @@ def test_convert_udfgenargs_to_udfargs_relation():
     udfgen_posargs = [
         TableInfo(
             name="tab",
-            schema=[
-                ColumnInfo("c1", "int"),
-                ColumnInfo("c2", "real"),
-                ColumnInfo("c3", "text"),
-            ],
+            table_schema=TableSchema(
+                columns=[
+                    ColumnInfo(name="c1", data_type=DBDataType.INT),
+                    ColumnInfo(name="c2", data_type=DBDataType.FLOAT),
+                    ColumnInfo(name="c3", data_type=DBDataType.TEXT),
+                ]
+            ),
         )
     ]
     expected_udf_posargs = [
@@ -348,12 +350,14 @@ def test_convert_udfgenargs_to_udfargs_tensor():
     udfgen_posargs = [
         TableInfo(
             name="tab",
-            schema=[
-                ColumnInfo("node_id", "text"),
-                ColumnInfo("dim0", "int"),
-                ColumnInfo("dim1", "int"),
-                ColumnInfo("val", "real"),
-            ],
+            table_schema=TableSchema(
+                columns=[
+                    ColumnInfo(name="node_id", data_type=DBDataType.TEXT),
+                    ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                    ColumnInfo(name="dim1", data_type=DBDataType.INT),
+                    ColumnInfo(name="val", data_type=DBDataType.FLOAT),
+                ]
+            ),
         )
     ]
     expected_udf_posargs = [TensorArg(table_name="tab", dtype=float, ndims=2)]
@@ -372,20 +376,24 @@ def test_convert_udfgenargs_to_udfargs_multiple_types():
     udfgen_posargs = [
         TableInfo(
             name="tab",
-            schema=[
-                ColumnInfo("c1", "int"),
-                ColumnInfo("c2", "real"),
-                ColumnInfo("c3", "text"),
-            ],
+            table_schema=TableSchema(
+                columns=[
+                    ColumnInfo(name="c1", data_type=DBDataType.INT),
+                    ColumnInfo(name="c2", data_type=DBDataType.FLOAT),
+                    ColumnInfo(name="c3", data_type=DBDataType.TEXT),
+                ]
+            ),
         ),
         TableInfo(
             name="tab",
-            schema=[
-                ColumnInfo("node_id", "text"),
-                ColumnInfo("dim0", "int"),
-                ColumnInfo("dim1", "int"),
-                ColumnInfo("val", "real"),
-            ],
+            table_schema=TableSchema(
+                columns=[
+                    ColumnInfo(name="node_id", data_type=DBDataType.TEXT),
+                    ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                    ColumnInfo(name="dim1", data_type=DBDataType.INT),
+                    ColumnInfo(name="val", data_type=DBDataType.FLOAT),
+                ]
+            ),
         ),
         42,
     ]
@@ -829,12 +837,14 @@ class TestUDFGen_TensorToTensor(TestUDFGenBase):
         return [
             TableInfo(
                 name="tensor_in_db",
-                schema=[
-                    ColumnInfo("node_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("dim1", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="node_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="dim1", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             )
         ]
 
@@ -902,11 +912,13 @@ class TestUDFGen_RelationToTensor(TestUDFGenBase):
         return [
             TableInfo(
                 name="rel_in_db",
-                schema=[
-                    ColumnInfo("col0", "int"),
-                    ColumnInfo("col1", "real"),
-                    ColumnInfo("col2", "text"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="col0", data_type=DBDataType.INT),
+                        ColumnInfo(name="col1", data_type=DBDataType.FLOAT),
+                        ColumnInfo(name="col2", data_type=DBDataType.TEXT),
+                    ]
+                ),
             )
         ]
 
@@ -978,11 +990,13 @@ class TestUDFGen_TensorToRelation(TestUDFGenBase):
         return [
             TableInfo(
                 name="tensor_in_db",
-                schema=[
-                    ColumnInfo("node_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="node_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             )
         ]
 
@@ -1050,11 +1064,13 @@ class TestUDFGen_LiteralArgument(TestUDFGenBase):
         return [
             TableInfo(
                 name="the_table",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
             42,
         ]
@@ -1119,11 +1135,13 @@ class TestUDFGen_ManyLiteralArguments(TestUDFGenBase):
         return [
             TableInfo(
                 name="tensor_in_db",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
             42,
             24,
@@ -1242,12 +1260,14 @@ class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase):
         return [
             TableInfo(
                 name="rel_in_db",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("c0", "int"),
-                    ColumnInfo("c1", "real"),
-                    ColumnInfo("c2", "text"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="c0", data_type=DBDataType.INT),
+                        ColumnInfo(name="c1", data_type=DBDataType.FLOAT),
+                        ColumnInfo(name="c2", data_type=DBDataType.TEXT),
+                    ]
+                ),
             )
         ]
 
@@ -1316,12 +1336,14 @@ class TestUDFGen_UnknownReturnDimensions(TestUDFGenBase):
         return [
             TableInfo(
                 name="tens_in_db",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("dim1", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="dim1", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             )
         ]
 
@@ -1391,19 +1413,23 @@ class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase):
         return [
             TableInfo(
                 name="tens0",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
             TableInfo(
                 name="tens1",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
         ]
 
@@ -1479,27 +1505,33 @@ class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase):
         return [
             TableInfo(
                 name="tens0",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
             TableInfo(
                 name="tens1",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
             TableInfo(
                 name="tens2",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
         ]
 
@@ -1580,30 +1612,36 @@ class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase):
         return [
             TableInfo(
                 name="tens0",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("dim1", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="dim1", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
             TableInfo(
                 name="tens1",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("dim1", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="dim1", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
             TableInfo(
                 name="tens2",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("dim1", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="dim1", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
         ]
 
@@ -1694,19 +1732,23 @@ class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase):
         return [
             TableInfo(
                 name="tens0",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
             TableInfo(
                 name="tens1",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
         ]
 
@@ -1763,20 +1805,24 @@ class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase):
         return [
             TableInfo(
                 name="tensor1",
-                schema=[
-                    ColumnInfo("node_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("dim1", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="node_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="dim1", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
             TableInfo(
                 name="tensor2",
-                schema=[
-                    ColumnInfo("node_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="node_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
         ]
 
@@ -1826,21 +1872,25 @@ class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase):
         return [
             TableInfo(
                 name="tensor1",
-                schema=[
-                    ColumnInfo("node_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("dim1", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="node_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="dim1", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
             TableInfo(
                 name="tensor2",
-                schema=[
-                    ColumnInfo("node_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("dim1", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="node_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="dim1", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
         ]
 
@@ -1894,11 +1944,13 @@ class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase):
             1,
             TableInfo(
                 name="tensor1",
-                schema=[
-                    ColumnInfo("node_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="node_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             ),
         ]
 
@@ -1948,12 +2000,14 @@ class TestUDFGen_ScalarReturn(TestUDFGenBase):
         return [
             TableInfo(
                 name="tensor_in_db",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("dim1", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="dim1", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             )
         ]
 
@@ -2014,11 +2068,13 @@ class TestUDFGen_MergeTensor(TestUDFGenBase):
         return [
             TableInfo(
                 name="merge_table",
-                schema=[
-                    ColumnInfo("row_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="row_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             )
         ]
 
@@ -2085,11 +2141,13 @@ class TestUDFGen_TracebackFlag(TestUDFGenBase):
         return [
             TableInfo(
                 name="tensor_in_db",
-                schema=[
-                    ColumnInfo("node_id", "text"),
-                    ColumnInfo("dim0", "int"),
-                    ColumnInfo("val", "int"),
-                ],
+                table_schema=TableSchema(
+                    columns=[
+                        ColumnInfo(name="node_id", data_type=DBDataType.TEXT),
+                        ColumnInfo(name="dim0", data_type=DBDataType.INT),
+                        ColumnInfo(name="val", data_type=DBDataType.INT),
+                    ]
+                ),
             )
         ]
 

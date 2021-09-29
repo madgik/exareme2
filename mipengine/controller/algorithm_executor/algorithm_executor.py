@@ -232,17 +232,17 @@ class AlgorithmExecutor:
                 self.task_signatures_str["get_table_schema"]
             )
             result = task_signature.delay(table_name=table_name.full_table_name).get()
-            return TableSchema.from_json(result)
+            return TableSchema.parse_raw(result)
 
         def get_table_data(self, table_name: TableName) -> TableData:
             task_signature = self.__celery_obj.signature(
                 self.task_signatures_str["get_table_data"]
             )
             result = task_signature.delay(table_name=table_name.full_table_name).get()
-            return TableData.from_json(result)
+            return TableData.parse_raw(result)
 
         def create_table(self, command_id: str, schema: TableSchema) -> TableName:
-            schema_json = schema.to_json()
+            schema_json = schema.json()
             task_signature = self.__celery_obj.signature(
                 self.task_signatures_str["create_table"]
             )
@@ -323,7 +323,7 @@ class AlgorithmExecutor:
         def create_remote_table(
             self, table_info: TableInfo, native_node: Node
         ) -> TableName:  # noqa: F821
-            table_info_json = table_info.to_json()
+            table_info_json = table_info.json()
             monetdb_socket_addr = native_node.monetdb_socket_addr
             task_signature = self.__celery_obj.signature(
                 self.task_signatures_str["create_remote_table"]
@@ -468,8 +468,8 @@ class AlgorithmExecutor:
                         )
                     else:
                         udf_argument = UDFArgument(type="literal", value=val)
-                    positional_args_transfrormed.append(udf_argument.to_json())
-                    keyword_args_transformed[var_name] = udf_argument.to_json()
+                    positional_args_transfrormed.append(udf_argument.json())
+                    keyword_args_transformed[var_name] = udf_argument.json()
 
                 task = node.queue_run_udf(
                     command_id=command_id,
@@ -489,7 +489,7 @@ class AlgorithmExecutor:
                     # TODO: try block missing
                     table_schema = node.get_table_schema(table_name)
                     table_info = TableInfo(
-                        name=table_name.full_table_name, schema=table_schema
+                        name=table_name.full_table_name, table_schema=table_schema
                     )
                     self._global_node.create_remote_table(
                         table_info=table_info, native_node=node
@@ -540,7 +540,7 @@ class AlgorithmExecutor:
                     )
                 else:
                     udf_argument = UDFArgument(type="literal", value=str(val))
-                positional_args_transfrormed.append(udf_argument.to_json())
+                positional_args_transfrormed.append(udf_argument.json())
 
             udf_result_table: str = self._global_node.queue_run_udf(
                 command_id=command_id,
@@ -554,7 +554,7 @@ class AlgorithmExecutor:
                     TableName(udf_result_table)
                 )
                 table_info: TableInfo = TableInfo(
-                    name=udf_result_table, schema=table_schema
+                    name=udf_result_table, table_schema=table_schema
                 )
                 local_nodes_tables = {}
                 for node in self._local_nodes:

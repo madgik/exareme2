@@ -13,7 +13,7 @@ def get_table_names(context_id: str) -> List[str]:
 
 
 def create_table(table_info: TableInfo):
-    columns_schema = convert_schema_to_sql_query_format(table_info.schema)
+    columns_schema = convert_schema_to_sql_query_format(table_info.table_schema)
     MonetDB().execute(f"CREATE TABLE {table_info.name} ( {columns_schema} )")
 
 

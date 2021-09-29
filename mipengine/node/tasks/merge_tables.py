@@ -48,7 +48,7 @@ def create_merge_table(context_id: str, command_id: str, table_names: List[str])
     merge_table_name = create_table_name(
         "merge", command_id, context_id, node_config.identifier
     )
-    table_info = TableInfo(merge_table_name, schema)
+    table_info = TableInfo(name=merge_table_name, table_schema=schema)
     merge_tables.create_merge_table(table_info)
     merge_tables.add_to_merge_table(merge_table_name, table_names)
 

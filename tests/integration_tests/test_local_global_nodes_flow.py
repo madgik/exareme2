@@ -1,6 +1,6 @@
 import uuid
 import pytest
-from mipengine.node_tasks_DTOs import ColumnInfo, TableData
+from mipengine.node_tasks_DTOs import ColumnInfo, TableData, DBDataType
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
@@ -60,10 +60,10 @@ def test_create_merge_table_with_remote_tables(context_id):
     node_config_2 = get_node_config_by_id(local_node_2_id)
 
     schema = TableSchema(
-        [
-            ColumnInfo("col1", "int"),
-            ColumnInfo("col2", "real"),
-            ColumnInfo("col3", "text"),
+        columns=[
+            ColumnInfo(name="col1", data_type=DBDataType.INT),
+            ColumnInfo(name="col2", data_type=DBDataType.FLOAT),
+            ColumnInfo(name="col3", data_type=DBDataType.TEXT),
         ]
     )
 
@@ -71,12 +71,12 @@ def test_create_merge_table_with_remote_tables(context_id):
     local_node_1_table_name = local_node_1_create_table.delay(
         context_id=context_id,
         command_id=uuid.uuid4().hex,
-        schema_json=schema.to_json(),
+        schema_json=schema.json(),
     ).get()
     local_node_2_table_name = local_node_2_create_table.delay(
         context_id=context_id,
         command_id=uuid.uuid4().hex,
-        schema_json=schema.to_json(),
+        schema_json=schema.json(),
     ).get()
     # Insert data into local tables
     values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
@@ -88,8 +88,8 @@ def test_create_merge_table_with_remote_tables(context_id):
     ).get()
 
     # Create remote tables
-    table_info_local_1 = TableInfo(local_node_1_table_name, schema)
-    table_info_local_2 = TableInfo(local_node_2_table_name, schema)
+    table_info_local_1 = TableInfo(name=local_node_1_table_name, table_schema=schema)
+    table_info_local_2 = TableInfo(name=local_node_2_table_name, table_schema=schema)
     local_node_1_monetdb_sock_address = (
         f"{str(node_config_1.monetdb.ip)}:{node_config_1.monetdb.port}"
     )
@@ -97,11 +97,11 @@ def test_create_merge_table_with_remote_tables(context_id):
         f"{str(node_config_2.monetdb.ip)}:{node_config_2.monetdb.port}"
     )
     global_node_create_remote_table.delay(
-        table_info_json=table_info_local_1.to_json(),
+        table_info_json=table_info_local_1.json(),
         monetdb_socket_address=local_node_1_monetdb_sock_address,
     ).get()
     global_node_create_remote_table.delay(
-        table_info_json=table_info_local_2.to_json(),
+        table_info_json=table_info_local_2.json(),
         monetdb_socket_address=local_node_2_monetdb_sock_address,
     ).get()
     remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()
@@ -123,6 +123,6 @@ def test_create_merge_table_with_remote_tables(context_id):
     table_data_json = global_node_get_merge_table_data.delay(
         table_name=merge_table_name
     ).get()
-    table_data = TableData.from_json(table_data_json)
+    table_data = TableData.parse_raw(table_data_json)
     row_count = len(table_data.data)
     assert row_count == 6

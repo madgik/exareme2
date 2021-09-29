@@ -45,11 +45,11 @@
 #
 #
 # def test_run_udf(context_id):
-#     table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "INT"), ColumnInfo("col3", "INT")])
+#     table_schema = TableSchema(columns=[ColumnInfo(name="col1", data_type=DBDataType.INT), ColumnInfo(name="col2", data_type=DBDataType.INT), ColumnInfo(name="col3", data_type=DBDataType.INT)])
 #
 #     table_1_name = local_node_create_table.delay(context_id=context_id,
 #                                                  command_id=uuid.uuid4().hex,
-#                                                  schema_json=table_schema.to_json()).get()
+#                                                  schema_json=table_schema.json()).get()
 #
 #     # Add data to table_1
 #     connection = get_node_db_connection(local_node_id)
@@ -60,8 +60,8 @@
 #     cursor.close()
 #     connection.close()
 #
-#     positional_args = [UDFArgument(type="table", value=table_1_name).to_json(),
-#                        UDFArgument(type="literal", value="15").to_json()]
+#     positional_args = [UDFArgument(type="table", value=table_1_name).json(),
+#                        UDFArgument(type="literal", value="15").json()]
 #
 #     local_node_run_udf.delay(command_id=command_id,
 #                              context_id=context_id,
@@ -72,14 +72,14 @@
 #
 #
 # def test_get_run_udf_query(context_id):
-#     table_schema = TableSchema([ColumnInfo("col1", "INT"), ColumnInfo("col2", "real"), ColumnInfo("col3", "TEXT")])
+#     table_schema = TableSchema(columns=[ColumnInfo(name="col1", data_type=DBDataType.INT), ColumnInfo(name="col2", data_type=DBDataType.FLOAT), ColumnInfo(name="col3"data_type=DBDataType.TEXT)])
 #
 #     table_1_name = local_node_create_table.delay(context_id=context_id,
 #                                                  command_id=uuid.uuid4().hex,
-#                                                  schema_json=table_schema.to_json()).get()
+#                                                  schema_json=table_schema.json()).get()
 #
-#     positional_args = [UDFArgument(type="table", value=table_1_name).to_json(),
-#                        UDFArgument(type="literal", value="15").to_json()]
+#     positional_args = [UDFArgument(type="table", value=table_1_name).json(),
+#                        UDFArgument(type="literal", value="15").json()]
 #
 #     func_name = "demo.table_and_literal_arguments"
 #     udf_creation_statement, execution_statement = \

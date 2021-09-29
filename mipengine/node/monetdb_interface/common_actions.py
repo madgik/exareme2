@@ -2,7 +2,7 @@ from typing import List
 from typing import Union
 
 from mipengine.node_exceptions import TablesNotFound
-from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import ColumnInfo, DBDataType
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
@@ -38,9 +38,10 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     str
         The schema in a sql query formatted string
     """
+    print(schema.columns)
     return ", ".join(
-        f"{column.name} {_convert_mip2monetdb_column_type(column.data_type)}"
-        for column in schema.columns
+        f"{name} {_convert_mip2monetdb_column_type(data_type)}"
+        for name, data_type in schema
     )
 
 
@@ -74,8 +75,8 @@ def get_table_schema(table_name: str) -> TableSchema:
     if not schema:
         raise TablesNotFound([table_name])
     return TableSchema(
-        [
-            ColumnInfo(name, _convert_monet2mip_column_type(table_type))
+        columns=[
+            ColumnInfo(name=name, data_type=_convert_monet2mip_column_type(table_type))
             for name, table_type in schema
         ]
     )
@@ -245,14 +246,14 @@ def _convert_mip2monet_table_type(table_type: str) -> int:
     return type_mapping.get(table_type)
 
 
-def _convert_mip2monetdb_column_type(column_type: str) -> str:
+def _convert_mip2monetdb_column_type(column_type: DBDataType) -> str:
     """
-    Converts MIP Engine's int,real,text types to monetdb
+    Converts MIP Engine's int,float,text types to monetdb
     """
     type_mapping = {
-        "int": "int",
-        "real": "real",
-        "text": f"varchar({MONETDB_VARCHAR_SIZE})",
+        DBDataType.INT: "int",
+        DBDataType.FLOAT: "real",
+        DBDataType.TEXT: f"varchar({MONETDB_VARCHAR_SIZE})",
     }
 
     if column_type not in type_mapping.keys():
@@ -263,15 +264,15 @@ def _convert_mip2monetdb_column_type(column_type: str) -> str:
     return type_mapping.get(column_type)
 
 
-def _convert_monet2mip_column_type(column_type: str) -> str:
+def _convert_monet2mip_column_type(column_type: str) -> DBDataType:
     """
     Converts MonetDB's types to MIP's types
     """
     type_mapping = {
-        "int": "int",
-        "double": "real",
-        "real": "real",
-        "varchar": "text",
+        "int": DBDataType.INT,
+        "double": DBDataType.FLOAT,
+        "real": DBDataType.FLOAT,
+        "varchar": DBDataType.TEXT,
     }
 
     if column_type not in type_mapping.keys():

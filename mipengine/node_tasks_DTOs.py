@@ -1,3 +1,4 @@
+import enum
 from typing import Any
 from typing import Dict
 from typing import List
@@ -8,6 +9,23 @@ from pydantic import (
     BaseModel,
     validator,
 )
+
+
+# ~~~~~~~~~~~~~~~~~~~~ Enums ~~~~~~~~~~~~~~~~~~~~ #
+
+
+class DBDataType(enum.Enum):
+    INT = enum.auto()
+    FLOAT = enum.auto()
+    TEXT = enum.auto()
+
+
+class UDFArgumentKind(enum.Enum):
+    TABLE = enum.auto()
+    LITERAL = enum.auto()
+
+
+# ~~~~~~~~~~~~~~~~~~ Validators ~~~~~~~~~~~~~~~~~ #
 
 
 def validate_allowed_types(type: str, allowed_types: List[str]):
@@ -25,13 +43,13 @@ def validate_name(name):
     return name
 
 
+# ~~~~~~~~~~~~~~~~~~~ DTOs ~~~~~~~~~~~~~~~~~~~~~~ #
+
+
 class ColumnInfo(BaseModel):
     name: str
-    data_type: str
+    data_type: DBDataType
 
-    _validate_allowed_types = validator(
-        "data_type", {"int", "text", "real"}, allow_reuse=True
-    )(validate_allowed_types)
     _validate_name = validator("name", allow_reuse=True)(validate_name)
 
 
@@ -41,7 +59,7 @@ class TableSchema(BaseModel):
 
 class TableInfo(BaseModel):
     name: str
-    schema: TableSchema
+    table_schema: TableSchema
 
     _validate_name = validator("name", allow_reuse=True)(validate_name)
 
@@ -60,14 +78,10 @@ class TableView(BaseModel):
 
 
 class TableData(BaseModel):
-    schema: TableSchema
+    table_schema: TableSchema
     data: List[List[Union[str, int, float, bool]]]
 
 
 class UDFArgument(BaseModel):
-    type: str
+    kind: UDFArgumentKind
     value: Any
-
-    _validate_allowed_types = validator("type", {"table", "literal"}, allow_reuse=True)(
-        validate_allowed_types
-    )
