@@ -197,7 +197,7 @@ from typing import (
 import numpy
 import astor
 
-from mipengine.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableInfo, DBDataType
 from mipengine import DType as dt
 
 __all__ = [
@@ -1279,9 +1279,9 @@ def generate_udf_queries(
 # TODO Rewrite these conversions once ColumnInfo/TableInfo are pydantic models
 # -->
 OLD2NEW_DTYPE = {
-    "int": dt.INT,
-    "real": dt.FLOAT,
-    "text": dt.STR,
+    DBDataType.INT: dt.INT,
+    DBDataType.FLOAT: dt.FLOAT,
+    DBDataType.TEXT: dt.STR,
 }
 
 
@@ -1300,12 +1300,18 @@ def convert_udfgenarg_to_udfarg(udfgen_arg) -> UDFArgument:
 
 
 def convert_table_info_to_table_arg(table_info):
-    if is_tensor_schema(table_info.schema):
-        ndims = len(table_info.schema) - 2  # TODO avoid this using kinds of TableInfo
-        valcol = next(col for col in table_info.schema if col.name == "val")
+    if is_tensor_schema(table_info.table_schema.columns):
+        ndims = (
+            len(table_info.table_schema.columns) - 2
+        )  # TODO avoid this using kinds of TableInfo
+        valcol = next(
+            col for col in table_info.table_schema.columns if col.name == "val"
+        )
         dtype = OLD2NEW_DTYPE[valcol.data_type]
         return TensorArg(table_name=table_info.name, dtype=dtype, ndims=ndims)
-    relation_schema = convert_table_schema_to_relation_schema(table_info.schema)
+    relation_schema = convert_table_schema_to_relation_schema(
+        table_info.table_schema.columns
+    )
     return RelationArg(table_name=table_info.name, schema=relation_schema)
 
 

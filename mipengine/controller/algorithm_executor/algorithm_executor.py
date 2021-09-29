@@ -232,17 +232,17 @@ class AlgorithmExecutor:
                 self.task_signatures_str["get_table_schema"]
             )
             result = task_signature.delay(table_name=table_name.full_table_name).get()
-            return TableSchema.from_json(result)
+            return TableSchema.parse_raw(result)
 
         def get_table_data(self, table_name: TableName) -> TableData:
             task_signature = self.__celery_obj.signature(
                 self.task_signatures_str["get_table_data"]
             )
             result = task_signature.delay(table_name=table_name.full_table_name).get()
-            return TableData.from_json(result)
+            return TableData.parse_raw(result)
 
         def create_table(self, command_id: str, schema: TableSchema) -> TableName:
-            schema_json = schema.to_json()
+            schema_json = schema.json()
             task_signature = self.__celery_obj.signature(
                 self.task_signatures_str["create_table"]
             )
@@ -489,7 +489,7 @@ class AlgorithmExecutor:
                     # TODO: try block missing
                     table_schema = node.get_table_schema(table_name)
                     table_info = TableInfo(
-                        name=table_name.full_table_name, schema=table_schema
+                        name=table_name.full_table_name, table_schema=table_schema
                     )
                     self._global_node.create_remote_table(
                         table_info=table_info, native_node=node
@@ -554,7 +554,7 @@ class AlgorithmExecutor:
                     TableName(udf_result_table)
                 )
                 table_info: TableInfo = TableInfo(
-                    name=udf_result_table, schema=table_schema
+                    name=udf_result_table, table_schema=table_schema
                 )
                 local_nodes_tables = {}
                 for node in self._local_nodes:

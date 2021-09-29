@@ -6,7 +6,7 @@ from mipengine.node.monetdb_interface.common_actions import (
     convert_schema_to_sql_query_format,
 )
 from mipengine.node_info_DTOs import NodeInfo
-from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import ColumnInfo, DBDataType
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_app
 from tests.integration_tests.nodes_communication import get_celery_task_signature
@@ -64,10 +64,10 @@ def test_get_node_info(node_id, proper_node_info):
 
 def setup_data_table_in_db(node_id, datasets_per_schema):
     tables_schema = TableSchema(
-        [
-            ColumnInfo("dataset", "text"),
-            ColumnInfo("col2", "real"),
-            ColumnInfo("col3", "text"),
+        columns=[
+            ColumnInfo(name="dataset", data_type=DBDataType.TEXT),
+            ColumnInfo(name="col2", data_type=DBDataType.FLOAT),
+            ColumnInfo(name="col3", data_type=DBDataType.TEXT),
         ]
     )
     for schema_name in datasets_per_schema.keys():
@@ -97,6 +97,7 @@ def add_values_to_table(node_id, table_name, table_values):
     node_insert_data_to_table = get_celery_task_signature(
         node_app, "insert_data_to_table"
     )
+
     node_insert_data_to_table.delay(table_name=table_name, values=table_values).get()
 
 
@@ -154,7 +155,6 @@ test_cases_get_node_info_datasets = [
 )
 def test_get_node_info_datasets(node_id, proper_datasets_per_schema):
     setup_data_table_in_db(node_id, proper_datasets_per_schema)
-
     node_app = get_celery_app(node_id)
     get_node_info_signature = get_celery_task_signature(node_app, "get_node_info")
     task_response = get_node_info_signature.delay().get()
