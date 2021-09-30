@@ -13,7 +13,7 @@ from celery import Celery
 from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.node_registry import node_registry
 
-from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TableData, UDFArgumentKind
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
@@ -323,7 +323,7 @@ class AlgorithmExecutor:
         def create_remote_table(
             self, table_info: TableInfo, native_node: Node
         ) -> TableName:  # noqa: F821
-            table_info_json = table_info.to_json()
+            table_info_json = table_info.json()
             monetdb_socket_addr = native_node.monetdb_socket_addr
             task_signature = self.__celery_obj.signature(
                 self.task_signatures_str["create_remote_table"]
@@ -460,16 +460,19 @@ class AlgorithmExecutor:
                 for var_name, val in positional_args.items():
                     if isinstance(val, self.LocalNodeTable):
                         udf_argument = UDFArgument(
-                            type="table", value=val.nodes_tables[node].full_table_name
+                            kind=UDFArgumentKind.TABLE,
+                            value=val.nodes_tables[node].full_table_name,
                         )
                     elif isinstance(val, self.GlobalNodeTable):
                         raise Exception(
                             "(run_udf_on_local_nodes) GlobalNodeTable types are not accepted from run_udf_on_local_nodes"
                         )
                     else:
-                        udf_argument = UDFArgument(type="literal", value=val)
-                    positional_args_transfrormed.append(udf_argument.to_json())
-                    keyword_args_transformed[var_name] = udf_argument.to_json()
+                        udf_argument = UDFArgument(
+                            kind=UDFArgumentKind.LITERAL, value=val
+                        )
+                    positional_args_transfrormed.append(udf_argument.json())
+                    keyword_args_transformed[var_name] = udf_argument.json()
 
                 task = node.queue_run_udf(
                     command_id=command_id,
@@ -531,7 +534,7 @@ class AlgorithmExecutor:
             for val in positional_args:
                 if isinstance(val, self.GlobalNodeTable):
                     udf_argument = UDFArgument(
-                        type="table",
+                        kind=UDFArgumentKind.TABLE,
                         value=list(val.node_table.values())[0].full_table_name,
                     )  # TODO: da fuck is dat
                 elif isinstance(val, self.LocalNodeTable):
@@ -539,8 +542,10 @@ class AlgorithmExecutor:
                         "(run_udf_on_global_node) LocalNodeTable types are not accepted from run_udf_on_global_nodes"
                     )
                 else:
-                    udf_argument = UDFArgument(type="literal", value=str(val))
-                positional_args_transfrormed.append(udf_argument.to_json())
+                    udf_argument = UDFArgument(
+                        kind=UDFArgumentKind.LITERAL, value=str(val)
+                    )
+                positional_args_transfrormed.append(udf_argument.json())
 
             udf_result_table: str = self._global_node.queue_run_udf(
                 command_id=command_id,
@@ -574,7 +579,7 @@ class AlgorithmExecutor:
         def get_table_data(self, node_table) -> "TableData":
             return node_table.get_table_data()
 
-        def get_table_schema(self, node_table) -> "TableData":
+        def get_table_schema(self, node_table) -> "TableSchema":
             # TODO create super class NodeTable??
             if isinstance(node_table, self.LocalNodeTable) or isinstance(
                 node_table, self.GlobalNodeTable

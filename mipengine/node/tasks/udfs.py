@@ -12,6 +12,8 @@ from mipengine.node_tasks_DTOs import (
     UDFArgument,
     ColumnInfo,
     TableInfo,
+    UDFArgumentKind,
+    TableSchema,
 )
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
@@ -129,15 +131,17 @@ def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
 
 
 def _convert_udf2udfgen_arg(udf_argument: UDFArgument):
-    if udf_argument.kind == "literal":
+    if udf_argument.kind == UDFArgumentKind.LITERAL:
         return udf_argument.value
-    elif udf_argument.kind == "table":
+    elif udf_argument.kind == UDFArgumentKind.TABLE:
         name = udf_argument.value
         schema = get_table_schema(udf_argument.value)
-        udf_generator_schema = [
-            ColumnInfo(name=name, data_type=data_type)
-            for name, data_type in schema.columns
-        ]
+        udf_generator_schema = TableSchema(
+            columns=[
+                ColumnInfo(name=column.name, data_type=column.data_type)
+                for column in schema.columns
+            ]
+        )
         return TableInfo(name=name, table_schema=udf_generator_schema)
     else:
         raise ValueError(
