@@ -79,7 +79,7 @@ class TableView(BaseModel):
 
 class TableData(BaseModel):
     table_schema: TableSchema
-    data: List[List[Union[str, int, float, bool]]]
+    data: List[List[Union[float, int, bool, str]]]
 
 
 class UDFArgument(BaseModel):

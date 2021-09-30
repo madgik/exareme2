@@ -38,11 +38,11 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     str
         The schema in a sql query formatted string
     """
-    print(schema)
+
     return ", ".join(
         [
-            f"{name} {_convert_mip2monetdb_column_type(data_type)}"
-            for name, data_type in schema
+            f"{column.name} {_convert_mip2monetdb_column_type(column.data_type)}"
+            for column in schema.columns
         ]
     )
 
@@ -73,7 +73,6 @@ def get_table_schema(table_name: str) -> TableSchema:
         tables.system=false
         """
     )
-    print(schema)
     if not schema:
         raise TablesNotFound([table_name])
     return TableSchema(
@@ -257,7 +256,6 @@ def _convert_mip2monetdb_column_type(column_type: DBDataType) -> str:
         DBDataType.FLOAT: "real",
         DBDataType.TEXT: f"varchar({MONETDB_VARCHAR_SIZE})",
     }
-
     if column_type not in type_mapping.keys():
         raise ValueError(
             f"Type {column_type} cannot be converted to monetdb column type."

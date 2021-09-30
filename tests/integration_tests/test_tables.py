@@ -50,7 +50,9 @@ def test_create_and_find_tables(context_id):
 
     table_data_json = local_node_get_table_data.delay(table_name=table_1_name).get()
     table_data = TableData.parse_raw(table_data_json)
-    # assert table_data.data == values
+    print(values)
+    print(table_data.data)
+    assert table_data.data == values
     assert table_data.table_schema == table_schema
 
     table_2_name = local_node_create_table.delay(
@@ -66,7 +68,7 @@ def test_create_and_find_tables(context_id):
 
     table_data_json = local_node_get_table_data.delay(table_name=table_2_name).get()
     table_data = TableData.parse_raw(table_data_json)
-    # assert table_data.data == values
+    assert table_data.data == values
     assert table_data.table_schema == table_schema
 
     table_schema_json = local_node_get_table_schema.delay(table_name=table_2_name).get()
