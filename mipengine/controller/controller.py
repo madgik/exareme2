@@ -98,11 +98,11 @@ class Controller:
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
     ):
-        all_datasets_per_schema = self.get_all_available_datasets_per_schema()
+        available_datasets_per_schema = self.get_all_available_datasets_per_schema()
         validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
-            all_datasets_per_schema=all_datasets_per_schema,
+            available_datasets_per_schema=available_datasets_per_schema,
         )
 
 

@@ -77,7 +77,7 @@ async def post_algorithm(algorithm_name: str) -> str:
     except (BadRequest, BadUserInput) as exc:
         raise exc
     except: #TODO should not use bare except??
-        logging.error(
+        print(
             f"Algorithm validation failed. Exception stack trace: \n"
             f"{traceback.format_exc()}"
         )

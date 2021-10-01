@@ -34,14 +34,14 @@ from mipengine.filters import validate_filter
 def validate_algorithm_request(
     algorithm_name: str,
     algorithm_request_dto: AlgorithmRequestDTO,
-    all_datasets_per_schema: Dict[str, List[str]],
+    available_datasets_per_schema: Dict[str, List[str]],
 ):
 
     algorithm_specs = _get_algorithm_specs(algorithm_name)
     _validate_algorithm_request_body(
         algorithm_request_dto,
         algorithm_specs,
-        all_datasets_per_schema=all_datasets_per_schema,
+        available_datasets_per_schema=available_datasets_per_schema,
     )
 
 
@@ -50,15 +50,16 @@ def _get_algorithm_specs(algorithm_name):
         raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
     return algorithms_specifications.enabled_algorithms[algorithm_name]
 
+
 def _validate_algorithm_request_body(
     algorithm_request_body: AlgorithmRequestDTO,
     algorithm_specs: AlgorithmSpecifications,
-    all_datasets_per_schema: Dict[str, List[str]],
+    available_datasets_per_schema: Dict[str, List[str]],
 ):
     _validate_inputdata(
         inputdata=algorithm_request_body.inputdata,
         inputdata_specs=algorithm_specs.inputdata,
-        all_datasets_per_schema=all_datasets_per_schema
+        available_datasets_per_schema=available_datasets_per_schema,
     )
 
     _validate_parameters(
@@ -70,12 +71,12 @@ def _validate_algorithm_request_body(
 def _validate_inputdata(
     inputdata: AlgorithmInputDataDTO,
     inputdata_specs: InputDataSpecifications,
-    all_datasets_per_schema: Dict[str, List[str]],
+    available_datasets_per_schema: Dict[str, List[str]],
 ):
     _validate_inputdata_pathology_and_dataset(
         requested_pathology=inputdata.pathology,
         requested_datasets=inputdata.datasets,
-        all_datasets_per_schema=all_datasets_per_schema,
+        available_datasets_per_schema=available_datasets_per_schema,
     )
 
     _validate_inputdata_filter(inputdata.pathology, inputdata.filters)
@@ -86,32 +87,20 @@ def _validate_inputdata(
 def _validate_inputdata_pathology_and_dataset(
     requested_pathology: str,
     requested_datasets: List[str],
-    all_datasets_per_schema: Dict[str, List[str]],
+    available_datasets_per_schema: Dict[str, List[str]],
 ):
     """
     Validates that the pathology, dataset values exist and
     that the datasets belong in the pathology.
     """
 
-    # TODO: The validator should not contact the Node Registry every time it is called
-    # to validate an algorithm request, this would be very expensive. One way to solve
-    # this would be that the Controller passes a some kind of list
-    # with datasets and pathologies for the validation as a parameter.
-    # https://team-1617704806227.atlassian.net/browse/MIP-195
-
-    # if not node_registry.schema_exists(pathology):
-    if not requested_pathology in all_datasets_per_schema.keys():
+    if not requested_pathology in available_datasets_per_schema.keys():
         raise BadUserInput(f"Pathology '{requested_pathology}' does not exist.")
-
-    # TODO Remove with pydantic
-    if not isinstance(requested_datasets, list):
-        raise BadRequest(f"Datasets parameter should be a list. {requested_datasets=}")
 
     non_existing_datasets = [
         dataset
         for dataset in requested_datasets
-        # if node_registry.dataset_exists(schema=pathology, dataset=dataset) == False
-        if all_datasets_per_schema[requested_pathology] == False
+        if available_datasets_per_schema[requested_pathology] == False
     ]
     if non_existing_datasets:
         raise BadUserInput(
