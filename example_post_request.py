@@ -1,6 +1,10 @@
 import requests
+from mipengine.controller.api.algorithm_request_dto import (
+    AlgorithmInputDataDTO,
+    AlgorithmRequestDTO,
+)
 
-from mipengine.algorithm_request_DTO import AlgorithmRequestDTO
+from devtools import debug
 
 
 def do_post_request():
@@ -40,41 +44,28 @@ def do_post_request():
         ],
         "valid": True,
     }
-    algorithm_params = {"classes": ["AD", "CN"]}
+    classes = ["AD", "CN"]
 
-    algorithm_request_dto = AlgorithmRequestDTO(
+    algorithm_input_data = AlgorithmInputDataDTO(
         pathology=pathology,
         datasets=datasets,
+        filters=filters,
         x=x,
         y=y,
-        filters=filters,
-        algorithm_params=algorithm_params,
     )
 
-    # DEBUG
-    print(f"POST to {url}")
-    # print("algorithm_request_dto:")
-    # import pprint
-    # pprint.PrettyPrinter(indent=0, sort_dicts=False).pprint(
-    #     algorithm_request_dto.dict()
-    # )
+    algorithm_request = AlgorithmRequestDTO(
+        inputdata=algorithm_input_data,
+        parameters={"classes": classes},
+    )
 
-    from devtools import debug
+    debug(algorithm_request)
+    print(f"POSTing to {url}")
 
-    debug(algorithm_request_dto)
-    # DEBUG end
-
-    algorithm_request_dto_json = algorithm_request_dto.json()
-
-    # # DEBUG
-    # import json
-    # formatted = json.dumps(json.loads(algorithm_request_dto_json), indent=2)
-    # print("\nalgorithm_request_dto_json:")
-    # print(formatted)
-    # # DEBUG end
+    request_json = algorithm_request.json()
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    response = requests.post(url, data=algorithm_request_dto_json, headers=headers)
+    response = requests.post(url, data=request_json, headers=headers)
 
     return response
 

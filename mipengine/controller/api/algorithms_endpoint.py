@@ -7,7 +7,11 @@ from quart import request
 
 from werkzeug.exceptions import BadRequest
 
-from mipengine.algorithm_request_DTO import AlgorithmRequestDTO
+# from mipengine.algorithm_request_DTO import AlgorithmRequestDTO
+from mipengine.controller.api.algorithm_request_dto import (
+    AlgorithmInputDataDTO,
+    AlgorithmRequestDTO,
+)
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.controller import Controller
 from mipengine.controller.api.exceptions import BadUserInput
@@ -20,6 +24,7 @@ from mipengine.controller.api.algorithm_specifications_dtos import (
 from mipengine.controller.api.algorithm_specifications_dtos import (
     algorithm_specificationsDTOs,
 )
+
 algorithms = Blueprint("algorithms_endpoint", __name__)
 controller = Controller()
 
@@ -38,6 +43,7 @@ async def shutdown():
 async def get_datasets() -> dict:
     return controller.get_all_datasets_per_node()
 
+
 @algorithms.route("/algorithms")  # TODO methods=["GET"]
 async def get_algorithms() -> str:
     algorithm_specifications = algorithm_specificationsDTOs.algorithms_list
@@ -48,13 +54,7 @@ async def get_algorithms() -> str:
 @algorithms.route("/algorithms/<algorithm_name>", methods=["POST"])
 async def post_algorithm(algorithm_name: str) -> str:
 
-    #DEBUG(future logging..)
-    print(
-        f"(algorithm_endpoints.py::post_algorithm) just received request for  executing->  {algorithm_name=}"
-    )
-    #DEBUG end
-
-    #Parse the request body to ALgorithmRequestDTO
+    # Parse the request body to AlgorithmRequestDTO
     algorithm_request_dto = None
     try:
         request_body = await request.json
@@ -69,19 +69,21 @@ async def post_algorithm(algorithm_name: str) -> str:
         print(error_msg)
         return error_msg
 
-    #Validate the request
-    # try:
-    #     controller.validate_algorithm_execution_request(algorithm_request_dto)
-    # except:
-    #     ...
-
-    #DEBUG
-    # ..for printing the full algorithm_request_dto object
-    # from devtools import debug
-    # debug(algorithm_request_dto)
-    #DEBUG end
-
-    #Excute the requested Algorithm
+    # Validate the request
+    try:
+        controller.validate_algorithm_execution_request(
+            algorithm_name=algorithm_name,
+            algorithm_request_dto=algorithm_request_dto)
+    except (BadRequest, BadUserInput) as exc:
+        raise exc
+    except: #TODO should not use bare except??
+        logging.error(
+            f"Algorithm validation failed. Exception stack trace: \n"
+            f"{traceback.format_exc()}"
+        )
+        raise UnexpectedException()
+    
+    # Excute the requested Algorithm
     algorithm_result = await controller.exec_algorithm(
         algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
     )

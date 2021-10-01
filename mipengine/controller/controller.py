@@ -14,15 +14,14 @@ from mipengine.controller.node_tasks_handler_celery import (
     CeleryParamsDTO,
 )
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
-
+from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.algorithm_execution_DTOs import (
-    AlgorithmRequestDTO,
     AlgorithmExecutionDTO,
     NodesTasksHandlersDTO,
 )
-
 from mipengine.controller.node_registry import node_registry
 from mipengine.controller import config as controller_config
+from mipengine.controller.api.validator import validate_algorithm_request
 
 
 class Controller:
@@ -38,8 +37,8 @@ class Controller:
 
         all_nodes_tasks_handlers = self._create_nodes_tasks_handlers(
             context_id=context_id,
-            pathology=algorithm_request_dto.pathology,
-            datasets=algorithm_request_dto.datasets,
+            pathology=algorithm_request_dto.inputdata.pathology,
+            datasets=algorithm_request_dto.inputdata.datasets,
         )
 
         # TODO: AlgorithmExecutor is not yest implemented with asyncio. This is a
@@ -96,17 +95,16 @@ class Controller:
                 f"{traceback.format_exc()}"
             )
 
-    def validate_algorithm_execution_request():
-        pass
-        # TODO DISABLED!!!
-        # all_local_nodes_info = self.get_all_local_nodes()
-        # available_datasets_per_schema = self.get_all_available_datasets_per_schema()
+    def validate_algorithm_execution_request(
+        self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
+    ):
+        all_datasets_per_schema = self.get_all_available_datasets_per_schema()
+        validate_algorithm_request(
+            algorithm_name=algorithm_name,
+            algorithm_request_dto=algorithm_request_dto,
+            all_datasets_per_schema=all_datasets_per_schema,
+        )
 
-        # validate_algorithm_request(
-        #     algorithm_name=algorithm_name,
-        #     algorithm_request_dto=algorithm_request_dto,
-        #     existing_datasets_per_schema=existing_datasets_per_schema,
-        # )
 
     async def start_node_registry(self):
         asyncio.create_task(node_registry.update())
@@ -121,10 +119,10 @@ class Controller:
         return datasets
 
     def get_all_available_schemas(self):
-        return node_registry.get_all_existing_schemas()
+        return node_registry.get_all_available_schemas()
 
     def get_all_available_datasets_per_schema(self):
-        return node_registry.get_all_existing_datasets_per_schema()
+        return node_registry.get_all_available_datasets_per_schema()
 
     def get_all_local_nodes(self):
         return node_registry.get_all_local_nodes()

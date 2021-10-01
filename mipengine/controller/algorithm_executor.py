@@ -73,11 +73,11 @@ class AlgorithmExecutor:
         # tables
         initial_view_tables_params = {
             "commandId": get_next_command_id(),
-            "pathology": algorithm_execution_dto.algorithm_request_dto.pathology,
-            "datasets": algorithm_execution_dto.algorithm_request_dto.datasets,
-            "x": algorithm_execution_dto.algorithm_request_dto.x,
-            "y": algorithm_execution_dto.algorithm_request_dto.y,
-            "filters": algorithm_execution_dto.algorithm_request_dto.filters,
+            "pathology": algorithm_execution_dto.algorithm_request_dto.inputdata.pathology,
+            "datasets": algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
+            "x": algorithm_execution_dto.algorithm_request_dto.inputdata.x,
+            "y": algorithm_execution_dto.algorithm_request_dto.inputdata.y,
+            "filters": algorithm_execution_dto.algorithm_request_dto.inputdata.filters,
         }
 
         # instantiate the LOCAL Node objects
@@ -95,9 +95,9 @@ class AlgorithmExecutor:
             global_node=self.global_node,
             local_nodes=self.local_nodes,
             algorithm_name=self._algorithm_name,
-            algorithm_parameters=algorithm_execution_dto.algorithm_request_dto.algorithm_params,
-            x_variables=algorithm_execution_dto.algorithm_request_dto.x,
-            y_variables=algorithm_execution_dto.algorithm_request_dto.y,
+            algorithm_parameters=algorithm_execution_dto.algorithm_request_dto.parameters,
+            x_variables=algorithm_execution_dto.algorithm_request_dto.inputdata.x,
+            y_variables=algorithm_execution_dto.algorithm_request_dto.inputdata.y,
         )
         self.execution_interface = _AlgorithmExecutionInterface(
             algo_execution_interface_dto
