@@ -1,6 +1,5 @@
 import traceback
 import asyncio
-import pydantic
 
 from quart import Blueprint
 from quart import request
@@ -16,7 +15,6 @@ from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.controller import Controller
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.api.exceptions import UnexpectedException
-from mipengine.controller.api.validator import validate_algorithm_request
 
 from mipengine.controller.api.algorithm_specifications_dtos import (
     AlgorithmSpecificationDTO,
