@@ -1,6 +1,4 @@
-import logging
 import numbers
-import traceback
 from typing import Any
 from typing import Dict
 from typing import List
@@ -27,8 +25,7 @@ from mipengine.controller import config
 from mipengine.filters import validate_filter
 
 
-# TODO MIP-68 is set to CANCELED, update accordingly..
-# TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
+# TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-90
 
 
 def validate_algorithm_request(
@@ -100,7 +97,7 @@ def _validate_inputdata_pathology_and_dataset(
     non_existing_datasets = [
         dataset
         for dataset in requested_datasets
-        if available_datasets_per_schema[requested_pathology] == False
+        if dataset not in available_datasets_per_schema[requested_pathology]
     ]
     if non_existing_datasets:
         raise BadUserInput(
