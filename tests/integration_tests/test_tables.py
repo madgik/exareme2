@@ -51,8 +51,6 @@ def test_create_and_find_tables(context_id):
 
     table_data_json = local_node_get_table_data.delay(table_name=table_1_name).get()
     table_data = TableData.parse_raw(table_data_json)
-    print(values)
-    print(table_data.data_)
     assert table_data.data_ == values
     assert table_data.schema_ == table_schema
 

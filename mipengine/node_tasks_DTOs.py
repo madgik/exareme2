@@ -23,13 +23,10 @@ class UDFArgumentKind(enum.Enum):
 # ~~~~~~~~~~~~~~~~~~ Validator ~~~~~~~~~~~~~~~~~ #
 
 
-def validate_name(name):
-    if not name.isidentifier():
-        raise ValueError(f"Expected valid identifier, got {name}")
-    if not name.islower():
-        warn(f"Names must be lowercase, got {name}")
-        return name.lower()
-    return name
+def validate_identifier(identifier):
+    if not identifier.isidentifier():
+        raise ValueError(f"Expected valid identifier, got {identifier}")
+    return identifier
 
 
 # ~~~~~~~~~~~~~~~~~~~ DTOs ~~~~~~~~~~~~~~~~~~~~~~ #
@@ -39,7 +36,7 @@ class ColumnInfo(BaseModel):
     name: str
     dtype: DType
 
-    _validate_name = validator("name", allow_reuse=True)(validate_name)
+    _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 
 
 class TableSchema(BaseModel):
@@ -50,7 +47,7 @@ class TableInfo(BaseModel):
     name: str
     schema_: TableSchema
 
-    _validate_name = validator("name", allow_reuse=True)(validate_name)
+    _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 
 
 class TableView(BaseModel):
@@ -58,12 +55,12 @@ class TableView(BaseModel):
     columns: List[str]
     filter: Dict
 
-    _validate_names = validator(
+    _validate_identifiers = validator(
         "datasets",
         "columns",
         each_item=True,
         allow_reuse=True,
-    )(validate_name)
+    )(validate_identifier)
 
 
 class TableData(BaseModel):
