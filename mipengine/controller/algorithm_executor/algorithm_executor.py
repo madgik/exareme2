@@ -14,6 +14,7 @@ from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.node_registry import node_registry
 
 from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import UDFArgumentKind
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
@@ -232,17 +233,17 @@ class AlgorithmExecutor:
                 self.task_signatures_str["get_table_schema"]
             )
             result = task_signature.delay(table_name=table_name.full_table_name).get()
-            return TableSchema.from_json(result)
+            return TableSchema.parse_raw(result)
 
         def get_table_data(self, table_name: TableName) -> TableData:
             task_signature = self.__celery_obj.signature(
                 self.task_signatures_str["get_table_data"]
             )
             result = task_signature.delay(table_name=table_name.full_table_name).get()
-            return TableData.from_json(result)
+            return TableData.parse_raw(result)
 
         def create_table(self, command_id: str, schema: TableSchema) -> TableName:
-            schema_json = schema.to_json()
+            schema_json = schema.json()
             task_signature = self.__celery_obj.signature(
                 self.task_signatures_str["create_table"]
             )
@@ -323,7 +324,7 @@ class AlgorithmExecutor:
         def create_remote_table(
             self, table_info: TableInfo, native_node: Node
         ) -> TableName:  # noqa: F821
-            table_info_json = table_info.to_json()
+            table_info_json = table_info.json()
             monetdb_socket_addr = native_node.monetdb_socket_addr
             task_signature = self.__celery_obj.signature(
                 self.task_signatures_str["create_remote_table"]
@@ -460,16 +461,19 @@ class AlgorithmExecutor:
                 for var_name, val in positional_args.items():
                     if isinstance(val, self.LocalNodeTable):
                         udf_argument = UDFArgument(
-                            type="table", value=val.nodes_tables[node].full_table_name
+                            kind=UDFArgumentKind.TABLE,
+                            value=val.nodes_tables[node].full_table_name,
                         )
                     elif isinstance(val, self.GlobalNodeTable):
                         raise Exception(
                             "(run_udf_on_local_nodes) GlobalNodeTable types are not accepted from run_udf_on_local_nodes"
                         )
                     else:
-                        udf_argument = UDFArgument(type="literal", value=val)
-                    positional_args_transfrormed.append(udf_argument.to_json())
-                    keyword_args_transformed[var_name] = udf_argument.to_json()
+                        udf_argument = UDFArgument(
+                            kind=UDFArgumentKind.LITERAL, value=val
+                        )
+                    positional_args_transfrormed.append(udf_argument.json())
+                    keyword_args_transformed[var_name] = udf_argument.json()
 
                 task = node.queue_run_udf(
                     command_id=command_id,
@@ -489,7 +493,7 @@ class AlgorithmExecutor:
                     # TODO: try block missing
                     table_schema = node.get_table_schema(table_name)
                     table_info = TableInfo(
-                        name=table_name.full_table_name, schema=table_schema
+                        name=table_name.full_table_name, schema_=table_schema
                     )
                     self._global_node.create_remote_table(
                         table_info=table_info, native_node=node
@@ -531,7 +535,7 @@ class AlgorithmExecutor:
             for val in positional_args:
                 if isinstance(val, self.GlobalNodeTable):
                     udf_argument = UDFArgument(
-                        type="table",
+                        kind=UDFArgumentKind.TABLE,
                         value=list(val.node_table.values())[0].full_table_name,
                     )  # TODO: da fuck is dat
                 elif isinstance(val, self.LocalNodeTable):
@@ -539,8 +543,10 @@ class AlgorithmExecutor:
                         "(run_udf_on_global_node) LocalNodeTable types are not accepted from run_udf_on_global_nodes"
                     )
                 else:
-                    udf_argument = UDFArgument(type="literal", value=str(val))
-                positional_args_transfrormed.append(udf_argument.to_json())
+                    udf_argument = UDFArgument(
+                        kind=UDFArgumentKind.LITERAL, value=str(val)
+                    )
+                positional_args_transfrormed.append(udf_argument.json())
 
             udf_result_table: str = self._global_node.queue_run_udf(
                 command_id=command_id,
@@ -554,7 +560,7 @@ class AlgorithmExecutor:
                     TableName(udf_result_table)
                 )
                 table_info: TableInfo = TableInfo(
-                    name=udf_result_table, schema=table_schema
+                    name=udf_result_table, schema_=table_schema
                 )
                 local_nodes_tables = {}
                 for node in self._local_nodes:
@@ -574,7 +580,7 @@ class AlgorithmExecutor:
         def get_table_data(self, node_table) -> "TableData":
             return node_table.get_table_data()
 
-        def get_table_schema(self, node_table) -> "TableData":
+        def get_table_schema(self, node_table) -> "TableSchema":
             # TODO create super class NodeTable??
             if isinstance(node_table, self.LocalNodeTable) or isinstance(
                 node_table, self.GlobalNodeTable
@@ -617,7 +623,7 @@ class AlgorithmExecutor:
                 tables_data = []
                 for node, table_name in self.nodes_tables.items():
                     tables_data.append(node.get_table_data(table_name))
-                tables_data_flat = [table_data.data for table_data in tables_data]
+                tables_data_flat = [table_data.data_ for table_data in tables_data]
                 tables_data_flat = [
                     k for i in tables_data_flat for j in i for k in j
                 ]  # TODO bejesus..
@@ -629,7 +635,7 @@ class AlgorithmExecutor:
                 for node, table_name in self.nodes_tables.items():
                     r += f"{node} - {table_name} \ndata(LIMIT 20):\n"
                     tmp = [
-                        str(row) for row in node.get_table_data(table_name).data[0:20]
+                        str(row) for row in node.get_table_data(table_name).data_[0:20]
                     ]
                     r += "\n".join(tmp)
                     r += "\n"
@@ -666,7 +672,7 @@ class AlgorithmExecutor:
             def get_table_data(self):  # -> {Node:TableData}
                 node = list(self.node_table.keys())[0]
                 table_name: TableName = list(self.node_table.values())[0]
-                table_data = node.get_table_data(table_name).data
+                table_data = node.get_table_data(table_name).data_
                 return table_data
 
             def __repr__(self):

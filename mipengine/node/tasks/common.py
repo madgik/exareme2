@@ -47,7 +47,7 @@ def get_table_schema(table_name: str) -> str:
         A TableSchema object in a jsonified format
     """
     schema = common_actions.get_table_schema(table_name)
-    return schema.to_json()
+    return schema.json()
 
 
 @shared_task
@@ -65,7 +65,7 @@ def get_table_data(table_name: str) -> str:
     """
     schema = common_actions.get_table_schema(table_name)
     data = common_actions.get_table_data(table_name)
-    return TableData(schema, data).to_json()
+    return TableData(schema_=schema, data_=data).json()
 
 
 @shared_task

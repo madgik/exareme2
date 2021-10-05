@@ -12,6 +12,8 @@ from mipengine.node_tasks_DTOs import (
     UDFArgument,
     ColumnInfo,
     TableInfo,
+    UDFArgumentKind,
+    TableSchema,
 )
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
@@ -63,10 +65,10 @@ def run_udf(
             The name of the table where the udf execution results are in.
     """
 
-    positional_args = [UDFArgument.from_json(arg) for arg in positional_args_json]
+    positional_args = [UDFArgument.parse_raw(arg) for arg in positional_args_json]
 
     keyword_args = {
-        key: UDFArgument.from_json(arg) for key, arg in keyword_args_json.items()
+        key: UDFArgument.parse_raw(arg) for key, arg in keyword_args_json.items()
     }
 
     udf_creation_stmt, udf_execution_stmt, result_table_name = _generate_udf_statements(
@@ -110,10 +112,10 @@ def get_run_udf_query(
             the statement that executes the udf.
     """
 
-    positional_args = [UDFArgument.from_json(arg) for arg in positional_args_json]
+    positional_args = [UDFArgument.parse_raw(arg) for arg in positional_args_json]
 
     keyword_args = {
-        key: UDFArgument.from_json(arg) for key, arg in keyword_args_json.items()
+        key: UDFArgument.parse_raw(arg) for key, arg in keyword_args_json.items()
     }
 
     return _generate_udf_statements(
@@ -129,15 +131,18 @@ def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
 
 
 def _convert_udf2udfgen_arg(udf_argument: UDFArgument):
-    if udf_argument.type == "literal":
+    if udf_argument.kind == UDFArgumentKind.LITERAL:
         return udf_argument.value
-    elif udf_argument.type == "table":
+    elif udf_argument.kind == UDFArgumentKind.TABLE:
         name = udf_argument.value
         schema = get_table_schema(udf_argument.value)
-        udf_generator_schema = [
-            ColumnInfo(column.name, column.data_type) for column in schema.columns
-        ]
-        return TableInfo(name, udf_generator_schema)
+        udf_generator_schema = TableSchema(
+            columns=[
+                ColumnInfo(name=column.name, dtype=column.dtype)
+                for column in schema.columns
+            ]
+        )
+        return TableInfo(name=name, schema_=udf_generator_schema)
     else:
         raise ValueError(
             "A udf argument can have one of the following types 'literal','table'."

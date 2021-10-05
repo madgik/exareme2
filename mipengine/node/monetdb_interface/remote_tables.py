@@ -14,7 +14,7 @@ def get_remote_table_names(context_id: str) -> List[str]:
 
 
 def create_remote_table(table_info: TableInfo, monetdb_socket_address: str):
-    columns_schema = convert_schema_to_sql_query_format(table_info.schema)
+    columns_schema = convert_schema_to_sql_query_format(table_info.schema_)
     MonetDB().execute(
         f"""
         CREATE REMOTE TABLE {table_info.name}
