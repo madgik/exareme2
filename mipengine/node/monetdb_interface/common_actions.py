@@ -75,9 +75,9 @@ def get_table_schema(table_name: str) -> TableSchema:
         columns=[
             ColumnInfo(
                 name=name,
-                dtype=DType.from_monet_type(monet_type=monet_type),
+                dtype=DType.from_sql(sql_type=sql_type),
             )
-            for name, monet_type in schema
+            for name, sql_type in schema
         ]
     )
 
