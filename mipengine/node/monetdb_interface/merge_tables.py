@@ -19,7 +19,7 @@ def get_merge_tables_names(context_id: str) -> List[str]:
 
 
 def create_merge_table(table_info: TableInfo):
-    columns_schema = convert_schema_to_sql_query_format(table_info.table_schema)
+    columns_schema = convert_schema_to_sql_query_format(table_info.schema_)
     MonetDB().execute(f"CREATE MERGE TABLE {table_info.name} ( {columns_schema} )")
 
 
@@ -35,8 +35,7 @@ def get_non_existing_tables(table_names: List[str]) -> List[str]:
 def add_to_merge_table(merge_table_name: str, table_names: List[str]):
     non_existing_tables = get_non_existing_tables(table_names)
     table_infos = [
-        TableInfo(name=name, table_schema=get_table_schema(name))
-        for name in table_names
+        TableInfo(name=name, schema_=get_table_schema(name)) for name in table_names
     ]
 
     try:

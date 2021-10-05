@@ -2,7 +2,8 @@ import uuid
 
 import pytest
 
-from mipengine.node_tasks_DTOs import ColumnInfo, DBDataType
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
@@ -43,9 +44,9 @@ def test_create_and_get_remote_table(context_id):
 
     table_schema = TableSchema(
         columns=[
-            ColumnInfo(name="col1", data_type=DBDataType.INT),
-            ColumnInfo(name="col2", data_type=DBDataType.FLOAT),
-            ColumnInfo(name="col3", data_type=DBDataType.TEXT),
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
 
@@ -55,7 +56,7 @@ def test_create_and_get_remote_table(context_id):
         schema_json=table_schema.json(),
     ).get()
 
-    table_info = TableInfo(name=table_name, table_schema=table_schema)
+    table_info = TableInfo(name=table_name, schema_=table_schema)
 
     global_node_create_remote_table.delay(
         table_info_json=table_info.json(),

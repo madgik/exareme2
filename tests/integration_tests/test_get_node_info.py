@@ -6,7 +6,8 @@ from mipengine.node.monetdb_interface.common_actions import (
     convert_schema_to_sql_query_format,
 )
 from mipengine.node_info_DTOs import NodeInfo
-from mipengine.node_tasks_DTOs import ColumnInfo, DBDataType
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_app
 from tests.integration_tests.nodes_communication import get_celery_task_signature
@@ -65,9 +66,9 @@ def test_get_node_info(node_id, proper_node_info):
 def setup_data_table_in_db(node_id, datasets_per_schema):
     tables_schema = TableSchema(
         columns=[
-            ColumnInfo(name="dataset", data_type=DBDataType.TEXT),
-            ColumnInfo(name="col2", data_type=DBDataType.FLOAT),
-            ColumnInfo(name="col3", data_type=DBDataType.TEXT),
+            ColumnInfo(name="dataset", dtype=DType.STR),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
     for schema_name in datasets_per_schema.keys():

@@ -13,7 +13,8 @@ from celery import Celery
 from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.node_registry import node_registry
 
-from mipengine.node_tasks_DTOs import TableData, UDFArgumentKind
+from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import UDFArgumentKind
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
@@ -492,7 +493,7 @@ class AlgorithmExecutor:
                     # TODO: try block missing
                     table_schema = node.get_table_schema(table_name)
                     table_info = TableInfo(
-                        name=table_name.full_table_name, table_schema=table_schema
+                        name=table_name.full_table_name, schema_=table_schema
                     )
                     self._global_node.create_remote_table(
                         table_info=table_info, native_node=node
@@ -559,7 +560,7 @@ class AlgorithmExecutor:
                     TableName(udf_result_table)
                 )
                 table_info: TableInfo = TableInfo(
-                    name=udf_result_table, table_schema=table_schema
+                    name=udf_result_table, schema_=table_schema
                 )
                 local_nodes_tables = {}
                 for node in self._local_nodes:
@@ -622,7 +623,7 @@ class AlgorithmExecutor:
                 tables_data = []
                 for node, table_name in self.nodes_tables.items():
                     tables_data.append(node.get_table_data(table_name))
-                tables_data_flat = [table_data.data for table_data in tables_data]
+                tables_data_flat = [table_data.data_ for table_data in tables_data]
                 tables_data_flat = [
                     k for i in tables_data_flat for j in i for k in j
                 ]  # TODO bejesus..
@@ -634,7 +635,7 @@ class AlgorithmExecutor:
                 for node, table_name in self.nodes_tables.items():
                     r += f"{node} - {table_name} \ndata(LIMIT 20):\n"
                     tmp = [
-                        str(row) for row in node.get_table_data(table_name).data[0:20]
+                        str(row) for row in node.get_table_data(table_name).data_[0:20]
                     ]
                     r += "\n".join(tmp)
                     r += "\n"
@@ -671,7 +672,7 @@ class AlgorithmExecutor:
             def get_table_data(self):  # -> {Node:TableData}
                 node = list(self.node_table.keys())[0]
                 table_name: TableName = list(self.node_table.values())[0]
-                table_data = node.get_table_data(table_name).data
+                table_data = node.get_table_data(table_name).data_
                 return table_data
 
             def __repr__(self):

@@ -138,11 +138,11 @@ def _convert_udf2udfgen_arg(udf_argument: UDFArgument):
         schema = get_table_schema(udf_argument.value)
         udf_generator_schema = TableSchema(
             columns=[
-                ColumnInfo(name=column.name, data_type=column.data_type)
+                ColumnInfo(name=column.name, dtype=column.dtype)
                 for column in schema.columns
             ]
         )
-        return TableInfo(name=name, table_schema=udf_generator_schema)
+        return TableInfo(name=name, schema_=udf_generator_schema)
     else:
         raise ValueError(
             "A udf argument can have one of the following types 'literal','table'."

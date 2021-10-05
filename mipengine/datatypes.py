@@ -8,16 +8,15 @@ class DType(Enum):
     members from python/sql concrete types. The entire py2dtype and sql2dtype
     mappings are also provided ass class methods for convenience."""
 
-    INT = int, "INT"
-    FLOAT = float, "REAL"
-    STR = str, "VARCHAR(50)"
+    INT = "INT"
+    FLOAT = "REAL"
+    STR = "VARCHAR(50)"
 
-    def __init__(self, pytype, sqltype):
-        self._pytype = pytype
+    def __init__(self, sqltype):
         self._sqltype = sqltype
 
     def to_py(self):
-        return self._pytype
+        return self.dtype2pytype_mapping().get(self.name)
 
     def to_sql(self):
         return self._sqltype
@@ -33,9 +32,30 @@ class DType(Enum):
         return mapping[sqltype]
 
     @classmethod
+    def from_monet_type(cls, monet_type):
+        mapping = cls.monet2dtype_mapping()
+        return mapping[monet_type]
+
+    @classmethod
+    def monet2dtype_mapping(cls):
+        return {
+            "int": cls.INT,
+            "double": cls.FLOAT,
+            "real": cls.FLOAT,
+            "varchar": cls.STR,
+        }
+
+    @classmethod
+    def dtype2pytype_mapping(cls):
+        return {
+            cls.INT: int,
+            cls.FLOAT: float,
+            cls.STR: str,
+        }
+
+    @classmethod
     def py2dtype(cls):
-        mapping = {key: val for (key, _), val in cls._value2member_map_.items()}
-        return mapping
+        return {val: key for key, val in cls.dtype2pytype_mapping().items()}
 
     @classmethod
     def sql2dtype(cls):
@@ -47,10 +67,6 @@ class DType(Enum):
     def __repr__(self):
         cls = type(self).__name__
         return f"{cls}.{self.name}"
-
-
-# ----- Methods related to type conversions (not yet unified) -----
-# TODO Refactor into unified functions
 
 
 def convert_mip_type_to_python_type(mip_type: str):

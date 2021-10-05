@@ -1,12 +1,11 @@
 from typing import List
 from typing import Union
 
+from mipengine import DType
 from mipengine.node_exceptions import TablesNotFound
-from mipengine.node_tasks_DTOs import ColumnInfo, DBDataType
+from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
-
-MONETDB_VARCHAR_SIZE = 50
 
 
 # TODO We need to add the PRIVATE/OPEN table logic
@@ -40,10 +39,7 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     """
 
     return ", ".join(
-        [
-            f"{column.name} {_convert_mip2monetdb_column_type(column.data_type)}"
-            for column in schema.columns
-        ]
+        [f"{column.name} {column.dtype.to_sql()}" for column in schema.columns]
     )
 
 
@@ -77,8 +73,11 @@ def get_table_schema(table_name: str) -> TableSchema:
         raise TablesNotFound([table_name])
     return TableSchema(
         columns=[
-            ColumnInfo(name=name, data_type=_convert_monet2mip_column_type(table_type))
-            for name, table_type in schema
+            ColumnInfo(
+                name=name,
+                dtype=DType.from_monet_type(monet_type=monet_type),
+            )
+            for name, monet_type in schema
         ]
     )
 
@@ -111,7 +110,7 @@ def get_table_names(table_type: str, context_id: str) -> List[str]:
     return [table[0] for table in table_names]
 
 
-def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
+def get_table_data(table_name: str) -> List[List[Union[float, int, str, None]]]:
     """
     Retrieves the data of a table with specific name from the monetdb.
 
@@ -245,40 +244,6 @@ def _convert_mip2monet_table_type(table_type: str) -> int:
         )
 
     return type_mapping.get(table_type)
-
-
-def _convert_mip2monetdb_column_type(column_type: DBDataType) -> str:
-    """
-    Converts MIP Engine's int,float,text types to monetdb
-    """
-    type_mapping = {
-        DBDataType.INT: "int",
-        DBDataType.FLOAT: "real",
-        DBDataType.TEXT: f"varchar({MONETDB_VARCHAR_SIZE})",
-    }
-    if column_type not in type_mapping.keys():
-        raise ValueError(
-            f"Type {column_type} cannot be converted to monetdb column type."
-        )
-
-    return type_mapping.get(column_type)
-
-
-def _convert_monet2mip_column_type(column_type: str) -> DBDataType:
-    """
-    Converts MonetDB's types to MIP's types
-    """
-    type_mapping = {
-        "int": DBDataType.INT,
-        "double": DBDataType.FLOAT,
-        "real": DBDataType.FLOAT,
-        "varchar": DBDataType.TEXT,
-    }
-
-    if column_type not in type_mapping.keys():
-        raise ValueError(f"Type {column_type} cannot be converted to MIP's types.")
-
-    return type_mapping.get(column_type)
 
 
 def _drop_table_by_type_and_context_id(table_type: str, context_id: str):

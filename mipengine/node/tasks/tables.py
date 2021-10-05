@@ -46,7 +46,7 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
     table_name = create_table_name(
         "table", command_id, context_id, node_config.identifier
     )
-    table_info = TableInfo(name=table_name, table_schema=schema_object)
+    table_info = TableInfo(name=table_name, schema_=schema_object)
     tables.create_table(table_info)
     return table_name
 

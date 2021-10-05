@@ -10,14 +10,9 @@ from pydantic import (
     validator,
 )
 
+from mipengine import DType
 
 # ~~~~~~~~~~~~~~~~~~~~ Enums ~~~~~~~~~~~~~~~~~~~~ #
-
-
-class DBDataType(enum.Enum):
-    INT = enum.auto()
-    FLOAT = enum.auto()
-    TEXT = enum.auto()
 
 
 class UDFArgumentKind(enum.Enum):
@@ -25,13 +20,7 @@ class UDFArgumentKind(enum.Enum):
     LITERAL = enum.auto()
 
 
-# ~~~~~~~~~~~~~~~~~~ Validators ~~~~~~~~~~~~~~~~~ #
-
-
-def validate_allowed_types(type: str, allowed_types: List[str]):
-    if type.lower() not in allowed_types:
-        raise TypeError(f"The allowed types are the following : {allowed_types}")
-    return type.lower()
+# ~~~~~~~~~~~~~~~~~~ Validator ~~~~~~~~~~~~~~~~~ #
 
 
 def validate_name(name):
@@ -48,7 +37,7 @@ def validate_name(name):
 
 class ColumnInfo(BaseModel):
     name: str
-    data_type: DBDataType
+    dtype: DType
 
     _validate_name = validator("name", allow_reuse=True)(validate_name)
 
@@ -59,7 +48,7 @@ class TableSchema(BaseModel):
 
 class TableInfo(BaseModel):
     name: str
-    table_schema: TableSchema
+    schema_: TableSchema
 
     _validate_name = validator("name", allow_reuse=True)(validate_name)
 
@@ -78,8 +67,10 @@ class TableView(BaseModel):
 
 
 class TableData(BaseModel):
-    table_schema: TableSchema
-    data: List[List[Union[float, int, str]]]
+    schema_: TableSchema
+    data_: List[List[Union[float, int, str, None]]]
+    # Union is problematic in pydantic we keep track on that with bug report
+    # https://team-1617704806227.atlassian.net/browse/MIP-245
 
 
 class UDFArgument(BaseModel):

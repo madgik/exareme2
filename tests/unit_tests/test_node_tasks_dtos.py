@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from mipengine.node_tasks_DTOs import (
-    DBDataType,
+    DType,
     ColumnInfo,
     TableSchema,
     TableInfo,
@@ -26,7 +26,7 @@ def name_error_str():
 
 @pytest.fixture
 def column_info_data_type():
-    return DBDataType.INT
+    return DType.INT
 
 
 @pytest.fixture
@@ -46,14 +46,14 @@ def test_column_info(acceptable_name, column_info_data_type):
 # @pytest.mark.xfail
 def test_column_info_error(name_error_str, column_info_data_type_error):
     with pytest.raises(ValidationError) as exception:
-        ColumnInfo(name=name_error_str, data_type=column_info_data_type_error)
+        ColumnInfo(name=name_error_str, dtype=column_info_data_type_error)
 
 
 # asserts correct parameters in test_column_info
 def test_table_schema():
     cols = [
-        ColumnInfo(name="AcceptableName1", data_type=DBDataType.FLOAT),
-        ColumnInfo(name="AcceptableName2", data_type=DBDataType.FLOAT),
+        ColumnInfo(name="AcceptableName1", dtype=DType.FLOAT),
+        ColumnInfo(name="AcceptableName2", dtype=DType.FLOAT),
     ]
     assert isinstance(cols, List)
     assert isinstance(cols[0], ColumnInfo)
@@ -63,20 +63,20 @@ def test_table_schema():
 # validation check for TableSchema with error
 def test_table_schema_sql_injection_error():
     with pytest.raises(ValidationError):
-        ColumnInfo(name="Robert'); DROP TABLE data; --", data_type=DBDataType.FLOAT)
+        ColumnInfo(name="Robert'); DROP TABLE data; --", dtype=DType.FLOAT)
 
 
 def test_table_schema_type_error():
     with pytest.raises(ValidationError):
-        ColumnInfo(name=123, data_type=DBDataType.FLOAT)
+        ColumnInfo(name=123, dtype=DType.FLOAT)
 
 
 @pytest.fixture
 def table_info_data_schema():
     return TableSchema(
         columns=[
-            ColumnInfo(name="layla", data_type=DBDataType.FLOAT),
-            ColumnInfo(name="sheila", data_type=DBDataType.FLOAT),
+            ColumnInfo(name="layla", dtype=DType.FLOAT),
+            ColumnInfo(name="sheila", dtype=DType.FLOAT),
         ]
     )
 
@@ -90,8 +90,8 @@ def test_table_info(table_info_data_schema):
 def table_info_data_schema_error():
     return TableSchema(
         columns=[
-            ColumnInfo(name=name_error_str, data_type=DBDataType.FLOAT),
-            ColumnInfo(name="Sheila", data_type=DBDataType.FLOAT),
+            ColumnInfo(name=name_error_str, dtype=DType.FLOAT),
+            ColumnInfo(name="Sheila", dtype=DType.FLOAT),
         ]
     )
 
@@ -99,7 +99,7 @@ def table_info_data_schema_error():
 # validation check for table_info
 def test_table_info_error():
     with pytest.raises(ValidationError):
-        TableInfo(name=name_error_str, table_schema=table_info_data_schema_error)
+        TableInfo(name=name_error_str, schema_=table_info_data_schema_error)
 
 
 def test_table_view_error():
@@ -109,14 +109,14 @@ def test_table_view_error():
 
 def test_table_data_error():
     with pytest.raises(ValidationError):
-        TableData(table_schema="foo", data=34)
+        TableData(schema_="foo", data_=34)
 
 
 def test_table_data():
     with pytest.raises(ValidationError):
         TableData(
-            table_schema="this is not a TableSchema object",
-            data="and this is not a list of tuples",
+            schema_="this is not a TableSchema object",
+            data_="and this is not a list of tuples",
         )
 
 

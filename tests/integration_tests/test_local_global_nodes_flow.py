@@ -1,6 +1,8 @@
 import uuid
 import pytest
-from mipengine.node_tasks_DTOs import ColumnInfo, TableData, DBDataType
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import TableData
+from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
@@ -58,12 +60,11 @@ def context_id():
 def test_create_merge_table_with_remote_tables(context_id):
     node_config_1 = get_node_config_by_id(local_node_1_id)
     node_config_2 = get_node_config_by_id(local_node_2_id)
-
     schema = TableSchema(
         columns=[
-            ColumnInfo(name="col1", data_type=DBDataType.INT),
-            ColumnInfo(name="col2", data_type=DBDataType.FLOAT),
-            ColumnInfo(name="col3", data_type=DBDataType.TEXT),
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
 
@@ -88,8 +89,8 @@ def test_create_merge_table_with_remote_tables(context_id):
     ).get()
 
     # Create remote tables
-    table_info_local_1 = TableInfo(name=local_node_1_table_name, table_schema=schema)
-    table_info_local_2 = TableInfo(name=local_node_2_table_name, table_schema=schema)
+    table_info_local_1 = TableInfo(name=local_node_1_table_name, schema_=schema)
+    table_info_local_2 = TableInfo(name=local_node_2_table_name, schema_=schema)
     local_node_1_monetdb_sock_address = (
         f"{str(node_config_1.monetdb.ip)}:{node_config_1.monetdb.port}"
     )
@@ -124,5 +125,5 @@ def test_create_merge_table_with_remote_tables(context_id):
         table_name=merge_table_name
     ).get()
     table_data = TableData.parse_raw(table_data_json)
-    row_count = len(table_data.data)
+    row_count = len(table_data.data_)
     assert row_count == 6

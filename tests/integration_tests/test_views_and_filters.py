@@ -2,7 +2,8 @@ import uuid
 
 import pytest
 
-from mipengine.node_tasks_DTOs import ColumnInfo, DBDataType
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
@@ -36,9 +37,9 @@ def context_id():
 def test_view_without_filters(context_id):
     table_schema = TableSchema(
         columns=[
-            ColumnInfo(name="col1", data_type=DBDataType.INT),
-            ColumnInfo(name="col2", data_type=DBDataType.FLOAT),
-            ColumnInfo(name="col3", data_type=DBDataType.TEXT),
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
 
@@ -48,7 +49,7 @@ def test_view_without_filters(context_id):
         schema_json=table_schema.json(),
     ).get()
 
-    values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
+    values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
     local_node_insert_data_to_table.delay(table_name=table_name, values=values).get()
     columns = ["col1", "col3"]
     view_name = local_node_create_view.delay(
@@ -63,8 +64,8 @@ def test_view_without_filters(context_id):
     assert view_name in views
     view_intended_schema = TableSchema(
         columns=[
-            ColumnInfo(name="col1", data_type=DBDataType.INT),
-            ColumnInfo(name="col3", data_type=DBDataType.TEXT),
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
     schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
@@ -73,17 +74,17 @@ def test_view_without_filters(context_id):
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.parse_raw(view_data_json)
     assert all(
-        len(columns) == len(view_intended_schema.columns) for columns in view_data.data
+        len(columns) == len(view_intended_schema.columns) for columns in view_data.data_
     )
-    assert view_data.table_schema == view_intended_schema
+    assert view_data.schema_ == view_intended_schema
 
 
 def test_view_with_filters(context_id):
     table_schema = TableSchema(
         columns=[
-            ColumnInfo(name="col1", data_type=DBDataType.INT),
-            ColumnInfo(name="col2", data_type=DBDataType.FLOAT),
-            ColumnInfo(name="col3", data_type=DBDataType.TEXT),
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
 
@@ -127,8 +128,8 @@ def test_view_with_filters(context_id):
     assert view_name in views
     view_intended_schema = TableSchema(
         columns=[
-            ColumnInfo(name="col1", data_type=DBDataType.INT),
-            ColumnInfo(name="col3", data_type=DBDataType.TEXT),
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
     schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
@@ -136,11 +137,11 @@ def test_view_with_filters(context_id):
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.parse_raw(view_data_json)
-    assert len(view_data.data) == 1
+    assert len(view_data.data_) == 1
     assert all(
-        len(columns) == len(view_intended_schema.columns) for columns in view_data.data
+        len(columns) == len(view_intended_schema.columns) for columns in view_data.data_
     )
-    assert view_data.table_schema == view_intended_schema
+    assert view_data.schema_ == view_intended_schema
 
 
 def test_pathology_view_without_filters(context_id):
@@ -163,13 +164,11 @@ def test_pathology_view_without_filters(context_id):
 
     schema = TableSchema(
         columns=[
-            ColumnInfo(name="row_id", data_type=DBDataType.INT),
-            ColumnInfo(name="dataset", data_type=DBDataType.TEXT),
-            ColumnInfo(name="age_value", data_type=DBDataType.INT),
-            ColumnInfo(name="gcs_motor_response_scale", data_type=DBDataType.TEXT),
-            ColumnInfo(
-                name="pupil_reactivity_right_eye_result", data_type=DBDataType.TEXT
-            ),
+            ColumnInfo(name="row_id", dtype=DType.INT),
+            ColumnInfo(name="dataset", dtype=DType.STR),
+            ColumnInfo(name="age_value", dtype=DType.INT),
+            ColumnInfo(name="gcs_motor_response_scale", dtype=DType.STR),
+            ColumnInfo(name="pupil_reactivity_right_eye_result", dtype=DType.STR),
         ]
     )
     schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
@@ -177,8 +176,8 @@ def test_pathology_view_without_filters(context_id):
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.parse_raw(view_data_json)
-    assert all(len(columns) == len(schema.columns) for columns in view_data.data)
-    assert view_data.table_schema == schema
+    assert all(len(columns) == len(schema.columns) for columns in view_data.data_)
+    assert view_data.schema_ == schema
 
     view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()
     view_schema = TableSchema.parse_raw(view_schema_json)
@@ -224,13 +223,11 @@ def test_pathology_view_with_filters(context_id):
 
     schema = TableSchema(
         columns=[
-            ColumnInfo(name="row_id", data_type=DBDataType.INT),
-            ColumnInfo(name="dataset", data_type=DBDataType.TEXT),
-            ColumnInfo(name="age_value", data_type=DBDataType.INT),
-            ColumnInfo(name="gcs_motor_response_scale", data_type=DBDataType.TEXT),
-            ColumnInfo(
-                name="pupil_reactivity_right_eye_result", data_type=DBDataType.TEXT
-            ),
+            ColumnInfo(name="row_id", dtype=DType.INT),
+            ColumnInfo(name="dataset", dtype=DType.STR),
+            ColumnInfo(name="age_value", dtype=DType.INT),
+            ColumnInfo(name="gcs_motor_response_scale", dtype=DType.STR),
+            ColumnInfo(name="pupil_reactivity_right_eye_result", dtype=DType.STR),
         ]
     )
     schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
@@ -238,8 +235,8 @@ def test_pathology_view_with_filters(context_id):
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.parse_raw(view_data_json)
-    assert all(len(columns) == len(schema.columns) for columns in view_data.data)
-    assert view_data.table_schema == schema
+    assert all(len(columns) == len(schema.columns) for columns in view_data.data_)
+    assert view_data.schema_ == schema
 
     view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()
     view_schema = TableSchema.parse_raw(view_schema_json)

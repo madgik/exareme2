@@ -4,7 +4,8 @@ import pytest
 
 from mipengine.node_exceptions import IncompatibleSchemasMergeException
 from mipengine.node_exceptions import TablesNotFound
-from mipengine.node_tasks_DTOs import ColumnInfo, DBDataType
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
 from tests.integration_tests.nodes_communication import get_celery_app
@@ -34,8 +35,8 @@ def context_id():
 def create_two_column_table(context_id, table_id: int):
     table_schema = TableSchema(
         columns=[
-            ColumnInfo(name="col1", data_type=DBDataType.INT),
-            ColumnInfo(name="col2", data_type=DBDataType.FLOAT),
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
         ]
     )
     table_name = local_node_create_table.delay(
@@ -49,9 +50,9 @@ def create_two_column_table(context_id, table_id: int):
 def create_three_column_table_with_data(context_id, table_id: int):
     table_schema = TableSchema(
         columns=[
-            ColumnInfo(name="col1", data_type=DBDataType.INT),
-            ColumnInfo(name="col2", data_type=DBDataType.FLOAT),
-            ColumnInfo(name="col3", data_type=DBDataType.TEXT),
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
     table_name = local_node_create_table.delay(

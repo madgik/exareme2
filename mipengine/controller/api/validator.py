@@ -30,8 +30,7 @@ from mipengine.filters import validate_filter
 
 def validate_algorithm_request(algorithm_name: str, request_body: str):
 
-    # Validate proper algorithm request body
-    # TODO Should be removed with pydantic
+    print(request_body)
     try:
         algorithm_request = AlgorithmRequestDTO.from_json(request_body)
     except Exception:
