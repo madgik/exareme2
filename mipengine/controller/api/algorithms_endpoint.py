@@ -37,12 +37,12 @@ async def shutdown():
     await controller.stop_node_registry()
 
 
-@algorithms.route("/datasets")
+@algorithms.route("/datasets",methods=["GET"])
 async def get_datasets() -> dict:
     return controller.get_all_datasets_per_node()
 
 
-@algorithms.route("/algorithms")  # TODO methods=["GET"]
+@algorithms.route("/algorithms",methods=["GET"])
 async def get_algorithms() -> str:
     algorithm_specifications = algorithm_specificationsDTOs.algorithms_list
 
