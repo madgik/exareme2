@@ -5,7 +5,7 @@ import requests
 from tests.e2e_tests import datasets_url
 
 proper_node_schemas = {
-    "worker1": {
+    "localnode1": {
         "dementia": [
             "edsd",
             "fake_longitudinal",
@@ -16,7 +16,7 @@ proper_node_schemas = {
         "mentalhealth": ["demo"],
         "tbi": ["dummy_tbi"],
     },
-    "worker2": {
+    "localnode2": {
         "dementia": [
             "edsd",
             "fake_longitudinal",
