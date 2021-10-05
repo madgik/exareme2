@@ -1,5 +1,7 @@
 from enum import Enum
 
+MONETDB_VARCHAR_SIZE = 50
+
 
 class DType(Enum):
     """Members of DType represent data types in any language (python or sql).
@@ -23,7 +25,7 @@ class DType(Enum):
         mapping = {
             self.INT: "INT",
             self.FLOAT: "REAL",
-            self.STR: "VARCHAR(50)",
+            self.STR: f"VARCHAR({MONETDB_VARCHAR_SIZE})",
         }
         return mapping[self]
 
@@ -42,14 +44,15 @@ class DType(Enum):
         }
         return mapping[sql_type]
 
+    # Creates a DType from a common data element sql type
     @classmethod
-    def from_metadata(cls, metadata_type):
+    def from_cde(cls, cde_type):
         mapping = {
             "int": cls.INT,
             "real": cls.FLOAT,
             "text": cls.STR,
         }
-        return mapping[metadata_type]
+        return mapping[cde_type]
 
     @classmethod
     def dtype2py(cls):
