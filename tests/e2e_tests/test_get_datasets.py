@@ -30,7 +30,7 @@ proper_node_schemas = {
 }
 
 
-def test_get_algorithms():
+def test_get_datasets():
     request = requests.get(datasets_url)
     node_schemas = json.loads(request.text)
     assert len(node_schemas) == len(proper_node_schemas)
