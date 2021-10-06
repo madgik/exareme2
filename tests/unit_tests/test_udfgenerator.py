@@ -870,10 +870,10 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),dim0 INT,dim1 INT,val REAL);
+CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -928,7 +928,7 @@ class TestUDFGen_RelationToTensor(TestUDFGenBase):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(r_col0 INT,r_col1 REAL,r_col2 VARCHAR(50))
+$udf_name(r_col0 INT,r_col1 REAL,r_col2 VARCHAR(500))
 RETURNS
 TABLE(dim0 INT,dim1 INT,val REAL)
 LANGUAGE PYTHON
@@ -944,10 +944,10 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),dim0 INT,dim1 INT,val REAL);
+CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -1021,10 +1021,10 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),ci INT,cf REAL);
+CREATE TABLE $table_name(node_id VARCHAR(500),ci INT,cf REAL);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -1225,10 +1225,10 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),dim0 INT,val INT);
+CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,val INT);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -1277,7 +1277,7 @@ class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(r_c0 INT,r_c1 REAL,r_c2 VARCHAR(50))
+$udf_name(r_c0 INT,r_c1 REAL,r_c2 VARCHAR(500))
 RETURNS
 TABLE(dim0 INT,dim1 INT,val REAL)
 LANGUAGE PYTHON
@@ -1293,10 +1293,10 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),dim0 INT,dim1 INT,val REAL);
+CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -1369,10 +1369,10 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),dim0 INT,dim1 INT,val INT);
+CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val INT);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -1456,10 +1456,10 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),dim0 INT,val INT);
+CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,val INT);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -1559,10 +1559,10 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),dim0 INT,val INT);
+CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,val INT);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -1669,10 +1669,10 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),dim0 INT,dim1 INT,val INT);
+CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val INT);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -1836,10 +1836,10 @@ class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase):
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),dim0 INT,val REAL);
+CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,val REAL);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     SUM(tensor_0.val * tensor_1.val) AS val
 FROM
@@ -1904,10 +1904,10 @@ class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase):
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),dim0 INT,dim1 INT,val REAL);
+CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     tensor_1.dim1 AS dim1,
     SUM(tensor_0.val * tensor_1.val) AS val
@@ -1964,10 +1964,10 @@ class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase):
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),dim0 INT,val REAL);
+CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,val REAL);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     1 - tensor_0.val AS val
 FROM
@@ -2084,7 +2084,7 @@ class TestUDFGen_MergeTensor(TestUDFGenBase):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(xs_node_id VARCHAR(50),xs_dim0 INT,xs_val INT)
+$udf_name(xs_node_id VARCHAR(500),xs_dim0 INT,xs_val INT)
 RETURNS
 TABLE(dim0 INT,val INT)
 LANGUAGE PYTHON
@@ -2100,10 +2100,10 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(50),dim0 INT,val INT);
+CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,val INT);
 INSERT INTO $table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -2158,7 +2158,7 @@ class TestUDFGen_TracebackFlag(TestUDFGenBase):
         return r"""CREATE OR REPLACE FUNCTION
 $udf_name(x_dim0 INT,x_val INT)
 RETURNS
-VARCHAR(50)
+VARCHAR(500)
 LANGUAGE PYTHON
 {
     __code = ['import pandas as pd', 'import udfio', "x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})", 'y = x + 1', 'z = 1 / 0']
@@ -2189,7 +2189,7 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(result VARCHAR(50));
+CREATE TABLE $table_name(result VARCHAR(500));
 INSERT INTO $table_name
 SELECT
     $udf_name(tensor_in_db.dim0,tensor_in_db.val)
@@ -2219,7 +2219,7 @@ def test_tensor_elementwise_binary_op_1dim():
     op = TensorBinaryOp.ADD
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     tensor_0.val + tensor_1.val AS val
 FROM
@@ -2237,7 +2237,7 @@ def test_tensor_elementwise_binary_op_2dim():
     op = TensorBinaryOp.ADD
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     tensor_0.dim1 AS dim1,
     tensor_0.val + tensor_1.val AS val
@@ -2257,7 +2257,7 @@ def test_vector_dot_vector_template():
     op = TensorBinaryOp.MATMUL
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     SUM(tensor_0.val * tensor_1.val) AS val
 FROM
     vec0 AS tensor_0,
@@ -2274,7 +2274,7 @@ def test_matrix_dot_matrix_template():
     op = TensorBinaryOp.MATMUL
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     tensor_1.dim1 AS dim1,
     SUM(tensor_0.val * tensor_1.val) AS val
@@ -2299,7 +2299,7 @@ def test_matrix_dot_vector_template():
     op = TensorBinaryOp.MATMUL
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     SUM(tensor_0.val * tensor_1.val) AS val
 FROM
@@ -2321,7 +2321,7 @@ def test_vector_dot_matrix_template():
     op = TensorBinaryOp.MATMUL
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_1.dim1 AS dim0,
     SUM(tensor_0.val * tensor_1.val) AS val
 FROM
@@ -2341,7 +2341,7 @@ def test_sql_matrix_transpose():
     tens = TensorArg(table_name="tens0", dtype=None, ndims=2)
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim1 AS dim0,
     tensor_0.dim0 AS dim1,
     tensor_0.val AS val
@@ -2357,7 +2357,7 @@ def test_tensor_number_binary_op_1dim():
     op = TensorBinaryOp.ADD
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     tensor_0.val + 1 AS val
 FROM
@@ -2372,7 +2372,7 @@ def test_number_tensor_binary_op_1dim():
     op = TensorBinaryOp.SUB
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(50)) AS node_id,
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     1 - tensor_0.val AS val
 FROM
