@@ -41,7 +41,7 @@ class Controller:
             datasets=algorithm_request_dto.inputdata.datasets,
         )
 
-        # TODO: AlgorithmExecutor is not yest implemented with asyncio. This is a
+        # TODO: AlgorithmExecutor is not yet implemented with asyncio. This is a
         # temprorary solution for not blocking the calling function
         def run_algorithm_executor_in_threadpool(
             algorithm_execution_dto: AlgorithmExecutionDTO,
@@ -131,7 +131,7 @@ class Controller:
         self, context_id: str, pathology: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
 
-        # Get only teh relevant nodes from teh node registry
+        # Get only teh relevant nodes from the node registry
         global_node = node_registry.get_all_global_nodes()[0]
         local_nodes = node_registry.get_nodes_with_any_of_datasets(
             schema=pathology,
