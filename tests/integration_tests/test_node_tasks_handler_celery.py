@@ -14,6 +14,7 @@ from mipengine.controller.node_tasks_handler_celery import (
 )
 
 from mipengine.node_tasks_DTOs import TableSchema, ColumnInfo
+from mipengine import DType
 
 # TODO  If folder structure changes this will not be the project parent folder anymore. Needs a more standardized way to refer to the project root..
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -30,7 +31,6 @@ def node_task_handler():
     # Controller config: user, password, vhost and the transport options are read from
     # the controller config
     NODES_CONFIG_DIR = path.join(path.join(PROJECT_ROOT, "configs"), "nodes")
-    # print(f"{NODES_CONFIG_DIR=}")
     a_localnode_config_file = ""
     for filename in listdir(NODES_CONFIG_DIR):
         if "local" in filename:
@@ -42,15 +42,12 @@ def node_task_handler():
 
     celery_params_dto = None
     with open(a_localnode_config_file) as fp:
-        # print(f"{fp=}")
         tmp = toml.load(fp)
         # TODO celery params and rabbitmq params in the config files should be one..
         node_id=tmp["identifier"]
         celery_params = tmp["celery"]
         rabbitmq_params = tmp["rabbitmq"]
         monetdb_params=tmp["monetdb"]
-        # print(f"{celery_params=}")
-        # print(f"{rabbitmq_params=}")
         celery_params_dto = CeleryParamsDTO(
             task_queue_domain=rabbitmq_params["ip"],
             task_queue_port=rabbitmq_params["port"],
@@ -68,8 +65,6 @@ def node_task_handler():
     node_task_handler = NodeTasksHandlerCelery(
         node_id= node_id,celery_params=celery_params_dto
     )
-    # print(f"{node_task_handler=}")
-    # node_task_handler.clean_up()
 
     return node_task_handler
 
@@ -77,9 +72,9 @@ def node_task_handler():
 def a_test_table_params():
     command_id = "cmndid123"
     schema = TableSchema(
-        [
-            ColumnInfo(name="var1", data_type="INT"),
-            ColumnInfo(name="var2", data_type="TEXT"),
+        columns=[
+            ColumnInfo(name="var1", dtype=DType.INT),
+            ColumnInfo(name="var2", dtype=DType.STR)
         ] 
     )
     return (command_id,schema)

@@ -92,17 +92,17 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     def get_table_schema(self, table_name: str):
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_schema"])
         result = task_signature.delay(table_name=table_name).get()
-        return TableSchema.from_json(result)
+        return TableSchema.parse_raw(result)
 
     def get_table_data(self, table_name: str) -> TableData:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_data"])
         result = task_signature.delay(table_name=table_name).get()
-        return TableData.from_json(result)
+        return TableData.parse_raw(result)
 
     def create_table(
         self, context_id: str, command_id: str, schema: TableSchema
     ) -> str:
-        schema_json = schema.to_json()
+        schema_json = schema.json()
         task_signature = self._celery_app.signature(TASK_SIGNATURES["create_table"])
         result = task_signature.delay(
             context_id=context_id, command_id=command_id, schema_json=schema_json
@@ -165,7 +165,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         return task_signature.delay(context_id=context_id)
 
     def create_remote_table(self, table_info: TableInfo, original_db_url: str) -> str:
-        table_info_json = table_info.to_json()
+        table_info_json = table_info.json()
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["create_remote_table"]
         )
