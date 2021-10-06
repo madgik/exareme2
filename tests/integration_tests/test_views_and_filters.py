@@ -3,6 +3,7 @@ import uuid
 import pytest
 
 from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
@@ -35,17 +36,17 @@ def context_id():
 
 def test_view_without_filters(context_id):
     table_schema = TableSchema(
-        [
-            ColumnInfo("col1", "int"),
-            ColumnInfo("col2", "real"),
-            ColumnInfo("col3", "text"),
+        columns=[
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
 
     table_name = local_node_create_table.delay(
         context_id=context_id,
         command_id=uuid.uuid4().hex,
-        schema_json=table_schema.to_json(),
+        schema_json=table_schema.json(),
     ).get()
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
@@ -62,35 +63,35 @@ def test_view_without_filters(context_id):
     views = local_node_get_views.delay(context_id=context_id).get()
     assert view_name in views
     view_intended_schema = TableSchema(
-        [
-            ColumnInfo("col1", "int"),
-            ColumnInfo("col3", "text"),
+        columns=[
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
     schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
-    assert view_intended_schema == TableSchema.from_json(schema_result_json)
+    assert view_intended_schema == TableSchema.parse_raw(schema_result_json)
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
-    view_data = TableData.from_json(view_data_json)
+    view_data = TableData.parse_raw(view_data_json)
     assert all(
-        len(columns) == len(view_intended_schema.columns) for columns in view_data.data
+        len(columns) == len(view_intended_schema.columns) for columns in view_data.data_
     )
-    assert view_data.schema == view_intended_schema
+    assert view_data.schema_ == view_intended_schema
 
 
 def test_view_with_filters(context_id):
     table_schema = TableSchema(
-        [
-            ColumnInfo("col1", "int"),
-            ColumnInfo("col2", "real"),
-            ColumnInfo("col3", "text"),
+        columns=[
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
 
     table_name = local_node_create_table.delay(
         context_id=context_id,
         command_id=uuid.uuid4().hex,
-        schema_json=table_schema.to_json(),
+        schema_json=table_schema.json(),
     ).get()
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
@@ -126,21 +127,21 @@ def test_view_with_filters(context_id):
     views = local_node_get_views.delay(context_id=context_id).get()
     assert view_name in views
     view_intended_schema = TableSchema(
-        [
-            ColumnInfo("col1", "int"),
-            ColumnInfo("col3", "text"),
+        columns=[
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
     schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
-    assert view_intended_schema == TableSchema.from_json(schema_result_json)
+    assert view_intended_schema == TableSchema.parse_raw(schema_result_json)
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
-    view_data = TableData.from_json(view_data_json)
-    assert len(view_data.data) == 1
+    view_data = TableData.parse_raw(view_data_json)
+    assert len(view_data.data_) == 1
     assert all(
-        len(columns) == len(view_intended_schema.columns) for columns in view_data.data
+        len(columns) == len(view_intended_schema.columns) for columns in view_data.data_
     )
-    assert view_data.schema == view_intended_schema
+    assert view_data.schema_ == view_intended_schema
 
 
 def test_pathology_view_without_filters(context_id):
@@ -162,24 +163,24 @@ def test_pathology_view_without_filters(context_id):
     assert view_name in views
 
     schema = TableSchema(
-        [
-            ColumnInfo("row_id", "int"),
-            ColumnInfo("dataset", "text"),
-            ColumnInfo("age_value", "int"),
-            ColumnInfo("gcs_motor_response_scale", "text"),
-            ColumnInfo("pupil_reactivity_right_eye_result", "text"),
+        columns=[
+            ColumnInfo(name="row_id", dtype=DType.INT),
+            ColumnInfo(name="dataset", dtype=DType.STR),
+            ColumnInfo(name="age_value", dtype=DType.INT),
+            ColumnInfo(name="gcs_motor_response_scale", dtype=DType.STR),
+            ColumnInfo(name="pupil_reactivity_right_eye_result", dtype=DType.STR),
         ]
     )
     schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
-    assert schema == TableSchema.from_json(schema_result_json)
+    assert schema == TableSchema.parse_raw(schema_result_json)
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
-    view_data = TableData.from_json(view_data_json)
-    assert all(len(columns) == len(schema.columns) for columns in view_data.data)
-    assert view_data.schema == schema
+    view_data = TableData.parse_raw(view_data_json)
+    assert all(len(columns) == len(schema.columns) for columns in view_data.data_)
+    assert view_data.schema_ == schema
 
     view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()
-    view_schema = TableSchema.from_json(view_schema_json)
+    view_schema = TableSchema.parse_raw(view_schema_json)
     assert view_schema == schema
 
 
@@ -221,22 +222,22 @@ def test_pathology_view_with_filters(context_id):
     assert view_name in views
 
     schema = TableSchema(
-        [
-            ColumnInfo("row_id", "int"),
-            ColumnInfo("dataset", "text"),
-            ColumnInfo("age_value", "int"),
-            ColumnInfo("gcs_motor_response_scale", "text"),
-            ColumnInfo("pupil_reactivity_right_eye_result", "text"),
+        columns=[
+            ColumnInfo(name="row_id", dtype=DType.INT),
+            ColumnInfo(name="dataset", dtype=DType.STR),
+            ColumnInfo(name="age_value", dtype=DType.INT),
+            ColumnInfo(name="gcs_motor_response_scale", dtype=DType.STR),
+            ColumnInfo(name="pupil_reactivity_right_eye_result", dtype=DType.STR),
         ]
     )
     schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
-    assert schema == TableSchema.from_json(schema_result_json)
+    assert schema == TableSchema.parse_raw(schema_result_json)
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
-    view_data = TableData.from_json(view_data_json)
-    assert all(len(columns) == len(schema.columns) for columns in view_data.data)
-    assert view_data.schema == schema
+    view_data = TableData.parse_raw(view_data_json)
+    assert all(len(columns) == len(schema.columns) for columns in view_data.data_)
+    assert view_data.schema_ == schema
 
     view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()
-    view_schema = TableSchema.from_json(view_schema_json)
+    view_schema = TableSchema.parse_raw(view_schema_json)
     assert view_schema == schema

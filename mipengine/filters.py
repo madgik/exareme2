@@ -1,5 +1,5 @@
+from mipengine import DType
 from mipengine.common_data_elements import CommonDataElements
-from mipengine.datatypes import convert_mip_type_to_python_type
 
 FILTER_OPERATORS = {
     "equal": lambda column, value: f"{column} = {value}",
@@ -135,7 +135,8 @@ def _check_value_type(common_data_elements, pathology_name: str, column: str, va
 def _check_value_column_same_type(common_data_elements, pathology_name, column, value):
     pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
     column_sql_type = pathology_common_data_elements[column].sql_type
-    if type(value) is not convert_mip_type_to_python_type(column_sql_type):
+    dtype = DType.from_cde(column_sql_type)
+    if type(value) is not dtype.to_py():
         raise TypeError(
             f"{column}'s type: {column_sql_type} was different from the type of the given value:{type(value)}"
         )

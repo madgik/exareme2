@@ -1276,15 +1276,6 @@ def generate_udf_queries(
     return Template(udf_definition), Template(udf_execution_query)
 
 
-# TODO Rewrite these conversions once ColumnInfo/TableInfo are pydantic models
-# -->
-OLD2NEW_DTYPE = {
-    "int": dt.INT,
-    "real": dt.FLOAT,
-    "text": dt.STR,
-}
-
-
 def convert_udfgenargs_to_udfargs(udfgen_posargs, udfgen_kwargs):
     udf_posargs = [convert_udfgenarg_to_udfarg(arg) for arg in udfgen_posargs]
     udf_keywordargs = {
@@ -1300,12 +1291,16 @@ def convert_udfgenarg_to_udfarg(udfgen_arg) -> UDFArgument:
 
 
 def convert_table_info_to_table_arg(table_info):
-    if is_tensor_schema(table_info.schema):
-        ndims = len(table_info.schema) - 2  # TODO avoid this using kinds of TableInfo
-        valcol = next(col for col in table_info.schema if col.name == "val")
-        dtype = OLD2NEW_DTYPE[valcol.data_type]
+    if is_tensor_schema(table_info.schema_.columns):
+        ndims = (
+            len(table_info.schema_.columns) - 2
+        )  # TODO avoid this using kinds of TableInfo
+        valcol = next(col for col in table_info.schema_.columns if col.name == "val")
+        dtype = valcol.dtype
         return TensorArg(table_name=table_info.name, dtype=dtype, ndims=ndims)
-    relation_schema = convert_table_schema_to_relation_schema(table_info.schema)
+    relation_schema = convert_table_schema_to_relation_schema(
+        table_info.schema_.columns
+    )
     return RelationArg(table_name=table_info.name, schema=relation_schema)
 
 
@@ -1319,9 +1314,7 @@ def is_tensor_schema(schema):
 
 
 def convert_table_schema_to_relation_schema(table_schema):
-    return [
-        (c.name, OLD2NEW_DTYPE[c.data_type]) for c in table_schema if c.name != ROWID
-    ]
+    return [(c.name, c.dtype) for c in table_schema if c.name != ROWID]
 
 
 # <--

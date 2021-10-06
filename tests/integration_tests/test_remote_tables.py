@@ -3,6 +3,7 @@ import uuid
 import pytest
 
 from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
@@ -42,23 +43,23 @@ def test_create_and_get_remote_table(context_id):
     )
 
     table_schema = TableSchema(
-        [
-            ColumnInfo("col1", "int"),
-            ColumnInfo("col2", "real"),
-            ColumnInfo("col3", "text"),
+        columns=[
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
 
     table_name = local_node_create_table.delay(
         context_id=context_id,
         command_id=uuid.uuid4().hex,
-        schema_json=table_schema.to_json(),
+        schema_json=table_schema.json(),
     ).get()
 
-    table_info = TableInfo(table_name, table_schema)
+    table_info = TableInfo(name=table_name, schema_=table_schema)
 
     global_node_create_remote_table.delay(
-        table_info_json=table_info.to_json(),
+        table_info_json=table_info.json(),
         monetdb_socket_address=local_node_monetdb_sock_address,
     ).get()
     remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()

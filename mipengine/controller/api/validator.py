@@ -33,7 +33,6 @@ def validate_algorithm_request(
     algorithm_request_dto: AlgorithmRequestDTO,
     available_datasets_per_schema: Dict[str, List[str]],
 ):
-
     algorithm_specs = _get_algorithm_specs(algorithm_name)
     _validate_algorithm_request_body(
         algorithm_request_dto=algorithm_request_dto,
