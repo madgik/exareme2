@@ -133,7 +133,6 @@ class NodeRegistry:
 
     # returns a dictionary with all the currently availiable schemas(patholgies) on the
     # system as keys and lists of datasets as values. Without duplicates
-    # without duplicates
     def get_all_available_datasets_per_schema(self) -> Dict[str, List[str]]:
         all_local_nodes = self.get_all_local_nodes()
         tmp = [node_info.datasets_per_schema for node_info in all_local_nodes]
