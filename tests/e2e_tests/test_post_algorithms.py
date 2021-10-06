@@ -12,50 +12,6 @@ from mipengine.controller.api.algorithm_request_dto import (
     AlgorithmRequestDTO,
 )
 
-# test_cases_post_algorithm_success = [
-#     (
-#         "logistic_regression",
-#         AlgorithmRequestDTO(
-#             inputdata=AlgorithmInputDataDTO(
-#             pathology="dementia",
-#             datasets=["edsd"],
-#             x=[
-#                 "lefthippocampus",
-#                 "righthippocampus",
-#                 "rightppplanumpolare",
-#                 "leftamygdala",
-#                 "rightamygdala",
-#             ],
-#             y=["alzheimerbroadcategory"],
-#             filters={
-#                 "condition": "AND",
-#                 "rules": [
-#                     {
-#                         "id": "dataset",
-#                         "type": "string",
-#                         "value": datasets,
-#                         "operator": "in",
-#                     },
-#                     {
-#                         "condition": "AND",
-#                         "rules": [
-#                             {
-#                                 "id": variable,
-#                                 "type": "string",
-#                                 "operator": "is_not_null",
-#                                 "value": None,
-#                             }
-#                             for variable in x + y
-#                         ],
-#                     },
-#                 ],
-#                 "valid": True,
-#             }),
-#             parameters={"classes": ["AD", "CN"]},
-#         ),
-#     ),
-# ]
-
 
 def get_parametrization_list_success_cases():
 
@@ -153,34 +109,6 @@ def test_post_algorithm_success(algorithm_name, request_dto, expected_response):
     assert response.json() == expected_response
 
 
-# test_cases_post_algorithm_failure = [
-#     (
-#         "logistic_regression",
-#         AlgorithmRequestDTO(
-#             inputdata=AlgorithmInputDataDTO(
-#                 pathology="non_existing",
-#                 datasets=["test_dataset1", "test_dataset2"],
-#                 x=["test_cde1", "test_cde2"],
-#                 y=["test_cde3"],
-#             )
-#         ),
-#         (460, "Pathology .* does not exist.*"),
-#     ),
-#     (
-#         "logistic_regression1",
-#         AlgorithmRequestDTO(
-#             inputdata=AlgorithmInputDataDTO(
-#                 pathology="non_existing",
-#                 datasets=["test_dataset1", "test_dataset2"],
-#                 x=["test_cde1", "test_cde2"],
-#                 y=["test_cde3"],
-#             )
-#         ),
-#         (460, "Pathology .* does not exist.*"),
-#     ),
-# ]
-
-
 def get_parametrization_list_exception_cases():
     parametrization_list = [
         (
@@ -206,9 +134,6 @@ def get_parametrization_list_exception_cases():
 def test_post_algorithm_error(algorithm_name, request_dto, exp_response):
     algorithm_url = algorithms_url + "/" + algorithm_name
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    # response = requests.post(
-    #     algorithm_url, data=json.dumps(request_body), headers=headers
-    # )
     request_json = request_dto.json()
     response = requests.post(algorithm_url, data=request_json, headers=headers)
     exp_response_status, exp_response_message = exp_response
