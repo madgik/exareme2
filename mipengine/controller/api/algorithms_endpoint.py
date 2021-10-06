@@ -6,7 +6,6 @@ from quart import request
 
 from werkzeug.exceptions import BadRequest
 
-# from mipengine.algorithm_request_DTO import AlgorithmRequestDTO
 from mipengine.controller.api.algorithm_request_dto import (
     AlgorithmInputDataDTO,
     AlgorithmRequestDTO,
