@@ -8,7 +8,7 @@ class DType(Enum):
     Each member has methods to_py and to_sql to convert its value to a concrete
     type.  There are also class methods from_py and from_sql to construct DType
     members from python/sql concrete types. The entire py2dtype and sql2dtype
-    mappings are also provided ass class methods for convenience."""
+    mappings are also provided as class methods for convenience."""
 
     INT = "INT"
     FLOAT = "FLOAT"
