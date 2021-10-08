@@ -8,7 +8,7 @@ class AlgorithmInputDataDTO(BaseModel):
     pathology: str
     datasets: List[str]
     filters: dict = None
-    x: List[str]
+    x: List[str] = None
     y: List[str] = None
 
 
