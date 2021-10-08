@@ -469,10 +469,10 @@ class _AlgorithmExecutionInterface:
         )
 
     # TABLES functionality
-    def get_table_data(self, node_table) -> "TableData":
+    def get_table_data(self, node_table) -> TableData:
         return node_table.get_table_data()
 
-    def get_table_schema(self, node_table) -> "TableData":
+    def get_table_schema(self, node_table) -> TableSchema:
         # TODO create super class NodeTable??
         if isinstance(node_table, _LocalNodeTable) or isinstance(
             node_table, _GlobalNodeTable
