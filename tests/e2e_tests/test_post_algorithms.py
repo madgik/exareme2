@@ -6,11 +6,6 @@ import requests
 
 from tests.e2e_tests import algorithms_url
 
-from mipengine.controller.api.algorithm_request_dto import (
-    AlgorithmInputDataDTO,
-    AlgorithmRequestDTO,
-)
-
 
 def get_parametrization_list_success_cases():
 
