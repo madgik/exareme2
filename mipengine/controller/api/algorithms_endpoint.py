@@ -62,8 +62,13 @@ async def post_algorithm(algorithm_name: str) -> str:
             f"\nrequest received:{request_body}"
             f"\nerror:{pydantic_error}"
         )
-        print(error_msg)
         raise BadRequest(error_msg)
+    except:
+        error_msg = (
+            f"Request parsing failed. Exception stack trace: \n"
+            f"{traceback.format_exc()}"
+        )
+        raise UnexpectedException(error_msg)
 
     # Validate the request
     try:
@@ -71,16 +76,14 @@ async def post_algorithm(algorithm_name: str) -> str:
             algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
         )
     except (BadRequest, BadUserInput) as exception:
-        print(
-            f"Algorithm validation failed. {exception=}"
-        )
         raise exception
     except:
-        print(
+        error_msg = (
             f"Algorithm validation failed. Exception stack trace: \n"
             f"{traceback.format_exc()}"
         )
-        raise UnexpectedException()
+
+        raise UnexpectedException(error_msg)
 
     # Excute the requested Algorithm
     try:
@@ -89,8 +92,9 @@ async def post_algorithm(algorithm_name: str) -> str:
         )
         return algorithm_result
     except:
-        print(
+        error_msg = (
             f"Algorithm execution failed. Exception stack trace: \n"
             f"{traceback.format_exc()}"
         )
-        raise UnexpectedException()
+
+        raise UnexpectedException(error_msg)
