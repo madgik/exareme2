@@ -5,6 +5,7 @@ from quart import Blueprint
 from quart import request
 
 from werkzeug.exceptions import BadRequest
+import pydantic
 
 from mipengine.controller.api.algorithm_request_dto import (
     AlgorithmInputDataDTO,
@@ -36,12 +37,12 @@ async def shutdown():
     await controller.stop_node_registry()
 
 
-@algorithms.route("/datasets",methods=["GET"])
+@algorithms.route("/datasets", methods=["GET"])
 async def get_datasets() -> dict:
     return controller.get_all_datasets_per_node()
 
 
-@algorithms.route("/algorithms",methods=["GET"])
+@algorithms.route("/algorithms", methods=["GET"])
 async def get_algorithms() -> str:
     algorithm_specifications = algorithm_specificationsDTOs.algorithms_list
 
@@ -52,36 +53,44 @@ async def get_algorithms() -> str:
 async def post_algorithm(algorithm_name: str) -> str:
 
     # Parse the request body to AlgorithmRequestDTO
-    algorithm_request_dto = None
     try:
         request_body = await request.json
         algorithm_request_dto = AlgorithmRequestDTO.parse_obj(request_body)
-    except BadRequest as err:
-        request_body = await request.data
-        error_msg = f"{err.description=}\n The request body was:{request_body=}"
-        print(error_msg)
-        return error_msg
     except pydantic.error_wrappers.ValidationError as pydantic_error:
-        error_msg = f"Pydantic error: {pydantic_error=}"
+        error_msg = (
+            f"Algorithm execution request malformed:"
+            f"\nrequest received:{request_body}"
+            f"\nerror:{pydantic_error}"
+        )
         print(error_msg)
-        return error_msg
+        raise BadRequest(error_msg)
 
     # Validate the request
     try:
         controller.validate_algorithm_execution_request(
-            algorithm_name=algorithm_name,
-            algorithm_request_dto=algorithm_request_dto)
-    except (BadRequest, BadUserInput) as exc:
-        raise exc
-    except: #TODO should not use bare except??
+            algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
+        )
+    except (BadRequest, BadUserInput) as exception:
+        print(
+            f"Algorithm validation failed. {exception=}"
+        )
+        raise exception
+    except:
         print(
             f"Algorithm validation failed. Exception stack trace: \n"
             f"{traceback.format_exc()}"
         )
         raise UnexpectedException()
-    
+
     # Excute the requested Algorithm
-    algorithm_result = await controller.exec_algorithm(
-        algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
-    )
-    return algorithm_result
+    try:
+        algorithm_result = await controller.exec_algorithm(
+            algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
+        )
+        return algorithm_result
+    except:
+        print(
+            f"Algorithm execution failed. Exception stack trace: \n"
+            f"{traceback.format_exc()}"
+        )
+        raise UnexpectedException()

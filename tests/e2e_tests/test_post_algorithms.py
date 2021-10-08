@@ -3,7 +3,6 @@ import re
 
 import pytest
 import requests
-import numpy as np
 
 from tests.e2e_tests import algorithms_url
 
@@ -17,55 +16,54 @@ def get_parametrization_list_success_cases():
 
     parametrization_list = []
 
-    inputdata_dto = AlgorithmInputDataDTO(
-        pathology="dementia",
-        datasets=["edsd"],
-        x=[
-            "lefthippocampus",
-            "righthippocampus",
-            "rightppplanumpolare",
-            "leftamygdala",
-            "rightamygdala",
-        ],
-        y=["alzheimerbroadcategory"],
-        filters={
-            "condition": "AND",
-            "rules": [
-                {
-                    "id": "dataset",
-                    "type": "string",
-                    "value": ["edsd"],
-                    "operator": "in",
-                },
-                {
-                    "condition": "AND",
-                    "rules": [
-                        {
-                            "id": variable,
-                            "type": "string",
-                            "operator": "is_not_null",
-                            "value": None,
-                        }
-                        for variable in [
-                            "lefthippocampus",
-                            "righthippocampus",
-                            "rightppplanumpolare",
-                            "leftamygdala",
-                            "rightamygdala",
-                            "alzheimerbroadcategory",
-                        ]
-                    ],
-                },
-            ],
-            "valid": True,
-        },
-    )
-    algorithm_request_dto = AlgorithmRequestDTO(
-        inputdata=inputdata_dto,
-        parameters={"classes": ["AD", "CN"]},
-    )
-
+    # ~~~~~~~~~~success case 1~~~~~~~~~~
     algorithm_name = "logistic_regression"
+    request_dict = {
+        "inputdata": {
+            "pathology": "dementia",
+            "datasets": ["edsd"],
+            "x": [
+                "lefthippocampus",
+                "righthippocampus",
+                "rightppplanumpolare",
+                "leftamygdala",
+                "rightamygdala",
+            ],
+            "y": ["alzheimerbroadcategory"],
+            "filters": {
+                "condition": "AND",
+                "rules": [
+                    {
+                        "id": "dataset",
+                        "type": "string",
+                        "value": ["edsd"],
+                        "operator": "in",
+                    },
+                    {
+                        "condition": "AND",
+                        "rules": [
+                            {
+                                "id": variable,
+                                "type": "string",
+                                "operator": "is_not_null",
+                                "value": None,
+                            }
+                            for variable in [
+                                "lefthippocampus",
+                                "righthippocampus",
+                                "rightppplanumpolare",
+                                "leftamygdala",
+                                "rightamygdala",
+                                "alzheimerbroadcategory",
+                            ]
+                        ],
+                    },
+                ],
+                "valid": True,
+            },
+        },
+        "parameters": {"classes": ["AD", "CN"]},
+    }
 
     expected_response = {
         "title": "Logistic Regression Coefficients",
@@ -82,26 +80,23 @@ def get_parametrization_list_success_cases():
         ],
     }
 
-    parametrization_list.append(
-        (algorithm_name, algorithm_request_dto, expected_response)
-    )
+    parametrization_list.append((algorithm_name, request_dict, expected_response))
+    # END ~~~~~~~~~~success case 1~~~~~~~~~~
 
     return parametrization_list
 
 
 @pytest.mark.parametrize(
-    "algorithm_name, request_dto, expected_response",
+    "algorithm_name, request_dict, expected_response",
     get_parametrization_list_success_cases(),
 )
-def test_post_algorithm_success(algorithm_name, request_dto, expected_response):
+def test_post_algorithm_success(algorithm_name, request_dict, expected_response):
     algorithm_url = algorithms_url + "/" + algorithm_name
-
-    request_json = request_dto.json()
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
     response = requests.post(
         algorithm_url,
-        data=request_json,
+        data=json.dumps(request_dict),
         headers=headers,
     )
     assert response.status_code == 200
@@ -110,32 +105,47 @@ def test_post_algorithm_success(algorithm_name, request_dto, expected_response):
 
 
 def get_parametrization_list_exception_cases():
-    parametrization_list = [
-        (
-            "logistic_regression",
-            AlgorithmRequestDTO(
-                inputdata=AlgorithmInputDataDTO(
-                    pathology="non_existing",
-                    datasets=["test_dataset1", "test_dataset2"],
-                    x=["test_cde1", "test_cde2"],
-                    y=["test_cde3"],
-                )
-            ),
-            (460, "Pathology .* does not exist.*"),
-        ),
-    ]
+    parametrization_list = []
+
+    # ~~~~~~~~~~exception case 1~~~~~~~~~~
+    algorithm_name = "logistic_regression"
+    request_dict = {
+        "wrong_name": {
+            "pathology": "dementia",
+            "datasets": ["test_dataset1", "test_dataset2"],
+            "x": ["test_cde1", "test_cde2"],
+            "y": ["test_cde3"],
+        }
+    }
+    expected_response = (400, ".*Algorithm execution request malformed")
+    parametrization_list.append((algorithm_name, request_dict, expected_response))
+
+    # ~~~~~~~~~~exception case 2~~~~~~~~~~
+    algorithm_name = "logistic_regression"
+    request_dict = {
+        "inputdata": {
+            "pathology": "non_existing",
+            "datasets": ["test_dataset1", "test_dataset2"],
+            "x": ["test_cde1", "test_cde2"],
+            "y": ["test_cde3"],
+        },
+    }
+
+    expected_response = (460, "Pathology .* does not exist.*")
+    parametrization_list.append((algorithm_name, request_dict, expected_response))
+
     return parametrization_list
 
 
 @pytest.mark.parametrize(
-    "algorithm_name, request_dto, exp_response",
+    "algorithm_name, request_dict, expected_response",
     get_parametrization_list_exception_cases(),
 )
-def test_post_algorithm_error(algorithm_name, request_dto, exp_response):
+def test_post_algorithm_error(algorithm_name, request_dict, expected_response):
     algorithm_url = algorithms_url + "/" + algorithm_name
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    request_json = request_dto.json()
+    request_json = json.dumps(request_dict)
     response = requests.post(algorithm_url, data=request_json, headers=headers)
-    exp_response_status, exp_response_message = exp_response
+    exp_response_status, exp_response_message = expected_response
     assert response.status_code == exp_response_status
     assert re.search(exp_response_message, response.text)
