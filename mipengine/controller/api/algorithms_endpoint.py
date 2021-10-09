@@ -18,11 +18,11 @@ from mipengine.controller.algorithm_executor.algorithm_executor import Algorithm
 import asyncio
 
 import concurrent.futures
-
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.api.exceptions import UnexpectedException
+from mipengine.controller.api.exceptions import UnexpectedError
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.node_registry import node_registry
+from mipengine.node_tasks_DTOs import PrivacyError
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 
@@ -55,15 +55,7 @@ async def post_algorithm(algorithm_name: str) -> str:
     request_body = await request.data
     try:
         validate_algorithm_request(algorithm_name, request_body)
-    except (BadRequest, BadUserInput) as exc:
-        raise exc
-    except:
-        logging.error(
-            f"Algorithm validation failed. Exception stack trace: \n {traceback.format_exc()}"
-        )
-        raise UnexpectedException()
 
-    try:
         algorithm_request = AlgorithmRequestDTO.from_json(request_body)
 
         # TODO: This looks freakin awful...
@@ -87,8 +79,21 @@ async def post_algorithm(algorithm_name: str) -> str:
         )
         return algorithm_result.json()
 
-    except:
+    except (BadRequest, BadUserInput) as exc:
+        raise exc
+    except Exception as exc:
+        propagate_celery_errors(exc)
+
         logging.error(
-            f"Algorithm execution failed. Unexpected exception: \n {traceback.format_exc()}"
+            f"Algorithm validation failed. Exception stack trace: \n {traceback.format_exc()}"
         )
-        raise UnexpectedException()
+        raise UnexpectedError()
+
+
+def propagate_celery_errors(error: Exception):
+
+    error_fullname = error.__class__.__module__ + "." + error.__class__.__name__
+    privacy_error_fullname = PrivacyError.__module__ + "." + PrivacyError.__name__
+
+    if error_fullname == privacy_error_fullname:
+        raise PrivacyError(str(error))

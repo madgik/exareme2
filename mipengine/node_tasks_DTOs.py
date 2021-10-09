@@ -73,3 +73,12 @@ class TableData(BaseModel):
 class UDFArgument(BaseModel):
     kind: UDFArgumentKind
     value: Any
+
+
+# ~~~~~~~~~~~~~~~~~~~ Exceptions ~~~~~~~~~~~~~~~~~~~~~~ #
+
+
+class PrivacyError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+        self.message = message

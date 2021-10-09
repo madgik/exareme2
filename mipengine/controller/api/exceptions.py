@@ -12,7 +12,7 @@ class BadUserInput(Exception):
         self.message = message
 
 
-class UnexpectedException(Exception):
+class UnexpectedError(Exception):
     def __init__(self):
         super().__init__()
         self.status_code = 500

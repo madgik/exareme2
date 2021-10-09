@@ -3,8 +3,9 @@ from typing import List
 from mipengine.filters import build_filter_clause
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
+from mipengine.node_tasks_DTOs import PrivacyError
 
-PRIVACY_MAGIC_NUMBER = 10
+PRIVACY_THRESHOLD = 10
 
 
 def get_view_names(context_id: str) -> List[str]:
@@ -16,29 +17,33 @@ def create_view(
     table_name: str,
     columns: List[str],
     filters: dict,
+    privacy_protection=False,
 ):
     filter_clause = ""
     if filters:
         filter_clause = f"WHERE {build_filter_clause(filters)}"
     columns_clause = ", ".join(columns)
 
-    MonetDB().execute(
-        f"""
+    view_creation_query = f"""
         CREATE VIEW {view_name}
         AS SELECT {columns_clause}
         FROM {table_name}
         {filter_clause}
         """
-    )
 
-    view_rows_query_result = MonetDB().execute_and_fetchall(
-        f"""
-        SELECT COUNT(*)
-        FROM {view_name}
-        """
-    )
-    view_rows_result_row = view_rows_query_result[0]
-    view_rows_count = view_rows_result_row[0]
+    MonetDB().execute(view_creation_query)
 
-    if view_rows_count < PRIVACY_MAGIC_NUMBER:
-        raise ValueError("Privacy Error!!!")
+    if privacy_protection:
+        view_rows_query_result = MonetDB().execute_and_fetchall(
+            f"""
+            SELECT COUNT(*)
+            FROM {view_name}
+            """
+        )
+        view_rows_result_row = view_rows_query_result[0]
+        view_rows_count = view_rows_result_row[0]
+
+        if view_rows_count < PRIVACY_THRESHOLD:
+            raise PrivacyError(
+                f"The following view had less rows than the PRIVACY_THRESHOLD({PRIVACY_THRESHOLD}):  {view_creation_query}"
+            )
