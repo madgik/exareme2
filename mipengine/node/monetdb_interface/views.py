@@ -1,11 +1,12 @@
 from typing import List
 
 from mipengine.filters import build_filter_clause
+from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 from mipengine.node_tasks_DTOs import PrivacyError
 
-PRIVACY_THRESHOLD = 10
+PRIVACY_THRESHOLD = node_config.privacy_threshold
 
 
 def get_view_names(context_id: str) -> List[str]:
