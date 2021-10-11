@@ -1,28 +1,20 @@
+import asyncio
+import concurrent.futures
 import logging
-import traceback
 
 from quart import Blueprint
 from quart import request
 
+from mipengine.controller.algorithm_executor.algorithm_executor import AlgorithmExecutor
+from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.algorithm_specifications_dtos import (
     AlgorithmSpecificationDTO,
 )
 from mipengine.controller.api.algorithm_specifications_dtos import (
     algorithm_specificationsDTOs,
 )
-from mipengine.controller.api.exceptions import BadRequest
-
-from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.algorithm_executor.algorithm_executor import AlgorithmExecutor
-
-import asyncio
-
-import concurrent.futures
-from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.api.exceptions import UnexpectedError
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.node_registry import node_registry
-from mipengine.node_tasks_DTOs import PrivacyError
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 
@@ -53,47 +45,28 @@ async def post_algorithm(algorithm_name: str) -> str:
     logging.info(f"Algorithm execution with name {algorithm_name}.")
 
     request_body = await request.data
-    try:
-        validate_algorithm_request(algorithm_name, request_body)
 
-        algorithm_request = AlgorithmRequestDTO.from_json(request_body)
+    validate_algorithm_request(algorithm_name, request_body)
 
-        # TODO: This looks freakin awful...
-        # Function run_algorithm_executor_in_threadpool calls the run method on the AlgorithmExecutor on a separate thread
-        # This function is queued in the running event loop
-        # Thus AlgorithmExecutor.run is executed asynchronoysly and does not block further requests to the server
-        def run_algorithm_executor_in_threadpool(algorithm_name, algorithm_request):
-            alg_ex = AlgorithmExecutor(algorithm_name, algorithm_request)
+    algorithm_request = AlgorithmRequestDTO.from_json(request_body)
 
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(alg_ex.run)
-                result = future.result()
-                return result
+    # TODO: This looks freakin awful...
+    # Function run_algorithm_executor_in_threadpool calls the run method on the AlgorithmExecutor on a separate thread
+    # This function is queued in the running event loop
+    # Thus AlgorithmExecutor.run is executed asynchronoysly and does not block further requests to the server
+    def run_algorithm_executor_in_threadpool(algorithm_name, algorithm_request):
+        alg_ex = AlgorithmExecutor(algorithm_name, algorithm_request)
 
-        loop = asyncio.get_running_loop()
-        algorithm_result = await loop.run_in_executor(
-            None,
-            run_algorithm_executor_in_threadpool,
-            algorithm_name,
-            algorithm_request,
-        )
-        return algorithm_result.json()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(alg_ex.run)
+            result = future.result()
+            return result
 
-    except (BadRequest, BadUserInput) as exc:
-        raise exc
-    except Exception as exc:
-        propagate_celery_errors(exc)
-
-        logging.error(
-            f"Algorithm validation failed. Exception stack trace: \n {traceback.format_exc()}"
-        )
-        raise UnexpectedError()
-
-
-def propagate_celery_errors(error: Exception):
-
-    error_fullname = error.__class__.__module__ + "." + error.__class__.__name__
-    privacy_error_fullname = PrivacyError.__module__ + "." + PrivacyError.__name__
-
-    if error_fullname == privacy_error_fullname:
-        raise PrivacyError(str(error))
+    loop = asyncio.get_running_loop()
+    algorithm_result = await loop.run_in_executor(
+        None,
+        run_algorithm_executor_in_threadpool,
+        algorithm_name,
+        algorithm_request,
+    )
+    return algorithm_result.json()

@@ -45,5 +45,5 @@ def create_view(
 
         if view_rows_count < PRIVACY_THRESHOLD:
             raise PrivacyError(
-                f"The following view had less rows than the PRIVACY_THRESHOLD({PRIVACY_THRESHOLD}):  {view_creation_query}"
+                f"The following view has less rows than the PRIVACY_THRESHOLD({PRIVACY_THRESHOLD}):  {view_creation_query}"
             )

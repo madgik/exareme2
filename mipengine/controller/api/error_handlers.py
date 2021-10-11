@@ -1,10 +1,9 @@
-import logging
+import traceback
 
 from quart import Blueprint
 
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.api.exceptions import UnexpectedError
 from mipengine.node_tasks_DTOs import PrivacyError
 
 error_handlers = Blueprint("error_handlers", __name__)
@@ -24,10 +23,13 @@ def handle_bad_user_input(error: BadUserInput):
 
 @error_handlers.app_errorhandler(PrivacyError)
 def handle_privacy_error(error: PrivacyError):
-    logging.error(f"Privacy Error: \n " + error.message)
+    print(f"Privacy Error: \n " + error.message)
     return PRIVACY_ERROR_MESSAGE, 461
 
 
-@error_handlers.app_errorhandler(UnexpectedError)
-def handle_unexpected_exception(error: UnexpectedError):
+@error_handlers.app_errorhandler(Exception)
+def handle_unexpected_exception(error: Exception):
+    print(
+        f"Algorithm validation failed. \nTraceback: {traceback.print_exception(type(error), error, error.__traceback__)}"
+    )
     return "", 500
