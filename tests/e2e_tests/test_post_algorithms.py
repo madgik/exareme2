@@ -3,7 +3,6 @@ import re
 
 import pytest
 import requests
-import numpy as np
 
 from tests.e2e_tests import algorithms_url
 
@@ -105,6 +104,41 @@ test_cases_post_algorithm_failure = [
             },
         },
         (460, "Pathology .* does not exist.*"),
+    ),
+    (
+        "logistic_regression",
+        {
+            "inputdata": {
+                "pathology": "dementia",
+                "datasets": ["edsd"],
+                "x": ["lefthippocampus"],
+                "y": ["alzheimerbroadcategory"],
+                "filters": {
+                    "condition": "AND",
+                    "rules": [
+                        {
+                            "condition": "OR",
+                            "rules": [
+                                {
+                                    "id": "subjectage",
+                                    "field": "subjectage",
+                                    "type": "real",
+                                    "input": "number",
+                                    "operator": "greater",
+                                    "value": 200.0,
+                                }
+                            ],
+                        }
+                    ],
+                    "valid": True,
+                },
+            },
+            "parameters": {"classes": ["AD", "CN"]},
+        },
+        (
+            461,
+            "The algorithm could not run with the input provided because there are insufficient data.",
+        ),
     ),
 ]
 
