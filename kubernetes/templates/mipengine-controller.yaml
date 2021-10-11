@@ -17,7 +17,7 @@ spec:
       nodeSelector:
         nodeType: master
       containers:
-      - name: mipengine-controller
+      - name: controller
         image: {{ .Values.mipengine_images.repository }}/mipengine_controller:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
         ports:
@@ -26,10 +26,16 @@ spec:
         - mountPath: /opt/data
           name: metadata
         env:
-        - name: NODE_REGISTRY_IP
-          value: "mipengine-noderegistry-service"
-        - name: NODE_REGISTRY_PORT
-          value: "8500"
+        - name: DEPLOYMENT_TYPE
+          value: "KUBERNETES"
+        - name: NODE_REGISTRY_UPDATE_INTERVAL
+          value: "{{ .Values.controller.node_registry_update_interval }}"
+        - name: CELERY_TASKS_TIMEOUT
+          value: "{{ .Values.controller.celery_tasks_timeout }}"
+        - name: LOCALNODES_DNS
+          value: "mipengine-nodes-service"
+        - name: LOCALNODES_PORT
+          value: "5672"
       volumes:
       - name: metadata
         hostPath:
@@ -49,4 +55,19 @@ spec:
     - protocol: TCP
       port: 5000
       targetPort: 5000
-      nodePort: 30050
+      nodePort: 30000
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mipengine-nodes-service
+spec:
+  clusterIP: None
+  selector:
+    app: mipengine-node
+  ports:
+    - protocol: TCP
+      port: 5672
+      targetPort: 5672

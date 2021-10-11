@@ -1,12 +1,11 @@
 from typing import List
 from typing import Union
 
+from mipengine import DType
 from mipengine.node_exceptions import TablesNotFound
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
-
-MONETDB_VARCHAR_SIZE = 50
 
 
 # TODO We need to add the PRIVATE/OPEN table logic
@@ -38,9 +37,9 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     str
         The schema in a sql query formatted string
     """
+
     return ", ".join(
-        f"{column.name} {_convert_mip2monetdb_column_type(column.data_type)}"
-        for column in schema.columns
+        [f"{column.name} {column.dtype.to_sql()}" for column in schema.columns]
     )
 
 
@@ -70,13 +69,15 @@ def get_table_schema(table_name: str) -> TableSchema:
         tables.system=false
         """
     )
-
     if not schema:
         raise TablesNotFound([table_name])
     return TableSchema(
-        [
-            ColumnInfo(name, _convert_monet2mip_column_type(table_type))
-            for name, table_type in schema
+        columns=[
+            ColumnInfo(
+                name=name,
+                dtype=DType.from_sql(sql_type=sql_type),
+            )
+            for name, sql_type in schema
         ]
     )
 
@@ -109,7 +110,7 @@ def get_table_names(table_type: str, context_id: str) -> List[str]:
     return [table[0] for table in table_names]
 
 
-def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
+def get_table_data(table_name: str) -> List[List[Union[float, int, str, None]]]:
     """
     Retrieves the data of a table with specific name from the monetdb.
 
@@ -134,6 +135,61 @@ def get_table_data(table_name: str) -> List[List[Union[str, int, float, bool]]]:
     )
 
     return data
+
+
+def get_initial_data_schemas() -> List[str]:
+    """
+    Retrieves all the different schemas that the initial datasets have.
+
+    Returns
+    ------
+    List[str]
+        The dataset schemas in the database.
+    """
+
+    schema_table_names = MonetDB().execute_and_fetchall(
+        f"""
+            SELECT name FROM tables
+            WHERE name LIKE '%\\\\_data' ESCAPE '\\\\'
+            AND system = false"""
+    )
+
+    # Flatten the list
+    schema_table_names = [
+        schema_table_name
+        for schema_table in schema_table_names
+        for schema_table_name in schema_table
+    ]
+
+    # The first part of the table is the dataset schema (pathology)
+    # Table name convention = <schema_name>_data
+    schema_names = [table_name.split("_")[0] for table_name in schema_table_names]
+
+    return schema_names
+
+
+def get_schema_datasets(schema_name) -> List[str]:
+    """
+    Retrieves the datasets with the specific schema.
+
+    Returns
+    ------
+    List[str]
+        The datasets of the schema.
+    """
+
+    datasets_rows = MonetDB().execute_and_fetchall(
+        f"""
+        SELECT DISTINCT(dataset) FROM {schema_name}_data
+        """
+    )
+
+    # Flatten the list
+    datasets = [
+        dataset_name for dataset_row in datasets_rows for dataset_name in dataset_row
+    ]
+
+    return datasets
 
 
 def drop_db_artifacts_by_context_id(context_id: str):
@@ -188,41 +244,6 @@ def _convert_mip2monet_table_type(table_type: str) -> int:
         )
 
     return type_mapping.get(table_type)
-
-
-def _convert_mip2monetdb_column_type(column_type: str) -> str:
-    """
-    Converts MIP Engine's int,real,text types to monetdb
-    """
-    type_mapping = {
-        "int": "int",
-        "real": "real",
-        "text": f"varchar({MONETDB_VARCHAR_SIZE})",
-    }
-
-    if column_type not in type_mapping.keys():
-        raise ValueError(
-            f"Type {column_type} cannot be converted to monetdb column type."
-        )
-
-    return type_mapping.get(column_type)
-
-
-def _convert_monet2mip_column_type(column_type: str) -> str:
-    """
-    Converts MonetDB's types to MIP's types
-    """
-    type_mapping = {
-        "int": "int",
-        "double": "real",
-        "real": "real",
-        "varchar": "text",
-    }
-
-    if column_type not in type_mapping.keys():
-        raise ValueError(f"Type {column_type} cannot be converted to MIP's types.")
-
-    return type_mapping.get(column_type)
 
 
 def _drop_table_by_type_and_context_id(table_type: str, context_id: str):

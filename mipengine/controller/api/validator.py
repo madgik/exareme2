@@ -1,15 +1,12 @@
 import logging
 import numbers
 import traceback
-from ipaddress import IPv4Address
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.controller import config as controller_config
-
-from mipengine.common_data_elements import CommonDataElement
+from mipengine.common_data_elements import CommonDataElement, CommonDataElements
 from mipengine.controller.controller_common_data_elements import (
     controller_common_data_elements,
 )
@@ -24,26 +21,15 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.node_registry import NodeRegistryClient
+from mipengine.controller.node_registry import node_registry
+from mipengine.controller import config
+from mipengine.filters import validate_filter
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
-
-# TODO This will be removed with node registry. Hardcoding the ip/port to pass unit tests
-nrclient_ip = controller_config.node_registry.ip
-if not nrclient_ip:
-    nrclient_ip = "127.0.0.1"
-nrclient_port = controller_config.node_registry.port
-if not nrclient_port:
-    nrclient_port = 8500
-nrclient = NodeRegistryClient(
-    consul_server_ip=nrclient_ip, consul_server_port=nrclient_port
-)
 
 
 def validate_algorithm_request(algorithm_name: str, request_body: str):
 
-    # Validate proper algorithm request body
-    # TODO Should be removed with pydantic
     try:
         algorithm_request = AlgorithmRequestDTO.from_json(request_body)
     except Exception:
@@ -97,7 +83,7 @@ def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str
     # with datasets and pathologies for the validation as a parameter.
     # https://team-1617704806227.atlassian.net/browse/MIP-195
 
-    if not nrclient.pathology_exists(pathology):
+    if not node_registry.schema_exists(pathology):
         raise BadUserInput(f"Pathology '{pathology}' does not exist.")
 
     # TODO Remove with pydantic
@@ -107,7 +93,7 @@ def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str
     non_existing_datasets = [
         dataset
         for dataset in datasets
-        if nrclient.dataset_exists(pathology=pathology, dataset=dataset) == False
+        if node_registry.dataset_exists(schema=pathology, dataset=dataset) == False
     ]
     if non_existing_datasets:
         raise BadUserInput(
@@ -120,13 +106,8 @@ def _validate_inputdata_filter(pathology, filter):
     Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
     """
-    # TODO Add filters
-    # validate_proper_filter(
-    #     common_data_elements=common_data_elements,
-    #     pathology_name=pathology,
-    #     rules=filter
-    # )
-    pass
+    common_data_elements = CommonDataElements(config.cdes_metadata_path)
+    validate_filter(common_data_elements, pathology, filter)
 
 
 # TODO This will be removed with the dynamic inputdata logic.

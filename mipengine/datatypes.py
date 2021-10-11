@@ -1,26 +1,29 @@
 from enum import Enum
 
+MONETDB_VARCHAR_SIZE = 500
+
 
 class DType(Enum):
     """Members of DType represent data types in any language (python or sql).
     Each member has methods to_py and to_sql to convert its value to a concrete
     type.  There are also class methods from_py and from_sql to construct DType
     members from python/sql concrete types. The entire py2dtype and sql2dtype
-    mappings are also provided ass class methods for convenience."""
+    mappings are also provided as class methods for convenience."""
 
-    INT = int, "INT"
-    FLOAT = float, "REAL"
-    STR = str, "VARCHAR(50)"
+    INT = "INT"
+    FLOAT = "FLOAT"
+    STR = "STR"
 
-    def __init__(self, pytype, sqltype):
-        self._pytype = pytype
+    def __init__(self, sqltype):
         self._sqltype = sqltype
 
     def to_py(self):
-        return self._pytype
+        mapping = self.dtype2py()
+        return mapping[self]
 
     def to_sql(self):
-        return self._sqltype
+        mapping = self.dtype2sql()
+        return mapping[self]
 
     @classmethod
     def from_py(cls, pytype):
@@ -28,47 +31,49 @@ class DType(Enum):
         return mapping[pytype]
 
     @classmethod
-    def from_sql(cls, sqltype):
+    def from_sql(cls, sql_type):
         mapping = cls.sql2dtype()
-        return mapping[sqltype]
+        return mapping[sql_type.upper()]
+        # We convert to upper case the monet returns the types in lower-case
+
+    # Creates a DType from a common data element sql type
+    @classmethod
+    def from_cde(cls, cde_type):
+        mapping = {
+            "int": cls.INT,
+            "real": cls.FLOAT,
+            "text": cls.STR,
+        }
+        return mapping[cde_type]
+
+    @classmethod
+    def dtype2py(cls):
+        return {
+            cls.INT: int,
+            cls.FLOAT: float,
+            cls.STR: str,
+        }
+
+    @classmethod
+    def dtype2sql(cls):
+        return {
+            cls.INT: "INT",
+            cls.FLOAT: "REAL",
+            cls.STR: f"VARCHAR({MONETDB_VARCHAR_SIZE})",
+        }
 
     @classmethod
     def py2dtype(cls):
-        mapping = {key: val for (key, _), val in cls._value2member_map_.items()}
-        return mapping
+        return {val: key for key, val in cls.dtype2py().items()}
 
     @classmethod
     def sql2dtype(cls):
-        mapping = {key: val for (_, key), val in cls._value2member_map_.items()}
-        # For many-to-one mappings add more items here
-        # mapping.update({"VARCHAR(50)": mapping["TEXT"]})
+        mapping = {val: key for key, val in cls.dtype2sql().items()}
+        mapping["DOUBLE"] = cls.FLOAT
+        mapping["VARCHAR"] = cls.STR
+        # MonetDB returns VARCHAR instead of VARCHAR(50) when
         return mapping
 
     def __repr__(self):
         cls = type(self).__name__
         return f"{cls}.{self.name}"
-
-
-# ----- Methods related to type conversions (not yet unified) -----
-# TODO Refactor into unified functions
-
-
-def convert_mip_type_to_python_type(mip_type: str):
-    """
-    Converts MIP's types to the relative python class.
-
-    The "MIP" type that this method is expecting is related to
-    the "sql_type" enumerations contained in the CDEsMetadata.
-    """
-    type_mapping = {
-        "int": int,
-        "real": float,
-        "text": str,
-    }
-
-    if mip_type not in type_mapping.keys():
-        raise KeyError(
-            f"MIP type '{mip_type}' cannot be converted to a python class type."
-        )
-
-    return type_mapping.get(mip_type)

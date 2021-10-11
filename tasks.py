@@ -38,7 +38,7 @@ monetdb_port=50002
 rabbitmq_port=5672
 ```
 
-and by running the command 'inv create-node-configs'.
+and by running the command 'inv create-configs'.
 
 The node services are named after their config file. If a config file is named './configs/nodes/localnode1.toml'
 the node service will be called 'localnode1' and should be referenced using that in the following tasks.
@@ -46,8 +46,7 @@ the node service will be called 'localnode1' and should be referenced using that
 Paths are subject to change so in the following documentation the global variables will be used.
 
 """
-
-
+import json
 import sys
 from enum import Enum
 from itertools import cycle
@@ -68,14 +67,15 @@ DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
 NODES_CONFIG_DIR = PROJECT_ROOT / "configs" / "nodes"
 NODE_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "mipengine" / "node" / "config.toml"
 CONTROLLER_CONFIG_DIR = PROJECT_ROOT / "configs" / "controller"
+CONTROLLER_LOCALNODES_CONFIG_FILE = (
+    PROJECT_ROOT / "configs" / "controller" / "localnodes_config.json"
+)
 CONTROLLER_CONFIG_TEMPLATE_FILE = (
     PROJECT_ROOT / "mipengine" / "controller" / "config.toml"
 )
 OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
-
-CONSUL_AGENT_CONTAINER_NAME = "consul-agent"
 
 DEMO_DATA_FOLDER = Path(tests.__file__).parent / "demo_data"
 
@@ -84,7 +84,7 @@ DEMO_DATA_FOLDER = Path(tests.__file__).parent / "demo_data"
 
 
 @task
-def create_node_configs(c):
+def create_configs(c):
     """
     Create the node and controller services config files, using 'DEPLOYMENT_CONFIG_FILE'.
     """
@@ -105,9 +105,6 @@ def create_node_configs(c):
         node_config = template_node_config.copy()
 
         node_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
-
-        node_config["node_registry"]["ip"] = deployment_config["ip"]
-        node_config["node_registry"]["port"] = deployment_config["node_registry_port"]
 
         node_config["identifier"] = node["id"]
         node_config["role"] = node["role"]
@@ -130,13 +127,33 @@ def create_node_configs(c):
 
     controller_config = template_controller_config.copy()
     controller_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
-    controller_config["node_registry"]["ip"] = deployment_config["ip"]
-    controller_config["node_registry"]["port"] = deployment_config["node_registry_port"]
+    controller_config["node_registry_update_interval"] = deployment_config[
+        "node_registry_update_interval"
+    ]
+    controller_config["celery_tasks_timeout"] = deployment_config[
+        "celery_tasks_timeout"
+    ]
+
+    controller_config["deployment_type"] = "LOCAL"
+
+    controller_config["localnodes"]["config_file"] = str(
+        CONTROLLER_LOCALNODES_CONFIG_FILE
+    )
+    controller_config["localnodes"]["dns"] = ""
+    controller_config["localnodes"]["port"] = ""
 
     CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
     with open(controller_config_file, "w+") as fp:
         toml.dump(controller_config, fp)
+
+    # Create the controller localnodes config file
+    localnodes_addresses = [
+        f"{deployment_config['ip']}:{node['rabbitmq_port']}"
+        for node in deployment_config["nodes"]
+    ]
+    with open(CONTROLLER_LOCALNODES_CONFIG_FILE, "w+") as fp:
+        json.dump(localnodes_addresses, fp)
 
 
 @task
@@ -180,41 +197,6 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
             message(f"No {name} container to remove", level=Level.HEADER)
 
 
-@task
-def start_node_registry(context, container_name=None, port=None):
-    if not container_name:
-        container_name = CONSUL_AGENT_CONTAINER_NAME
-    if not port:
-        port = get_deployment_config("node_registry_port")
-
-    # TODO killing the existing container is not obvious from the task name
-    kill_node_registry(context)
-
-    message(
-        f"Pulling image bitnami/consul:1.10.1 ...",
-        Level.HEADER,
-    )
-    cmd = f"docker pull bitnami/consul:1.10.1"
-    run(context, cmd, raise_error=False)
-
-    message(
-        f"Starting container {container_name} on port {port}...",
-        Level.HEADER,
-    )
-    # start the consul container
-    cmd = f"docker run -d --name={container_name}  -p {port}:8500 bitnami/consul:1.10.1"
-    run(context, cmd, raise_error=False)
-
-
-@task
-def kill_node_registry(context, container_name=None):
-    if not container_name:
-        container_name = CONSUL_AGENT_CONTAINER_NAME
-
-    # remove the consul container
-    rm_containers(context, container_name=container_name)
-
-
 @task(iterable=["node"])
 def create_monetdb(c, node, monetdb_image=None):
     """
@@ -235,12 +217,7 @@ def create_monetdb(c, node, monetdb_image=None):
     if not monetdb_image:
         monetdb_image = get_deployment_config("monetdb_image")
 
-    message(
-        f"Pulling image {monetdb_image} ...",
-        Level.HEADER,
-    )
-    cmd = f"docker pull {monetdb_image}"
-    run(c, cmd, raise_error=False)
+    get_docker_image(c, monetdb_image)
 
     node_ids = node
     for node_id in node_ids:
@@ -315,12 +292,7 @@ def create_rabbitmq(c, node, rabbitmq_image=None):
     if not rabbitmq_image:
         rabbitmq_image = get_deployment_config("rabbitmq_image")
 
-    message(
-        f"Pulling image {rabbitmq_image} ...",
-        Level.HEADER,
-    )
-    cmd = f"docker pull {rabbitmq_image}"
-    run(c, cmd, raise_error=False)
+    get_docker_image(c, rabbitmq_image)
 
     node_ids = node
     for node_id in node_ids:
@@ -501,9 +473,6 @@ def deploy(
     if install_dep:
         install_dependencies(c)
 
-    # start NODE REGISTRY service
-    start_node_registry(c)
-
     # start NODE services
     config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
     if not config_files:
@@ -557,7 +526,6 @@ def cleanup(c):
     kill_controller(c)
     kill_node(c, all_=True)
     rm_containers(c, monetdb=True, rabbitmq=True)
-    kill_node_registry(c)
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
         for outpath in OUTDIR.glob("*.out"):
@@ -723,3 +691,21 @@ def get_node_ids(all_=False, node=None):
         sys.exit(1)
 
     return node_ids
+
+
+def get_docker_image(c, image, always_pull=False):
+    """
+    Fetches a docker image locally.
+
+    :param image: The image to pull from dockerhub.
+    :param always_pull: Will pull the image even if it exists locally.
+    """
+
+    cmd = f"docker images -q {image}"
+    result = run(c, cmd, show_ok=False)
+    if result.stdout != "":
+        return
+
+    message(f"Pulling image {image} ...", Level.HEADER)
+    cmd = f"docker pull {image}"
+    run(c, cmd)

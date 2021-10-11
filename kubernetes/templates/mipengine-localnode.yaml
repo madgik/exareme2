@@ -3,16 +3,16 @@ kind: Deployment
 metadata:
   name: mipengine-localnode-deployment
   labels:
-    app: mipengine-localnode
+    app: mipengine-node
 spec:
   replicas: {{ .Values.localnodes }}
   selector:
     matchLabels:
-      app: mipengine-localnode
+      app: mipengine-node
   template:
     metadata:
       labels:
-        app: mipengine-localnode
+        app: mipengine-node
     spec:
       nodeSelector:
         nodeType: worker
@@ -24,10 +24,10 @@ spec:
               - key: app
                 operator: In
                 values:
-                - mipengine-localnode
+                - mipengine-node
             topologyKey: "kubernetes.io/hostname"
       containers:
-      - name: mipengine-monetdb
+      - name: monetdb
         image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
         ports:
@@ -36,7 +36,7 @@ spec:
         - mountPath: /home/monetdb
           name: monetdb-data
 
-      - name: mipengine-rabbitmq
+      - name: rabbitmq
         image: {{ .Values.mipengine_images.repository }}/mipengine_rabbitmq:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
         env:
@@ -51,7 +51,7 @@ spec:
         ports:
           - containerPort: 5672
 
-      - name: mipengine-node
+      - name: node
         image: {{ .Values.mipengine_images.repository }}/mipengine_node:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
         env:
@@ -63,10 +63,6 @@ spec:
           value: "LOCALNODE"
         - name: LOG_LEVEL
           value: "INFO"
-        - name: NODE_REGISTRY_IP
-          value: "mipengine-noderegistry-service"
-        - name: NODE_REGISTRY_PORT
-          value: "8500"
         - name: RABBITMQ_IP
           valueFrom:
             fieldRef:

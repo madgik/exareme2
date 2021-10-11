@@ -5,6 +5,7 @@ import pytest
 from mipengine.node_exceptions import IncompatibleSchemasMergeException
 from mipengine.node_exceptions import TablesNotFound
 from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
 from tests.integration_tests.nodes_communication import get_celery_app
@@ -24,7 +25,7 @@ local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def context_id():
-    context_id = "test_merge_tables_" + str(uuid.uuid4()).replace("-", "")
+    context_id = "test_merge_tables_" + uuid.uuid4().hex
 
     yield context_id
 
@@ -32,27 +33,32 @@ def context_id():
 
 
 def create_two_column_table(context_id, table_id: int):
-    table_schema = TableSchema([ColumnInfo("col1", "int"), ColumnInfo("col2", "real")])
+    table_schema = TableSchema(
+        columns=[
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+        ]
+    )
     table_name = local_node_create_table.delay(
         context_id=f"{context_id}_table_{table_id}",
-        command_id=str(uuid.uuid1()).replace("-", ""),
-        schema_json=table_schema.to_json(),
+        command_id=uuid.uuid4().hex,
+        schema_json=table_schema.json(),
     ).get()
     return table_name
 
 
 def create_three_column_table_with_data(context_id, table_id: int):
     table_schema = TableSchema(
-        [
-            ColumnInfo("col1", "int"),
-            ColumnInfo("col2", "real"),
-            ColumnInfo("col3", "text"),
+        columns=[
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
     table_name = local_node_create_table.delay(
         context_id=f"{context_id}_table_{table_id}",
-        command_id=str(uuid.uuid1()).replace("-", ""),
-        schema_json=table_schema.to_json(),
+        command_id=uuid.uuid4().hex,
+        schema_json=table_schema.json(),
     ).get()
 
     values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
@@ -70,7 +76,7 @@ def test_create_and_get_merge_table(context_id):
     ]
     merge_table_1_name = local_node_create_merge_table.delay(
         context_id=context_id,
-        command_id=str(uuid.uuid1()).replace("-", ""),
+        command_id=uuid.uuid4().hex,
         table_names=tables_to_be_merged,
     ).get()
     merge_tables = local_node_get_merge_tables.delay(context_id=context_id).get()
@@ -87,7 +93,7 @@ def test_incompatible_schemas_merge(context_id):
         ]
         local_node_create_merge_table.delay(
             context_id=context_id,
-            command_id=str(uuid.uuid1()).replace("-", ""),
+            command_id=uuid.uuid4().hex,
             table_names=incompatible_partition_tables,
         ).get()
 
@@ -102,6 +108,6 @@ def test_table_cannot_be_found(context_id):
 
         local_node_create_merge_table.delay(
             context_id=context_id,
-            command_id=str(uuid.uuid1()).replace("-", ""),
+            command_id=uuid.uuid4().hex,
             table_names=not_found_tables,
         ).get()

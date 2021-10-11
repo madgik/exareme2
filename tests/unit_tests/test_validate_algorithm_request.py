@@ -22,7 +22,7 @@ from mipengine.controller.api.validator import validate_algorithm_request
 def mock_cdes():
     common_data_elements = CommonDataElements()
     common_data_elements.pathologies = {
-        "test_pathology1": {
+        "test_schema1": {
             "test_cde1": CommonDataElement(
                 MetadataVariable(
                     code="test_cde1",
@@ -99,7 +99,7 @@ def mock_cdes():
                 )
             ),
         },
-        "test_pathology2": {
+        "test_schema2": {
             "test_cde1": CommonDataElement(
                 MetadataVariable(
                     code="test_cde1",
@@ -149,29 +149,29 @@ def mock_cdes():
 @pytest.fixture(scope="module", autouse=True)
 def mock_node_registry():
     with patch.multiple(
-        "mipengine.controller.api.validator.NodeRegistryClient",
-        pathology_exists=DEFAULT,
+        "mipengine.controller.node_registry.NodeRegistry",
+        schema_exists=DEFAULT,
         dataset_exists=DEFAULT,
         autospec=True,
     ) as mock_node_registry:
-        mock_node_registry["pathology_exists"].side_effect = (
-            lambda self, pathology: True
-            if pathology
+        mock_node_registry["schema_exists"].side_effect = (
+            lambda self, schema: True
+            if schema
             in {
-                "test_pathology1",
-                "test_pathology2",
+                "test_schema1",
+                "test_schema2",
             }
             else False
         )
 
         mock_node_registry["dataset_exists"].side_effect = (
-            lambda self, pathology, dataset: True
-            if (pathology, dataset)
+            lambda self, schema, dataset: True
+            if (schema, dataset)
             in {
-                ("test_pathology1", "test_dataset1"),
-                ("test_pathology1", "test_dataset2"),
-                ("test_pathology2", "test_dataset2"),
-                ("test_pathology2", "test_dataset3"),
+                ("test_schema1", "test_dataset1"),
+                ("test_schema1", "test_dataset2"),
+                ("test_schema2", "test_dataset2"),
+                ("test_schema2", "test_dataset3"),
             }
             else False
         )
@@ -255,12 +255,12 @@ def mock_algorithms_specs():
         yield
 
 
-test_cases_proper_validate_algorithm = [
+test_cases_validate_algorithm = [
     (
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1", "test_dataset2"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde3"],
@@ -272,7 +272,7 @@ test_cases_proper_validate_algorithm = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology2",
+                "pathology": "test_schema2",
                 "datasets": ["test_dataset2", "test_dataset3"],
                 "filters": None,
                 "x": ["test_cde1"],
@@ -285,7 +285,7 @@ test_cases_proper_validate_algorithm = [
 
 
 @pytest.mark.parametrize(
-    "algorithm_name, request_body_dict", test_cases_proper_validate_algorithm
+    "algorithm_name, request_body_dict", test_cases_validate_algorithm
 )
 def test_validate_algorithm_success(
     algorithm_name,
@@ -304,7 +304,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": 123,
                 "x": ["lefthippocampus", "righthippocampus"],
                 "y": ["alzheimerbroadcategory_bin"],
@@ -316,7 +316,7 @@ test_cases_validate_algorithm_exceptions = [
         "non_existing_algorithm",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["demo_data"],
                 "x": ["lefthippocampus", "righthippocampus"],
                 "y": ["alzheimerbroadcategory_bin"],
@@ -328,7 +328,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["demo_data"],
                 "x": ["lefthippocampus", "righthippocampus"],
                 "y": ["alzheimerbroadcategory_bin"],
@@ -355,7 +355,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["non_existing", "non_existing2"],
                 "x": ["lefthippocampus", "righthippocampus"],
                 "y": ["alzheimerbroadcategory_bin"],
@@ -370,7 +370,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "y": ["test_cde3"],
             },
@@ -382,7 +382,7 @@ test_cases_validate_algorithm_exceptions = [
     #     "test_algorithm1",
     #     {
     #         "inputdata": {
-    #             "pathology": "test_pathology1",
+    #             "pathology": "test_schema1",
     #             "datasets": ["test_dataset1"],
     #             "x": "test_cde1",
     #             "y": ["test_cde3"],
@@ -394,7 +394,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde3", "test_cde2"],
@@ -406,7 +406,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["non_existing"],
@@ -418,7 +418,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde1"],
@@ -430,7 +430,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde4"],
@@ -442,7 +442,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde5", "test_cde2"],
                 "y": ["test_cde3"],
@@ -454,7 +454,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde6"],
@@ -466,7 +466,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde3"],
@@ -478,7 +478,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde3"],
@@ -491,7 +491,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde3"],
@@ -504,7 +504,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde3"],
@@ -517,7 +517,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde3"],
@@ -530,7 +530,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde3"],
@@ -543,7 +543,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde3"],
@@ -556,7 +556,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde3"],
@@ -569,7 +569,7 @@ test_cases_validate_algorithm_exceptions = [
         "test_algorithm1",
         {
             "inputdata": {
-                "pathology": "test_pathology1",
+                "pathology": "test_schema1",
                 "datasets": ["test_dataset1"],
                 "x": ["test_cde1", "test_cde2"],
                 "y": ["test_cde3"],

@@ -42,11 +42,11 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
     str
         The name of the created table in lower case
     """
-    schema_object = TableSchema.from_json(schema_json)
+    schema_object = TableSchema.parse_raw(schema_json)
     table_name = create_table_name(
         "table", command_id, context_id, node_config.identifier
     )
-    table_info = TableInfo(table_name, schema_object)
+    table_info = TableInfo(name=table_name, schema_=schema_object)
     tables.create_table(table_info)
     return table_name
 

@@ -1,5 +1,5 @@
+from mipengine import DType
 from mipengine.common_data_elements import CommonDataElements
-from mipengine.datatypes import convert_mip_type_to_python_type
 
 FILTER_OPERATORS = {
     "equal": lambda column, value: f"{column} = {value}",
@@ -16,7 +16,7 @@ FILTER_OPERATORS = {
     "not_in": lambda column, values: f"{column} NOT IN ({','.join(str(value) for value in values)})",
 }
 
-__all__ = ["build_filter_clause", "validate_proper_filter"]
+__all__ = ["build_filter_clause", "validate_filter"]
 
 
 def build_filter_clause(rules):
@@ -29,7 +29,7 @@ def build_filter_clause(rules):
         return
 
     if "condition" in rules:
-        _check_proper_condition(rules["condition"])
+        _check_condition(rules["condition"])
         cond = rules["condition"]
         rules = rules["rules"]
         return f" {cond} ".join([build_filter_clause(rule) for rule in rules])
@@ -43,7 +43,7 @@ def build_filter_clause(rules):
     raise ValueError(f"Filters did not contain the keys: 'condition' or 'id'.")
 
 
-def validate_proper_filter(
+def validate_filter(
     common_data_elements: CommonDataElements, pathology_name: str, rules: dict
 ):
     """
@@ -63,14 +63,14 @@ def validate_proper_filter(
     _check_pathology_exists(common_data_elements, pathology_name)
 
     if "condition" in rules:
-        _check_proper_condition(rules["condition"])
+        _check_condition(rules["condition"])
         rules = rules["rules"]
         for rule in rules:
-            validate_proper_filter(common_data_elements, pathology_name, rule)
+            validate_filter(common_data_elements, pathology_name, rule)
     elif "id" in rules:
         column_name = rules["id"]
         val = rules["value"]
-        _check_proper_operator(rules["operator"])
+        _check_operator(rules["operator"])
         _check_column_exists(common_data_elements, pathology_name, column_name)
         _check_value_type(common_data_elements, pathology_name, column_name, val)
     else:
@@ -90,12 +90,12 @@ def _check_filter_type(rules):
         raise TypeError(f"Filter type can only be dict but was:{type(rules)}")
 
 
-def _check_proper_condition(condition: str):
+def _check_condition(condition: str):
     if condition not in ["OR", "AND"]:
         raise ValueError(f"Condition: {condition} is not acceptable.")
 
 
-def _check_proper_operator(operator: str):
+def _check_operator(operator: str):
     if operator not in FILTER_OPERATORS:
         raise ValueError(f"Operator: {operator} is not acceptable.")
 
@@ -135,7 +135,8 @@ def _check_value_type(common_data_elements, pathology_name: str, column: str, va
 def _check_value_column_same_type(common_data_elements, pathology_name, column, value):
     pathology_common_data_elements = common_data_elements.pathologies[pathology_name]
     column_sql_type = pathology_common_data_elements[column].sql_type
-    if type(value) is not convert_mip_type_to_python_type(column_sql_type):
+    dtype = DType.from_cde(column_sql_type)
+    if type(value) is not dtype.to_py():
         raise TypeError(
             f"{column}'s type: {column_sql_type} was different from the type of the given value:{type(value)}"
         )

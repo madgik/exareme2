@@ -22,8 +22,23 @@ import concurrent.futures
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.api.exceptions import UnexpectedException
 from mipengine.controller.api.validator import validate_algorithm_request
+from mipengine.controller.node_registry import node_registry
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
+
+
+@algorithms.before_app_serving
+async def startup():
+    asyncio.create_task(node_registry.update())
+
+
+@algorithms.route("/datasets")
+async def get_datasets() -> dict:
+    datasets = {}
+    for node in node_registry.get_all_local_nodes():
+        datasets[node.id] = node.datasets_per_schema
+
+    return datasets
 
 
 @algorithms.route("/algorithms")
@@ -38,7 +53,6 @@ async def post_algorithm(algorithm_name: str) -> str:
     logging.info(f"Algorithm execution with name {algorithm_name}.")
 
     request_body = await request.data
-
     try:
         validate_algorithm_request(algorithm_name, request_body)
     except (BadRequest, BadUserInput) as exc:

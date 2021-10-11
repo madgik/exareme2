@@ -1,6 +1,17 @@
 log_level = "INFO"
 cdes_metadata_path = "$CDES_METADATA_PATH"
 
-[node_registry]
-ip="$NODE_REGISTRY_IP"
-port="$NODE_REGISTRY_PORT"
+deployment_type="$DEPLOYMENT_TYPE"
+
+node_registry_update_interval="$NODE_REGISTRY_UPDATE_INTERVAL"
+celery_tasks_timeout="$CELERY_TASKS_TIMEOUT"
+
+[localnodes]
+config_file="$LOCALNODES_CONFIG_FILE"
+dns="$LOCALNODES_DNS"
+port="$LOCALNODES_PORT"
+
+[rabbitmq]
+user = "user"
+password = "password"
+vhost = "user_vhost"
