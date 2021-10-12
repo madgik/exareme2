@@ -127,7 +127,7 @@ class NodeRegistry:
     # without duplicates
     def get_all_available_schemas(self) -> List[str]:
         all_local_nodes = self.get_all_local_nodes()
-        tmp = [schemas for schemas in all_local_nodes.datasets_per_schema]
+        tmp = [local_node.datasets_per_schema for local_node in all_local_nodes]
         all_existing_schemas = set().union(*tmp)
         return list(all_existing_schemas)
 
