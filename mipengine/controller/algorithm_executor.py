@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Dict, List, Tuple, Any
 import importlib
 from pydantic import BaseModel
@@ -126,7 +125,7 @@ class _Node:
         self,
         context_id: str,
         node_tasks_handler: INodeTasksHandler,
-        initial_view_tables_params: Dict[Any] = None,
+        initial_view_tables_params: Dict[str, Any] = None,
     ):
         self.node_tasks_handler = node_tasks_handler
         self.node_id = self.node_tasks_handler.node_id
@@ -242,7 +241,7 @@ class _Node:
         return self.node_tasks_handler.get_remote_tables(context_id=self.context_id)
 
     def create_remote_table(
-        self, table_info: TableInfo, native_node: _Node
+        self, table_info: TableInfo, native_node: "_Node"
     ) -> _TableName:
 
         monetdb_socket_addr = native_node.node_address
@@ -267,7 +266,7 @@ class _Node:
 
     # return the generated monetdb pythonudf
     def get_run_udf_query(
-        self, command_id: str, func_name: str, positional_args: List[_NodeTable]
+        self, command_id: str, func_name: str, positional_args: List["_NodeTable"]
     ) -> Tuple[str, str]:
         return self.node_tasks_handler.get_run_udf_query(
             context_id=self.context_id,
@@ -339,7 +338,7 @@ class _AlgorithmExecutionInterface:
     def run_udf_on_local_nodes(
         self,
         func_name: str,
-        positional_args: Dict[_LocalNodeTable],
+        positional_args: Dict[str, "_LocalNodeTable"],
         share_to_global: bool = False,
     ):  # -> GlobalNodeTable or LocalNodeTable
         # queue exec_udf task on all local nodes
@@ -412,7 +411,7 @@ class _AlgorithmExecutionInterface:
     def run_udf_on_global_node(
         self,
         func_name: str,
-        positional_args: List[_GlobalNodeTable],
+        positional_args: List["_GlobalNodeTable"],
         share_to_locals: bool = False,
     ):  # -> GlobalNodeTable or LocalNodeTable
         # check the input tables are GlobalNodeTable(s)
@@ -490,7 +489,7 @@ class _NodeTable:
 
 
 class _LocalNodeTable:
-    def __init__(self, nodes_tables: dict[Node, TableName]):  # noqa: F821
+    def __init__(self, nodes_tables: Dict["_Node", "_TableName"]):
         self._nodes_tables = nodes_tables
 
         if not self._validate_matching_table_names(list(self._nodes_tables.values())):
@@ -541,7 +540,7 @@ class _LocalNodeTable:
 
 
 class _GlobalNodeTable:
-    def __init__(self, node_table: dict[_Node, _TableName]):
+    def __init__(self, node_table: Dict["_Node", "_TableName"]):
         self._node_table = node_table
 
     @property
