@@ -253,7 +253,7 @@ class _Node:
     # UDFs functionality
     def queue_run_udf(
         self, command_id: str, func_name: str, positional_args, keyword_args
-    ) -> "AsyncResult":
+    ):  # -> "AsyncResult"
         return self.node_tasks_handler.queue_run_udf(
             context_id=self.context_id,
             command_id=command_id,
@@ -307,6 +307,7 @@ class _AlgorithmExecutionInterface:
         tmp_variable_node_table = {}
 
         # TODO: clean up this mindfuck??
+        # https://github.com/madgik/MIP-Engine/pull/132#discussion_r727076138
         for node in self._local_nodes:
             for (variable_name, table_name) in node.initial_view_tables.items():
                 if variable_name in tmp_variable_node_table:

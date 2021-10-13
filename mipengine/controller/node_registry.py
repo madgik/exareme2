@@ -60,13 +60,7 @@ async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
 
 
 def _have_common_elements(a: List[Any], b: List[Any]):
-    if not a or not b:
-        return False
-    a_set = set(a)
-    b_set = set(b)
-    if len(a_set.intersection(b_set)) > 0:
-        return True
-    return False
+    return bool(set(a) & set(b))
 
 
 class NodeRegistry:

@@ -16,9 +16,12 @@ from mipengine.controller.node_tasks_handler_celery import (
 from mipengine.node_tasks_DTOs import TableSchema, ColumnInfo
 from mipengine import DType
 
-# TODO  If folder structure changes this will not be the project parent folder anymore. Needs a more standardized way to refer to the project root..
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-TASKS_CONTEXT_ID="contextid123"
+from pathlib import Path
+import mipengine
+
+PROJECT_ROOT = Path(mipengine.__file__).parent.parent
+
+TASKS_CONTEXT_ID = "contextid123"
 
 # This fixture returns a celery app object upon which tasks will be triggered in order
 # to test them
@@ -44,10 +47,10 @@ def node_task_handler():
     with open(a_localnode_config_file) as fp:
         tmp = toml.load(fp)
         # TODO celery params and rabbitmq params in the config files should be one..
-        node_id=tmp["identifier"]
+        node_id = tmp["identifier"]
         celery_params = tmp["celery"]
         rabbitmq_params = tmp["rabbitmq"]
-        monetdb_params=tmp["monetdb"]
+        monetdb_params = tmp["monetdb"]
         celery_params_dto = CeleryParamsDTO(
             task_queue_domain=rabbitmq_params["ip"],
             task_queue_port=rabbitmq_params["port"],
@@ -62,11 +65,8 @@ def node_task_handler():
             interval_max=controller_config.rabbitmq.celery_tasks_interval_max,
         )
 
-    node_task_handler = NodeTasksHandlerCelery(
-        node_id= node_id,celery_params=celery_params_dto
-    )
+    return NodeTasksHandlerCelery(node_id=node_id, celery_params=celery_params_dto)
 
-    return node_task_handler
 
 @pytest.fixture
 def a_test_table_params():
@@ -74,10 +74,11 @@ def a_test_table_params():
     schema = TableSchema(
         columns=[
             ColumnInfo(name="var1", dtype=DType.INT),
-            ColumnInfo(name="var2", dtype=DType.STR)
-        ] 
+            ColumnInfo(name="var2", dtype=DType.STR),
+        ]
     )
-    return (command_id,schema)
+    return (command_id, schema)
+
 
 @pytest.fixture
 def cleanup(node_task_handler):
@@ -85,39 +86,36 @@ def cleanup(node_task_handler):
     # teardown
     node_task_handler.clean_up(context_id=TASKS_CONTEXT_ID)
 
+
 @pytest.mark.usefixtures("cleanup")
-def test_create_table(node_task_handler,a_test_table_params):
+def test_create_table(node_task_handler, a_test_table_params):
     command_id = a_test_table_params[0]
     schema = a_test_table_params[1]
-   
-    table_name = node_task_handler.create_table(context_id=TASKS_CONTEXT_ID,command_id=command_id, schema=schema)
+
+    table_name = node_task_handler.create_table(
+        context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
+    )
     print(f"{table_name=}")
 
-    if table_name.startswith(f"table_{command_id}_{TASKS_CONTEXT_ID}_"):
-        assert True
-    else:
-        assert False
+    assert table_name.startswith(f"table_{command_id}_{TASKS_CONTEXT_ID}_")
+
 
 @pytest.mark.usefixtures("cleanup")
-def test_get_tables(node_task_handler,a_test_table_params):
+def test_get_tables(node_task_handler, a_test_table_params):
     command_id = a_test_table_params[0]
     schema = a_test_table_params[1]
-    table_name = node_task_handler.create_table(context_id=TASKS_CONTEXT_ID,command_id=command_id, schema=schema)
+    table_name = node_task_handler.create_table(
+        context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
+    )
     tables = node_task_handler.get_tables(context_id=TASKS_CONTEXT_ID)
-    if table_name in tables:
-        assert True
-    else:
-        assert False
+    assert table_name in tables
 
-        
 @pytest.mark.usefixtures("cleanup")
-def test_get_table_schema(node_task_handler,a_test_table_params):
+def test_get_table_schema(node_task_handler, a_test_table_params):
     command_id = a_test_table_params[0]
     schema = a_test_table_params[1]
-    table_name = node_task_handler.create_table(context_id=TASKS_CONTEXT_ID,command_id=command_id, schema=schema)
+    table_name = node_task_handler.create_table(
+        context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
+    )
     schema_result = node_task_handler.get_table_schema(table_name)
-    # print(f"{schema_result=}")
-    if schema_result==schema:
-        assert True
-    else:
-        assert False
+    assert schema_result == schema
