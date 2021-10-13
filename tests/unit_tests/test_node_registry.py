@@ -14,6 +14,34 @@ mocked_node_addresses = [
 ]
 
 
+def get_nodes_datasets_per_schema():
+    return {
+        "globalnode": None,
+        "localnode1": {
+            "schema1": [
+                "dataset1",
+                "dataset2",
+                "dataset3",
+                "dataset4",
+                "dataset5",
+            ],
+            "schema2": ["dataset6"],
+        },
+        "localnode2": {
+            "schema2": [
+                "dataset7",
+                "dataset8",
+                "dataset9",
+            ],
+        },
+        "localnode3": {
+            "schema2": [
+                "dataset10",
+            ],
+        },
+    }
+
+
 def get_mocked_node_info() -> List[NodeInfo]:
     return [
         NodeInfo(
@@ -23,7 +51,7 @@ def get_mocked_node_info() -> List[NodeInfo]:
             port=mocked_node_addresses[0].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50000,
-            datasets_per_schema=None,
+            datasets_per_schema=get_nodes_datasets_per_schema()["globalnode"],
         ),
         NodeInfo(
             id="localnode1",
@@ -32,16 +60,7 @@ def get_mocked_node_info() -> List[NodeInfo]:
             port=mocked_node_addresses[1].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50000,
-            datasets_per_schema={
-                "schema1": [
-                    "dataset1",
-                    "dataset2",
-                    "dataset3",
-                    "dataset4",
-                    "dataset5",
-                ],
-                "schema2": ["dataset6"],
-            },
+            datasets_per_schema=get_nodes_datasets_per_schema()["localnode1"],
         ),
         NodeInfo(
             id="localnode2",
@@ -50,13 +69,7 @@ def get_mocked_node_info() -> List[NodeInfo]:
             port=mocked_node_addresses[2].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50000,
-            datasets_per_schema={
-                "schema2": [
-                    "dataset7",
-                    "dataset8",
-                    "dataset9",
-                ],
-            },
+            datasets_per_schema=get_nodes_datasets_per_schema()["localnode2"],
         ),
         NodeInfo(
             id="localnode3",
@@ -65,11 +78,7 @@ def get_mocked_node_info() -> List[NodeInfo]:
             port=mocked_node_addresses[2].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50000,
-            datasets_per_schema={
-                "schema2": [
-                    "dataset10",
-                ],
-            },
+            datasets_per_schema=get_nodes_datasets_per_schema()["localnode3"],
         ),
     ]
 
@@ -153,3 +162,52 @@ test_cases_dataset_exists = [
 )
 def test_dataset_exists(schema, dataset, exists, mocked_node_registry):
     assert mocked_node_registry.dataset_exists(schema, dataset) == exists
+
+
+test_cases_get_nodes_with_any_of_datasets = [
+    ("schema1", ["dataset1"], ["localnode1"]),
+    ("schema1", ["dataset1", "dataset2"], ["localnode1"]),
+    ("schema1", ["dataset1", "dataset6"], ["localnode1"]),
+    ("schema1", ["dataset1", "dataset7"], ["localnode1"]),
+    ("schema2", ["dataset1", "dataset7", "dataset10"], ["localnode2", "localnode3"]),
+    (
+        "schema2",
+        ["dataset6", "dataset7", "dataset10"],
+        ["localnode1", "localnode2", "localnode3"],
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "schema, datasets, expected_node_names",
+    test_cases_get_nodes_with_any_of_datasets,
+)
+def test_get_nodes_with_any_of_datasets(
+    schema, datasets, expected_node_names, mocked_node_registry
+):
+    nodes_info = mocked_node_registry.get_nodes_with_any_of_datasets(schema, datasets)
+    node_names = [node_info.id for node_info in nodes_info]
+    node_names.sort()
+    expected_node_names.sort()
+    assert node_names == expected_node_names
+
+
+def test_get_all_available_schemas(mocked_node_registry):
+    expected_available_schemas = ["schema1", "schema2"]
+    expected_available_schemas.sort()
+
+    available_schemas = mocked_node_registry.get_all_available_schemas()
+    available_schemas.sort()
+
+    assert available_schemas == expected_available_schemas
+
+
+def test_get_all_available_datasets_per_schema(mocked_node_registry):
+    expected_datasets_per_schema = {
+        "schema1": ["dataset1", "dataset2", "dataset3", "dataset4", "dataset5"],
+        "schema2": ["dataset6", "dataset7", "dataset8", "dataset9", "dataset10"],
+    }
+
+    datasets_per_schema = mocked_node_registry.get_all_available_datasets_per_schema()
+
+    assert datasets_per_schema == expected_datasets_per_schema
