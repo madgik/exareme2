@@ -81,15 +81,14 @@ class AlgorithmExecutor:
         }
 
         # instantiate the LOCAL Node objects
-        self.local_nodes = []
-        for node_tasks_handler in nodes_tasks_handlers_dto.local_nodes_tasks_handlers:
-            self.local_nodes.append(
-                _Node(
-                    context_id=self._context_id,
-                    node_tasks_handler=node_tasks_handler,
-                    initial_view_tables_params=initial_view_tables_params,
-                )
+        self.local_nodes = [
+            _Node(
+                context_id=self._context_id,
+                node_tasks_handler=node_tasks_handler,
+                initial_view_tables_params=initial_view_tables_params,
             )
+            for node_tasks_handler in nodes_tasks_handlers_dto.local_nodes_tasks_handlers
+        ]
 
         algo_execution_interface_dto = _AlgorithmExecutionInterfaceDTO(
             global_node=self.global_node,
@@ -117,7 +116,8 @@ class AlgorithmExecutor:
 
     def clean_up(self):
         self.global_node.clean_up()
-        [node.clean_up() for node in self.local_nodes]
+        for node in self.local_nodes:
+            node.clean_up()
 
 
 class _Node:
@@ -205,7 +205,8 @@ class _Node:
         result = self.node_tasks_handler.get_views(context_id=self.context_id)
         return [_TableName(table_name) for table_name in result]
 
-    # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
+    # TODO: this is very specific to mip, very inconsistent with the rest, has to
+    # be abstracted somehow
     def create_pathology_view(
         self,
         command_id: str,
@@ -433,7 +434,8 @@ class _AlgorithmExecutionInterface:
                 )  # TODO: da fuck is dat
             elif isinstance(val, _LocalNodeTable):
                 raise Exception(
-                    "(run_udf_on_global_node) LocalNodeTable types are not accepted from run_udf_on_global_nodes"
+                    "(run_udf_on_global_node) LocalNodeTable types are not "
+                    "accepted from run_udf_on_global_nodes"
                 )
             else:
                 udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=str(val))
