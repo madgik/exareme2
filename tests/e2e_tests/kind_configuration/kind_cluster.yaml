@@ -10,6 +10,8 @@ nodes:
     containerPath: /etc/hostname
   - hostPath: ./tests/demo_data
     containerPath: /opt/data
+  - hostPath: /opt/monetdb
+    containerPath: /opt/monetdb
 - role: worker
   extraMounts:
   - hostPath: ./tests/e2e_tests/kind_configuration/hostname_worker1
