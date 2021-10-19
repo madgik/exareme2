@@ -130,9 +130,7 @@ class NodeRegistry:
     def get_all_available_datasets_per_schema(self) -> Dict[str, List[str]]:
         all_local_nodes = self.get_all_local_nodes()
         tmp = [node_info.datasets_per_schema for node_info in all_local_nodes]
-        all_existing_schemas = list(set().union(*tmp))
 
-        # {for schema in all_existing_schemas}
         from collections import defaultdict
         from itertools import chain
         from operator import methodcaller
