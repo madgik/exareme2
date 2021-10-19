@@ -2,19 +2,20 @@ from pydantic import BaseModel
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 
 
 class AlgorithmInputDataDTO(BaseModel):
     pathology: str
     datasets: List[str]
     filters: dict = None
-    x: List[str] = None
-    y: List[str] = None
+    x: Optional[List[str]] = None
+    y: Optional[List[str] ]= None]
 
 
 class AlgorithmRequestDTO(BaseModel):
     inputdata: AlgorithmInputDataDTO
-    parameters: Dict[str, Any] = None
+    parameters: Optional[Dict[str, Any]] = None
 
 
 # @dataclass_json
