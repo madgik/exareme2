@@ -14,10 +14,10 @@ def get_node_celery_app(socket_addr):
     vhost = controller_config.rabbitmq.vhost
     broker = f"amqp://{user}:{password}@{socket_addr}/{vhost}"
     broker_transport_options = {
-        "max_retries": 3,
-        "interval_start": 0,
-        "interval_step": 0.2,
-        "interval_max": 0.5,
+        "max_retries": controller_config.rabbitmq.celery_tasks_max_retries,
+        "interval_start": controller_config.rabbitmq.celery_tasks_interval_start,
+        "interval_step": controller_config.rabbitmq.celery_tasks_interval_step,
+        "interval_max": controller_config.rabbitmq.celery_tasks_interval_max,
     }
     cel_app = Celery(broker=broker, backend="rpc://")
     cel_app.conf.broker_transport_options = broker_transport_options

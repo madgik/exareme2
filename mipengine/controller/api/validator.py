@@ -1,6 +1,4 @@
-import logging
 import numbers
-import traceback
 from typing import Any
 from typing import Dict
 from typing import List
@@ -19,28 +17,28 @@ from mipengine.controller.algorithms_specifications import InputDataSpecificatio
 from mipengine.controller.algorithms_specifications import algorithms_specifications
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.node_registry import node_registry
+
 from mipengine.controller import config
 from mipengine.filters import validate_filter
 
-# TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-68
+
+# TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-90
 
 
-def validate_algorithm_request(algorithm_name: str, request_body: str):
-
-    try:
-        algorithm_request = AlgorithmRequestDTO.from_json(request_body)
-    except Exception:
-        logging.error(
-            f"Could not parse the algorithm request body. "
-            f"Exception: \n {traceback.format_exc()}"
-        )
-        raise BadRequest(f"The algorithm request body does not have the proper format.")
-
+def validate_algorithm_request(
+    algorithm_name: str,
+    algorithm_request_dto: AlgorithmRequestDTO,
+    available_datasets_per_schema: Dict[str, List[str]],
+):
     algorithm_specs = _get_algorithm_specs(algorithm_name)
-    _validate_algorithm_request_body(algorithm_request, algorithm_specs)
+    _validate_algorithm_request_body(
+        algorithm_request_dto=algorithm_request_dto,
+        algorithm_specs=algorithm_specs,
+        available_datasets_per_schema=available_datasets_per_schema,
+    )
 
 
 def _get_algorithm_specs(algorithm_name):
@@ -50,54 +48,59 @@ def _get_algorithm_specs(algorithm_name):
 
 
 def _validate_algorithm_request_body(
-    algorithm_request_body: AlgorithmRequestDTO,
+    algorithm_request_dto: AlgorithmRequestDTO,
     algorithm_specs: AlgorithmSpecifications,
+    available_datasets_per_schema: Dict[str, List[str]],
 ):
-    _validate_inputdata(algorithm_request_body.inputdata, algorithm_specs.inputdata)
+    _validate_inputdata(
+        inputdata=algorithm_request_dto.inputdata,
+        inputdata_specs=algorithm_specs.inputdata,
+        available_datasets_per_schema=available_datasets_per_schema,
+    )
 
     _validate_parameters(
-        algorithm_request_body.parameters,
+        algorithm_request_dto.parameters,
         algorithm_specs.parameters,
     )
 
 
 def _validate_inputdata(
-    inputdata: AlgorithmInputDataDTO, inputdata_specs: InputDataSpecifications
+    inputdata: AlgorithmInputDataDTO,
+    inputdata_specs: InputDataSpecifications,
+    available_datasets_per_schema: Dict[str, List[str]],
 ):
-    _validate_inputdata_pathology_and_dataset(inputdata.pathology, inputdata.datasets)
+    _validate_inputdata_pathology_and_dataset(
+        requested_pathology=inputdata.pathology,
+        requested_datasets=inputdata.datasets,
+        available_datasets_per_schema=available_datasets_per_schema,
+    )
 
     _validate_inputdata_filter(inputdata.pathology, inputdata.filters)
 
     _validate_algorithm_inputdatas(inputdata, inputdata_specs)
 
 
-def _validate_inputdata_pathology_and_dataset(pathology: str, datasets: List[str]):
+def _validate_inputdata_pathology_and_dataset(
+    requested_pathology: str,
+    requested_datasets: List[str],
+    available_datasets_per_schema: Dict[str, List[str]],
+):
     """
     Validates that the pathology, dataset values exist and
     that the datasets belong in the pathology.
     """
 
-    # TODO: The validator should not contact the Node Registry every time it is called
-    # to validate an algorithm request, this would be very expensive. One way to solve
-    # this would be that the Controller passes a some kind of list
-    # with datasets and pathologies for the validation as a parameter.
-    # https://team-1617704806227.atlassian.net/browse/MIP-195
-
-    if not node_registry.schema_exists(pathology):
-        raise BadUserInput(f"Pathology '{pathology}' does not exist.")
-
-    # TODO Remove with pydantic
-    if not isinstance(datasets, list):
-        raise BadRequest(f"Datasets parameter should be a list.")
+    if not requested_pathology in available_datasets_per_schema.keys():
+        raise BadUserInput(f"Pathology '{requested_pathology}' does not exist.")
 
     non_existing_datasets = [
         dataset
-        for dataset in datasets
-        if node_registry.dataset_exists(schema=pathology, dataset=dataset) == False
+        for dataset in requested_datasets
+        if dataset not in available_datasets_per_schema[requested_pathology]
     ]
     if non_existing_datasets:
         raise BadUserInput(
-            f"Datasets:'{non_existing_datasets}' could not be found for pathology:{pathology}"
+            f"Datasets:'{non_existing_datasets}' could not be found for pathology:{requested_pathology}"
         )
 
 

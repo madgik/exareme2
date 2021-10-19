@@ -427,7 +427,7 @@ jobs:
       - name: Wait for MIPENGINE services to start
         uses: jakejarvis/wait-action@master
         with:
-          time: '120s'
+          time: '120s' #https://team-1617704806227.atlassian.net/browse/MIP-248
 
       - name: Run e2e tests
         run: poetry run pytest tests/e2e_tests

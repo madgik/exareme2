@@ -1,26 +1,19 @@
-from dataclasses import dataclass
-from dataclasses import field
+from pydantic import BaseModel
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 
-from dataclasses_json import dataclass_json
 
-
-@dataclass_json
-@dataclass
-class AlgorithmInputDataDTO:
+class AlgorithmInputDataDTO(BaseModel):
     pathology: str
     datasets: List[str]
-    filters: Optional[Any] = None
-    x: Optional[List[str]] = field(default_factory=list)
-    y: Optional[List[str]] = field(default_factory=list)
+    filters: dict = None
+    x: Optional[List[str]] = None
+    y: Optional[List[str]] = None
 
 
-@dataclass_json
-@dataclass
-class AlgorithmRequestDTO:
+class AlgorithmRequestDTO(BaseModel):
     inputdata: AlgorithmInputDataDTO
     parameters: Optional[Dict[str, Any]] = None
 
