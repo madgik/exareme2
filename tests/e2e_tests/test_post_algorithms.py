@@ -67,11 +67,11 @@ def get_parametrization_list_success_cases():
             {"name": "coefficient", "type": "number"},
         ],
         "data": [
-            ["lefthippocampus", "-3.809188"],
-            ["righthippocampus", "4.595969"],
-            ["rightppplanumpolare", "3.6549711"],
-            ["leftamygdala", "-2.4617643"],
-            ["rightamygdala", "-11.787596"],
+            ["lefthippocampus", -3.809188],
+            ["righthippocampus", 4.595969],
+            ["rightppplanumpolare", 3.6549711],
+            ["leftamygdala", -2.4617643],
+            ["rightamygdala", -11.787596],
         ],
     }
 
@@ -81,6 +81,7 @@ def get_parametrization_list_success_cases():
     return parametrization_list
 
 
+@pytest.mark.xfail(reason="https://team-1617704806227.atlassian.net/browse/MIP-260")
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_success_cases(),
