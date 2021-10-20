@@ -1,39 +1,40 @@
-import asyncio
-import concurrent.futures
-import logging
-
+import pydantic
 from quart import Blueprint
 from quart import request
 
-from mipengine.controller.algorithm_executor.algorithm_executor import AlgorithmExecutor
-from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from mipengine.controller.api.algorithm_request_dto import (
+    AlgorithmRequestDTO,
+)
 from mipengine.controller.api.algorithm_specifications_dtos import (
     AlgorithmSpecificationDTO,
 )
 from mipengine.controller.api.algorithm_specifications_dtos import (
     algorithm_specificationsDTOs,
 )
-from mipengine.controller.api.validator import validate_algorithm_request
-from mipengine.controller.node_registry import node_registry
+from mipengine.controller.api.exceptions import BadRequest
+from mipengine.controller.controller import Controller
+from mipengine.node_tasks_DTOs import PrivacyError
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
+controller = Controller()
 
 
 @algorithms.before_app_serving
 async def startup():
-    asyncio.create_task(node_registry.update())
+    await controller.start_node_registry()
 
 
-@algorithms.route("/datasets")
+@algorithms.after_app_serving
+async def shutdown():
+    await controller.stop_node_registry()
+
+
+@algorithms.route("/datasets", methods=["GET"])
 async def get_datasets() -> dict:
-    datasets = {}
-    for node in node_registry.get_all_local_nodes():
-        datasets[node.id] = node.datasets_per_schema
-
-    return datasets
+    return controller.get_all_datasets_per_node()
 
 
-@algorithms.route("/algorithms")
+@algorithms.route("/algorithms", methods=["GET"])
 async def get_algorithms() -> str:
     algorithm_specifications = algorithm_specificationsDTOs.algorithms_list
 
@@ -42,31 +43,23 @@ async def get_algorithms() -> str:
 
 @algorithms.route("/algorithms/<algorithm_name>", methods=["POST"])
 async def post_algorithm(algorithm_name: str) -> str:
-    logging.info(f"Algorithm execution with name {algorithm_name}.")
+    try:
+        request_body = await request.json
+        algorithm_request_dto = AlgorithmRequestDTO.parse_obj(request_body)
+    except pydantic.error_wrappers.ValidationError as pydantic_error:
+        error_msg = (
+            f"Algorithm execution request malformed:"
+            f"\nrequest received:{request_body}"
+            f"\nerror:{pydantic_error}"
+        )
+        raise BadRequest(error_msg)
 
-    request_body = await request.data
-
-    validate_algorithm_request(algorithm_name, request_body)
-
-    algorithm_request = AlgorithmRequestDTO.from_json(request_body)
-
-    # TODO: This looks freakin awful...
-    # Function run_algorithm_executor_in_threadpool calls the run method on the AlgorithmExecutor on a separate thread
-    # This function is queued in the running event loop
-    # Thus AlgorithmExecutor.run is executed asynchronoysly and does not block further requests to the server
-    def run_algorithm_executor_in_threadpool(algorithm_name, algorithm_request):
-        alg_ex = AlgorithmExecutor(algorithm_name, algorithm_request)
-
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(alg_ex.run)
-            result = future.result()
-            return result
-
-    loop = asyncio.get_running_loop()
-    algorithm_result = await loop.run_in_executor(
-        None,
-        run_algorithm_executor_in_threadpool,
-        algorithm_name,
-        algorithm_request,
+    controller.validate_algorithm_execution_request(
+        algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
     )
-    return algorithm_result.json()
+
+    algorithm_result = await controller.exec_algorithm(
+        algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
+    )
+
+    return algorithm_result

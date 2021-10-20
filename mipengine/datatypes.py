@@ -1,6 +1,6 @@
 from enum import Enum
 
-MONETDB_VARCHAR_SIZE = 50
+MONETDB_VARCHAR_SIZE = 500
 
 
 class DType(Enum):
@@ -8,7 +8,7 @@ class DType(Enum):
     Each member has methods to_py and to_sql to convert its value to a concrete
     type.  There are also class methods from_py and from_sql to construct DType
     members from python/sql concrete types. The entire py2dtype and sql2dtype
-    mappings are also provided ass class methods for convenience."""
+    mappings are also provided as class methods for convenience."""
 
     INT = "INT"
     FLOAT = "FLOAT"
@@ -22,11 +22,7 @@ class DType(Enum):
         return mapping[self]
 
     def to_sql(self):
-        mapping = {
-            self.INT: "INT",
-            self.FLOAT: "REAL",
-            self.STR: f"VARCHAR({MONETDB_VARCHAR_SIZE})",
-        }
+        mapping = self.dtype2sql()
         return mapping[self]
 
     @classmethod
@@ -36,13 +32,9 @@ class DType(Enum):
 
     @classmethod
     def from_sql(cls, sql_type):
-        mapping = {
-            "int": cls.INT,
-            "double": cls.FLOAT,
-            "real": cls.FLOAT,
-            "varchar": cls.STR,
-        }
-        return mapping[sql_type]
+        mapping = cls.sql2dtype()
+        return mapping[sql_type.upper()]
+        # We convert to upper case the monet returns the types in lower-case
 
     # Creates a DType from a common data element sql type
     @classmethod
@@ -63,8 +55,24 @@ class DType(Enum):
         }
 
     @classmethod
+    def dtype2sql(cls):
+        return {
+            cls.INT: "INT",
+            cls.FLOAT: "REAL",
+            cls.STR: f"VARCHAR({MONETDB_VARCHAR_SIZE})",
+        }
+
+    @classmethod
     def py2dtype(cls):
         return {val: key for key, val in cls.dtype2py().items()}
+
+    @classmethod
+    def sql2dtype(cls):
+        mapping = {val: key for key, val in cls.dtype2sql().items()}
+        mapping["DOUBLE"] = cls.FLOAT
+        mapping["VARCHAR"] = cls.STR
+        # MonetDB returns VARCHAR instead of VARCHAR(50) when
+        return mapping
 
     def __repr__(self):
         cls = type(self).__name__
