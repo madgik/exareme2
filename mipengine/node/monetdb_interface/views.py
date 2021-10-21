@@ -45,6 +45,7 @@ def create_view(
         view_rows_count = view_rows_result_row[0]
 
         if view_rows_count < PRIVACY_THRESHOLD:
+            MonetDB().execute(f"""DROP VIEW {view_name}""")
             raise PrivacyError(
                 f"The following view has less rows than the PRIVACY_THRESHOLD({PRIVACY_THRESHOLD}):  {view_creation_query}"
             )
