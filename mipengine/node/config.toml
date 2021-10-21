@@ -4,7 +4,8 @@ role = "$NODE_ROLE"
 
 cdes_metadata_path = "./tests/demo_data"
 
-privacy_threshold = 10
+[privacy]
+minimum_row_count = 10
 
 [celery]
 worker_concurrency = 1

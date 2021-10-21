@@ -4,7 +4,7 @@ import pytest
 
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.datatypes import DType
-from mipengine.node_tasks_DTOs import PrivacyError
+from mipengine.node_tasks_DTOs import InsufficientDataError
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
@@ -273,7 +273,7 @@ def test_pathology_view_with_privacy_error(context_id):
         ],
         "valid": True,
     }
-    with pytest.raises(PrivacyError):
+    with pytest.raises(InsufficientDataError):
         local_node_create_pathology_view.delay(
             context_id=context_id,
             command_id=uuid.uuid4().hex,

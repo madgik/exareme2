@@ -4,9 +4,9 @@ from mipengine.filters import build_filter_clause
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
-from mipengine.node_tasks_DTOs import PrivacyError
+from mipengine.node_tasks_DTOs import InsufficientDataError
 
-PRIVACY_THRESHOLD = node_config.privacy_threshold
+MINIMUM_ROW_COUNT = node_config.privacy.minimum_row_count
 
 
 def get_view_names(context_id: str) -> List[str]:
@@ -18,7 +18,7 @@ def create_view(
     table_name: str,
     columns: List[str],
     filters: dict,
-    privacy_protection=False,
+    enable_min_rows_threshold=False,
 ):
     filter_clause = ""
     if filters:
@@ -34,7 +34,7 @@ def create_view(
 
     MonetDB().execute(view_creation_query)
 
-    if privacy_protection:
+    if enable_min_rows_threshold:
         view_rows_query_result = MonetDB().execute_and_fetchall(
             f"""
             SELECT COUNT(*)
@@ -44,8 +44,8 @@ def create_view(
         view_rows_result_row = view_rows_query_result[0]
         view_rows_count = view_rows_result_row[0]
 
-        if view_rows_count < PRIVACY_THRESHOLD:
+        if view_rows_count < MINIMUM_ROW_COUNT:
             MonetDB().execute(f"""DROP VIEW {view_name}""")
-            raise PrivacyError(
-                f"The following view has less rows than the PRIVACY_THRESHOLD({PRIVACY_THRESHOLD}):  {view_creation_query}"
+            raise InsufficientDataError(
+                f"The following view has less rows than the PRIVACY_THRESHOLD({MINIMUM_ROW_COUNT}):  {view_creation_query}"
             )

@@ -78,7 +78,7 @@ class UDFArgument(BaseModel):
 # ~~~~~~~~~~~~~~~~~~~ Exceptions ~~~~~~~~~~~~~~~~~~~~~~ #
 
 
-class PrivacyError(Exception):
+class InsufficientDataError(Exception):
     def __init__(self, message):
         super().__init__(message)
         self.message = message

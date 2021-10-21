@@ -5,17 +5,17 @@ from quart import Blueprint
 
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.node_tasks_DTOs import PrivacyError
+from mipengine.node_tasks_DTOs import InsufficientDataError
 
 error_handlers = Blueprint("error_handlers", __name__)
 
-PRIVACY_ERROR_MESSAGE = "The algorithm could not run with the input provided because there are insufficient data."
+INSUFFICIENT_DATA_ERROR_MESSAGE = "The algorithm could not run with the input provided because there are insufficient data."
 
 
-class HTTPStatusCode(enum.Enum):
+class HTTPStatusCode(enum.IntEnum):
     BAD_REQUEST = 400
     BAD_USER_INPUT = 460
-    PRIVACY_ERROR = 461
+    INSUFFICIENT_DATA_ERROR = 461
     UNEXPECTED_ERROR = 500
 
 
@@ -29,10 +29,10 @@ def handle_bad_user_input(error: BadUserInput):
     return error.message, HTTPStatusCode.BAD_USER_INPUT
 
 
-@error_handlers.app_errorhandler(PrivacyError)
-def handle_privacy_error(error: PrivacyError):
-    print(f"Privacy Error: \n " + error.message)
-    return PRIVACY_ERROR_MESSAGE, HTTPStatusCode.PRIVACY_ERROR
+@error_handlers.app_errorhandler(InsufficientDataError)
+def handle_privacy_error(error: InsufficientDataError):
+    print(f"Insufficient Data Error: \n " + error.message)
+    return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
 
 
 @error_handlers.app_errorhandler(Exception)

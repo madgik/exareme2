@@ -13,7 +13,7 @@ from mipengine.controller.api.algorithm_specifications_dtos import (
 )
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.controller import Controller
-from mipengine.node_tasks_DTOs import PrivacyError
+from mipengine.node_tasks_DTOs import InsufficientDataError
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 controller = Controller()

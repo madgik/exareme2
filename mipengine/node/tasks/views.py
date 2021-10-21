@@ -64,7 +64,7 @@ def create_pathology_view(
         table_name=f"{pathology}_data",
         columns=columns,
         filters=filters,
-        privacy_protection=True,
+        enable_min_rows_threshold=True,
     )
     return view_name
 
