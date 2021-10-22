@@ -4,6 +4,7 @@ import pytest
 
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.datatypes import DType
+from mipengine.node_tasks_DTOs import InsufficientDataError
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.integration_tests.nodes_communication import get_celery_task_signature
@@ -241,3 +242,42 @@ def test_pathology_view_with_filters(context_id):
     view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()
     view_schema = TableSchema.parse_raw(view_schema_json)
     assert view_schema == schema
+
+
+def test_pathology_view_with_privacy_error(context_id):
+    columns = [
+        "dataset",
+        "age_value",
+        "gcs_motor_response_scale",
+        "pupil_reactivity_right_eye_result",
+    ]
+    pathology = "tbi"
+
+    # Adding a filter that cannot be matched
+    rules = {
+        "condition": "AND",
+        "rules": [
+            {
+                "condition": "OR",
+                "rules": [
+                    {
+                        "id": "age_value",
+                        "field": "age_value",
+                        "type": "int",
+                        "input": "number",
+                        "operator": "greater",
+                        "value": 200,
+                    }
+                ],
+            }
+        ],
+        "valid": True,
+    }
+    with pytest.raises(InsufficientDataError):
+        local_node_create_pathology_view.delay(
+            context_id=context_id,
+            command_id=uuid.uuid4().hex,
+            pathology=pathology,
+            columns=columns,
+            filters=rules,
+        ).get()

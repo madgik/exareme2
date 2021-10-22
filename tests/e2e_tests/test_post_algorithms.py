@@ -130,6 +130,43 @@ def get_parametrization_list_exception_cases():
     expected_response = (460, "Pathology .* does not exist.*")
     parametrization_list.append((algorithm_name, request_dict, expected_response))
 
+    # ~~~~~~~~~~exception case 3~~~~~~~~~~
+    algorithm_name = "logistic_regression"
+    request_dict = {
+        "inputdata": {
+            "pathology": "dementia",
+            "datasets": ["edsd"],
+            "x": ["lefthippocampus"],
+            "y": ["alzheimerbroadcategory"],
+            "filters": {
+                "condition": "AND",
+                "rules": [
+                    {
+                        "condition": "OR",
+                        "rules": [
+                            {
+                                "id": "subjectage",
+                                "field": "subjectage",
+                                "type": "real",
+                                "input": "number",
+                                "operator": "greater",
+                                "value": 200.0,
+                            }
+                        ],
+                    }
+                ],
+                "valid": True,
+            },
+        },
+        "parameters": {"classes": ["AD", "CN"]},
+    }
+
+    expected_response = (
+        461,
+        "The algorithm could not run with the input provided because there are insufficient data.",
+    )
+    parametrization_list.append((algorithm_name, request_dict, expected_response))
+
     return parametrization_list
 
 

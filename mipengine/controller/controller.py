@@ -56,44 +56,37 @@ class Controller:
                 result = future.result()
                 return result
 
-        try:
-            algorithm_execution_dto = AlgorithmExecutionDTO(
-                context_id=context_id,
-                algorithm_name=algorithm_name,
-                algorithm_request_dto=algorithm_request_dto,
-            )
+        algorithm_execution_dto = AlgorithmExecutionDTO(
+            context_id=context_id,
+            algorithm_name=algorithm_name,
+            algorithm_request_dto=algorithm_request_dto,
+        )
 
-            loop = asyncio.get_running_loop()
+        loop = asyncio.get_running_loop()
 
-            # DEBUG(future logging..)
-            print(
-                f"\n(controller.py::exec_algorithm) starts executing-> "
-                f"{algorithm_name=} with {context_id=}\n"
-            )
-            # DEBUG end
+        # DEBUG(future logging..)
+        print(
+            f"\n(controller.py::exec_algorithm) starts executing-> "
+            f"{algorithm_name=} with {context_id=}\n"
+        )
+        # DEBUG end
 
-            algorithm_result = await loop.run_in_executor(
-                None,
-                run_algorithm_executor_in_threadpool,
-                algorithm_execution_dto,
-                all_nodes_tasks_handlers,
-            )
+        algorithm_result = await loop.run_in_executor(
+            None,
+            run_algorithm_executor_in_threadpool,
+            algorithm_execution_dto,
+            all_nodes_tasks_handlers,
+        )
 
-            # DEBUG(future logging..)
-            print(
-                f"\n(controller.py::exec_algorithm) FINISHED->  {algorithm_name=} "
-                f"with {context_id=}"
-            )
-            print(f"{algorithm_result.json()=}\n")
-            # DEBUG end
+        # DEBUG(future logging..)
+        print(
+            f"\n(controller.py::exec_algorithm) FINISHED->  {algorithm_name=} "
+            f"with {context_id=}"
+        )
+        print(f"{algorithm_result.json()=}\n")
+        # DEBUG end
 
-            return algorithm_result.json()
-
-        except:
-            logging.error(
-                f"Algorithm execution failed. Unexpected exception: \n "
-                f"{traceback.format_exc()}"
-            )
+        return algorithm_result.json()
 
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
@@ -104,7 +97,6 @@ class Controller:
             algorithm_request_dto=algorithm_request_dto,
             available_datasets_per_schema=available_datasets_per_schema,
         )
-
 
     async def start_node_registry(self):
         asyncio.create_task(node_registry.update())

@@ -72,4 +72,6 @@ def do_post_request():
 
 if __name__ == "__main__":
     response = do_post_request()
+    print(f"\nResponse:")
+    print(f"Status code-> {response.status_code}")
     print(f"Algorithm result-> {response.text}")
