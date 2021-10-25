@@ -51,7 +51,6 @@ async def get_algorithms() -> str:
 
 @algorithms.route("/algorithms/<algorithm_name>", methods=["POST"])
 async def post_algorithm(algorithm_name: str) -> str:
-
     # Parse the request body to AlgorithmRequestDTO
     try:
         request_body = await request.json
@@ -96,5 +95,5 @@ async def post_algorithm(algorithm_name: str) -> str:
             f"Algorithm execution failed. Exception stack trace: \n"
             f"{traceback.format_exc()}"
         )
-
+        print(traceback.format_exc())
         raise UnexpectedException(error_msg)

@@ -6,10 +6,12 @@ from typing import List, Dict
 
 import dns.resolver
 
+from celery.exceptions import TimeoutError
+
+
 from mipengine.controller import DeploymentType
 from mipengine.controller import config as controller_config
 from mipengine.controller.celery_app import get_node_celery_app
-from mipengine.controller.celery_app import task_to_async
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 
@@ -17,8 +19,10 @@ from mipengine.node_info_DTOs import NodeRole
 # so the module can be easily unit tested
 
 GET_NODE_INFO_SIGNATURE = "mipengine.node.tasks.common.get_node_info"
-NODE_REGISTRY_UPDATE_INTERVAL = controller_config.node_registry_update_interval
 
+GET_NODE_INFO_TASK_TIMEOUT=2 #TODO put it in config
+GET_NODE_INFO_TASKS_SLEEP_INTERVAL=0.1 #TODO put it in config
+NODE_REGISTRY_UPDATE_INTERVAL = controller_config.node_registry_update_interval
 
 def _get_nodes_addresses_from_file() -> List[str]:
     with open(controller_config.localnodes.config_file) as fp:
@@ -40,21 +44,24 @@ def _get_nodes_addresses() -> List[str]:
         return _get_nodes_addresses_from_dns()
     else:
         return []
-
-
-async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
+    
+async def _get_nodes_info(nodes_socket_addr:List[Any]) -> List[NodeInfo]:
     cel_apps = [get_node_celery_app(socket_addr) for socket_addr in nodes_socket_addr]
-    nodes_task_signature = [app.signature(GET_NODE_INFO_SIGNATURE) for app in cel_apps]
+    task_signatures = [app.signature(GET_NODE_INFO_SIGNATURE) for app in cel_apps]
 
-    task_promises = [task_to_async(task)() for task in nodes_task_signature]
-
+    task_promises = [task_signature.apply_async() for task_signature in task_signatures]
+    
     nodes_info = []
     for promise in task_promises:
+        await asyncio.sleep(GET_NODE_INFO_TASKS_SLEEP_INTERVAL)
+
         try:
-            task_response = await promise
-            nodes_info.append(NodeInfo.parse_raw(task_response))
-        except:
+            task_response = promise.get(GET_NODE_INFO_TASK_TIMEOUT)
+        except TimeoutError as toerr:
+            print(f"{promise=} timed out.. {promise.id=}")
             continue
+
+        nodes_info.append(NodeInfo.parse_raw(task_response))
 
     return nodes_info
 
@@ -130,6 +137,7 @@ class NodeRegistry:
     def get_all_available_datasets_per_schema(self) -> Dict[str, List[str]]:
         all_local_nodes = self.get_all_local_nodes()
         tmp = [node_info.datasets_per_schema for node_info in all_local_nodes]
+        all_existing_schemas = list(set().union(*tmp))
 
         from collections import defaultdict
         from itertools import chain
