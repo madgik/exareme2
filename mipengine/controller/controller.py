@@ -8,6 +8,8 @@ import logging
 import traceback
 
 from typing import Dict, List, Tuple, Optional, Any
+import os
+import importlib
 
 from mipengine.controller.node_tasks_handler_celery import (
     NodeTasksHandlerCelery,
@@ -23,11 +25,14 @@ from mipengine.controller.node_registry import node_registry
 from mipengine.controller import config as controller_config
 from mipengine.controller.api.validator import validate_algorithm_request
 
+ALGORITHMS_FOLDER = "mipengine/algorithms"
+
 
 class Controller:
     def __init__(self):
         # TODO start node registry here?
-        pass
+
+        self._algorithm_modules = self._get_algorithm_modules()
 
     async def exec_algorithm(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
@@ -46,9 +51,10 @@ class Controller:
         def run_algorithm_executor_in_threadpool(
             algorithm_execution_dto: AlgorithmExecutionDTO,
             all_nodes_tasks_handlers: NodesTasksHandlersDTO,
+            algorithm_module,
         ):
             algorithm_executor = AlgorithmExecutor(
-                algorithm_execution_dto, all_nodes_tasks_handlers
+                algorithm_execution_dto, all_nodes_tasks_handlers, algorithm_module
             )
 
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -59,7 +65,7 @@ class Controller:
         # try:
         algorithm_execution_dto = AlgorithmExecutionDTO(
             context_id=context_id,
-            algorithm_name=algorithm_name,
+            algorithm_name=algorithm_name,  # TODO remove algorithm_name??
             algorithm_request_dto=algorithm_request_dto,
         )
 
@@ -77,6 +83,7 @@ class Controller:
             run_algorithm_executor_in_threadpool,
             algorithm_execution_dto,
             all_nodes_tasks_handlers,
+            self._algorithm_modules[algorithm_name],
         )
 
         # DEBUG(future logging..)
@@ -93,7 +100,7 @@ class Controller:
     ):
         available_datasets_per_schema = self.get_all_available_datasets_per_schema()
         validate_algorithm_request(
-            algorithm_name=algorithm_name,
+            algorithm_name=algorithm_name,  # TODO remove algorithm_name????
             algorithm_request_dto=algorithm_request_dto,
             available_datasets_per_schema=available_datasets_per_schema,
         )
@@ -176,6 +183,18 @@ class Controller:
             global_node_tasks_handler=global_node_tasks_handler,
             local_nodes_tasks_handlers=local_nodes_tasks_handlers,
         )
+
+    def _get_algorithm_modules(self) -> dict:
+        algorithm_modules = {}
+        for root, dirs, files in os.walk(ALGORITHMS_FOLDER):
+            for file in files:
+                if file.endswith(".py") and file != "__init__.py":
+                    module_name = os.path.splitext(file)[0]
+
+                    tmp = ALGORITHMS_FOLDER.replace(".", "").replace("/", ".")
+                    module = importlib.import_module(f"{tmp}.{module_name}")
+                    algorithm_modules[module_name] = module
+        return algorithm_modules
 
 
 def get_a_uniqueid():

@@ -9,13 +9,10 @@ from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 from mipengine.algorithms.result import ErrorResult
 
-from mipengine.controller.algorithm_execution_DTOs import (
-    AlgorithmExecutionDTO,
-    NodesTasksHandlersDTO,
-)
+from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
+from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 
-ALGORITHMS_FOLDER = "mipengine.algorithms"
 
 # DEBUG
 TASKS_TIMEOUT = 3
@@ -67,6 +64,7 @@ class AlgorithmExecutor:
         self,
         algorithm_execution_dto: AlgorithmExecutionDTO,
         nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
+        algorithm_module,
     ):
         self._context_id = algorithm_execution_dto.context_id
         self._algorithm_name = algorithm_execution_dto.algorithm_name
@@ -111,10 +109,7 @@ class AlgorithmExecutor:
             algo_execution_interface_dto
         )
 
-        # import the algorithm flow module
-        self.algorithm_flow_module = importlib.import_module(
-            f"{ALGORITHMS_FOLDER}.{self._algorithm_name}"
-        )
+        self.algorithm_flow_module = algorithm_module
 
     def run(self):
         try:
