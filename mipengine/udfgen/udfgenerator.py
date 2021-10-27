@@ -174,7 +174,7 @@ TensorBinaryOp          Enum with tensor binary operations
 make_unique_func_name   Helper for creating unique function names
 ======================= ========================================================
 """
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 import ast
 from copy import deepcopy
 from enum import Enum
@@ -196,6 +196,7 @@ from typing import (
 
 import numpy
 import astor
+from pydantic import BaseModel
 
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine import DType as dt
@@ -439,7 +440,8 @@ class IOType(ABC):
 
 
 class TableType(IOType, ParametrizedType, ABC):
-    @abstractproperty
+    @property
+    @abstractmethod
     def schema(self):
         raise NotImplementedError
 
@@ -498,6 +500,49 @@ class RelationType(TableType):
 
 def relation(schema):
     return RelationType(schema)
+
+
+class ObjectType(TableType, ABC):
+    def __init__(self, stored_class):
+        self.stored_class_ = stored_class
+
+    @property
+    def stored_class(self):
+        return self.stored_class_
+
+
+class TransferObjectType(ObjectType):
+    def __init__(self, stored_class):
+        super().__init__(stored_class)
+        if not issubclass(stored_class, BaseModel):
+            raise UDFBadDefinition(
+                "The 'stored_class' parameter should contain a subclass of BaseModel."
+            )
+
+    @property
+    def schema(self):
+        return [("jsonified_object", dt.JSON)]
+
+
+def transfer_object(class_):
+    return TransferObjectType(class_)
+
+
+class StateObjectType(ObjectType):
+    def __init__(self, stored_class):
+        super().__init__(stored_class)
+        if not inspect.isclass(stored_class):
+            raise UDFBadDefinition(
+                "The 'stored_class' parameter should contain a class."
+            )
+
+    @property
+    def schema(self):
+        return [("pickled_object", dt.STR_NO_LIMIT)]
+
+
+def state_object(class_):
+    return StateObjectType(class_)
 
 
 class ScalarType(IOType, ParametrizedType):
@@ -1130,6 +1175,7 @@ class FunctionParts(NamedTuple):
     body_statements: list
     return_name: str
     table_input_types: Dict[str, TableType]
+    object_input_types: Dict[str, ObjectType]
     literal_input_types: Dict[str, LiteralType]
     output_type: IOType
     sig: Signature
@@ -1200,7 +1246,12 @@ def breakup_function(func, funcsig) -> FunctionParts:
     table_input_types = {
         name: iotype
         for name, iotype in funcsig.parameters.items()
-        if isinstance(iotype, TableType)
+        if isinstance(iotype, TableType) and not isinstance(iotype, ObjectType)
+    }
+    object_input_types = {
+        name: iotype
+        for name, iotype in funcsig.parameters.items()
+        if isinstance(iotype, ObjectType)
     }
     literal_input_types = {
         name: iotype
@@ -1213,6 +1264,7 @@ def breakup_function(func, funcsig) -> FunctionParts:
         body_statements,
         return_name,
         table_input_types,
+        object_input_types,
         literal_input_types,
         output_type,
         funcsig,
