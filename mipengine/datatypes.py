@@ -13,6 +13,8 @@ class DType(Enum):
     INT = "INT"
     FLOAT = "FLOAT"
     STR = "STR"
+    JSON = "JSON"
+    STR_NO_LIMIT = "CLOB"
 
     def __init__(self, sqltype):
         self._sqltype = sqltype
@@ -60,6 +62,8 @@ class DType(Enum):
             cls.INT: "INT",
             cls.FLOAT: "REAL",
             cls.STR: f"VARCHAR({MONETDB_VARCHAR_SIZE})",
+            cls.JSON: "JSON",
+            cls.STR_NO_LIMIT: "CLOB",
         }
 
     @classmethod

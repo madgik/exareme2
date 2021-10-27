@@ -2,6 +2,7 @@
 from typing import TypeVar
 
 import pytest
+from pydantic import BaseModel
 
 from mipengine.udfgen.udfgenerator import (
     Column,
@@ -41,6 +42,8 @@ from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.udfgen.udfgenerator import state_object
+from mipengine.udfgen.udfgenerator import transfer_object
 
 
 @pytest.fixture(autouse=True)
@@ -213,10 +216,33 @@ class TestUDFValidation:
 
         assert "Invalid parameter names in udf decorator" in str(exc)
 
-    def test_validate_func_as_udf_valid(self):
-        @udf(x=tensor(int, 1), return_type=scalar(int))
-        def f(x):
+    def test_validate_func_as_udf_valid_1(self):
+        class DemoTransferObject(BaseModel):
+            test: int
+
+        class DemoStateObject:
+            def __init__(self):
+                self.test = 3
+
+        @udf(
+            x=tensor(int, 1),
+            y=state_object(DemoStateObject),
+            z=transfer_object(DemoTransferObject),
+            return_type=scalar(int),
+        )
+        def f(x, y, z):
             return x
+
+        assert udf.registry != {}
+
+    def test_validate_func_as_udf_valid_2(self):
+        class DemoTransferObject(BaseModel):
+            test: int
+
+        @udf(x=tensor(int, 1), return_type=transfer_object(DemoTransferObject))
+        def f(x):
+            y = DemoTransferObject()
+            return y
 
         assert udf.registry != {}
 
@@ -310,6 +336,88 @@ def test_relation_column_names():
     r = relation(schema=[("ci", DType.INT), ("cf", DType.FLOAT), ("cs", DType.STR)])
     colnames = r.column_names(prefix="pre")
     assert colnames == ["pre_ci", "pre_cf", "pre_cs"]
+
+
+def test_transfer_object_schema():
+    class Test(BaseModel):
+        test: int
+
+    to = transfer_object(Test)
+    assert to.schema == [("jsonified_object", DType.JSON)]
+
+
+def test_transfer_object_column_names():
+    class Test(BaseModel):
+        test: int
+
+    to = transfer_object(Test)
+    assert to.column_names() == ["jsonified_object"]
+
+
+def test_transfer_object_stored_class():
+    class Test(BaseModel):
+        test: int
+
+    to = transfer_object(Test)
+    assert to.stored_class == Test
+
+
+def test_transfer_object_is_generic():
+    class Test(BaseModel):
+        test: int
+
+    to = transfer_object(Test)
+    assert not to.is_generic
+
+
+def test_transfer_object_improper_class():
+    class Test:
+        def __init__(self):
+            self.test = 2
+
+    with pytest.raises(UDFBadDefinition):
+        transfer_object(Test)
+
+
+def test_state_object_schema():
+    class Test:
+        def __init__(self):
+            self.test = 2
+
+    to = state_object(Test)
+    assert to.schema == [("pickled_object", DType.STR_NO_LIMIT)]
+
+
+def test_state_object_column_names():
+    class Test:
+        def __init__(self):
+            self.test = 2
+
+    to = state_object(Test)
+    assert to.column_names() == ["pickled_object"]
+
+
+def test_state_object_stored_class():
+    class Test:
+        def __init__(self):
+            self.test = 2
+
+    to = state_object(Test)
+    assert to.stored_class == Test
+
+
+def test_state_object_is_generic():
+    class Test:
+        def __init__(self):
+            self.test = 2
+
+    to = state_object(Test)
+    assert not to.is_generic
+
+
+def test_state_object_improper_class():
+    with pytest.raises(UDFBadDefinition):
+        state_object(5)
 
 
 def test_udf_decorator_already_there():
