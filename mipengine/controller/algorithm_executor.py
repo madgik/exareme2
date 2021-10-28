@@ -1,6 +1,7 @@
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Any, Callable, Optional
 import importlib
 from pydantic import BaseModel
+from abc import ABC
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
@@ -64,7 +65,7 @@ class AlgorithmExecutor:
         self,
         algorithm_execution_dto: AlgorithmExecutionDTO,
         nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
-        algorithm_module,
+        algorithm_run_func: Callable,
     ):
         self._context_id = algorithm_execution_dto.context_id
         self._algorithm_name = algorithm_execution_dto.algorithm_name
@@ -109,11 +110,11 @@ class AlgorithmExecutor:
             algo_execution_interface_dto
         )
 
-        self.algorithm_flow_module = algorithm_module
+        self._algorithm_run_func = algorithm_run_func
 
     def run(self):
         try:
-            algorithm_result = self.algorithm_flow_module.run(self.execution_interface)
+            algorithm_result = self._algorithm_run_func(self.execution_interface)
             return algorithm_result
         except SoftTimeLimitExceeded as stle:
             error_result = ErrorResult(
@@ -357,9 +358,9 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     global_node: _Node
     local_nodes: List[_Node]
     algorithm_name: str
-    algorithm_parameters: Dict[str, List[str]]
-    x_variables: List[str]
-    y_variables: List[str]
+    algorithm_parameters: Optional[Dict[str, List[str]]] = None
+    x_variables: Optional[List[str]] = None
+    y_variables: Optional[List[str]] = None
 
     class Config:
         arbitrary_types_allowed = True
@@ -585,12 +586,12 @@ class _AlgorithmExecutionInterface:
             )
 
 
-class _NodeTable:
+class _NodeTable(ABC):
     # TODO: better abstraction here...
     pass
 
 
-class _LocalNodeTable:
+class _LocalNodeTable(_NodeTable):
     def __init__(self, nodes_tables: Dict["_Node", "_TableName"]):
         self._nodes_tables = nodes_tables
 
@@ -641,7 +642,7 @@ class _LocalNodeTable:
             self.message = f"Mismatched table names ->{table_names}"
 
 
-class _GlobalNodeTable:
+class _GlobalNodeTable(_NodeTable):
     def __init__(self, node_table: Dict["_Node", "_TableName"]):
         self._node_table = node_table
 

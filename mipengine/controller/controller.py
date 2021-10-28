@@ -7,7 +7,7 @@ import random
 import logging
 import traceback
 
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Optional, Any, Callable
 import os
 import importlib
 
@@ -51,10 +51,10 @@ class Controller:
         def run_algorithm_executor_in_threadpool(
             algorithm_execution_dto: AlgorithmExecutionDTO,
             all_nodes_tasks_handlers: NodesTasksHandlersDTO,
-            algorithm_module,
+            algorithm_run_func: Callable,
         ):
             algorithm_executor = AlgorithmExecutor(
-                algorithm_execution_dto, all_nodes_tasks_handlers, algorithm_module
+                algorithm_execution_dto, all_nodes_tasks_handlers, algorithm_run_func
             )
 
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -83,7 +83,7 @@ class Controller:
             run_algorithm_executor_in_threadpool,
             algorithm_execution_dto,
             all_nodes_tasks_handlers,
-            self._algorithm_modules[algorithm_name],
+            self._algorithm_modules[algorithm_name].run,
         )
 
         # DEBUG(future logging..)
@@ -146,10 +146,7 @@ class Controller:
             user=controller_config.rabbitmq.user,
             password=controller_config.rabbitmq.password,
             vhost=controller_config.rabbitmq.vhost,
-            max_retries=controller_config.rabbitmq.celery_tasks_max_retries,
-            interval_start=controller_config.rabbitmq.celery_tasks_interval_start,
-            interval_step=controller_config.rabbitmq.celery_tasks_interval_step,
-            interval_max=controller_config.rabbitmq.celery_tasks_interval_max,
+            tasks_timeout=controller_config.celery_tasks_timeout,
         )
         # Instantiate the INodeTasksHandler for the Global Node
         global_node_tasks_handler = NodeTasksHandlerCelery(
@@ -167,10 +164,7 @@ class Controller:
                 user=controller_config.rabbitmq.user,
                 password=controller_config.rabbitmq.password,
                 vhost=controller_config.rabbitmq.vhost,
-                max_retries=controller_config.rabbitmq.celery_tasks_max_retries,
-                interval_start=controller_config.rabbitmq.celery_tasks_interval_start,
-                interval_step=controller_config.rabbitmq.celery_tasks_interval_step,
-                interval_max=controller_config.rabbitmq.celery_tasks_interval_max,
+                tasks_timeout=controller_config.celery_tasks_timeout,
             )
 
             # Instantiate the INodeTasksHandlers for the Local Nodes
@@ -190,7 +184,8 @@ class Controller:
             for file in files:
                 if file.endswith(".py") and file != "__init__.py":
                     module_name = os.path.splitext(file)[0]
-
+                    # TODO probably not the most pythonic or elegant way to do this
+                    # review this at some point..
                     tmp = ALGORITHMS_FOLDER.replace(".", "").replace("/", ".")
                     module = importlib.import_module(f"{tmp}.{module_name}")
                     algorithm_modules[module_name] = module

@@ -9,8 +9,6 @@ from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableInfo
 
-TASKS_TIMEOUT = 3
-
 TASK_SIGNATURES: Final = {
     "get_tables": "mipengine.node.tasks.tables.get_tables",
     "get_table_schema": "mipengine.node.tasks.common.get_table_schema",
@@ -40,10 +38,7 @@ class CeleryParamsDTO(BaseModel):
     password: str
     vhost: str
 
-    max_retries: conint(ge=0)
-    interval_start: conint(ge=0)
-    interval_step: conint(ge=0)
-    interval_max: conint(ge=0)
+    tasks_timeout: conint(ge=0)
 
 
 class NodeTasksHandlerCelery(INodeTasksHandler):
@@ -63,13 +58,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
         celery_app = Celery(broker=broker, backend="rpc://")
 
-        broker_transport_options = {
-            "max_retries": celery_params.max_retries,
-            "interval_start": celery_params.interval_start,
-            "interval_step": celery_params.interval_step,
-            "interval_max": celery_params.interval_max,
-        }
-        celery_app.conf.broker_transport_options = broker_transport_options
+        self._tasks_timeout = celery_params.tasks_timeout
 
         self._celery_app = celery_app
 
@@ -81,24 +70,24 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     def node_id(self):
         return self._node_id
 
-    @property
+    @property  # TODO change to db_address??
     def node_data_address(self):
         return self._db_address
 
     # TABLES functionality
     def get_tables(self, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_tables"])
-        result = task_signature.delay(context_id=context_id).get(TASKS_TIMEOUT)
+        result = task_signature.delay(context_id=context_id).get(self._tasks_timeout)
         return [table_name for table_name in result]
 
     def get_table_schema(self, table_name: str):
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_schema"])
-        result = task_signature.delay(table_name=table_name).get(TASKS_TIMEOUT)
+        result = task_signature.delay(table_name=table_name).get(self._tasks_timeout)
         return TableSchema.parse_raw(result)
 
     def get_table_data(self, table_name: str) -> TableData:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_data"])
-        result = task_signature.delay(table_name=table_name).get(TASKS_TIMEOUT)
+        result = task_signature.delay(table_name=table_name).get(self._tasks_timeout)
         return TableData.parse_raw(result)
 
     def create_table(
@@ -108,13 +97,13 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         task_signature = self._celery_app.signature(TASK_SIGNATURES["create_table"])
         result = task_signature.delay(
             context_id=context_id, command_id=command_id, schema_json=schema_json
-        ).get(TASKS_TIMEOUT)
+        ).get(self._tasks_timeout)
         return result
 
     # VIEWS functionality
     def get_views(self, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_views"])
-        result = task_signature.delay(context_id=context_id).get(TASKS_TIMEOUT)
+        result = task_signature.delay(context_id=context_id).get(self._tasks_timeout)
         return result
 
     # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
@@ -136,14 +125,14 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             pathology=pathology,
             columns=columns,
             filters=filters,
-        ).get(TASKS_TIMEOUT)
+        ).get(self._tasks_timeout)
 
         return result
 
     # MERGE TABLES functionality
     def get_merge_tables(self, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_merge_tables"])
-        result = task_signature.delay(context_id=context_id).get(TASKS_TIMEOUT)
+        result = task_signature.delay(context_id=context_id).get(self._tasks_timeout)
         return result
 
     def create_merge_table(
@@ -156,7 +145,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             command_id=command_id,
             context_id=context_id,
             table_names=table_names,
-        ).get(TASKS_TIMEOUT)
+        ).get(self._tasks_timeout)
         return result
 
     # REMOTE TABLES functionality
@@ -164,7 +153,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["get_remote_tables"]
         )
-        return task_signature.delay(context_id=context_id).get(TASKS_TIMEOUT)
+        return task_signature.delay(context_id=context_id).get(self._tasks_timeout)
 
     def create_remote_table(self, table_info: TableInfo, original_db_url: str) -> str:
         table_info_json = table_info.json()
@@ -174,7 +163,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         task_signature.delay(
             table_info_json=table_info_json,
             monetdb_socket_address=original_db_url,
-        ).get(TASKS_TIMEOUT)
+        ).get(self._tasks_timeout)
 
     # UDFs functionality
     def queue_run_udf(
@@ -196,7 +185,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
     def get_udfs(self, algorithm_name) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_udfs"])
-        result = task_signature.delay(algorithm_name).get(TASKS_TIMEOUT)
+        result = task_signature.delay(algorithm_name).get(self._tasks_timeout)
         return result
 
     # return the generated monetdb pythonudf
@@ -216,7 +205,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             func_name=func_name,
             positional_args_json=positional_args,
             keyword_args_json={},
-        ).get(TASKS_TIMEOUT)
+        ).get(self._tasks_timeout)
         return result
 
     # CLEANUP functionality
