@@ -13,6 +13,7 @@ from mipengine.controller.api.algorithm_request_dto import (
 )
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.controller import Controller
+from mipengine.controller import config as controller_config
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.api.exceptions import UnexpectedException
 
@@ -24,7 +25,7 @@ from mipengine.controller.api.algorithm_specifications_dtos import (
 )
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
-controller = Controller()
+controller = Controller(controller_config)
 
 
 @algorithms.before_app_serving

@@ -22,17 +22,18 @@ from mipengine.controller.algorithm_execution_DTOs import (
     NodesTasksHandlersDTO,
 )
 from mipengine.controller.node_registry import node_registry
-from mipengine.controller import config as controller_config
+from mipengine.attrdict import AttrDict
 from mipengine.controller.api.validator import validate_algorithm_request
 
 ALGORITHMS_FOLDER = "mipengine/algorithms"
 
 
 class Controller:
-    def __init__(self):
+    def __init__(self, config: AttrDict):
         # TODO start node registry here?
 
         self._algorithm_modules = self._get_algorithm_modules()
+        self._config = config
 
     async def exec_algorithm(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
@@ -143,10 +144,10 @@ class Controller:
             task_queue_port=global_node.port,
             db_domain=global_node.db_ip,
             db_port=global_node.db_port,
-            user=controller_config.rabbitmq.user,
-            password=controller_config.rabbitmq.password,
-            vhost=controller_config.rabbitmq.vhost,
-            tasks_timeout=controller_config.celery_tasks_timeout,
+            user=self._config.rabbitmq.user,
+            password=self._config.rabbitmq.password,
+            vhost=self._config.rabbitmq.vhost,
+            tasks_timeout=self._config.celery_tasks_timeout,
         )
         # Instantiate the INodeTasksHandler for the Global Node
         global_node_tasks_handler = NodeTasksHandlerCelery(
@@ -161,10 +162,10 @@ class Controller:
                 task_queue_port=local_node.port,
                 db_domain=local_node.db_ip,
                 db_port=local_node.db_port,
-                user=controller_config.rabbitmq.user,
-                password=controller_config.rabbitmq.password,
-                vhost=controller_config.rabbitmq.vhost,
-                tasks_timeout=controller_config.celery_tasks_timeout,
+                user=self._config.rabbitmq.user,
+                password=self._config.rabbitmq.password,
+                vhost=self._config.rabbitmq.vhost,
+                tasks_timeout=self._config.celery_tasks_timeout,
             )
 
             # Instantiate the INodeTasksHandlers for the Local Nodes
