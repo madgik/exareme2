@@ -10,47 +10,53 @@ from celery.exceptions import TimeoutError
 
 
 from mipengine.controller import DeploymentType
-from mipengine.controller import config as controller_config
 from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
+from mipengine.attrdict import AttrDict
 
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
 # so the module can be easily unit tested
 
 GET_NODE_INFO_SIGNATURE = "mipengine.node.tasks.common.get_node_info"
 
-GET_NODE_INFO_TASK_TIMEOUT=2 #TODO put it in config
-GET_NODE_INFO_TASKS_SLEEP_INTERVAL=0.1 #TODO put it in config
-NODE_REGISTRY_UPDATE_INTERVAL = controller_config.node_registry_update_interval
+GET_NODE_INFO_TASK_TIMEOUT = 2  # TODO put it in config
+GET_NODE_INFO_TASKS_SLEEP_INTERVAL = 0.1  # TODO put it in config
 
-def _get_nodes_addresses_from_file() -> List[str]:
-    with open(controller_config.localnodes.config_file) as fp:
+
+def _get_nodes_addresses_from_file(config: AttrDict) -> List[str]:
+    with open(config["localnodes"]["config_file"]) as fp:
         return json.load(fp)
 
 
-def _get_nodes_addresses_from_dns() -> List[str]:
-    localnodes_ips = dns.resolver.query(controller_config.localnodes.dns, "A")
+def _get_nodes_addresses_from_dns(config: AttrDict) -> List[str]:
+    localnodes_ips = dns.resolver.query(config["localnodes"]["dns"], "A")
     localnodes_addresses = [
-        f"{ip}:{controller_config.localnodes.port}" for ip in localnodes_ips
+        f"{ip}:{config['localnodes']['port']}" for ip in localnodes_ips
     ]
     return localnodes_addresses
 
 
-def _get_nodes_addresses() -> List[str]:
-    if controller_config.deployment_type == DeploymentType.LOCAL:
-        return _get_nodes_addresses_from_file()
-    elif controller_config.deployment_type == DeploymentType.KUBERNETES:
-        return _get_nodes_addresses_from_dns()
+def _get_nodes_addresses(config: AttrDict) -> List[str]:
+    if config["deployment_type"] == DeploymentType.LOCAL:
+        return _get_nodes_addresses_from_file(config)
+    elif config["deployment_type"] == DeploymentType.KUBERNETES:
+        return _get_nodes_addresses_from_dns(config)
     else:
         return []
-    
-async def _get_nodes_info(nodes_socket_addr:List[Any]) -> List[NodeInfo]:
-    cel_apps = [get_node_celery_app(socket_addr) for socket_addr in nodes_socket_addr]
+
+
+async def _get_nodes_info(
+    nodes_socket_addr: List[Any], controller_config: AttrDict
+) -> List[NodeInfo]:
+    cel_apps = [
+        get_node_celery_app(socket_addr, controller_config)
+        for socket_addr in nodes_socket_addr
+    ]
     task_signatures = [app.signature(GET_NODE_INFO_SIGNATURE) for app in cel_apps]
 
     task_promises = [task_signature.apply_async() for task_signature in task_signatures]
-    
+
     nodes_info = []
     for promise in task_promises:
         await asyncio.sleep(GET_NODE_INFO_TASKS_SLEEP_INTERVAL)
@@ -71,14 +77,17 @@ def _have_common_elements(a: List[Any], b: List[Any]):
 
 
 class NodeRegistry:
-    def __init__(self):
-        self.nodes = []
-        self.keep_updating = True
+    def __init__(self, config):
+        self._config = config
+        self._nodes = []
+        self._keep_updating = True
 
-    async def update(self):
-        while self.keep_updating:
-            nodes_addresses = _get_nodes_addresses()
-            self.nodes: List[NodeInfo] = await _get_nodes_info(nodes_addresses)
+    async def start(self):
+        while self._keep_updating:
+            nodes_addresses = _get_nodes_addresses(self._config)
+            self.nodes: List[NodeInfo] = await _get_nodes_info(
+                nodes_addresses, self._config
+            )
 
             # DEBUG
             print(
@@ -90,7 +99,7 @@ class NodeRegistry:
             # DEBUG end
 
             sys.stdout.flush()
-            await asyncio.sleep(NODE_REGISTRY_UPDATE_INTERVAL)
+            await asyncio.sleep(self._config["node_registry_update_interval"])
 
     def get_all_global_nodes(self) -> List[NodeInfo]:
         return [
@@ -169,6 +178,3 @@ class NodeRegistry:
                 continue
             return True
         return False
-
-
-node_registry = NodeRegistry()

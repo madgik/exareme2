@@ -58,7 +58,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
         celery_app = Celery(broker=broker, backend="rpc://")
 
-        self._tasks_timeout = celery_params.tasks_timeout
+        self._task_timeout = celery_params.tasks_timeout
 
         self._celery_app = celery_app
 
@@ -77,17 +77,17 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     # TABLES functionality
     def get_tables(self, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_tables"])
-        result = task_signature.delay(context_id=context_id).get(self._tasks_timeout)
+        result = task_signature.delay(context_id=context_id).get(self._task_timeout)
         return [table_name for table_name in result]
 
     def get_table_schema(self, table_name: str):
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_schema"])
-        result = task_signature.delay(table_name=table_name).get(self._tasks_timeout)
+        result = task_signature.delay(table_name=table_name).get(self._task_timeout)
         return TableSchema.parse_raw(result)
 
     def get_table_data(self, table_name: str) -> TableData:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_data"])
-        result = task_signature.delay(table_name=table_name).get(self._tasks_timeout)
+        result = task_signature.delay(table_name=table_name).get(self._task_timeout)
         return TableData.parse_raw(result)
 
     def create_table(
@@ -97,13 +97,13 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         task_signature = self._celery_app.signature(TASK_SIGNATURES["create_table"])
         result = task_signature.delay(
             context_id=context_id, command_id=command_id, schema_json=schema_json
-        ).get(self._tasks_timeout)
+        ).get(self._task_timeout)
         return result
 
     # VIEWS functionality
     def get_views(self, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_views"])
-        result = task_signature.delay(context_id=context_id).get(self._tasks_timeout)
+        result = task_signature.delay(context_id=context_id).get(self._task_timeout)
         return result
 
     # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
@@ -125,14 +125,14 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             pathology=pathology,
             columns=columns,
             filters=filters,
-        ).get(self._tasks_timeout)
+        ).get(self._task_timeout)
 
         return result
 
     # MERGE TABLES functionality
     def get_merge_tables(self, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_merge_tables"])
-        result = task_signature.delay(context_id=context_id).get(self._tasks_timeout)
+        result = task_signature.delay(context_id=context_id).get(self._task_timeout)
         return result
 
     def create_merge_table(
@@ -145,7 +145,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             command_id=command_id,
             context_id=context_id,
             table_names=table_names,
-        ).get(self._tasks_timeout)
+        ).get(self._task_timeout)
         return result
 
     # REMOTE TABLES functionality
@@ -153,7 +153,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["get_remote_tables"]
         )
-        return task_signature.delay(context_id=context_id).get(self._tasks_timeout)
+        return task_signature.delay(context_id=context_id).get(self._task_timeout)
 
     def create_remote_table(self, table_info: TableInfo, original_db_url: str) -> str:
         table_info_json = table_info.json()
@@ -163,7 +163,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         task_signature.delay(
             table_info_json=table_info_json,
             monetdb_socket_address=original_db_url,
-        ).get(self._tasks_timeout)
+        ).get(self._task_timeout)
 
     # UDFs functionality
     def queue_run_udf(
@@ -185,7 +185,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
     def get_udfs(self, algorithm_name) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_udfs"])
-        result = task_signature.delay(algorithm_name).get(self._tasks_timeout)
+        result = task_signature.delay(algorithm_name).get(self._task_timeout)
         return result
 
     # return the generated monetdb pythonudf
@@ -205,7 +205,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             func_name=func_name,
             positional_args_json=positional_args,
             keyword_args_json={},
-        ).get(self._tasks_timeout)
+        ).get(self._task_timeout)
         return result
 
     # CLEANUP functionality

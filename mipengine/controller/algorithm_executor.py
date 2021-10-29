@@ -16,7 +16,6 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 
 
 # DEBUG
-TASKS_TIMEOUT = 3
 from celery.exceptions import TimeoutError
 from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
@@ -142,7 +141,7 @@ class AlgorithmExecutor:
         except:
             import traceback
 
-            print(f"(algorithm_executor) exception-->  {traceback.format_exc()=}")
+            print(traceback.format_exc())
         finally:
             self.clean_up()
 
@@ -155,7 +154,7 @@ class AlgorithmExecutor:
             node.clean_up()
 
 
-def time_limit_exceeded_handler(method):  # TODO Callable type??
+def time_limit_exceeded_handler(method: Callable):
     def inner(ref, *args, **kargs):
         try:
             return method(ref, *args, **kargs)
@@ -185,8 +184,8 @@ class _Node:
         node_tasks_handler: INodeTasksHandler,
         initial_view_tables_params: Dict[str, Any] = None,
     ):
-        self.node_tasks_handler = node_tasks_handler
-        self.node_id = self.node_tasks_handler.node_id
+        self._node_tasks_handler = node_tasks_handler
+        self.node_id = self._node_tasks_handler.node_id
 
         self.context_id = context_id
 
@@ -237,27 +236,27 @@ class _Node:
 
     @property
     def node_address(self):
-        return self.node_tasks_handler.node_data_address
+        return self._node_tasks_handler.node_data_address
 
     # TABLES functionality
     @time_limit_exceeded_handler
     def get_tables(self) -> List[_TableName]:
-        return self.node_tasks_handler.get_tables(context_id=self.context_id)
+        return self._node_tasks_handler.get_tables(context_id=self.context_id)
 
     @time_limit_exceeded_handler
     def get_table_schema(self, table_name: _TableName):
-        return self.node_tasks_handler.get_table_schema(
+        return self._node_tasks_handler.get_table_schema(
             table_name=table_name.full_table_name
         )
 
     @time_limit_exceeded_handler
     def get_table_data(self, table_name: _TableName) -> TableData:
-        return self.node_tasks_handler.get_table_data(table_name.full_table_name)
+        return self._node_tasks_handler.get_table_data(table_name.full_table_name)
 
     @time_limit_exceeded_handler
     def create_table(self, command_id: str, schema: TableSchema) -> _TableName:
         schema_json = schema.json()
-        return self.node_tasks_handler.create_table(
+        return self._node_tasks_handler.create_table(
             context_id=self.context_id,
             command_id=command_id,
             schema_json=schema_json,
@@ -266,7 +265,7 @@ class _Node:
     # VIEWS functionality
     @time_limit_exceeded_handler
     def get_views(self) -> List[_TableName]:
-        result = self.node_tasks_handler.get_views(context_id=self.context_id)
+        result = self._node_tasks_handler.get_views(context_id=self.context_id)
         return [_TableName(table_name) for table_name in result]
 
     # TODO: this is very specific to mip, very inconsistent with the rest, has to
@@ -279,7 +278,7 @@ class _Node:
         columns: List[str],
         filters: List[str],
     ) -> _TableName:
-        result = self.node_tasks_handler.create_pathology_view(
+        result = self._node_tasks_handler.create_pathology_view(
             context_id=self.context_id,
             command_id=command_id,
             pathology=pathology,
@@ -291,13 +290,13 @@ class _Node:
     # MERGE TABLES functionality
     @time_limit_exceeded_handler
     def get_merge_tables(self) -> List[_TableName]:
-        result = self.node_tasks_handler.get_merge_tables(context_id=self.context_id)
+        result = self._node_tasks_handler.get_merge_tables(context_id=self.context_id)
         return [_TableName(table_name) for table_name in result]
 
     @time_limit_exceeded_handler
     def create_merge_table(self, command_id: str, table_names: List[_TableName]):
         table_names = [table_name.full_table_name for table_name in table_names]
-        result = self.node_tasks_handler.create_merge_table(
+        result = self._node_tasks_handler.create_merge_table(
             context_id=self.context_id,
             command_id=command_id,
             table_names=table_names,
@@ -307,7 +306,7 @@ class _Node:
     # REMOTE TABLES functionality
     @time_limit_exceeded_handler
     def get_remote_tables(self) -> List["TableInfo"]:
-        return self.node_tasks_handler.get_remote_tables(context_id=self.context_id)
+        return self._node_tasks_handler.get_remote_tables(context_id=self.context_id)
 
     @time_limit_exceeded_handler
     def create_remote_table(
@@ -315,7 +314,7 @@ class _Node:
     ) -> _TableName:
 
         monetdb_socket_addr = native_node.node_address
-        return self.node_tasks_handler.create_remote_table(
+        return self._node_tasks_handler.create_remote_table(
             table_info=table_info, original_db_url=monetdb_socket_addr
         )
 
@@ -324,7 +323,7 @@ class _Node:
     def queue_run_udf(
         self, command_id: str, func_name: str, positional_args, keyword_args
     ):  # -> "AsyncResult"
-        return self.node_tasks_handler.queue_run_udf(
+        return self._node_tasks_handler.queue_run_udf(
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
@@ -334,14 +333,14 @@ class _Node:
 
     @time_limit_exceeded_handler
     def get_udfs(self, algorithm_name) -> List[str]:
-        return self.node_tasks_handler.get_udfs(algorithm_name)
+        return self._node_tasks_handler.get_udfs(algorithm_name)
 
     # return the generated monetdb pythonudf
     @time_limit_exceeded_handler
     def get_run_udf_query(
         self, command_id: str, func_name: str, positional_args: List["_NodeTable"]
     ) -> Tuple[str, str]:
-        return self.node_tasks_handler.get_run_udf_query(
+        return self._node_tasks_handler.get_run_udf_query(
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
@@ -351,7 +350,7 @@ class _Node:
     # CLEANUP functionality
     @time_limit_exceeded_handler
     def clean_up(self):
-        self.node_tasks_handler.clean_up(context_id=self.context_id)
+        self._node_tasks_handler.clean_up(context_id=self.context_id)
 
 
 class _AlgorithmExecutionInterfaceDTO(BaseModel):
@@ -455,8 +454,9 @@ class _AlgorithmExecutionInterface:
 
         udf_result_tables = {}
         for node, task in tasks.items():
-            try:
-                tmp = task.get(TASKS_TIMEOUT)
+            try:  # TODO _node_tasks_handler and _task_timeout are internals of node and
+                # should not be accessed. This should be a temporary solution
+                tmp = task.get(node._node_tasks_handler._task_timeout)
             # TODO pass args in the exception
             except SoftTimeLimitExceeded:
                 raise SoftTimeLimitExceeded(
@@ -528,12 +528,14 @@ class _AlgorithmExecutionInterface:
             positional_args_transfrormed.append(udf_argument.json())
 
         try:
+            # TODO _node_tasks_handler and _task_timeout are internals of node and
+            # should not be accessed. This should be a temporary solution
             udf_result_table: str = self._global_node.queue_run_udf(
                 command_id=command_id,
                 func_name=func_name,
                 positional_args=positional_args_transfrormed,
                 keyword_args={},
-            ).get(TASKS_TIMEOUT)
+            ).get(self._global_node._node_tasks_handler._task_timeout)
 
         # TODO pass args in the exception
         except SoftTimeLimitExceeded as stle:

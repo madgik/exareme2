@@ -21,7 +21,7 @@ from mipengine.controller.algorithm_execution_DTOs import (
     AlgorithmExecutionDTO,
     NodesTasksHandlersDTO,
 )
-from mipengine.controller.node_registry import node_registry
+from mipengine.controller.node_registry import NodeRegistry
 from mipengine.attrdict import AttrDict
 from mipengine.controller.api.validator import validate_algorithm_request
 
@@ -31,9 +31,9 @@ ALGORITHMS_FOLDER = "mipengine/algorithms"
 class Controller:
     def __init__(self, config: AttrDict):
         # TODO start node registry here?
-
         self._algorithm_modules = self._get_algorithm_modules()
         self._config = config
+        self._node_registry = NodeRegistry(self._config)
 
     async def exec_algorithm(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
@@ -55,7 +55,9 @@ class Controller:
             algorithm_run_func: Callable,
         ):
             algorithm_executor = AlgorithmExecutor(
-                algorithm_execution_dto, all_nodes_tasks_handlers, algorithm_run_func
+                algorithm_execution_dto,
+                all_nodes_tasks_handlers,
+                algorithm_run_func,
             )
 
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -63,7 +65,6 @@ class Controller:
                 result = future.result()
                 return result
 
-        # try:
         algorithm_execution_dto = AlgorithmExecutionDTO(
             context_id=context_id,
             algorithm_name=algorithm_name,  # TODO remove algorithm_name??
@@ -107,10 +108,10 @@ class Controller:
         )
 
     async def start_node_registry(self):
-        asyncio.create_task(node_registry.update())
+        asyncio.create_task(self._node_registry.start())
 
     async def stop_node_registry(self):
-        node_registry.keep_updating = False
+        self._node_registry.keep_updating = False
 
     def get_all_datasets_per_node(self):
         datasets = {}
@@ -119,21 +120,21 @@ class Controller:
         return datasets
 
     def get_all_available_schemas(self):
-        return node_registry.get_all_available_schemas()
+        return self._node_registry.get_all_available_schemas()
 
     def get_all_available_datasets_per_schema(self):
-        return node_registry.get_all_available_datasets_per_schema()
+        return self._node_registry.get_all_available_datasets_per_schema()
 
     def get_all_local_nodes(self):
-        return node_registry.get_all_local_nodes()
+        return self._node_registry.get_all_local_nodes()
 
     def _create_nodes_tasks_handlers(
         self, context_id: str, pathology: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
 
         # Get only teh relevant nodes from the node registry
-        global_node = node_registry.get_all_global_nodes()[0]
-        local_nodes = node_registry.get_nodes_with_any_of_datasets(
+        global_node = self._node_registry.get_all_global_nodes()[0]
+        local_nodes = self._node_registry.get_nodes_with_any_of_datasets(
             schema=pathology,
             datasets=datasets,
         )
@@ -144,10 +145,10 @@ class Controller:
             task_queue_port=global_node.port,
             db_domain=global_node.db_ip,
             db_port=global_node.db_port,
-            user=self._config.rabbitmq.user,
-            password=self._config.rabbitmq.password,
-            vhost=self._config.rabbitmq.vhost,
-            tasks_timeout=self._config.celery_tasks_timeout,
+            user=self._config["rabbitmq"]["user"],
+            password=self._config["rabbitmq"]["password"],
+            vhost=self._config["rabbitmq"]["vhost"],
+            tasks_timeout=self._config["celery_tasks_timeout"],
         )
         # Instantiate the INodeTasksHandler for the Global Node
         global_node_tasks_handler = NodeTasksHandlerCelery(
@@ -162,10 +163,10 @@ class Controller:
                 task_queue_port=local_node.port,
                 db_domain=local_node.db_ip,
                 db_port=local_node.db_port,
-                user=self._config.rabbitmq.user,
-                password=self._config.rabbitmq.password,
-                vhost=self._config.rabbitmq.vhost,
-                tasks_timeout=self._config.celery_tasks_timeout,
+                user=self._config["rabbitmq"]["user"],
+                password=self._config["rabbitmq"]["password"],
+                vhost=self._config["rabbitmq"]["vhost"],
+                tasks_timeout=self._config["celery_tasks_timeout"],
             )
 
             # Instantiate the INodeTasksHandlers for the Local Nodes
