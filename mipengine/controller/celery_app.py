@@ -1,23 +1,20 @@
 import asyncio
-
 from asgiref.sync import sync_to_async
 from celery import Celery
 
-from mipengine.controller import config as controller_config
-
-CELERY_TASKS_TIMEOUT = controller_config.celery_tasks_timeout
+from mipengine.attrdict import AttrDict
 
 
-def get_node_celery_app(socket_addr):
-    user = controller_config.rabbitmq.user
-    password = controller_config.rabbitmq.password
-    vhost = controller_config.rabbitmq.vhost
+def get_node_celery_app(socket_addr, controller_config: AttrDict):
+    user = controller_config["rabbitmq"]["user"]
+    password = controller_config["rabbitmq"]["password"]
+    vhost = controller_config["rabbitmq"]["vhost"]
     broker = f"amqp://{user}:{password}@{socket_addr}/{vhost}"
     broker_transport_options = {
-        "max_retries": controller_config.rabbitmq.celery_tasks_max_retries,
-        "interval_start": controller_config.rabbitmq.celery_tasks_interval_start,
-        "interval_step": controller_config.rabbitmq.celery_tasks_interval_step,
-        "interval_max": controller_config.rabbitmq.celery_tasks_interval_max,
+        "max_retries": controller_config["rabbitmq"]["celery_tasks_max_retries"],
+        "interval_start": controller_config["rabbitmq"]["celery_tasks_interval_start"],
+        "interval_step": controller_config["rabbitmq"]["celery_tasks_interval_step"],
+        "interval_max": controller_config["rabbitmq"]["celery_tasks_interval_max"],
     }
     cel_app = Celery(broker=broker, backend="rpc://")
     cel_app.conf.broker_transport_options = broker_transport_options
@@ -28,19 +25,22 @@ def get_node_celery_app(socket_addr):
 # Converts a Celery task to an async function
 # Celery doesn't currently support asyncio "await" while "getting" a result
 # Copied from https://github.com/celery/celery/issues/6603
-def task_to_async(task):
+def task_to_async(task, controller_config: AttrDict):
     async def wrapper(*args, **kwargs):
         total_delay = 0
         delay = 0.1
         async_result = await sync_to_async(task.delay)(*args, **kwargs)
         while not async_result.ready():
             total_delay += delay
-            if total_delay > CELERY_TASKS_TIMEOUT:
+            if total_delay > controller_config["celery_tasks_timeout"]:
                 raise TimeoutError(
-                    f"Celery task: {task} didn't respond in {CELERY_TASKS_TIMEOUT}s."
+                    f"Celery task: {task} didn't respond in "
+                    f"{controller_config['celery_tasks_timeout']}s."
                 )
             await asyncio.sleep(delay)
             delay = min(delay * 1.5, 2)  # exponential backoff, max 2 seconds
-        return async_result.get(timeout=CELERY_TASKS_TIMEOUT - total_delay)
+        return async_result.get(
+            timeout=controller_config["celery_tasks_timeout"] - total_delay
+        )
 
     return wrapper
