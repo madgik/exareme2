@@ -460,7 +460,7 @@ class _AlgorithmExecutionInterface:
                 # TODO _node_tasks_handler and _task_timeout are internals of node and
                 # should not be accessed. This should be a temporary solution.
 
-                # TODO The folloing time limit related exceptions are raised when get()
+                # TODO The following time limit related exceptions are raised when get()
                 # is called. This is the reason they are catched in 2 different classes
                 # here(_AlgorithmExecutionInterface) as well as in the _Node class
                 # (thru the @time_limit_exceeded_handler decoration). This is not ideal,
@@ -540,7 +540,7 @@ class _AlgorithmExecutionInterface:
             # TODO _node_tasks_handler and _task_timeout are internals of node and
             # should not be accessed. This should be a temporary solution.
 
-            # TODO The folloing time limit related exceptions are raised when get()
+            # TODO The following time limit related exceptions are raised when get()
             # is called. This is the reason they are catched in 2 different classes
             # here(_AlgorithmExecutionInterface) as well as in the _Node class
             # (thru the @time_limit_exceeded_handler decoration). This is not ideal,
