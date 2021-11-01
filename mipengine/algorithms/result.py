@@ -11,3 +11,8 @@ class TabularDataResult(BaseModel):
     title: str
     columns: List[TabularDataColumn]
     data: List[List[Union[float, str]]]
+
+
+class ErrorResult(BaseModel):
+    error_title: str
+    description: str

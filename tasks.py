@@ -401,11 +401,15 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
             if detached or all_:
                 cmd = (
                     f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
-                    f"-A mipengine.node.node worker -l {celery_log_level} >> {outpath} 2>&1"
+                    f"-A mipengine.node.node worker -l {celery_log_level} >> {outpath} "
+                    f"--purge 2>&1"
                 )
                 run(c, cmd, wait=False)
             else:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A mipengine.node.node worker -l {celery_log_level}"
+                cmd = (
+                    f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
+                    f"mipengine.node.node worker -l {celery_log_level} --purge"
+                )
                 run(c, cmd, attach_=True)
 
 

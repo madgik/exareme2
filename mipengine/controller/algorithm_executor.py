@@ -1,17 +1,22 @@
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Any, Optional, Callable
 import importlib
 from pydantic import BaseModel
+from abc import ABC
+
+from celery.exceptions import TimeoutError
+from billiard.exceptions import SoftTimeLimitExceeded
+from billiard.exceptions import TimeLimitExceeded
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
+from mipengine.algorithms.result import ErrorResult
 
-from mipengine.controller.algorithm_execution_DTOs import (
-    AlgorithmExecutionDTO,
-    NodesTasksHandlersDTO,
-)
+from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
+from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
+
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 
 ALGORITHMS_FOLDER = "mipengine.algorithms"
@@ -108,16 +113,70 @@ class AlgorithmExecutor:
         )
 
     def run(self):
-        algorithm_result = self.algorithm_flow_module.run(self.execution_interface)
+        try:
+            algorithm_result = self.algorithm_flow_module.run(self.execution_interface)
+            return algorithm_result
 
-        self.clean_up()
+        except SoftTimeLimitExceeded as stle:
+            error_result = ErrorResult(
+                error_title="SoftTimeLimitExceeded", description=str(stle.args[0])
+            )
+            # TODO logging
+            print(f"{error_result=}")
+            return error_result
+        except TimeLimitExceeded as tle:
+            print(f"{tle=}")
+            error_result = ErrorResult(
+                error_title="TimeLimitExceeded", description=str(tle.args[0])
+            )
+            # TODO logging
+            print(f"{error_result=}")
+            return error_result
+        except TimeoutError as te:
+            print(f"{te=}")
+            error_result = ErrorResult(
+                error_title="TimeoutError", description=str(te.args[0])
+            )
+            # TODO logging
+            print(f"{error_result=}")
+            return error_result
+        except:
+            import traceback
 
-        return algorithm_result
+            print(traceback.format_exc())
+        finally:
+            self.clean_up()
 
     def clean_up(self):
+        # TODO logging..
+        print(f"----> cleaning up global_node")
         self.global_node.clean_up()
         for node in self.local_nodes:
+            print(f"----> cleaning up {node:}")
             node.clean_up()
+
+
+def time_limit_exceeded_handler(method: Callable):
+    def inner(ref, *args, **kargs):
+        try:
+            return method(ref, *args, **kargs)
+        except SoftTimeLimitExceeded as stle:
+            # TODO should use kwargs here..
+            raise SoftTimeLimitExceeded(
+                {"node_id": ref.node_id, "task": method.__name__, "args": args}
+            )
+        except TimeLimitExceeded as tle:
+            # TODO should use kwargs here..
+            raise TimeLimitExceeded(
+                {"node_id": ref.node_id, "task": method.__name__, "args": args}
+            )
+        except TimeoutError as te:
+            # TODO should use kwargs here..
+            raise TimeoutError(
+                {"node_id": ref.node_id, "task": method.__name__, "args": args}
+            )
+
+    return inner
 
 
 class _Node:
@@ -127,8 +186,8 @@ class _Node:
         node_tasks_handler: INodeTasksHandler,
         initial_view_tables_params: Dict[str, Any] = None,
     ):
-        self.node_tasks_handler = node_tasks_handler
-        self.node_id = self.node_tasks_handler.node_id
+        self._node_tasks_handler = node_tasks_handler
+        self.node_id = self._node_tasks_handler.node_id
 
         self.context_id = context_id
 
@@ -145,6 +204,7 @@ class _Node:
     def initial_view_tables(self):
         return self._initial_view_tables
 
+    @time_limit_exceeded_handler
     def _create_initial_view_tables(self, initial_view_tables_params):
         # will contain the views created from the pathology, datasets. Its keys are
         # the variable sets x, y etc
@@ -178,35 +238,39 @@ class _Node:
 
     @property
     def node_address(self):
-        return self.node_tasks_handler.node_data_address
+        return self._node_tasks_handler.node_data_address
 
     # TABLES functionality
+    @time_limit_exceeded_handler
     def get_tables(self) -> List[_TableName]:
-        return self.node_tasks_handler.get_tables(context_id=self.context_id)
+        return self._node_tasks_handler.get_tables(context_id=self.context_id)
 
+    @time_limit_exceeded_handler
     def get_table_schema(self, table_name: _TableName):
-        return self.node_tasks_handler.get_table_schema(
+        return self._node_tasks_handler.get_table_schema(
             table_name=table_name.full_table_name
         )
-
+    @time_limit_exceeded_handler
     def get_table_data(self, table_name: _TableName) -> TableData:
-        return self.node_tasks_handler.get_table_data(table_name.full_table_name)
-
+        return self._node_tasks_handler.get_table_data(table_name.full_table_name)
+    @time_limit_exceeded_handler
     def create_table(self, command_id: str, schema: TableSchema) -> _TableName:
         schema_json = schema.json()
-        return self.node_tasks_handler.create_table(
+        return self._node_tasks_handler.create_table(
             context_id=self.context_id,
             command_id=command_id,
             schema_json=schema_json,
         )
 
     # VIEWS functionality
+    @time_limit_exceeded_handler
     def get_views(self) -> List[_TableName]:
-        result = self.node_tasks_handler.get_views(context_id=self.context_id)
+        result = self._node_tasks_handler.get_views(context_id=self.context_id)
         return [_TableName(table_name) for table_name in result]
 
     # TODO: this is very specific to mip, very inconsistent with the rest, has to
     # be abstracted somehow
+    @time_limit_exceeded_handler
     def create_pathology_view(
         self,
         command_id: str,
@@ -214,7 +278,7 @@ class _Node:
         columns: List[str],
         filters: List[str],
     ) -> _TableName:
-        result = self.node_tasks_handler.create_pathology_view(
+        result = self._node_tasks_handler.create_pathology_view(
             context_id=self.context_id,
             command_id=command_id,
             pathology=pathology,
@@ -224,13 +288,15 @@ class _Node:
         return _TableName(result)
 
     # MERGE TABLES functionality
+    @time_limit_exceeded_handler
     def get_merge_tables(self) -> List[_TableName]:
-        result = self.node_tasks_handler.get_merge_tables(context_id=self.context_id)
+        result = self._node_tasks_handler.get_merge_tables(context_id=self.context_id)
         return [_TableName(table_name) for table_name in result]
 
+    @time_limit_exceeded_handler
     def create_merge_table(self, command_id: str, table_names: List[_TableName]):
         table_names = [table_name.full_table_name for table_name in table_names]
-        result = self.node_tasks_handler.create_merge_table(
+        result = self._node_tasks_handler.create_merge_table(
             context_id=self.context_id,
             command_id=command_id,
             table_names=table_names,
@@ -238,23 +304,26 @@ class _Node:
         return _TableName(result)
 
     # REMOTE TABLES functionality
+    @time_limit_exceeded_handler
     def get_remote_tables(self) -> List["TableInfo"]:
-        return self.node_tasks_handler.get_remote_tables(context_id=self.context_id)
+        return self._node_tasks_handler.get_remote_tables(context_id=self.context_id)
 
+    @time_limit_exceeded_handler
     def create_remote_table(
         self, table_info: TableInfo, native_node: "_Node"
     ) -> _TableName:
 
         monetdb_socket_addr = native_node.node_address
-        return self.node_tasks_handler.create_remote_table(
+        return self._node_tasks_handler.create_remote_table(
             table_info=table_info, original_db_url=monetdb_socket_addr
         )
 
     # UDFs functionality
+    @time_limit_exceeded_handler
     def queue_run_udf(
         self, command_id: str, func_name: str, positional_args, keyword_args
     ):  # -> "AsyncResult"
-        return self.node_tasks_handler.queue_run_udf(
+        return self._node_tasks_handler.queue_run_udf(
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
@@ -262,14 +331,16 @@ class _Node:
             keyword_args=keyword_args,
         )
 
+    @time_limit_exceeded_handler
     def get_udfs(self, algorithm_name) -> List[str]:
-        return self.node_tasks_handler.get_udfs(algorithm_name)
+        return self._node_tasks_handler.get_udfs(algorithm_name)
 
     # return the generated monetdb pythonudf
+    @time_limit_exceeded_handler
     def get_run_udf_query(
         self, command_id: str, func_name: str, positional_args: List["_NodeTable"]
     ) -> Tuple[str, str]:
-        return self.node_tasks_handler.get_run_udf_query(
+        return self._node_tasks_handler.get_run_udf_query(
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
@@ -277,15 +348,16 @@ class _Node:
         )
 
     # CLEANUP functionality
+    @time_limit_exceeded_handler
     def clean_up(self):
-        self.node_tasks_handler.clean_up(context_id=self.context_id)
+        self._node_tasks_handler.clean_up(context_id=self.context_id)
 
 
 class _AlgorithmExecutionInterfaceDTO(BaseModel):
     global_node: _Node
     local_nodes: List[_Node]
     algorithm_name: str
-    algorithm_parameters: Dict[str, List[str]]
+    algorithm_parameters: Optional[Dict[str, List[str]]] = None
     x_variables: List[str]
     y_variables: List[str]
 
@@ -382,7 +454,27 @@ class _AlgorithmExecutionInterface:
 
         udf_result_tables = {}
         for node, task in tasks.items():
-            table_name = _TableName(task.get())
+            try:
+                # TODO _node_tasks_handler and _task_timeout are internals of node and
+                # should not be accessed. This should be a temporary solution.
+
+                # TODO The folloing time limit related exceptions are raised when get()
+                # is called. This is the reason they are catched in 2 different classes
+                # here(_AlgorithmExecutionInterface) as well as in the _Node class
+                # (thru the @time_limit_exceeded_handler decoration). This is not ideal,
+                # it would be much nicer if they were cought on a single place
+                tmp = task.get(node._node_tasks_handler._task_timeout)
+            # TODO pass args in the exception
+            except SoftTimeLimitExceeded:
+                raise SoftTimeLimitExceeded(
+                    {"node_id": node.node_id, "task": "run_udf"}
+                )
+            except TimeLimitExceeded:
+                raise TimeLimitExceeded({"node_id": node.node_id, "task": "run_udf"})
+            except TimeoutError:
+                raise TimeoutError({"node_id": node.node_id, "task": "run_udf"})
+
+            table_name = _TableName(tmp)
             udf_result_tables[node] = table_name
 
             # ceate remote table on global node
@@ -442,12 +534,35 @@ class _AlgorithmExecutionInterface:
                 udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=str(val))
             positional_args_transfrormed.append(udf_argument.json())
 
-        udf_result_table: str = self._global_node.queue_run_udf(
-            command_id=command_id,
-            func_name=func_name,
-            positional_args=positional_args_transfrormed,
-            keyword_args={},
-        ).get()
+        try:
+            # TODO _node_tasks_handler and _task_timeout are internals of node and
+            # should not be accessed. This should be a temporary solution.
+
+            # TODO The folloing time limit related exceptions are raised when get()
+            # is called. This is the reason they are catched in 2 different classes
+            # here(_AlgorithmExecutionInterface) as well as in the _Node class
+            # (thru the @time_limit_exceeded_handler decoration). This is not ideal,
+            # it would be much nicer if they were cought on a single place
+            udf_result_table: str = self._global_node.queue_run_udf(
+                command_id=command_id,
+                func_name=func_name,
+                positional_args=positional_args_transfrormed,
+                keyword_args={},
+            ).get(self._global_node._node_tasks_handler._task_timeout)
+
+        # TODO pass args in the exception
+        except SoftTimeLimitExceeded as stle:
+            raise SoftTimeLimitExceeded(
+                {"node_id": self._global_node.node_id, "task": "run_udf"}
+            )
+        except TimeLimitExceeded as tle:
+            raise TimeLimitExceeded(
+                {"node_id": self._global_node.node_id, "task": "run_udf"}
+            )
+        except TimeoutError as te:
+            raise TimeoutError(
+                {"node_id": self._global_node.node_id, "task": "run_udf"}
+            )
 
         if share_to_locals:
             table_schema: TableSchema = self._global_node.get_table_schema(
@@ -480,18 +595,18 @@ class _AlgorithmExecutionInterface:
             node_table, _GlobalNodeTable
         ):
             return node_table.get_table_schema()
-        else:
+        else:  # TODO specific exception
             raise Exception(
                 "(AlgorithmExecutionInterface::get_table_schema) node_table type-> {type(node_table)} not acceptable"
             )
 
 
-class _NodeTable:
+class _NodeTable(ABC):
     # TODO: better abstraction here...
     pass
 
 
-class _LocalNodeTable:
+class _LocalNodeTable(_NodeTable):
     def __init__(self, nodes_tables: Dict["_Node", "_TableName"]):
         self._nodes_tables = nodes_tables
 
@@ -542,7 +657,7 @@ class _LocalNodeTable:
             self.message = f"Mismatched table names ->{table_names}"
 
 
-class _GlobalNodeTable:
+class _GlobalNodeTable(_NodeTable):
     def __init__(self, node_table: Dict["_Node", "_TableName"]):
         self._node_table = node_table
 
