@@ -63,6 +63,8 @@ def node_task_handler():
             interval_start=controller_config.rabbitmq.celery_tasks_interval_start,
             interval_step=controller_config.rabbitmq.celery_tasks_interval_step,
             interval_max=controller_config.rabbitmq.celery_tasks_interval_max,
+            tasks_timeout=controller_config.celery_tasks_timeout,
+
         )
 
     return NodeTasksHandlerCelery(node_id=node_id, celery_params=celery_params_dto)
