@@ -250,9 +250,11 @@ class _Node:
         return self._node_tasks_handler.get_table_schema(
             table_name=table_name.full_table_name
         )
+
     @time_limit_exceeded_handler
     def get_table_data(self, table_name: _TableName) -> TableData:
         return self._node_tasks_handler.get_table_data(table_name.full_table_name)
+
     @time_limit_exceeded_handler
     def create_table(self, command_id: str, schema: TableSchema) -> _TableName:
         schema_json = schema.json()

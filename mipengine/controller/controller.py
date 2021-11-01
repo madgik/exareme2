@@ -143,8 +143,7 @@ class Controller:
             interval_start=controller_config.rabbitmq.celery_tasks_interval_start,
             interval_step=controller_config.rabbitmq.celery_tasks_interval_step,
             interval_max=controller_config.rabbitmq.celery_tasks_interval_max,
-            tasks_timeout=controller_config.celery_tasks_timeout
-
+            tasks_timeout=controller_config.celery_tasks_timeout,
         )
         # Instantiate the INodeTasksHandler for the Global Node
         global_node_tasks_handler = NodeTasksHandlerCelery(
@@ -166,7 +165,7 @@ class Controller:
                 interval_start=controller_config.rabbitmq.celery_tasks_interval_start,
                 interval_step=controller_config.rabbitmq.celery_tasks_interval_step,
                 interval_max=controller_config.rabbitmq.celery_tasks_interval_max,
-                tasks_timeout=controller_config.celery_tasks_timeout
+                tasks_timeout=controller_config.celery_tasks_timeout,
             )
 
             # Instantiate the INodeTasksHandlers for the Local Nodes
