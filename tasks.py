@@ -124,14 +124,10 @@ def create_configs(c):
     # Create the controller config file
     with open(CONTROLLER_CONFIG_TEMPLATE_FILE) as fp:
         template_controller_config = toml.load(fp)
-
     controller_config = template_controller_config.copy()
     controller_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
     controller_config["node_registry_update_interval"] = deployment_config[
         "node_registry_update_interval"
-    ]
-    controller_config["celery_tasks_timeout"] = deployment_config[
-        "celery_tasks_timeout"
     ]
 
     controller_config["deployment_type"] = "LOCAL"
