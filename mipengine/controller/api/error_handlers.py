@@ -6,6 +6,7 @@ from quart import Blueprint
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.node_tasks_DTOs import InsufficientDataError
+from mipengine.controller.algorithm_executor import AlgorithmExecutionException
 
 error_handlers = Blueprint("error_handlers", __name__)
 
@@ -16,7 +17,13 @@ class HTTPStatusCode(enum.IntEnum):
     BAD_REQUEST = 400
     BAD_USER_INPUT = 460
     INSUFFICIENT_DATA_ERROR = 461
+    ALGORITHM_EXECUTION_ERROR = 462
     UNEXPECTED_ERROR = 500
+
+
+@error_handlers.app_errorhandler(AlgorithmExecutionException)
+def handle_algorithm_execution_exception(error: AlgorithmExecutionException):
+    return error.message, HTTPStatusCode.ALGORITHM_EXECUTION_ERROR
 
 
 @error_handlers.app_errorhandler(BadRequest)
