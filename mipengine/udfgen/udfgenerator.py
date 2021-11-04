@@ -548,11 +548,11 @@ class TransferObjectType(ObjectType):
     schema_ = [("jsonified_object", dt.JSON)]
 
     def __init__(self, stored_class):
-        super().__init__(stored_class)
         if not issubclass(stored_class, BaseModel):
             raise UDFBadDefinition(
                 "The 'stored_class' parameter should contain a subclass of BaseModel."
             )
+        super().__init__(stored_class)
 
 
 def transfer_object(stored_class):
@@ -563,11 +563,11 @@ class StateObjectType(ObjectType):
     schema_ = [("pickled_object", dt.BINARY)]
 
     def __init__(self, stored_class):
-        super().__init__(stored_class)
         if not inspect.isclass(stored_class):
             raise UDFBadDefinition(
                 "The 'stored_class' parameter should contain a class."
             )
+        super().__init__(stored_class)
 
 
 def state_object(stored_class):
@@ -809,8 +809,8 @@ class UDFSignature(ASTNode):
 
 
 class UDFHeader(ASTNode):
-    def __init__(self, udfname, parameter_types, return_type):
-        self.signature = UDFSignature(udfname, parameter_types, return_type)
+    def __init__(self, udfname, param_table_types, return_type):
+        self.signature = UDFSignature(udfname, param_table_types, return_type)
 
     def compile(self) -> str:
         return LN.join(
@@ -891,6 +891,21 @@ class LiteralAssignments(ASTNode):
         return LN.join(f"{name} = {arg.value}" for name, arg in self.literals.items())
 
 
+class ObjectAssignments(ASTNode):
+    def __init__(self, objects: List[ObjectType]):
+        self.object_assignments = []
+        for object_name, object_type in objects.items():
+            loopback_query = (
+                f"state_str = "
+                f"_conn.execute(\"SELECT jsonified_object from TODOOOO;\")['jsonified_object'][0]"
+            )
+            object_parse = f"{object_name} = {object_type.stored_class.__name__}.parse_raw(state_str)"
+            self.object_assignments.append(LN.join([loopback_query, object_parse]))
+
+    def compile(self) -> str:
+        return LN.join(self.object_assignments)
+
+
 class UDFBodyStatements(ASTNode):
     def __init__(self, statements):
         self.returnless_stmts = [
@@ -906,21 +921,23 @@ class UDFBodyStatements(ASTNode):
 class UDFBody(ASTNode):
     def __init__(
         self,
-        parameter_types: Dict[str, IOType],
+        param_table_types: Dict[str, IOType],
         statements: list,
         return_name: str,
         return_type: IOType,
         literals,
+        objects: Dict[str, IOType],
     ):
         self.returnless_stmts = UDFBodyStatements(statements)
         self.return_stmt = UDFReturnStatement(return_name, return_type)
-        self.table_conversions = TableBuilds(parameter_types)
+        self.table_conversions = TableBuilds(param_table_types)
         self.literals = LiteralAssignments(literals)
         self.imports = Imports(
-            UDFBody._is_pickle_needed(parameter_types, return_type),
-            UDFBody._is_pydantic_needed(parameter_types, return_type),
+            UDFBody._is_pickle_needed(param_table_types, return_type),
+            UDFBody._is_pydantic_needed(param_table_types, return_type),
         )
-        self.class_definitions = ClassDefinitions(parameter_types, return_type)
+        self.class_definitions = ClassDefinitions(param_table_types, return_type)
+        self.objects = ObjectAssignments(objects)
 
     @classmethod
     def _is_pickle_needed(cls, parameter_types: Dict[str, IOType], return_type: IOType):
@@ -946,6 +963,7 @@ class UDFBody(ASTNode):
                     self.class_definitions.compile(),
                     self.table_conversions.compile(),
                     self.literals.compile(),
+                    self.objects.compile(),
                     self.returnless_stmts.compile(),
                     self.return_stmt.compile(),
                 ]
@@ -1003,15 +1021,16 @@ class UDFDefinition(ASTNode):
     ):
         self.header = UDFHeader(
             udfname=funcparts.qualname,
-            parameter_types=param_table_types,
+            param_table_types=param_table_types,
             return_type=output_type,
         )
         body = UDFBody(
-            parameter_types=param_table_types,
+            param_table_types=param_table_types,
             statements=funcparts.body_statements,
             return_name=funcparts.return_name,
             return_type=funcparts.output_type,
             literals=literal_types,
+            objects=object_types,
         )
         self.body = UDFTracebackCatcher(body) if traceback else body
 
@@ -1529,7 +1548,7 @@ def get_udf_templates_using_udfregistry(
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
     udf_args = get_udf_args(funcparts, posargs, keywordargs)
     udf_args = assign_class_to_orphan_object_args(
-        udf_args, funcparts.param_table_input_types
+        udf_args, funcparts.object_input_types
     )
     input_types = copy_types_from_udfargs(udf_args)
     output_type = get_output_type(funcparts, input_types, traceback)
