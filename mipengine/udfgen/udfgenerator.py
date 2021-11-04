@@ -201,6 +201,8 @@ from typing import Tuple
 
 from typing import List
 
+from typing import Set
+
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine import DType as dt
@@ -820,11 +822,11 @@ class UDFHeader(ASTNode):
 
 class Imports(ASTNode):
     # TODO imports should be dynamic
-    def __init__(self, dill):
+    def __init__(self, pickle):
         self._import_lines = ["import pandas as pd", "import udfio"]
-        if dill:
-            dill_import_line = "import dill as pickle"
-            self._import_lines.append(dill_import_line)
+        if pickle:
+            pickle = "import dill as pickle"
+            self._import_lines.append(pickle)
 
     def compile(self) -> str:
         return LN.join(self._import_lines)
@@ -832,11 +834,11 @@ class Imports(ASTNode):
 
 class ClassDefinitions(ASTNode):
     def __init__(self, parameter_types: Dict[str, IOType], return_type: IOType):
-        self._class_definitions: List[str] = []
+        self._class_definitions: Set[str] = set()
         for io_type in list(parameter_types.values()) + [return_type]:
             if isinstance(io_type, ObjectType):
                 class_def = dedent(inspect.getsource(io_type.stored_class))
-                self._class_definitions.append(class_def)
+                self._class_definitions.add(class_def)
 
     def compile(self) -> str:
         class_defs = LN.join(self._class_definitions)
@@ -907,11 +909,15 @@ class UDFBody(ASTNode):
         self.return_stmt = UDFReturnStatement(return_name, return_type)
         self.table_conversions = TableBuilds(parameter_types)
         self.literals = LiteralAssignments(literals)
-        dill_import_needed = False
-        if isinstance(return_type, StateObjectType):
-            dill_import_needed = True
-        self.imports = Imports(dill_import_needed)
+        self.imports = Imports(UDFBody._is_pickle_needed(parameter_types, return_type))
         self.class_definitions = ClassDefinitions(parameter_types, return_type)
+
+    @classmethod
+    def _is_pickle_needed(cls, parameter_types: Dict[str, IOType], return_type: IOType):
+        for io_type in list(parameter_types.values()) + [return_type]:
+            if isinstance(io_type, StateObjectType):
+                return True
+        return False
 
     def compile(self) -> str:
         return LN.join(
