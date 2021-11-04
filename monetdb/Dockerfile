@@ -71,6 +71,7 @@ RUN chmod 775 /home/bootstrap.sh
 RUN pip3 install scipy
 RUN pip3 install pandas
 RUN pip3 install scikit-learn
+RUN pip3 install dill
 
 #######################################################
 # Add /home/udflib to python path and copy
