@@ -124,14 +124,10 @@ def create_configs(c):
     # Create the controller config file
     with open(CONTROLLER_CONFIG_TEMPLATE_FILE) as fp:
         template_controller_config = toml.load(fp)
-
     controller_config = template_controller_config.copy()
     controller_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
     controller_config["node_registry_update_interval"] = deployment_config[
         "node_registry_update_interval"
-    ]
-    controller_config["celery_tasks_timeout"] = deployment_config[
-        "celery_tasks_timeout"
     ]
 
     controller_config["deployment_type"] = "LOCAL"
@@ -401,11 +397,15 @@ def start_node(c, node=None, all_=False, celery_log_level=None, detached=False):
             if detached or all_:
                 cmd = (
                     f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
-                    f"-A mipengine.node.node worker -l {celery_log_level} >> {outpath} 2>&1"
+                    f"-A mipengine.node.node worker -l {celery_log_level} >> {outpath} "
+                    f"--purge 2>&1"
                 )
                 run(c, cmd, wait=False)
             else:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A mipengine.node.node worker -l {celery_log_level}"
+                cmd = (
+                    f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
+                    f"mipengine.node.node worker -l {celery_log_level} --purge"
+                )
                 run(c, cmd, attach_=True)
 
 
