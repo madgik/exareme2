@@ -42,6 +42,13 @@ from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.udfgen.udfgenerator import ObjectType
+from mipengine.udfgen.udfgenerator import OrphanObjectArg
+from mipengine.udfgen.udfgenerator import OrphanStateObjectArg
+from mipengine.udfgen.udfgenerator import OrphanTransferObjectArg
+from mipengine.udfgen.udfgenerator import StateObjectArg
+from mipengine.udfgen.udfgenerator import TransferObjectArg
+from mipengine.udfgen.udfgenerator import assign_class_to_orphan_object_args
 from mipengine.udfgen.udfgenerator import state_object
 from mipengine.udfgen.udfgenerator import transfer_object
 
@@ -80,6 +87,41 @@ def test_copy_types_from_udfargs():
         "a": relation(schema=[]),
         "b": tensor(dtype=int, ndims=2),
     }
+
+
+def test_assign_class_to_orphan_object_args():
+    class A:
+        test = 3
+
+    class B:
+        test = 1.2
+
+    class C(BaseModel):
+        test: int
+
+    udf_args = {
+        "a": OrphanStateObjectArg("tab_a"),
+        "b": OrphanStateObjectArg("tab_b"),
+        "c": RelationArg(table_name="A", schema=[]),
+        "d": TensorArg(table_name="B", dtype=int, ndims=2),
+        "e": OrphanTransferObjectArg("tab_c"),
+    }
+    object_input_types = {
+        "a": ObjectType(A),
+        "b": ObjectType(B),
+        "e": ObjectType(C),
+    }
+    final_udf_args = {
+        "a": StateObjectArg(OrphanStateObjectArg("tab_a"), A),
+        "b": StateObjectArg(OrphanStateObjectArg("tab_b"), B),
+        "c": RelationArg(table_name="A", schema=[]),
+        "d": TensorArg(table_name="B", dtype=int, ndims=2),
+        "e": TransferObjectArg(OrphanTransferObjectArg("tab_c"), C),
+    }
+
+    assert final_udf_args == assign_class_to_orphan_object_args(
+        udf_args, object_input_types
+    )
 
 
 class TestVerifyTypeParams:
@@ -362,14 +404,6 @@ def test_transfer_object_stored_class():
     assert to.stored_class == Test
 
 
-def test_transfer_object_is_generic():
-    class Test(BaseModel):
-        test: int
-
-    to = transfer_object(Test)
-    assert not to.is_generic
-
-
 def test_transfer_object_improper_class():
     class Test:
         def __init__(self):
@@ -385,7 +419,7 @@ def test_state_object_schema():
             self.test = 2
 
     to = state_object(Test)
-    assert to.schema == [("pickled_object", DType.STR_NO_LIMIT)]
+    assert to.schema == [("pickled_object", DType.BINARY)]
 
 
 def test_state_object_column_names():
@@ -406,18 +440,12 @@ def test_state_object_stored_class():
     assert to.stored_class == Test
 
 
-def test_state_object_is_generic():
-    class Test:
-        def __init__(self):
-            self.test = 2
-
-    to = state_object(Test)
-    assert not to.is_generic
-
-
 def test_state_object_improper_class():
     with pytest.raises(UDFBadDefinition):
         state_object(5)
+
+
+# TODO OOOO Add tests for state/transfer schema_matches etc
 
 
 def test_udf_decorator_already_there():
@@ -516,6 +544,38 @@ def test_convert_udfgenargs_to_udfargs_multiple_types():
     assert result == expected_udf_posargs
 
 
+def test_convert_udfgenargs_to_udfargs_transfer_object():
+    udfgen_posargs = [
+        TableInfo(
+            name="tab",
+            schema_=TableSchema(
+                columns=[
+                    ColumnInfo(name="jsonified_object", dtype=DType.JSON),
+                ]
+            ),
+        ),
+    ]
+    expected_udf_posargs = [OrphanTransferObjectArg(table_name="tab")]
+    result, _ = convert_udfgenargs_to_udfargs(udfgen_posargs, {})
+    assert result == expected_udf_posargs
+
+
+def test_convert_udfgenargs_to_udfargs_state_object():
+    udfgen_posargs = [
+        TableInfo(
+            name="tab",
+            schema_=TableSchema(
+                columns=[
+                    ColumnInfo(name="pickled_object", dtype=DType.BINARY),
+                ]
+            ),
+        ),
+    ]
+    expected_udf_posargs = [OrphanStateObjectArg(table_name="tab")]
+    result, _ = convert_udfgenargs_to_udfargs(udfgen_posargs, {})
+    assert result == expected_udf_posargs
+
+
 class TestTensorArgsEquality:
     def test_tensor_args_names_not_equal(self):
         t1 = TensorArg("a", int, 1)
@@ -569,6 +629,8 @@ class TestRelationArgsEquality:
         t2 = RelationArg("a", [("c1", int), ("c2", int)])
         assert t1 == t2
 
+
+# TODO OOOO Add tests for Args / Orphan Args?
 
 # ~~~~~~~~~~~~~~~~~~~~~~ Test Select AST Node ~~~~~~~~~~~~~~~~ #
 
@@ -2314,6 +2376,71 @@ FROM
         udfdef, udfsel = generate_udf_queries(
             funcname, positional_args, {}, traceback=True
         )
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+
+# TODO OOOO Add tests for expected sql generation
+
+
+class TestUDFGen_StateReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        class DummyClass:
+            def __init__(self, number):
+                self.number = number
+
+        @udf(t=literal(), return_type=state_object(DummyClass))
+        def f(t):
+            result = DummyClass(t)
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [5]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(pickled_object BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import dill as pickle
+    class DummyClass:
+        def __init__(self, number):
+            self.number = number
+    t = 5
+    result = DummyClass(t)
+    return pickle.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),pickled_object BLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
         assert udfdef.template == expected_udfdef
         assert udfsel.template == expected_udfsel
 

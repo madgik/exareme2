@@ -197,7 +197,11 @@ from typing import (
 import numpy
 import astor
 from pydantic import BaseModel
+from typing import Tuple
 
+from typing import List
+
+from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine import DType as dt
 
@@ -267,8 +271,10 @@ def get_return_stmt_template(iotype):
         return "return udfio.as_tensor_table(numpy.array({return_name}))"
     if isinstance(iotype, ScalarType):
         return "return {return_name}"
+    if isinstance(iotype, StateObjectType):
+        return "return pickle.dumps({return_name})"
     raise NotImplementedError(
-        "Return stmt template only for RelationType, TensorType, ScalarType"
+        "Return stmt template only for RelationType, TensorType, ScalarType, StateObjectType"
     )
 
 
@@ -439,7 +445,7 @@ class IOType(ABC):
         return self.__dict__ == other.__dict__
 
 
-class TableType(IOType, ParametrizedType, ABC):
+class TableType(IOType, ABC):
     @property
     @abstractmethod
     def schema(self):
@@ -450,7 +456,11 @@ class TableType(IOType, ParametrizedType, ABC):
         return [prefix + name for name, _ in self.schema]
 
 
-class TensorType(TableType):
+class ParametrizedTableType(TableType, ParametrizedType, ABC):
+    pass
+
+
+class TensorType(ParametrizedTableType):
     def __init__(self, dtype, ndims):
         self.dtype = dt.from_py(dtype) if isinstance(dtype, type) else dtype
         self.ndims = ndims
@@ -466,7 +476,7 @@ def tensor(dtype, ndims):
     return TensorType(dtype, ndims)
 
 
-class MergeTensorType(TableType):
+class MergeTensorType(ParametrizedTableType):
     def __init__(self, dtype, ndims):
         self.dtype = dt.from_py(dtype) if isinstance(dtype, type) else dtype
         self.ndims = ndims
@@ -483,7 +493,7 @@ def merge_tensor(dtype, ndims):
     return MergeTensorType(dtype, ndims)
 
 
-class RelationType(TableType):
+class RelationType(ParametrizedTableType):
     def __init__(self, schema):
         if isinstance(schema, TypeVar):
             self._schema = schema
@@ -503,15 +513,36 @@ def relation(schema):
 
 
 class ObjectType(TableType, ABC):
+    schema_: List[Tuple]
+
     def __init__(self, stored_class):
-        self.stored_class_ = stored_class
+        self._stored_class = stored_class
 
     @property
     def stored_class(self):
-        return self.stored_class_
+        return self._stored_class
+
+    @property
+    def schema(self):
+        return self.schema_
+
+    @classmethod
+    def schema_matches(cls, schema_provided: List[ColumnInfo]):
+        if len(schema_provided) > 1:
+            return False
+        column_name, column_type = cls.schema_[0]
+        column_name_provided = schema_provided[0].name
+        column_type_provided = schema_provided[0].dtype
+        if column_name != column_name_provided:
+            return False
+        if column_type != column_type_provided:
+            return False
+        return True
 
 
 class TransferObjectType(ObjectType):
+    schema_ = [("jsonified_object", dt.JSON)]
+
     def __init__(self, stored_class):
         super().__init__(stored_class)
         if not issubclass(stored_class, BaseModel):
@@ -519,16 +550,14 @@ class TransferObjectType(ObjectType):
                 "The 'stored_class' parameter should contain a subclass of BaseModel."
             )
 
-    @property
-    def schema(self):
-        return [("jsonified_object", dt.JSON)]
 
-
-def transfer_object(class_):
-    return TransferObjectType(class_)
+def transfer_object(stored_class):
+    return TransferObjectType(stored_class)
 
 
 class StateObjectType(ObjectType):
+    schema_ = [("pickled_object", dt.BINARY)]
+
     def __init__(self, stored_class):
         super().__init__(stored_class)
         if not inspect.isclass(stored_class):
@@ -536,13 +565,9 @@ class StateObjectType(ObjectType):
                 "The 'stored_class' parameter should contain a class."
             )
 
-    @property
-    def schema(self):
-        return [("pickled_object", dt.STR_NO_LIMIT)]
 
-
-def state_object(class_):
-    return StateObjectType(class_)
+def state_object(stored_class):
+    return StateObjectType(stored_class)
 
 
 class ScalarType(IOType, ParametrizedType):
@@ -631,6 +656,73 @@ class RelationArg(TableArg):
         return True
 
 
+# Oprhan Object Args are ObjectArgs that we don't yet know their class
+class OrphanObjectArg(TableArg):
+    def __init__(self, table_name):
+        super().__init__(table_name)
+
+    @abstractmethod
+    def convert_to_object_arg(self, stored_class):
+        pass
+
+    def __eq__(self, other):
+        if self.table_name != other.table_name:
+            return False
+        return True
+
+
+class OrphanStateObjectArg(OrphanObjectArg):
+    def __init__(self, table_name):
+        super().__init__(table_name)
+
+    def convert_to_object_arg(self, stored_class):
+        return StateObjectArg(self, stored_class)
+
+
+class OrphanTransferObjectArg(OrphanObjectArg):
+    def __init__(self, table_name):
+        super().__init__(table_name)
+
+    def convert_to_object_arg(self, stored_class):
+        return TransferObjectArg(self, stored_class)
+
+
+class ObjectArg(TableArg, ABC):
+    type: ObjectType
+
+    def __init__(self, orphan_object: OrphanObjectArg):
+        super().__init__(orphan_object.table_name)
+
+    @property
+    def schema(self):
+        return self.type.schema
+
+    @property
+    def stored_class(self):
+        return self.type.stored_class
+
+    def __eq__(self, other):
+        if self.table_name != other.table_name:
+            return False
+        if self.schema != other.schema:
+            return False
+        if self.type.stored_class != other.type.stored_class:
+            return False
+        return True
+
+
+class StateObjectArg(ObjectArg):
+    def __init__(self, orphan_object: OrphanStateObjectArg, stored_class):
+        self.type = state_object(stored_class)
+        super().__init__(orphan_object)
+
+
+class TransferObjectArg(ObjectArg):
+    def __init__(self, orphan_object: OrphanTransferObjectArg, stored_class):
+        self.type = transfer_object(stored_class)
+        super().__init__(orphan_object)
+
+
 class LiteralArg(UDFArgument):
     def __init__(self, value):
         self.type: LiteralType = literal(value)
@@ -650,7 +742,7 @@ KnownTypeParams = Union[type, int]
 UnknownTypeParams = TypeVar
 TypeParamsInference = Dict[UnknownTypeParams, KnownTypeParams]
 InputType = Union[TableType, LiteralType]
-OutputType = Union[TableType, ScalarType]
+OutputType = Union[TableType, ScalarType, ObjectType]
 
 # ~~~~~~~~~~~~~~~~~~~~~~ UDF AST Nodes ~~~~~~~~~~~~~~~~~~~~~~~ #
 
@@ -687,7 +779,7 @@ class UDFSignature(ASTNode):
     def __init__(
         self,
         udfname: str,  # unused as long as generator returns templates
-        parameter_types: Dict[str, TableType],
+        parameter_types: Dict[str, ParametrizedTableType],
         return_type: Union[TableType, ScalarType],
     ):
         self.udfname = "$udf_name"
@@ -728,10 +820,27 @@ class UDFHeader(ASTNode):
 
 class Imports(ASTNode):
     # TODO imports should be dynamic
-    _import_lines = ["import pandas as pd", "import udfio"]
+    def __init__(self, dill):
+        self._import_lines = ["import pandas as pd", "import udfio"]
+        if dill:
+            dill_import_line = "import dill as pickle"
+            self._import_lines.append(dill_import_line)
 
     def compile(self) -> str:
         return LN.join(self._import_lines)
+
+
+class ClassDefinitions(ASTNode):
+    def __init__(self, parameter_types: Dict[str, IOType], return_type: IOType):
+        self._class_definitions: List[str] = []
+        for io_type in list(parameter_types.values()) + [return_type]:
+            if isinstance(io_type, ObjectType):
+                class_def = dedent(inspect.getsource(io_type.stored_class))
+                self._class_definitions.append(class_def)
+
+    def compile(self) -> str:
+        class_defs = LN.join(self._class_definitions)
+        return class_defs if class_defs else ""
 
 
 class TableBuild(ASTNode):
@@ -788,7 +897,7 @@ class UDFBodyStatements(ASTNode):
 class UDFBody(ASTNode):
     def __init__(
         self,
-        parameter_types,
+        parameter_types: Dict[str, IOType],
         statements: list,
         return_name: str,
         return_type: IOType,
@@ -798,13 +907,18 @@ class UDFBody(ASTNode):
         self.return_stmt = UDFReturnStatement(return_name, return_type)
         self.table_conversions = TableBuilds(parameter_types)
         self.literals = LiteralAssignments(literals)
-        self.imports = Imports()
+        dill_import_needed = False
+        if isinstance(return_type, StateObjectType):
+            dill_import_needed = True
+        self.imports = Imports(dill_import_needed)
+        self.class_definitions = ClassDefinitions(parameter_types, return_type)
 
     def compile(self) -> str:
         return LN.join(
             remove_empty_lines(
                 [
                     self.imports.compile(),
+                    self.class_definitions.compile(),
                     self.table_conversions.compile(),
                     self.literals.compile(),
                     self.returnless_stmts.compile(),
@@ -856,18 +970,19 @@ class UDFDefinition(ASTNode):
     def __init__(
         self,
         funcparts: "FunctionParts",
-        table_types: Dict[str, TableType],
+        param_table_types: Dict[str, ParametrizedTableType],
         output_type: Union[TableType, ScalarType],
         literal_types: Dict[str, LiteralType],
+        object_types: Dict[str, ObjectType],
         traceback=False,
     ):
         self.header = UDFHeader(
             udfname=funcparts.qualname,
-            parameter_types=table_types,
+            parameter_types=param_table_types,
             return_type=output_type,
         )
         body = UDFBody(
-            parameter_types=table_types,
+            parameter_types=param_table_types,
             statements=funcparts.body_statements,
             return_name=funcparts.return_name,
             return_type=funcparts.output_type,
@@ -1145,7 +1260,7 @@ class UDFDecorator:
             validate_udf_signature_types(signature)
             validate_udf_return_statement(func)
             funcparts = breakup_function(func, signature)
-            validate_udf_table_input_types(funcparts.table_input_types)
+            validate_udf_table_input_types(funcparts.param_table_input_types)
             funcname = funcparts.qualname
             if funcname in self.registry:
                 raise UDFBadDefinition(
@@ -1174,7 +1289,7 @@ class FunctionParts(NamedTuple):
     qualname: str
     body_statements: list
     return_name: str
-    table_input_types: Dict[str, TableType]
+    param_table_input_types: Dict[str, ParametrizedTableType]
     object_input_types: Dict[str, ObjectType]
     literal_input_types: Dict[str, LiteralType]
     output_type: IOType
@@ -1243,10 +1358,10 @@ def breakup_function(func, funcsig) -> FunctionParts:
     tree = parse_func(func)
     body_statements = get_func_body_from_ast(tree)
     return_name = get_return_name_from_body(body_statements)
-    table_input_types = {
+    param_table_input_types = {
         name: iotype
         for name, iotype in funcsig.parameters.items()
-        if isinstance(iotype, TableType) and not isinstance(iotype, ObjectType)
+        if isinstance(iotype, ParametrizedTableType)
     }
     object_input_types = {
         name: iotype
@@ -1263,7 +1378,7 @@ def breakup_function(func, funcsig) -> FunctionParts:
         qualname,
         body_statements,
         return_name,
-        table_input_types,
+        param_table_input_types,
         object_input_types,
         literal_input_types,
         output_type,
@@ -1343,7 +1458,12 @@ def convert_udfgenarg_to_udfarg(udfgen_arg) -> UDFArgument:
 
 
 def convert_table_info_to_table_arg(table_info):
-    if is_tensor_schema(table_info.schema_.columns):
+    "add new input args"
+    if TransferObjectType.schema_matches(table_info.schema_.columns):
+        return OrphanTransferObjectArg(table_name=table_info.name)
+    elif StateObjectType.schema_matches(table_info.schema_.columns):
+        return OrphanStateObjectArg(table_name=table_info.name)
+    elif is_tensor_schema(table_info.schema_.columns):
         ndims = (
             len(table_info.schema_.columns) - 2
         )  # TODO avoid this using kinds of TableInfo
@@ -1358,6 +1478,8 @@ def convert_table_info_to_table_arg(table_info):
 
 # TODO table kinds must become known in Controller, who should send the
 # appropriate kind, avoiding heuristics like below
+
+# TODO is_***_schema should probably be moved in the type class as class methods
 def is_tensor_schema(schema):
     colnames = [col.name for col in schema]
     if "val" in colnames and any(cname.startswith("dim") for cname in colnames):
@@ -1381,8 +1503,12 @@ def get_udf_templates_using_udfregistry(
 ) -> tuple:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
     udf_args = get_udf_args(funcparts, posargs, keywordargs)
+    udf_args = assign_class_to_orphan_object_args(
+        udf_args, funcparts.param_table_input_types
+    )
     input_types = copy_types_from_udfargs(udf_args)
     output_type = get_output_type(funcparts, input_types, traceback)
+    # TODO OOOOOOO HEREEEEEEE
     udf_definition = get_udf_definition_template(
         funcparts,
         input_types,
@@ -1423,6 +1549,19 @@ def get_udf_args(funcparts, posargs, keywordargs):
     return udf_args
 
 
+def assign_class_to_orphan_object_args(
+    udf_args_provided: Dict[str, UDFArgument], object_input_types: Dict[str, ObjectType]
+):
+    udf_args = {}
+    for param_name, arg in udf_args_provided.items():
+        if isinstance(arg, OrphanObjectArg):
+            stored_class = object_input_types[param_name].stored_class
+            udf_args[param_name] = arg.convert_to_object_arg(stored_class)
+        else:
+            udf_args[param_name] = arg
+    return udf_args
+
+
 def get_funcparts_from_udf_registry(funcname: str, udfregistry: dict) -> FunctionParts:
     if funcname not in udfregistry:
         raise UDFBadCall(f"{funcname} cannot be found in udf registry.")
@@ -1455,39 +1594,48 @@ def get_udf_definition_template(
     output_type,
     traceback=False,
 ) -> str:
-    table_types = get_items_of_type(TableType, mapping=input_types)
+    param_table_types = get_items_of_type(ParametrizedTableType, mapping=input_types)
+    object_types = get_items_of_type(ObjectType, mapping=input_types)
     literal_types = get_items_of_type(LiteralType, mapping=input_types)
-    verify_declared_and_passed_types_match(funcparts.table_input_types, table_types)
+    verify_declared_and_passed_types_match(
+        funcparts.param_table_input_types, param_table_types
+    )
     udf_definition = UDFDefinition(
         funcparts=funcparts,
-        table_types=table_types,
+        param_table_types=param_table_types,
         output_type=output_type,
         literal_types=literal_types,
+        object_types=object_types,
         traceback=traceback,
     )
     return udf_definition.compile()
 
 
-def get_output_type(funcparts, input_types, traceback) -> Union[TableType, ScalarType]:
+def get_output_type(funcparts, input_types, traceback) -> OutputType:
     """Computes the UDF output type. If `traceback` is true the type is str
     since the traceback will be returned as a string. If the output type is
     generic its type parameters must be inferred from the passed input types.
     Otherwise, the declared output type is returned."""
     if traceback:
         return scalar(str)
-    if funcparts.output_type.is_generic:
-        table_types = get_items_of_type(TableType, mapping=input_types)
+    if (
+        isinstance(funcparts.output_type, ParametrizedType)
+        and funcparts.output_type.is_generic
+    ):
+        param_table_types = get_items_of_type(
+            ParametrizedTableType, mapping=input_types
+        )
         return infer_output_type(
-            passed_input_types=table_types,
-            declared_input_types=funcparts.table_input_types,
+            passed_input_types=param_table_types,
+            declared_input_types=funcparts.param_table_input_types,
             declared_output_type=funcparts.output_type,
         )
     return funcparts.output_type
 
 
 def verify_declared_and_passed_types_match(
-    declared_types: Dict[str, TableType],
-    passed_types: Dict[str, TableType],
+    declared_types: Dict[str, ParametrizedTableType],
+    passed_types: Dict[str, ParametrizedTableType],
 ) -> None:
     for paramname, param in passed_types.items():
         known_params = declared_types[paramname].known_typeparams
@@ -1509,10 +1657,10 @@ def verify_declared_typeparams_match_passed_type(
 
 
 def infer_output_type(
-    passed_input_types: Dict[str, TableType],
-    declared_input_types: Dict[str, TableType],
-    declared_output_type: OutputType,
-) -> Union[TableType, ScalarType]:
+    passed_input_types: Dict[str, ParametrizedTableType],
+    declared_input_types: Dict[str, ParametrizedTableType],
+    declared_output_type: ParametrizedType,
+) -> Union[ParametrizedTableType, ScalarType]:
     inferred_input_typeparams = infer_unknown_input_typeparams(
         declared_input_types,
         passed_input_types,
@@ -1528,8 +1676,8 @@ def infer_output_type(
 
 
 def infer_unknown_input_typeparams(
-    declared_input_types: Dict[str, TableType],
-    passed_input_types: Dict[str, TableType],
+    declared_input_types: Dict[str, ParametrizedTableType],
+    passed_input_types: Dict[str, ParametrizedTableType],
 ) -> TypeParamsInference:
     typeparams_inference_mappings = [
         map_unknown_to_known_typeparams(
