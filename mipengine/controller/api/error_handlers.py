@@ -17,13 +17,7 @@ class HTTPStatusCode(enum.IntEnum):
     BAD_REQUEST = 400
     BAD_USER_INPUT = 460
     INSUFFICIENT_DATA_ERROR = 461
-    ALGORITHM_EXECUTION_ERROR = 462
     UNEXPECTED_ERROR = 500
-
-
-@error_handlers.app_errorhandler(AlgorithmExecutionException)
-def handle_algorithm_execution_exception(error: AlgorithmExecutionException):
-    return error.message, HTTPStatusCode.ALGORITHM_EXECUTION_ERROR
 
 
 @error_handlers.app_errorhandler(BadRequest)
