@@ -1,56 +1,54 @@
 # type: ignore
+from typing import List
 from typing import TypeVar
 
 import pytest
 from pydantic import BaseModel
 
-from mipengine.udfgen.udfgenerator import (
-    Column,
-    IOType,
-    LiteralArg,
-    MergeTensorType,
-    RelationArg,
-    RelationType,
-    ScalarFunction,
-    Select,
-    Table,
-    TableFunction,
-    TensorArg,
-    TensorBinaryOp,
-    UDFBadCall,
-    UDFBadDefinition,
-    convert_udfgenargs_to_udfargs,
-    copy_types_from_udfargs,
-    generate_udf_queries,
-    get_funcparts_from_udf_registry,
-    get_tensor_binary_op_template,
-    get_matrix_transpose_template,
-    get_udf_templates_using_udfregistry,
-    literal,
-    map_unknown_to_known_typeparams,
-    mapping_inverse,
-    mappings_coincide,
-    merge_mappings_consistently,
-    recursive_repr,
-    relation,
-    scalar,
-    tensor,
-    udf,
-    verify_declared_typeparams_match_passed_type,
-)
+from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.udfgen.udfgenerator import Column
+from mipengine.udfgen.udfgenerator import IOType
+from mipengine.udfgen.udfgenerator import LiteralArg
+from mipengine.udfgen.udfgenerator import MergeTensorType
 from mipengine.udfgen.udfgenerator import ObjectType
-from mipengine.udfgen.udfgenerator import OrphanObjectArg
 from mipengine.udfgen.udfgenerator import OrphanStateObjectArg
 from mipengine.udfgen.udfgenerator import OrphanTransferObjectArg
+from mipengine.udfgen.udfgenerator import RelationArg
+from mipengine.udfgen.udfgenerator import RelationType
+from mipengine.udfgen.udfgenerator import ScalarFunction
+from mipengine.udfgen.udfgenerator import Select
 from mipengine.udfgen.udfgenerator import StateObjectArg
+from mipengine.udfgen.udfgenerator import Table
+from mipengine.udfgen.udfgenerator import TableFunction
+from mipengine.udfgen.udfgenerator import TensorArg
+from mipengine.udfgen.udfgenerator import TensorBinaryOp
 from mipengine.udfgen.udfgenerator import TransferObjectArg
+from mipengine.udfgen.udfgenerator import UDFBadCall
+from mipengine.udfgen.udfgenerator import UDFBadDefinition
 from mipengine.udfgen.udfgenerator import assign_class_to_orphan_object_args
+from mipengine.udfgen.udfgenerator import convert_udfgenargs_to_udfargs
+from mipengine.udfgen.udfgenerator import copy_types_from_udfargs
+from mipengine.udfgen.udfgenerator import generate_udf_queries
+from mipengine.udfgen.udfgenerator import get_funcparts_from_udf_registry
+from mipengine.udfgen.udfgenerator import get_matrix_transpose_template
+from mipengine.udfgen.udfgenerator import get_tensor_binary_op_template
+from mipengine.udfgen.udfgenerator import get_udf_templates_using_udfregistry
+from mipengine.udfgen.udfgenerator import literal
+from mipengine.udfgen.udfgenerator import map_unknown_to_known_typeparams
+from mipengine.udfgen.udfgenerator import mapping_inverse
+from mipengine.udfgen.udfgenerator import mappings_coincide
+from mipengine.udfgen.udfgenerator import merge_mappings_consistently
+from mipengine.udfgen.udfgenerator import recursive_repr
+from mipengine.udfgen.udfgenerator import relation
+from mipengine.udfgen.udfgenerator import scalar
 from mipengine.udfgen.udfgenerator import state_object
+from mipengine.udfgen.udfgenerator import tensor
 from mipengine.udfgen.udfgenerator import transfer_object
+from mipengine.udfgen.udfgenerator import udf
+from mipengine.udfgen.udfgenerator import verify_declared_typeparams_match_passed_type
 
 
 @pytest.fixture(autouse=True)
@@ -2380,9 +2378,6 @@ FROM
         assert udfsel.template == expected_udfsel
 
 
-# TODO OOOO Add tests for expected sql generation
-
-
 class TestUDFGen_StateReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
@@ -2426,6 +2421,69 @@ LANGUAGE PYTHON
         return """\
 DROP TABLE IF EXISTS $table_name;
 CREATE TABLE $table_name(node_id VARCHAR(500),pickled_object BLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+
+class TestUDFGen_TransferReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        class DummyTransferClass(BaseModel):
+            number: int
+            numbers: List[int]
+
+        @udf(t=literal(), return_type=transfer_object(DummyTransferClass))
+        def f(t):
+            result = DummyTransferClass(nums=t, list_of_nums=[t, t, t])
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [5]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(jsonified_object CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    from pydantic import BaseModel
+    from typing import List, Dict
+    class DummyTransferClass(BaseModel):
+        num: int
+        list_of_nums: List[int]
+    t = 5
+    result = DummyTransferClass(nums=t, list_of_nums=[t, t, t])
+    return result.json()
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),jsonified_object CLOB);
 INSERT INTO $table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,

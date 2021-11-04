@@ -275,8 +275,10 @@ def get_return_stmt_template(iotype):
         return "return {return_name}"
     if isinstance(iotype, StateObjectType):
         return "return pickle.dumps({return_name})"
+    if isinstance(iotype, TransferObjectType):
+        return "return {return_name}.json()"
     raise NotImplementedError(
-        "Return stmt template only for RelationType, TensorType, ScalarType, StateObjectType"
+        "Return stmt template only for RelationType, TensorType, ScalarType, ObjectType"
     )
 
 
@@ -822,11 +824,16 @@ class UDFHeader(ASTNode):
 
 class Imports(ASTNode):
     # TODO imports should be dynamic
-    def __init__(self, pickle):
+    def __init__(self, pickle, pydantic):
         self._import_lines = ["import pandas as pd", "import udfio"]
         if pickle:
             pickle = "import dill as pickle"
             self._import_lines.append(pickle)
+        if pydantic:
+            pydantic = "from pydantic import BaseModel"
+            self._import_lines.append(pydantic)
+            typing = "from typing import List, Dict"
+            self._import_lines.append(typing)
 
     def compile(self) -> str:
         return LN.join(self._import_lines)
@@ -909,13 +916,25 @@ class UDFBody(ASTNode):
         self.return_stmt = UDFReturnStatement(return_name, return_type)
         self.table_conversions = TableBuilds(parameter_types)
         self.literals = LiteralAssignments(literals)
-        self.imports = Imports(UDFBody._is_pickle_needed(parameter_types, return_type))
+        self.imports = Imports(
+            UDFBody._is_pickle_needed(parameter_types, return_type),
+            UDFBody._is_pydantic_needed(parameter_types, return_type),
+        )
         self.class_definitions = ClassDefinitions(parameter_types, return_type)
 
     @classmethod
     def _is_pickle_needed(cls, parameter_types: Dict[str, IOType], return_type: IOType):
         for io_type in list(parameter_types.values()) + [return_type]:
             if isinstance(io_type, StateObjectType):
+                return True
+        return False
+
+    @classmethod
+    def _is_pydantic_needed(
+        cls, parameter_types: Dict[str, IOType], return_type: IOType
+    ):
+        for io_type in list(parameter_types.values()) + [return_type]:
+            if isinstance(io_type, TransferObjectType):
                 return True
         return False
 
@@ -1514,7 +1533,6 @@ def get_udf_templates_using_udfregistry(
     )
     input_types = copy_types_from_udfargs(udf_args)
     output_type = get_output_type(funcparts, input_types, traceback)
-    # TODO OOOOOOO HEREEEEEEE
     udf_definition = get_udf_definition_template(
         funcparts,
         input_types,
