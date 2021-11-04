@@ -2381,13 +2381,13 @@ FROM
 class TestUDFGen_StateReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
-        class DummyClass:
-            def __init__(self, number):
-                self.number = number
+        class DummyStateClass:
+            def __init__(self, num):
+                self.num = num
 
-        @udf(t=literal(), return_type=state_object(DummyClass))
+        @udf(t=literal(), return_type=state_object(DummyStateClass))
         def f(t):
-            result = DummyClass(t)
+            result = DummyStateClass(t)
             return result
 
         return udf.registry
@@ -2408,12 +2408,90 @@ LANGUAGE PYTHON
     import pandas as pd
     import udfio
     import dill as pickle
-    class DummyClass:
-        def __init__(self, number):
-            self.number = number
+    class DummyStateClass:
+        def __init__(self, num):
+            self.num = num
     t = 5
-    result = DummyClass(t)
+    result = DummyStateClass(t)
     return pickle.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),pickled_object BLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+
+class TestUDFGen_StateInputandReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        class DummyStateClass:
+            def __init__(self, num):
+                self.num = num
+
+        @udf(
+            t=literal(),
+            prev_state=state_object(DummyStateClass),
+            return_type=state_object(DummyStateClass),
+        )
+        def f(t, prev_state):
+            prev_state.num = prev_state.num + t
+            return prev_state
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            5,
+            TableInfo(
+                name="prev_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="pickled_object", dtype=DType.BINARY),
+                    ]
+                ),
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(pickled_object BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import dill as pickle
+    class DummyStateClass:
+        def __init__(self, num):
+            self.num = num
+    t = 5
+    state_str = _conn.execute("SELECT pickled_object from prev_state_table;")['pickled_object'][0]
+    prev_state = DummyStateClass.parse_raw(state_str)
+    prev_state.num = prev_state.num + t
+    return pickle.dumps(prev_state)
 }"""
 
     @pytest.fixture(scope="class")
@@ -2444,8 +2522,8 @@ class TestUDFGen_TransferReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         class DummyTransferClass(BaseModel):
-            number: int
-            numbers: List[int]
+            num: int
+            list_of_nums: List[int]
 
         @udf(t=literal(), return_type=transfer_object(DummyTransferClass))
         def f(t):
@@ -2484,6 +2562,172 @@ LANGUAGE PYTHON
         return """\
 DROP TABLE IF EXISTS $table_name;
 CREATE TABLE $table_name(node_id VARCHAR(500),jsonified_object CLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+
+class TestUDFGen_TransferInputandReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        class DummyTransferClass(BaseModel):
+            num: int
+            list_of_nums: List[int]
+
+        @udf(
+            t=literal(),
+            transfer=transfer_object(DummyTransferClass),
+            return_type=transfer_object(DummyTransferClass),
+        )
+        def f(t, transfer):
+            transfer.num = transfer.num + t
+            return transfer
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            5,
+            TableInfo(
+                name="transfer_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="jsonified_object", dtype=DType.JSON),
+                    ]
+                ),
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(jsonified_object CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    from pydantic import BaseModel
+    from typing import List, Dict
+    class DummyTransferClass(BaseModel):
+        num: int
+        list_of_nums: List[int]
+    t = 5
+    transfer_str = _conn.execute("SELECT jsonified_object from transfer_table;")['jsonified_object'][0]
+    transfer = DummyTransferClass.parse_raw(transfer_str)
+    transfer.num = transfer.num + t
+    return transfer.json()
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),jsonified_object CLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+
+class TestUDFGen_TransferInputandStateReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        class DummyTransferClass(BaseModel):
+            num: int
+            list_of_nums: List[int]
+
+        class DummyStateClass:
+            def __init__(self, num):
+                self.num = num
+
+        @udf(
+            t=literal(),
+            transfer=transfer_object(DummyTransferClass),
+            return_type=state_object(DummyStateClass),
+        )
+        def f(t, transfer):
+            result = DummyStateClass(transfer.num + t)
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            5,
+            TableInfo(
+                name="transfer_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="jsonified_object", dtype=DType.JSON),
+                    ]
+                ),
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(pickled_object BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import dill as pickle
+    from pydantic import BaseModel
+    from typing import List, Dict
+    class DummyTransferClass(BaseModel):
+        num: int
+        list_of_nums: List[int]
+    class DummyStateClass:
+        def __init__(self, num):
+            self.num = num
+    t = 5
+    transfer_str = _conn.execute("SELECT jsonified_object from transfer_table;")['jsonified_object'][0]
+    transfer = DummyTransferClass.parse_raw(transfer_str)
+    result = DummyStateClass(transfer.num + t)
+    return pickle.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),pickled_object BLOB);
 INSERT INTO $table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
