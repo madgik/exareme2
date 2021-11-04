@@ -46,16 +46,13 @@ async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
     cel_apps = [get_node_celery_app(socket_addr) for socket_addr in nodes_socket_addr]
     nodes_task_signature = [app.signature(GET_NODE_INFO_SIGNATURE) for app in cel_apps]
 
-    task_promises = [task_to_async(task)() for task in nodes_task_signature]
-
-    nodes_info = []
-    for promise in task_promises:
-        try:
-            task_response = await promise
-            nodes_info.append(NodeInfo.parse_raw(task_response))
-        except:
-            continue
-
+    tasks_coroutines = [task_to_async(task)() for task in nodes_task_signature]
+    results = await asyncio.gather(*tasks_coroutines, return_exceptions=True)
+    nodes_info = [
+        NodeInfo.parse_raw(result)
+        for result in results
+        if not isinstance(result, Exception)
+    ]
     return nodes_info
 
 
