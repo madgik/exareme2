@@ -9,6 +9,7 @@ from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import TableType
 from mipengine.udfgen.udfgenerator import Column
 from mipengine.udfgen.udfgenerator import IOType
 from mipengine.udfgen.udfgenerator import LiteralArg
@@ -473,6 +474,7 @@ def test_convert_udfgenargs_to_udfargs_relation():
                     ColumnInfo(name="c3", dtype=DType.STR),
                 ]
             ),
+            type_=TableType.NORMAL,
         )
     ]
     expected_udf_posargs = [
@@ -494,6 +496,7 @@ def test_convert_udfgenargs_to_udfargs_tensor():
                     ColumnInfo(name="val", dtype=DType.FLOAT),
                 ]
             ),
+            type_=TableType.NORMAL,
         )
     ]
     expected_udf_posargs = [TensorArg(table_name="tab", dtype=float, ndims=2)]
@@ -519,6 +522,7 @@ def test_convert_udfgenargs_to_udfargs_multiple_types():
                     ColumnInfo(name="c3", dtype=DType.STR),
                 ]
             ),
+            type_=TableType.NORMAL,
         ),
         TableInfo(
             name="tab",
@@ -530,6 +534,7 @@ def test_convert_udfgenargs_to_udfargs_multiple_types():
                     ColumnInfo(name="val", dtype=DType.FLOAT),
                 ]
             ),
+            type_=TableType.NORMAL,
         ),
         42,
     ]
@@ -551,6 +556,7 @@ def test_convert_udfgenargs_to_udfargs_transfer_object():
                     ColumnInfo(name="jsonified_object", dtype=DType.JSON),
                 ]
             ),
+            type_=TableType.NORMAL,
         ),
     ]
     expected_udf_posargs = [OrphanTransferObjectArg(table_name="tab")]
@@ -567,6 +573,7 @@ def test_convert_udfgenargs_to_udfargs_state_object():
                     ColumnInfo(name="pickled_object", dtype=DType.BINARY),
                 ]
             ),
+            type_=TableType.NORMAL,
         ),
     ]
     expected_udf_posargs = [OrphanStateObjectArg(table_name="tab")]
@@ -1015,6 +1022,7 @@ class TestUDFGen_TensorToTensor(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -1089,6 +1097,7 @@ class TestUDFGen_RelationToTensor(TestUDFGenBase):
                         ColumnInfo(name="col2", dtype=DType.STR),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -1167,6 +1176,7 @@ class TestUDFGen_TensorToRelation(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -1241,6 +1251,7 @@ class TestUDFGen_LiteralArgument(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             42,
         ]
@@ -1312,6 +1323,7 @@ class TestUDFGen_ManyLiteralArguments(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             42,
             24,
@@ -1438,6 +1450,7 @@ class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase):
                         ColumnInfo(name="c2", dtype=DType.STR),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -1514,6 +1527,7 @@ class TestUDFGen_UnknownReturnDimensions(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -1590,6 +1604,7 @@ class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tens1",
@@ -1600,6 +1615,7 @@ class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -1682,6 +1698,7 @@ class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tens1",
@@ -1692,6 +1709,7 @@ class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tens2",
@@ -1702,6 +1720,7 @@ class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -1790,6 +1809,7 @@ class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tens1",
@@ -1801,6 +1821,7 @@ class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tens2",
@@ -1812,6 +1833,7 @@ class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -1909,6 +1931,7 @@ class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tens1",
@@ -1919,6 +1942,7 @@ class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -1983,6 +2007,7 @@ class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tensor2",
@@ -1993,6 +2018,7 @@ class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -2050,6 +2076,7 @@ class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tensor2",
@@ -2061,6 +2088,7 @@ class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -2121,6 +2149,7 @@ class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -2178,6 +2207,7 @@ class TestUDFGen_ScalarReturn(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -2245,6 +2275,7 @@ class TestUDFGen_MergeTensor(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -2318,6 +2349,7 @@ class TestUDFGen_TracebackFlag(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -2469,6 +2501,7 @@ class TestUDFGen_StateInputandReturnType(TestUDFGenBase):
                         ColumnInfo(name="pickled_object", dtype=DType.BINARY),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -2610,6 +2643,7 @@ class TestUDFGen_TransferInputandReturnType(TestUDFGenBase):
                         ColumnInfo(name="jsonified_object", dtype=DType.JSON),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -2693,6 +2727,7 @@ class TestUDFGen_TransferInputandStateReturnType(TestUDFGenBase):
                         ColumnInfo(name="jsonified_object", dtype=DType.JSON),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 

@@ -12,6 +12,7 @@ from mipengine.node_tasks_DTOs import (
     TableData,
     UDFArgument,
 )
+from mipengine.node_tasks_DTOs import TableType
 
 
 @pytest.fixture
@@ -72,6 +73,24 @@ def test_table_schema_type_error():
 
 
 @pytest.fixture
+def table_info_proper_type():
+    return TableInfo(
+        name="test",
+        schema_=TableSchema(
+            columns=[
+                ColumnInfo(name="layla", dtype=DType.FLOAT),
+                ColumnInfo(name="sheila", dtype=DType.FLOAT),
+            ]
+        ),
+        type_=TableType.NORMAL,
+    )
+
+
+def test_table_info_type(table_info_proper_type):
+    assert isinstance(table_info_proper_type.type_, TableType)
+
+
+@pytest.fixture
 def table_info_data_schema():
     return TableSchema(
         columns=[
@@ -81,8 +100,7 @@ def table_info_data_schema():
     )
 
 
-# validation check for table_info
-def test_table_info(table_info_data_schema):
+def test_table_info_schema(table_info_data_schema):
     assert isinstance(table_info_data_schema, TableSchema)
 
 
@@ -99,7 +117,11 @@ def table_info_data_schema_error():
 # validation check for table_info
 def test_table_info_error():
     with pytest.raises(ValidationError):
-        TableInfo(name=name_error_str, schema_=table_info_data_schema_error)
+        TableInfo(
+            name=name_error_str,
+            schema_=table_info_data_schema_error,
+            type_=TableType.NORMAL,
+        )
 
 
 def test_table_view_error():

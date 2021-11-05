@@ -5,6 +5,7 @@ from mipengine.node_tasks_DTOs import TableData
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import TableType
 from tests.integration_tests.nodes_communication import get_celery_task_signature
 from tests.integration_tests.nodes_communication import get_celery_app
 from tests.integration_tests.nodes_communication import get_node_config_by_id
@@ -89,8 +90,12 @@ def test_create_merge_table_with_remote_tables(context_id):
     ).get()
 
     # Create remote tables
-    table_info_local_1 = TableInfo(name=local_node_1_table_name, schema_=schema)
-    table_info_local_2 = TableInfo(name=local_node_2_table_name, schema_=schema)
+    table_info_local_1 = TableInfo(
+        name=local_node_1_table_name, schema_=schema, type_=TableType.REMOTE
+    )
+    table_info_local_2 = TableInfo(
+        name=local_node_2_table_name, schema_=schema, type_=TableType.REMOTE
+    )
     local_node_1_monetdb_sock_address = (
         f"{str(node_config_1.monetdb.ip)}:{node_config_1.monetdb.port}"
     )

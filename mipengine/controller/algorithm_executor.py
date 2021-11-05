@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import TableType
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 
@@ -390,7 +391,9 @@ class _AlgorithmExecutionInterface:
                 # TODO: try block missing
                 table_schema = node.get_table_schema(table_name)
                 table_info = TableInfo(
-                    name=table_name.full_table_name, schema_=table_schema
+                    name=table_name.full_table_name,
+                    schema_=table_schema,
+                    type_=TableType.REMOTE,
                 )
                 self._global_node.create_remote_table(
                     table_info=table_info, native_node=node
@@ -454,7 +457,7 @@ class _AlgorithmExecutionInterface:
                 _TableName(udf_result_table)
             )
             table_info: TableInfo = TableInfo(
-                name=udf_result_table, schema_=table_schema
+                name=udf_result_table, schema_=table_schema, type_=TableType.REMOTE
             )
             local_nodes_tables = {}
             for node in self._local_nodes:

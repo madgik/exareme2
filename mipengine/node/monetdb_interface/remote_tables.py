@@ -7,10 +7,11 @@ from mipengine.node.monetdb_interface.common_actions import (
     convert_schema_to_sql_query_format,
 )
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
+from mipengine.node_tasks_DTOs import TableType
 
 
 def get_remote_table_names(context_id: str) -> List[str]:
-    return get_table_names("remote", context_id)
+    return get_table_names(TableType.REMOTE, context_id)
 
 
 def create_remote_table(table_info: TableInfo, monetdb_socket_address: str):
