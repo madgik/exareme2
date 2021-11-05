@@ -4,20 +4,22 @@ from typing import Union
 from mipengine import DType
 from mipengine.node_exceptions import TablesNotFound
 from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 
 # TODO We need to add the PRIVATE/OPEN table logic
+from mipengine.node_tasks_DTOs import TableType
 
 
 def create_table_name(
-    table_type: str, command_id: str, context_id: str, node_id: str
+    table_type: TableType, command_id: str, context_id: str, node_id: str
 ) -> str:
     """
     Creates and returns in lower case a table name with the format <tableType>_<commandId>_<contextId>_<nodeId>
     """
-    if table_type not in {"table", "view", "merge"}:
+    if table_type not in {TableType.NORMAL, TableType.VIEW, TableType.MERGE}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
 
     return f"{table_type}_{command_id}_{context_id}_{node_id}".lower()
@@ -43,9 +45,9 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     )
 
 
-def get_table_schema(table_name: str) -> TableSchema:
+def get_table_info(table_name: str) -> TableInfo:
     """
-    Retrieves a schema for a specific table name from the monetdb.
+    Retrieves the info for a specific table name from the monetdb.
 
     Parameters
     ----------
@@ -54,8 +56,8 @@ def get_table_schema(table_name: str) -> TableSchema:
 
     Returns
     ------
-    TableSchema
-        A schema which is TableSchema object.
+    TableInfo
+        All information about the table.
     """
     schema = MonetDB().execute_and_fetchall(
         f"""
@@ -71,18 +73,25 @@ def get_table_schema(table_name: str) -> TableSchema:
     )
     if not schema:
         raise TablesNotFound([table_name])
-    return TableSchema(
-        columns=[
-            ColumnInfo(
-                name=name,
-                dtype=DType.from_sql(sql_type=sql_type),
-            )
-            for name, sql_type in schema
-        ]
+    return TableInfo(
+        name=table_name,
+        schema_=TableSchema(
+            columns=[
+                ColumnInfo(
+                    name=name,
+                    dtype=DType.from_sql(sql_type=sql_type),
+                )
+                for name, sql_type in schema
+            ]
+        ),
+        type_=TableType.NORMAL,
     )
 
 
-def get_table_names(table_type: str, context_id: str) -> List[str]:
+# TODO OOOO  DYNAMIC FROM DB
+
+
+def get_table_names(table_type: TableType, context_id: str) -> List[str]:
     """
     Retrieves a list of table names, which contain the context_id from the monetdb.
 
@@ -204,19 +213,26 @@ def drop_db_artifacts_by_context_id(context_id: str):
     """
 
     _drop_udfs_by_context_id(context_id)
-    for table_type in ("merge", "remote", "view", "normal"):
+    # Order of the table types matter not to have dependencies when dropping the tables
+    for table_type in {
+        TableType.MERGE,
+        TableType.REMOTE,
+        TableType.VIEW,
+        TableType.NORMAL,
+    }:
+        print("Dropping tabletype: " + str(table_type))
         _drop_table_by_type_and_context_id(table_type, context_id)
 
 
-def _convert_monet2mip_table_type(monet_table_type: int) -> str:
+def _convert_monet2mip_table_type(monet_table_type: int) -> TableType:
     """
     Converts MonetDB's table types to MIP Engine's table types
     """
     type_mapping = {
-        0: "normal",
-        1: "view",
-        3: "merge",
-        5: "remote",
+        0: TableType.NORMAL,
+        1: TableType.VIEW,
+        3: TableType.MERGE,
+        5: TableType.REMOTE,
     }
 
     if monet_table_type not in type_mapping.keys():
@@ -227,15 +243,15 @@ def _convert_monet2mip_table_type(monet_table_type: int) -> str:
     return type_mapping.get(monet_table_type)
 
 
-def _convert_mip2monet_table_type(table_type: str) -> int:
+def _convert_mip2monet_table_type(table_type: TableType) -> int:
     """
     Converts MIP Engine's table types to MonetDB's table types
     """
     type_mapping = {
-        "normal": 0,
-        "view": 1,
-        "merge": 3,
-        "remote": 5,
+        TableType.NORMAL: 0,
+        TableType.VIEW: 1,
+        TableType.MERGE: 3,
+        TableType.REMOTE: 5,
     }
 
     if table_type not in type_mapping.keys():
@@ -246,7 +262,7 @@ def _convert_mip2monet_table_type(table_type: str) -> int:
     return type_mapping.get(table_type)
 
 
-def _drop_table_by_type_and_context_id(table_type: str, context_id: str):
+def _drop_table_by_type_and_context_id(table_type: TableType, context_id: str):
     """
     Drops all tables of specific type with name that contain a specific context_id from the DB.
 
@@ -266,7 +282,7 @@ def _drop_table_by_type_and_context_id(table_type: str, context_id: str):
         """
     )
     for name, table_type in table_names_and_types:
-        if table_type == _convert_mip2monet_table_type("view"):
+        if table_type == _convert_mip2monet_table_type(TableType.VIEW):
             MonetDB().execute(f"DROP VIEW {name}")
         else:
             MonetDB().execute(f"DROP TABLE {name}")

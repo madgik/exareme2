@@ -10,6 +10,7 @@ from billiard.exceptions import TimeLimitExceeded
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import TableType
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 
@@ -60,9 +61,10 @@ class _TableName:
 
 
 class AlgorithmExecutionException(Exception):
-    def __init__(self,message):
+    def __init__(self, message):
         super().__init__(message)
-        self.message=message
+        self.message = message
+
 
 class AlgorithmExecutor:
     def __init__(
@@ -123,9 +125,11 @@ class AlgorithmExecutor:
             algorithm_result = self.algorithm_flow_module.run(self.execution_interface)
             return algorithm_result
         except (SoftTimeLimitExceeded, TimeLimitExceeded, TimeoutError) as err:
-            error_message=("One of the nodes participating in the algorithm execution "
-                           "stopped responding")
-            print(f"ERROR: {error_message} \n{err=}") #TODO logging..
+            error_message = (
+                "One of the nodes participating in the algorithm execution "
+                "stopped responding"
+            )
+            print(f"ERROR: {error_message} \n{err=}")  # TODO logging..
 
             raise AlgorithmExecutionException(error_message)
         except:
@@ -283,7 +287,7 @@ class _Node:
 
     def queue_run_udf(
         self, command_id: str, func_name: str, positional_args, keyword_args
-    )->IQueueUDFAsyncResult:
+    ) -> IQueueUDFAsyncResult:
         return self._node_tasks_handler.queue_run_udf(
             context_id=self.context_id,
             command_id=command_id,
@@ -425,7 +429,9 @@ class _AlgorithmExecutionInterface:
                 # TODO: try block missing
                 table_schema = node.get_table_schema(table_name)
                 table_info = TableInfo(
-                    name=table_name.full_table_name, schema_=table_schema
+                    name=table_name.full_table_name,
+                    schema_=table_schema,
+                    type_=TableType.REMOTE,
                 )
                 self._global_node.create_remote_table(
                     table_info=table_info, native_node=node
@@ -490,7 +496,7 @@ class _AlgorithmExecutionInterface:
                 _TableName(udf_result_table)
             )
             table_info: TableInfo = TableInfo(
-                name=udf_result_table, schema_=table_schema
+                name=udf_result_table, schema_=table_schema, type_=TableType.REMOTE
             )
             local_nodes_tables = {}
             for node in self._local_nodes:

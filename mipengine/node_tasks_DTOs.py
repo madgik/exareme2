@@ -3,7 +3,6 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Union
-from warnings import warn
 
 from pydantic import (
     BaseModel,
@@ -18,6 +17,19 @@ from mipengine import DType
 class UDFArgumentKind(enum.Enum):
     TABLE = enum.auto()
     LITERAL = enum.auto()
+
+    def __str__(self):
+        return self.name
+
+
+class TableType(enum.Enum):
+    NORMAL = enum.auto()
+    REMOTE = enum.auto()
+    MERGE = enum.auto()
+    VIEW = enum.auto()
+
+    def __str__(self):
+        return str(self.name)
 
 
 # ~~~~~~~~~~~~~~~~~~ Validator ~~~~~~~~~~~~~~~~~ #
@@ -46,6 +58,7 @@ class TableSchema(BaseModel):
 class TableInfo(BaseModel):
     name: str
     schema_: TableSchema
+    type_: TableType
 
     _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 

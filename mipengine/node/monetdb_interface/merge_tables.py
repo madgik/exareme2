@@ -10,12 +10,13 @@ from mipengine.node.monetdb_interface.common_actions import (
     convert_schema_to_sql_query_format,
 )
 from mipengine.node.monetdb_interface.common_actions import get_table_names
-from mipengine.node.monetdb_interface.common_actions import get_table_schema
+from mipengine.node.monetdb_interface.common_actions import get_table_info
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
+from mipengine.node_tasks_DTOs import TableType
 
 
 def get_merge_tables_names(context_id: str) -> List[str]:
-    return get_table_names("merge", context_id)
+    return get_table_names(TableType.MERGE, context_id)
 
 
 def create_merge_table(table_info: TableInfo):
@@ -24,9 +25,7 @@ def create_merge_table(table_info: TableInfo):
 
 
 def add_to_merge_table(merge_table_name: str, table_names: List[str]):
-    table_infos = [
-        TableInfo(name=name, schema_=get_table_schema(name)) for name in table_names
-    ]
+    table_infos = [get_table_info(name) for name in table_names]
 
     try:
         for name in table_names:
