@@ -2601,7 +2601,7 @@ class TestUDFGen_TransferReturnType(TestUDFGenBase):
 
         @udf(t=literal(), return_type=transfer_object(DummyTransferClass))
         def f(t):
-            result = DummyTransferClass(nums=t, list_of_nums=[t, t, t])
+            result = DummyTransferClass(num=t, list_of_nums=[t, t, t])
             return result
 
         return udf.registry
@@ -2627,7 +2627,7 @@ LANGUAGE PYTHON
         num: int
         list_of_nums: List[int]
     t = 5
-    result = DummyTransferClass(nums=t, list_of_nums=[t, t, t])
+    result = DummyTransferClass(num=t, list_of_nums=[t, t, t])
     return result.json()
 }"""
 
