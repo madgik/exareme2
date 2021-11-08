@@ -8,6 +8,7 @@ from celery import shared_task
 from mipengine import algorithms  # DO NOT REMOVE, NEEDED FOR ALGORITHM IMPORT
 
 from mipengine.node import config as node_config
+from mipengine.node_tasks_DTOs import TableType
 from mipengine.node_tasks_DTOs import (
     UDFArgument,
     ColumnInfo,
@@ -166,7 +167,7 @@ def _generate_udf_statements(
     allowed_func_name = func_name.replace(".", "_")  # A dot is not an allowed character
     udf_name = _create_udf_name(allowed_func_name, command_id, context_id)
     result_table_name = create_table_name(
-        "table", command_id, context_id, node_config.identifier
+        TableType.NORMAL, command_id, context_id, node_config.identifier
     )
 
     gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
