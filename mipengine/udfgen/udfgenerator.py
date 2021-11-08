@@ -201,10 +201,9 @@ from typing import Tuple
 
 from typing import List
 
-from typing import Set
-
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableType as TableInfoTableType
 from mipengine import DType as dt
 
 __all__ = [
@@ -1553,6 +1552,8 @@ def convert_table_info_to_table_arg(table_info):
     if TransferObjectType.schema_matches(table_info.schema_.columns):
         return OrphanTransferObjectArg(table_name=table_info.name)
     elif StateObjectType.schema_matches(table_info.schema_.columns):
+        if table_info.type_ == TableInfoTableType.REMOTE:
+            raise UDFBadCall("Using a state object is only allowed on local tables.")
         return OrphanStateObjectArg(table_name=table_info.name)
     elif is_tensor_schema(table_info.schema_.columns):
         ndims = (

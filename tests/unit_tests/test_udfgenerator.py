@@ -2472,6 +2472,47 @@ FROM
         assert udfsel.template == expected_udfsel
 
 
+class TestUDFGen_StateInputfromREMOTETableError(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        class DummyStateClass:
+            def __init__(self, num):
+                self.num = num
+
+        @udf(
+            prev_state=state_object(DummyStateClass),
+            return_type=state_object(DummyStateClass),
+        )
+        def f(prev_state):
+            prev_state.num = prev_state.num + 10
+            return prev_state
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            5,
+            TableInfo(
+                name="prev_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="pickled_object", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.REMOTE,
+            ),
+        ]
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+    ):
+        with pytest.raises(UDFBadCall):
+            generate_udf_queries(funcname, positional_args, {})
+
+
 class TestUDFGen_StateInputandReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
