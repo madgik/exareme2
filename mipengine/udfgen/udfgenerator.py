@@ -193,6 +193,7 @@ from typing import (
     TypeVar,
     Union,
 )
+from typing import Type
 
 import numpy
 import astor
@@ -275,7 +276,12 @@ def get_return_stmt_template(iotype):
     if isinstance(iotype, StateObjectType):
         return "return pickle.dumps({return_name})"
     if isinstance(iotype, TransferObjectType):
-        return "return {return_name}.json()"
+        return_lines = [
+            "if not isinstance({return_name}, AttrDict):",
+            "    {return_name} = {return_name}.__dict__",
+            "return json.dumps({return_name})",
+        ]
+        return LN.join(return_lines)
     raise NotImplementedError(
         "Return stmt template only for RelationType, TensorType, ScalarType, ObjectType"
     )
@@ -295,14 +301,14 @@ def get_object_assignment_template(object_type):
             "transfer_str = "
             "_conn.execute(\"SELECT jsonified_object from {table_name};\")['jsonified_object'][0]"
         )
-        object_parse = "{arg_name} = {class_name}.parse_raw(transfer_str)"
+        object_parse = "{arg_name} = AttrDict(json.loads(transfer_str))"
         return LN.join([loopback_query, object_parse])
     elif isinstance(object_type, StateObjectType):
         loopback_query = (
             "state_str = "
             "_conn.execute(\"SELECT pickled_object from {table_name};\")['pickled_object'][0]"
         )
-        object_parse = "{arg_name} = {class_name}.parse_raw(state_str)"
+        object_parse = "{arg_name} = pickle.loads(state_str)"
         return LN.join([loopback_query, object_parse])
     else:
         raise NotImplementedError(
@@ -856,28 +862,24 @@ class UDFHeader(ASTNode):
 
 class Imports(ASTNode):
     # TODO imports should be dynamic
-    def __init__(self, pickle, pydantic):
+    def __init__(self, state_imports, transfer_imports):
         self._import_lines = ["import pandas as pd", "import udfio"]
-        if pickle:
+        if state_imports:
             pickle = "import dill as pickle"
             self._import_lines.append(pickle)
-        if pydantic:
-            pydantic = "from pydantic import BaseModel"
-            self._import_lines.append(pydantic)
-            typing = "from typing import List, Dict"
-            self._import_lines.append(typing)
+        if transfer_imports:
+            json = "import json"
+            self._import_lines.append(json)
+            attrdict = "from attrdict import AttrDict"
+            self._import_lines.append(attrdict)
 
     def compile(self) -> str:
         return LN.join(self._import_lines)
 
 
 class ClassDefinitions(ASTNode):
-    def __init__(self, object_args: Dict[str, ObjectArg], return_type: IOType):
+    def __init__(self, return_type: IOType):
         self._class_definitions: Dict[str, str] = {}
-        for arg in object_args.values():
-            if isinstance(arg.type, ObjectType):
-                class_def = dedent(inspect.getsource(arg.type.stored_class))
-                self._class_definitions[arg.stored_class.__name__] = class_def
         if isinstance(return_type, ObjectType):
             class_def = dedent(inspect.getsource(return_type.stored_class))
             self._class_definitions[return_type.stored_class.__name__] = class_def
@@ -975,29 +977,20 @@ class UDFBody(ASTNode):
         self.table_conversions = TableBuilds(param_table_args)
         self.literals = LiteralAssignments(literal_args)
         self.imports = Imports(
-            UDFBody._is_pickle_needed(object_args, return_type),
-            UDFBody._is_pydantic_needed(object_args, return_type),
+            self.io_type_included(StateObjectType, object_args, return_type),
+            self.io_type_included(TransferObjectType, object_args, return_type),
         )
-        self.class_definitions = ClassDefinitions(object_args, return_type)
+        self.class_definitions = ClassDefinitions(return_type)
         self.objects = ObjectAssignments(object_args)
 
-    @classmethod
-    def _is_pickle_needed(cls, object_args: Dict[str, ObjectArg], return_type: IOType):
+    @staticmethod
+    def io_type_included(
+        type_: Type[IOType], object_args: Dict[str, ObjectArg], return_type: IOType
+    ):
         for arg in object_args.values():
-            if isinstance(arg.type, StateObjectType):
+            if isinstance(arg.type, type_):
                 return True
-        if isinstance(return_type, StateObjectType):
-            return True
-        return False
-
-    @classmethod
-    def _is_pydantic_needed(
-        cls, object_args: Dict[str, ObjectArg], return_type: IOType
-    ) -> bool:
-        for arg in object_args.values():
-            if isinstance(arg.type, TransferObjectType):
-                return True
-        if isinstance(return_type, TransferObjectType):
+        if isinstance(return_type, type_):
             return True
         return False
 
