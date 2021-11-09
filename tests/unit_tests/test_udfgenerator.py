@@ -2,7 +2,6 @@
 from typing import TypeVar
 
 import pytest
-from pydantic import BaseModel
 
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import ColumnInfo
@@ -2438,9 +2437,9 @@ LANGUAGE PYTHON
     import pandas as pd
     import udfio
     import pickle
-    t = 5
     state_str = _conn.execute("SELECT state from test_table_1;")["state"][0]
     prev_state = pickle.loads(state_str)
+    t = 5
     prev_state['num'] = prev_state['num'] + t
     return pickle.dumps(prev_state)
 }"""
@@ -2565,9 +2564,9 @@ LANGUAGE PYTHON
     import pandas as pd
     import udfio
     import json
-    t = 5
     transfer_str = _conn.execute("SELECT transfer from test_table_3;")["transfer"][0]
     transfer = json.loads(transfer_str)
+    t = 5
     transfer['num'] = transfer['num'] + t
     return json.dumps(transfer)
 }"""
@@ -2638,9 +2637,9 @@ LANGUAGE PYTHON
     import udfio
     import pickle
     import json
-    t = 5
     transfer_str = _conn.execute("SELECT transfer from test_table_3;")["transfer"][0]
     transfer = json.loads(transfer_str)
+    t = 5
     transfer['num'] = transfer['num'] + t
     return pickle.dumps(transfer)
 }"""
