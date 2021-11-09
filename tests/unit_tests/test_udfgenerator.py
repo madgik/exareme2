@@ -1,5 +1,4 @@
 # type: ignore
-from typing import List
 from typing import TypeVar
 
 import pytest
@@ -11,26 +10,21 @@ from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.udfgen.udfgenerator import Column
+from mipengine.udfgen.udfgenerator import DictArg
 from mipengine.udfgen.udfgenerator import IOType
 from mipengine.udfgen.udfgenerator import LiteralArg
 from mipengine.udfgen.udfgenerator import MergeTensorType
-from mipengine.udfgen.udfgenerator import ObjectArg
-from mipengine.udfgen.udfgenerator import ObjectType
-from mipengine.udfgen.udfgenerator import OrphanStateObjectArg
-from mipengine.udfgen.udfgenerator import OrphanTransferObjectArg
+from mipengine.udfgen.udfgenerator import DictType
 from mipengine.udfgen.udfgenerator import RelationArg
 from mipengine.udfgen.udfgenerator import RelationType
 from mipengine.udfgen.udfgenerator import ScalarFunction
 from mipengine.udfgen.udfgenerator import Select
-from mipengine.udfgen.udfgenerator import StateObjectType
 from mipengine.udfgen.udfgenerator import Table
 from mipengine.udfgen.udfgenerator import TableFunction
 from mipengine.udfgen.udfgenerator import TensorArg
 from mipengine.udfgen.udfgenerator import TensorBinaryOp
-from mipengine.udfgen.udfgenerator import TransferObjectType
 from mipengine.udfgen.udfgenerator import UDFBadCall
 from mipengine.udfgen.udfgenerator import UDFBadDefinition
-from mipengine.udfgen.udfgenerator import assign_class_to_orphan_object_args
 from mipengine.udfgen.udfgenerator import convert_udfgenargs_to_udfargs
 from mipengine.udfgen.udfgenerator import copy_types_from_udfargs
 from mipengine.udfgen.udfgenerator import generate_udf_queries
@@ -46,9 +40,9 @@ from mipengine.udfgen.udfgenerator import merge_mappings_consistently
 from mipengine.udfgen.udfgenerator import recursive_repr
 from mipengine.udfgen.udfgenerator import relation
 from mipengine.udfgen.udfgenerator import scalar
-from mipengine.udfgen.udfgenerator import state_object
+from mipengine.udfgen.udfgenerator import state
 from mipengine.udfgen.udfgenerator import tensor
-from mipengine.udfgen.udfgenerator import transfer_object
+from mipengine.udfgen.udfgenerator import transfer
 from mipengine.udfgen.udfgenerator import udf
 from mipengine.udfgen.udfgenerator import verify_declared_typeparams_match_passed_type
 
@@ -87,41 +81,6 @@ def test_copy_types_from_udfargs():
         "a": relation(schema=[]),
         "b": tensor(dtype=int, ndims=2),
     }
-
-
-def test_assign_class_to_orphan_object_args():
-    class A:
-        test = 3
-
-    class B:
-        test = 1.2
-
-    class C(BaseModel):
-        test: int
-
-    udf_args = {
-        "a": OrphanStateObjectArg("tab_a"),
-        "b": OrphanStateObjectArg("tab_b"),
-        "c": RelationArg(table_name="A", schema=[]),
-        "d": TensorArg(table_name="B", dtype=int, ndims=2),
-        "e": OrphanTransferObjectArg("tab_c"),
-    }
-    object_input_types = {
-        "a": ObjectType(A),
-        "b": ObjectType(B),
-        "e": ObjectType(C),
-    }
-    final_udf_args = {
-        "a": ObjectArg(state_object(A), "tab_a"),
-        "b": ObjectArg(state_object(B), "tab_b"),
-        "c": RelationArg(table_name="A", schema=[]),
-        "d": TensorArg(table_name="B", dtype=int, ndims=2),
-        "e": ObjectArg(transfer_object(C), "tab_c"),
-    }
-
-    assert final_udf_args == assign_class_to_orphan_object_args(
-        udf_args, object_input_types
-    )
 
 
 class TestVerifyTypeParams:
@@ -259,17 +218,10 @@ class TestUDFValidation:
         assert "Invalid parameter names in udf decorator" in str(exc)
 
     def test_validate_func_as_udf_valid_1(self):
-        class DemoTransferObject(BaseModel):
-            test: int
-
-        class DemoStateObject:
-            def __init__(self):
-                self.test = 3
-
         @udf(
             x=tensor(int, 1),
-            y=state_object(DemoStateObject),
-            z=transfer_object(DemoTransferObject),
+            y=state(),
+            z=transfer(),
             return_type=scalar(int),
         )
         def f(x, y, z):
@@ -278,12 +230,9 @@ class TestUDFValidation:
         assert udf.registry != {}
 
     def test_validate_func_as_udf_valid_2(self):
-        class DemoTransferObject(BaseModel):
-            test: int
-
-        @udf(x=tensor(int, 1), return_type=transfer_object(DemoTransferObject))
+        @udf(x=tensor(int, 1), return_type=transfer())
         def f(x):
-            y = DemoTransferObject()
+            y = {"num": 1}
             return y
 
         assert udf.registry != {}
@@ -380,69 +329,14 @@ def test_relation_column_names():
     assert colnames == ["pre_ci", "pre_cf", "pre_cs"]
 
 
-def test_transfer_object_schema():
-    class Test(BaseModel):
-        test: int
-
-    to = transfer_object(Test)
-    assert to.schema == [("jsonified_object", DType.JSON)]
+def test_transfer_schema():
+    to = transfer()
+    assert to.schema == [("transfer", DType.JSON)]
 
 
-def test_transfer_object_column_names():
-    class Test(BaseModel):
-        test: int
-
-    to = transfer_object(Test)
-    assert to.column_names() == ["jsonified_object"]
-
-
-def test_transfer_object_stored_class():
-    class Test(BaseModel):
-        test: int
-
-    to = transfer_object(Test)
-    assert to.stored_class == Test
-
-
-def test_transfer_object_improper_class():
-    class Test:
-        def __init__(self):
-            self.test = 2
-
-    with pytest.raises(UDFBadDefinition):
-        transfer_object(Test)
-
-
-def test_state_object_schema():
-    class Test:
-        def __init__(self):
-            self.test = 2
-
-    to = state_object(Test)
-    assert to.schema == [("pickled_object", DType.BINARY)]
-
-
-def test_state_object_column_names():
-    class Test:
-        def __init__(self):
-            self.test = 2
-
-    to = state_object(Test)
-    assert to.column_names() == ["pickled_object"]
-
-
-def test_state_object_stored_class():
-    class Test:
-        def __init__(self):
-            self.test = 2
-
-    to = state_object(Test)
-    assert to.stored_class == Test
-
-
-def test_state_object_improper_class():
-    with pytest.raises(UDFBadDefinition):
-        state_object(5)
+def test_state_schema():
+    to = state()
+    assert to.schema == [("state", DType.BINARY)]
 
 
 # TODO OOOO Add tests for state/transfer schema_matches etc
@@ -548,36 +442,36 @@ def test_convert_udfgenargs_to_udfargs_multiple_types():
     assert result == expected_udf_posargs
 
 
-def test_convert_udfgenargs_to_udfargs_transfer_object():
+def test_convert_udfgenargs_to_transfer_udfargs():
     udfgen_posargs = [
         TableInfo(
             name="tab",
             schema_=TableSchema(
                 columns=[
-                    ColumnInfo(name="jsonified_object", dtype=DType.JSON),
+                    ColumnInfo(name="transfer", dtype=DType.JSON),
                 ]
             ),
             type_=TableType.NORMAL,
         ),
     ]
-    expected_udf_posargs = [OrphanTransferObjectArg(table_name="tab")]
+    expected_udf_posargs = [DictArg(type_=transfer(), table_name="tab")]
     result, _ = convert_udfgenargs_to_udfargs(udfgen_posargs, {})
     assert result == expected_udf_posargs
 
 
-def test_convert_udfgenargs_to_udfargs_state_object():
+def test_convert_udfgenargs_to_state_udfargs():
     udfgen_posargs = [
         TableInfo(
             name="tab",
             schema_=TableSchema(
                 columns=[
-                    ColumnInfo(name="pickled_object", dtype=DType.BINARY),
+                    ColumnInfo(name="state", dtype=DType.BINARY),
                 ]
             ),
             type_=TableType.NORMAL,
         ),
     ]
-    expected_udf_posargs = [OrphanStateObjectArg(table_name="tab")]
+    expected_udf_posargs = [DictArg(type_=state(), table_name="tab")]
     result, _ = convert_udfgenargs_to_udfargs(udfgen_posargs, {})
     assert result == expected_udf_posargs
 
@@ -2414,13 +2308,9 @@ FROM
 class TestUDFGen_StateReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
-        class DummyStateClass:
-            def __init__(self, num):
-                self.num = num
-
-        @udf(t=literal(), return_type=state_object(DummyStateClass))
+        @udf(t=literal(), return_type=state())
         def f(t):
-            result = DummyStateClass(t)
+            result = {"num": 5}
             return result
 
         return udf.registry
@@ -2435,17 +2325,14 @@ class TestUDFGen_StateReturnType(TestUDFGenBase):
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(pickled_object BLOB)
+TABLE(state BLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    import dill as pickle
-    class DummyStateClass:
-        def __init__(self, num):
-            self.num = num
+    import pickle
     t = 5
-    result = DummyStateClass(t)
+    result = {'num': 5}
     return pickle.dumps(result)
 }"""
 
@@ -2453,7 +2340,7 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),pickled_object BLOB);
+CREATE TABLE $table_name(node_id VARCHAR(500),state BLOB);
 INSERT INTO $table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
@@ -2476,13 +2363,9 @@ FROM
 class TestUDFGen_StateInputfromREMOTETableError(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
-        class DummyStateClass:
-            def __init__(self, num):
-                self.num = num
-
         @udf(
-            prev_state=state_object(DummyStateClass),
-            return_type=state_object(DummyStateClass),
+            prev_state=state(),
+            return_type=state(),
         )
         def f(prev_state):
             prev_state.num = prev_state.num + 10
@@ -2498,7 +2381,7 @@ class TestUDFGen_StateInputfromREMOTETableError(TestUDFGenBase):
                 name="prev_state_table",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="pickled_object", dtype=DType.BINARY),
+                        ColumnInfo(name="state", dtype=DType.BINARY),
                     ]
                 ),
                 type_=TableType.REMOTE,
@@ -2517,17 +2400,13 @@ class TestUDFGen_StateInputfromREMOTETableError(TestUDFGenBase):
 class TestUDFGen_StateInputandReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
-        class DummyStateClass:
-            def __init__(self, num):
-                self.num = num
-
         @udf(
             t=literal(),
-            prev_state=state_object(DummyStateClass),
-            return_type=state_object(DummyStateClass),
+            prev_state=state(),
+            return_type=state(),
         )
         def f(t, prev_state):
-            prev_state.num = prev_state.num + t
+            prev_state["num"] = prev_state["num"] + t
             return prev_state
 
         return udf.registry
@@ -2537,10 +2416,10 @@ class TestUDFGen_StateInputandReturnType(TestUDFGenBase):
         return [
             5,
             TableInfo(
-                name="prev_state_table",
+                name="test_table_1",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="pickled_object", dtype=DType.BINARY),
+                        ColumnInfo(name="state", dtype=DType.BINARY),
                     ]
                 ),
                 type_=TableType.NORMAL,
@@ -2553,19 +2432,16 @@ class TestUDFGen_StateInputandReturnType(TestUDFGenBase):
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(pickled_object BLOB)
+TABLE(state BLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    import dill as pickle
-    class DummyStateClass:
-        def __init__(self, num):
-            self.num = num
+    import pickle
     t = 5
-    state_str = _conn.execute("SELECT pickled_object from prev_state_table;")['pickled_object'][0]
+    state_str = _conn.execute("SELECT state from test_table_1;")["state"][0]
     prev_state = pickle.loads(state_str)
-    prev_state.num = prev_state.num + t
+    prev_state['num'] = prev_state['num'] + t
     return pickle.dumps(prev_state)
 }"""
 
@@ -2573,7 +2449,7 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),pickled_object BLOB);
+CREATE TABLE $table_name(node_id VARCHAR(500),state BLOB);
 INSERT INTO $table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
@@ -2596,13 +2472,9 @@ FROM
 class TestUDFGen_TransferReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
-        class DummyTransferClass(BaseModel):
-            num: int
-            list_of_nums: List[int]
-
-        @udf(t=literal(), return_type=transfer_object(DummyTransferClass))
+        @udf(t=literal(), return_type=transfer())
         def f(t):
-            result = DummyTransferClass(num=t, list_of_nums=[t, t, t])
+            result = {"num": t, "list_of_nums": [t, t, t]}
             return result
 
         return udf.registry
@@ -2617,21 +2489,14 @@ class TestUDFGen_TransferReturnType(TestUDFGenBase):
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(jsonified_object CLOB)
+TABLE(transfer CLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
     import json
-    from attrdict import AttrDict
-    class DummyTransferClass:
-        def __init__(self, num, list_of_nums):
-            self.num = num
-            self.list_of_nums = list_of_nums
     t = 5
-    result = DummyTransferClass(num=t, list_of_nums=[t, t, t])
-    if not isinstance(result, AttrDict):
-        result = result.__dict__
+    result = {'num': t, 'list_of_nums': [t, t, t]}
     return json.dumps(result)
 }"""
 
@@ -2639,7 +2504,7 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),jsonified_object CLOB);
+CREATE TABLE $table_name(node_id VARCHAR(500),transfer CLOB);
 INSERT INTO $table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
@@ -2662,17 +2527,13 @@ FROM
 class TestUDFGen_TransferInputandReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
-        class DummyTransferClass(BaseModel):
-            num: int
-            list_of_nums: List[int]
-
         @udf(
             t=literal(),
-            transfer=transfer_object(DummyTransferClass),
-            return_type=transfer_object(DummyTransferClass),
+            transfer=transfer(),
+            return_type=transfer(),
         )
         def f(t, transfer):
-            transfer.num = transfer.num + t
+            transfer["num"] = transfer["num"] + t
             return transfer
 
         return udf.registry
@@ -2682,10 +2543,10 @@ class TestUDFGen_TransferInputandReturnType(TestUDFGenBase):
         return [
             5,
             TableInfo(
-                name="transfer_table",
+                name="test_table_3",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="jsonified_object", dtype=DType.JSON),
+                        ColumnInfo(name="transfer", dtype=DType.JSON),
                     ]
                 ),
                 type_=TableType.NORMAL,
@@ -2698,23 +2559,16 @@ class TestUDFGen_TransferInputandReturnType(TestUDFGenBase):
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(jsonified_object CLOB)
+TABLE(transfer CLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
     import json
-    from attrdict import AttrDict
-    class DummyTransferClass:
-        def __init__(self, num, list_of_nums):
-            self.num = num
-            self.list_of_nums = list_of_nums
     t = 5
-    transfer_str = _conn.execute("SELECT jsonified_object from transfer_table;")['jsonified_object'][0]
-    transfer = AttrDict(json.loads(transfer_str))
-    transfer.num = transfer.num + t
-    if not isinstance(transfer, AttrDict):
-        transfer = transfer.__dict__
+    transfer_str = _conn.execute("SELECT transfer from test_table_3;")["transfer"][0]
+    transfer = json.loads(transfer_str)
+    transfer['num'] = transfer['num'] + t
     return json.dumps(transfer)
 }"""
 
@@ -2722,7 +2576,7 @@ LANGUAGE PYTHON
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),jsonified_object CLOB);
+CREATE TABLE $table_name(node_id VARCHAR(500),transfer CLOB);
 INSERT INTO $table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
@@ -2745,22 +2599,14 @@ FROM
 class TestUDFGen_TransferInputandStateReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
-        class DummyTransferClass(BaseModel):
-            num: int
-            list_of_nums: List[int]
-
-        class DummyStateClass:
-            def __init__(self, num):
-                self.num = num
-
         @udf(
             t=literal(),
-            transfer=transfer_object(DummyTransferClass),
-            return_type=state_object(DummyStateClass),
+            transfer=transfer(),
+            return_type=state(),
         )
         def f(t, transfer):
-            result = DummyStateClass(transfer.num + t)
-            return result
+            transfer["num"] = transfer["num"] + t
+            return transfer
 
         return udf.registry
 
@@ -2769,10 +2615,10 @@ class TestUDFGen_TransferInputandStateReturnType(TestUDFGenBase):
         return [
             5,
             TableInfo(
-                name="transfer_table",
+                name="test_table_3",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="jsonified_object", dtype=DType.JSON),
+                        ColumnInfo(name="transfer", dtype=DType.JSON),
                     ]
                 ),
                 type_=TableType.NORMAL,
@@ -2785,29 +2631,25 @@ class TestUDFGen_TransferInputandStateReturnType(TestUDFGenBase):
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(pickled_object BLOB)
+TABLE(state BLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    import dill as pickle
+    import pickle
     import json
-    from attrdict import AttrDict
-    class DummyStateClass:
-        def __init__(self, num):
-            self.num = num
     t = 5
-    transfer_str = _conn.execute("SELECT jsonified_object from transfer_table;")['jsonified_object'][0]
-    transfer = AttrDict(json.loads(transfer_str))
-    result = DummyStateClass(transfer.num + t)
-    return pickle.dumps(result)
+    transfer_str = _conn.execute("SELECT transfer from test_table_3;")["transfer"][0]
+    transfer = json.loads(transfer_str)
+    transfer['num'] = transfer['num'] + t
+    return pickle.dumps(transfer)
 }"""
 
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
 DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),pickled_object BLOB);
+CREATE TABLE $table_name(node_id VARCHAR(500),state BLOB);
 INSERT INTO $table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
