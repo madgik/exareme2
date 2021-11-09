@@ -14,6 +14,7 @@ from mipengine.udfgen.udfgenerator import Column
 from mipengine.udfgen.udfgenerator import IOType
 from mipengine.udfgen.udfgenerator import LiteralArg
 from mipengine.udfgen.udfgenerator import MergeTensorType
+from mipengine.udfgen.udfgenerator import ObjectArg
 from mipengine.udfgen.udfgenerator import ObjectType
 from mipengine.udfgen.udfgenerator import OrphanStateObjectArg
 from mipengine.udfgen.udfgenerator import OrphanTransferObjectArg
@@ -21,12 +22,12 @@ from mipengine.udfgen.udfgenerator import RelationArg
 from mipengine.udfgen.udfgenerator import RelationType
 from mipengine.udfgen.udfgenerator import ScalarFunction
 from mipengine.udfgen.udfgenerator import Select
-from mipengine.udfgen.udfgenerator import StateObjectArg
+from mipengine.udfgen.udfgenerator import StateObjectType
 from mipengine.udfgen.udfgenerator import Table
 from mipengine.udfgen.udfgenerator import TableFunction
 from mipengine.udfgen.udfgenerator import TensorArg
 from mipengine.udfgen.udfgenerator import TensorBinaryOp
-from mipengine.udfgen.udfgenerator import TransferObjectArg
+from mipengine.udfgen.udfgenerator import TransferObjectType
 from mipengine.udfgen.udfgenerator import UDFBadCall
 from mipengine.udfgen.udfgenerator import UDFBadDefinition
 from mipengine.udfgen.udfgenerator import assign_class_to_orphan_object_args
@@ -111,11 +112,11 @@ def test_assign_class_to_orphan_object_args():
         "e": ObjectType(C),
     }
     final_udf_args = {
-        "a": StateObjectArg(OrphanStateObjectArg("tab_a"), A),
-        "b": StateObjectArg(OrphanStateObjectArg("tab_b"), B),
+        "a": ObjectArg(state_object(A), "tab_a"),
+        "b": ObjectArg(state_object(B), "tab_b"),
         "c": RelationArg(table_name="A", schema=[]),
         "d": TensorArg(table_name="B", dtype=int, ndims=2),
-        "e": TransferObjectArg(OrphanTransferObjectArg("tab_c"), C),
+        "e": ObjectArg(transfer_object(C), "tab_c"),
     }
 
     assert final_udf_args == assign_class_to_orphan_object_args(
