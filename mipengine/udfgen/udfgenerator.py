@@ -256,59 +256,75 @@ ROWID = "row_id"
 
 # TODO refactor these, polymorphism?
 # Currently DictTypes are loaded with loopback queries only.
-def get_build_template(iotype):
+def get_build_template(input_type: "InputType"):
+    if not isinstance(input_type, InputType):
+        raise TypeError(
+            f"Build template only for InputTypes. Type provided: {input_type}"
+        )
     COLUMNS_COMPREHENSION_TMPL = "{{n: _columns[n] for n in {colnames}}}"
-    if isinstance(iotype, RelationType):
+    if isinstance(input_type, RelationType):
         return "{arg_name} = pd.DataFrame(" + COLUMNS_COMPREHENSION_TMPL + ")"
-    if isinstance(iotype, TensorType):
+    if isinstance(input_type, TensorType):
         return (
             "{arg_name} = udfio.from_tensor_table(" + COLUMNS_COMPREHENSION_TMPL + ")"
         )
-    if isinstance(iotype, MergeTensorType):
+    if isinstance(input_type, MergeTensorType):
         return (
             "{arg_name} = udfio.merge_tensor_to_list("
             + COLUMNS_COMPREHENSION_TMPL
             + ")"
         )
-    if isinstance(iotype, TransferType):
+    if isinstance(input_type, TransferType):
         loopback_query = (
             "transfer_str = "
             '_conn.execute("SELECT transfer from {table_name};")["transfer"][0]'
         )
         dict_parse = "{arg_name} = json.loads(transfer_str)"
         return LN.join([loopback_query, dict_parse])
-    if isinstance(iotype, StateType):
+    if isinstance(input_type, StateType):
         loopback_query = (
             "state_str = "
             '_conn.execute("SELECT state from {table_name};")["state"][0]'
         )
         dict_parse = "{arg_name} = pickle.loads(state_str)"
         return LN.join([loopback_query, dict_parse])
-    raise NotImplementedError("Build templates only for TableTypes.")
-
-
-def get_return_stmt_template(iotype):
-    if isinstance(iotype, RelationType):
-        return "return udfio.as_relational_table(numpy.array({return_name}))"
-    if isinstance(iotype, TensorType):
-        return "return udfio.as_tensor_table(numpy.array({return_name}))"
-    if isinstance(iotype, ScalarType):
-        return "return {return_name}"
-    if isinstance(iotype, StateType):
-        return "return pickle.dumps({return_name})"
-    if isinstance(iotype, TransferType):
-        return "return json.dumps({return_name})"
     raise NotImplementedError(
-        "Return stmt template only for RelationType, TensorType, ScalarType, State and Transfer"
+        f"Type {input_type} doesn't have a return statement template."
     )
 
 
-def get_return_type_template(iotype):
-    if isinstance(iotype, TableType):
-        return f"TABLE({iotype_to_sql_schema(iotype)})"
-    if isinstance(iotype, ScalarType):
-        return iotype.dtype.to_sql()
-    raise NotImplementedError("Return type template only for TableType, ScalarType")
+def get_return_stmt_template(output_type: "OutputType"):
+    if not isinstance(output_type, OutputType):
+        raise TypeError(
+            f"Return statement template only for OutputTypes. Type provided: {output_type}"
+        )
+    if isinstance(output_type, RelationType):
+        return "return udfio.as_relational_table(numpy.array({return_name}))"
+    if isinstance(output_type, TensorType):
+        return "return udfio.as_tensor_table(numpy.array({return_name}))"
+    if isinstance(output_type, ScalarType):
+        return "return {return_name}"
+    if isinstance(output_type, StateType):
+        return "return pickle.dumps({return_name})"
+    if isinstance(output_type, TransferType):
+        return "return json.dumps({return_name})"
+    raise NotImplementedError(
+        f"Type {output_type} doesn't have a return statement template."
+    )
+
+
+def get_return_type_template(output_type):
+    if not isinstance(output_type, OutputType):
+        raise TypeError(
+            f"Return type template only for OutputTypes. Type provided: {output_type}"
+        )
+    if isinstance(output_type, TableType):
+        return f"TABLE({iotype_to_sql_schema(output_type)})"
+    if isinstance(output_type, ScalarType):
+        return output_type.dtype.to_sql()
+    raise NotImplementedError(
+        f"Type {output_type} doesn't have a return type template."
+    )
 
 
 def iotype_to_sql_schema(iotype, name_prefix=""):
@@ -470,7 +486,15 @@ class IOType(ABC):
         return self.__dict__ == other.__dict__
 
 
-class TableType(IOType, ABC):
+class InputType(IOType):
+    pass
+
+
+class OutputType(IOType):
+    pass
+
+
+class TableType(InputType, OutputType, ABC):
     @property
     @abstractmethod
     def schema(self):
@@ -533,7 +557,7 @@ def relation(schema):
     return RelationType(schema)
 
 
-class ScalarType(IOType, ParametrizedType):
+class ScalarType(OutputType, ParametrizedType):
     def __init__(self, dtype):
         self.dtype = dt.from_py(dtype) if isinstance(dtype, type) else dtype
 
@@ -579,7 +603,7 @@ def state():
     return StateType()
 
 
-class LiteralType(IOType):
+class LiteralType(InputType):
     pass
 
 
@@ -592,7 +616,7 @@ def literal():
 
 class UDFArgument:
     __repr__ = recursive_repr
-    type: IOType
+    type: InputType
 
 
 class TableArg(UDFArgument, ABC):
@@ -693,8 +717,6 @@ class LiteralArg(UDFArgument):
 KnownTypeParams = Union[type, int]
 UnknownTypeParams = TypeVar
 TypeParamsInference = Dict[UnknownTypeParams, KnownTypeParams]
-InputType = Union[TableType, LiteralType, DictType]
-OutputType = Union[TableType, ScalarType, DictType]
 
 # ~~~~~~~~~~~~~~~~~~~~~~ UDF AST Nodes ~~~~~~~~~~~~~~~~~~~~~~~ #
 
@@ -713,18 +735,18 @@ class ASTNode(ABC):
 class UDFParameter(ASTNode):
     def __init__(self, param_arg, name="") -> None:
         self.name = name
-        self.iotype = param_arg.type
+        self.input_type = param_arg.type
 
     def compile(self) -> str:
-        return iotype_to_sql_schema(iotype=self.iotype, name_prefix=self.name)
+        return iotype_to_sql_schema(iotype=self.input_type, name_prefix=self.name)
 
 
 class UDFReturnType(ASTNode):
     def __init__(self, return_type) -> None:
-        self.iotype = return_type
+        self.output_type = return_type
 
     def compile(self) -> str:
-        return get_return_type_template(self.iotype)
+        return get_return_type_template(self.output_type)
 
 
 class UDFSignature(ASTNode):
@@ -852,7 +874,7 @@ class UDFBody(ASTNode):
         literal_args: Dict[str, LiteralArg],
         statements: list,
         return_name: str,
-        return_type: IOType,
+        return_type: OutputType,
     ):
         self.returnless_stmts = UDFBodyStatements(statements)
         self.return_stmt = UDFReturnStatement(return_name, return_type)
@@ -865,7 +887,7 @@ class UDFBody(ASTNode):
 
     @staticmethod
     def io_type_included(
-        type_: Type[IOType], table_args: Dict[str, TableArg], return_type: IOType
+        type_: Type[IOType], table_args: Dict[str, TableArg], return_type: OutputType
     ):
         for arg in table_args.values():
             if isinstance(arg.type, type_):
@@ -1237,8 +1259,8 @@ del UDFDecorator
 
 
 class Signature(NamedTuple):
-    parameters: Dict[str, IOType]
-    return_annotation: IOType
+    parameters: Dict[str, InputType]
+    return_annotation: OutputType
 
 
 class FunctionParts(NamedTuple):
@@ -1250,7 +1272,7 @@ class FunctionParts(NamedTuple):
     return_name: str
     table_input_types: Dict[str, TableType]
     literal_input_types: Dict[str, LiteralType]
-    output_type: IOType
+    output_type: OutputType
     sig: Signature
 
 
@@ -1279,16 +1301,16 @@ def make_udf_signature(parameter_names, decorator_kwargs):
 
 def validate_udf_signature_types(funcsig):
     """Validates that all types used in the udf's type signature, both input
-    and output, are subclasses of IOType."""
+    and output, are subclasses of InputType or OutputType."""
     parameter_types = funcsig.parameters.values()
     return_type = funcsig.return_annotation
-    if any(not isinstance(input_type, IOType) for input_type in parameter_types):
+    if any(not isinstance(input_type, InputType) for input_type in parameter_types):
         raise UDFBadDefinition(
-            f"Input types of func are not subclasses of IOType: {parameter_types}."
+            f"Input types of func are not subclasses of InputType: {parameter_types}."
         )
-    if not isinstance(return_type, IOType):
+    if not isinstance(return_type, OutputType):
         raise UDFBadDefinition(
-            f"Output type of func is not subclass of IOType: {return_type}."
+            f"Output type of func is not subclass of OutputType: {return_type}."
         )
 
 
@@ -1317,14 +1339,14 @@ def breakup_function(func, funcsig) -> FunctionParts:
     body_statements = get_func_body_from_ast(tree)
     return_name = get_return_name_from_body(body_statements)
     table_input_types = {
-        name: iotype
-        for name, iotype in funcsig.parameters.items()
-        if isinstance(iotype, TableType)
+        name: input_type
+        for name, input_type in funcsig.parameters.items()
+        if isinstance(input_type, TableType)
     }
     literal_input_types = {
-        name: iotype
-        for name, iotype in funcsig.parameters.items()
-        if isinstance(iotype, LiteralType)
+        name: input_type
+        for name, input_type in funcsig.parameters.items()
+        if isinstance(input_type, LiteralType)
     }
     output_type = funcsig.return_annotation
     return FunctionParts(
@@ -1506,7 +1528,7 @@ def get_funcparts_from_udf_registry(funcname: str, udfregistry: dict) -> Functio
 
 def validate_arg_names(
     args: Dict[str, UDFArgument],
-    parameters: Dict[str, IOType],
+    parameters: Dict[str, InputType],
 ) -> None:
     """Validates that the names of the udf arguments are the expected ones,
     based on the udf's formal parameters."""
@@ -1517,7 +1539,7 @@ def validate_arg_names(
         )
 
 
-def copy_types_from_udfargs(udfargs: Dict[str, UDFArgument]) -> Dict[str, IOType]:
+def copy_types_from_udfargs(udfargs: Dict[str, UDFArgument]) -> Dict[str, InputType]:
     return {name: deepcopy(arg.type) for name, arg in udfargs.items()}
 
 
@@ -1593,7 +1615,7 @@ def verify_declared_typeparams_match_passed_type(
             raise UDFBadCall(f"{passed_type} has no typeparam {name}.")
         if getattr(passed_type, name) != param:
             raise UDFBadCall(
-                "IOType's known typeparams do not match typeparams passed "
+                "InputType's known typeparams do not match typeparams passed "
                 f"in {passed_type}: {param}, {getattr(passed_type, name)}."
             )
 
@@ -1645,7 +1667,7 @@ def map_unknown_to_known_typeparams(
 # ~~~~~~~~~~~~~~ UDF SELECT Query Generator ~~~~~~~~~~~~~~ #
 
 
-def get_udf_select_template(output_type: IOType, table_args: Dict[str, TableArg]):
+def get_udf_select_template(output_type: OutputType, table_args: Dict[str, TableArg]):
     tensors = get_table_ast_nodes_from_table_args(
         table_args,
         arg_type=(TensorArg, MergeTensorArg),
