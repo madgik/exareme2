@@ -712,7 +712,7 @@ class OrphanStateObjectArg(OrphanObjectArg):
         super().__init__(table_name)
 
     def convert_to_object_arg(self, stored_class):
-        return StateObjectArg(self, stored_class)
+        return ObjectArg(state_object(stored_class), self.table_name)
 
 
 class OrphanTransferObjectArg(OrphanObjectArg):
@@ -720,14 +720,15 @@ class OrphanTransferObjectArg(OrphanObjectArg):
         super().__init__(table_name)
 
     def convert_to_object_arg(self, stored_class):
-        return TransferObjectArg(self, stored_class)
+        return ObjectArg(transfer_object(stored_class), self.table_name)
 
 
 class ObjectArg(TableArg, ABC):
     type: ObjectType
 
-    def __init__(self, orphan_object: OrphanObjectArg):
-        super().__init__(orphan_object.table_name)
+    def __init__(self, type_: ObjectType, table_name: str):
+        self.type = type_
+        super().__init__(table_name)
 
     @property
     def schema(self):
@@ -745,18 +746,6 @@ class ObjectArg(TableArg, ABC):
         if self.type.stored_class != other.type.stored_class:
             return False
         return True
-
-
-class StateObjectArg(ObjectArg):
-    def __init__(self, orphan_object: OrphanStateObjectArg, stored_class):
-        self.type = state_object(stored_class)
-        super().__init__(orphan_object)
-
-
-class TransferObjectArg(ObjectArg):
-    def __init__(self, orphan_object: OrphanTransferObjectArg, stored_class):
-        self.type = transfer_object(stored_class)
-        super().__init__(orphan_object)
 
 
 class LiteralArg(UDFArgument):
