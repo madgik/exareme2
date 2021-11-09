@@ -167,7 +167,7 @@ class TestUDFValidation:
                 x = 1
                 return x
 
-        assert "Input types of func are not subclasses of IOType" in str(exc)
+        assert "Input types of func are not subclasses of InputType" in str(exc)
 
     def test_validate_func_as_udf_invalid_output_type(self):
         with pytest.raises(UDFBadDefinition) as exc:
@@ -177,7 +177,7 @@ class TestUDFValidation:
                 x = 1
                 return x
 
-        assert "Output type of func is not subclass of IOType" in str(exc)
+        assert "Output type of func is not subclass of OutputType" in str(exc)
 
     def test_validate_func_as_udf_invalid_expression_in_return_stmt(self):
         with pytest.raises(UDFBadDefinition) as exc:
