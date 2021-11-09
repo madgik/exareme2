@@ -174,38 +174,34 @@ TensorBinaryOp          Enum with tensor binary operations
 make_unique_func_name   Helper for creating unique function names
 ======================= ========================================================
 """
-from abc import ABC, abstractmethod
 import ast
+import base64
+import hashlib
+import inspect
+import re
+from abc import ABC
+from abc import abstractmethod
 from copy import deepcopy
 from enum import Enum
-import inspect
 from numbers import Number
 from string import Template
-import hashlib
-import base64
-
-import re
-from textwrap import dedent, indent
-from typing import (
-    Dict,
-    List,
-    NamedTuple,
-    TypeVar,
-    Union,
-)
-from typing import Type
-
-import numpy
-import astor
-from pydantic import BaseModel
-from typing import Tuple
-
+from textwrap import dedent
+from textwrap import indent
+from typing import Dict
 from typing import List
+from typing import NamedTuple
+from typing import Tuple
+from typing import Type
+from typing import TypeVar
+from typing import Union
 
+import astor
+import numpy
+
+from mipengine import DType as dt
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType as TableInfoTableType
-from mipengine import DType as dt
 
 __all__ = [
     "udf",
@@ -1435,11 +1431,11 @@ def convert_table_info_to_table_arg(table_info):
     "add new input args"
     if TransferType.schema_matches(table_info.schema_.columns):
         return DictArg(type_=transfer(), table_name=table_info.name)
-    elif StateType.schema_matches(table_info.schema_.columns):
+    if StateType.schema_matches(table_info.schema_.columns):
         if table_info.type_ == TableInfoTableType.REMOTE:
             raise UDFBadCall("Usage of state is only allowed on local tables.")
         return DictArg(type_=state(), table_name=table_info.name)
-    elif is_tensor_schema(table_info.schema_.columns):
+    if is_tensor_schema(table_info.schema_.columns):
         ndims = (
             len(table_info.schema_.columns) - 2
         )  # TODO avoid this using kinds of TableInfo

@@ -13,7 +13,6 @@ from mipengine.udfgen.udfgenerator import DictArg
 from mipengine.udfgen.udfgenerator import IOType
 from mipengine.udfgen.udfgenerator import LiteralArg
 from mipengine.udfgen.udfgenerator import MergeTensorType
-from mipengine.udfgen.udfgenerator import DictType
 from mipengine.udfgen.udfgenerator import RelationArg
 from mipengine.udfgen.udfgenerator import RelationType
 from mipengine.udfgen.udfgenerator import ScalarFunction
