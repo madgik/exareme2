@@ -2563,7 +2563,7 @@ LANGUAGE PYTHON
             self.num = num
     t = 5
     state_str = _conn.execute("SELECT pickled_object from prev_state_table;")['pickled_object'][0]
-    prev_state = DummyStateClass.parse_raw(state_str)
+    prev_state = pickle.loads(state_str)
     prev_state.num = prev_state.num + t
     return pickle.dumps(prev_state)
 }"""
@@ -2621,14 +2621,17 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    from pydantic import BaseModel
-    from typing import List, Dict
-    class DummyTransferClass(BaseModel):
-        num: int
-        list_of_nums: List[int]
+    import json
+    from attrdict import AttrDict
+    class DummyTransferClass:
+        def __init__(self, num, list_of_nums):
+            self.num = num
+            self.list_of_nums = list_of_nums
     t = 5
     result = DummyTransferClass(num=t, list_of_nums=[t, t, t])
-    return result.json()
+    if not isinstance(result, AttrDict):
+        result = result.__dict__
+    return json.dumps(result)
 }"""
 
     @pytest.fixture(scope="class")
@@ -2699,16 +2702,19 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    from pydantic import BaseModel
-    from typing import List, Dict
-    class DummyTransferClass(BaseModel):
-        num: int
-        list_of_nums: List[int]
+    import json
+    from attrdict import AttrDict
+    class DummyTransferClass:
+        def __init__(self, num, list_of_nums):
+            self.num = num
+            self.list_of_nums = list_of_nums
     t = 5
     transfer_str = _conn.execute("SELECT jsonified_object from transfer_table;")['jsonified_object'][0]
-    transfer = DummyTransferClass.parse_raw(transfer_str)
+    transfer = AttrDict(json.loads(transfer_str))
     transfer.num = transfer.num + t
-    return transfer.json()
+    if not isinstance(transfer, AttrDict):
+        transfer = transfer.__dict__
+    return json.dumps(transfer)
 }"""
 
     @pytest.fixture(scope="class")
@@ -2784,17 +2790,14 @@ LANGUAGE PYTHON
     import pandas as pd
     import udfio
     import dill as pickle
-    from pydantic import BaseModel
-    from typing import List, Dict
-    class DummyTransferClass(BaseModel):
-        num: int
-        list_of_nums: List[int]
+    import json
+    from attrdict import AttrDict
     class DummyStateClass:
         def __init__(self, num):
             self.num = num
     t = 5
     transfer_str = _conn.execute("SELECT jsonified_object from transfer_table;")['jsonified_object'][0]
-    transfer = DummyTransferClass.parse_raw(transfer_str)
+    transfer = AttrDict(json.loads(transfer_str))
     result = DummyStateClass(transfer.num + t)
     return pickle.dumps(result)
 }"""
