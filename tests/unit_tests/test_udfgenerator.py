@@ -474,6 +474,23 @@ def test_convert_udfgenargs_to_state_udfargs():
     assert result == expected_udf_posargs
 
 
+def test_convert_udfgenargs_to_state_udfargs_not_local():
+    udfgen_posargs = [
+        TableInfo(
+            name="tab",
+            schema_=TableSchema(
+                columns=[
+                    ColumnInfo(name="state", dtype=DType.BINARY),
+                ]
+            ),
+            type_=TableType.REMOTE,
+        ),
+    ]
+
+    with pytest.raises(UDFBadCall):
+        convert_udfgenargs_to_udfargs(udfgen_posargs, {})
+
+
 class TestTensorArgsEquality:
     def test_tensor_args_names_not_equal(self):
         t1 = TensorArg("a", int, 1)
@@ -2356,43 +2373,6 @@ FROM
         udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
         assert udfdef.template == expected_udfdef
         assert udfsel.template == expected_udfsel
-
-
-class TestUDFGen_StateInputfromREMOTETableError(TestUDFGenBase):
-    @pytest.fixture(scope="class")
-    def udfregistry(self):
-        @udf(
-            prev_state=state(),
-            return_type=state(),
-        )
-        def f(prev_state):
-            prev_state.num = prev_state.num + 10
-            return prev_state
-
-        return udf.registry
-
-    @pytest.fixture(scope="class")
-    def positional_args(self):
-        return [
-            5,
-            TableInfo(
-                name="prev_state_table",
-                schema_=TableSchema(
-                    columns=[
-                        ColumnInfo(name="state", dtype=DType.BINARY),
-                    ]
-                ),
-                type_=TableType.REMOTE,
-            ),
-        ]
-
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-    ):
-        with pytest.raises(UDFBadCall):
-            generate_udf_queries(funcname, positional_args, {})
 
 
 class TestUDFGen_StateInputandReturnType(TestUDFGenBase):
