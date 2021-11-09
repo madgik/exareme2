@@ -449,7 +449,7 @@ def test_convert_udfgenargs_to_transfer_udfargs():
                     ColumnInfo(name="transfer", dtype=DType.JSON),
                 ]
             ),
-            type_=TableType.NORMAL,
+            type_=TableType.REMOTE,
         ),
     ]
     expected_udf_posargs = [DictArg(type_=transfer(), table_name="tab")]
@@ -2547,7 +2547,7 @@ class TestUDFGen_TransferInputandReturnType(TestUDFGenBase):
                         ColumnInfo(name="transfer", dtype=DType.JSON),
                     ]
                 ),
-                type_=TableType.NORMAL,
+                type_=TableType.REMOTE,
             ),
         ]
 
@@ -2619,7 +2619,7 @@ class TestUDFGen_TransferInputandStateReturnType(TestUDFGenBase):
                         ColumnInfo(name="transfer", dtype=DType.JSON),
                     ]
                 ),
-                type_=TableType.NORMAL,
+                type_=TableType.REMOTE,
             ),
         ]
 
@@ -2641,6 +2641,93 @@ LANGUAGE PYTHON
     t = 5
     transfer['num'] = transfer['num'] + t
     return pickle.dumps(transfer)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),state BLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+
+class TestUDFGen_TransferAndStateInputandStateReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            t=literal(),
+            transfer=transfer(),
+            state=state(),
+            return_type=state(),
+        )
+        def f(t, transfer, state):
+            result = {}
+            result["num"] = transfer["num"] + state["num"] + t
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            5,
+            TableInfo(
+                name="test_table_3",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="transfer", dtype=DType.JSON),
+                    ]
+                ),
+                type_=TableType.REMOTE,
+            ),
+            TableInfo(
+                name="test_table_5",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(state BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    import json
+    transfer_str = _conn.execute("SELECT transfer from test_table_3;")["transfer"][0]
+    transfer = json.loads(transfer_str)
+    state_str = _conn.execute("SELECT state from test_table_5;")["state"][0]
+    state = pickle.loads(state_str)
+    t = 5
+    result = {}
+    result['num'] = transfer['num'] + state['num'] + t
+    return pickle.dumps(result)
 }"""
 
     @pytest.fixture(scope="class")
