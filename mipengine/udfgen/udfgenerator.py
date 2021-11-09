@@ -273,17 +273,12 @@ def get_return_stmt_template(iotype):
         return "return udfio.as_tensor_table(numpy.array({return_name}))"
     if isinstance(iotype, ScalarType):
         return "return {return_name}"
-    if isinstance(iotype, StateObjectType):
+    if isinstance(iotype, StateType):
         return "return pickle.dumps({return_name})"
-    if isinstance(iotype, TransferObjectType):
-        return_lines = [
-            "if not isinstance({return_name}, AttrDict):",
-            "    {return_name} = {return_name}.__dict__",
-            "return json.dumps({return_name})",
-        ]
-        return LN.join(return_lines)
+    if isinstance(iotype, TransferType):
+        return "return json.dumps({return_name})"
     raise NotImplementedError(
-        "Return stmt template only for RelationType, TensorType, ScalarType, ObjectType"
+        "Return stmt template only for RelationType, TensorType, ScalarType, State and Transfer"
     )
 
 
@@ -295,25 +290,24 @@ def get_return_type_template(iotype):
     raise NotImplementedError("Return type template only for TableType, ScalarType")
 
 
-def get_object_assignment_template(object_type):
-    if isinstance(object_type, TransferObjectType):
+def get_dict_assignment_template(dict_type):
+    if isinstance(dict_type, TransferType):
         loopback_query = (
             "transfer_str = "
-            "_conn.execute(\"SELECT jsonified_object from {table_name};\")['jsonified_object'][0]"
+            '_conn.execute("SELECT transfer from {table_name};")["transfer"][0]'
         )
-        object_parse = "{arg_name} = AttrDict(json.loads(transfer_str))"
-        return LN.join([loopback_query, object_parse])
-    elif isinstance(object_type, StateObjectType):
+        dict_parse = "{arg_name} = json.loads(transfer_str)"
+        return LN.join([loopback_query, dict_parse])
+
+    if isinstance(dict_type, StateType):
         loopback_query = (
             "state_str = "
-            "_conn.execute(\"SELECT pickled_object from {table_name};\")['pickled_object'][0]"
+            '_conn.execute("SELECT state from {table_name};")["state"][0]'
         )
-        object_parse = "{arg_name} = pickle.loads(state_str)"
-        return LN.join([loopback_query, object_parse])
-    else:
-        raise NotImplementedError(
-            "Object Args currently supported are StateObjectArg and TransferObjectArg"
-        )
+        dict_parse = "{arg_name} = pickle.loads(state_str)"
+        return LN.join([loopback_query, dict_parse])
+
+    raise NotImplementedError("DictArgs currently supported are State and Transfer.")
 
 
 def iotype_to_sql_schema(iotype, name_prefix=""):
@@ -542,15 +536,8 @@ def relation(schema):
     return RelationType(schema)
 
 
-class ObjectType(TableType, ABC):
+class DictType(TableType, ABC):
     schema_: List[Tuple]
-
-    def __init__(self, stored_class):
-        self._stored_class = stored_class
-
-    @property
-    def stored_class(self):
-        return self._stored_class
 
     @property
     def schema(self):
@@ -570,34 +557,20 @@ class ObjectType(TableType, ABC):
         return True
 
 
-class TransferObjectType(ObjectType):
-    schema_ = [("jsonified_object", dt.JSON)]
-
-    def __init__(self, stored_class):
-        if not issubclass(stored_class, BaseModel):
-            raise UDFBadDefinition(
-                "The 'stored_class' parameter should contain a subclass of BaseModel."
-            )
-        super().__init__(stored_class)
+class TransferType(DictType):
+    schema_ = [("transfer", dt.JSON)]
 
 
-def transfer_object(stored_class):
-    return TransferObjectType(stored_class)
+def transfer():
+    return TransferType()
 
 
-class StateObjectType(ObjectType):
-    schema_ = [("pickled_object", dt.BINARY)]
-
-    def __init__(self, stored_class):
-        if not inspect.isclass(stored_class):
-            raise UDFBadDefinition(
-                "The 'stored_class' parameter should contain a class."
-            )
-        super().__init__(stored_class)
+class StateType(DictType):
+    schema_ = [("state", dt.BINARY)]
 
 
-def state_object(stored_class):
-    return StateObjectType(stored_class)
+def state():
+    return StateType()
 
 
 class ScalarType(IOType, ParametrizedType):
@@ -692,41 +665,10 @@ class RelationArg(ParametrizedTableArg):
         return True
 
 
-# Oprhan Object Args are ObjectArgs that we don't yet know their class
-class OrphanObjectArg(TableArg):
-    def __init__(self, table_name):
-        super().__init__(table_name)
+class DictArg(TableArg, ABC):
+    type: DictType
 
-    @abstractmethod
-    def convert_to_object_arg(self, stored_class):
-        pass
-
-    def __eq__(self, other):
-        if self.table_name != other.table_name:
-            return False
-        return True
-
-
-class OrphanStateObjectArg(OrphanObjectArg):
-    def __init__(self, table_name):
-        super().__init__(table_name)
-
-    def convert_to_object_arg(self, stored_class):
-        return ObjectArg(state_object(stored_class), self.table_name)
-
-
-class OrphanTransferObjectArg(OrphanObjectArg):
-    def __init__(self, table_name):
-        super().__init__(table_name)
-
-    def convert_to_object_arg(self, stored_class):
-        return ObjectArg(transfer_object(stored_class), self.table_name)
-
-
-class ObjectArg(TableArg, ABC):
-    type: ObjectType
-
-    def __init__(self, type_: ObjectType, table_name: str):
+    def __init__(self, type_: DictType, table_name: str):
         self.type = type_
         super().__init__(table_name)
 
@@ -734,16 +676,10 @@ class ObjectArg(TableArg, ABC):
     def schema(self):
         return self.type.schema
 
-    @property
-    def stored_class(self):
-        return self.type.stored_class
-
     def __eq__(self, other):
         if self.table_name != other.table_name:
             return False
         if self.schema != other.schema:
-            return False
-        if self.type.stored_class != other.type.stored_class:
             return False
         return True
 
@@ -768,7 +704,7 @@ KnownTypeParams = Union[type, int]
 UnknownTypeParams = TypeVar
 TypeParamsInference = Dict[UnknownTypeParams, KnownTypeParams]
 InputType = Union[TableType, LiteralType]
-OutputType = Union[TableType, ScalarType, ObjectType]
+OutputType = Union[TableType, ScalarType, DictType]
 
 # ~~~~~~~~~~~~~~~~~~~~~~ UDF AST Nodes ~~~~~~~~~~~~~~~~~~~~~~~ #
 
@@ -851,31 +787,17 @@ class UDFHeader(ASTNode):
 
 class Imports(ASTNode):
     # TODO imports should be dynamic
-    def __init__(self, state_imports, transfer_imports):
+    def __init__(self, pickle, json):
         self._import_lines = ["import pandas as pd", "import udfio"]
-        if state_imports:
-            pickle = "import dill as pickle"
-            self._import_lines.append(pickle)
-        if transfer_imports:
-            json = "import json"
-            self._import_lines.append(json)
-            attrdict = "from attrdict import AttrDict"
-            self._import_lines.append(attrdict)
+        if pickle:
+            pickle_import = "import pickle"
+            self._import_lines.append(pickle_import)
+        if json:
+            json_import = "import json"
+            self._import_lines.append(json_import)
 
     def compile(self) -> str:
         return LN.join(self._import_lines)
-
-
-class ClassDefinitions(ASTNode):
-    def __init__(self, return_type: IOType):
-        self._class_definitions: Dict[str, str] = {}
-        if isinstance(return_type, ObjectType):
-            class_def = dedent(inspect.getsource(return_type.stored_class))
-            self._class_definitions[return_type.stored_class.__name__] = class_def
-
-    def compile(self) -> str:
-        class_defs = "".join(self._class_definitions.values())
-        return class_defs if class_defs else ""
 
 
 class TableBuild(ASTNode):
@@ -917,25 +839,22 @@ class LiteralAssignments(ASTNode):
         return LN.join(f"{name} = {arg.value}" for name, arg in self.literals.items())
 
 
-class ObjectAssignments(ASTNode):
-    def __init__(self, object_args: Dict[str, ObjectArg]):
-        self.object_assignments = []
-        for arg_name, arg in object_args.items():
-            self.object_assignments.append(
+class DictAssignments(ASTNode):
+    def __init__(self, dict_args: Dict[str, DictArg]):
+        self.dict_assignments = []
+        for arg_name, arg in dict_args.items():
+            self.dict_assignments.append(
                 (
-                    get_object_assignment_template(arg.type),
+                    get_dict_assignment_template(arg.type),
                     arg_name,
-                    arg.type.stored_class.__name__,
                     arg.table_name,
                 )
             )
 
     def compile(self) -> str:
         return LN.join(
-            template.format(
-                arg_name=arg_name, class_name=class_name, table_name=table_name
-            )
-            for template, arg_name, class_name, table_name in self.object_assignments
+            template.format(arg_name=arg_name, table_name=table_name)
+            for template, arg_name, table_name in self.dict_assignments
         )
 
 
@@ -956,7 +875,7 @@ class UDFBody(ASTNode):
         self,
         param_table_args: Dict[str, ParametrizedTableArg],
         literal_args: Dict[str, LiteralArg],
-        object_args: Dict[str, ObjectArg],
+        dict_args: Dict[str, DictArg],
         statements: list,
         return_name: str,
         return_type: IOType,
@@ -966,17 +885,16 @@ class UDFBody(ASTNode):
         self.table_conversions = TableBuilds(param_table_args)
         self.literals = LiteralAssignments(literal_args)
         self.imports = Imports(
-            self.io_type_included(StateObjectType, object_args, return_type),
-            self.io_type_included(TransferObjectType, object_args, return_type),
+            self.io_type_included(StateType, dict_args, return_type),
+            self.io_type_included(TransferType, dict_args, return_type),
         )
-        self.class_definitions = ClassDefinitions(return_type)
-        self.objects = ObjectAssignments(object_args)
+        self.dicts = DictAssignments(dict_args)
 
     @staticmethod
     def io_type_included(
-        type_: Type[IOType], object_args: Dict[str, ObjectArg], return_type: IOType
+        type_: Type[IOType], dict_args: Dict[str, DictArg], return_type: IOType
     ):
-        for arg in object_args.values():
+        for arg in dict_args.values():
             if isinstance(arg.type, type_):
                 return True
         if isinstance(return_type, type_):
@@ -988,10 +906,9 @@ class UDFBody(ASTNode):
             remove_empty_lines(
                 [
                     self.imports.compile(),
-                    self.class_definitions.compile(),
                     self.table_conversions.compile(),
                     self.literals.compile(),
-                    self.objects.compile(),
+                    self.dicts.compile(),
                     self.returnless_stmts.compile(),
                     self.return_stmt.compile(),
                 ]
@@ -1043,7 +960,7 @@ class UDFDefinition(ASTNode):
         funcparts: "FunctionParts",
         param_table_args: Dict[str, ParametrizedTableArg],
         literal_args: Dict[str, LiteralArg],
-        object_args: Dict[str, ObjectArg],
+        dict_args: Dict[str, DictArg],
         output_type: Union[TableType, ScalarType],
         traceback=False,
     ):
@@ -1055,7 +972,7 @@ class UDFDefinition(ASTNode):
         body = UDFBody(
             param_table_args=param_table_args,
             literal_args=literal_args,
-            object_args=object_args,
+            dict_args=dict_args,
             statements=funcparts.body_statements,
             return_name=funcparts.return_name,
             return_type=funcparts.output_type,
@@ -1362,7 +1279,7 @@ class FunctionParts(NamedTuple):
     body_statements: list
     return_name: str
     param_table_input_types: Dict[str, ParametrizedTableType]
-    object_input_types: Dict[str, ObjectType]
+    dict_input_types: Dict[str, DictType]
     literal_input_types: Dict[str, LiteralType]
     output_type: IOType
     sig: Signature
@@ -1435,10 +1352,10 @@ def breakup_function(func, funcsig) -> FunctionParts:
         for name, iotype in funcsig.parameters.items()
         if isinstance(iotype, ParametrizedTableType)
     }
-    object_input_types = {
+    dict_input_types = {
         name: iotype
         for name, iotype in funcsig.parameters.items()
-        if isinstance(iotype, ObjectType)
+        if isinstance(iotype, DictType)
     }
     literal_input_types = {
         name: iotype
@@ -1451,7 +1368,7 @@ def breakup_function(func, funcsig) -> FunctionParts:
         body_statements,
         return_name,
         param_table_input_types,
-        object_input_types,
+        dict_input_types,
         literal_input_types,
         output_type,
         funcsig,
@@ -1531,12 +1448,12 @@ def convert_udfgenarg_to_udfarg(udfgen_arg) -> UDFArgument:
 
 def convert_table_info_to_table_arg(table_info):
     "add new input args"
-    if TransferObjectType.schema_matches(table_info.schema_.columns):
-        return OrphanTransferObjectArg(table_name=table_info.name)
-    elif StateObjectType.schema_matches(table_info.schema_.columns):
+    if TransferType.schema_matches(table_info.schema_.columns):
+        return DictArg(type_=transfer(), table_name=table_info.name)
+    elif StateType.schema_matches(table_info.schema_.columns):
         if table_info.type_ == TableInfoTableType.REMOTE:
-            raise UDFBadCall("Using a state object is only allowed on local tables.")
-        return OrphanStateObjectArg(table_name=table_info.name)
+            raise UDFBadCall("Usage of state is only allowed on local tables.")
+        return DictArg(type_=state(), table_name=table_info.name)
     elif is_tensor_schema(table_info.schema_.columns):
         ndims = (
             len(table_info.schema_.columns) - 2
@@ -1577,9 +1494,6 @@ def get_udf_templates_using_udfregistry(
 ) -> tuple:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
     udf_args = get_udf_args(funcparts, posargs, keywordargs)
-    udf_args = assign_class_to_orphan_object_args(
-        udf_args, funcparts.object_input_types
-    )
     output_type = get_output_type(funcparts, udf_args, traceback)
     udf_definition = get_udf_definition_template(
         funcparts,
@@ -1621,19 +1535,6 @@ def get_udf_args(funcparts, posargs, keywordargs) -> Dict[str, UDFArgument]:
     return udf_args
 
 
-def assign_class_to_orphan_object_args(
-    udf_args_provided: Dict[str, UDFArgument], object_input_types: Dict[str, ObjectType]
-):
-    udf_args = {}
-    for param_name, arg in udf_args_provided.items():
-        if isinstance(arg, OrphanObjectArg):
-            stored_class = object_input_types[param_name].stored_class
-            udf_args[param_name] = arg.convert_to_object_arg(stored_class)
-        else:
-            udf_args[param_name] = arg
-    return udf_args
-
-
 def get_funcparts_from_udf_registry(funcname: str, udfregistry: dict) -> FunctionParts:
     if funcname not in udfregistry:
         raise UDFBadCall(f"{funcname} cannot be found in udf registry.")
@@ -1669,7 +1570,7 @@ def get_udf_definition_template(
     param_table_args: Dict[str, ParametrizedTableArg] = get_items_of_type(
         ParametrizedTableArg, mapping=input_args
     )
-    object_args: Dict[str, ObjectArg] = get_items_of_type(ObjectArg, mapping=input_args)
+    dict_args: Dict[str, DictArg] = get_items_of_type(DictArg, mapping=input_args)
     literal_args: Dict[str, LiteralArg] = get_items_of_type(
         LiteralArg, mapping=input_args
     )
@@ -1681,7 +1582,7 @@ def get_udf_definition_template(
         param_table_args=param_table_args,
         output_type=output_type,
         literal_args=literal_args,
-        object_args=object_args,
+        dict_args=dict_args,
         traceback=traceback,
     )
     return udf_definition.compile()
