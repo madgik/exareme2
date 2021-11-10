@@ -67,12 +67,21 @@ def get_table_info(table_name: str) -> TableInfo:
         ON tables.id = columns.table_id
         WHERE
         tables.name = '{table_name}'
-        AND
-        tables.system=false
         """
     )
     if not schema:
         raise TablesNotFound([table_name])
+
+    monetdb_table_type = MonetDB().execute_and_fetchall(
+        f"""
+        SELECT type
+        FROM
+        tables
+        WHERE
+        tables.name = '{table_name}'
+        """
+    )[0][0]
+
     return TableInfo(
         name=table_name,
         schema_=TableSchema(
@@ -84,11 +93,8 @@ def get_table_info(table_name: str) -> TableInfo:
                 for name, sql_type in schema
             ]
         ),
-        type_=TableType.NORMAL,
+        type_=_convert_monet2mip_table_type(monetdb_table_type),
     )
-
-
-# TODO OOOO  DYNAMIC FROM DB
 
 
 def get_table_names(table_type: TableType, context_id: str) -> List[str]:
@@ -214,12 +220,12 @@ def drop_db_artifacts_by_context_id(context_id: str):
 
     _drop_udfs_by_context_id(context_id)
     # Order of the table types matter not to have dependencies when dropping the tables
-    for table_type in {
+    for table_type in [
         TableType.MERGE,
         TableType.REMOTE,
         TableType.VIEW,
         TableType.NORMAL,
-    }:
+    ]:
         print("Dropping tabletype: " + str(table_type))
         _drop_table_by_type_and_context_id(table_type, context_id)
 
