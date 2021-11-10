@@ -190,7 +190,6 @@ from textwrap import indent
 from typing import Dict
 from typing import List
 from typing import NamedTuple
-from typing import Tuple
 from typing import Type
 from typing import TypeVar
 from typing import Union
@@ -210,13 +209,15 @@ __all__ = [
     "merge_tensor",
     "scalar",
     "literal",
+    "transfer",
+    "state",
     "generate_udf_queries",
     "TensorUnaryOp",
     "TensorBinaryOp",
     "make_unique_func_name",
 ]
 
-# TODO Do not select with star, select columns excplicitly to avoid surprises
+# TODO Do not select with star, select columns explicitly to avoid surprises
 # with node_id etc.
 
 # TODO need a class TypeParameter so that ParametrizedType knows which params
@@ -270,20 +271,36 @@ def get_build_template(input_type: "InputType"):
             + COLUMNS_COMPREHENSION_TMPL
             + ")"
         )
+    if isinstance(input_type, MergeTransferType):
+        loopback_query = (
+            'transfer_strs = _conn.execute("SELECT '
+            + input_type.data_column_name
+            + ' from {table_name};")["'
+            + input_type.data_column_name
+            + '"]'
+        )
+        dict_parse = "{arg_name} = [json.loads(str) for str in transfer_strs]"
+        return LN.join([loopback_query, dict_parse])
     if isinstance(input_type, TransferType):
         loopback_query = (
-            "transfer_str = "
-            '_conn.execute("SELECT transfer from {table_name};")["transfer"][0]'
+            'transfer_str = _conn.execute("SELECT '
+            + input_type.data_column_name
+            + ' from {table_name};")["'
+            + input_type.data_column_name
+            + '"][0]'
         )
         dict_parse = "{arg_name} = json.loads(transfer_str)"
         return LN.join([loopback_query, dict_parse])
     if isinstance(input_type, StateType):
         loopback_query = (
-            "state_str = "
-            '_conn.execute("SELECT state from {table_name};")["state"][0]'
+            'state_str = _conn.execute("SELECT '
+            + input_type.data_column_name
+            + ' from {table_name};")["'
+            + input_type.data_column_name
+            + '"][0]'
         )
         dict_parse = "{arg_name} = pickle.loads(state_str)"
-        return LN.join([loopback_query, dict_parse])
+        return LN.join([str(loopback_query), dict_parse])
     raise NotImplementedError(
         f"Type {input_type} doesn't have a return statement template."
     )
@@ -563,36 +580,54 @@ def scalar(dtype):
 
 
 class DictType(TableType, ABC):
-    schema_: List[Tuple]
+    _data_column_name: str
+    _data_column_type: dt
+
+    @property
+    def data_column_name(self):
+        return self._data_column_name
+
+    @property
+    def data_column_type(self):
+        return self._data_column_type
 
     @property
     def schema(self):
-        return self.schema_
+        return [(self.data_column_name, self.data_column_type)]
 
     @classmethod
     def schema_matches(cls, schema_provided: List[ColumnInfo]):
         if len(schema_provided) > 1:
             return False
-        column_name, column_type = cls.schema_[0]
         column_name_provided = schema_provided[0].name
         column_type_provided = schema_provided[0].dtype
-        if column_name != column_name_provided:
+        if cls._data_column_name != column_name_provided:
             return False
-        if column_type != column_type_provided:
+        if cls._data_column_type != column_type_provided:
             return False
         return True
 
 
 class TransferType(DictType):
-    schema_ = [("transfer", dt.JSON)]
+    _data_column_name = "transfer"
+    _data_column_type = dt.JSON
 
 
 def transfer():
     return TransferType()
 
 
+class MergeTransferType(TransferType):
+    pass
+
+
+def merge_transfer():
+    return MergeTransferType()
+
+
 class StateType(DictType):
-    schema_ = [("state", dt.BINARY)]
+    _data_column_name = "state"
+    _data_column_type = dt.BINARY
 
 
 def state():
@@ -648,16 +683,6 @@ class TensorArg(TableArg):
         return True
 
 
-class MergeTensorArg(TableArg):
-    def __init__(self, table_name, dtype, ndims):
-        self.type: MergeTensorType = MergeTensorType(dtype, ndims)
-        super().__init__(table_name)
-
-    @property
-    def ndims(self):
-        return self.type.ndims
-
-
 class RelationArg(TableArg):
     def __init__(self, table_name, schema):
         self.type = relation(schema)
@@ -678,8 +703,7 @@ class RelationArg(TableArg):
 class DictArg(TableArg, ABC):
     type: DictType
 
-    def __init__(self, type_: DictType, table_name: str):
-        self.type = type_
+    def __init__(self, table_name: str):
         super().__init__(table_name)
 
     @property
@@ -692,6 +716,20 @@ class DictArg(TableArg, ABC):
         if self.schema != other.schema:
             return False
         return True
+
+
+class StateArg(DictArg):
+    type = state()
+
+    def __init__(self, table_name: str):
+        super().__init__(table_name)
+
+
+class TransferArg(DictArg):
+    type = transfer()
+
+    def __init__(self, table_name: str):
+        super().__init__(table_name)
 
 
 class LiteralArg(UDFArgument):
@@ -1385,14 +1423,6 @@ def generate_udf_queries(
         positional_args,
         keyword_args,
     )
-    # --> Hack for merge tensors since we don't tag TableInfos with different kinds
-    if "sum_tensors" in func_name:
-        tensor_arg, *_ = udf_posargs
-        table_name = tensor_arg.table_name
-        dtype = tensor_arg.dtype
-        ndims = tensor_arg.ndims
-        udf_posargs = [MergeTensorArg(table_name, dtype=dtype, ndims=ndims)]
-    # <--
 
     if func_name in TENSOR_OP_NAMES:
         udf_definition = ""  # TODO this looks stupid, Node should know what to expect
@@ -1430,11 +1460,11 @@ def convert_udfgenarg_to_udfarg(udfgen_arg) -> UDFArgument:
 def convert_table_info_to_table_arg(table_info):
     "add new input args"
     if TransferType.schema_matches(table_info.schema_.columns):
-        return DictArg(type_=transfer(), table_name=table_info.name)
+        return TransferArg(table_name=table_info.name)
     if StateType.schema_matches(table_info.schema_.columns):
         if table_info.type_ == TableInfoTableType.REMOTE:
             raise UDFBadCall("Usage of state is only allowed on local tables.")
-        return DictArg(type_=state(), table_name=table_info.name)
+        return StateArg(table_name=table_info.name)
     if is_tensor_schema(table_info.schema_.columns):
         ndims = (
             len(table_info.schema_.columns) - 2
@@ -1451,7 +1481,7 @@ def convert_table_info_to_table_arg(table_info):
 # TODO table kinds must become known in Controller, who should send the
 # appropriate kind, avoiding heuristics like below
 
-# TODO is_***_schema should probably be moved in the type class as class methods
+
 def is_tensor_schema(schema):
     colnames = [col.name for col in schema]
     if "val" in colnames and any(cname.startswith("dim") for cname in colnames):
@@ -1475,6 +1505,11 @@ def get_udf_templates_using_udfregistry(
 ) -> tuple:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
     udf_args = get_udf_args(funcparts, posargs, keywordargs)
+    udf_args = resolve_merge_table_args(udf_args, funcparts.table_input_types)
+    validate_arg_names(udf_args, funcparts.sig.parameters)
+    validate_arg_types(
+        udf_args, funcparts.table_input_types, funcparts.literal_input_types
+    )
     output_type = get_output_type(funcparts, udf_args, traceback)
     udf_definition = get_udf_definition_template(
         funcparts,
@@ -1512,7 +1547,30 @@ def get_udf_args(funcparts, posargs, keywordargs) -> Dict[str, UDFArgument]:
         args=posargs,
         kwargs=keywordargs,
     )
-    validate_arg_names(udf_args, funcparts.sig.parameters)
+    return udf_args
+
+
+def resolve_merge_table_args(
+    udf_args: Dict[str, UDFArgument],
+    exp_table_types: Dict[str, TableType],
+) -> Dict[str, UDFArgument]:
+    """MergeTableTypes have the same schema as the tables that they are merging.
+    The UDFArgument always contains the initial table type and must be resolved
+    to a MergeTableType, if needed, based on the function parts."""
+
+    for argname, arg in udf_args.items():
+        if isinstance(arg, TensorArg) and isinstance(
+            exp_table_types[argname], MergeTensorType
+        ):
+            tensor_type: TensorType = udf_args[argname].type
+            udf_args[argname].type = merge_tensor(
+                dtype=tensor_type.dtype, ndims=tensor_type.ndims
+            )
+        if isinstance(arg, TransferArg) and isinstance(
+            exp_table_types[argname], MergeTransferType
+        ):
+            udf_args[argname].type = merge_transfer()
+
     return udf_args
 
 
@@ -1533,6 +1591,31 @@ def validate_arg_names(
             f"UDF argument names do not match UDF parameter names: "
             f"{args.keys()}, {parameters.keys()}."
         )
+
+
+def validate_arg_types(
+    args: Dict[str, UDFArgument],
+    exp_table_types: Dict[str, TableType],
+    exp_literal_types: Dict[str, LiteralType],
+) -> None:
+    """Validates that the types of the udf arguments are the expected ones,
+    based on the udf's formal parameter types."""
+    table_args = {
+        argname: arg for argname, arg in args.items() if isinstance(arg, TableArg)
+    }
+    literal_args = {
+        argname: arg for argname, arg in args.items() if isinstance(arg, LiteralArg)
+    }
+    for argname, arg in table_args.items():
+        if type(arg.type) is not type(exp_table_types[argname]):
+            raise UDFBadCall(
+                f"Argument {argname} should be of type {exp_table_types[argname]}. Type provided: {arg.type}"
+            )
+    for argname, arg in literal_args.items():
+        if type(arg.type) is not type(exp_literal_types[argname]):
+            raise UDFBadCall(
+                f"Argument {argname} should be of type {exp_table_types[argname]}. Type provided: {arg.type}"
+            )
 
 
 def copy_types_from_udfargs(udfargs: Dict[str, UDFArgument]) -> Dict[str, InputType]:
@@ -1666,7 +1749,7 @@ def map_unknown_to_known_typeparams(
 def get_udf_select_template(output_type: OutputType, table_args: Dict[str, TableArg]):
     tensors = get_table_ast_nodes_from_table_args(
         table_args,
-        arg_type=(TensorArg, MergeTensorArg),
+        arg_type=(TensorArg),
     )
     relations = get_table_ast_nodes_from_table_args(table_args, arg_type=RelationArg)
     tables = tensors or relations
