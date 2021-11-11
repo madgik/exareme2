@@ -24,7 +24,7 @@ PREC = 1e-6
 def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
     global_run = algo_interface.run_udf_on_global_node
-    get_table_info = algo_interface.get_table_info
+    get_table_schema = algo_interface.get_table_schema
 
     classes = algo_interface.algorithm_parameters["classes"]
 
@@ -42,7 +42,7 @@ def run(algo_interface):
     )
 
     # init model
-    table_schema = get_table_info(X).schema_
+    table_schema = get_table_schema(X)
     ncols = len(table_schema.columns)
     coeff = local_run(
         func_name=make_unique_func_name(zeros1),

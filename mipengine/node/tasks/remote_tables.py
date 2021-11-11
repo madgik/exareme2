@@ -4,7 +4,6 @@ from celery import shared_task
 
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node.monetdb_interface import remote_tables
-from mipengine.node_tasks_DTOs import TableType
 
 
 @shared_task
