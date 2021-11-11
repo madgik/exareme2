@@ -77,7 +77,7 @@ type will be a tensor of type float and dimensions 2 as well.
 Tensors and Relations explained
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The are two main kinds of UDF input/output type, tensors and relations.  Both
+There are two main kinds of UDF input/output type, tensors and relations.  Both
 are just tables in the DB. However, they are understood differently by the UDF
 translator/generator.
 
@@ -155,6 +155,20 @@ first string returned by generate_udf_queries is empty since there
 is no UDF definition. The second string holds the queries for executing the
 operation and inserting the result into a new table.
 
+State and Transfer explained
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+======================= ======================= =======================
+                       |   STATE               |  TRANSFER
+======================= ======================= =======================
+Type in udf            |   Dict                |   Dict
+Type in DB             |   BINARY              |   CLOB
+Encoding using         |   Pickle              |   Json
+Shareable              |   NO                  |   YES
+Input Type             |   YES                 |   YES
+Output Type            |   YES                 |   YES
+
+Both types are used as a normal dict in the udf. Distinguishing between them
+can only be done from the udf decorator.
 
 All the module's exposed objects are found in the table below.
 
@@ -167,6 +181,8 @@ relation                Relation type factory
 merge_tensor            Merge tensor type factory
 scalar                  Scalar type factory
 literal                 Literal type factory
+state                   State type factory
+transfer                Transfer type factory
 generate_udf_queries    Generates a pair of strings holding the UDF definition
                         (when needed) and the query for calling the UDF
 TensorUnaryOp           Enum with tensor unary operations
