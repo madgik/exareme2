@@ -2,7 +2,6 @@ from typing import List, Union
 
 from celery import shared_task
 
-from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import tables
@@ -43,14 +42,11 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
     str
         The name of the created table in lower case
     """
-    schema_object = TableSchema.parse_raw(schema_json)
+    schema = TableSchema.parse_raw(schema_json)
     table_name = create_table_name(
         TableType.NORMAL, command_id, context_id, node_config.identifier
     )
-    table_info = TableInfo(
-        name=table_name, schema_=schema_object, type_=TableType.NORMAL
-    )
-    tables.create_table(table_info)
+    tables.create_table(table_name, schema)
     return table_name
 
 

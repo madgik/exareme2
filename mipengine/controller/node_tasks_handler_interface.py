@@ -1,9 +1,10 @@
-from abc import ABC, abstractmethod
-from typing import List, Tuple, Final
+from abc import ABC
+from abc import abstractmethod
+from typing import List
+from typing import Tuple
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableInfo
 
 
 class INodeTasksHandler(ABC):
@@ -70,12 +71,12 @@ class INodeTasksHandler(ABC):
 
     # REMOTE TABLES functionality
     @abstractmethod
-    def get_remote_tables(self, context_id: str) -> List[TableInfo]:
+    def get_remote_tables(self, context_id: str) -> List[str]:
         pass
 
     @abstractmethod
     def create_remote_table(
-        self, table_info: TableInfo, original_db_url: str
+        self, table_name: str, table_schema: TableSchema, original_db_url: str
     ) -> str:  # TODO create
         pass
 

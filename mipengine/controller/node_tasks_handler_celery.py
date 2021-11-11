@@ -4,10 +4,8 @@ from ipaddress import IPv4Address
 from celery import Celery
 from typing import List, Tuple, Final
 
-from mipengine.controller import config as controller_config
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableInfo
 
 TASK_SIGNATURES: Final = {
     "get_tables": "mipengine.node.tasks.tables.get_tables",
@@ -158,19 +156,22 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         return result
 
     # REMOTE TABLES functionality
-    def get_remote_tables(self, context_id: str) -> List["TableInfo"]:
+    def get_remote_tables(self, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["get_remote_tables"]
         )
         return task_signature.delay(context_id=context_id)
 
-    def create_remote_table(self, table_info: TableInfo, original_db_url: str) -> str:
-        table_info_json = table_info.json()
+    def create_remote_table(
+        self, table_name: str, table_schema: TableSchema, original_db_url: str
+    ) -> str:
+        table_schema_json = table_schema.json()
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["create_remote_table"]
         )
         task_signature.delay(
-            table_info_json=table_info_json,
+            table_name=table_name,
+            table_schema_json=table_schema_json,
             monetdb_socket_address=original_db_url,
         ).get()  # does not return anything, get() so it blocks until complete
 
