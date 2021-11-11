@@ -4,9 +4,7 @@ import pytest
 
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.datatypes import DType
-from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableType
 from tests.integration_tests.nodes_communication import get_celery_task_signature
 from tests.integration_tests.nodes_communication import get_celery_app
 from tests.integration_tests.nodes_communication import get_node_config_by_id
@@ -57,12 +55,9 @@ def test_create_and_get_remote_table(context_id):
         schema_json=table_schema.json(),
     ).get()
 
-    table_info = TableInfo(
-        name=table_name, schema_=table_schema, type_=TableType.REMOTE
-    )
-
     global_node_create_remote_table.delay(
-        table_info_json=table_info.json(),
+        table_name=table_name,
+        table_schema_json=table_schema.json(),
         monetdb_socket_address=local_node_monetdb_sock_address,
     ).get()
     remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()

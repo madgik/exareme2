@@ -2,7 +2,6 @@
 from typing import TypeVar
 
 import pytest
-from typing import List
 
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import ColumnInfo

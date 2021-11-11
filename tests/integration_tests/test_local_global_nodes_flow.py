@@ -3,7 +3,6 @@ import pytest
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.datatypes import DType
-from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 from tests.integration_tests.nodes_communication import get_celery_task_signature
@@ -90,12 +89,6 @@ def test_create_merge_table_with_remote_tables(context_id):
     ).get()
 
     # Create remote tables
-    table_info_local_1 = TableInfo(
-        name=local_node_1_table_name, schema_=schema, type_=TableType.REMOTE
-    )
-    table_info_local_2 = TableInfo(
-        name=local_node_2_table_name, schema_=schema, type_=TableType.REMOTE
-    )
     local_node_1_monetdb_sock_address = (
         f"{str(node_config_1.monetdb.ip)}:{node_config_1.monetdb.port}"
     )
@@ -103,11 +96,13 @@ def test_create_merge_table_with_remote_tables(context_id):
         f"{str(node_config_2.monetdb.ip)}:{node_config_2.monetdb.port}"
     )
     global_node_create_remote_table.delay(
-        table_info_json=table_info_local_1.json(),
+        table_name=local_node_1_table_name,
+        table_schema_json=schema.json(),
         monetdb_socket_address=local_node_1_monetdb_sock_address,
     ).get()
     global_node_create_remote_table.delay(
-        table_info_json=table_info_local_2.json(),
+        table_name=local_node_2_table_name,
+        table_schema_json=schema.json(),
         monetdb_socket_address=local_node_2_monetdb_sock_address,
     ).get()
     remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()

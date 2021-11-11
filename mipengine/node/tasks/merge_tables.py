@@ -2,7 +2,6 @@ from typing import List
 
 from celery import shared_task
 
-from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import common_actions
 from mipengine.node.monetdb_interface import merge_tables
@@ -49,8 +48,7 @@ def create_merge_table(context_id: str, command_id: str, table_names: List[str])
     merge_table_name = create_table_name(
         TableType.MERGE, command_id, context_id, node_config.identifier
     )
-    table_info = TableInfo(name=merge_table_name, schema_=schema, type_=TableType.MERGE)
-    merge_tables.create_merge_table(table_info)
+    merge_tables.create_merge_table(merge_table_name, schema)
     merge_tables.add_to_merge_table(merge_table_name, table_names)
 
     return merge_table_name
