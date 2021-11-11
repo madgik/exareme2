@@ -5,20 +5,15 @@ from typing import Tuple
 
 from celery import shared_task
 
-from mipengine import algorithms  # DO NOT REMOVE, NEEDED FOR ALGORITHM IMPORT
-
 from mipengine.node import config as node_config
-from mipengine.node_tasks_DTOs import TableType
-from mipengine.node_tasks_DTOs import (
-    UDFArgument,
-    ColumnInfo,
-    TableInfo,
-    UDFArgumentKind,
-    TableSchema,
-)
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
-from mipengine.node.monetdb_interface.common_actions import get_table_info
+from mipengine.node.monetdb_interface.common_actions import get_table_schema
+from mipengine.node.monetdb_interface.common_actions import get_table_type
+from mipengine.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableType
+from mipengine.node_tasks_DTOs import UDFArgument
+from mipengine.node_tasks_DTOs import UDFArgumentKind
 from mipengine.udfgen import generate_udf_queries
 
 
@@ -135,10 +130,15 @@ def _convert_udf2udfgen_arg(udf_argument: UDFArgument):
     if udf_argument.kind == UDFArgumentKind.LITERAL:
         return udf_argument.value
     elif udf_argument.kind == UDFArgumentKind.TABLE:
-        return get_table_info(udf_argument.value)
+        return TableInfo(
+            table_name=udf_argument.value,
+            schema_=get_table_schema(udf_argument.value),
+            type_=get_table_type(udf_argument.value),
+        )
     else:
+        argument_kinds = ",".join([str(k) for k in UDFArgumentKind])
         raise ValueError(
-            f"A udf argument can have one of the following types '{UDFArgumentKind.LITERAL}','{UDFArgumentKind.TABLE}'."
+            f"A udf argument can have one of the following types {argument_kinds}'."
         )
 
 

@@ -1480,8 +1480,6 @@ def convert_table_info_to_table_arg(table_info):
 
 # TODO table kinds must become known in Controller, who should send the
 # appropriate kind, avoiding heuristics like below
-
-
 def is_tensor_schema(schema):
     colnames = [col.name for col in schema]
     if "val" in colnames and any(cname.startswith("dim") for cname in colnames):

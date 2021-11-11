@@ -2,6 +2,8 @@ from typing import List
 
 import pymonetdb
 
+from mipengine.node.monetdb_interface.common_actions import get_table_schema
+from mipengine.node.monetdb_interface.common_actions import get_table_type
 from mipengine.node_exceptions import IncompatibleSchemasMergeException
 from mipengine.node_exceptions import IncompatibleTableTypes
 from mipengine.node_exceptions import TablesNotFound
@@ -10,7 +12,6 @@ from mipengine.node.monetdb_interface.common_actions import (
     convert_schema_to_sql_query_format,
 )
 from mipengine.node.monetdb_interface.common_actions import get_table_names
-from mipengine.node.monetdb_interface.common_actions import get_table_info
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 from mipengine.node_tasks_DTOs import TableType
 
@@ -35,7 +36,6 @@ def get_non_existing_tables(table_names: List[str]) -> List[str]:
 
 def add_to_merge_table(merge_table_name: str, table_names: List[str]):
     non_existing_tables = get_non_existing_tables(table_names)
-    table_infos = [get_table_info(name) for name in table_names]
 
     try:
         for name in table_names:
@@ -45,6 +45,14 @@ def add_to_merge_table(merge_table_name: str, table_names: List[str]):
 
     except pymonetdb.exceptions.OperationalError as exc:
         if str(exc).startswith("3F000"):
+            table_infos = [
+                TableInfo(
+                    name=name,
+                    schema_=get_table_schema(name),
+                    type_=get_table_type(name),
+                )
+                for name in table_names
+            ]
             raise IncompatibleSchemasMergeException(table_infos)
         elif str(exc).startswith("42S02"):
             raise TablesNotFound(non_existing_tables)

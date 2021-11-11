@@ -45,9 +45,9 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     )
 
 
-def get_table_info(table_name: str) -> TableInfo:
+def get_table_schema(table_name: str) -> TableSchema:
     """
-    Retrieves the info for a specific table name from the monetdb.
+    Retrieves a schema for a specific table name from the monetdb.
 
     Parameters
     ----------
@@ -56,8 +56,8 @@ def get_table_info(table_name: str) -> TableInfo:
 
     Returns
     ------
-    TableInfo
-        All information about the table.
+    TableSchema
+        A schema which is TableSchema object.
     """
     schema = MonetDB().execute_and_fetchall(
         f"""
@@ -72,7 +72,33 @@ def get_table_info(table_name: str) -> TableInfo:
     if not schema:
         raise TablesNotFound([table_name])
 
-    monetdb_table_type = MonetDB().execute_and_fetchall(
+    return TableSchema(
+        columns=[
+            ColumnInfo(
+                name=name,
+                dtype=DType.from_sql(sql_type=sql_type),
+            )
+            for name, sql_type in schema
+        ]
+    )
+
+
+def get_table_type(table_name: str) -> TableType:
+    """
+    Retrieves the type for a specific table name from the monetdb.
+
+    Parameters
+    ----------
+    table_name : str
+        The name of the table
+
+    Returns
+    ------
+    TableType
+        The type of the table.
+    """
+
+    monetdb_table_type_result = MonetDB().execute_and_fetchall(
         f"""
         SELECT type
         FROM
@@ -80,21 +106,11 @@ def get_table_info(table_name: str) -> TableInfo:
         WHERE
         tables.name = '{table_name}'
         """
-    )[0][0]
-
-    return TableInfo(
-        name=table_name,
-        schema_=TableSchema(
-            columns=[
-                ColumnInfo(
-                    name=name,
-                    dtype=DType.from_sql(sql_type=sql_type),
-                )
-                for name, sql_type in schema
-            ]
-        ),
-        type_=_convert_monet2mip_table_type(monetdb_table_type),
     )
+    if not monetdb_table_type_result:
+        raise TablesNotFound([table_name])
+
+    return _convert_monet2mip_table_type(monetdb_table_type_result[0][0])
 
 
 def get_table_names(table_type: TableType, context_id: str) -> List[str]:

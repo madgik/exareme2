@@ -45,13 +45,11 @@ def create_merge_table(context_id: str, command_id: str, table_names: List[str])
         The name(string) of the created merge table in lower case.
     """
     validate_tables_can_be_merged(table_names)
-    remote_table_info = common_actions.get_table_info(table_names[0])
+    schema = common_actions.get_table_schema(table_names[0])
     merge_table_name = create_table_name(
         TableType.MERGE, command_id, context_id, node_config.identifier
     )
-    table_info = TableInfo(
-        name=merge_table_name, schema_=remote_table_info.schema_, type_=TableType.MERGE
-    )
+    table_info = TableInfo(name=merge_table_name, schema_=schema, type_=TableType.MERGE)
     merge_tables.create_merge_table(table_info)
     merge_tables.add_to_merge_table(merge_table_name, table_names)
 
