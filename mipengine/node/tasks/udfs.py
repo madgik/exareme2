@@ -5,6 +5,8 @@ from typing import Tuple
 
 from celery import shared_task
 
+from mipengine import algorithms  # DO NOT REMOVE, NEEDED FOR ALGORITHM IMPORT
+
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
@@ -131,7 +133,7 @@ def _convert_udf2udfgen_arg(udf_argument: UDFArgument):
         return udf_argument.value
     elif udf_argument.kind == UDFArgumentKind.TABLE:
         return TableInfo(
-            table_name=udf_argument.value,
+            name=udf_argument.value,
             schema_=get_table_schema(udf_argument.value),
             type_=get_table_type(udf_argument.value),
         )
