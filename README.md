@@ -50,7 +50,6 @@
    cdes_metadata_path = "./tests/demo_data"
 
    node_registry_update_interval = 30
-   celery_tasks_timeout = 10
 
    [[nodes]]
    id = "globalnode"

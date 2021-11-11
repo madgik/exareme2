@@ -1,10 +1,29 @@
 from abc import ABC
 from abc import abstractmethod
+from typing import Any
 from typing import List
 from typing import Tuple
 
+from pydantic import BaseModel
+
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
+
+
+class IAsyncResult(BaseModel, ABC):
+    async_result: Any
+
+    @abstractmethod
+    def get(self, timeout=None):
+        pass
+
+
+class IQueueUDFAsyncResult(IAsyncResult):
+    command_id: str
+    context_id: str
+    func_name: str
+    positional_args: list
+    keyword_args: dict
 
 
 class INodeTasksHandler(ABC):
@@ -89,7 +108,11 @@ class INodeTasksHandler(ABC):
         func_name: str,
         positional_args,
         keyword_args,
-    ) -> "AsyncResult":  #: positional_args: List[TableName or str]
+    ) -> IQueueUDFAsyncResult:
+        pass
+
+    @abstractmethod
+    def get_queued_udf_result(self, async_result: IQueueUDFAsyncResult):
         pass
 
     @abstractmethod
@@ -98,7 +121,6 @@ class INodeTasksHandler(ABC):
 
     # return the generated monetdb pythonudf
     @abstractmethod
-    # TODO not sure wtf format positional_args should be
     def get_run_udf_query(
         self,
         context_id: str,

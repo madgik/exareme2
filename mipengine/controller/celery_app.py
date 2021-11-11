@@ -5,7 +5,7 @@ from celery import Celery
 
 from mipengine.controller import config as controller_config
 
-CELERY_TASKS_TIMEOUT = controller_config.celery_tasks_timeout
+CELERY_TASKS_TIMEOUT = controller_config.rabbitmq.celery_tasks_timeout
 
 
 def get_node_celery_app(socket_addr):

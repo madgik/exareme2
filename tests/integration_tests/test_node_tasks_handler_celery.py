@@ -2,21 +2,19 @@ import pytest
 
 import json
 import toml
-import sys
 from os import path, listdir
 from pathlib import Path
 from typing import List, Final
 
-from mipengine.controller import config as controller_config
-from mipengine.controller.node_tasks_handler_celery import (
-    NodeTasksHandlerCelery,
-    CeleryParamsDTO,
-)
+from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
+from mipengine.controller.node_tasks_handler_celery import CeleryParamsDTO
 
 from mipengine.node_tasks_DTOs import TableSchema, ColumnInfo
 from mipengine import DType
 
-from pathlib import Path
+from mipengine import AttrDict
+from tasks import CONTROLLER_CONFIG_DIR
+
 import mipengine
 
 PROJECT_ROOT = Path(mipengine.__file__).parent.parent
@@ -43,6 +41,9 @@ def node_task_handler():
     if not a_localnode_config_file:
         pytest.fail(f"Config file for localnode was not found in {NODES_CONFIG_DIR}")
 
+    with open(CONTROLLER_CONFIG_DIR / "controller.toml") as fp:
+        controller_config = AttrDict(toml.load(fp))
+
     celery_params_dto = None
     with open(a_localnode_config_file) as fp:
         tmp = toml.load(fp)
@@ -63,6 +64,7 @@ def node_task_handler():
             interval_start=controller_config.rabbitmq.celery_tasks_interval_start,
             interval_step=controller_config.rabbitmq.celery_tasks_interval_step,
             interval_max=controller_config.rabbitmq.celery_tasks_interval_max,
+            tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         )
 
     return NodeTasksHandlerCelery(node_id=node_id, celery_params=celery_params_dto)

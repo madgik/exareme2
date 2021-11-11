@@ -6,6 +6,7 @@ from quart import Blueprint
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.node_tasks_DTOs import InsufficientDataError
+from mipengine.controller.algorithm_executor import AlgorithmExecutionException
 
 error_handlers = Blueprint("error_handlers", __name__)
 
