@@ -1,4 +1,5 @@
 import enum
+from abc import ABC
 from typing import Any
 from typing import Dict
 from typing import List
@@ -44,18 +45,23 @@ def validate_identifier(identifier):
 # ~~~~~~~~~~~~~~~~~~~ DTOs ~~~~~~~~~~~~~~~~~~~~~~ #
 
 
-class ColumnInfo(BaseModel):
+class DTOBaseModel(BaseModel, ABC):
+    class Config:
+        allow_mutation = False
+
+
+class ColumnInfo(DTOBaseModel):
     name: str
     dtype: DType
 
     _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 
 
-class TableSchema(BaseModel):
+class TableSchema(DTOBaseModel):
     columns: List[ColumnInfo]
 
 
-class TableInfo(BaseModel):
+class TableInfo(DTOBaseModel):
     name: str
     schema_: TableSchema
     type_: TableType
@@ -63,7 +69,7 @@ class TableInfo(BaseModel):
     _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 
 
-class TableView(BaseModel):
+class TableView(DTOBaseModel):
     datasets: List[str]
     columns: List[str]
     filter: Dict
@@ -76,14 +82,14 @@ class TableView(BaseModel):
     )(validate_identifier)
 
 
-class TableData(BaseModel):
+class TableData(DTOBaseModel):
     schema_: TableSchema
     data_: List[List[Union[float, int, str, None]]]
     # Union is problematic in pydantic we keep track on that with bug report
     # https://team-1617704806227.atlassian.net/browse/MIP-245
 
 
-class UDFArgument(BaseModel):
+class UDFArgument(DTOBaseModel):
     kind: UDFArgumentKind
     value: Any
 
