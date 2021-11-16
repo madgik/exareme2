@@ -174,50 +174,37 @@ def _generate_udf_statements(
 
     gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
 
-    table_creation_tmpls, udf_execution_tmpls = generate_udf_queries(
-        func_name, gen_pos_args, gen_kw_args
-    )
+    udf_execution_queries = generate_udf_queries(func_name, gen_pos_args, gen_kw_args)
+
+    result_tables = []
+    output_table_names = {}
+    for sequence, output_table in enumerate(udf_execution_queries.output_tables):
+        table_name = create_table_name(
+            table_type=TableType.NORMAL,
+            node_id=node_config.identifier,
+            context_id=context_id,
+            command_id=command_id,
+            subcommand_id=str(sequence),
+        )
+        output_table_names[output_table.tablename_placeholder] = table_name
+        result_tables.append(table_name)
+
+    templates_mapping = {
+        "udf_name": udf_name,
+        "node_id": node_config.identifier,
+    }
+    templates_mapping.update(output_table_names)
 
     udf_statements = []
-
-    main_output_table_name = create_table_name(
-        TableType.NORMAL, node_config.identifier, context_id, command_id
-    )
-    loopback_output_table_names = {}
-
-    for table_count, drop_and_create_tmpl in enumerate(table_creation_tmpls):
-        drop_template, create_template = drop_and_create_tmpl
-
-        if table_count > 0:
-            table_name = create_table_name(
-                TableType.NORMAL,
-                node_config.identifier,
-                context_id,
-                command_id,
-                subcommand_id=str(table_count),
-            )
-            table_name_placeholder = f"loopback_table_name_{table_count}"
-            loopback_output_table_names[table_name_placeholder] = table_name
-            mapping = {table_name_placeholder: table_name}
-        else:
-            mapping = {"main_output_table_name": main_output_table_name}
-
-        udf_statements.append(drop_template.substitute(**mapping))
-        udf_statements.append(create_template.substitute(**mapping))
-
-    for udf_execution_tmpl in udf_execution_tmpls:
-        mapping = deepcopy(loopback_output_table_names)
-        mapping.update(
-            {
-                "main_output_table_name": main_output_table_name,
-                "udf_name": udf_name,
-                "node_id": node_config.identifier,
-            }
+    for output_table in udf_execution_queries.output_tables:
+        udf_statements.append(output_table.drop_query.substitute(**templates_mapping))
+        udf_statements.append(output_table.create_query.substitute(**templates_mapping))
+    if udf_execution_queries.udf_definition_query:
+        udf_statements.append(
+            udf_execution_queries.udf_definition_query.substitute(**templates_mapping)
         )
-        udf_execution_stmt = udf_execution_tmpl.substitute(**mapping)
-        udf_statements.append(udf_execution_stmt)
-
-    result_tables = [main_output_table_name]
-    result_tables.extend(list(loopback_output_table_names.values()))
+    udf_statements.append(
+        udf_execution_queries.udf_select_query.substitute(**templates_mapping)
+    )
 
     return udf_statements, result_tables
