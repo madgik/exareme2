@@ -1404,6 +1404,22 @@ def generate_udf_queries(
     keyword_args: Dict[str, UDFGenArgument],
     traceback=False,
 ) -> Tuple[List[Tuple[Template, Template]], List[Template]]:
+    """
+    Parameters
+    ----------
+    func_name: The name of the udf to run
+    positional_args: Positional arguments
+    keyword_args: Keyword arguments
+    traceback: Run the udf with traceback enabled to get logs
+
+    Returns
+    -------
+    A tuple with two main elements:
+    1)  a list of tuple templates. The first element in the tuple
+    is the drop_table template and the second is the create_table template.
+    2) a list of templates used to define/execute the udf.
+
+    """
     udf_posargs, udf_kwargs = convert_udfgenargs_to_udfargs(
         positional_args,
         keyword_args,
