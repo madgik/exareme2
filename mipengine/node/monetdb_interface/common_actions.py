@@ -13,15 +13,25 @@ from mipengine.node_tasks_DTOs import TableType
 
 
 def create_table_name(
-    table_type: TableType, command_id: str, context_id: str, node_id: str
+    table_type: TableType,
+    node_id: str,
+    context_id: str,
+    command_id: str,
+    subcommand_id: str = None,
 ) -> str:
     """
     Creates and returns in lower case a table name with the format <tableType>_<commandId>_<contextId>_<nodeId>
+
+    A suffix to command_id could be added, if a subcommand_id is provided.
+    The subcommand_id is used when there are multiple table definitions on the same command.
     """
     if table_type not in {TableType.NORMAL, TableType.VIEW, TableType.MERGE}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
 
-    return f"{table_type}_{command_id}_{context_id}_{node_id}".lower()
+    if subcommand_id:
+        command_id = f"{command_id}_{subcommand_id}"
+
+    return f"{table_type}_{node_id}_{context_id}_{command_id}".lower()
 
 
 def convert_schema_to_sql_query_format(schema: TableSchema) -> str:

@@ -1,11 +1,12 @@
-from typing import Dict, List, Tuple, Any, Optional, Callable
+from typing import Dict, List, Tuple, Any, Optional
 import importlib
 from pydantic import BaseModel
 from abc import ABC
 
-from celery.exceptions import TimeoutError
 from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
+from celery.exceptions import TimeoutError
+from typing import Union
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
@@ -27,9 +28,9 @@ class _TableName:
         self._full_name = table_name
         full_name_split = self._full_name.split("_")
         self._table_type = full_name_split[0]
-        self._command_id = full_name_split[1]
+        self._node_id = full_name_split[1]
         self._context_id = full_name_split[2]
-        self._node_id = full_name_split[3]
+        self._command_id = full_name_split[3]
 
     @property
     def full_table_name(self):
@@ -296,7 +297,7 @@ class _Node:
             keyword_args=keyword_args,
         )
 
-    def get_queued_udf_result(self, async_result: IQueueUDFAsyncResult):
+    def get_queued_udf_result(self, async_result: IQueueUDFAsyncResult) -> List[str]:
         return self._node_tasks_handler.get_queued_udf_result(async_result)
 
     def get_udfs(self, algorithm_name) -> List[str]:
@@ -380,8 +381,8 @@ class _AlgorithmExecutionInterface:
         self,
         func_name: str,
         positional_args: Dict[str, "_LocalNodeTable"],
-        share_to_global: bool = False,
-    ):  # -> GlobalNodeTable or LocalNodeTable
+        share_to_global: Union[bool, List[bool]] = None,
+    ):  # -> List of GlobalNodeTables or LocalNodeTables
         # queue exec_udf task on all local nodes
         # wait for all nodes to complete the tasks execution
         # one new table per local node was generated
@@ -389,6 +390,9 @@ class _AlgorithmExecutionInterface:
         # create merge table on global node to merge the remote tables
 
         command_id = get_next_command_id()
+
+        if type(share_to_global) == bool:
+            share_to_global = [share_to_global]
 
         tasks = {}
         for node in self._local_nodes:
@@ -418,42 +422,105 @@ class _AlgorithmExecutionInterface:
             )
             tasks[node] = task
 
-        udf_result_tables = {}
+        # A udf can have multiple results and runs on multiple nodes.
+        # For example, there are 3 results, each result is in 2 nodes.
+        # udf_result_table = [
+        #     {"node_1": "table_1",
+        #      "node_2": "table_1"},
+        #     {"node_1": "table_2",
+        #      "node_2": "table_2"},
+        # ]
+        udf_result_tables: List[Dict[_Node, _TableName]] = []
         for node, task in tasks.items():
-            result = node.get_queued_udf_result(task)
-            table_name = _TableName(result)
-            udf_result_tables[node] = table_name
+            task_results = node.get_queued_udf_result(task)
+            # Initialize the result tables when we know the number of results
+            if len(udf_result_tables) == 0:
+                udf_result_tables = []
+                for _ in task_results:
+                    udf_result_tables.append({})
 
-            # ceate remote table on global node
-            if share_to_global:
+            for task_result, udf_result_table in zip(task_results, udf_result_tables):
+                print(task_result)
+                udf_result_table[node] = _TableName(task_result)
+
+            print(udf_result_tables)
+
+            # create remote table on global node
+            if not share_to_global:
+                continue
+            if len(share_to_global) != len(task_results):
+                raise AlgorithmExecutionException(
+                    f"Method {func_name} has {len(task_results)} results but 'share_to_global' "
+                    f"has a length of {len(share_to_global)}. They should match."
+                )
+            for share, table_name in zip(share_to_global, task_results):
+                if not share:
+                    continue
                 # TODO: try block missing
-                table_schema = node.get_table_schema(table_name)
+                table_schema = node.get_table_schema(_TableName(table_name))
                 self._global_node.create_remote_table(
-                    table_name=table_name.full_table_name,
+                    table_name=table_name,
                     table_schema=table_schema,
                     native_node=node,
                 )
 
         # create merge table on global
-        if share_to_global:
-            remote_tables_info = list(udf_result_tables.values())
-            remote_table_names = [
-                remote_table_info for remote_table_info in remote_tables_info
+        final_result_tables = []
+        if not share_to_global:
+            final_result_tables = [
+                _LocalNodeTable(nodes_tables=result) for result in udf_result_tables
             ]
-            merge_table_global = self._global_node.create_merge_table(
-                command_id=command_id, table_names=remote_table_names
-            )
-            return _GlobalNodeTable(node_table={self._global_node: merge_table_global})
-
         else:
-            return _LocalNodeTable(nodes_tables=udf_result_tables)
+            for share, result_tables in zip(share_to_global, udf_result_tables):
+                if not share:
+                    final_result_tables.append(
+                        _LocalNodeTable(nodes_tables=result_tables)
+                    )
+                    continue
+
+                remote_table_names = list(result_tables.values())
+                merge_table_global = self._global_node.create_merge_table(
+                    command_id=command_id, table_names=remote_table_names
+                )
+                final_result_tables.append(
+                    _GlobalNodeTable(node_table={self._global_node: merge_table_global})
+                )
+
+        if len(final_result_tables) == 1:
+            return final_result_tables[0]
+        return final_result_tables
+
+    # @staticmethod
+    # def _create_remote_table_on_global(
+    #     share_to_global: Union[bool, List[bool]],
+    #     results:
+    # ):
+    #     if not share_to_global:
+    #         return
+    #
+    #     if len(share_to_global) != len(results):
+    #         raise AlgorithmExecutionException(
+    #             f"Method {func_name} has {len(results)} results but 'share_to_global' "
+    #             f"has a length of {len(share_to_global)}. They should match."
+    #         )
+    #
+    #     for share, table_name in zip(share_to_global, udf_result_tables[node]):
+    #         if not share:
+    #             continue
+    #         # TODO: try block missing
+    #         table_schema = node.get_table_schema(table_name)
+    #         self._global_node.create_remote_table(
+    #             table_name=table_name.full_table_name,
+    #             table_schema=table_schema,
+    #             native_node=node,
+    #         )
 
     def run_udf_on_global_node(
         self,
         func_name: str,
         positional_args: List["_GlobalNodeTable"],
-        share_to_locals: bool = False,
-    ):  # -> GlobalNodeTable or LocalNodeTable
+        share_to_locals: Union[bool, List[bool]] = None,
+    ):  # -> List of GlobalNodeTables or LocalNodeTables
         # check the input tables are GlobalNodeTable(s)
         # queue exec_udf on the global node
         # wait for it to complete
@@ -462,6 +529,9 @@ class _AlgorithmExecutionInterface:
 
         # TODO: try/catches tasks can throw exceptions
         command_id = get_next_command_id()
+
+        if type(share_to_locals) == bool:
+            share_to_locals = [share_to_locals]
 
         positional_args_transfrormed = []
         # keyword_args_transformed = {}
@@ -486,27 +556,54 @@ class _AlgorithmExecutionInterface:
             positional_args=positional_args_transfrormed,
             keyword_args={},
         )
-        udf_result_table = self._global_node.get_queued_udf_result(task)
+        udf_result_tables = self._global_node.get_queued_udf_result(task)
 
-        if share_to_locals:
-            table_schema: TableSchema = self._global_node.get_table_schema(
-                _TableName(udf_result_table)
+        final_result_tables = []
+        if not share_to_locals:
+            final_result_tables.extend(
+                [
+                    _GlobalNodeTable(
+                        node_table={self._global_node: _TableName(result_table)}
+                    )
+                    for result_table in udf_result_tables
+                ]
             )
-            local_nodes_tables = {}
-            for node in self._local_nodes:
-                # TODO do not block here, first send the request to all local nodes and then block for the result
-                node.create_remote_table(
-                    table_name=udf_result_table,
-                    table_schema=table_schema,
-                    native_node=self._global_node,
+        else:
+            if len(share_to_locals) != len(udf_result_tables):
+                raise AlgorithmExecutionException(
+                    f"Method {func_name} has {len(udf_result_tables)} results but 'share_to_global' "
+                    f"has a length of {len(share_to_locals)}. They should match."
                 )
-                local_nodes_tables[node] = _TableName(udf_result_table)
 
-            return _LocalNodeTable(nodes_tables=local_nodes_tables)
+            for share, result_table in zip(share_to_locals, udf_result_tables):
+                if not share:
+                    final_result_tables.append(
+                        _GlobalNodeTable(
+                            node_table={self._global_node: _TableName(result_table)}
+                        )
+                    )
+                    continue
 
-        return _GlobalNodeTable(
-            node_table={self._global_node: _TableName(udf_result_table)}
-        )
+                table_schema = self._global_node.get_table_schema(
+                    _TableName(result_table)
+                )
+                local_nodes_tables = {}
+                for node in self._local_nodes:
+                    # TODO do not block here, first send the request to all local nodes and then block for the result
+                    node.create_remote_table(
+                        table_name=result_table,
+                        table_schema=table_schema,
+                        native_node=self._global_node,
+                    )
+                    local_nodes_tables[node] = _TableName(result_table)
+
+                final_result_tables.append(
+                    _LocalNodeTable(nodes_tables=local_nodes_tables)
+                )
+
+        if len(final_result_tables) == 1:
+            return final_result_tables[0]
+        return final_result_tables
 
     # TABLES functionality
     def get_table_data(self, node_table) -> TableData:

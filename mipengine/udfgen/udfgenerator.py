@@ -216,6 +216,7 @@ from typing import Union
 
 import astor
 import numpy
+from typing import Tuple
 
 from mipengine import DType as dt
 from mipengine.node_tasks_DTOs import ColumnInfo
@@ -1402,29 +1403,26 @@ def generate_udf_queries(
     positional_args: List[UDFGenArgument],
     keyword_args: Dict[str, UDFGenArgument],
     traceback=False,
-):
+) -> Tuple[List[Tuple[Template, Template]], List[Template]]:
     udf_posargs, udf_kwargs = convert_udfgenargs_to_udfargs(
         positional_args,
         keyword_args,
     )
 
     if func_name in TENSOR_OP_NAMES:
-        udf_definition = ""  # TODO this looks stupid, Node should know what to expect
         udf_select = get_sql_tensor_operation_select_query(udf_posargs, func_name)
         output_type = get_output_type_for_sql_tensor_operation(func_name, udf_posargs)
-        udf_execution_query = get_udf_create_and_insert_template(
-            output_type, udf_select
-        )
-        return Template(udf_definition), Template(udf_execution_query)
+        table_creation_queries = get_drop_and_create_table_templates(output_type)
+        udf_execution_query = get_udf_execution_template(udf_select)
+        return table_creation_queries, [udf_execution_query]
 
-    udf_definition, udf_execution_query = get_udf_templates_using_udfregistry(
+    return get_udf_templates_using_udfregistry(
         funcname=func_name,
         posargs=udf_posargs,
         keywordargs=udf_kwargs,
         udfregistry=udf.registry,
         traceback=traceback,
     )
-    return Template(udf_definition), Template(udf_execution_query)
 
 
 def convert_udfgenargs_to_udfargs(udfgen_posargs, udfgen_kwargs):
@@ -1494,7 +1492,7 @@ def get_udf_templates_using_udfregistry(
     keywordargs: Dict[str, UDFArgument],
     udfregistry: dict,
     traceback=False,
-) -> tuple:
+) -> Tuple[List[Tuple[Template, Template]], List[Template]]:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
     udf_args = get_udf_args(funcparts, posargs, keywordargs)
     udf_args = resolve_merge_table_args(
@@ -1508,19 +1506,24 @@ def get_udf_templates_using_udfregistry(
         expected_literal_types=funcparts.literal_input_types,
     )
     output_type = get_output_type(funcparts, udf_args, traceback)
+
+    table_creation_queries = get_drop_and_create_table_templates(output_type)
+
     udf_definition = get_udf_definition_template(
         funcparts,
         udf_args,
         output_type,
         traceback=traceback,
     )
+
     table_args = get_items_of_type(TableArg, mapping=udf_args)
     udf_select = get_udf_select_template(
         ScalarType(str) if traceback else output_type,
         table_args,
     )
-    udf_execution_query = get_udf_create_and_insert_template(output_type, udf_select)
-    return udf_definition, udf_execution_query
+    udf_execution = get_udf_execution_template(udf_select)
+
+    return table_creation_queries, [udf_definition, udf_execution]
 
 
 def get_output_type_for_sql_tensor_operation(funcname, posargs):
@@ -1628,7 +1631,7 @@ def get_udf_definition_template(
     input_args: Dict[str, UDFArgument],
     output_type,
     traceback=False,
-) -> str:
+) -> Template:
     table_args: Dict[str, TableArg] = get_items_of_type(TableArg, mapping=input_args)
     literal_args: Dict[str, LiteralArg] = get_items_of_type(
         LiteralArg, mapping=input_args
@@ -1644,7 +1647,7 @@ def get_udf_definition_template(
         literal_args=literal_args,
         traceback=traceback,
     )
-    return udf_definition.compile()
+    return Template(udf_definition.compile())
 
 
 def get_output_type(funcparts, udf_args, traceback) -> OutputType:
@@ -1799,18 +1802,25 @@ def nodeid_column():
     )
 
 
-# ~~~~~~~~~~~~~~~~~ CREATE TABLE query generator ~~~~~~~~~ #
+# ~~~~~~~~~~~~~~~~~ CREATE TABLE and INSERT query generator ~~~~~~~~~ #
 
 
-def get_udf_create_and_insert_template(output_type, udf_select_query):
-    table_name = "$table_name"
-    script = [DROP_TABLE_IF_EXISTS + " " + table_name + SCOLON]
+def get_drop_and_create_table_templates(
+    output_type: OutputType,
+) -> List[Tuple[Template, Template]]:
+    table_name = "$main_output_table_name"
+    drop_table = DROP_TABLE_IF_EXISTS + " " + table_name + SCOLON
     output_schema = iotype_to_sql_schema(output_type)
     if not isinstance(output_type, ScalarType):
         output_schema = f"node_id {dt.STR.to_sql()}," + output_schema
-    script += [CREATE_TABLE + " " + table_name + f"({output_schema})" + SCOLON]
-    script += [f"INSERT INTO {table_name}\n" + udf_select_query + SCOLON]
-    return LN.join(script)
+    create_table = CREATE_TABLE + " " + table_name + f"({output_schema})" + SCOLON
+    return [(Template(drop_table), Template(create_table))]
+
+
+def get_udf_execution_template(udf_select_query) -> Template:
+    table_name = "$main_output_table_name"
+    udf_execution = f"INSERT INTO {table_name}\n" + udf_select_query + SCOLON
+    return Template(udf_execution)
 
 
 # ~~~~~~~~~~~~~~ Pure SQL Tensor Operations ~~~~~~~~~~~~~~ #

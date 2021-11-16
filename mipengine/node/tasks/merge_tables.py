@@ -46,7 +46,10 @@ def create_merge_table(context_id: str, command_id: str, table_names: List[str])
     validate_tables_can_be_merged(table_names)
     schema = common_actions.get_table_schema(table_names[0])
     merge_table_name = create_table_name(
-        TableType.MERGE, command_id, context_id, node_config.identifier
+        TableType.MERGE,
+        node_config.identifier,
+        context_id,
+        command_id,
     )
     merge_tables.create_merge_table(merge_table_name, schema)
     merge_tables.add_to_merge_table(merge_table_name, table_names)

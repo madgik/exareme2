@@ -1,4 +1,5 @@
 import inspect
+from copy import deepcopy
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -17,13 +18,14 @@ from mipengine.node_tasks_DTOs import TableType
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 from mipengine.udfgen import generate_udf_queries
+from mipengine.udfgen.udfgenerator import udf as udf_registry
 
 
 @shared_task
 def get_udfs(algorithm_name: str) -> List[str]:
     return [
         inspect.getsource(udf)
-        for udf_name, udf in UDF_REGISTRY.items()
+        for udf_name, udf in udf_registry.registry.items()
         if udf_name.startswith(algorithm_name)
     ]
 
@@ -39,7 +41,7 @@ def run_udf(
     func_name: str,
     positional_args_json: List[str],
     keyword_args_json: Dict[str, str],
-) -> str:
+) -> List[str]:
     """
     Creates the UDF, if provided, and adds it in the database.
     Then it runs the select statement with the input provided.
@@ -59,8 +61,8 @@ def run_udf(
 
     Returns
     -------
-        str
-            The name of the table where the udf execution results are in.
+        List[str]
+            The names of the tables where the udf execution results are in.
     """
 
     positional_args = [UDFArgument.parse_raw(arg) for arg in positional_args_json]
@@ -69,13 +71,13 @@ def run_udf(
         key: UDFArgument.parse_raw(arg) for key, arg in keyword_args_json.items()
     }
 
-    udf_creation_stmt, udf_execution_stmt, result_table_name = _generate_udf_statements(
+    udf_statements, result_table_names = _generate_udf_statements(
         command_id, context_id, func_name, positional_args, keyword_args
     )
 
-    udfs.run_udf(udf_creation_stmt, udf_execution_stmt)
+    udfs.run_udf(udf_statements)
 
-    return result_table_name
+    return result_table_names
 
 
 @shared_task
@@ -85,7 +87,7 @@ def get_run_udf_query(
     func_name: str,
     positional_args_json: List[str],
     keyword_args_json: Dict[str, str],
-) -> Tuple[str, str, str]:
+) -> List[str]:
     """
     Fetches the sql statements that represent the execution of the udf.
 
@@ -104,10 +106,9 @@ def get_run_udf_query(
 
     Returns
     -------
-        str
-            The name of the result table,
-            the statement that creates the udf and
-            the statement that executes the udf.
+        List[str]
+            A list of the statements that would be executed in the DB.
+
     """
 
     positional_args = [UDFArgument.parse_raw(arg) for arg in positional_args_json]
@@ -116,9 +117,11 @@ def get_run_udf_query(
         key: UDFArgument.parse_raw(arg) for key, arg in keyword_args_json.items()
     }
 
-    return _generate_udf_statements(
+    udf_statements, _ = _generate_udf_statements(
         command_id, context_id, func_name, positional_args, keyword_args
     )
+
+    return udf_statements
 
 
 def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
@@ -165,22 +168,56 @@ def _generate_udf_statements(
     func_name: str,
     positional_args: List[UDFArgument],
     keyword_args: Dict[str, UDFArgument],
-):
+) -> Tuple[List[str], List[str]]:
     allowed_func_name = func_name.replace(".", "_")  # A dot is not an allowed character
     udf_name = _create_udf_name(allowed_func_name, command_id, context_id)
-    result_table_name = create_table_name(
-        TableType.NORMAL, command_id, context_id, node_config.identifier
-    )
 
     gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
-    udf_creation_stmt, udf_execution_stmt = generate_udf_queries(
+
+    table_creation_tmpls, udf_execution_tmpls = generate_udf_queries(
         func_name, gen_pos_args, gen_kw_args
     )
-    udf_creation_stmt = udf_creation_stmt.substitute(udf_name=udf_name)
-    udf_execution_stmt = udf_execution_stmt.substitute(
-        table_name=result_table_name,
-        udf_name=udf_name,
-        node_id=node_config.identifier,
-    )
 
-    return udf_creation_stmt, udf_execution_stmt, result_table_name
+    udf_statements = []
+
+    main_output_table_name = create_table_name(
+        TableType.NORMAL, node_config.identifier, context_id, command_id
+    )
+    loopback_output_table_names = {}
+
+    for table_count, drop_and_create_tmpl in enumerate(table_creation_tmpls):
+        drop_template, create_template = drop_and_create_tmpl
+
+        if table_count > 0:
+            table_name = create_table_name(
+                TableType.NORMAL,
+                node_config.identifier,
+                context_id,
+                command_id,
+                subcommand_id=str(table_count),
+            )
+            table_name_placeholder = f"loopback_table_name_{table_count}"
+            loopback_output_table_names[table_name_placeholder] = table_name
+            mapping = {table_name_placeholder: table_name}
+        else:
+            mapping = {"main_output_table_name": main_output_table_name}
+
+        udf_statements.append(drop_template.substitute(**mapping))
+        udf_statements.append(create_template.substitute(**mapping))
+
+    for udf_execution_tmpl in udf_execution_tmpls:
+        mapping = deepcopy(loopback_output_table_names)
+        mapping.update(
+            {
+                "main_output_table_name": main_output_table_name,
+                "udf_name": udf_name,
+                "node_id": node_config.identifier,
+            }
+        )
+        udf_execution_stmt = udf_execution_tmpl.substitute(**mapping)
+        udf_statements.append(udf_execution_stmt)
+
+    result_tables = [main_output_table_name]
+    result_tables.extend(list(loopback_output_table_names.values()))
+
+    return udf_statements, result_tables

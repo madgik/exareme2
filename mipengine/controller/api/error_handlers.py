@@ -39,6 +39,10 @@ def handle_privacy_error(error: InsufficientDataError):
 @error_handlers.app_errorhandler(Exception)
 def handle_unexpected_exception(error: Exception):
     print(
-        f"Algorithm validation failed. \nTraceback: {traceback.print_exception(type(error), error, error.__traceback__)}"
+        f"Internal Server Error."
+        f"\nErrorType: {type(error)}"
+        f"\nError: {error}"
+        f"\nTraceback: {traceback.print_tb(error.__traceback__)}"
     )
+
     return "", HTTPStatusCode.UNEXPECTED_ERROR
