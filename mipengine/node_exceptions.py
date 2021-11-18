@@ -42,7 +42,7 @@ class IncompatibleTableTypes(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, table_types: List[str]):
+    def __init__(self, table_types: set):
         self.table_types = table_types
         self.message = f"Tables have more than one distinct types : {self.table_types}"
         super().__init__(self.message)
