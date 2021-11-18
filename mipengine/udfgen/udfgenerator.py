@@ -1473,12 +1473,12 @@ def is_tensor_schema(schema):
 
 def is_transfertype_schema(schema):
     schema = [(col.name, col.dtype) for col in schema]
-    return schema == TransferType().schema
+    return all(column in schema for column in TransferType().schema)
 
 
 def is_statetype_schema(schema):
     schema = [(col.name, col.dtype) for col in schema]
-    return schema == StateType().schema
+    return all(column in schema for column in StateType().schema)
 
 
 def convert_table_schema_to_relation_schema(table_schema):
