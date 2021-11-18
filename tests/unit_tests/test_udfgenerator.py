@@ -4,48 +4,52 @@ from typing import TypeVar
 import pytest
 
 from mipengine.datatypes import DType
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableType
-from mipengine.udfgen import merge_tensor
-from mipengine.udfgen.udfgenerator import Column
-from mipengine.udfgen.udfgenerator import IOType
-from mipengine.udfgen.udfgenerator import LiteralArg
-from mipengine.udfgen.udfgenerator import MergeTensorType
-from mipengine.udfgen.udfgenerator import RelationArg
-from mipengine.udfgen.udfgenerator import RelationType
-from mipengine.udfgen.udfgenerator import ScalarFunction
-from mipengine.udfgen.udfgenerator import Select
-from mipengine.udfgen.udfgenerator import StateArg
-from mipengine.udfgen.udfgenerator import Table
-from mipengine.udfgen.udfgenerator import TableFunction
-from mipengine.udfgen.udfgenerator import TensorArg
-from mipengine.udfgen.udfgenerator import TensorBinaryOp
-from mipengine.udfgen.udfgenerator import TransferArg
-from mipengine.udfgen.udfgenerator import UDFBadCall
-from mipengine.udfgen.udfgenerator import UDFBadDefinition
-from mipengine.udfgen.udfgenerator import convert_udfgenargs_to_udfargs
-from mipengine.udfgen.udfgenerator import copy_types_from_udfargs
-from mipengine.udfgen.udfgenerator import generate_udf_queries
-from mipengine.udfgen.udfgenerator import get_funcparts_from_udf_registry
-from mipengine.udfgen.udfgenerator import get_matrix_transpose_template
-from mipengine.udfgen.udfgenerator import get_tensor_binary_op_template
-from mipengine.udfgen.udfgenerator import get_udf_templates_using_udfregistry
-from mipengine.udfgen.udfgenerator import literal
-from mipengine.udfgen.udfgenerator import map_unknown_to_known_typeparams
-from mipengine.udfgen.udfgenerator import mapping_inverse
-from mipengine.udfgen.udfgenerator import mappings_coincide
-from mipengine.udfgen.udfgenerator import merge_mappings_consistently
-from mipengine.udfgen.udfgenerator import merge_transfer
-from mipengine.udfgen.udfgenerator import recursive_repr
-from mipengine.udfgen.udfgenerator import relation
-from mipengine.udfgen.udfgenerator import scalar
-from mipengine.udfgen.udfgenerator import state
-from mipengine.udfgen.udfgenerator import tensor
-from mipengine.udfgen.udfgenerator import transfer
-from mipengine.udfgen.udfgenerator import udf
-from mipengine.udfgen.udfgenerator import verify_declared_typeparams_match_passed_type
+from mipengine.node_tasks_DTOs import (
+    ColumnInfo,
+    TableInfo,
+    TableSchema,
+    TableType,
+)
+from mipengine.udfgen.udfgenerator import (
+    Column,
+    IOType,
+    LiteralArg,
+    MergeTensorType,
+    RelationArg,
+    RelationType,
+    ScalarFunction,
+    Select,
+    StateArg,
+    Table,
+    TableFunction,
+    TensorArg,
+    TensorBinaryOp,
+    TransferArg,
+    UDFBadCall,
+    UDFBadDefinition,
+    convert_udfgenargs_to_udfargs,
+    copy_types_from_udfargs,
+    generate_udf_queries,
+    get_funcparts_from_udf_registry,
+    get_matrix_transpose_template,
+    get_tensor_binary_op_template,
+    get_udf_templates_using_udfregistry,
+    literal,
+    map_unknown_to_known_typeparams,
+    mapping_inverse,
+    mappings_coincide,
+    merge_mappings_consistently,
+    merge_tensor,
+    merge_transfer,
+    recursive_repr,
+    relation,
+    scalar,
+    state,
+    tensor,
+    transfer,
+    udf,
+    verify_declared_typeparams_match_passed_type,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -2592,8 +2596,8 @@ LANGUAGE PYTHON
     import pandas as pd
     import udfio
     import pickle
-    state_str = _conn.execute("SELECT state from test_table_1;")["state"][0]
-    prev_state = pickle.loads(state_str)
+    __state_str = _conn.execute("SELECT state from test_table_1;")["state"][0]
+    prev_state = pickle.loads(__state_str)
     t = 5
     prev_state['num'] = prev_state['num'] + t
     return pickle.dumps(prev_state)
@@ -2678,7 +2682,7 @@ FROM
         assert udfsel.template == expected_udfsel
 
 
-class TestUDFGen_TransferInputandReturnType(TestUDFGenBase):
+class TestUDFGen_TransferInputAndReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2719,8 +2723,8 @@ LANGUAGE PYTHON
     import pandas as pd
     import udfio
     import json
-    transfer_str = _conn.execute("SELECT transfer from test_table_3;")["transfer"][0]
-    transfer = json.loads(transfer_str)
+    __transfer_str = _conn.execute("SELECT transfer from test_table_3;")["transfer"][0]
+    transfer = json.loads(__transfer_str)
     t = 5
     transfer['num'] = transfer['num'] + t
     return json.dumps(transfer)
@@ -2750,7 +2754,7 @@ FROM
         assert udfsel.template == expected_udfsel
 
 
-class TestUDFGen_TransferInputandStateReturnType(TestUDFGenBase):
+class TestUDFGen_TransferInputAndStateReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2792,8 +2796,8 @@ LANGUAGE PYTHON
     import udfio
     import pickle
     import json
-    transfer_str = _conn.execute("SELECT transfer from test_table_3;")["transfer"][0]
-    transfer = json.loads(transfer_str)
+    __transfer_str = _conn.execute("SELECT transfer from test_table_3;")["transfer"][0]
+    transfer = json.loads(__transfer_str)
     t = 5
     transfer['num'] = transfer['num'] + t
     return pickle.dumps(transfer)
@@ -2876,10 +2880,10 @@ LANGUAGE PYTHON
     import udfio
     import pickle
     import json
-    transfer_str = _conn.execute("SELECT transfer from test_table_3;")["transfer"][0]
-    transfer = json.loads(transfer_str)
-    state_str = _conn.execute("SELECT state from test_table_5;")["state"][0]
-    state = pickle.loads(state_str)
+    __transfer_str = _conn.execute("SELECT transfer from test_table_3;")["transfer"][0]
+    transfer = json.loads(__transfer_str)
+    __state_str = _conn.execute("SELECT state from test_table_5;")["state"][0]
+    state = pickle.loads(__state_str)
     t = 5
     result = {}
     result['num'] = transfer['num'] + state['num'] + t
@@ -2964,10 +2968,10 @@ LANGUAGE PYTHON
     import udfio
     import pickle
     import json
-    transfer_strs = _conn.execute("SELECT transfer from test_table_3;")["transfer"]
-    transfers = [json.loads(str) for str in transfer_strs]
-    state_str = _conn.execute("SELECT state from test_table_5;")["state"][0]
-    state = pickle.loads(state_str)
+    __transfer_strs = _conn.execute("SELECT transfer from test_table_3;")["transfer"]
+    transfers = [json.loads(str) for str in __transfer_strs]
+    __state_str = _conn.execute("SELECT state from test_table_5;")["state"][0]
+    state = pickle.loads(__state_str)
     sum = 0
     for t in transfers:
         sum += t['num']
