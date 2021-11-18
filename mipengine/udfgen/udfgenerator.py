@@ -123,6 +123,24 @@ becomes
 The first two columns are the indices for the two dimensions and the third
 column is the value found at the position specified by the respective indices.
 
+State and Transfer explained
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+State and Transfer are special input/output types. They are materialized as a
+simple dict within the udf, where the user is free to insert any variable.
+States are then saved locally on the same node, to be used in later udfs,
+whereas Transfers are always transferred to the opposite node.
+
+======================= ==================== =====================
+                        State                Transfer
+======================= ==================== =====================
+Type in udf             Dict                 Dict
+Type in DB              BINARY               CLOB
+Encoding using          Pickle               Json
+Shareable               no                   yes
+Input Type              yes                  yes
+Output Type             yes                  yes
+======================= ==================== =====================
+
 
 2. Translating and calling UDFs
 -------------------------------
@@ -155,20 +173,6 @@ first string returned by generate_udf_queries is empty since there
 is no UDF definition. The second string holds the queries for executing the
 operation and inserting the result into a new table.
 
-State and Transfer explained
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-======================= ======================= =======================
-                       |   STATE               |  TRANSFER
-======================= ======================= =======================
-Type in udf            |   Dict                |   Dict
-Type in DB             |   BINARY              |   CLOB
-Encoding using         |   Pickle              |   Json
-Shareable              |   NO                  |   YES
-Input Type             |   YES                 |   YES
-Output Type            |   YES                 |   YES
-
-Both types are used as a normal dict in the udf. Distinguishing between them
-can only be done from the udf decorator.
 
 All the module's exposed objects are found in the table below.
 
@@ -183,6 +187,7 @@ scalar                  Scalar type factory
 literal                 Literal type factory
 state                   State type factory
 transfer                Transfer type factory
+merge_transfer          Merge transfer type factory
 generate_udf_queries    Generates a pair of strings holding the UDF definition
                         (when needed) and the query for calling the UDF
 TensorUnaryOp           Enum with tensor unary operations
@@ -206,7 +211,6 @@ from textwrap import indent
 from typing import Dict
 from typing import List
 from typing import NamedTuple
-from typing import Type
 from typing import TypeVar
 from typing import Union
 
@@ -216,7 +220,7 @@ import numpy
 from mipengine import DType as dt
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.node_tasks_DTOs import TableType as TableInfoTableType
+from mipengine.node_tasks_DTOs import TableType as DBTableType
 
 __all__ = [
     "udf",
@@ -227,6 +231,7 @@ __all__ = [
     "literal",
     "transfer",
     "state",
+    "merge_transfer",
     "generate_udf_queries",
     "TensorUnaryOp",
     "TensorBinaryOp",
@@ -276,46 +281,25 @@ def get_build_template(input_type: "InputType"):
         )
     COLUMNS_COMPREHENSION_TMPL = "{{n: _columns[n] for n in {colnames}}}"
     if isinstance(input_type, RelationType):
-        return "{arg_name} = pd.DataFrame(" + COLUMNS_COMPREHENSION_TMPL + ")"
+        return f"{{varname}} = pd.DataFrame({COLUMNS_COMPREHENSION_TMPL})"
     if isinstance(input_type, TensorType):
-        return (
-            "{arg_name} = udfio.from_tensor_table(" + COLUMNS_COMPREHENSION_TMPL + ")"
-        )
+        return f"{{varname}} = udfio.from_tensor_table({COLUMNS_COMPREHENSION_TMPL})"
     if isinstance(input_type, MergeTensorType):
-        return (
-            "{arg_name} = udfio.merge_tensor_to_list("
-            + COLUMNS_COMPREHENSION_TMPL
-            + ")"
-        )
+        return f"{{varname}} = udfio.merge_tensor_to_list({COLUMNS_COMPREHENSION_TMPL})"
     if isinstance(input_type, MergeTransferType):
-        loopback_query = (
-            'transfer_strs = _conn.execute("SELECT '
-            + input_type.data_column_name
-            + ' from {table_name};")["'
-            + input_type.data_column_name
-            + '"]'
-        )
-        dict_parse = "{arg_name} = [json.loads(str) for str in transfer_strs]"
+        colname = input_type.data_column_name
+        loopback_query = f'__transfer_strs = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"]'
+        dict_parse = "{varname} = [json.loads(str) for str in __transfer_strs]"
         return LN.join([loopback_query, dict_parse])
     if isinstance(input_type, TransferType):
-        loopback_query = (
-            'transfer_str = _conn.execute("SELECT '
-            + input_type.data_column_name
-            + ' from {table_name};")["'
-            + input_type.data_column_name
-            + '"][0]'
-        )
-        dict_parse = "{arg_name} = json.loads(transfer_str)"
+        colname = input_type.data_column_name
+        loopback_query = f'__transfer_str = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"][0]'
+        dict_parse = "{varname} = json.loads(__transfer_str)"
         return LN.join([loopback_query, dict_parse])
     if isinstance(input_type, StateType):
-        loopback_query = (
-            'state_str = _conn.execute("SELECT '
-            + input_type.data_column_name
-            + ' from {table_name};")["'
-            + input_type.data_column_name
-            + '"][0]'
-        )
-        dict_parse = "{arg_name} = pickle.loads(state_str)"
+        colname = input_type.data_column_name
+        loopback_query = f'__state_str = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"][0]'
+        dict_parse = "{varname} = pickle.loads(__state_str)"
         return LN.join([str(loopback_query), dict_parse])
     raise NotImplementedError(
         f"Type {input_type} doesn't have a return statement template."
@@ -481,6 +465,10 @@ def get_items_of_type(type_, mapping):
     return {key: val for key, val in mapping.items() if isinstance(val, type_)}
 
 
+def is_any_element_of_type(type_, elements):
+    return any(isinstance(elm, type_) for elm in elements)
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~~ IO Types ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 
@@ -611,18 +599,6 @@ class DictType(TableType, ABC):
     def schema(self):
         return [(self.data_column_name, self.data_column_type)]
 
-    @classmethod
-    def schema_matches(cls, schema_provided: List[ColumnInfo]):
-        if len(schema_provided) > 1:
-            return False
-        column_name_provided = schema_provided[0].name
-        column_type_provided = schema_provided[0].dtype
-        if cls._data_column_name != column_name_provided:
-            return False
-        if cls._data_column_type != column_type_provided:
-            return False
-        return True
-
 
 class TransferType(DictType):
     _data_column_name = "transfer"
@@ -750,7 +726,7 @@ class TransferArg(DictArg):
 
 class LiteralArg(UDFArgument):
     def __init__(self, value):
-        self._value: float = value
+        self._value = value
         self.type: LiteralType = literal()
 
     @property
@@ -851,12 +827,12 @@ class UDFHeader(ASTNode):
 
 class Imports(ASTNode):
     # TODO imports should be dynamic
-    def __init__(self, pickle, json):
+    def __init__(self, import_pickle, import_json):
         self._import_lines = ["import pandas as pd", "import udfio"]
-        if pickle:
+        if import_pickle:
             pickle_import = "import pickle"
             self._import_lines.append(pickle_import)
-        if json:
+        if import_json:
             json_import = "import json"
             self._import_lines.append(json_import)
 
@@ -873,7 +849,9 @@ class TableBuild(ASTNode):
     def compile(self) -> str:
         colnames = self.arg.type.column_names(prefix=self.arg_name)
         return self.template.format(
-            arg_name=self.arg_name, colnames=colnames, table_name=self.arg.table_name
+            varname=self.arg_name,
+            colnames=colnames,
+            table_name=self.arg.table_name,
         )
 
 
@@ -930,21 +908,11 @@ class UDFBody(ASTNode):
         self.return_stmt = UDFReturnStatement(return_name, return_type)
         self.table_builds = TableBuilds(table_args)
         self.literals = LiteralAssignments(literal_args)
+        all_types = [arg.type for arg in table_args.values()] + [return_type]
         self.imports = Imports(
-            self.io_type_included(StateType, table_args, return_type),
-            self.io_type_included(TransferType, table_args, return_type),
+            import_pickle=is_any_element_of_type(StateType, all_types),
+            import_json=is_any_element_of_type(TransferType, all_types),
         )
-
-    @staticmethod
-    def io_type_included(
-        type_: Type[IOType], table_args: Dict[str, TableArg], return_type: OutputType
-    ):
-        for arg in table_args.values():
-            if isinstance(arg.type, type_):
-                return True
-        if isinstance(return_type, type_):
-            return True
-        return False
 
     def compile(self) -> str:
         return LN.join(
@@ -1475,10 +1443,10 @@ def convert_udfgenarg_to_udfarg(udfgen_arg) -> UDFArgument:
 
 def convert_table_info_to_table_arg(table_info):
     "add new input args"
-    if TransferType.schema_matches(table_info.schema_.columns):
+    if is_transfertype_schema(table_info.schema_.columns):
         return TransferArg(table_name=table_info.name)
-    if StateType.schema_matches(table_info.schema_.columns):
-        if table_info.type_ == TableInfoTableType.REMOTE:
+    if is_statetype_schema(table_info.schema_.columns):
+        if table_info.type_ == DBTableType.REMOTE:
             raise UDFBadCall("Usage of state is only allowed on local tables.")
         return StateArg(table_name=table_info.name)
     if is_tensor_schema(table_info.schema_.columns):
@@ -1503,6 +1471,16 @@ def is_tensor_schema(schema):
     return False
 
 
+def is_transfertype_schema(schema):
+    schema = [(col.name, col.dtype) for col in schema]
+    return schema == TransferType().schema
+
+
+def is_statetype_schema(schema):
+    schema = [(col.name, col.dtype) for col in schema]
+    return schema == StateType().schema
+
+
 def convert_table_schema_to_relation_schema(table_schema):
     return [(c.name, c.dtype) for c in table_schema if c.name != ROWID]
 
@@ -1519,10 +1497,15 @@ def get_udf_templates_using_udfregistry(
 ) -> tuple:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
     udf_args = get_udf_args(funcparts, posargs, keywordargs)
-    udf_args = resolve_merge_table_args(udf_args, funcparts.table_input_types)
-    validate_arg_names(udf_args, funcparts.sig.parameters)
+    udf_args = resolve_merge_table_args(
+        udf_args=udf_args,
+        expected_table_types=funcparts.table_input_types,
+    )
+    validate_arg_names(udf_args=udf_args, parameters=funcparts.sig.parameters)
     validate_arg_types(
-        udf_args, funcparts.table_input_types, funcparts.literal_input_types
+        udf_args=udf_args,
+        expected_tables_types=funcparts.table_input_types,
+        expected_literal_types=funcparts.literal_input_types,
     )
     output_type = get_output_type(funcparts, udf_args, traceback)
     udf_definition = get_udf_definition_template(
@@ -1566,23 +1549,26 @@ def get_udf_args(funcparts, posargs, keywordargs) -> Dict[str, UDFArgument]:
 
 def resolve_merge_table_args(
     udf_args: Dict[str, UDFArgument],
-    exp_table_types: Dict[str, TableType],
+    expected_table_types: Dict[str, TableType],
 ) -> Dict[str, UDFArgument]:
     """MergeTableTypes have the same schema as the tables that they are merging.
     The UDFArgument always contains the initial table type and must be resolved
     to a MergeTableType, if needed, based on the function parts."""
 
+    def is_merge_tensor(arg, argname, exp_types):
+        is_tensor = isinstance(arg, TensorArg)
+        return is_tensor and isinstance(exp_types[argname], MergeTensorType)
+
+    def is_merge_transfer(arg, argname, exp_types):
+        is_transfer = isinstance(arg, TransferArg)
+        return is_transfer and isinstance(exp_types[argname], MergeTransferType)
+
+    udf_args = deepcopy(udf_args)
     for argname, arg in udf_args.items():
-        if isinstance(arg, TensorArg) and isinstance(
-            exp_table_types[argname], MergeTensorType
-        ):
-            tensor_type: TensorType = udf_args[argname].type
-            udf_args[argname].type = merge_tensor(
-                dtype=tensor_type.dtype, ndims=tensor_type.ndims
-            )
-        if isinstance(arg, TransferArg) and isinstance(
-            exp_table_types[argname], MergeTransferType
-        ):
+        if is_merge_tensor(arg, argname, expected_table_types):
+            tensor_type = arg.type
+            arg.type = merge_tensor(dtype=tensor_type.dtype, ndims=tensor_type.ndims)
+        if is_merge_transfer(arg, argname, expected_table_types):
             udf_args[argname].type = merge_transfer()
 
     return udf_args
@@ -1595,40 +1581,38 @@ def get_funcparts_from_udf_registry(funcname: str, udfregistry: dict) -> Functio
 
 
 def validate_arg_names(
-    args: Dict[str, UDFArgument],
+    udf_args: Dict[str, UDFArgument],
     parameters: Dict[str, InputType],
 ) -> None:
     """Validates that the names of the udf arguments are the expected ones,
     based on the udf's formal parameters."""
-    if args.keys() != parameters.keys():
+    if udf_args.keys() != parameters.keys():
         raise UDFBadCall(
             f"UDF argument names do not match UDF parameter names: "
-            f"{args.keys()}, {parameters.keys()}."
+            f"{udf_args.keys()}, {parameters.keys()}."
         )
 
 
 def validate_arg_types(
-    args: Dict[str, UDFArgument],
-    exp_table_types: Dict[str, TableType],
-    exp_literal_types: Dict[str, LiteralType],
+    udf_args: Dict[str, UDFArgument],
+    expected_tables_types: Dict[str, TableType],
+    expected_literal_types: Dict[str, LiteralType],
 ) -> None:
     """Validates that the types of the udf arguments are the expected ones,
     based on the udf's formal parameter types."""
-    table_args = {
-        argname: arg for argname, arg in args.items() if isinstance(arg, TableArg)
-    }
-    literal_args = {
-        argname: arg for argname, arg in args.items() if isinstance(arg, LiteralArg)
-    }
+    table_args = get_items_of_type(TableArg, udf_args)
+    literal_args = get_items_of_type(LiteralArg, udf_args)
     for argname, arg in table_args.items():
-        if type(arg.type) is not type(exp_table_types[argname]):
+        if not isinstance(arg.type, type(expected_tables_types[argname])):
             raise UDFBadCall(
-                f"Argument {argname} should be of type {exp_table_types[argname]}. Type provided: {arg.type}"
+                f"Argument {argname} should be of type {expected_tables_types[argname]}. "
+                f"Type provided: {arg.type}"
             )
     for argname, arg in literal_args.items():
-        if type(arg.type) is not type(exp_literal_types[argname]):
+        if not isinstance(arg.type, type(expected_literal_types[argname])):
             raise UDFBadCall(
-                f"Argument {argname} should be of type {exp_table_types[argname]}. Type provided: {arg.type}"
+                f"Argument {argname} should be of type {expected_tables_types[argname]}. "
+                f"Type provided: {arg.type}"
             )
 
 
