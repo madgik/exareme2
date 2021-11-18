@@ -23,15 +23,6 @@ def create_merge_table(table_name: str, table_schema: TableSchema):
     MonetDB().execute(f"CREATE MERGE TABLE {table_name} ( {columns_schema} )")
 
 
-def get_non_existing_tables(table_names: List[str]) -> List[str]:
-    names_clause = str(table_names)[1:-1]
-    existing_tables = MonetDB().execute_and_fetchall(
-        f"SELECT name FROM tables WHERE name IN ({names_clause})"
-    )
-    existing_table_names = [table[0] for table in existing_tables]
-    return [name for name in table_names if name not in existing_table_names]
-
-
 def add_to_merge_table(merge_table_name: str, table_names: List[str]):
     non_existing_tables = get_non_existing_tables(table_names)
 
@@ -40,7 +31,6 @@ def add_to_merge_table(merge_table_name: str, table_names: List[str]):
             MonetDB().execute(
                 f"ALTER TABLE {merge_table_name} ADD TABLE {name.lower()}"
             )
-
     except pymonetdb.exceptions.OperationalError as exc:
         if str(exc).startswith("3F000"):
             raise IncompatibleSchemasMergeException(table_names)
@@ -50,18 +40,17 @@ def add_to_merge_table(merge_table_name: str, table_names: List[str]):
             raise exc
 
 
-def validate_tables_can_be_merged(tables_names: List[str]):
-    table_names = ",".join(f"'{table}'" for table in tables_names)
-
-    distinct_table_types = MonetDB().execute_and_fetchall(
-        f"""
-        SELECT DISTINCT(type)
-        FROM tables
-        WHERE
-        system = false
-        AND
-        name in ({table_names})"""
+def validate_tables_can_be_merged(table_names: List[str]):
+    names_clause = ",".join(f"'{table}'" for table in table_names)
+    existing_table_names_and_types = MonetDB().execute_and_fetchall(
+        f"SELECT name, type FROM tables WHERE name IN ({names_clause})"
     )
-
+    existing_table_names, existing_table_types = zip(*existing_table_names_and_types)
+    non_existing_tables = [
+        name for name in table_names if name not in existing_table_names
+    ]
+    if non_existing_tables:
+        raise TablesNotFound(non_existing_tables)
+    distinct_table_types = set(existing_table_types)
     if len(distinct_table_types) != 1:
         raise IncompatibleTableTypes(distinct_table_types)
