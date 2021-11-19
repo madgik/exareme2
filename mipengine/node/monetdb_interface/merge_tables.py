@@ -23,6 +23,15 @@ def create_merge_table(table_name: str, table_schema: TableSchema):
     MonetDB().execute(f"CREATE MERGE TABLE {table_name} ( {columns_schema} )")
 
 
+def get_non_existing_tables(table_names: List[str]) -> List[str]:
+    names_clause = str(table_names)[1:-1]
+    existing_tables = MonetDB().execute_and_fetchall(
+        f"SELECT name FROM tables WHERE name IN ({names_clause})"
+    )
+    existing_table_names = [table[0] for table in existing_tables]
+    return [name for name in table_names if name not in existing_table_names]
+
+
 def add_to_merge_table(merge_table_name: str, table_names: List[str]):
     non_existing_tables = get_non_existing_tables(table_names)
 
