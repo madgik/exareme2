@@ -45,23 +45,23 @@ def validate_identifier(identifier):
 # ~~~~~~~~~~~~~~~~~~~ DTOs ~~~~~~~~~~~~~~~~~~~~~~ #
 
 
-class DTOBaseModel(BaseModel, ABC):
+class ImmutableBaseModel(BaseModel, ABC):
     class Config:
         allow_mutation = False
 
 
-class ColumnInfo(DTOBaseModel):
+class ColumnInfo(ImmutableBaseModel):
     name: str
     dtype: DType
 
     _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 
 
-class TableSchema(DTOBaseModel):
+class TableSchema(ImmutableBaseModel):
     columns: List[ColumnInfo]
 
 
-class TableInfo(DTOBaseModel):
+class TableInfo(ImmutableBaseModel):
     name: str
     schema_: TableSchema
     type_: TableType
@@ -69,7 +69,7 @@ class TableInfo(DTOBaseModel):
     _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 
 
-class TableView(DTOBaseModel):
+class TableView(ImmutableBaseModel):
     datasets: List[str]
     columns: List[str]
     filter: Dict
@@ -82,14 +82,14 @@ class TableView(DTOBaseModel):
     )(validate_identifier)
 
 
-class TableData(DTOBaseModel):
+class TableData(ImmutableBaseModel):
     schema_: TableSchema
     data_: List[List[Union[float, int, str, None]]]
     # Union is problematic in pydantic we keep track on that with bug report
     # https://team-1617704806227.atlassian.net/browse/MIP-245
 
 
-class UDFArgument(DTOBaseModel):
+class UDFArgument(ImmutableBaseModel):
     kind: UDFArgumentKind
     value: Any
 
