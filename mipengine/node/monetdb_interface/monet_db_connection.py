@@ -1,13 +1,9 @@
 from contextlib import contextmanager
 from typing import List
-
+from mipengine.node import logging_module as logging
 import pymonetdb
 
-
-from celery.utils.log import get_task_logger
-
-logging = get_task_logger(__name__)
-
+logger = logging.getLogger(__name__)
 
 from mipengine.node import config as node_config
 
@@ -85,7 +81,7 @@ class MonetDB(metaclass=Singleton):
         'many' option to provide the functionality of executemany, all results will be fetched.
         'parameters' option to provide the functionality of bind-parameters.
         """
-        logging.info(
+        logger.info(
             f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}"
         )
 
@@ -106,7 +102,7 @@ class MonetDB(metaclass=Singleton):
         'many' option to provide the functionality of executemany.
         'parameters' option to provide the functionality of bind-parameters.
         """
-        logging.info(
+        logger.info(
             f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}"
         )
 
