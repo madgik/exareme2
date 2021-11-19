@@ -2,6 +2,7 @@ from typing import List
 
 from celery import shared_task
 
+from mipengine.node.logging_module import logger_decorator
 from mipengine.node.monetdb_interface import views
 from mipengine.node import config as node_config
 from mipengine.node import DATA_TABLE_PRIMARY_KEY
@@ -10,6 +11,7 @@ from mipengine.node.monetdb_interface.common_actions import create_table_name
 
 
 @shared_task
+@logger_decorator
 def get_views(context_id: str) -> List[str]:
     """
     Parameters
@@ -26,6 +28,7 @@ def get_views(context_id: str) -> List[str]:
 
 
 @shared_task
+@logger_decorator
 def create_pathology_view(
     context_id: str,
     command_id: str,
@@ -70,6 +73,7 @@ def create_pathology_view(
 
 
 @shared_task
+@logger_decorator
 def create_view(
     context_id: str,
     command_id: str,
