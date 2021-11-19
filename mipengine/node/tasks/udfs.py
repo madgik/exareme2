@@ -1,13 +1,12 @@
+import importlib
 import inspect
-from copy import deepcopy
 from typing import Dict
 from typing import List
 from typing import Tuple
 
 from celery import shared_task
 
-from mipengine import algorithms  # DO NOT REMOVE, NEEDED FOR ALGORITHM IMPORT
-
+from mipengine import ALGORITHMS_FOLDER
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
@@ -19,6 +18,8 @@ from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 from mipengine.udfgen import generate_udf_queries
 from mipengine.udfgen.udfgenerator import udf as udf_registry
+
+importlib.import_module(f"{ALGORITHMS_FOLDER}")
 
 
 @shared_task

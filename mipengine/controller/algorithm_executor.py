@@ -8,6 +8,8 @@ from billiard.exceptions import TimeLimitExceeded
 from celery.exceptions import TimeoutError
 from typing import Union
 
+
+from mipengine import ALGORITHMS_FOLDER
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
@@ -18,9 +20,6 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueueUDFAsyncResult
-
-
-ALGORITHMS_FOLDER = "mipengine.algorithms"
 
 
 class _TableName:
