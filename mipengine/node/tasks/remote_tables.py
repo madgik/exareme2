@@ -4,11 +4,11 @@ from celery import shared_task
 
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node.monetdb_interface import remote_tables
-from mipengine.node.logging_module import logger_decorator
+from mipengine.node.logging_module import log_function_call
 
 
 @shared_task
-@logger_decorator
+@log_function_call
 def get_remote_tables(context_id: str) -> List[str]:
     """
     Parameters

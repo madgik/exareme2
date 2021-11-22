@@ -2,7 +2,7 @@ from typing import List, Union
 
 from celery import shared_task
 
-from mipengine.node.logging_module import logger_decorator
+from mipengine.node.logging_module import log_function_call
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node import config as node_config
@@ -11,7 +11,7 @@ from mipengine.node.monetdb_interface.common_actions import create_table_name
 
 
 @shared_task
-@logger_decorator
+@log_function_call
 def get_tables(context_id: str) -> List[str]:
     """
     Parameters
@@ -28,7 +28,7 @@ def get_tables(context_id: str) -> List[str]:
 
 
 @shared_task
-@logger_decorator
+@log_function_call
 def create_table(context_id: str, command_id: str, schema_json: str) -> str:
     """
     Parameters
@@ -55,7 +55,7 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
 
 
 @shared_task
-@logger_decorator
+@log_function_call
 def insert_data_to_table(
     table_name: str, values: List[List[Union[str, int, float, bool]]]
 ):

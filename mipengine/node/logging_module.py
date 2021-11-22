@@ -1,5 +1,7 @@
 import logging
 import sys
+import time
+
 from functools import wraps
 
 from mipengine.node import config as node_config
@@ -20,20 +22,26 @@ def getLogger(name):
 
     # adding formatting handler to the file handler NOT the logger
     # do it in stdout
+
     handler = logging.StreamHandler(sys.stdout)
     logger.setLevel(node_config.log_level)
+    # adding formatting handler to the file handler NOT the logger
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
     return logger
 
 
-def logger_decorator(func):
+def log_function_call(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        print(f"*********** Logging for {func.__name__} started ***********")
+        logger = getLogger(func.__name__)
+        starting_timestamp =time.time()
+        logger.info(f"*********** {func.__name__} task started ***********")
         output = func(*args, **kwargs)
-        print(f"*********** Logging {func.__name__} finished ***********")
+        finish_timestamp = time.time()
+        tsm_diff = finish_timestamp - starting_timestamp
+        logger.info(f"*********** {func.__name__} task succeeded in {tsm_diff} ***********")
         return output
 
     return wrapper
