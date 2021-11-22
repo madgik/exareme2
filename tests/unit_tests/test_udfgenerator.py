@@ -225,7 +225,7 @@ class TestUDFValidation:
 
         assert "Invalid parameter names in udf decorator" in str(exc)
 
-    def test_validate_func_as_valid_udf_1(self):
+    def test_validate_func_as_valid_udf_with_state_and_transfer_input(self):
         @udf(
             x=tensor(int, 1),
             y=state(),
@@ -237,7 +237,7 @@ class TestUDFValidation:
 
         assert udf.registry != {}
 
-    def test_validate_func_as_valid_udf_2(self):
+    def test_validate_func_as_valid_udf_with_transfer_output(self):
         @udf(x=tensor(int, 1), return_type=transfer())
         def f(x):
             y = {"num": 1}
@@ -245,7 +245,7 @@ class TestUDFValidation:
 
         assert udf.registry != {}
 
-    def test_validate_func_as_valid_udf_3(self):
+    def test_validate_func_as_valid_udf_with_state_output(self):
         @udf(
             x=state(),
             y=transfer(),
@@ -257,7 +257,7 @@ class TestUDFValidation:
 
         assert udf.registry != {}
 
-    def test_validate_func_as_valid_udf_4(self):
+    def test_validate_func_as_valid_udf_with_merge_transfer_input(self):
         @udf(
             x=state(),
             y=merge_transfer(),
@@ -1027,79 +1027,6 @@ class TestUDFGen_InvalidUDFArgs_TypesMismatch_2(TestUDFGenBase):
         with pytest.raises(UDFBadCall) as exc:
             _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry)
         assert "should be of type" in str(exc)
-
-
-class TestUDFGen_ValidUDFArgs_MergeTransfer(TestUDFGenBase):
-    @pytest.fixture(scope="class")
-    def udfregistry(self):
-        @udf(
-            transfers=merge_transfer(),
-            state=state(),
-            return_type=transfer(),
-        )
-        def f(transfers, state):
-            result = {"num": sum}
-            return result
-
-        return udf.registry
-
-    # FIXME test has no assertion
-    def test_get_udf_templates(self, udfregistry, funcname):
-        posargs = [
-            TableInfo(
-                name="test_table_3",
-                schema_=TableSchema(
-                    columns=[
-                        ColumnInfo(name="transfer", dtype=DType.JSON),
-                    ]
-                ),
-                type_=TableType.REMOTE,
-            ),
-            TableInfo(
-                name="test_table_5",
-                schema_=TableSchema(
-                    columns=[
-                        ColumnInfo(name="state", dtype=DType.BINARY),
-                    ]
-                ),
-                type_=TableType.NORMAL,
-            ),
-        ]
-
-        _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry)
-
-
-class TestUDFGen_ValidUDFArgs_MergeTensor(TestUDFGenBase):
-    @pytest.fixture(scope="class")
-    def udfregistry(self):
-        @udf(
-            tensors=merge_tensor(dtype=float, ndims=2),
-            return_type=transfer(),
-        )
-        def f(tensors):
-            result = {"num": sum}
-            return result
-
-        return udf.registry
-
-    # FIXME test has no assertion
-    def test_get_udf_templates(self, udfregistry, funcname):
-        posargs = [
-            TableInfo(
-                name="tab",
-                schema_=TableSchema(
-                    columns=[
-                        ColumnInfo(name="node_id", dtype=DType.STR),
-                        ColumnInfo(name="dim0", dtype=DType.INT),
-                        ColumnInfo(name="dim1", dtype=DType.INT),
-                        ColumnInfo(name="val", dtype=DType.FLOAT),
-                    ]
-                ),
-                type_=TableType.NORMAL,
-            )
-        ]
-
-        _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry)
 
 
 class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
