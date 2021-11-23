@@ -11,7 +11,7 @@ from billiard.exceptions import TimeLimitExceeded
 from celery.exceptions import TimeoutError
 from pydantic import BaseModel
 
-from mipengine import algorithm_modules
+from mipengine import import_algorithm_modules
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
@@ -20,6 +20,8 @@ from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
+
+algorithm_modules = import_algorithm_modules()
 
 
 class _TableName:

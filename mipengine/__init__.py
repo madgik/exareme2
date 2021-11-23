@@ -11,7 +11,13 @@ from typing import Dict
 from .datatypes import DType
 from .attrdict import AttrDict
 
-__all__ = ["DType", "AttrDict", "ALGORITHMS_FOLDER_ENV_VARIABLE", "ALGORITHMS_FOLDER"]
+__all__ = [
+    "DType",
+    "AttrDict",
+    "ALGORITHMS_FOLDER_ENV_VARIABLE",
+    "ALGORITHMS_FOLDER",
+    "import_algorithm_modules",
+]
 
 ALGORITHMS_FOLDER_ENV_VARIABLE = "ALGORITHMS_FOLDER"
 ALGORITHMS_FOLDER = "./mipengine/algorithms"
@@ -20,7 +26,7 @@ if os.getenv(ALGORITHMS_FOLDER_ENV_VARIABLE):
     ALGORITHMS_FOLDER = os.getenv(ALGORITHMS_FOLDER_ENV_VARIABLE)
 
 
-def get_algorithm_modules() -> Dict[str, ModuleType]:
+def import_algorithm_modules() -> Dict[str, ModuleType]:
     # Import all algorithm modules
     # Import all .py modules in the algorithms folder path
     # https://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path?page=1&tab=votes#tab-top
@@ -47,6 +53,3 @@ def get_algorithm_modules() -> Dict[str, ModuleType]:
     [spec.loader.exec_module(module) for spec, module in zip(specs, modules.values())]
 
     return modules
-
-
-algorithm_modules = get_algorithm_modules()
