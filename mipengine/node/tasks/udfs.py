@@ -8,6 +8,7 @@ from celery import shared_task
 from mipengine import algorithms  # DO NOT REMOVE, NEEDED FOR ALGORITHM IMPORT
 
 from mipengine.node import config as node_config
+from mipengine.node.logging import log_method_call
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
@@ -20,6 +21,7 @@ from mipengine.udfgen import generate_udf_queries
 
 
 @shared_task
+@log_method_call
 def get_udfs(algorithm_name: str) -> List[str]:
     return [
         inspect.getsource(udf)
@@ -33,6 +35,7 @@ def get_udfs(algorithm_name: str) -> List[str]:
     soft_time_limit=node_config.celery.run_udf_soft_time_limit,
     time_limit=node_config.celery.run_udf_time_limit,
 )
+@log_method_call
 def run_udf(
     command_id: str,
     context_id: str,
@@ -79,6 +82,7 @@ def run_udf(
 
 
 @shared_task
+@log_method_call
 def get_run_udf_query(
     command_id: str,
     context_id: str,
