@@ -43,7 +43,7 @@ def node_task_handler():
 
     with open(CONTROLLER_CONFIG_DIR / "controller.toml") as fp:
         controller_config = AttrDict(toml.load(fp))
-        
+
     celery_params_dto = None
     with open(a_localnode_config_file) as fp:
         tmp = toml.load(fp)
@@ -65,7 +65,6 @@ def node_task_handler():
             interval_step=controller_config.rabbitmq.celery_tasks_interval_step,
             interval_max=controller_config.rabbitmq.celery_tasks_interval_max,
             tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-
         )
 
     return NodeTasksHandlerCelery(node_id=node_id, celery_params=celery_params_dto)
@@ -100,7 +99,7 @@ def test_create_table(node_task_handler, a_test_table_params):
     )
     print(f"{table_name=}")
 
-    assert table_name.startswith(f"table_{command_id}_{TASKS_CONTEXT_ID}_")
+    assert table_name.startswith(f"normal_{command_id}_{TASKS_CONTEXT_ID}_")
 
 
 @pytest.mark.usefixtures("cleanup")
@@ -112,6 +111,7 @@ def test_get_tables(node_task_handler, a_test_table_params):
     )
     tables = node_task_handler.get_tables(context_id=TASKS_CONTEXT_ID)
     assert table_name in tables
+
 
 @pytest.mark.usefixtures("cleanup")
 def test_get_table_schema(node_task_handler, a_test_table_params):

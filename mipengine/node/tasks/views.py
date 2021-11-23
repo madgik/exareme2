@@ -8,6 +8,7 @@ from mipengine.node import config as node_config
 from mipengine.node import DATA_TABLE_PRIMARY_KEY
 
 from mipengine.node.monetdb_interface.common_actions import create_table_name
+from mipengine.node_tasks_DTOs import TableType
 
 
 @shared_task
@@ -58,7 +59,7 @@ def create_pathology_view(
         The name of the created view
     """
     view_name = create_table_name(
-        "view", command_id, context_id, node_config.identifier
+        TableType.VIEW, command_id, context_id, node_config.identifier
     )
     columns.insert(0, DATA_TABLE_PRIMARY_KEY)
 
@@ -103,7 +104,7 @@ def create_view(
         The name of the created view
     """
     view_name = create_table_name(
-        "view", command_id, context_id, node_config.identifier
+        TableType.VIEW, command_id, context_id, node_config.identifier
     )
     views.create_view(
         view_name=view_name,

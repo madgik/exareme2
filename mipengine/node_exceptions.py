@@ -1,7 +1,5 @@
 from typing import List
 
-from mipengine.node_tasks_DTOs import TableInfo
-
 
 class TablesNotFound(Exception):
     """
@@ -26,10 +24,10 @@ class IncompatibleSchemasMergeException(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, table_infos: List[TableInfo]):
-        self.table_infos = table_infos
+    def __init__(self, table_names: List[str]):
+        self.table_names = table_names
         self.message = (
-            f"Tables to be added don't match MERGE TABLE schema : {table_infos}"
+            f"Tables to be added don't match MERGE TABLE schema : {table_names}"
         )
         super().__init__(self.message)
 
@@ -42,7 +40,7 @@ class IncompatibleTableTypes(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, table_types: List[str]):
+    def __init__(self, table_types: set):
         self.table_types = table_types
         self.message = f"Tables have more than one distinct types : {self.table_types}"
         super().__init__(self.message)

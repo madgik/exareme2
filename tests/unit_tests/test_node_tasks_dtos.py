@@ -12,6 +12,8 @@ from mipengine.node_tasks_DTOs import (
     TableData,
     UDFArgument,
 )
+from mipengine.node_tasks_DTOs import TableType
+from mipengine.node_tasks_DTOs import UDFArgumentKind
 
 
 @pytest.fixture
@@ -49,6 +51,12 @@ def test_column_info_error(name_error_str, column_info_data_type_error):
         ColumnInfo(name=name_error_str, dtype=column_info_data_type_error)
 
 
+def test_column_info_immutable():
+    info = ColumnInfo(name="name", dtype=DType.FLOAT)
+    with pytest.raises(TypeError):
+        info.name = "newname"
+
+
 # asserts correct parameters in test_column_info
 def test_table_schema():
     cols = [
@@ -71,6 +79,38 @@ def test_table_schema_type_error():
         ColumnInfo(name=123, dtype=DType.FLOAT)
 
 
+def test_table_schema_immutable():
+    schema = TableSchema(
+        columns=[
+            ColumnInfo(name="layla", dtype=DType.FLOAT),
+            ColumnInfo(name="sheila", dtype=DType.FLOAT),
+        ]
+    )
+    with pytest.raises(TypeError):
+        schema.columns = [
+            ColumnInfo(name="newname", dtype=DType.FLOAT),
+            ColumnInfo(name="newname", dtype=DType.FLOAT),
+        ]
+
+
+@pytest.fixture
+def table_info_proper_type():
+    return TableInfo(
+        name="test",
+        schema_=TableSchema(
+            columns=[
+                ColumnInfo(name="layla", dtype=DType.FLOAT),
+                ColumnInfo(name="sheila", dtype=DType.FLOAT),
+            ]
+        ),
+        type_=TableType.NORMAL,
+    )
+
+
+def test_table_info_type(table_info_proper_type):
+    assert isinstance(table_info_proper_type.type_, TableType)
+
+
 @pytest.fixture
 def table_info_data_schema():
     return TableSchema(
@@ -81,8 +121,7 @@ def table_info_data_schema():
     )
 
 
-# validation check for table_info
-def test_table_info(table_info_data_schema):
+def test_table_info_schema(table_info_data_schema):
     assert isinstance(table_info_data_schema, TableSchema)
 
 
@@ -99,7 +138,26 @@ def table_info_data_schema_error():
 # validation check for table_info
 def test_table_info_error():
     with pytest.raises(ValidationError):
-        TableInfo(name=name_error_str, schema_=table_info_data_schema_error)
+        TableInfo(
+            name=name_error_str,
+            schema_=table_info_data_schema_error,
+            type_=TableType.NORMAL,
+        )
+
+
+def test_table_info_immutable():
+    info = TableInfo(
+        name="name",
+        schema_=TableSchema(
+            columns=[
+                ColumnInfo(name="layla", dtype=DType.FLOAT),
+                ColumnInfo(name="sheila", dtype=DType.FLOAT),
+            ],
+        ),
+        type_=TableType.NORMAL,
+    )
+    with pytest.raises(TypeError):
+        info.name = "newname"
 
 
 def test_table_view_error():
@@ -107,9 +165,33 @@ def test_table_view_error():
         TableView(datasets=[34, "bar", "baz"], columns=[], filter=[])
 
 
+def test_table_view_immutable():
+    view = TableView(
+        datasets=["name"],
+        columns=["test"],
+        filter={},
+    )
+    with pytest.raises(TypeError):
+        view.datasets = []
+
+
 def test_table_data_error():
     with pytest.raises(ValidationError):
         TableData(schema_="foo", data_=34)
+
+
+def test_table_data_immutable():
+    data = TableData(
+        schema_=TableSchema(
+            columns=[
+                ColumnInfo(name="layla", dtype=DType.FLOAT),
+                ColumnInfo(name="sheila", dtype=DType.FLOAT),
+            ],
+        ),
+        data_=[],
+    )
+    with pytest.raises(TypeError):
+        data.data_ = []
 
 
 def test_table_data():
@@ -123,3 +205,9 @@ def test_table_data():
 def test_udf_argument():
     with pytest.raises(ValidationError):
         UDFArgument(kind="Not a UDFArgumentKind", value="this can be anything")
+
+
+def test_udf_argument_immutable():
+    argument = UDFArgument(kind=UDFArgumentKind.TABLE, value=None)
+    with pytest.raises(TypeError):
+        argument.kind = UDFArgumentKind.LITERAL
