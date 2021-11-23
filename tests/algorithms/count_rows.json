@@ -1,0 +1,23 @@
+{
+    "name": "count_rows",
+    "desc": "Count Rows",
+    "label": "Count Rows",
+    "enabled": true,
+    "inputdata": {
+        "x": {
+            "label": "column",
+            "desc": "Column",
+            "types": [
+                "real",
+                "int",
+                "text"
+            ],
+            "stattypes": [
+                "numerical",
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": false
+        }
+    }
+}

@@ -399,7 +399,8 @@ def make_unique_func_name(func) -> str:
     """Creates a unique function name composed of the function name, an
     underscore and the module's name hashed, encoded in base32 and truncated at
     4 chars."""
-    module_name = func.__module__
+    full_module_name = func.__module__
+    module_name = full_module_name.split(".")[-1]
     hash_ = get_base32_hash(module_name)
     return func.__name__ + "_" + hash_.lower()
 

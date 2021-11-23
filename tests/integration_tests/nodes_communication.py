@@ -72,7 +72,7 @@ def get_celery_task_signature(celery_app, task):
         "get_table_data": celery_app.signature(
             "mipengine.node.tasks.common.get_table_data"
         ),
-        "get_udfs": celery_app.signature("mipengine.node.tasks.udfs.get_udfs"),
+        "get_udf": celery_app.signature("mipengine.node.tasks.udfs.get_udf"),
         "run_udf": celery_app.signature("mipengine.node.tasks.udfs.run_udf"),
         "get_run_udf_query": celery_app.signature(
             "mipengine.node.tasks.udfs.get_run_udf_query"

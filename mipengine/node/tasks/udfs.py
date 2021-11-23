@@ -15,16 +15,13 @@ from mipengine.node_tasks_DTOs import TableType
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 from mipengine.udfgen import generate_udf_queries
+from mipengine.udfgen.udfgenerator import FunctionParts
 from mipengine.udfgen.udfgenerator import udf as udf_registry
 
 
 @shared_task
-def get_udfs(algorithm_name: str) -> List[str]:
-    return [
-        inspect.getsource(udf)
-        for udf_name, udf in udf_registry.registry.items()
-        if udf_name.startswith(algorithm_name)
-    ]
+def get_udf(func_name: str) -> str:
+    return str(udf_registry.registry[func_name])
 
 
 # TODO Verify time limit when udf tests are fixed
