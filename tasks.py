@@ -61,7 +61,6 @@ from invoke import task
 from termcolor import colored
 
 import tests
-from mipengine import ALGORITHMS_FOLDER_ENV_VARIABLE
 
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
@@ -79,6 +78,9 @@ if not OUTDIR.exists():
     OUTDIR.mkdir()
 
 DEMO_DATA_FOLDER = Path(tests.__file__).parent / "demo_data"
+
+ALGORITHMS_FOLDER_ENV_VARIABLE = "ALGORITHMS_FOLDER"
+MIPENGINE_NODE_CONFIG_FILE = "MIPENGINE_NODE_CONFIG_FILE"
 
 # TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
 # Right now if we call a task from another task, the "pre"-task is not executed
@@ -405,7 +407,7 @@ def start_node(
         message(f"Starting Node {node_id}...", Level.HEADER)
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
         with c.prefix(f"export {ALGORITHMS_FOLDER_ENV_VARIABLE}={algorithms_folder}"):
-            with c.prefix(f"export MIPENGINE_NODE_CONFIG_FILE={node_config_file}"):
+            with c.prefix(f"export {MIPENGINE_NODE_CONFIG_FILE}={node_config_file}"):
                 outpath = OUTDIR / (node_id + ".out")
                 if detached or all_:
                     cmd = (
