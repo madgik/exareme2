@@ -1,3 +1,4 @@
+import importlib
 import logging
 import typing
 from dataclasses import dataclass
@@ -11,7 +12,7 @@ from typing import Optional
 
 from dataclasses_json import dataclass_json
 
-from mipengine import algorithms
+from mipengine import ALGORITHMS_FOLDER
 
 # TODO Enums are not supported from the dataclass_json library
 # For now some helper methods are added.
@@ -73,8 +74,8 @@ class InputDataSpecification:
 @dataclass_json
 @dataclass
 class InputDataSpecifications:
-    x: Optional[InputDataSpecification]
-    y: Optional[InputDataSpecification]
+    x: Optional[InputDataSpecification] = None
+    y: Optional[InputDataSpecification] = None
 
 
 @unique
@@ -123,7 +124,7 @@ class AlgorithmsSpecifications:
     enabled_algorithms: Dict[str, AlgorithmSpecifications]
 
     def __init__(self):
-        algorithms_path = Path(algorithms.__file__).parent
+        algorithms_path = Path(ALGORITHMS_FOLDER)
 
         all_algorithms = {}
         for algorithm_property_path in algorithms_path.glob("*.json"):

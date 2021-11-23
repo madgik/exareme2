@@ -1,25 +1,25 @@
-from typing import Dict, List, Tuple, Any, Optional
-import importlib
-from pydantic import BaseModel
 from abc import ABC
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
 from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
 from celery.exceptions import TimeoutError
-from typing import Union
+from pydantic import BaseModel
 
-
-from mipengine import ALGORITHMS_FOLDER
+from mipengine import algorithm_modules
+from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
+from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
+from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
+from mipengine.controller.node_tasks_handler_interface import IQueueUDFAsyncResult
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
-
-from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
-from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
-
-from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
-from mipengine.controller.node_tasks_handler_interface import IQueueUDFAsyncResult
 
 
 class _TableName:
@@ -113,10 +113,8 @@ class AlgorithmExecutor:
             algo_execution_interface_dto
         )
 
-        # import the algorithm flow module
-        self.algorithm_flow_module = importlib.import_module(
-            f"{ALGORITHMS_FOLDER}.{self._algorithm_name}"
-        )
+        # Get algorithm module
+        self.algorithm_flow_module = algorithm_modules[self._algorithm_name]
 
     def run(self):
         try:
