@@ -8,7 +8,7 @@ from celery import shared_task
 from mipengine import algorithms  # DO NOT REMOVE, NEEDED FOR ALGORITHM IMPORT
 
 from mipengine.node import config as node_config
-from mipengine.node.logging_module import log_method_call
+from mipengine.node.logging import log_method_call
 from mipengine.node_tasks_DTOs import (
     UDFArgument,
     ColumnInfo,

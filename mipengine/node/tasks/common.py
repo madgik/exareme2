@@ -6,8 +6,8 @@ from mipengine.node.monetdb_interface.common_actions import get_initial_data_sch
 from mipengine.node.monetdb_interface.common_actions import get_schema_datasets
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import TableData
-from mipengine.node import logging_module as logging
-from mipengine.node.logging_module import log_method_call
+from mipengine.node import logging as logging
+from mipengine.node.logging import log_method_call
 
 
 @shared_task

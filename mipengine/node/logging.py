@@ -9,7 +9,7 @@ from mipengine.node import config as node_config
 def getLogger(name):
     logger = logging.getLogger(name)
     formatter = logging.Formatter(
-        "%(asctime)s -"
+        "%(asctime)s - "
         "%(levelname)s - "
         "NODE - "
         f"{node_config.role} - "
