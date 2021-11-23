@@ -66,8 +66,8 @@ class Controller:
 
         # DEBUG(future logging..)
         print(
-            f"\n(controller.py::exec_algorithm) starts executing-> "
-            f"{algorithm_name=} with {context_id=}\n"
+            f"\n(controller.py) starts executing-> {algorithm_name=} with "
+            f"{context_id=}\n"
         )
         # DEBUG end
 

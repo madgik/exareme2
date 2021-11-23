@@ -12,10 +12,16 @@ from mipengine.controller.node_tasks_handler_celery import CeleryParamsDTO
 from mipengine.node_tasks_DTOs import TableSchema, ColumnInfo
 from mipengine import DType
 
+from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
+from celery.exceptions import TimeoutError
+
+
 from mipengine import AttrDict
 from tasks import CONTROLLER_CONFIG_DIR
 
 import mipengine
+import time
+import subprocess
 
 PROJECT_ROOT = Path(mipengine.__file__).parent.parent
 
@@ -43,7 +49,7 @@ def node_task_handler():
 
     with open(CONTROLLER_CONFIG_DIR / "controller.toml") as fp:
         controller_config = AttrDict(toml.load(fp))
-        
+
     celery_params_dto = None
     with open(a_localnode_config_file) as fp:
         tmp = toml.load(fp)
@@ -65,7 +71,6 @@ def node_task_handler():
             interval_step=controller_config.rabbitmq.celery_tasks_interval_step,
             interval_max=controller_config.rabbitmq.celery_tasks_interval_max,
             tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-
         )
 
     return NodeTasksHandlerCelery(node_id=node_id, celery_params=celery_params_dto)
@@ -113,6 +118,7 @@ def test_get_tables(node_task_handler, a_test_table_params):
     tables = node_task_handler.get_tables(context_id=TASKS_CONTEXT_ID)
     assert table_name in tables
 
+
 @pytest.mark.usefixtures("cleanup")
 def test_get_table_schema(node_task_handler, a_test_table_params):
     command_id = a_test_table_params[0]
@@ -122,3 +128,59 @@ def test_get_table_schema(node_task_handler, a_test_table_params):
     )
     schema_result = node_task_handler.get_table_schema(table_name)
     assert schema_result == schema
+
+
+# def test_del_tbl(node_task_handler):
+#     node_task_handler.clean_up(context_id="contextid123")
+#     assert True
+
+
+@pytest.mark.usefixtures("cleanup")
+def test_broker_connection_closed_exception(node_task_handler, a_test_table_params):
+    command_id = a_test_table_params[0]
+    schema = a_test_table_params[1]
+    table_name = node_task_handler.create_table(
+        context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
+    )
+    # Stop rabbitmq container of this node
+    node_id = node_task_handler.node_id
+    cmd = f"docker stop rabbitmq-{node_id}"
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+
+    # Queue a task which will raise the exception
+    with pytest.raises(ClosedBrokerConnectionError):
+        schema_result = node_task_handler.get_table_schema(table_name)
+
+    # Restart the rabbitmq container of this node
+    cmd = f"docker start rabbitmq-{node_id}"
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+
+    # Wait until it is up again
+    subcmd = "'{{.State.Health.Status}}'"
+    cmd = f"docker inspect -f {subcmd} rabbitmq-{node_id}"
+    result = subprocess.check_output(cmd, shell=True).decode("utf-8")
+    while "healthy" not in result:
+        result = subprocess.check_output(cmd, shell=True).decode("utf-8")
+        time.sleep(1)
+
+
+@pytest.mark.usefixtures("cleanup")
+def test_time_limit_exceeded_exception(node_task_handler, a_test_table_params):
+    command_id = a_test_table_params[0]
+    schema = a_test_table_params[1]
+    table_name = node_task_handler.create_table(
+        context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
+    )
+    # Stop all nodes
+    # (inv kill-node <node-id> is buggy, so we just kill all nodes..)
+    node_id = node_task_handler.node_id
+    cmd = f"killall celery"
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+
+    # Queue a task which will raise the exception
+    with pytest.raises(TimeoutError):
+        schema_result = node_task_handler.get_table_schema(table_name)
+
+    # Restart all nodes
+    cmd = f"inv start-node --all"
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)

@@ -10,7 +10,8 @@ from mipengine.controller.algorithm_executor import AlgorithmExecutionException
 
 error_handlers = Blueprint("error_handlers", __name__)
 
-INSUFFICIENT_DATA_ERROR_MESSAGE = "The algorithm could not run with the input provided because there are insufficient data."
+INSUFFICIENT_DATA_ERROR_MESSAGE = "The algorithm could not run with the input "\
+    "provided because there are insufficient data."
 
 
 class HTTPStatusCode(enum.IntEnum):
@@ -32,13 +33,25 @@ def handle_bad_user_input(error: BadUserInput):
 
 @error_handlers.app_errorhandler(InsufficientDataError)
 def handle_privacy_error(error: InsufficientDataError):
-    print(f"Insufficient Data Error: \n " + error.message)
+    print(
+        f"(error_handlers::handle_privacy_error) Insufficient Data Error: \n "
+        + error.message
+    )
     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
+
+
+@error_handlers.app_errorhandler(AlgorithmExecutionException)
+def handle_algorithm_excecution_exception(error: AlgorithmExecutionException):
+    print(f"(error_handlers::handle_algorithm_excecution_exception) {error=}")
+    return "", HTTPStatusCode.UNEXPECTED_ERROR
 
 
 @error_handlers.app_errorhandler(Exception)
 def handle_unexpected_exception(error: Exception):
+    import traceback
+
+    traceback_str = "".join(traceback.format_tb(error.__traceback__))
     print(
-        f"Algorithm validation failed. \nTraceback: {traceback.print_exception(type(error), error, error.__traceback__)}"
+        f"(error_handlers::handle_unexpected_exception) Unexpected Exception raised->\n{traceback_str} {error}"
     )
     return "", HTTPStatusCode.UNEXPECTED_ERROR
