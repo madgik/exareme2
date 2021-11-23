@@ -6,6 +6,8 @@ rabbitmq_image = "madgik/mipengine_rabbitmq:latest"
 
 cdes_metadata_path = "./tests/demo_data"
 
+algorithms_folder = "./tests/algorithms"
+
 node_registry_update_interval = 20
 celery_tasks_timeout = 10
 

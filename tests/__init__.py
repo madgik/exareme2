@@ -1,1 +1,1 @@
-TEST_ALGORITHMS_FOLDER = "tests.algorithms"
+TEST_ALGORITHMS_FOLDER = "./tests/algorithms"

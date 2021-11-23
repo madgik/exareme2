@@ -4,6 +4,9 @@ from importlib import util
 import os
 from os.path import basename
 from os.path import isfile
+from types import ModuleType
+
+from typing import Dict
 
 from .datatypes import DType
 from .attrdict import AttrDict
@@ -17,10 +20,11 @@ if os.getenv(ALGORITHMS_FOLDER_ENV_VARIABLE):
     ALGORITHMS_FOLDER = os.getenv(ALGORITHMS_FOLDER_ENV_VARIABLE)
 
 
-def get_algorithm_modules():
-    # Import all algorithms
+def get_algorithm_modules() -> Dict[str, ModuleType]:
+    # Import all algorithm modules
     # Import all .py modules in the algorithms folder path
     # https://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path?page=1&tab=votes#tab-top
+
     all_module_paths = glob.glob(f"{ALGORITHMS_FOLDER}/*.py")
     algorithm_module_paths = [
         module
