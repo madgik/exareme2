@@ -3,10 +3,12 @@ from typing import List
 from celery import shared_task
 
 from mipengine.node.monetdb_interface import remote_tables
+from mipengine.node.logging import log_method_call
 from mipengine.node_tasks_DTOs import TableSchema
 
 
 @shared_task
+@log_method_call
 def get_remote_tables(context_id: str) -> List[str]:
     """
     Parameters

@@ -6,9 +6,12 @@ from mipengine.node.monetdb_interface.common_actions import get_initial_data_sch
 from mipengine.node.monetdb_interface.common_actions import get_schema_datasets
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import TableData
+from mipengine.node import logging as logging
+from mipengine.node.logging import log_method_call
 
 
 @shared_task
+@log_method_call
 def get_node_info():
     """
     Returns
@@ -34,6 +37,7 @@ def get_node_info():
 
 
 @shared_task
+@log_method_call
 def get_table_schema(table_name: str) -> str:
     """
     Parameters
@@ -51,6 +55,7 @@ def get_table_schema(table_name: str) -> str:
 
 
 @shared_task
+@log_method_call
 def get_table_data(table_name: str) -> str:
     """
     Parameters
@@ -69,6 +74,7 @@ def get_table_data(table_name: str) -> str:
 
 
 @shared_task
+@log_method_call
 def clean_up(context_id: str):
     """
     Parameters

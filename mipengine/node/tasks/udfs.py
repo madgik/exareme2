@@ -6,6 +6,7 @@ from celery import shared_task
 
 from mipengine import import_algorithm_modules
 from mipengine.node import config as node_config
+from mipengine.node.logging import log_method_call
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
@@ -22,6 +23,7 @@ import_algorithm_modules()
 
 
 @shared_task
+@log_method_call
 def get_udf(func_name: str) -> str:
     return str(udf_registry.registry[func_name])
 
@@ -31,6 +33,7 @@ def get_udf(func_name: str) -> str:
     soft_time_limit=node_config.celery.run_udf_soft_time_limit,
     time_limit=node_config.celery.run_udf_time_limit,
 )
+@log_method_call
 def run_udf(
     command_id: str,
     context_id: str,
@@ -77,6 +80,7 @@ def run_udf(
 
 
 @shared_task
+@log_method_call
 def get_run_udf_query(
     command_id: str,
     context_id: str,
