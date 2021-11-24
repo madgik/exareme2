@@ -18,6 +18,15 @@ class UDFOutputTable:
         self.drop_query = drop_query
         self.create_query = create_query
 
+    def __repr__(self):
+        return (
+            f"UDFOutputTable("
+            f"tablename_placeholder='{self.tablename_placeholder}', "
+            f"drop_query='{self.drop_query.template}', "
+            f"create_query='{self.create_query.template}'"
+            f")"
+        )
+
 
 class UDFExecutionQueries:
     output_tables: List[UDFOutputTable]
@@ -33,3 +42,15 @@ class UDFExecutionQueries:
         self.output_tables = output_tables
         self.udf_definition_query = udf_definition_query
         self.udf_select_query = udf_select_query
+
+    def __repr__(self):
+        udf_definition_query_str = "None"
+        if self.udf_definition_query:
+            udf_definition_query_str = self.udf_definition_query.template
+        return (
+            f"UDFExecutionQueries("
+            f"output_tables={self.output_tables}, "
+            f"udf_definition_query='{udf_definition_query_str}', "
+            f"udf_select_query='{self.udf_select_query.template}'"
+            f")"
+        )

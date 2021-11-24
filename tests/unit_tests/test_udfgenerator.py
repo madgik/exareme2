@@ -53,6 +53,8 @@ from mipengine.udfgen.udfgenerator import (
     udf,
     verify_declared_typeparams_match_passed_type,
 )
+from mipengine.udfgen_DTOs import UDFExecutionQueries
+from mipengine.udfgen_DTOs import UDFOutputTable
 
 
 @pytest.fixture(autouse=True)
@@ -884,12 +886,44 @@ class TestUDFGenBase:
         return Template(expected_udfdef).substitute(udf_name="udf_test")
 
     @pytest.fixture(scope="class")
-    def concrete_udf_sel(self, expected_udfsel):
-        return Template(expected_udfsel).substitute(
-            table_name="table_test",
-            udf_name="udf_test",
-            node_id="1",
-        )
+    def concrete_udf_output_tables(self, expected_udf_output_tables):
+        """
+        Replaces the tablename_placeholder in the Template using the same tablename.
+        """
+        queries = []
+        for output_tables in expected_udf_output_tables:
+            template_mapping = {
+                output_tables["tablename_placeholder"]: output_tables[
+                    "tablename_placeholder"
+                ]
+            }
+            queries.append(
+                Template(output_tables["drop_query"]).substitute(**template_mapping)
+            )
+            queries.append(
+                Template(output_tables["create_query"]).substitute(**template_mapping)
+            )
+
+        return "\n".join(queries)
+
+    @pytest.fixture(scope="class")
+    def concrete_udf_sel(self, expected_udf_output_tables, expected_udfsel):
+        """
+        The udf definition could contain more than one tablename placeholders.
+        The expected_udf_output_tables is used to replace all the necessary fields.
+        Just like in the `concrete_udf_output_tables` it replaces the tablename_placeholder
+        in the Templates using the same tablename.
+        """
+        template_mapping = {
+            "udf_name": "udf_test",
+            "node_id": "1",
+        }
+        for output_tables in expected_udf_output_tables:
+            template_mapping[output_tables["tablename_placeholder"]] = output_tables[
+                "tablename_placeholder"
+            ]
+
+        return Template(expected_udfsel).substitute(**template_mapping)
 
     @pytest.fixture(scope="function")
     def create_transfer_table(self, db):
@@ -946,7 +980,7 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
         assert "UDF argument names do not match UDF parameter names" in str(exc)
 
 
-class TestUDFGen_InvalidUDFArgs_TypesMismatch_1(TestUDFGenBase):
+class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -986,7 +1020,7 @@ class TestUDFGen_InvalidUDFArgs_TypesMismatch_1(TestUDFGenBase):
         assert "should be of type" in str(exc)
 
 
-class TestUDFGen_InvalidUDFArgs_TypesMismatch_2(TestUDFGenBase):
+class TestUDFGen_InvalidUDFArgs_TensorTableInTransferArgument(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -1061,7 +1095,70 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         assert "inconsistent mappings" in err_msg
 
 
-class TestUDFGen_TensorToTensor(TestUDFGenBase):
+class _TestGenerateUDFQueries:
+    """
+    This class does not run as a test, it's only inherited
+    when we want to add a test case for the generate_udf_queries
+    """
+
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        raise NotImplementedError
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        raise NotImplementedError
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        raise NotImplementedError
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        raise NotImplementedError
+
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        raise NotImplementedError
+
+    @pytest.fixture(scope="class")
+    def traceback(self):
+        return False
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_output_tables,
+        traceback,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            funcname, positional_args, {}, traceback=traceback
+        )
+        if expected_udfdef != "":
+            assert (
+                udf_execution_queries.udf_definition_query.template == expected_udfdef
+            )
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
+        for output_table, expected_output_table in zip(
+            udf_execution_queries.output_tables, expected_udf_output_tables
+        ):
+            assert (
+                output_table.tablename_placeholder
+                == expected_output_table["tablename_placeholder"]
+            )
+            assert (
+                output_table.drop_query.template == expected_output_table["drop_query"]
+            )
+            assert (
+                output_table.create_query.template
+                == expected_output_table["create_query"]
+            )
+
+
+class TestUDFGen_TensorToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         T = TypeVar("T")
@@ -1109,9 +1206,7 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
@@ -1125,19 +1220,18 @@ FROM
             tensor_in_db
     ));"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);",
+            }
+        ]
 
 
-class TestUDFGen_RelationToTensor(TestUDFGenBase):
+class TestUDFGen_RelationToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         S = TypeVar("S")
@@ -1184,9 +1278,7 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
@@ -1200,19 +1292,18 @@ FROM
             rel_in_db
     ));"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);",
+            }
+        ]
 
 
-class TestUDFGen_TensorToRelation(TestUDFGenBase):
+class TestUDFGen_TensorToRelation(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -1262,9 +1353,7 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),ci INT,cf REAL);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
@@ -1277,19 +1366,18 @@ FROM
             tensor_in_db
     ));"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),ci INT,cf REAL);",
+            }
+        ]
 
 
-class TestUDFGen_LiteralArgument(TestUDFGenBase):
+class TestUDFGen_LiteralArgument(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -1340,27 +1428,24 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(result INT);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     $udf_name(the_table.dim0,the_table.val)
 FROM
     the_table;"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(result INT);",
+            }
+        ]
 
 
-class TestUDFGen_ManyLiteralArguments(TestUDFGenBase):
+class TestUDFGen_ManyLiteralArguments(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -1414,27 +1499,24 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(result INT);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     $udf_name(tensor_in_db.dim0,tensor_in_db.val)
 FROM
     tensor_in_db;"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(result INT);",
+            }
+        ]
 
 
-class TestUDFGen_NoArguments(TestUDFGenBase):
+class TestUDFGen_NoArguments(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -1468,28 +1550,25 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,val INT);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val INT);",
+            }
+        ]
 
 
-class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase):
+class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         S = TypeVar("S")
@@ -1537,9 +1616,7 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
@@ -1553,19 +1630,18 @@ FROM
             rel_in_db
     ));"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);",
+            }
+        ]
 
 
-class TestUDFGen_UnknownReturnDimensions(TestUDFGenBase):
+class TestUDFGen_UnknownReturnDimensions(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         T = TypeVar("S")
@@ -1614,9 +1690,7 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val INT);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
@@ -1630,19 +1704,18 @@ FROM
             tens_in_db
     ));"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val INT);",
+            }
+        ]
 
 
-class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase):
+class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -1703,9 +1776,7 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,val INT);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
@@ -1723,19 +1794,18 @@ FROM
             tens0.dim0=tens1.dim0
     ));"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val INT);",
+            }
+        ]
 
 
-class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase):
+class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -1809,9 +1879,7 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,val INT);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
@@ -1833,19 +1901,18 @@ FROM
             tens0.dim0=tens2.dim0
     ));"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val INT);",
+            }
+        ]
 
 
-class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase):
+class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -1922,9 +1989,7 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val INT);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
@@ -1951,19 +2016,18 @@ FROM
             tens0.dim1=tens2.dim1
     ));"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val INT);",
+            }
+        ]
 
 
-class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase):
+class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         T = TypeVar("T")
@@ -2030,9 +2094,7 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(result REAL);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     $udf_name(tens0.dim0,tens0.val,tens1.dim0,tens1.val)
 FROM
@@ -2041,19 +2103,18 @@ FROM
 WHERE
     tens0.dim0=tens1.dim0;"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(result REAL);",
+            }
+        ]
 
 
-class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase):
+class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def funcname(self):
         return TensorBinaryOp.MATMUL.name
@@ -2093,9 +2154,7 @@ class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,val REAL);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
@@ -2110,19 +2169,18 @@ GROUP BY
 ORDER BY
     dim0;"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val REAL);",
+            }
+        ]
 
 
-class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase):
+class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def funcname(self):
         return TensorBinaryOp.MATMUL.name
@@ -2163,9 +2221,7 @@ class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
@@ -2183,19 +2239,18 @@ ORDER BY
     dim0,
     dim1;"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);",
+            }
+        ]
 
 
-class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase):
+class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def funcname(self):
         return TensorBinaryOp.SUB.name
@@ -2224,9 +2279,7 @@ class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,val REAL);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
@@ -2234,19 +2287,18 @@ SELECT
 FROM
     tensor1 AS tensor_0;"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val REAL);",
+            }
+        ]
 
 
-class TestUDFGen_ScalarReturn(TestUDFGenBase):
+class TestUDFGen_ScalarReturn(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         T = TypeVar("T")
@@ -2294,27 +2346,24 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(result INT);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     $udf_name(tensor_in_db.dim0,tensor_in_db.dim1,tensor_in_db.val)
 FROM
     tensor_in_db;"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(result INT);",
+            }
+        ]
 
 
-class TestUDFGen_MergeTensor(TestUDFGenBase):
+class TestUDFGen_MergeTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2362,9 +2411,7 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),dim0 INT,val INT);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
@@ -2378,19 +2425,18 @@ FROM
             merge_table
     ));"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val INT);",
+            }
+        ]
 
 
-class TestUDFGen_TracebackFlag(TestUDFGenBase):
+class TestUDFGen_TracebackFlag(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(x=tensor(dtype=int, ndims=1), return_type=tensor(dtype=int, ndims=1))
@@ -2452,29 +2498,28 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(result VARCHAR(500));
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     $udf_name(tensor_in_db.dim0,tensor_in_db.val)
 FROM
     tensor_in_db;"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(
-            funcname, positional_args, {}, traceback=True
-        )
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(result VARCHAR(500));",
+            }
+        ]
+
+    @pytest.fixture(scope="class")
+    def traceback(self):
+        return True
 
 
-class TestUDFGen_StateReturnType(TestUDFGenBase):
+class TestUDFGen_StateReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(t=literal(), return_type=state())
@@ -2508,37 +2553,37 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),state BLOB);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+            }
+        ]
 
     @pytest.mark.database
     @pytest.mark.usefixtures("use_database")
-    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+    def test_udf_with_db(
+        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    ):
+        db.execute(concrete_udf_output_tables)
         db.execute(concrete_udf_def)
         db.execute(concrete_udf_sel)
-        _, state = db.execute("SELECT * FROM table_test").fetchone()
+        _, state = db.execute("SELECT * FROM main_output_table_name").fetchone()
         result = pickle.loads(state)
         assert result == {"num": 5}
 
 
-class TestUDFGen_StateInputandReturnType(TestUDFGenBase):
+class TestUDFGen_StateInputandReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2589,37 +2634,37 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),state BLOB);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+            }
+        ]
 
     @pytest.mark.database
     @pytest.mark.usefixtures("use_database", "create_state_table")
-    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+    def test_udf_with_db(
+        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    ):
+        db.execute(concrete_udf_output_tables)
         db.execute(concrete_udf_def)
         db.execute(concrete_udf_sel)
-        _, state = db.execute("SELECT * FROM table_test").fetchone()
+        _, state = db.execute("SELECT * FROM main_output_table_name").fetchone()
         result = pickle.loads(state)
         assert result == {"num": 10}
 
 
-class TestUDFGen_TransferReturnType(TestUDFGenBase):
+class TestUDFGen_TransferReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(t=literal(), return_type=transfer())
@@ -2653,37 +2698,37 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),transfer CLOB);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),transfer CLOB);",
+            }
+        ]
 
     @pytest.mark.database
     @pytest.mark.usefixtures("use_database")
-    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+    def test_udf_with_db(
+        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    ):
+        db.execute(concrete_udf_output_tables)
         db.execute(concrete_udf_def)
         db.execute(concrete_udf_sel)
-        _, transfer = db.execute("SELECT * FROM table_test").fetchone()
+        _, transfer = db.execute("SELECT * FROM main_output_table_name").fetchone()
         result = json.loads(transfer)
         assert result == {"num": 5, "list_of_nums": [5, 5, 5]}
 
 
-class TestUDFGen_TransferInputAndReturnType(TestUDFGenBase):
+class TestUDFGen_TransferInputAndReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2734,37 +2779,39 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),transfer CLOB);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),transfer CLOB);",
+            }
+        ]
 
     @pytest.mark.database
     @pytest.mark.usefixtures("use_database", "create_transfer_table")
-    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+    def test_udf_with_db(
+        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    ):
+        db.execute(concrete_udf_output_tables)
         db.execute(concrete_udf_def)
         db.execute(concrete_udf_sel)
-        _, transfer = db.execute("SELECT * FROM table_test").fetchone()
+        _, transfer = db.execute("SELECT * FROM main_output_table_name").fetchone()
         result = json.loads(transfer)
         assert result == {"num": 10}
 
 
-class TestUDFGen_TransferInputAndStateReturnType(TestUDFGenBase):
+class TestUDFGen_TransferInputAndStateReturnType(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2816,37 +2863,39 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),state BLOB);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+            }
+        ]
 
     @pytest.mark.database
     @pytest.mark.usefixtures("use_database", "create_transfer_table")
-    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+    def test_udf_with_db(
+        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    ):
+        db.execute(concrete_udf_output_tables)
         db.execute(concrete_udf_def)
         db.execute(concrete_udf_sel)
-        _, state = db.execute("SELECT * FROM table_test").fetchone()
+        _, state = db.execute("SELECT * FROM main_output_table_name").fetchone()
         result = pickle.loads(state)
         assert result == {"num": 10}
 
 
-class TestUDFGen_TransferAndStateInputandStateReturnType(TestUDFGenBase):
+class TestUDFGen_TransferAndStateInputandStateReturnType(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2912,25 +2961,22 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),state BLOB);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+            }
+        ]
 
     @pytest.mark.database
     @pytest.mark.usefixtures(
@@ -2938,15 +2984,20 @@ FROM
         "create_transfer_table",
         "create_state_table",
     )
-    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+    def test_udf_with_db(
+        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    ):
+        db.execute(concrete_udf_output_tables)
         db.execute(concrete_udf_def)
         db.execute(concrete_udf_sel)
-        _, state = db.execute("SELECT * FROM table_test").fetchone()
+        _, state = db.execute("SELECT * FROM main_output_table_name").fetchone()
         result = pickle.loads(state)
         assert result == {"num": 15}
 
 
-class TestUDFGen_MergeTransferAndStateInputandTransferReturnType(TestUDFGenBase):
+class TestUDFGen_MergeTransferAndStateInputandTransferReturnType(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -3015,25 +3066,22 @@ LANGUAGE PYTHON
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
         return """\
-DROP TABLE IF EXISTS $table_name;
-CREATE TABLE $table_name(node_id VARCHAR(500),transfer CLOB);
-INSERT INTO $table_name
+INSERT INTO $main_output_table_name
 SELECT
     CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
 
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-    ):
-        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
-        assert udfdef.template == expected_udfdef
-        assert udfsel.template == expected_udfsel
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),transfer CLOB);",
+            }
+        ]
 
     @pytest.mark.database
     @pytest.mark.usefixtures(
@@ -3041,10 +3089,13 @@ FROM
         "create_merge_transfer_table",
         "create_state_table",
     )
-    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+    def test_udf_with_db(
+        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    ):
+        db.execute(concrete_udf_output_tables)
         db.execute(concrete_udf_def)
         db.execute(concrete_udf_sel)
-        _, transfer = db.execute("SELECT * FROM table_test").fetchone()
+        _, transfer = db.execute("SELECT * FROM main_output_table_name").fetchone()
         result = json.loads(transfer)
         assert result == {"num": 20}
 
