@@ -1444,7 +1444,7 @@ def generate_udf_queries(
 def convert_udfgenargs_to_udfargs(udfgen_posargs, udfgen_kwargs):
     udf_posargs = [convert_udfgenarg_to_udfarg(arg) for arg in udfgen_posargs]
     udf_keywordargs = {
-        name: convert_udfgenarg_to_udfarg(arg) for name, arg in udfgen_kwargs
+        name: convert_udfgenarg_to_udfarg(arg) for name, arg in udfgen_kwargs.items()
     }
     return udf_posargs, udf_keywordargs
 

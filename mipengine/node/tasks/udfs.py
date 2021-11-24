@@ -124,6 +124,7 @@ def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
     """
     Creates a udf name with the format <func_name>_<commandId>_<contextId>
     """
+    # TODO Monetdb UDF name cannot be larger than 63 character
     return f"{func_name}_{command_id}_{context_id}"
 
 
