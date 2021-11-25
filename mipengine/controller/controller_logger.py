@@ -11,7 +11,7 @@ def getLogger(name):
     formatter = ctrl_logging.Formatter(
         "%(asctime)s - "
         "%(levelname)s - "
-        "CONTROLLER - "
+        "CONTROLLER - CONTROLLER - CONTROLLER - "
         "%(name)s - "
         "%(funcName)s(%(lineno)d) - "
         "%(message)s"
