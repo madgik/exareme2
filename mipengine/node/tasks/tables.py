@@ -2,7 +2,7 @@ from typing import List, Union
 
 from celery import shared_task
 
-from mipengine.node.logging import log_method_call
+from mipengine.node.node_logger import log_method_call
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import tables

@@ -1,30 +1,11 @@
-import logging
-import sys
 import time
 from functools import wraps
 
-from mipengine.node import config as node_config
+from celery.utils.log import get_task_logger
 
 
 def getLogger(name):
-    logger = logging.getLogger(name)
-    formatter = logging.Formatter(
-        "%(asctime)s - "
-        "%(levelname)s - "
-        "NODE - "
-        f"{node_config.role} - "
-        f"{node_config.identifier} - "
-        "%(name)s - "
-        "%(funcName)s(%(lineno)d) - "
-        "%(message)s"
-    )
-
-    handler = logging.StreamHandler(sys.stdout)
-    logger.setLevel(node_config.log_level)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    return logger
+    return get_task_logger(name)
 
 
 def log_method_call(func):

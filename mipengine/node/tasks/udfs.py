@@ -8,7 +8,7 @@ from celery import shared_task
 from mipengine import algorithms  # DO NOT REMOVE, NEEDED FOR ALGORITHM IMPORT
 
 from mipengine.node import config as node_config
-from mipengine.node.logging import log_method_call
+from mipengine.node.node_logger import log_method_call
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema

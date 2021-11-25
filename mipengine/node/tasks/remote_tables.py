@@ -3,7 +3,7 @@ from typing import List
 from celery import shared_task
 
 from mipengine.node.monetdb_interface import remote_tables
-from mipengine.node.logging import log_method_call
+from mipengine.node.node_logger import log_method_call
 from mipengine.node_tasks_DTOs import TableSchema
 
 
