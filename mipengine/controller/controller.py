@@ -79,11 +79,8 @@ class Controller:
         )
 
         # DEBUG(future logging..)
-        print(
-            f"\n(controller.py::exec_algorithm) FINISHED->  {algorithm_name=} "
-            f"with {context_id=}"
-        )
-        print(f"{algorithm_result.json()=}\n")
+        print(f"\n(Controller) FINISHED->  {algorithm_name=} with {context_id=}")
+        print(f"\n(Controller) {algorithm_result.json()=}\n")
         # DEBUG end
 
         return algorithm_result.json()
