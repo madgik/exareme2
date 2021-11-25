@@ -10,14 +10,19 @@ from mipengine.controller.algorithm_executor import AlgorithmExecutionException
 
 error_handlers = Blueprint("error_handlers", __name__)
 
-INSUFFICIENT_DATA_ERROR_MESSAGE = "The algorithm could not run with the input "\
+INSUFFICIENT_DATA_ERROR_MESSAGE = (
+    "The algorithm could not run with the input "
     "provided because there are insufficient data."
+)
+
+ALGORITHM_EXUCUTION_ERROR = "An error occured during the execution of the algorithm"
 
 
 class HTTPStatusCode(enum.IntEnum):
     BAD_REQUEST = 400
     BAD_USER_INPUT = 460
     INSUFFICIENT_DATA_ERROR = 461
+    ALGORITHM_EXECUTION_ERROR = 462
     UNEXPECTED_ERROR = 500
 
 
@@ -43,7 +48,7 @@ def handle_privacy_error(error: InsufficientDataError):
 @error_handlers.app_errorhandler(AlgorithmExecutionException)
 def handle_algorithm_excecution_exception(error: AlgorithmExecutionException):
     print(f"(error_handlers::handle_algorithm_excecution_exception) {error=}")
-    return "", HTTPStatusCode.UNEXPECTED_ERROR
+    return ALGORITHM_EXUCUTION_ERROR, HTTPStatusCode.ALGORITHM_EXECUTION_ERROR
 
 
 @error_handlers.app_errorhandler(Exception)
