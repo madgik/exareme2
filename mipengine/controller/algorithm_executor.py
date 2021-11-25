@@ -7,8 +7,6 @@ from celery.exceptions import TimeoutError
 from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
 
-# from kombu.exceptions import OperationalError
-
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
@@ -19,7 +17,7 @@ from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
-from mipengine.controller.node_tasks_handler_interface import IQueueUDFAsyncResult
+from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 
@@ -141,8 +139,10 @@ class AlgorithmExecutor:
             )
             self._instantiate_algorithm_execution_interface()
             algorithm_result = self.algorithm_flow_module.run(self._execution_interface)
-            print(f"(AlgorithmExecutor) finished execution of algorithm "
-                  f"with {self._context_id=}")
+            print(
+                f"(AlgorithmExecutor) finished execution of algorithm "
+                f"with {self._context_id=}"
+            )
             return algorithm_result
         except (
             SoftTimeLimitExceeded,
@@ -154,7 +154,9 @@ class AlgorithmExecutor:
                 "One of the nodes participating in the algorithm execution "
                 "stopped responding"
             )
-            print(f"(AlgorithmExecutor) ERROR: {error_message=} \n{err=}")  # TODO logging..
+            print(
+                f"(AlgorithmExecutor) ERROR: {error_message=} \n{err=}"
+            )  # TODO logging..
 
             raise AlgorithmExecutionException(error_message)
         except:
@@ -168,17 +170,17 @@ class AlgorithmExecutor:
         print(f"(AlgorithmExecutor) cleaning up global_node")
         try:
             self._global_node.clean_up()
-        except Exception:
-            print(f"(AlgorithmExecutor) cleaning up global_node FAILED")
+        except Exception as exc:
+            print(f"(AlgorithmExecutor) cleaning up global_node FAILED {exc=}")
             pass
-        
+
         print(f"(AlgorithmExecutor) cleaning up local nodes:{self._local_nodes=}")
         for node in self._local_nodes:
             print(f"(AlgorithmExecutor) cleaning up {node=}")
             try:
                 node.clean_up()
-            except:
-                print(f"(AlgorithmExecutor) cleaning up {node=} FAILED")
+            except Exception as exc:
+                print(f"(AlgorithmExecutor) cleaning up {node=} FAILED {exc=}")
                 pass
 
 
@@ -322,7 +324,7 @@ class _Node:
 
     def queue_run_udf(
         self, command_id: str, func_name: str, positional_args, keyword_args
-    ) -> IQueueUDFAsyncResult:
+    ) -> IQueuedUDFAsyncResult:
         return self._node_tasks_handler.queue_run_udf(
             context_id=self.context_id,
             command_id=command_id,
@@ -331,7 +333,7 @@ class _Node:
             keyword_args=keyword_args,
         )
 
-    def get_queued_udf_result(self, async_result: IQueueUDFAsyncResult):
+    def get_queued_udf_result(self, async_result: IQueuedUDFAsyncResult):
         return self._node_tasks_handler.get_queued_udf_result(async_result)
 
     def get_udfs(self, algorithm_name) -> List[str]:

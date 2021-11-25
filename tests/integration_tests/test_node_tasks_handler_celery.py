@@ -27,10 +27,9 @@ PROJECT_ROOT = Path(mipengine.__file__).parent.parent
 
 TASKS_CONTEXT_ID = "contextid123"
 
-# This fixture returns a celery app object upon which tasks will be triggered in order
-# to test them
+
 @pytest.fixture
-def node_task_handler():
+def node_task_handler_params():
     # The instantiation of a celery app object requires the following parameters: ip,port
     # user, password, vhost and the transport options(max_retries,interval_start,
     # interval_step,interval_max)
@@ -73,11 +72,11 @@ def node_task_handler():
             tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         )
 
-    return NodeTasksHandlerCelery(node_id=node_id, celery_params=celery_params_dto)
+    return {"node_id": node_id, "celery_params": celery_params_dto}
 
 
 @pytest.fixture
-def a_test_table_params():
+def test_table_params():
     command_id = "cmndid123"
     schema = TableSchema(
         columns=[
@@ -85,20 +84,30 @@ def a_test_table_params():
             ColumnInfo(name="var2", dtype=DType.STR),
         ]
     )
-    return (command_id, schema)
+    return {"command_id": command_id, "schema": schema}
 
 
 @pytest.fixture
-def cleanup(node_task_handler):
+def cleanup(node_task_handler_params):
     yield
+
     # teardown
+    node_task_handler = NodeTasksHandlerCelery(
+        node_id=node_task_handler_params["node_id"],
+        celery_params=node_task_handler_params["celery_params"],
+    )
     node_task_handler.clean_up(context_id=TASKS_CONTEXT_ID)
 
 
 @pytest.mark.usefixtures("cleanup")
-def test_create_table(node_task_handler, a_test_table_params):
-    command_id = a_test_table_params[0]
-    schema = a_test_table_params[1]
+def test_create_table(node_task_handler_params, test_table_params):
+    node_task_handler = NodeTasksHandlerCelery(
+        node_id=node_task_handler_params["node_id"],
+        celery_params=node_task_handler_params["celery_params"],
+    )
+
+    command_id = test_table_params["command_id"]
+    schema = test_table_params["schema"]
 
     table_name = node_task_handler.create_table(
         context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
@@ -109,9 +118,14 @@ def test_create_table(node_task_handler, a_test_table_params):
 
 
 @pytest.mark.usefixtures("cleanup")
-def test_get_tables(node_task_handler, a_test_table_params):
-    command_id = a_test_table_params[0]
-    schema = a_test_table_params[1]
+def test_get_tables(node_task_handler_params, test_table_params):
+    node_task_handler = NodeTasksHandlerCelery(
+        node_id=node_task_handler_params["node_id"],
+        celery_params=node_task_handler_params["celery_params"],
+    )
+
+    command_id = test_table_params["command_id"]
+    schema = test_table_params["schema"]
     table_name = node_task_handler.create_table(
         context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
     )
@@ -120,9 +134,14 @@ def test_get_tables(node_task_handler, a_test_table_params):
 
 
 @pytest.mark.usefixtures("cleanup")
-def test_get_table_schema(node_task_handler, a_test_table_params):
-    command_id = a_test_table_params[0]
-    schema = a_test_table_params[1]
+def test_get_table_schema(node_task_handler_params, test_table_params):
+    node_task_handler = NodeTasksHandlerCelery(
+        node_id=node_task_handler_params["node_id"],
+        celery_params=node_task_handler_params["celery_params"],
+    )
+
+    command_id = test_table_params["command_id"]
+    schema = test_table_params["schema"]
     table_name = node_task_handler.create_table(
         context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
     )
@@ -130,15 +149,18 @@ def test_get_table_schema(node_task_handler, a_test_table_params):
     assert schema_result == schema
 
 
-# def test_del_tbl(node_task_handler):
-#     node_task_handler.clean_up(context_id="contextid123")
-#     assert True
-
-
 @pytest.mark.usefixtures("cleanup")
-def test_broker_connection_closed_exception(node_task_handler, a_test_table_params):
-    command_id = a_test_table_params[0]
-    schema = a_test_table_params[1]
+def test_broker_connection_closed_exception(
+    node_task_handler_params, test_table_params
+):
+
+    node_task_handler = NodeTasksHandlerCelery(
+        node_id=node_task_handler_params["node_id"],
+        celery_params=node_task_handler_params["celery_params"],
+    )
+
+    command_id = test_table_params["command_id"]
+    schema = test_table_params["schema"]
     table_name = node_task_handler.create_table(
         context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
     )
@@ -165,9 +187,14 @@ def test_broker_connection_closed_exception(node_task_handler, a_test_table_para
 
 
 @pytest.mark.usefixtures("cleanup")
-def test_time_limit_exceeded_exception(node_task_handler, a_test_table_params):
-    command_id = a_test_table_params[0]
-    schema = a_test_table_params[1]
+def test_time_limit_exceeded_exception(node_task_handler_params, test_table_params):
+    node_task_handler = NodeTasksHandlerCelery(
+        node_id=node_task_handler_params["node_id"],
+        celery_params=node_task_handler_params["celery_params"],
+    )
+
+    command_id = test_table_params["command_id"]
+    schema = test_table_params["schema"]
     table_name = node_task_handler.create_table(
         context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
     )
