@@ -33,7 +33,7 @@ def handle_bad_user_input(error: BadUserInput):
 
 @error_handlers.app_errorhandler(InsufficientDataError)
 def handle_privacy_error(error: InsufficientDataError):
-    ctrl_logger.getLogger(__name__).error(
+    ctrl_logger.getLogger(__name__).info(
         f"Insufficient Data Error: \n " + error.message
     )
     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
