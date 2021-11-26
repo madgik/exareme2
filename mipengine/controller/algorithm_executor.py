@@ -128,22 +128,24 @@ class AlgorithmExecutor:
                 "One of the nodes participating in the algorithm execution "
                 "stopped responding"
             )
-            ctrl_logger.getLogger().error(f"{error_message} \n{err=}")  # TODO logging..
+            ctrl_logger.getAppLogger().error(
+                f"{error_message} \n{err=}"
+            )  # TODO logging..
 
             raise AlgorithmExecutionException(error_message)
         except:
             import traceback
 
-            ctrl_logger.getLogger().info(f"{traceback.format_exc()}")
+            ctrl_logger.getAppLogger().info(f"{traceback.format_exc()}")
         finally:
             self.clean_up()
 
     def clean_up(self):
         # TODO logging..
-        ctrl_logger.getLogger().info(f"----> cleaning up global_node")
+        ctrl_logger.getAppLogger().info(f"----> cleaning up global_node")
         self.global_node.clean_up()
         for node in self.local_nodes:
-            ctrl_logger.getLogger().info(f"----> cleaning up {node:}")
+            ctrl_logger.getAppLogger().info(f"----> cleaning up {node:}")
             node.clean_up()
 
 

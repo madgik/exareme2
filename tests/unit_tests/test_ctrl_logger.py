@@ -5,7 +5,7 @@ from mipengine.controller.controller_logger import log_method_call
 
 
 def test_log_format(capsys):
-    logger = ctrl_logger.getLogger()
+    logger = ctrl_logger.getAppLogger()
     logger.info("this is a test")
 
     captured = capsys.readouterr()

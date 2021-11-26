@@ -3,14 +3,18 @@ import time
 from functools import wraps
 
 
-def getLogger():
-    return logging.getLogger("quart.serving")
+def getAppLogger():
+    return logging.getLogger("quart.app")
+
+
+def getServerLogger():
+    return logging.getLogger("quart.server")
 
 
 def log_method_call(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        logger = getLogger()
+        logger = getAppLogger()
         starting_timestamp = time.time()
         logger.info(f"*********** {func.__name__} method started ***********")
         output = func(*args, **kwargs)

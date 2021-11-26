@@ -72,7 +72,7 @@ class NodeRegistry:
             self.nodes: List[NodeInfo] = await _get_nodes_info(nodes_addresses)
 
             # DEBUG
-            ctrl_logger.getLogger().info(
+            ctrl_logger.getServerLogger().info(
                 f"--> NodeRegistry just updated. Nodes:{[node.id for node in self.nodes]}"
             )
             # ..to print full nodes info
