@@ -142,6 +142,37 @@ Output Type             yes                  yes
 ======================= ==================== =====================
 
 
+Local/Global steps explained
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+For State and Transfer there is also the option of multiple return values.
+This is used for the local/global step logic where a local step (udf) keeps a State
+locally and sends a Transfer to the global node. Respectively, a global step (udf)
+keeps a State globally and sends a Transfer object to all the local nodes.
+
+Local UDF step Example
+~~~~~~~~~~~~~~~~~~~~~~
+>>> @udf(x=state(), y=transfer(), return_type=[state(), transfer()])
+... def local_step(x, y):
+...     state["x"] = x["key"]
+...     state["y"] = y["key"]
+...     transfer["sum"] = x["key"] + y["key"]
+...     return state, transfer
+
+Global UDF step Example
+~~~~~~~~~~~~~~~~~~~~~~
+>>> @udf(x=state(), y=merge_transfer(), return_type=[state(), transfer()])
+... def global_step(x, y):
+...     state["x"] = x["key"]
+...     sum = 0
+...     for transfer in y:
+...         sum += transfer["key"]
+...     state["y"] = sum
+...     transfer["sum"] = x["key"] + y["key"]
+...     return state, transfer
+
+NOTE: Even though it's not mandatory, it's faster to have state as the first input/output.
+
+
 2. Translating and calling UDFs
 -------------------------------
 
@@ -172,6 +203,9 @@ The code generation process is the same as before with the difference that the
 first string returned by generate_udf_queries is empty since there
 is no UDF definition. The second string holds the queries for executing the
 operation and inserting the result into a new table.
+
+
+
 
 
 All the module's exposed objects are found in the table below.
@@ -216,6 +250,7 @@ from typing import Union
 
 import astor
 import numpy
+from typing import Tuple
 
 from mipengine import DType as dt
 from mipengine.node_tasks_DTOs import TableInfo
@@ -326,6 +361,30 @@ def get_return_stmt_template(output_type: "OutputType"):
     )
 
 
+def get_loopback_return_stmt_template(
+    output_type: "OutputType", tablename_placeholder: str
+):
+    if not isinstance(output_type, LoopbackOutputType):
+        raise TypeError(
+            f"Secondary return statement template only for LoopbackOutputTypes. Type provided: {output_type}"
+        )
+    if isinstance(output_type, TransferType):
+        return (
+            '_conn.execute(f"INSERT INTO $'
+            + tablename_placeholder
+            + " VALUES ('$node_id', '{{json.dumps({return_name})}}');\")"
+        )
+    if isinstance(output_type, StateType):
+        return (
+            '_conn.execute(f"INSERT INTO $'
+            + tablename_placeholder
+            + " VALUES ('$node_id', '{{pickle.dumps({return_name}).hex()}}');\")"
+        )
+    raise NotImplementedError(
+        f"Type {output_type} doesn't have a loopback return statement template."
+    )
+
+
 def get_return_type_template(output_type):
     if not isinstance(output_type, OutputType):
         raise TypeError(
@@ -387,12 +446,19 @@ def get_func_body_from_ast(tree):
     return funcdef.body
 
 
-def get_return_name_from_body(statements):
-    """Returns name of variable in return statement. Assumes that a return
-    statemen exists and is of type ast.Name because the validation is supposed
-    to happen before (in validate_func_as_udf)."""
+def get_return_names_from_body(statements) -> Tuple[str, List[str]]:
+    """Returns names of variables in return statement. Assumes that a return
+    statement exists and is of type ast.Name or ast.Tuple because the validation is
+    supposed to happen before (in validate_func_as_udf)."""
     ret_stmt = next(s for s in statements if isinstance(s, ast.Return))
-    return ret_stmt.value.id  # type: ignore
+    if isinstance(ret_stmt.value, ast.Name):
+        return ret_stmt.value.id, []  # type: ignore
+    elif isinstance(ret_stmt.value, ast.Tuple):
+        main_ret = ret_stmt.value.elts[0].id
+        sec_rets = [value.id for value in ret_stmt.value.elts[1:]]
+        return main_ret, sec_rets
+    else:
+        raise NotImplementedError
 
 
 def make_unique_func_name(func) -> str:
@@ -512,6 +578,10 @@ class OutputType(IOType):
     pass
 
 
+class LoopbackOutputType(OutputType):
+    pass
+
+
 class TableType(InputType, OutputType, ABC):
     @property
     @abstractmethod
@@ -584,7 +654,7 @@ def scalar(dtype):
     return ScalarType(dtype)
 
 
-class DictType(TableType, ABC):
+class DictType(TableType, LoopbackOutputType, ABC):
     _data_column_name: str
     _data_column_type: dt
 
@@ -781,7 +851,7 @@ class UDFSignature(ASTNode):
         self,
         udfname: str,  # unused as long as generator returns templates
         table_args: Dict[str, TableArg],
-        return_type: Union[TableType, ScalarType],
+        return_type: OutputType,
     ):
         self.udfname = "$udf_name"
         self.parameter_types = [
@@ -812,7 +882,7 @@ class UDFHeader(ASTNode):
         self,
         udfname: str,
         table_args: Dict[str, TableArg],
-        return_type: Union[TableType, ScalarType],
+        return_type: OutputType,
     ):
         self.signature = UDFSignature(udfname, table_args, return_type)
 
@@ -876,6 +946,25 @@ class UDFReturnStatement(ASTNode):
         return self.template.format(return_name=self.return_name)
 
 
+class UDFLoopbackReturnStatements(ASTNode):
+    def __init__(self, sec_return_names, sec_return_types):
+        self.sec_return_names = sec_return_names
+        self.templates = [
+            get_loopback_return_stmt_template(
+                sec_return_type, get_loopback_table_template_name(pos)
+            )
+            for pos, sec_return_type in enumerate(sec_return_types)
+        ]
+
+    def compile(self) -> str:
+        return LN.join(
+            [
+                template.format(return_name=return_name)
+                for template, return_name in zip(self.templates, self.sec_return_names)
+            ]
+        )
+
+
 class LiteralAssignments(ASTNode):
     def __init__(self, literals: Dict[str, LiteralArg]):
         self.literals = literals
@@ -902,14 +991,23 @@ class UDFBody(ASTNode):
         table_args: Dict[str, TableArg],
         literal_args: Dict[str, LiteralArg],
         statements: list,
-        return_name: str,
-        return_type: OutputType,
+        main_return_name: str,
+        main_return_type: OutputType,
+        sec_return_names: List[str],
+        sec_return_types: List[OutputType],
     ):
         self.returnless_stmts = UDFBodyStatements(statements)
-        self.return_stmt = UDFReturnStatement(return_name, return_type)
+        self.loopback_return_stmts = UDFLoopbackReturnStatements(
+            sec_return_names=sec_return_names, sec_return_types=sec_return_types
+        )
+        self.return_stmt = UDFReturnStatement(main_return_name, main_return_type)
         self.table_builds = TableBuilds(table_args)
         self.literals = LiteralAssignments(literal_args)
-        all_types = [arg.type for arg in table_args.values()] + [return_type]
+        all_types = (
+            [arg.type for arg in table_args.values()]
+            + [main_return_type]
+            + sec_return_types
+        )
         self.imports = Imports(
             import_pickle=is_any_element_of_type(StateType, all_types),
             import_json=is_any_element_of_type(TransferType, all_types),
@@ -923,6 +1021,7 @@ class UDFBody(ASTNode):
                     self.table_builds.compile(),
                     self.literals.compile(),
                     self.returnless_stmts.compile(),
+                    self.loopback_return_stmts.compile(),
                     self.return_stmt.compile(),
                 ]
             )
@@ -973,20 +1072,23 @@ class UDFDefinition(ASTNode):
         funcparts: "FunctionParts",
         table_args: Dict[str, TableArg],
         literal_args: Dict[str, LiteralArg],
-        output_type: Union[TableType, ScalarType],
+        main_output_type: OutputType,
+        sec_output_types: List[OutputType],
         traceback=False,
     ):
         self.header = UDFHeader(
             udfname=funcparts.qualname,
             table_args=table_args,
-            return_type=output_type,
+            return_type=main_output_type,
         )
         body = UDFBody(
             table_args=table_args,
             literal_args=literal_args,
             statements=funcparts.body_statements,
-            return_name=funcparts.return_name,
-            return_type=funcparts.output_type,
+            main_return_name=funcparts.main_return_name,
+            main_return_type=main_output_type,
+            sec_return_names=funcparts.sec_return_names,
+            sec_return_types=sec_output_types,
         )
         self.body = UDFTracebackCatcher(body) if traceback else body
 
@@ -1279,7 +1381,8 @@ del UDFDecorator
 
 class Signature(NamedTuple):
     parameters: Dict[str, InputType]
-    return_annotation: OutputType
+    main_return_annotation: OutputType
+    sec_return_annotations: List[OutputType]
 
 
 class FunctionParts(NamedTuple):
@@ -1288,10 +1391,12 @@ class FunctionParts(NamedTuple):
 
     qualname: str
     body_statements: list
-    return_name: str
+    main_return_name: str
+    sec_return_names: List[str]
     table_input_types: Dict[str, TableType]
     literal_input_types: Dict[str, LiteralType]
-    output_type: OutputType
+    main_output_type: OutputType
+    sec_output_types: List[OutputType]
     sig: Signature
 
 
@@ -1313,40 +1418,61 @@ def decorator_parameter_names_are_valid(parameter_names, decorator_kwargs):
 
 def make_udf_signature(parameter_names, decorator_kwargs):
     parameters = {name: decorator_kwargs[name] for name in parameter_names}
-    return_annotation = decorator_kwargs["return_type"]
-    signature = Signature(parameters, return_annotation)
+    if isinstance(decorator_kwargs["return_type"], List):
+        main_return_annotation = decorator_kwargs["return_type"][0]
+        sec_return_annotations = decorator_kwargs["return_type"][1:]
+    else:
+        main_return_annotation = decorator_kwargs["return_type"]
+        sec_return_annotations = []
+    signature = Signature(
+        parameters=parameters,
+        main_return_annotation=main_return_annotation,
+        sec_return_annotations=sec_return_annotations,
+    )
     return signature
 
 
-def validate_udf_signature_types(funcsig):
+def validate_udf_signature_types(funcsig: Signature):
     """Validates that all types used in the udf's type signature, both input
     and output, are subclasses of InputType or OutputType."""
     parameter_types = funcsig.parameters.values()
-    return_type = funcsig.return_annotation
     if any(not isinstance(input_type, InputType) for input_type in parameter_types):
         raise UDFBadDefinition(
             f"Input types of func are not subclasses of InputType: {parameter_types}."
         )
-    if not isinstance(return_type, OutputType):
+
+    main_return = funcsig.main_return_annotation
+    if not isinstance(main_return, OutputType):
         raise UDFBadDefinition(
-            f"Output type of func is not subclass of OutputType: {return_type}."
+            f"Output type of func is not subclass of OutputType: {main_return}."
+        )
+
+    sec_returns = funcsig.sec_return_annotations
+    if any(
+        not isinstance(output_type, LoopbackOutputType) for output_type in sec_returns
+    ):
+        raise UDFBadDefinition(
+            f"The secondary output types of func are not subclasses of LoopbackOutputType: {sec_returns}."
         )
 
 
 def validate_udf_return_statement(func):
-    """Validates two things concerning the return statement of a udf. 1) that
-    there is one and 2) that it is of the simple `return name` form, as no
-    expressions are allowd in udf return statements."""
+    """Validates two things concerning the return statement of a udf.
+    1) that there is one and
+    2) that it is of the simple `return foo, bar` form, as no
+    expressions are allowed in udf return statements."""
     tree = parse_func(func)
     statements = get_func_body_from_ast(tree)
     try:
         ret_stmt = next(s for s in statements if isinstance(s, ast.Return))
     except StopIteration as stop_iter:
         raise UDFBadDefinition(f"Return statement not found in {func}.") from stop_iter
-    if not isinstance(ret_stmt.value, ast.Name):
+    if not isinstance(ret_stmt.value, ast.Name) and not isinstance(
+        ret_stmt.value, ast.Tuple
+    ):
         raise UDFBadDefinition(
             f"Expression in return statement in {func}."
-            "Assign expression to variable and return it."
+            "Assign expression to variable/s and return it/them."
         )
 
 
@@ -1356,7 +1482,7 @@ def breakup_function(func, funcsig) -> FunctionParts:
     qualname = make_unique_func_name(func)
     tree = parse_func(func)
     body_statements = get_func_body_from_ast(tree)
-    return_name = get_return_name_from_body(body_statements)
+    main_return_name, sec_return_names = get_return_names_from_body(body_statements)
     table_input_types = {
         name: input_type
         for name, input_type in funcsig.parameters.items()
@@ -1367,15 +1493,18 @@ def breakup_function(func, funcsig) -> FunctionParts:
         for name, input_type in funcsig.parameters.items()
         if isinstance(input_type, LiteralType)
     }
-    output_type = funcsig.return_annotation
+    main_output_type = funcsig.main_return_annotation
+    sec_output_types = funcsig.sec_return_annotations
     return FunctionParts(
-        qualname,
-        body_statements,
-        return_name,
-        table_input_types,
-        literal_input_types,
-        output_type,
-        funcsig,
+        qualname=qualname,
+        body_statements=body_statements,
+        main_return_name=main_return_name,
+        sec_return_names=sec_return_names,
+        table_input_types=table_input_types,
+        literal_input_types=literal_input_types,
+        main_output_type=main_output_type,
+        sec_output_types=sec_output_types,
+        sig=funcsig,
     )
 
 
@@ -1521,20 +1650,25 @@ def get_udf_templates_using_udfregistry(
         expected_tables_types=funcparts.table_input_types,
         expected_literal_types=funcparts.literal_input_types,
     )
-    output_type = get_output_type(funcparts, udf_args, traceback)
-
-    output_tables = get_drop_and_create_table_templates(output_type)
+    main_output_type, sec_output_types = get_output_types(
+        funcparts, udf_args, traceback
+    )
+    output_tables = get_drop_and_create_table_templates(
+        main_output_type=main_output_type,
+        sec_output_types=sec_output_types,
+    )
 
     udf_definition = get_udf_definition_template(
-        funcparts,
-        udf_args,
-        output_type,
+        funcparts=funcparts,
+        input_args=udf_args,
+        main_output_type=main_output_type,
+        sec_output_types=sec_output_types,
         traceback=traceback,
     )
 
     table_args = get_items_of_type(TableArg, mapping=udf_args)
     udf_select = get_udf_select_template(
-        ScalarType(str) if traceback else output_type,
+        ScalarType(str) if traceback else main_output_type,
         table_args,
     )
     udf_execution = get_udf_execution_template(udf_select)
@@ -1649,7 +1783,8 @@ def copy_types_from_udfargs(udfargs: Dict[str, UDFArgument]) -> Dict[str, InputT
 def get_udf_definition_template(
     funcparts: FunctionParts,
     input_args: Dict[str, UDFArgument],
-    output_type,
+    main_output_type: OutputType,
+    sec_output_types: List[OutputType],
     traceback=False,
 ) -> Template:
     table_args: Dict[str, TableArg] = get_items_of_type(TableArg, mapping=input_args)
@@ -1663,14 +1798,17 @@ def get_udf_definition_template(
     udf_definition = UDFDefinition(
         funcparts=funcparts,
         table_args=table_args,
-        output_type=output_type,
+        main_output_type=main_output_type,
+        sec_output_types=sec_output_types,
         literal_args=literal_args,
         traceback=traceback,
     )
     return Template(udf_definition.compile())
 
 
-def get_output_type(funcparts, udf_args, traceback) -> OutputType:
+def get_output_types(
+    funcparts, udf_args, traceback
+) -> Tuple[OutputType, List[OutputType]]:
     """Computes the UDF output type. If `traceback` is true the type is str
     since the traceback will be returned as a string. If the output type is
     generic its type parameters must be inferred from the passed input types.
@@ -1678,18 +1816,21 @@ def get_output_type(funcparts, udf_args, traceback) -> OutputType:
     input_types = copy_types_from_udfargs(udf_args)
 
     if traceback:
-        return scalar(str)
+        return scalar(str), []
     if (
-        isinstance(funcparts.output_type, ParametrizedType)
-        and funcparts.output_type.is_generic
+        isinstance(funcparts.main_output_type, ParametrizedType)
+        and funcparts.main_output_type.is_generic
     ):
         param_table_types = get_items_of_type(TableType, mapping=input_types)
-        return infer_output_type(
-            passed_input_types=param_table_types,
-            declared_input_types=funcparts.table_input_types,
-            declared_output_type=funcparts.output_type,
+        return (
+            infer_output_type(
+                passed_input_types=param_table_types,
+                declared_input_types=funcparts.table_input_types,
+                declared_output_type=funcparts.main_output_type,
+            ),
+            [],
         )
-    return funcparts.output_type
+    return funcparts.main_output_type, funcparts.sec_output_types
 
 
 def verify_declared_and_passed_param_types_match(
@@ -1827,26 +1968,46 @@ def get_main_table_template_name() -> str:
     return "main_output_table_name"
 
 
-def get_loopback_table_template_name(identifier: str) -> str:
+def get_loopback_table_template_name(identifier: int) -> str:
     return f"loopback_table_name_{identifier}"
 
 
 def get_drop_and_create_table_templates(
-    output_type: OutputType,
+    main_output_type: OutputType,
+    sec_output_types: List[OutputType] = None,
 ) -> List[UDFOutputTable]:
+    udf_output_tables = []
     table_name = get_main_table_template_name()
     drop_table = DROP_TABLE_IF_EXISTS + " $" + table_name + SCOLON
-    output_schema = iotype_to_sql_schema(output_type)
-    if not isinstance(output_type, ScalarType):
+    output_schema = iotype_to_sql_schema(main_output_type)
+    if not isinstance(main_output_type, ScalarType):
         output_schema = f"node_id {dt.STR.to_sql()}," + output_schema
     create_table = CREATE_TABLE + " $" + table_name + f"({output_schema})" + SCOLON
-    return [
+    udf_output_tables.append(
         UDFOutputTable(
             tablename_placeholder=table_name,
             drop_query=Template(drop_table),
             create_query=Template(create_table),
         )
-    ]
+    )
+    if not sec_output_types:
+        return udf_output_tables
+
+    for pos, sec_output_type in enumerate(sec_output_types):
+        table_name = get_loopback_table_template_name(pos)
+        drop_table = DROP_TABLE_IF_EXISTS + " $" + table_name + SCOLON
+        output_schema = f"node_id {dt.STR.to_sql()}," + iotype_to_sql_schema(
+            sec_output_type
+        )
+        create_table = CREATE_TABLE + " $" + table_name + f"({output_schema})" + SCOLON
+        udf_output_tables.append(
+            UDFOutputTable(
+                tablename_placeholder=table_name,
+                drop_query=Template(drop_table),
+                create_query=Template(create_table),
+            )
+        )
+    return udf_output_tables
 
 
 def get_udf_execution_template(udf_select_query) -> Template:

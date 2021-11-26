@@ -53,6 +53,7 @@ from mipengine.udfgen.udfgenerator import (
     udf,
     verify_declared_typeparams_match_passed_type,
 )
+from mipengine.udfgen.udfgenerator import get_main_table_template_name
 from mipengine.udfgen_DTOs import UDFExecutionQueries
 from mipengine.udfgen_DTOs import UDFOutputTable
 
@@ -270,6 +271,89 @@ class TestUDFValidation:
             return y
 
         assert udf.registry != {}
+
+    def test_validate_func_as_valid_udf_with_local_step_logic_and_state_main_return(
+        self,
+    ):
+        @udf(x=state(), y=transfer(), return_type=[state(), transfer()])
+        def f(x, y):
+            r1 = {"num1": 1}
+            r2 = {"num2": 2}
+            return r1, r2
+
+        assert udf.registry != {}
+
+    def test_validate_func_as_valid_udf_with_local_step_logic_and_transfer_main_return(
+        self,
+    ):
+        @udf(x=state(), y=transfer(), return_type=[transfer(), state()])
+        def f(x, y):
+            r1 = {"num1": 1}
+            r2 = {"num2": 2}
+            return r1, r2
+
+        assert udf.registry != {}
+
+    def test_validate_func_as_valid_udf_with_global_step_logic(self):
+        @udf(x=state(), y=merge_transfer(), return_type=[state(), transfer()])
+        def f(x, y):
+            r1 = {"num1": 1}
+            r2 = {"num2": 2}
+            return r1, r2
+
+        assert udf.registry != {}
+
+    def test_validate_func_as_invalid_udf_with_tensor_as_sec_return(self):
+        with pytest.raises(UDFBadDefinition) as exc:
+
+            @udf(
+                x=state(),
+                y=merge_transfer(),
+                return_type=[state(), tensor(DType.INT, 2)],
+            )
+            def f(x, y):
+                r1 = {"num1": 1}
+                r2 = {"num2": 2}
+                return r1, r2
+
+        assert (
+            "The secondary output types of func are not subclasses of LoopbackOutputType:"
+            in str(exc)
+        )
+
+    def test_validate_func_as_invalid_udf_with_relation_as_sec_return(self):
+        with pytest.raises(UDFBadDefinition) as exc:
+
+            @udf(
+                x=state(),
+                y=merge_transfer(),
+                return_type=[state(), relation(schema=[])],
+            )
+            def f(x, y):
+                r1 = {"num1": 1}
+                r2 = {"num2": 2}
+                return r1, r2
+
+        assert (
+            "The secondary output types of func are not subclasses of LoopbackOutputType:"
+            in str(exc)
+        )
+
+    def test_validate_func_as_invalid_udf_with_scalar_as_sec_return(self):
+        with pytest.raises(UDFBadDefinition) as exc:
+
+            @udf(
+                x=state(), y=merge_transfer(), return_type=[state(), scalar(DType.INT)]
+            )
+            def f(x, y):
+                r1 = {"num1": 1}
+                r2 = {"num2": 2}
+                return r1, r2
+
+        assert (
+            "The secondary output types of func are not subclasses of LoopbackOutputType:"
+            in str(exc)
+        )
 
     def test_tensors_and_relations(self):
         with pytest.raises(UDFBadDefinition) as exc:
@@ -882,8 +966,21 @@ class TestUDFGenBase:
         return next(iter(udfregistry.keys()))
 
     @pytest.fixture(scope="class")
-    def concrete_udf_def(self, expected_udfdef):
-        return Template(expected_udfdef).substitute(udf_name="udf_test")
+    def concrete_udf_def(self, expected_udfdef, expected_udf_output_tables):
+        """
+        Replaces the udf_name, node_id placeholders in the Template.
+        If the udf has loopback tables, it also replaces their names' placeholders.
+        """
+        template_mapping = {
+            "udf_name": "udf_test",
+            "node_id": "1",
+        }
+        for udf_output_table in expected_udf_output_tables:
+            tablename_placeholder = udf_output_table["tablename_placeholder"]
+            if get_main_table_template_name() in tablename_placeholder:
+                continue
+            template_mapping[tablename_placeholder] = tablename_placeholder
+        return Template(expected_udfdef).substitute(**template_mapping)
 
     @pytest.fixture(scope="class")
     def concrete_udf_output_tables(self, expected_udf_output_tables):
@@ -3098,6 +3195,338 @@ FROM
         _, transfer = db.execute("SELECT * FROM main_output_table_name").fetchone()
         result = json.loads(transfer)
         assert result == {"num": 20}
+
+
+class TestUDFGen_LocalStepLogic(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            state=state(),
+            transfer=transfer(),
+            return_type=[state(), transfer()],
+        )
+        def f(state, transfer):
+            result1 = {"num": transfer["num"] + state["num"]}
+            result2 = {"num": transfer["num"] * state["num"]}
+            return result1, result2
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="test_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+            TableInfo(
+                name="test_transfer_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="transfer", dtype=DType.JSON),
+                    ]
+                ),
+                type_=TableType.REMOTE,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(state BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    import json
+    __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
+    state = pickle.loads(__state_str)
+    __transfer_str = _conn.execute("SELECT transfer from test_transfer_table;")["transfer"][0]
+    transfer = json.loads(__transfer_str)
+    result1 = {'num': transfer['num'] + state['num']}
+    result2 = {'num': transfer['num'] * state['num']}
+    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(result2)}');")
+    return pickle.dumps(result1)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+            },
+            {
+                "tablename_placeholder": "loopback_table_name_0",
+                "drop_query": "DROP TABLE IF EXISTS $loopback_table_name_0;",
+                "create_query": "CREATE TABLE $loopback_table_name_0(node_id VARCHAR(500),transfer CLOB);",
+            },
+        ]
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_database",
+        "create_transfer_table",
+        "create_state_table",
+    )
+    def test_udf_with_db(
+        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    ):
+        db.execute(concrete_udf_output_tables)
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        (state_,) = db.execute("SELECT state FROM main_output_table_name").fetchone()
+        result1 = pickle.loads(state_)
+        assert result1 == {"num": 10}
+        (transfer_,) = db.execute(
+            "SELECT transfer FROM loopback_table_name_0"
+        ).fetchone()
+        result2 = json.loads(transfer_)
+        assert result2 == {"num": 25}
+
+
+class TestUDFGen_LocalStepLogic_Transfer_first_input_and_output(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            transfer=transfer(),
+            state=state(),
+            return_type=[transfer(), state()],
+        )
+        def f(transfer, state):
+            result1 = {"num": transfer["num"] + state["num"]}
+            result2 = {"num": transfer["num"] * state["num"]}
+            return result1, result2
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="test_transfer_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="transfer", dtype=DType.JSON),
+                    ]
+                ),
+                type_=TableType.REMOTE,
+            ),
+            TableInfo(
+                name="test_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(transfer CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    import json
+    __transfer_str = _conn.execute("SELECT transfer from test_transfer_table;")["transfer"][0]
+    transfer = json.loads(__transfer_str)
+    __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
+    state = pickle.loads(__state_str)
+    result1 = {'num': transfer['num'] + state['num']}
+    result2 = {'num': transfer['num'] * state['num']}
+    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{pickle.dumps(result2).hex()}');")
+    return json.dumps(result1)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),transfer CLOB);",
+            },
+            {
+                "tablename_placeholder": "loopback_table_name_0",
+                "drop_query": "DROP TABLE IF EXISTS $loopback_table_name_0;",
+                "create_query": "CREATE TABLE $loopback_table_name_0(node_id VARCHAR(500),state BLOB);",
+            },
+        ]
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_database",
+        "create_transfer_table",
+        "create_state_table",
+    )
+    def test_udf_with_db(
+        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    ):
+        db.execute(concrete_udf_output_tables)
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        (transfer_,) = db.execute(
+            "SELECT transfer FROM main_output_table_name"
+        ).fetchone()
+        result1 = json.loads(transfer_)
+        assert result1 == {"num": 10}
+        (state_,) = db.execute("SELECT state FROM loopback_table_name_0").fetchone()
+        result2 = pickle.loads(state_)
+        assert result2 == {"num": 25}
+
+
+class TestUDFGen_GlobalStepLogic(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            state=state(),
+            transfers=merge_transfer(),
+            return_type=[state(), transfer()],
+        )
+        def f(state, transfers):
+            sum_transfers = 0
+            for transfer in transfers:
+                sum_transfers += transfer["num"]
+            result1 = {"num": sum_transfers + state["num"]}
+            result2 = {"num": sum_transfers * state["num"]}
+            return result1, result2
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="test_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+            TableInfo(
+                name="test_merge_transfer_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="transfer", dtype=DType.JSON),
+                    ]
+                ),
+                type_=TableType.REMOTE,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(state BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    import json
+    __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
+    state = pickle.loads(__state_str)
+    __transfer_strs = _conn.execute("SELECT transfer from test_merge_transfer_table;")["transfer"]
+    transfers = [json.loads(str) for str in __transfer_strs]
+    sum_transfers = 0
+    for transfer in transfers:
+        sum_transfers += transfer['num']
+    result1 = {'num': sum_transfers + state['num']}
+    result2 = {'num': sum_transfers * state['num']}
+    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(result2)}');")
+    return pickle.dumps(result1)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+            },
+            {
+                "tablename_placeholder": "loopback_table_name_0",
+                "drop_query": "DROP TABLE IF EXISTS $loopback_table_name_0;",
+                "create_query": "CREATE TABLE $loopback_table_name_0(node_id VARCHAR(500),transfer CLOB);",
+            },
+        ]
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_database",
+        "create_merge_transfer_table",
+        "create_state_table",
+    )
+    def test_udf_with_db(
+        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    ):
+        db.execute(concrete_udf_output_tables)
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        (state_,) = db.execute("SELECT state FROM main_output_table_name").fetchone()
+        result1 = pickle.loads(state_)
+        assert result1 == {"num": 20}
+        (transfer_,) = db.execute(
+            "SELECT transfer FROM loopback_table_name_0"
+        ).fetchone()
+        result2 = json.loads(transfer_)
+        assert result2 == {"num": 75}
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~ Test SQL Generator ~~~~~~~~~~~~~~~~~~ #
