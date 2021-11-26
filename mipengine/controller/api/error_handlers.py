@@ -6,7 +6,6 @@ from quart import Blueprint
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.node_tasks_DTOs import InsufficientDataError
-from mipengine.controller.algorithm_executor import AlgorithmExecutionException
 from mipengine.controller import controller_logger as ctrl_logger
 
 error_handlers = Blueprint("error_handlers", __name__)
@@ -33,15 +32,13 @@ def handle_bad_user_input(error: BadUserInput):
 
 @error_handlers.app_errorhandler(InsufficientDataError)
 def handle_privacy_error(error: InsufficientDataError):
-    ctrl_logger.getLogger(__name__).info(
-        f"Insufficient Data Error: \n " + error.message
-    )
+    ctrl_logger.getLogger().info(f"Insufficient Data Error: \n " + error.message)
     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
 
 
 @error_handlers.app_errorhandler(Exception)
 def handle_unexpected_exception(error: Exception):
-    ctrl_logger.getLogger(__name__).error(
+    ctrl_logger.getLogger().error(
         f"Algorithm validation failed. \nTraceback: {traceback.print_exception(type(error), error, error.__traceback__)}"
     )
     return "", HTTPStatusCode.UNEXPECTED_ERROR
