@@ -21,6 +21,8 @@ from mipengine.controller import controller_logger as ctrl_logger
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
 # so the module can be easily unit tested
 
+logger = ctrl_logger.getLogger(__name__)
+
 GET_NODE_INFO_SIGNATURE = "mipengine.node.tasks.common.get_node_info"
 NODE_REGISTRY_UPDATE_INTERVAL = controller_config.node_registry_update_interval
 

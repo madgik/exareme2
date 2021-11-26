@@ -6,6 +6,7 @@ from abc import ABC
 from celery.exceptions import TimeoutError
 from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
+from mipengine.node_tasks_DTOs import InsufficientDataError
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
@@ -21,6 +22,7 @@ from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncRes
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller import controller_logger as ctrl_logger
 
+logger = ctrl_logger.getLogger(__name__)
 
 ALGORITHMS_FOLDER = "mipengine.algorithms"
 
@@ -155,33 +157,42 @@ class AlgorithmExecutor:
                 "stopped responding"
             )
 
-            ctrl_logger.getLogger(__name__).error(
-                f"(AlgorithmExecutor) ERROR: {error_message=} \n{err=}"
-            )  # TODO logging..
+            # logger.error(
+            #     f"(AlgorithmExecutor) ERROR: {error_message=} \n{err=}"
+            # )
+            print(f"(AlgorithmExecutor) ERROR: {error_message=} \n{err=}")
 
             raise AlgorithmExecutionException(error_message)
-        except:
+        except Exception as exc:
             import traceback
 
-            ctrl_logger.getLogger(__name__).info(f"{traceback.format_exc()}")
+            # logger.info(f"{traceback.format_exc()=}")
+            print(f"{traceback.format_exc()=}")
+
+            raise exc
         finally:
             self.clean_up()
 
     def clean_up(self):
-        ctrl_logger.getLogger(__name__).info(f"(AlgorithmExecutor) cleaning up global_node")
+        # logger.info(f"cleaning up global_node")
+        print(f"(AlgorithmExecutor) cleaning up global_node")
         try:
             self._global_node.clean_up()
         except Exception as exc:
-            ctrl_logger.getLogger(__name__).info(f"(AlgorithmExecutor) cleaning up global_node FAILED {exc=}")
+            # logger.info(f"cleaning up global_node FAILED {exc=}")
+            print(f"(AlgorithmExecutor) cleaning up global_node FAILED {exc=}")
             pass
 
-        ctrl_logger.getLogger(__name__).info(f"(AlgorithmExecutor) cleaning up local nodes:{self._local_nodes=}")
+        # logger.info(f"cleaning up local nodes:{self._local_nodes=}")
+        print(f"(AlgorithmExecutor) cleaning up local nodes:{self._local_nodes=}")
         for node in self._local_nodes:
-            ctrl_logger.getLogger(__name__).info(f"(AlgorithmExecutor) cleaning up {node=}")
+            # logger.info(f"cleaning up {node=}")
+            print(f"(AlgorithmExecutor) cleaning up {node=}")
             try:
                 node.clean_up()
             except Exception as exc:
-                ctrl_logger.getLogger(__name__).info(f"(AlgorithmExecutor) cleaning up {node=} FAILED {exc=}")
+                # logger.info(f"cleaning up {node=} FAILED {exc=}")
+                print(f"(AlgorithmExecutor) cleaning up {node=} FAILED {exc=}")
                 pass
 
 
