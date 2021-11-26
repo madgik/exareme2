@@ -3529,6 +3529,109 @@ FROM
         assert result2 == {"num": 75}
 
 
+# TODO It's currently not possible to have a scalar output from state,transfer input. There is not input table...
+# TODO This should be enabled again when MIP-426 is fixed
+# class TestUDFGen_FinalGlobalStepLogic(TestUDFGenBase, _TestGenerateUDFQueries):
+#     @pytest.fixture(scope="class")
+#     def udfregistry(self):
+#         @udf(
+#             state=state(),
+#             transfers=merge_transfer(),
+#             return_type=scalar(int),
+#         )
+#         def f(state, transfers):
+#             sum_transfers = 0
+#             for transfer in transfers:
+#                 sum_transfers += transfer["num"]
+#             result = sum_transfers + state["num"]
+#             return result
+#
+#         return udf.registry
+#
+#     @pytest.fixture(scope="class")
+#     def positional_args(self):
+#         return [
+#             TableInfo(
+#                 name="test_state_table",
+#                 schema_=TableSchema(
+#                     columns=[
+#                         ColumnInfo(name="state", dtype=DType.BINARY),
+#                     ]
+#                 ),
+#                 type_=TableType.NORMAL,
+#             ),
+#             TableInfo(
+#                 name="test_merge_transfer_table",
+#                 schema_=TableSchema(
+#                     columns=[
+#                         ColumnInfo(name="transfer", dtype=DType.JSON),
+#                     ]
+#                 ),
+#                 type_=TableType.REMOTE,
+#             ),
+#         ]
+#
+#     @pytest.fixture(scope="class")
+#     def expected_udfdef(self):
+#         return """\
+# CREATE OR REPLACE FUNCTION
+# $udf_name()
+# RETURNS
+# INT
+# LANGUAGE PYTHON
+# {
+#     import pandas as pd
+#     import udfio
+#     import pickle
+#     import json
+#     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
+#     state = pickle.loads(__state_str)
+#     __transfer_strs = _conn.execute("SELECT transfer from test_merge_transfer_table;")["transfer"]
+#     transfers = [json.loads(str) for str in __transfer_strs]
+#     sum_transfers = 0
+#     for transfer in transfers:
+#         sum_transfers += transfer['num']
+#     result = sum_transfers + state['num']
+#     return result
+# }"""
+#
+#     @pytest.fixture(scope="class")
+#     def expected_udfsel(self):
+#         return """\
+# INSERT INTO $main_output_table_name
+# SELECT
+#     $udf_name();"""
+#
+#     @pytest.fixture(scope="class")
+#     def expected_udf_output_tables(self):
+#         return [
+#             {
+#                 "tablename_placeholder": "main_output_table_name",
+#                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+#                 "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+#             },
+#             {
+#                 "tablename_placeholder": "loopback_table_name_0",
+#                 "drop_query": "DROP TABLE IF EXISTS $loopback_table_name_0;",
+#                 "create_query": "CREATE TABLE $loopback_table_name_0(node_id VARCHAR(500),transfer CLOB);",
+#             },
+#         ]
+#
+#     @pytest.mark.database
+#     @pytest.mark.usefixtures(
+#         "use_database",
+#         "create_merge_transfer_table",
+#         "create_state_table",
+#     )
+#     def test_udf_with_db(
+#         self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+#     ):
+#         db.execute(concrete_udf_output_tables)
+#         db.execute(concrete_udf_def)
+#         db.execute(concrete_udf_sel)
+#         result = ???
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~ Test SQL Generator ~~~~~~~~~~~~~~~~~~ #
 
 

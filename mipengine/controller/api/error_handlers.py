@@ -6,7 +6,6 @@ from quart import Blueprint
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.node_tasks_DTOs import InsufficientDataError
-from mipengine.controller.algorithm_executor import AlgorithmExecutionException
 from mipengine.controller import controller_logger as ctrl_logger
 
 error_handlers = Blueprint("error_handlers", __name__)
@@ -39,13 +38,15 @@ def handle_privacy_error(error: InsufficientDataError):
     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
 
 
-@error_handlers.app_errorhandler(Exception)
-def handle_unexpected_exception(error: Exception):
-    ctrl_logger.getLogger(__name__).error(
-        f"Internal Server Error."
-        f"\nErrorType: {type(error)}"
-        f"\nError: {error}"
-        f"\nTraceback: {traceback.print_tb(error.__traceback__)}"
-    )
-
-    return "", HTTPStatusCode.UNEXPECTED_ERROR
+# TODO Should be fixed! Default error handler doesn't contain enough error information.
+#       It's better to propagate, the error it's at least visible
+# @error_handlers.app_errorhandler(Exception)
+# def handle_unexpected_exception(error: Exception):
+#     ctrl_logger.getLogger(__name__).error(
+#         f"Internal Server Error."
+#         f"\nErrorType: {type(error)}"
+#         f"\nError: {error}"
+#         f"\nTraceback: {traceback.print_tb(error.__traceback__)}"
+#     )
+#
+#     return "", HTTPStatusCode.UNEXPECTED_ERROR

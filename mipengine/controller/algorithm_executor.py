@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from mipengine import import_algorithm_modules
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
+from mipengine.controller.controller_logger import getLogger
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueueUDFAsyncResult
 from mipengine.node_tasks_DTOs import TableData
@@ -181,27 +182,28 @@ class _Node:
 
         # initial view for variables in X
         variable = "x"
-        command_id = str(initial_view_tables_params["commandId"]) + variable
-        view_name = self.create_pathology_view(
-            command_id=command_id,
-            pathology=initial_view_tables_params["pathology"],
-            columns=initial_view_tables_params[variable],
-            filters=initial_view_tables_params["filters"],
-        )
-
-        initial_view_tables["x"] = view_name
+        if initial_view_tables_params[variable]:
+            command_id = str(initial_view_tables_params["commandId"]) + variable
+            view_name = self.create_pathology_view(
+                command_id=command_id,
+                pathology=initial_view_tables_params["pathology"],
+                columns=initial_view_tables_params[variable],
+                filters=initial_view_tables_params["filters"],
+            )
+            initial_view_tables["x"] = view_name
 
         # initial view for variables in Y
         variable = "y"
-        command_id = str(initial_view_tables_params["commandId"]) + variable
-        view_name = self.create_pathology_view(
-            command_id=command_id,
-            pathology=initial_view_tables_params["pathology"],
-            columns=initial_view_tables_params[variable],
-            filters=initial_view_tables_params["filters"],
-        )
+        if initial_view_tables_params[variable]:
+            command_id = str(initial_view_tables_params["commandId"]) + variable
+            view_name = self.create_pathology_view(
+                command_id=command_id,
+                pathology=initial_view_tables_params["pathology"],
+                columns=initial_view_tables_params[variable],
+                filters=initial_view_tables_params["filters"],
+            )
 
-        initial_view_tables["y"] = view_name
+            initial_view_tables["y"] = view_name
 
         return initial_view_tables
 
@@ -328,8 +330,8 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     local_nodes: List[_Node]
     algorithm_name: str
     algorithm_parameters: Optional[Dict[str, List[str]]] = None
-    x_variables: List[str]
-    y_variables: List[str]
+    x_variables: Optional[List[str]] = None
+    y_variables: Optional[List[str]] = None
 
     class Config:
         arbitrary_types_allowed = True

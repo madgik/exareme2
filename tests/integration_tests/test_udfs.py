@@ -17,9 +17,6 @@ localnode_app = nodes_communication.get_celery_app(local_node_id)
 local_node_get_udf = nodes_communication.get_celery_task_signature(
     localnode_app, "get_udf"
 )
-# local_node_get_run_udf_query = nodes_communication.get_celery_task_signature(
-#     localnode_app, "get_run_udf_query"
-# )
 local_node_run_udf = nodes_communication.get_celery_task_signature(
     localnode_app, "run_udf"
 )
