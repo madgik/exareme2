@@ -7,6 +7,7 @@ from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.node_tasks_DTOs import InsufficientDataError
 from mipengine.controller.algorithm_executor import AlgorithmExecutionException
+from mipengine.controller import controller_logger as ctrl_logger
 
 error_handlers = Blueprint("error_handlers", __name__)
 
@@ -38,7 +39,7 @@ def handle_bad_user_input(error: BadUserInput):
 
 @error_handlers.app_errorhandler(InsufficientDataError)
 def handle_privacy_error(error: InsufficientDataError):
-    print(
+    ctrl_logger.getLogger(__name__).info(
         f"(error_handlers::handle_privacy_error) Insufficient Data Error: \n "
         + error.message
     )
@@ -56,7 +57,7 @@ def handle_unexpected_exception(error: Exception):
     import traceback
 
     traceback_str = "".join(traceback.format_tb(error.__traceback__))
-    print(
+    ctrl_logger.getLogger(__name__).error(
         f"(error_handlers::handle_unexpected_exception) Unexpected Exception raised->\n{traceback_str} {error}"
     )
     return "", HTTPStatusCode.UNEXPECTED_ERROR

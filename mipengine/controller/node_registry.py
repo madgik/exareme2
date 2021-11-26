@@ -16,6 +16,7 @@ from mipengine.controller.celery_app import get_node_celery_app
 # from mipengine.controller.celery_app import task_to_async
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
+from mipengine.controller import controller_logger as ctrl_logger
 
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
 # so the module can be easily unit tested

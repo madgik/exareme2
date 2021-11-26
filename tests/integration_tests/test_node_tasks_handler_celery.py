@@ -114,7 +114,7 @@ def test_create_table(node_task_handler_params, test_table_params):
     )
     print(f"{table_name=}")
 
-    assert table_name.startswith(f"table_{command_id}_{TASKS_CONTEXT_ID}_")
+    assert table_name.startswith(f"normal_{command_id}_{TASKS_CONTEXT_ID}_")
 
 
 @pytest.mark.usefixtures("cleanup")

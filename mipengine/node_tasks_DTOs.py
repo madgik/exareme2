@@ -1,9 +1,9 @@
 import enum
+from abc import ABC
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Union
-from warnings import warn
 
 from pydantic import (
     BaseModel,
@@ -19,6 +19,19 @@ class UDFArgumentKind(enum.Enum):
     TABLE = enum.auto()
     LITERAL = enum.auto()
 
+    def __str__(self):
+        return self.name
+
+
+class TableType(enum.Enum):
+    NORMAL = enum.auto()
+    REMOTE = enum.auto()
+    MERGE = enum.auto()
+    VIEW = enum.auto()
+
+    def __str__(self):
+        return self.name
+
 
 # ~~~~~~~~~~~~~~~~~~ Validator ~~~~~~~~~~~~~~~~~ #
 
@@ -32,25 +45,31 @@ def validate_identifier(identifier):
 # ~~~~~~~~~~~~~~~~~~~ DTOs ~~~~~~~~~~~~~~~~~~~~~~ #
 
 
-class ColumnInfo(BaseModel):
+class ImmutableBaseModel(BaseModel, ABC):
+    class Config:
+        allow_mutation = False
+
+
+class ColumnInfo(ImmutableBaseModel):
     name: str
     dtype: DType
 
     _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 
 
-class TableSchema(BaseModel):
+class TableSchema(ImmutableBaseModel):
     columns: List[ColumnInfo]
 
 
-class TableInfo(BaseModel):
+class TableInfo(ImmutableBaseModel):
     name: str
     schema_: TableSchema
+    type_: TableType
 
     _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 
 
-class TableView(BaseModel):
+class TableView(ImmutableBaseModel):
     datasets: List[str]
     columns: List[str]
     filter: Dict
@@ -63,14 +82,14 @@ class TableView(BaseModel):
     )(validate_identifier)
 
 
-class TableData(BaseModel):
+class TableData(ImmutableBaseModel):
     schema_: TableSchema
     data_: List[List[Union[float, int, str, None]]]
     # Union is problematic in pydantic we keep track on that with bug report
     # https://team-1617704806227.atlassian.net/browse/MIP-245
 
 
-class UDFArgument(BaseModel):
+class UDFArgument(ImmutableBaseModel):
     kind: UDFArgumentKind
     value: Any
 

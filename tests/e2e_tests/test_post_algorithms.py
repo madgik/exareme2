@@ -81,7 +81,6 @@ def get_parametrization_list_success_cases():
     return parametrization_list
 
 
-@pytest.mark.xfail(reason="https://team-1617704806227.atlassian.net/browse/MIP-260")
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_success_cases(),
@@ -97,7 +96,22 @@ def test_post_algorithm_success(algorithm_name, request_dict, expected_response)
     )
     assert response.status_code == 200
 
-    assert response.json() == expected_response
+
+@pytest.mark.xfail(reason="https://team-1617704806227.atlassian.net/browse/MIP-260")
+@pytest.mark.parametrize(
+    "algorithm_name, request_dict, expected_response",
+    get_parametrization_list_success_cases(),
+)
+def test_post_algorithm_proper_result(algorithm_name, request_dict, expected_response):
+    algorithm_url = algorithms_url + "/" + algorithm_name
+
+    headers = {"Content-type": "application/json", "Accept": "text/plain"}
+    response = requests.post(
+        algorithm_url,
+        data=json.dumps(request_dict),
+        headers=headers,
+    )
+    assert not response.json() == expected_response
 
 
 def get_parametrization_list_exception_cases():

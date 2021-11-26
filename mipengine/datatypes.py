@@ -13,6 +13,8 @@ class DType(Enum):
     INT = "INT"
     FLOAT = "FLOAT"
     STR = "STR"
+    JSON = "JSON"
+    BINARY = "BLOB"
 
     def __init__(self, sqltype):
         self._sqltype = sqltype
@@ -60,6 +62,8 @@ class DType(Enum):
             cls.INT: "INT",
             cls.FLOAT: "REAL",
             cls.STR: f"VARCHAR({MONETDB_VARCHAR_SIZE})",
+            cls.JSON: "CLOB",  # (BUG) A monet udf return type cannot be of JSON type.
+            cls.BINARY: "BLOB",
         }
 
     @classmethod

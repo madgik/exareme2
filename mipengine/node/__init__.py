@@ -1,12 +1,13 @@
 import os
-
-import envtoml
 from importlib.resources import open_text
 
-from mipengine import node
+import envtoml
+
 from mipengine import AttrDict
+from mipengine import node
 
 DATA_TABLE_PRIMARY_KEY = "row_id"
+
 
 if config_file := os.getenv("MIPENGINE_NODE_CONFIG_FILE"):
     with open(config_file) as fp:

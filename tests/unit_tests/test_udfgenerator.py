@@ -1,8 +1,18 @@
 # type: ignore
+from string import Template
 from typing import TypeVar
+import pickle
+import json
 
 import pytest
 
+from mipengine.datatypes import DType
+from mipengine.node_tasks_DTOs import (
+    ColumnInfo,
+    TableInfo,
+    TableSchema,
+    TableType,
+)
 from mipengine.udfgen.udfgenerator import (
     Column,
     IOType,
@@ -12,35 +22,37 @@ from mipengine.udfgen.udfgenerator import (
     RelationType,
     ScalarFunction,
     Select,
+    StateArg,
     Table,
     TableFunction,
     TensorArg,
     TensorBinaryOp,
+    TransferArg,
     UDFBadCall,
     UDFBadDefinition,
     convert_udfgenargs_to_udfargs,
     copy_types_from_udfargs,
     generate_udf_queries,
     get_funcparts_from_udf_registry,
-    get_tensor_binary_op_template,
     get_matrix_transpose_template,
+    get_tensor_binary_op_template,
     get_udf_templates_using_udfregistry,
     literal,
     map_unknown_to_known_typeparams,
     mapping_inverse,
     mappings_coincide,
     merge_mappings_consistently,
+    merge_tensor,
+    merge_transfer,
     recursive_repr,
     relation,
     scalar,
+    state,
     tensor,
+    transfer,
     udf,
     verify_declared_typeparams_match_passed_type,
 )
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.datatypes import DType
-from mipengine.node_tasks_DTOs import TableSchema
 
 
 @pytest.fixture(autouse=True)
@@ -164,7 +176,7 @@ class TestUDFValidation:
                 x = 1
                 return x
 
-        assert "Input types of func are not subclasses of IOType" in str(exc)
+        assert "Input types of func are not subclasses of InputType" in str(exc)
 
     def test_validate_func_as_udf_invalid_output_type(self):
         with pytest.raises(UDFBadDefinition) as exc:
@@ -174,7 +186,7 @@ class TestUDFValidation:
                 x = 1
                 return x
 
-        assert "Output type of func is not subclass of IOType" in str(exc)
+        assert "Output type of func is not subclass of OutputType" in str(exc)
 
     def test_validate_func_as_udf_invalid_expression_in_return_stmt(self):
         with pytest.raises(UDFBadDefinition) as exc:
@@ -213,10 +225,47 @@ class TestUDFValidation:
 
         assert "Invalid parameter names in udf decorator" in str(exc)
 
-    def test_validate_func_as_udf_valid(self):
-        @udf(x=tensor(int, 1), return_type=scalar(int))
-        def f(x):
+    def test_validate_func_as_valid_udf_with_state_and_transfer_input(self):
+        @udf(
+            x=tensor(int, 1),
+            y=state(),
+            z=transfer(),
+            return_type=scalar(int),
+        )
+        def f(x, y, z):
             return x
+
+        assert udf.registry != {}
+
+    def test_validate_func_as_valid_udf_with_transfer_output(self):
+        @udf(x=tensor(int, 1), return_type=transfer())
+        def f(x):
+            y = {"num": 1}
+            return y
+
+        assert udf.registry != {}
+
+    def test_validate_func_as_valid_udf_with_state_output(self):
+        @udf(
+            x=state(),
+            y=transfer(),
+            return_type=transfer(),
+        )
+        def f(x, y):
+            y = {"num": 1}
+            return y
+
+        assert udf.registry != {}
+
+    def test_validate_func_as_valid_udf_with_merge_transfer_input(self):
+        @udf(
+            x=state(),
+            y=merge_transfer(),
+            return_type=state(),
+        )
+        def f(x, y):
+            y = {"num": 1}
+            return y
 
         assert udf.registry != {}
 
@@ -312,6 +361,16 @@ def test_relation_column_names():
     assert colnames == ["pre_ci", "pre_cf", "pre_cs"]
 
 
+def test_transfer_schema():
+    to = transfer()
+    assert to.schema == [("transfer", DType.JSON)]
+
+
+def test_state_schema():
+    to = state()
+    assert to.schema == [("state", DType.BINARY)]
+
+
 def test_udf_decorator_already_there():
     @udf(return_type=scalar(int))
     def already_there():
@@ -339,6 +398,7 @@ def test_convert_udfgenargs_to_udfargs_relation():
                     ColumnInfo(name="c3", dtype=DType.STR),
                 ]
             ),
+            type_=TableType.NORMAL,
         )
     ]
     expected_udf_posargs = [
@@ -360,6 +420,7 @@ def test_convert_udfgenargs_to_udfargs_tensor():
                     ColumnInfo(name="val", dtype=DType.FLOAT),
                 ]
             ),
+            type_=TableType.NORMAL,
         )
     ]
     expected_udf_posargs = [TensorArg(table_name="tab", dtype=float, ndims=2)]
@@ -385,6 +446,7 @@ def test_convert_udfgenargs_to_udfargs_multiple_types():
                     ColumnInfo(name="c3", dtype=DType.STR),
                 ]
             ),
+            type_=TableType.NORMAL,
         ),
         TableInfo(
             name="tab",
@@ -396,6 +458,7 @@ def test_convert_udfgenargs_to_udfargs_multiple_types():
                     ColumnInfo(name="val", dtype=DType.FLOAT),
                 ]
             ),
+            type_=TableType.NORMAL,
         ),
         42,
     ]
@@ -406,6 +469,57 @@ def test_convert_udfgenargs_to_udfargs_multiple_types():
     ]
     result, _ = convert_udfgenargs_to_udfargs(udfgen_posargs, {})
     assert result == expected_udf_posargs
+
+
+def test_convert_udfgenargs_to_transfer_udfargs():
+    udfgen_posargs = [
+        TableInfo(
+            name="tab",
+            schema_=TableSchema(
+                columns=[
+                    ColumnInfo(name="transfer", dtype=DType.JSON),
+                ]
+            ),
+            type_=TableType.REMOTE,
+        ),
+    ]
+    expected_udf_posargs = [TransferArg(table_name="tab")]
+    result, _ = convert_udfgenargs_to_udfargs(udfgen_posargs, {})
+    assert result == expected_udf_posargs
+
+
+def test_convert_udfgenargs_to_state_udfargs():
+    udfgen_posargs = [
+        TableInfo(
+            name="tab",
+            schema_=TableSchema(
+                columns=[
+                    ColumnInfo(name="state", dtype=DType.BINARY),
+                ]
+            ),
+            type_=TableType.NORMAL,
+        ),
+    ]
+    expected_udf_posargs = [StateArg(table_name="tab")]
+    result, _ = convert_udfgenargs_to_udfargs(udfgen_posargs, {})
+    assert result == expected_udf_posargs
+
+
+def test_convert_udfgenargs_to_state_udfargs_not_local():
+    udfgen_posargs = [
+        TableInfo(
+            name="tab",
+            schema_=TableSchema(
+                columns=[
+                    ColumnInfo(name="state", dtype=DType.BINARY),
+                ]
+            ),
+            type_=TableType.REMOTE,
+        ),
+    ]
+
+    with pytest.raises(UDFBadCall):
+        convert_udfgenargs_to_udfargs(udfgen_posargs, {})
 
 
 class TestTensorArgsEquality:
@@ -765,6 +879,48 @@ class TestUDFGenBase:
         assert len(udfregistry) == 1
         return next(iter(udfregistry.keys()))
 
+    @pytest.fixture(scope="class")
+    def concrete_udf_def(self, expected_udfdef):
+        return Template(expected_udfdef).substitute(udf_name="udf_test")
+
+    @pytest.fixture(scope="class")
+    def concrete_udf_sel(self, expected_udfsel):
+        return Template(expected_udfsel).substitute(
+            table_name="table_test",
+            udf_name="udf_test",
+            node_id="1",
+        )
+
+    @pytest.fixture(scope="function")
+    def create_transfer_table(self, db):
+        db.execute(
+            "CREATE TABLE test_transfer_table(node_id VARCHAR(500), transfer CLOB)"
+        )
+        db.execute(
+            "INSERT INTO test_transfer_table(node_id, transfer) VALUES(1, '{\"num\":5}')"
+        )
+
+    @pytest.fixture(scope="function")
+    def create_state_table(self, db):
+        state = pickle.dumps({"num": 5}).hex()
+        db.execute("CREATE TABLE test_state_table(node_id VARCHAR(500), state BLOB)")
+        insert_state = (
+            f"INSERT INTO test_state_table(node_id, state) VALUES(1, '{state}')"
+        )
+        db.execute(insert_state)
+
+    @pytest.fixture(scope="function")
+    def create_merge_transfer_table(self, db):
+        db.execute(
+            "CREATE TABLE test_merge_transfer_table(node_id VARCHAR(500), transfer CLOB)"
+        )
+        db.execute(
+            "INSERT INTO test_merge_transfer_table(node_id, transfer) VALUES(1, '{\"num\":5}')"
+        )
+        db.execute(
+            "INSERT INTO test_merge_transfer_table(node_id, transfer) VALUES(2, '{\"num\":10}')"
+        )
+
 
 class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
     @pytest.fixture(scope="class")
@@ -784,10 +940,93 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
         posargs = [TensorArg("table_name", dtype=int, ndims=1)]
         keywordargs = {"z": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
-            udfdef, udfsel = get_udf_templates_using_udfregistry(
+            _, _ = get_udf_templates_using_udfregistry(
                 funcname, posargs, keywordargs, udfregistry
             )
         assert "UDF argument names do not match UDF parameter names" in str(exc)
+
+
+class TestUDFGen_InvalidUDFArgs_TypesMismatch_1(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            transfers=state(),
+            state=state(),
+            return_type=transfer(),
+        )
+        def f(transfers, state):
+            result = {"num": sum}
+            return result
+
+        return udf.registry
+
+    def test_get_udf_templates(self, udfregistry, funcname):
+        posargs = [
+            TableInfo(
+                name="test_table_3",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="transfer", dtype=DType.JSON),
+                    ]
+                ),
+                type_=TableType.REMOTE,
+            ),
+            TableInfo(
+                name="test_table_5",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+        with pytest.raises(UDFBadCall) as exc:
+            _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry)
+        assert "should be of type" in str(exc)
+
+
+class TestUDFGen_InvalidUDFArgs_TypesMismatch_2(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            transfers=transfer(),
+            state=state(),
+            return_type=transfer(),
+        )
+        def f(transfers, state):
+            result = {"num": sum}
+            return result
+
+        return udf.registry
+
+    def test_get_udf_templates(self, udfregistry, funcname):
+        posargs = [
+            TableInfo(
+                name="tensor_in_db",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="node_id", dtype=DType.STR),
+                        ColumnInfo(name="dim0", dtype=DType.INT),
+                        ColumnInfo(name="dim1", dtype=DType.INT),
+                        ColumnInfo(name="val", dtype=DType.INT),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+            TableInfo(
+                name="test_table_5",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+        with pytest.raises(UDFBadCall) as exc:
+            _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry)
+        assert "should be of type" in str(exc)
 
 
 class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
@@ -812,7 +1051,7 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         ]
         keywordargs = {}
         with pytest.raises(ValueError) as e:
-            udfdef, udfsel = get_udf_templates_using_udfregistry(
+            _, _ = get_udf_templates_using_udfregistry(
                 funcname,
                 posargs,
                 keywordargs,
@@ -847,6 +1086,7 @@ class TestUDFGen_TensorToTensor(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -921,6 +1161,7 @@ class TestUDFGen_RelationToTensor(TestUDFGenBase):
                         ColumnInfo(name="col2", dtype=DType.STR),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -999,6 +1240,7 @@ class TestUDFGen_TensorToRelation(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -1073,6 +1315,7 @@ class TestUDFGen_LiteralArgument(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             42,
         ]
@@ -1144,6 +1387,7 @@ class TestUDFGen_ManyLiteralArguments(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             42,
             24,
@@ -1270,6 +1514,7 @@ class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase):
                         ColumnInfo(name="c2", dtype=DType.STR),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -1346,6 +1591,7 @@ class TestUDFGen_UnknownReturnDimensions(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -1422,6 +1668,7 @@ class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tens1",
@@ -1432,6 +1679,7 @@ class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -1514,6 +1762,7 @@ class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tens1",
@@ -1524,6 +1773,7 @@ class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tens2",
@@ -1534,6 +1784,7 @@ class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -1622,6 +1873,7 @@ class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tens1",
@@ -1633,6 +1885,7 @@ class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tens2",
@@ -1644,6 +1897,7 @@ class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -1741,6 +1995,7 @@ class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tens1",
@@ -1751,6 +2006,7 @@ class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -1815,6 +2071,7 @@ class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tensor2",
@@ -1825,6 +2082,7 @@ class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -1882,6 +2140,7 @@ class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
             TableInfo(
                 name="tensor2",
@@ -1893,6 +2152,7 @@ class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -1953,6 +2213,7 @@ class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             ),
         ]
 
@@ -2010,6 +2271,7 @@ class TestUDFGen_ScalarReturn(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -2077,6 +2339,7 @@ class TestUDFGen_MergeTensor(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -2150,6 +2413,7 @@ class TestUDFGen_TracebackFlag(TestUDFGenBase):
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
                 ),
+                type_=TableType.NORMAL,
             )
         ]
 
@@ -2208,6 +2472,581 @@ FROM
         )
         assert udfdef.template == expected_udfdef
         assert udfsel.template == expected_udfsel
+
+
+class TestUDFGen_StateReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(t=literal(), return_type=state())
+        def f(t):
+            result = {"num": 5}
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [5]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(state BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    t = 5
+    result = {'num': 5}
+    return pickle.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),state BLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures("use_database")
+    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        _, state = db.execute("SELECT * FROM table_test").fetchone()
+        result = pickle.loads(state)
+        assert result == {"num": 5}
+
+
+class TestUDFGen_StateInputandReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            t=literal(),
+            prev_state=state(),
+            return_type=state(),
+        )
+        def f(t, prev_state):
+            prev_state["num"] = prev_state["num"] + t
+            return prev_state
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            5,
+            TableInfo(
+                name="test_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(state BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
+    prev_state = pickle.loads(__state_str)
+    t = 5
+    prev_state['num'] = prev_state['num'] + t
+    return pickle.dumps(prev_state)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),state BLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures("use_database", "create_state_table")
+    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        _, state = db.execute("SELECT * FROM table_test").fetchone()
+        result = pickle.loads(state)
+        assert result == {"num": 10}
+
+
+class TestUDFGen_TransferReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(t=literal(), return_type=transfer())
+        def f(t):
+            result = {"num": t, "list_of_nums": [t, t, t]}
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [5]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(transfer CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import json
+    t = 5
+    result = {'num': t, 'list_of_nums': [t, t, t]}
+    return json.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),transfer CLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures("use_database")
+    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        _, transfer = db.execute("SELECT * FROM table_test").fetchone()
+        result = json.loads(transfer)
+        assert result == {"num": 5, "list_of_nums": [5, 5, 5]}
+
+
+class TestUDFGen_TransferInputAndReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            t=literal(),
+            transfer=transfer(),
+            return_type=transfer(),
+        )
+        def f(t, transfer):
+            transfer["num"] = transfer["num"] + t
+            return transfer
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            5,
+            TableInfo(
+                name="test_transfer_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="transfer", dtype=DType.JSON),
+                    ]
+                ),
+                type_=TableType.REMOTE,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(transfer CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import json
+    __transfer_str = _conn.execute("SELECT transfer from test_transfer_table;")["transfer"][0]
+    transfer = json.loads(__transfer_str)
+    t = 5
+    transfer['num'] = transfer['num'] + t
+    return json.dumps(transfer)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),transfer CLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures("use_database", "create_transfer_table")
+    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        _, transfer = db.execute("SELECT * FROM table_test").fetchone()
+        result = json.loads(transfer)
+        assert result == {"num": 10}
+
+
+class TestUDFGen_TransferInputAndStateReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            t=literal(),
+            transfer=transfer(),
+            return_type=state(),
+        )
+        def f(t, transfer):
+            transfer["num"] = transfer["num"] + t
+            return transfer
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            5,
+            TableInfo(
+                name="test_transfer_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="transfer", dtype=DType.JSON),
+                    ]
+                ),
+                type_=TableType.REMOTE,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(state BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    import json
+    __transfer_str = _conn.execute("SELECT transfer from test_transfer_table;")["transfer"][0]
+    transfer = json.loads(__transfer_str)
+    t = 5
+    transfer['num'] = transfer['num'] + t
+    return pickle.dumps(transfer)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),state BLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures("use_database", "create_transfer_table")
+    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        _, state = db.execute("SELECT * FROM table_test").fetchone()
+        result = pickle.loads(state)
+        assert result == {"num": 10}
+
+
+class TestUDFGen_TransferAndStateInputandStateReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            t=literal(),
+            transfer=transfer(),
+            state=state(),
+            return_type=state(),
+        )
+        def f(t, transfer, state):
+            result = {}
+            result["num"] = transfer["num"] + state["num"] + t
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            5,
+            TableInfo(
+                name="test_transfer_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="transfer", dtype=DType.JSON),
+                    ]
+                ),
+                type_=TableType.REMOTE,
+            ),
+            TableInfo(
+                name="test_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(state BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    import json
+    __transfer_str = _conn.execute("SELECT transfer from test_transfer_table;")["transfer"][0]
+    transfer = json.loads(__transfer_str)
+    __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
+    state = pickle.loads(__state_str)
+    t = 5
+    result = {}
+    result['num'] = transfer['num'] + state['num'] + t
+    return pickle.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),state BLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_database",
+        "create_transfer_table",
+        "create_state_table",
+    )
+    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        _, state = db.execute("SELECT * FROM table_test").fetchone()
+        result = pickle.loads(state)
+        assert result == {"num": 15}
+
+
+class TestUDFGen_MergeTransferAndStateInputandTransferReturnType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            transfers=merge_transfer(),
+            state=state(),
+            return_type=transfer(),
+        )
+        def f(transfers, state):
+            sum = 0
+            for t in transfers:
+                sum += t["num"]
+            sum += state["num"]
+            result = {"num": sum}
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="test_merge_transfer_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="transfer", dtype=DType.JSON),
+                    ]
+                ),
+                type_=TableType.REMOTE,
+            ),
+            TableInfo(
+                name="test_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE(transfer CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    import json
+    __transfer_strs = _conn.execute("SELECT transfer from test_merge_transfer_table;")["transfer"]
+    transfers = [json.loads(str) for str in __transfer_strs]
+    __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
+    state = pickle.loads(__state_str)
+    sum = 0
+    for t in transfers:
+        sum += t['num']
+    sum += state['num']
+    result = {'num': sum}
+    return json.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+DROP TABLE IF EXISTS $table_name;
+CREATE TABLE $table_name(node_id VARCHAR(500),transfer CLOB);
+INSERT INTO $table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+    ):
+        udfdef, udfsel = generate_udf_queries(funcname, positional_args, {})
+        assert udfdef.template == expected_udfdef
+        assert udfsel.template == expected_udfsel
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_database",
+        "create_merge_transfer_table",
+        "create_state_table",
+    )
+    def test_udf_with_db(self, concrete_udf_def, concrete_udf_sel, db):
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        _, transfer = db.execute("SELECT * FROM table_test").fetchone()
+        result = json.loads(transfer)
+        assert result == {"num": 20}
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~ Test SQL Generator ~~~~~~~~~~~~~~~~~~ #

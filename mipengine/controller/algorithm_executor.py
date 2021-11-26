@@ -8,7 +8,6 @@ from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
 
 from mipengine.node_tasks_DTOs import TableData
-from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
@@ -20,6 +19,7 @@ from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
+from mipengine.controller import controller_logger as ctrl_logger
 
 
 ALGORITHMS_FOLDER = "mipengine.algorithms"
@@ -154,7 +154,8 @@ class AlgorithmExecutor:
                 "One of the nodes participating in the algorithm execution "
                 "stopped responding"
             )
-            print(
+
+            ctrl_logger.getLogger(__name__).error(
                 f"(AlgorithmExecutor) ERROR: {error_message=} \n{err=}"
             )  # TODO logging..
 
@@ -162,25 +163,25 @@ class AlgorithmExecutor:
         except:
             import traceback
 
-            print(traceback.format_exc())
+            ctrl_logger.getLogger(__name__).info(f"{traceback.format_exc()}")
         finally:
             self.clean_up()
 
     def clean_up(self):
-        print(f"(AlgorithmExecutor) cleaning up global_node")
+        ctrl_logger.getLogger(__name__).info(f"(AlgorithmExecutor) cleaning up global_node")
         try:
             self._global_node.clean_up()
         except Exception as exc:
-            print(f"(AlgorithmExecutor) cleaning up global_node FAILED {exc=}")
+            ctrl_logger.getLogger(__name__).info(f"(AlgorithmExecutor) cleaning up global_node FAILED {exc=}")
             pass
 
-        print(f"(AlgorithmExecutor) cleaning up local nodes:{self._local_nodes=}")
+        ctrl_logger.getLogger(__name__).info(f"(AlgorithmExecutor) cleaning up local nodes:{self._local_nodes=}")
         for node in self._local_nodes:
-            print(f"(AlgorithmExecutor) cleaning up {node=}")
+            ctrl_logger.getLogger(__name__).info(f"(AlgorithmExecutor) cleaning up {node=}")
             try:
                 node.clean_up()
             except Exception as exc:
-                print(f"(AlgorithmExecutor) cleaning up {node=} FAILED {exc=}")
+                ctrl_logger.getLogger(__name__).info(f"(AlgorithmExecutor) cleaning up {node=} FAILED {exc=}")
                 pass
 
 
@@ -308,16 +309,18 @@ class _Node:
 
     # REMOTE TABLES functionality
 
-    def get_remote_tables(self) -> List["TableInfo"]:
+    def get_remote_tables(self) -> List[str]:
         return self._node_tasks_handler.get_remote_tables(context_id=self.context_id)
 
     def create_remote_table(
-        self, table_info: TableInfo, native_node: "_Node"
+        self, table_name: str, table_schema: TableSchema, native_node: "_Node"
     ) -> _TableName:
 
         monetdb_socket_addr = native_node.node_address
         return self._node_tasks_handler.create_remote_table(
-            table_info=table_info, original_db_url=monetdb_socket_addr
+            table_name=table_name,
+            table_schema=table_schema,
+            original_db_url=monetdb_socket_addr,
         )
 
     # UDFs functionality
@@ -465,11 +468,10 @@ class _AlgorithmExecutionInterface:
             if share_to_global:
                 # TODO: try block missing
                 table_schema = node.get_table_schema(table_name)
-                table_info = TableInfo(
-                    name=table_name.full_table_name, schema_=table_schema
-                )
                 self._global_node.create_remote_table(
-                    table_info=table_info, native_node=node
+                    table_name=table_name.full_table_name,
+                    table_schema=table_schema,
+                    native_node=node,
                 )
 
         # create merge table on global
@@ -530,14 +532,13 @@ class _AlgorithmExecutionInterface:
             table_schema: TableSchema = self._global_node.get_table_schema(
                 _TableName(udf_result_table)
             )
-            table_info: TableInfo = TableInfo(
-                name=udf_result_table, schema_=table_schema
-            )
             local_nodes_tables = {}
             for node in self._local_nodes:
                 # TODO do not block here, first send the request to all local nodes and then block for the result
                 node.create_remote_table(
-                    table_info=table_info, native_node=self._global_node
+                    table_name=udf_result_table,
+                    table_schema=table_schema,
+                    native_node=self._global_node,
                 )
                 local_nodes_tables[node] = _TableName(udf_result_table)
 

@@ -3,13 +3,8 @@ from typing import List
 
 import pymonetdb
 
-
-from celery.utils.log import get_task_logger
-
-logging = get_task_logger(__name__)
-
-
 from mipengine.node import config as node_config
+from mipengine.node import node_logger as logging
 
 BROKEN_PIPE_MAX_ATTEMPTS = 50
 OCC_MAX_ATTEMPTS = 50
@@ -42,6 +37,7 @@ class MonetDB(metaclass=Singleton):
     def __init__(self):
         self._connection = None
         self.refresh_connection()
+        self.logger = logging.getLogger(__name__)
 
     def refresh_connection(self):
         self._connection = pymonetdb.connect(
@@ -85,7 +81,7 @@ class MonetDB(metaclass=Singleton):
         'many' option to provide the functionality of executemany, all results will be fetched.
         'parameters' option to provide the functionality of bind-parameters.
         """
-        logging.info(
+        self.logger.info(
             f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}"
         )
 
@@ -106,7 +102,7 @@ class MonetDB(metaclass=Singleton):
         'many' option to provide the functionality of executemany.
         'parameters' option to provide the functionality of bind-parameters.
         """
-        logging.info(
+        self.logger.info(
             f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}"
         )
 

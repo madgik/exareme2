@@ -22,6 +22,7 @@ from mipengine.controller.algorithm_execution_DTOs import (
 from mipengine.controller.node_registry import node_registry
 from mipengine.controller import config as controller_config
 from mipengine.controller.api.validator import validate_algorithm_request
+from mipengine.controller import controller_logger as ctrl_logger
 
 
 class Controller:
@@ -64,8 +65,8 @@ class Controller:
 
         loop = asyncio.get_running_loop()
 
-        # DEBUG(future logging..)
-        print(
+        # DEBUG
+        ctrl_logger.getLogger(__name__).info(
             f"\n(Controller) starts executing-> {algorithm_name=} with "
             f"{context_id=}\n"
         )
@@ -79,8 +80,8 @@ class Controller:
         )
 
         # DEBUG(future logging..)
-        print(f"\n(Controller) FINISHED->  {algorithm_name=} with {context_id=}")
-        print(f"\n(Controller) {algorithm_result.json()=}\n")
+        ctrl_logger.getLogger(__name__).info(f"\n(Controller) FINISHED->  {algorithm_name=} with {context_id=}")
+        ctrl_logger.getLogger(__name__).info(f"\n(Controller) {algorithm_result.json()=}\n")
         # DEBUG end
 
         return algorithm_result.json()
