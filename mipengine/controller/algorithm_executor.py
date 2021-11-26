@@ -20,6 +20,7 @@ from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
+from mipengine.controller import controller_logger as ctrl_logger
 
 algorithm_modules = import_algorithm_modules()
 
@@ -127,22 +128,24 @@ class AlgorithmExecutor:
                 "One of the nodes participating in the algorithm execution "
                 "stopped responding"
             )
-            print(f"ERROR: {error_message} \n{err=}")  # TODO logging..
+            ctrl_logger.getLogger(__name__).error(
+                f"{error_message} \n{err=}"
+            )  # TODO logging..
 
             raise AlgorithmExecutionException(error_message)
         except:
             import traceback
 
-            print(traceback.format_exc())
+            ctrl_logger.getLogger(__name__).info(f"{traceback.format_exc()}")
         finally:
             self.clean_up()
 
     def clean_up(self):
         # TODO logging..
-        print(f"----> cleaning up global_node")
+        ctrl_logger.getLogger(__name__).info(f"----> cleaning up global_node")
         self.global_node.clean_up()
         for node in self.local_nodes:
-            print(f"----> cleaning up {node:}")
+            ctrl_logger.getLogger(__name__).info(f"----> cleaning up {node:}")
             node.clean_up()
 
 

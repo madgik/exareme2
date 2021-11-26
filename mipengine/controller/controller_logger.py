@@ -2,25 +2,23 @@ import logging
 import sys
 import time
 from functools import wraps
-
-from mipengine.node import config as node_config
+import quart.logging as ctrl_logging
+from mipengine.controller import config as ctrl_config
 
 
 def getLogger(name):
-    logger = logging.getLogger(name)
-    formatter = logging.Formatter(
+    logger = ctrl_logging.getLogger(name)
+    formatter = ctrl_logging.Formatter(
         "%(asctime)s - "
         "%(levelname)s - "
-        "NODE - "
-        f"{node_config.role} - "
-        f"{node_config.identifier} - "
+        "CONTROLLER - CONTROLLER - CONTROLLER - "
         "%(name)s - "
         "%(funcName)s(%(lineno)d) - "
         "%(message)s"
     )
 
-    handler = logging.StreamHandler(sys.stdout)
-    logger.setLevel(node_config.log_level)
+    handler = ctrl_logging.StreamHandler(sys.stdout)
+    logger.setLevel(ctrl_config.log_level)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 

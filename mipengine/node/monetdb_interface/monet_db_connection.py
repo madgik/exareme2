@@ -4,7 +4,7 @@ from typing import List
 import pymonetdb
 
 from mipengine.node import config as node_config
-from mipengine.node import logging as logging
+from mipengine.node import node_logger as logging
 
 BROKEN_PIPE_MAX_ATTEMPTS = 50
 OCC_MAX_ATTEMPTS = 50
