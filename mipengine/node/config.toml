@@ -11,8 +11,8 @@ minimum_row_count = 10
 worker_concurrency = 1
 task_soft_time_limit = 30
 task_time_limit = 60
-run_udf_soft_time_limit = 60
-run_udf_time_limit = 120
+run_udf_soft_time_limit = 30
+run_udf_time_limit = 60
 
 [rabbitmq]
 ip = "$RABBITMQ_IP"

@@ -3,6 +3,7 @@ import pickle
 import uuid
 
 import pytest
+from billiard.exceptions import TimeLimitExceeded
 
 from mipengine import DType
 from mipengine.node_tasks_DTOs import ColumnInfo
@@ -65,7 +66,7 @@ def table_with_one_column_and_ten_rows(context_id):
 
 
 def test_get_udf():
-    from tests.algorithms.udfs import get_column_rows
+    from tests.algorithms.orphan_udfs import get_column_rows
 
     fetched_udf = local_node_get_udf.delay(
         func_name=make_unique_func_name(get_column_rows)
@@ -75,7 +76,7 @@ def test_get_udf():
 
 
 def test_run_udf_relation_to_scalar(context_id, table_with_one_column_and_ten_rows):
-    from tests.algorithms.udfs import get_column_rows
+    from tests.algorithms.orphan_udfs import get_column_rows
 
     args = {
         "table": UDFArgument(
@@ -103,7 +104,7 @@ def test_run_udf_relation_to_scalar(context_id, table_with_one_column_and_ten_ro
 def test_run_udf_state_and_transfer_output(
     context_id, table_with_one_column_and_ten_rows
 ):
-    from tests.algorithms.udfs import local_step
+    from tests.algorithms.orphan_udfs import local_step
 
     args = {
         "table": UDFArgument(
@@ -138,3 +139,23 @@ def test_run_udf_state_and_transfer_output(
     assert state_result["count"] == 10
     assert "sum" in state_result.keys()
     assert state_result["sum"] == 55
+
+
+@pytest.mark.slow
+def test_slow_udf_exception(context_id, table_with_one_column_and_ten_rows):
+    from tests.algorithms.orphan_udfs import very_slow_udf
+
+    args = {
+        "table": UDFArgument(
+            kind=UDFArgumentKind.TABLE, value=table_with_one_column_and_ten_rows
+        ).json()
+    }
+
+    with pytest.raises(TimeLimitExceeded):
+        local_node_run_udf.delay(
+            command_id="1",
+            context_id=context_id,
+            func_name=make_unique_func_name(very_slow_udf),
+            positional_args_json=[],
+            keyword_args_json=args,
+        ).get()

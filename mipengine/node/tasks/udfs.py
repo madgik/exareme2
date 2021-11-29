@@ -26,7 +26,6 @@ def get_udf(func_name: str) -> str:
     return str(udf_registry.registry[func_name])
 
 
-# TODO Verify time limit when udf tests are fixed
 @shared_task(
     soft_time_limit=node_config.celery.run_udf_soft_time_limit,
     time_limit=node_config.celery.run_udf_time_limit,
