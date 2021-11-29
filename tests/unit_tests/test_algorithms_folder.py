@@ -10,27 +10,27 @@ from tests import TEST_ALGORITHMS_FOLDER
 def set_default_algorithms_folder():
     import mipengine
 
-    if mipengine.ALGORITHMS_FOLDER_ENV_VARIABLE in os.environ:
-        del os.environ[mipengine.ALGORITHMS_FOLDER_ENV_VARIABLE]
+    if mipengine.ALGORITHM_FOLDERS_ENV_VARIABLE in os.environ:
+        del os.environ[mipengine.ALGORITHM_FOLDERS_ENV_VARIABLE]
 
 
 def test_default_algorithms_folder(set_default_algorithms_folder):
     import mipengine
 
-    assert mipengine.ALGORITHMS_FOLDER == "./mipengine/algorithms"
+    assert mipengine.ALGORITHM_FOLDERS == "./mipengine/algorithms"
 
 
 @pytest.fixture
 def set_test_algorithms_folder():
     import mipengine
 
-    os.environ[mipengine.ALGORITHMS_FOLDER_ENV_VARIABLE] = TEST_ALGORITHMS_FOLDER
+    os.environ[mipengine.ALGORITHM_FOLDERS_ENV_VARIABLE] = TEST_ALGORITHMS_FOLDER
     yield
-    del os.environ[mipengine.ALGORITHMS_FOLDER_ENV_VARIABLE]
+    del os.environ[mipengine.ALGORITHM_FOLDERS_ENV_VARIABLE]
 
 
 def test_test_algorithms_folder(set_test_algorithms_folder):
     import mipengine
 
     importlib.reload(mipengine)
-    assert mipengine.ALGORITHMS_FOLDER == "./tests/algorithms"
+    assert mipengine.ALGORITHM_FOLDERS == "./tests/algorithms"

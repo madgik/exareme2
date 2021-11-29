@@ -49,7 +49,7 @@
 
    cdes_metadata_path = "./tests/demo_data"
 
-   algorithms_folder = "./mipengine/algorithms"
+   algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 
    node_registry_update_interval = 30
 

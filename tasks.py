@@ -79,7 +79,7 @@ if not OUTDIR.exists():
 
 DEMO_DATA_FOLDER = Path(tests.__file__).parent / "demo_data"
 
-ALGORITHMS_FOLDER_ENV_VARIABLE = "ALGORITHMS_FOLDER"
+ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
 MIPENGINE_NODE_CONFIG_FILE = "MIPENGINE_NODE_CONFIG_FILE"
 
 # TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
@@ -379,7 +379,7 @@ def start_node(
     all_=False,
     celery_log_level=None,
     detached=False,
-    algorithms_folder=None,
+    algorithm_folders=None,
 ):
     """
     (Re)Start the node(s) service(s). If a node service is running, stop and start it again.
@@ -388,7 +388,7 @@ def start_node(
     :param all_: If set, the nodes of which the configuration file exists, will be started.
     :param celery_log_level: If not provided, it will look into the `DEPLOYMENT_CONFIG_FILE`.
     :param detached: If set to True, it will start the service in the background.
-    :param algorithms_folder: Used from the services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param algorithm_folders: Used from the services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
 
     The containers related to the services remain unchanged.
     """
@@ -396,8 +396,8 @@ def start_node(
     if not celery_log_level:
         celery_log_level = get_deployment_config("celery_log_level")
 
-    if not algorithms_folder:
-        algorithms_folder = get_deployment_config("algorithms_folder")
+    if not algorithm_folders:
+        algorithm_folders = get_deployment_config("algorithm_folders")
 
     node_ids = get_node_ids(all_, node)
 
@@ -406,7 +406,7 @@ def start_node(
 
         message(f"Starting Node {node_id}...", Level.HEADER)
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
-        with c.prefix(f"export {ALGORITHMS_FOLDER_ENV_VARIABLE}={algorithms_folder}"):
+        with c.prefix(f"export {ALGORITHM_FOLDERS_ENV_VARIABLE}={algorithm_folders}"):
             with c.prefix(f"export {MIPENGINE_NODE_CONFIG_FILE}={node_config_file}"):
                 outpath = OUTDIR / (node_id + ".out")
                 if detached or all_:
@@ -437,22 +437,22 @@ def kill_controller(c):
 
 
 @task
-def start_controller(c, detached=False, algorithms_folder=None):
+def start_controller(c, detached=False, algorithm_folders=None):
     """
     (Re)Start the controller service. If the service is already running, stop and start it again.
 
     :param detached: If set to True, it will start the service in the background.
-    :param algorithms_folder: Used from the services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param algorithm_folders: Used from the services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     """
 
-    if not algorithms_folder:
-        algorithms_folder = get_deployment_config("algorithms_folder")
+    if not algorithm_folders:
+        algorithm_folders = get_deployment_config("algorithm_folders")
 
     kill_controller(c)
 
     message("Starting Controller...", Level.HEADER)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
-    with c.prefix(f"export {ALGORITHMS_FOLDER_ENV_VARIABLE}={algorithms_folder}"):
+    with c.prefix(f"export {ALGORITHM_FOLDERS_ENV_VARIABLE}={algorithm_folders}"):
         with c.prefix(
             f"export MIPENGINE_CONTROLLER_CONFIG_FILE={controller_config_file}"
         ):
@@ -477,7 +477,7 @@ def deploy(
     start_nodes=False,
     celery_log_level=None,
     monetdb_image=None,
-    algorithms_folder=None,
+    algorithm_folders=None,
 ):
     """
     Install dependencies, (re)create all the containers and (re)start all the services.
@@ -488,7 +488,7 @@ def deploy(
     :param start_nodes: Start all nodes flag.
     :param celery_log_level: Used for the engine services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_image: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
-    :param algorithms_folder: Used from the services.
+    :param algorithm_folders: Used from the services.
     """
 
     if not celery_log_level:
@@ -524,12 +524,12 @@ def deploy(
             all_=True,
             celery_log_level=celery_log_level,
             detached=True,
-            algorithms_folder=algorithms_folder,
+            algorithm_folders=algorithm_folders,
         )
 
     # start CONTROLLER service
     if start_controller_ or start_all:
-        start_controller(c, detached=True, algorithms_folder=algorithms_folder)
+        start_controller(c, detached=True, algorithm_folders=algorithm_folders)
 
 
 @task
