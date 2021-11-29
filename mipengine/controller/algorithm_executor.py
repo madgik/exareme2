@@ -6,7 +6,6 @@ from abc import ABC
 from celery.exceptions import TimeoutError
 from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
-from mipengine.node_tasks_DTOs import InsufficientDataError
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
