@@ -258,7 +258,6 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             columns=columns,
             filters=filters,
         ).get(self._task_timeout)
-
         return result
 
     # MERGE TABLES functionality

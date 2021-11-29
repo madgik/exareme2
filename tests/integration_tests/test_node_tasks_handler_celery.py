@@ -25,7 +25,7 @@ import subprocess
 
 PROJECT_ROOT = Path(mipengine.__file__).parent.parent
 
-TASKS_CONTEXT_ID = "contextid123"
+TASKS_CONTEXT_ID = "contextid412"
 
 
 @pytest.fixture
@@ -88,6 +88,27 @@ def test_table_params():
 
 
 @pytest.fixture
+def test_view_params():
+    # define parameters to create a test view
+    context_id = TASKS_CONTEXT_ID
+    command_id = "0x"  # test_table_params["command_id"]
+    pathology = "dementia"
+    columns = [
+        "lefthippocampus",
+        "righthippocampus",
+        "rightppplanumpolare",
+        "leftamygdala",
+        "rightamygdala",
+    ]
+    return {
+        "context_id": context_id,
+        "command_id": command_id,
+        "pathology": pathology,
+        "columns": columns,
+    }
+
+
+@pytest.fixture
 def cleanup(node_task_handler_params):
     yield
 
@@ -112,8 +133,6 @@ def test_create_table(node_task_handler_params, test_table_params):
     table_name = node_task_handler.create_table(
         context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
     )
-    print(f"{table_name=}")
-
     assert table_name.startswith(f"normal_{command_id}_{TASKS_CONTEXT_ID}_")
 
 
@@ -150,7 +169,7 @@ def test_get_table_schema(node_task_handler_params, test_table_params):
 
 
 @pytest.mark.usefixtures("cleanup")
-def test_broker_connection_closed_exception(
+def test_broker_connection_closed_exception_get_table_schema(
     node_task_handler_params, test_table_params
 ):
 
@@ -159,6 +178,7 @@ def test_broker_connection_closed_exception(
         celery_params=node_task_handler_params["celery_params"],
     )
 
+    # create a test table on the node
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
     table_name = node_task_handler.create_table(
@@ -169,9 +189,113 @@ def test_broker_connection_closed_exception(
     cmd = f"docker stop rabbitmq-{node_id}"
     subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
 
-    # Queue a task which will raise the exception
+    # Queue a test task quering the schema of the created table which will raise the
+    # exception
     with pytest.raises(ClosedBrokerConnectionError):
-        schema_result = node_task_handler.get_table_schema(table_name)
+        node_task_handler.get_table_schema(table_name)
+
+    # Restart the rabbitmq container of this node
+    cmd = f"docker start rabbitmq-{node_id}"
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+
+    # Wait until it is up again
+    subcmd = "'{{.State.Health.Status}}'"
+    cmd = f"docker inspect -f {subcmd} rabbitmq-{node_id}"
+    result = subprocess.check_output(cmd, shell=True).decode("utf-8")
+    while "healthy" not in result:
+        result = subprocess.check_output(cmd, shell=True).decode("utf-8")
+        time.sleep(1)
+
+
+@pytest.mark.usefixtures("cleanup")
+def test_broker_connection_closed_exception_queue_udf(
+    node_task_handler_params, test_view_params
+):
+
+    node_task_handler = NodeTasksHandlerCelery(
+        node_id=node_task_handler_params["node_id"],
+        celery_params=node_task_handler_params["celery_params"],
+    )
+
+    # create a test view
+    view_name = node_task_handler.create_pathology_view(
+        context_id=TASKS_CONTEXT_ID,
+        command_id=test_view_params["command_id"],
+        pathology=test_view_params["pathology"],
+        columns=test_view_params["columns"],
+        filters=None,
+    )
+
+    # Stop rabbitmq container of this node
+    node_id = node_task_handler.node_id
+    cmd = f"docker stop rabbitmq-{node_id}"
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+
+    # queue the udf
+    positional_args = {"kind": 1, "value": view_name}
+    positional_args_json = json.dumps(positional_args)
+    with pytest.raises(ClosedBrokerConnectionError):
+        async_result = node_task_handler.queue_run_udf(
+            context_id=TASKS_CONTEXT_ID,
+            command_id=1,
+            func_name="relation_to_matrix_53ft",
+            positional_args=[positional_args_json],
+            keyword_args={},
+        )
+
+    # Restart the rabbitmq container of this node
+    cmd = f"docker start rabbitmq-{node_id}"
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+
+    # Wait until it is up again
+    subcmd = "'{{.State.Health.Status}}'"
+    cmd = f"docker inspect -f {subcmd} rabbitmq-{node_id}"
+    result = subprocess.check_output(cmd, shell=True).decode("utf-8")
+    while "healthy" not in result:
+        result = subprocess.check_output(cmd, shell=True).decode("utf-8")
+        time.sleep(1)
+
+
+@pytest.mark.skip(
+    reason="the AsyncResult.get() method raises a broken connection error only under some timing circumstances which are not correctly reproduced in this test "
+)
+@pytest.mark.usefixtures("cleanup")
+def test_broker_connection_closed_exception_get_udf_result(
+    node_task_handler_params, test_view_params
+):
+
+    node_task_handler = NodeTasksHandlerCelery(
+        node_id=node_task_handler_params["node_id"],
+        celery_params=node_task_handler_params["celery_params"],
+    )
+
+    # create a test view
+    view_name = node_task_handler.create_pathology_view(
+        context_id=TASKS_CONTEXT_ID,
+        command_id=test_view_params["command_id"],
+        pathology=test_view_params["pathology"],
+        columns=test_view_params["columns"],
+        filters=None,
+    )
+
+    # queue a udf
+    positional_args = {"kind": 1, "value": view_name}
+    positional_args_json = json.dumps(positional_args)
+    async_result = node_task_handler.queue_run_udf(
+        context_id=TASKS_CONTEXT_ID,
+        command_id=1,
+        func_name="relation_to_matrix_53ft",
+        positional_args=[positional_args_json],
+        keyword_args={},
+    )
+
+    # Stop rabbitmq container of this node
+    node_id = node_task_handler.node_id
+    cmd = f"docker stop rabbitmq-{node_id}"
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+
+    with pytest.raises(ClosedBrokerConnectionError):
+        result = node_task_handler.get_queued_udf_result(async_result)
 
     # Restart the rabbitmq container of this node
     cmd = f"docker start rabbitmq-{node_id}"
@@ -193,12 +317,14 @@ def test_time_limit_exceeded_exception(node_task_handler_params, test_table_para
         celery_params=node_task_handler_params["celery_params"],
     )
 
+    # create a test table
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
     table_name = node_task_handler.create_table(
         context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
     )
-    # Stop all nodes
+
+    # Stop all nodes (NOT the task queue of the nodes, only the celery app)
     # (inv kill-node <node-id> is buggy, so we just kill all nodes..)
     node_id = node_task_handler.node_id
     cmd = f"killall celery"
