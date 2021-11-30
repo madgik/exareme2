@@ -65,12 +65,9 @@ class Controller:
 
         loop = asyncio.get_running_loop()
 
-        # DEBUG(future logging..)
-        ctrl_logger.getAppLogger().debug(
-            f"\n(controller.py::exec_algorithm) starts executing-> "
-            f"{algorithm_name=} with {context_id=}\n"
+        ctrl_logger.getRequestLogger().debug(
+            f"starts executing->  {algorithm_name=} with {context_id=}"
         )
-        # DEBUG end
 
         algorithm_result = await loop.run_in_executor(
             None,
@@ -80,11 +77,11 @@ class Controller:
         )
 
         # DEBUG(future logging..)
-        ctrl_logger.getAppLogger().info(
+        ctrl_logger.getRequestLogger().info(
             f"\n(controller.py::exec_algorithm) FINISHED->  {algorithm_name=} "
             f"with {context_id=}"
         )
-        ctrl_logger.getAppLogger().info(f"{algorithm_result.json()=}\n")
+        ctrl_logger.getRequestLogger().info(f"{algorithm_result.json()=}\n")
         # DEBUG end
 
         return algorithm_result.json()

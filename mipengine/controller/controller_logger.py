@@ -1,11 +1,15 @@
 import logging
-import time
-from functools import wraps
 
 
-def getAppLogger():
-    return logging.getLogger("quart.app")
+def getRequestLogger():
+    """
+    Used for logging information produced after an endpoint request.
+    """
+    return logging.getLogger("controller_context")
 
 
-def getServerLogger():
-    return logging.getLogger("quart.server")
+def getBackgroundServiceLogger():
+    """
+    Used for logging information produced by any background service.
+    """
+    return logging.getLogger("controller_background_service")

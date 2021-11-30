@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Any, Optional, Callable
+from typing import Dict, List, Tuple, Any, Optional
 import importlib
 from pydantic import BaseModel
 from abc import ABC
@@ -128,7 +128,7 @@ class AlgorithmExecutor:
                 "One of the nodes participating in the algorithm execution "
                 "stopped responding"
             )
-            ctrl_logger.getAppLogger().error(
+            ctrl_logger.getRequestLogger().error(
                 f"{error_message} \n{err=}"
             )  # TODO logging..
 
@@ -136,16 +136,16 @@ class AlgorithmExecutor:
         except:
             import traceback
 
-            ctrl_logger.getAppLogger().info(f"{traceback.format_exc()}")
+            ctrl_logger.getRequestLogger().info(f"{traceback.format_exc()}")
         finally:
             self.clean_up()
 
     def clean_up(self):
         # TODO logging..
-        ctrl_logger.getAppLogger().info(f"----> cleaning up global_node")
+        ctrl_logger.getRequestLogger().info(f"----> cleaning up global_node")
         self.global_node.clean_up()
         for node in self.local_nodes:
-            ctrl_logger.getAppLogger().info(f"----> cleaning up {node:}")
+            ctrl_logger.getRequestLogger().info(f"----> cleaning up {node:}")
             node.clean_up()
 
 
