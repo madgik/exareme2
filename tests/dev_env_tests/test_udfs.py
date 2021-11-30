@@ -141,6 +141,7 @@ def test_run_udf_state_and_transfer_output(
     assert state_result["sum"] == 55
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-473")
 @pytest.mark.slow
 def test_slow_udf_exception(context_id, table_with_one_column_and_ten_rows):
     from tests.algorithms.orphan_udfs import very_slow_udf
