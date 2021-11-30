@@ -3,7 +3,7 @@ import json
 import pytest
 import requests
 
-from tests.e2e_tests import algorithms_url
+from tests.prod_env_tests import algorithms_url
 
 
 def get_parametrization_list_success_cases():

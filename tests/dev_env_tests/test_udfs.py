@@ -12,8 +12,8 @@ from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 from mipengine.udfgen import make_unique_func_name
-from tests.integration_tests import nodes_communication
-from tests.integration_tests.nodes_communication import execute_in_db
+from tests.dev_env_tests import nodes_communication
+from tests.dev_env_tests.nodes_communication import execute_in_db
 
 local_node_id = "localnode1"
 command_id = "command123"
