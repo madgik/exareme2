@@ -398,6 +398,10 @@ def start_node(
 
     if not algorithm_folders:
         algorithm_folders = get_deployment_config("algorithm_folders")
+    if not isinstance(algorithm_folders, str):
+        raise ValueError(
+            "The algorithm_folders configuration must be a comma separated string."
+        )
 
     node_ids = get_node_ids(all_, node)
 
@@ -447,6 +451,10 @@ def start_controller(c, detached=False, algorithm_folders=None):
 
     if not algorithm_folders:
         algorithm_folders = get_deployment_config("algorithm_folders")
+    if not isinstance(algorithm_folders, str):
+        raise ValueError(
+            "The algorithm_folders configuration must be a comma separated string."
+        )
 
     kill_controller(c)
 

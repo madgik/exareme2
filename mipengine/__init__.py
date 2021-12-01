@@ -21,9 +21,8 @@ __all__ = [
 
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
 ALGORITHM_FOLDERS = "./mipengine/algorithms"
-
-if os.getenv(ALGORITHM_FOLDERS_ENV_VARIABLE):
-    ALGORITHM_FOLDERS = os.getenv(ALGORITHM_FOLDERS_ENV_VARIABLE)
+if algorithm_folders := os.getenv(ALGORITHM_FOLDERS_ENV_VARIABLE):
+    ALGORITHM_FOLDERS = algorithm_folders
 
 
 def import_algorithm_modules() -> Dict[str, ModuleType]:
