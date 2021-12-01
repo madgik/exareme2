@@ -8,9 +8,7 @@ from mipengine.udfgen import (
     tensor,
     udf,
 )
-from mipengine.controller.algorithm_result_DTOs import TabularDataResult
-from mipengine.udfgen import merge_tensor
-from mipengine.udfgen import scalar
+from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.udfgen.udfgenerator import merge_transfer
 from mipengine.udfgen.udfgenerator import state
 from mipengine.udfgen.udfgenerator import transfer

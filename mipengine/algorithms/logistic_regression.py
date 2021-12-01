@@ -15,7 +15,7 @@ from mipengine.udfgen import (
     tensor,
     udf,
 )
-from mipengine.controller.algorithm_result_DTOs import TabularDataResult
+from mipengine.algorithm_result_DTOs import TabularDataResult
 
 
 PREC = 1e-6
