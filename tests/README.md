@@ -21,7 +21,7 @@ These tests are run:
 - using the `inv deploy` command of the `tasks.py` with a `.deployment.toml` template,
 - can be run based on the nodes' information in the `.deployment.toml`.
 
-### Dev Environment
+### Prod Environment
 
 These tests are run:
 
