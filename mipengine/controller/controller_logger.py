@@ -5,7 +5,7 @@ def getRequestLogger():
     """
     Used for logging information produced after an endpoint request.
     """
-    return logging.getLogger("controller_context")
+    return logging.getLogger("controller_request")
 
 
 def getBackgroundServiceLogger():

@@ -37,7 +37,7 @@ class MonetDB(metaclass=Singleton):
     def __init__(self):
         self._connection = None
         self.refresh_connection()
-        self.logger = logging.getLogger()
+        self._logger = logging.getLogger()
 
     def refresh_connection(self):
         self._connection = pymonetdb.connect(
@@ -81,7 +81,7 @@ class MonetDB(metaclass=Singleton):
         'many' option to provide the functionality of executemany, all results will be fetched.
         'parameters' option to provide the functionality of bind-parameters.
         """
-        self.logger.info(
+        self._logger.info(
             f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}"
         )
 
@@ -102,7 +102,7 @@ class MonetDB(metaclass=Singleton):
         'many' option to provide the functionality of executemany.
         'parameters' option to provide the functionality of bind-parameters.
         """
-        self.logger.info(
+        self._logger.info(
             f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}"
         )
 
