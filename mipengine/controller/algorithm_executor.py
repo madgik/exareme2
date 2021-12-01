@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Any, Optional, Callable
+from typing import Dict, List, Tuple, Any, Optional
 import importlib
 from pydantic import BaseModel
 from abc import ABC
@@ -119,6 +119,10 @@ class AlgorithmExecutor:
             f"{ALGORITHMS_FOLDER}.{self._algorithm_name}"
         )
 
+        # Context id to be added in the future
+        # self._logger=ctrl_logger.getRequestLogger(self._context_id)
+        self._logger = ctrl_logger.getRequestLogger()
+
     def run(self):
         try:
             algorithm_result = self.algorithm_flow_module.run(self.execution_interface)
@@ -128,24 +132,22 @@ class AlgorithmExecutor:
                 "One of the nodes participating in the algorithm execution "
                 "stopped responding"
             )
-            ctrl_logger.getLogger(__name__).error(
-                f"{error_message} \n{err=}"
-            )  # TODO logging..
+            self._logger.error(f"{error_message} \n{err=}")  # TODO logging..
 
             raise AlgorithmExecutionException(error_message)
         except:
             import traceback
 
-            ctrl_logger.getLogger(__name__).info(f"{traceback.format_exc()}")
+            self._logger.info(f"{traceback.format_exc()}")
         finally:
             self.clean_up()
 
     def clean_up(self):
         # TODO logging..
-        ctrl_logger.getLogger(__name__).info(f"----> cleaning up global_node")
+        self._logger.info(f"----> cleaning up global_node")
         self.global_node.clean_up()
         for node in self.local_nodes:
-            ctrl_logger.getLogger(__name__).info(f"----> cleaning up {node:}")
+            self._logger.info(f"----> cleaning up {node:}")
             node.clean_up()
 
 

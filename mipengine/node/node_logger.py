@@ -4,14 +4,14 @@ from functools import wraps
 from celery.utils.log import get_task_logger
 
 
-def getLogger(name):
-    return get_task_logger(name)
+def getLogger():
+    return get_task_logger("node")
 
 
 def log_method_call(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        logger = getLogger(func.__name__)
+        logger = getLogger()
         starting_timestamp = time.time()
         logger.info(f"*********** {func.__name__} method started ***********")
         output = func(*args, **kwargs)
