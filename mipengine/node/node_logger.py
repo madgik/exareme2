@@ -30,7 +30,6 @@ def get_logger():
     return logging.getLogger("node")
 
 
-# we accept that context_id is always the first argument in a shared task function call
 def log_add_ctx_id(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -38,7 +37,10 @@ def log_add_ctx_id(func):
         if kwargs.get("context_id"):
             ctx_id = kwargs.get("context_id")
         elif "context_id" in arglist.args:
-            ctx_id = args[0]
+            # finds the index of context_id arg in list of args from inspect
+            # and finds values in args list
+            ctx_idIndex = arglist.args.index("context_id")
+            ctx_id = args[ctx_idIndex]
         else:
             ctx_id = None
 
