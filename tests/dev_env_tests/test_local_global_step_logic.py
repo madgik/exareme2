@@ -63,4 +63,10 @@ def test_local_global_step_algorithms(algorithm_name, request_dict, expected_res
         headers=headers,
     )
     assert response.status_code == 200
-    assert response.json() == expected_response
+    assert response.json()["title"] == expected_response["title"]
+    assert response.json()["columns"] == expected_response["columns"]
+    assert response.json()["data"][0][0] == expected_response["data"][0][0]
+    # Assert the standard deviation with 4 decimals only
+    assert round(float(response.json()["data"][0][1]), 4) == round(
+        float(expected_response["data"][0][1]), 4
+    )
