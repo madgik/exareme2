@@ -12,5 +12,5 @@ app.register_blueprint(algorithms)
 app.register_blueprint(error_handlers)
 
 serving_handler.setFormatter(
-    logging.Formatter("%(asctime)s - %(levelname)s - CONTROLLER - QUART - %(message)s")
+    logging.Formatter("%(asctime)s - %(levelname)s - CONTROLLER - WEBAPI - %(message)s")
 )
