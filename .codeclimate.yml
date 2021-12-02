@@ -1,0 +1,26 @@
+version: "2"
+checks:
+  argument-count:
+    enabled: false
+  file-lines:
+    enabled: false
+  method-complexity:
+    config:
+      threshold: 8    # default: 5
+  identical-code:
+    config:
+      threshold: 32  # default: 32
+  similar-code:
+    config:
+      threshold: 100   # default: 50
+plugins:
+ radon:
+  enabled: true
+  channel: beta
+  config:
+    threshold: "C"    # default: B
+
+exclude_patterns:
+  - "**/.*"
+  - "**/*"
+  - "!mipengine/"
