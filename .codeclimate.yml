@@ -13,6 +13,8 @@ checks:
   similar-code:
     config:
       threshold: 100   # default: 50
+  return-statements:
+    enabled: false
 plugins:
  radon:
   enabled: true
