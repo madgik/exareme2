@@ -30,6 +30,7 @@ def get_logger():
     return logging.getLogger("node")
 
 
+# TODO: All shared tasks should pass context_id. Relevant ticekt: https://team-1617704806227.atlassian.net/browse/MIP-477
 def log_add_ctx_id(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
