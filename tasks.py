@@ -743,8 +743,9 @@ def get_docker_image(c, image, always_pull=False):
     """
 
     cmd = f"docker images -q {image}"
+    _, image_tag = image.split(":")
     result = run(c, cmd, show_ok=False)
-    if result.stdout != "":
+    if result.stdout != "" and image_tag != "latest":
         return
 
     message(f"Pulling image {image} ...", Level.HEADER)

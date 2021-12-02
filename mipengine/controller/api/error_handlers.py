@@ -32,17 +32,16 @@ def handle_bad_user_input(error: BadUserInput):
 
 @error_handlers.app_errorhandler(InsufficientDataError)
 def handle_privacy_error(error: InsufficientDataError):
-    ctrl_logger.getLogger(__name__).info(
-        f"Insufficient Data Error: \n " + error.message
-    )
+    ctrl_logger.getRequestLogger().info(f"Insufficient Data Error: \n " + error.message)
     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
 
 
-# TODO Should be fixed! Default error handler doesn't contain enough error information.
-#       It's better to propagate, the error it's at least visible
+# TODO BUG https://team-1617704806227.atlassian.net/browse/MIP-476
+#  Default error handler doesn't contain enough error information.
+#  It's better to propagate, the error it's at least visible
 # @error_handlers.app_errorhandler(Exception)
 # def handle_unexpected_exception(error: Exception):
-#     ctrl_logger.getLogger(__name__).error(
+#     ctrl_logger.getRequestLogger().error(
 #         f"Internal Server Error."
 #         f"\nErrorType: {type(error)}"
 #         f"\nError: {error}"

@@ -12,16 +12,15 @@ from celery.exceptions import TimeoutError
 from pydantic import BaseModel
 
 from mipengine import import_algorithm_modules
+from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
-from mipengine.controller.controller_logger import getLogger
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueueUDFAsyncResult
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
-from mipengine.controller import controller_logger as ctrl_logger
 
 algorithm_modules = import_algorithm_modules()
 
@@ -120,6 +119,10 @@ class AlgorithmExecutor:
         # Get algorithm module
         self.algorithm_flow_module = algorithm_modules[self._algorithm_name]
 
+        # Context id to be added in the future
+        # self._logger=ctrl_logger.getRequestLogger(self._context_id)
+        self._logger = ctrl_logger.getRequestLogger()
+
     def run(self):
         try:
             algorithm_result = self.algorithm_flow_module.run(self.execution_interface)
@@ -129,24 +132,22 @@ class AlgorithmExecutor:
                 "One of the nodes participating in the algorithm execution "
                 "stopped responding"
             )
-            ctrl_logger.getLogger(__name__).error(
-                f"{error_message} \n{err=}"
-            )  # TODO logging..
+            self._logger.error(f"{error_message} \n{err=}")  # TODO logging..
 
             raise AlgorithmExecutionException(error_message)
         except:
             import traceback
 
-            ctrl_logger.getLogger(__name__).info(f"{traceback.format_exc()}")
+            self._logger.info(f"{traceback.format_exc()}")
         finally:
             self.clean_up()
 
     def clean_up(self):
         # TODO logging..
-        ctrl_logger.getLogger(__name__).info(f"----> cleaning up global_node")
+        self._logger.info(f"----> cleaning up global_node")
         self.global_node.clean_up()
         for node in self.local_nodes:
-            ctrl_logger.getLogger(__name__).info(f"----> cleaning up {node:}")
+            self._logger.info(f"----> cleaning up {node:}")
             node.clean_up()
 
 
