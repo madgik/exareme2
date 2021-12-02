@@ -1,0 +1,15 @@
+version: "2"
+checks:
+  argument-count:
+    config:
+      threshold: 8		# default: 4
+  file-lines:
+    enabled: false		# default: true
+  similar-code:
+    config:
+      threshold: 8		# default: 4
+exclude_patterns:
+  - "tests/"
+  - "tasks.py"
+  - ".venv/"
+  - "documentation/"
