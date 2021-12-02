@@ -1,5 +1,5 @@
 from mipengine.node import node_logger
-from mipengine.node.node_logger import log_add_ctx_id
+from mipengine.node.node_logger import initialise_logger
 from mipengine.node import config as node_config
 from unittest.mock import patch
 
@@ -29,7 +29,7 @@ def mock_node_config():
 
 
 def test_get_ctx_id_from_args():
-    @log_add_ctx_id
+    @initialise_logger
     def pass_ctx_id(ctx_id):
         logger = node_logger.get_logger()
         logger.info("Helloooooooooooooooooo")
