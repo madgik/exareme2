@@ -18,7 +18,9 @@ def getRequestLogger(ctx_id=None):
 def initLogger(ctx_id):
     logger = logging.getLogger(ctx_id)
     if ctx_id == None:
-        formatter = logging.Formatter(f"%(message)s")
+        formatter = logging.Formatter(
+            f"%(asctime)s - %(levelname)s - CONTROLLER - ctx_id: %(name)s - %(message)s"
+        )
     else:
         # the name in the formatter is the name of the logger i.e. ctx_id
         formatter = logging.Formatter(

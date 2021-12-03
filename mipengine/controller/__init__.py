@@ -27,7 +27,7 @@ dictConfig(
     {
         "version": 1,
         "formatters": {
-            "controller_context_frm": {
+            "controller_request_frm": {
                 "format": "%(asctime)s - %(levelname)s - CONTROLLER - %(module)s - %(funcName)s(%(lineno)d) - %(message)s",
             },
             "controller_background_service_frm": {
@@ -35,9 +35,9 @@ dictConfig(
             },
         },
         "handlers": {
-            "controller_context_hdl": {
+            "controller_request_hdl": {
                 "level": config.log_level,
-                "formatter": "controller_context_frm",
+                "formatter": "controller_request_frm",
                 "class": "logging.StreamHandler",
                 "stream": "ext://sys.stdout",
             },
@@ -49,9 +49,9 @@ dictConfig(
             },
         },
         "loggers": {
-            "controller_context": {
+            "controller_request": {
                 "level": config.log_level,
-                "handlers": ["controller_context_hdl"],
+                "handlers": ["controller_request_hdl"],
             },
             "controller_background_service": {
                 "level": config.log_level,
