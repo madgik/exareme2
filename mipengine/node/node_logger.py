@@ -6,7 +6,7 @@ from functools import wraps
 from mipengine.node import config as node_config
 
 
-def init_logger(context_id=None):
+def _init_logger(context_id=None):
     logger = logging.getLogger("node")
     if context_id is None:
         formatter = logging.Formatter(
@@ -44,12 +44,11 @@ def initialise_logger(func):
             # finds the index of context_id arg in list of args from inspect
             # and finds values in args list
             context_id_index = arglist.args.index("context_id")
-            print("context_id_index")
             context_id = args[context_id_index]
         else:
             context_id = None
 
-        init_logger(context_id)
+        _init_logger(context_id)
         return func(*args, **kwargs)
 
     return wrapper
