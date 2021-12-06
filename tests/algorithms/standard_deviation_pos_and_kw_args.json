@@ -1,0 +1,21 @@
+{
+    "name": "standard_deviation_pos_and_kw_args",
+    "desc": "Standard Deviation of a column",
+    "label": "Standard Deviation",
+    "enabled": true,
+    "inputdata": {
+        "x": {
+            "label": "column",
+            "desc": "Column",
+            "types": [
+                "real",
+                "int"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": false
+        }
+    }
+}
