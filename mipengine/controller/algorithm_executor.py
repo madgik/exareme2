@@ -120,8 +120,7 @@ class AlgorithmExecutor:
         )
 
         # Context id to be added in the future
-        # self._logger=ctrl_logger.getRequestLogger(self._context_id)
-        self._logger = ctrl_logger.getRequestLogger()
+        self._logger = ctrl_logger.get_request_logger(self._context_id)
 
     def run(self):
         try:

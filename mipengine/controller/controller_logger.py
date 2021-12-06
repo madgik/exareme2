@@ -2,12 +2,12 @@ import logging
 from mipengine.controller import config as ctrl_config
 
 
-def getRequestLogger(context_id):
+def get_request_logger(context_id):
     """
     Used for logging information produced after an endpoint request.
     """
     logger = (
-        initLogger(context_id)
+        init_logger(context_id)
         if not logging.getLogger(context_id).hasHandlers()
         else logging.getLogger(context_id)
     )
@@ -15,10 +15,8 @@ def getRequestLogger(context_id):
     return logger
 
 
-def initLogger(context_id):
+def init_logger(context_id):
     logger = logging.getLogger(context_id)
-    if logger.handlers:
-        return logger
 
     formatter = logging.Formatter(
         f"%(asctime)s - %(levelname)s - CONTROLLER - context_id: {context_id} - %(message)s"
@@ -33,7 +31,7 @@ def initLogger(context_id):
     return logger
 
 
-def getBackgroundServiceLogger():
+def get_background_service_logger():
     """
     Used for logging information produced by any background service.
     """

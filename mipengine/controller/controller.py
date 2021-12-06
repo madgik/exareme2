@@ -65,7 +65,8 @@ class Controller:
 
         loop = asyncio.get_running_loop()
 
-        ctrl_logger.getRequestLogger().debug(
+        # TODO: Add proper context id. Related JIRA issue: https://team-1617704806227.atlassian.net/browse/MIP-486
+        ctrl_logger.get_request_logger("demoContextId123").debug(
             f"starts executing->  {algorithm_name=} with {context_id=}"
         )
 
@@ -77,11 +78,14 @@ class Controller:
         )
 
         # DEBUG(future logging..)
-        ctrl_logger.getRequestLogger().info(
+        # TODO: Add proper context id. Related JIRA issue: https://team-1617704806227.atlassian.net/browse/MIP-486
+        ctrl_logger.get_request_logger("demoContextId123").info(
             f"\n(controller.py::exec_algorithm) FINISHED->  {algorithm_name=} "
             f"with {context_id=}"
         )
-        ctrl_logger.getRequestLogger().info(f"{algorithm_result.json()=}\n")
+        ctrl_logger.get_request_logger("demoContextId123").info(
+            f"{algorithm_result.json()=}\n"
+        )
         # DEBUG end
 
         return algorithm_result.json()
