@@ -7,10 +7,12 @@ from mipengine.node.monetdb_interface import common_actions
 from mipengine.node.monetdb_interface import merge_tables
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.merge_tables import validate_tables_can_be_merged
+from mipengine.node.node_logger import initialise_logger
 from mipengine.node_tasks_DTOs import TableType
 
 
 @shared_task
+@initialise_logger
 def get_merge_tables(context_id: str) -> List[str]:
     """
     Parameters
@@ -27,6 +29,7 @@ def get_merge_tables(context_id: str) -> List[str]:
 
 
 @shared_task
+@initialise_logger
 def create_merge_table(context_id: str, command_id: str, table_names: List[str]) -> str:
     """
     Parameters

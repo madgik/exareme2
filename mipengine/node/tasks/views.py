@@ -7,10 +7,12 @@ from mipengine.node import config as node_config
 from mipengine.node import DATA_TABLE_PRIMARY_KEY
 
 from mipengine.node.monetdb_interface.common_actions import create_table_name
+from mipengine.node.node_logger import initialise_logger
 from mipengine.node_tasks_DTOs import TableType
 
 
 @shared_task
+@initialise_logger
 def get_views(context_id: str) -> List[str]:
     """
     Parameters
@@ -27,6 +29,7 @@ def get_views(context_id: str) -> List[str]:
 
 
 @shared_task
+@initialise_logger
 def create_pathology_view(
     context_id: str,
     command_id: str,
@@ -74,6 +77,7 @@ def create_pathology_view(
 
 
 @shared_task
+@initialise_logger
 def create_view(
     context_id: str,
     command_id: str,
