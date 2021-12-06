@@ -12,6 +12,7 @@ from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.common_actions import get_table_type
+from mipengine.node.node_logger import initialise_logger
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.node_tasks_DTOs import UDFArgument
@@ -20,6 +21,7 @@ from mipengine.udfgen import generate_udf_queries
 
 
 @shared_task
+@initialise_logger
 def get_udfs(algorithm_name: str) -> List[str]:
     return [
         inspect.getsource(udf)
@@ -33,6 +35,7 @@ def get_udfs(algorithm_name: str) -> List[str]:
     soft_time_limit=node_config.celery.run_udf_soft_time_limit,
     time_limit=node_config.celery.run_udf_time_limit,
 )
+@initialise_logger
 def run_udf(
     command_id: str,
     context_id: str,
@@ -79,6 +82,7 @@ def run_udf(
 
 
 @shared_task
+@initialise_logger
 def get_run_udf_query(
     command_id: str,
     context_id: str,

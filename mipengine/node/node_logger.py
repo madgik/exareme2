@@ -1,18 +1,20 @@
 import inspect
 import logging
 import time
-from functools import wraps
 
+from functools import wraps
 from mipengine.node import config as node_config
 
 
-def init_logger(ctx_id=None):
+def _init_logger(context_id=None):
     logger = logging.getLogger("node")
-    if ctx_id == None:
-        formatter = logging.Formatter(f"%(message)s")
+    if context_id is None:
+        formatter = logging.Formatter(
+            f"%(asctime)s - %(levelname)s - NODE - {node_config.role} - {node_config.identifier} - %(module)s - %(funcName)s(%(lineno)d) - %(message)s"
+        )
     else:
         formatter = logging.Formatter(
-            f"%(asctime)s - %(levelname)s - NODE - ctx_id: {ctx_id} - {node_config.role} - {node_config.identifier} - %(name)s - %(message)s"
+            f"%(asctime)s - %(levelname)s - NODE - {node_config.role} - {node_config.identifier} - %(module)s - %(funcName)s(%(lineno)d) - {context_id} - %(message)s"
         )
 
     # StreamHandler
@@ -22,6 +24,7 @@ def init_logger(ctx_id=None):
         logger.removeHandler(hdlr)
     logger.addHandler(sh)
     logger.setLevel(node_config.log_level)
+    logger.propagate = False
 
     return logger
 
@@ -30,22 +33,23 @@ def get_logger():
     return logging.getLogger("node")
 
 
-def log_add_ctx_id(func):
+# TODO: All shared tasks should pass context_id. Relevant ticket: https://team-1617704806227.atlassian.net/browse/MIP-477
+def initialise_logger(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         arglist = inspect.getfullargspec(func)
         if kwargs.get("context_id"):
-            ctx_id = kwargs.get("context_id")
+            context_id = kwargs.get("context_id")
         elif "context_id" in arglist.args:
             # finds the index of context_id arg in list of args from inspect
             # and finds values in args list
-            ctx_idIndex = arglist.args.index("context_id")
-            ctx_id = args[ctx_idIndex]
+            context_id_index = arglist.args.index("context_id")
+            context_id = args[context_id_index]
         else:
-            ctx_id = None
+            context_id = None
 
-        init_logger(ctx_id)
-        func(*args, **kwargs)
+        _init_logger(context_id)
+        return func(*args, **kwargs)
 
     return wrapper
 
