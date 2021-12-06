@@ -22,12 +22,12 @@ def run(algo_interface):
 
     X = local_run(
         func_name=make_unique_func_name(relation_to_matrix),
-        positional_args={"rel": X_relation},
+        positional_args=[X_relation],
     )
 
     local_state, local_result = local_run(
         func_name=make_unique_func_name(local_step_1),
-        positional_args={"table": X},
+        positional_args=[X],
         share_to_global=[False, True],
     )
 
@@ -39,7 +39,7 @@ def run(algo_interface):
 
     local_result = local_run(
         func_name=make_unique_func_name(local_step_2),
-        positional_args={"prev_state": local_state, "global_transfer": global_result},
+        positional_args=[local_state, global_result],
         share_to_global=True,
     )
 

@@ -386,7 +386,8 @@ class _AlgorithmExecutionInterface:
     def run_udf_on_local_nodes(
         self,
         func_name: str,
-        positional_args: Dict[str, "_LocalNodeTable"],
+        positional_args: Optional[List["_LocalNodeTable"]] = (),
+        keyword_args: Optional[Dict[str, "_LocalNodeTable"]] = {},
         share_to_global: Union[bool, List[bool]] = None,
     ):  # -> List of GlobalNodeTables or LocalNodeTables
         # queue exec_udf task on all local nodes
@@ -400,9 +401,8 @@ class _AlgorithmExecutionInterface:
         tasks = {}
         for node in self._local_nodes:
             # TODO get the nodes from the LocalNodeTables in the positional_args
-            positional_args_transfrormed = []
-            keyword_args_transformed = {}
-            for var_name, val in positional_args.items():
+            positional_udf_args = []
+            for val in positional_args:
                 if isinstance(val, _LocalNodeTable):
                     udf_argument = UDFArgument(
                         kind=UDFArgumentKind.TABLE,
@@ -415,13 +415,29 @@ class _AlgorithmExecutionInterface:
                     )
                 else:
                     udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=val)
-                positional_args_transfrormed.append(udf_argument.json())
-                # keyword_args_transformed[var_name] = udf_argument.json()
+                positional_udf_args.append(udf_argument.json())
+
+            keyword_udf_args = {}
+            for var_name, val in keyword_args.items():
+                if isinstance(val, _LocalNodeTable):
+                    udf_argument = UDFArgument(
+                        kind=UDFArgumentKind.TABLE,
+                        value=val.nodes_tables[node].full_table_name,
+                    )
+                elif isinstance(val, _GlobalNodeTable):
+                    raise Exception(
+                        f"(run_udf_on_local_nodes) GlobalNodeTable types are not "
+                        f"accepted from run_udf_on_local_nodes"
+                    )
+                else:
+                    udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=val)
+                keyword_udf_args[var_name] = udf_argument.json()
+
             task = node.queue_run_udf(
                 command_id=command_id,
                 func_name=func_name,
-                positional_args=positional_args_transfrormed,
-                keyword_args={},
+                positional_args=positional_udf_args,
+                keyword_args=keyword_udf_args,
             )
             tasks[node] = task
 
@@ -538,7 +554,8 @@ class _AlgorithmExecutionInterface:
     def run_udf_on_global_node(
         self,
         func_name: str,
-        positional_args: List["_GlobalNodeTable"],
+        positional_args: Optional[List["_GlobalNodeTable"]] = (),
+        keyword_args: Optional[Dict[str, "_GlobalNodeTable"]] = {},
         share_to_locals: Union[bool, List[bool]] = None,
     ):  # -> List of GlobalNodeTables or LocalNodeTables
         # check the input tables are GlobalNodeTable(s)
@@ -553,8 +570,7 @@ class _AlgorithmExecutionInterface:
         if type(share_to_locals) == bool:
             share_to_locals = [share_to_locals]
 
-        positional_args_transfrormed = []
-        # keyword_args_transformed = {}
+        positional_udf_args = []
         for val in positional_args:
             if isinstance(val, _GlobalNodeTable):
                 udf_argument = UDFArgument(
@@ -568,13 +584,29 @@ class _AlgorithmExecutionInterface:
                 )
             else:
                 udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=str(val))
-            positional_args_transfrormed.append(udf_argument.json())
+            positional_udf_args.append(udf_argument.json())
+
+        keyword_udf_args = {}
+        for var_name, val in keyword_args.items():
+            if isinstance(val, _GlobalNodeTable):
+                udf_argument = UDFArgument(
+                    kind=UDFArgumentKind.TABLE,
+                    value=list(val.node_table.values())[0].full_table_name,
+                )  # TODO: da fuck is dat
+            elif isinstance(val, _LocalNodeTable):
+                raise Exception(
+                    "(run_udf_on_global_node) LocalNodeTable types are not "
+                    "accepted from run_udf_on_global_nodes"
+                )
+            else:
+                udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=str(val))
+            keyword_udf_args[var_name] = udf_argument.json()
 
         task = self._global_node.queue_run_udf(
             command_id=command_id,
             func_name=func_name,
-            positional_args=positional_args_transfrormed,
-            keyword_args={},
+            positional_args=positional_udf_args,
+            keyword_args=keyword_udf_args,
         )
         udf_result_tables = self._global_node.get_queued_udf_result(task)
 
