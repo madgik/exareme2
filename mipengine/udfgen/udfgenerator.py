@@ -1552,6 +1552,8 @@ def generate_udf_queries(
     )
 
     if func_name in TENSOR_OP_NAMES:
+        if udf_kwargs:
+            raise UDFBadCall("Keyword args are not supported for tensor operations.")
         udf_select = get_sql_tensor_operation_select_query(udf_posargs, func_name)
         output_type = get_output_type_for_sql_tensor_operation(func_name, udf_posargs)
         output_tables = get_drop_and_create_table_templates(output_type)
