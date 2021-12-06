@@ -135,10 +135,11 @@ class AlgorithmExecutor:
             self._logger.error(f"{error_message} \n{err=}")  # TODO logging..
 
             raise AlgorithmExecutionException(error_message)
-        except:
+        except Exception as exc:
             import traceback
 
             self._logger.info(f"{traceback.format_exc()}")
+            raise exc
         finally:
             self.clean_up()
 
