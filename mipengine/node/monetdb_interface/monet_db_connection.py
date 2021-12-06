@@ -37,7 +37,7 @@ class MonetDB(metaclass=Singleton):
     def __init__(self):
         self._connection = None
         self.refresh_connection()
-        self._logger = logging.getLogger()
+        self._logger = logging.get_logger()
 
     def refresh_connection(self):
         self._connection = pymonetdb.connect(
