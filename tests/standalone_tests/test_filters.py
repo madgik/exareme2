@@ -6,6 +6,7 @@ from mipengine.common_data_elements import CommonDataElement
 from mipengine.common_data_elements import CommonDataElements
 from mipengine.common_data_elements import MetadataEnumeration
 from mipengine.common_data_elements import MetadataVariable
+from mipengine.filters import FilterError
 from mipengine.filters import build_filter_clause, validate_filter
 
 PATHOLOGY = "test_pathology1"
@@ -389,157 +390,113 @@ def test_validate_filter(test_input, expected, common_data_elements):
 
 
 all_build_filter_clause_fail_cases = [
-    (
-        {
-            "condition": "ANDOR",
-            "rules": [
-                {
-                    "id": "test_age_value",
-                    "field": "test_age_value",
-                    "type": "int",
-                    "input": "number",
-                    "operator": "equal",
-                    "value": 17,
-                }
-            ],
-            "valid": True,
-        },
-        ValueError,
-    ),
-    (0, TypeError),
-    ("not_a_filter", ValueError),
-    ({"data": 0}, ValueError),
-    ({0}, ValueError),
-]
-
-all_validate_filter_fail_cases = [
-    (
-        {
-            "condition": "ANDOR",
-            "rules": [
-                {
-                    "id": "test_age_value",
-                    "field": "test_age_value",
-                    "type": "int",
-                    "input": "number",
-                    "operator": "equal",
-                    "value": 17,
-                }
-            ],
-            "valid": True,
-        },
-        ValueError,
-    ),
-    (0, TypeError),
-    ("not_a_filter", TypeError),
-    ({"data": 0}, ValueError),
-    ({0}, TypeError),
-    (
-        {
-            "condition": "AND",
-            "rules": [
-                {
-                    "id": "test_age_value",
-                    "field": "test_age_value",
-                    "type": "int",
-                    "input": "number",
-                    "operator": "invalid operator",
-                    "value": 17,
-                }
-            ],
-            "valid": True,
-        },
-        ValueError,
-    ),
-    (
-        {
-            "condition": "AND",
-            "rules": [
-                {
-                    "id": "invalid column",
-                    "field": "test_age_value",
-                    "type": "int",
-                    "input": "number",
-                    "operator": "equal",
-                    "value": 17,
-                }
-            ],
-            "valid": True,
-        },
-        KeyError,
-    ),
-    (
-        {
-            "condition": "AND",
-            "rules": [
-                {
-                    "id": "test_age_value",
-                    "field": "test_age_value",
-                    "type": "int",
-                    "input": "number",
-                    "operator": "equal",
-                    "value": "17",
-                }
-            ],
-            "valid": True,
-        },
-        TypeError,
-    ),
-    (
-        {
-            "condition": "AND",
-            "rules": [
-                {
-                    "id": "test_age_value",
-                    "field": "test_age_value",
-                    "type": "int",
-                    "input": "number",
-                    "operator": "equal",
-                    "value": True,
-                }
-            ],
-            "valid": True,
-        },
-        TypeError,
-    ),
+    {
+        "condition": "ANDOR",
+        "rules": [
+            {
+                "id": "test_age_value",
+                "field": "test_age_value",
+                "type": "int",
+                "input": "number",
+                "operator": "equal",
+                "value": 17,
+            }
+        ],
+        "valid": True,
+    },
+    0,
+    "not_a_filter",
+    {"data": 0},
+    {0},
 ]
 
 
-@pytest.mark.parametrize("test_input,expected_error", all_validate_filter_fail_cases)
-def test_validate_filter_fail_cases(test_input, expected_error, common_data_elements):
-    with pytest.raises(expected_error):
-        validate_filter(common_data_elements, PATHOLOGY, test_input)
-
-
-@pytest.mark.parametrize(
-    "test_input,expected_error", all_build_filter_clause_fail_cases
-)
-def test_build_filter_clause_fail_cases(test_input, expected_error):
-    with pytest.raises(expected_error):
+@pytest.mark.parametrize("test_input", all_build_filter_clause_fail_cases)
+def test_build_filter_clause_fail_cases(test_input):
+    with pytest.raises(FilterError):
         build_filter_clause(test_input)
 
 
-invalid_pathology_case = ["non_existing_pathology", 0, True]
-
-
-@pytest.mark.parametrize("pathology", invalid_pathology_case)
-def test_validate_filter_fail_cases(pathology, common_data_elements):
-    with pytest.raises(KeyError):
-        validate_filter(
-            common_data_elements,
-            pathology,
+all_validate_filter_fail_cases = [
+    {
+        "condition": "ANDOR",
+        "rules": [
             {
-                "condition": "AND",
-                "rules": [
-                    {
-                        "id": "test_age_value",
-                        "field": "test_age_value",
-                        "type": "int",
-                        "input": "number",
-                        "operator": "equal",
-                        "value": 17,
-                    }
-                ],
-                "valid": True,
-            },
-        )
+                "id": "test_age_value",
+                "field": "test_age_value",
+                "type": "int",
+                "input": "number",
+                "operator": "equal",
+                "value": 17,
+            }
+        ],
+        "valid": True,
+    },
+    0,
+    "not_a_filter",
+    {"data": 0},
+    {0},
+    {
+        "condition": "AND",
+        "rules": [
+            {
+                "id": "test_age_value",
+                "field": "test_age_value",
+                "type": "int",
+                "input": "number",
+                "operator": "invalid operator",
+                "value": 17,
+            }
+        ],
+        "valid": True,
+    },
+    FilterError,
+    {
+        "condition": "AND",
+        "rules": [
+            {
+                "id": "invalid column",
+                "field": "test_age_value",
+                "type": "int",
+                "input": "number",
+                "operator": "equal",
+                "value": 17,
+            }
+        ],
+        "valid": True,
+    },
+    {
+        "condition": "AND",
+        "rules": [
+            {
+                "id": "test_age_value",
+                "field": "test_age_value",
+                "type": "int",
+                "input": "number",
+                "operator": "equal",
+                "value": "17",
+            }
+        ],
+        "valid": True,
+    },
+    {
+        "condition": "AND",
+        "rules": [
+            {
+                "id": "test_age_value",
+                "field": "test_age_value",
+                "type": "int",
+                "input": "number",
+                "operator": "equal",
+                "value": True,
+            }
+        ],
+        "valid": True,
+    },
+]
+
+
+@pytest.mark.parametrize("test_input", all_validate_filter_fail_cases)
+def test_validate_filter_fail_cases_bad_filter(test_input, common_data_elements):
+    with pytest.raises(FilterError):
+        validate_filter(common_data_elements, PATHOLOGY, test_input)

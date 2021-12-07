@@ -5,6 +5,7 @@ from quart import Blueprint
 
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
+from mipengine.filters import FilterError
 from mipengine.node_tasks_DTOs import InsufficientDataError
 from mipengine.controller import controller_logger as ctrl_logger
 
@@ -22,6 +23,11 @@ class HTTPStatusCode(enum.IntEnum):
 
 @error_handlers.app_errorhandler(BadRequest)
 def handle_bad_request(error: BadRequest):
+    return error.message, HTTPStatusCode.BAD_REQUEST
+
+
+@error_handlers.app_errorhandler(FilterError)
+def handle_bad_request(error: FilterError):
     return error.message, HTTPStatusCode.BAD_REQUEST
 
 
