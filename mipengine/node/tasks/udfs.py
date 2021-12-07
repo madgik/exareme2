@@ -186,7 +186,7 @@ def _generate_udf_statements(
             node_id=node_config.identifier,
             context_id=context_id,
             command_id=command_id,
-            subcommand_id=str(sequence),
+            command_subid=str(sequence),
         )
         output_table_names[output_table.tablename_placeholder] = table_name
         result_tables.append(table_name)
