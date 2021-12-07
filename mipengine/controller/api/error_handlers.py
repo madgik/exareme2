@@ -36,9 +36,16 @@ def handle_privacy_error(error: InsufficientDataError):
     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
 
 
-@error_handlers.app_errorhandler(Exception)
-def handle_unexpected_exception(error: Exception):
-    ctrl_logger.getRequestLogger().error(
-        f"Algorithm validation failed. \nTraceback: {traceback.print_exception(type(error), error, error.__traceback__)}"
-    )
-    return "", HTTPStatusCode.UNEXPECTED_ERROR
+# TODO BUG https://team-1617704806227.atlassian.net/browse/MIP-476
+#  Default error handler doesn't contain enough error information.
+#  It's better to propagate, the error it's at least visible
+# @error_handlers.app_errorhandler(Exception)
+# def handle_unexpected_exception(error: Exception):
+#     ctrl_logger.getRequestLogger().error(
+#         f"Internal Server Error."
+#         f"\nErrorType: {type(error)}"
+#         f"\nError: {error}"
+#         f"\nTraceback: {traceback.print_tb(error.__traceback__)}"
+#     )
+#
+#     return "", HTTPStatusCode.UNEXPECTED_ERROR

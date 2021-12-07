@@ -15,7 +15,7 @@ from mipengine.udfgen import (
     tensor,
     udf,
 )
-from mipengine.algorithms.result import TabularDataResult
+from mipengine.algorithm_result_DTOs import TabularDataResult
 
 
 PREC = 1e-6
@@ -265,7 +265,7 @@ def sum_tensors(xs):
 
 
 def test_logistic_regression():
-    data = pd.read_csv("tests/integration_tests/data/dementia/edsd.csv")
+    data = pd.read_csv("tests/dev_env_tests/data/dementia/edsd.csv")
     y_name = "alzheimerbroadcategory"
     x_names = [
         "lefthippocampus",

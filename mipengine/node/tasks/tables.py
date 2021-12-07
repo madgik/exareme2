@@ -47,7 +47,10 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
     """
     schema = TableSchema.parse_raw(schema_json)
     table_name = create_table_name(
-        TableType.NORMAL, command_id, context_id, node_config.identifier
+        TableType.NORMAL,
+        node_config.identifier,
+        context_id,
+        command_id,
     )
     tables.create_table(table_name, schema)
     return table_name

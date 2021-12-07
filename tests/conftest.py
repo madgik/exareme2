@@ -5,7 +5,7 @@ import docker
 import sqlalchemy as sql
 
 
-TESTING_CONT_IMAGE = "madgik/mipenginedb:dev1.4"  # TODO should not be hardcoded
+TESTING_CONT_IMAGE = "madgik/mipenginedb:latest"
 TESTING_CONT_NAME = "mipenginedb-testing"
 TESTING_CONT_PORT = "50456"
 
