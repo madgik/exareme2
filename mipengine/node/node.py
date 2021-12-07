@@ -1,4 +1,7 @@
+import logging
+
 from celery import Celery
+from celery import signals
 
 from mipengine.node import config as node_config
 
@@ -20,8 +23,22 @@ celery = Celery(
     ],
 )
 
+
+@signals.setup_logging.connect
+def setup_celery_logging(*args, **kwargs):
+    logger = logging.getLogger()
+    formatter = logging.Formatter(
+        f"%(asctime)s - %(levelname)s - NODE - {node_config.role} - {node_config.identifier} - CELERY - FRAMEWORK - %(message)s"
+    )
+
+    # StreamHandler
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    logger.addHandler(sh)
+
+    logger.setLevel(node_config.log_level)
+
+
 celery.conf.worker_concurrency = node_config.celery.worker_concurrency
 celery.conf.task_soft_time_limit = node_config.celery.task_soft_time_limit
 celery.conf.task_time_limit = node_config.celery.task_time_limit
-celery.conf.worker_log_format = f"%(asctime)s - %(levelname)s - NODE - {node_config.role} - {node_config.identifier} - CELERY - CENTRAL - %(message)s"
-celery.conf.worker_task_log_format = f"%(asctime)s - %(levelname)s - NODE - {node_config.role} - {node_config.identifier} - %(task_name)s - %(module)s - %(funcName)s(%(lineno)d) - %(message)s"
