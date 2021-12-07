@@ -19,7 +19,7 @@ def init_logger(context_id):
     logger = logging.getLogger(context_id)
 
     formatter = logging.Formatter(
-        f"%(asctime)s - %(levelname)s - CONTROLLER - context_id: {context_id} - %(message)s"
+        f"%(asctime)s - %(levelname)s - CONTROLLER - %(module)s - %(funcName)s(%(lineno)d) - {context_id} - %(message)s"
     )
 
     # StreamHandler
