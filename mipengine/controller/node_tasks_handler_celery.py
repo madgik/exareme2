@@ -250,7 +250,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         )
 
     @time_limit_exceeded_handler
-    def get_queued_udf_result(self, async_result: QueueUDFAsyncResult):
+    def get_queued_udf_result(self, async_result: QueueUDFAsyncResult) -> List[str]:
         return async_result.get(self._task_timeout)
 
     @time_limit_exceeded_handler

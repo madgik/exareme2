@@ -1,12 +1,10 @@
-import inspect
 from typing import Dict
 from typing import List
 from typing import Tuple
 
 from celery import shared_task
 
-from mipengine import algorithms  # DO NOT REMOVE, NEEDED FOR ALGORITHM IMPORT
-
+from mipengine import import_algorithm_modules
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
@@ -18,23 +16,24 @@ from mipengine.node_tasks_DTOs import TableType
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 from mipengine.udfgen import generate_udf_queries
+from mipengine.udfgen.udfgenerator import udf as udf_registry
+
+
+import_algorithm_modules()
 
 
 @shared_task
 @initialise_logger
-def get_udfs(algorithm_name: str) -> List[str]:
-    return [
-        inspect.getsource(udf)
-        for udf_name, udf in UDF_REGISTRY.items()
-        if udf_name.startswith(algorithm_name)
-    ]
+def get_udf(func_name: str) -> str:
+    return str(udf_registry.registry[func_name])
 
 
-# TODO Verify time limit when udf tests are fixed
-@shared_task(
-    soft_time_limit=node_config.celery.run_udf_soft_time_limit,
-    time_limit=node_config.celery.run_udf_time_limit,
-)
+# TODO https://team-1617704806227.atlassian.net/browse/MIP-473
+# @shared_task(
+#     soft_time_limit=node_config.celery.run_udf_soft_time_limit,
+#     time_limit=node_config.celery.run_udf_time_limit,
+# )
+@shared_task
 @initialise_logger
 def run_udf(
     command_id: str,
@@ -42,7 +41,7 @@ def run_udf(
     func_name: str,
     positional_args_json: List[str],
     keyword_args_json: Dict[str, str],
-) -> str:
+) -> List[str]:
     """
     Creates the UDF, if provided, and adds it in the database.
     Then it runs the select statement with the input provided.
@@ -62,8 +61,8 @@ def run_udf(
 
     Returns
     -------
-        str
-            The name of the table where the udf execution results are in.
+        List[str]
+            The names of the tables where the udf execution results are in.
     """
 
     positional_args = [UDFArgument.parse_raw(arg) for arg in positional_args_json]
@@ -72,13 +71,13 @@ def run_udf(
         key: UDFArgument.parse_raw(arg) for key, arg in keyword_args_json.items()
     }
 
-    udf_creation_stmt, udf_execution_stmt, result_table_name = _generate_udf_statements(
+    udf_statements, result_table_names = _generate_udf_statements(
         command_id, context_id, func_name, positional_args, keyword_args
     )
 
-    udfs.run_udf(udf_creation_stmt, udf_execution_stmt)
+    udfs.run_udf(udf_statements)
 
-    return result_table_name
+    return result_table_names
 
 
 @shared_task
@@ -89,7 +88,7 @@ def get_run_udf_query(
     func_name: str,
     positional_args_json: List[str],
     keyword_args_json: Dict[str, str],
-) -> Tuple[str, str, str]:
+) -> List[str]:
     """
     Fetches the sql statements that represent the execution of the udf.
 
@@ -108,10 +107,9 @@ def get_run_udf_query(
 
     Returns
     -------
-        str
-            The name of the result table,
-            the statement that creates the udf and
-            the statement that executes the udf.
+        List[str]
+            A list of the statements that would be executed in the DB.
+
     """
 
     positional_args = [UDFArgument.parse_raw(arg) for arg in positional_args_json]
@@ -120,15 +118,18 @@ def get_run_udf_query(
         key: UDFArgument.parse_raw(arg) for key, arg in keyword_args_json.items()
     }
 
-    return _generate_udf_statements(
+    udf_statements, _ = _generate_udf_statements(
         command_id, context_id, func_name, positional_args, keyword_args
     )
+
+    return udf_statements
 
 
 def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
     """
     Creates a udf name with the format <func_name>_<commandId>_<contextId>
     """
+    # TODO Monetdb UDF name cannot be larger than 63 character
     return f"{func_name}_{command_id}_{context_id}"
 
 
@@ -169,22 +170,43 @@ def _generate_udf_statements(
     func_name: str,
     positional_args: List[UDFArgument],
     keyword_args: Dict[str, UDFArgument],
-):
+) -> Tuple[List[str], List[str]]:
     allowed_func_name = func_name.replace(".", "_")  # A dot is not an allowed character
     udf_name = _create_udf_name(allowed_func_name, command_id, context_id)
-    result_table_name = create_table_name(
-        TableType.NORMAL, command_id, context_id, node_config.identifier
-    )
 
     gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
-    udf_creation_stmt, udf_execution_stmt = generate_udf_queries(
-        func_name, gen_pos_args, gen_kw_args
-    )
-    udf_creation_stmt = udf_creation_stmt.substitute(udf_name=udf_name)
-    udf_execution_stmt = udf_execution_stmt.substitute(
-        table_name=result_table_name,
-        udf_name=udf_name,
-        node_id=node_config.identifier,
+
+    udf_execution_queries = generate_udf_queries(func_name, gen_pos_args, gen_kw_args)
+
+    result_tables = []
+    output_table_names = {}
+    for sequence, output_table in enumerate(udf_execution_queries.output_tables):
+        table_name = create_table_name(
+            table_type=TableType.NORMAL,
+            node_id=node_config.identifier,
+            context_id=context_id,
+            command_id=command_id,
+            command_subid=str(sequence),
+        )
+        output_table_names[output_table.tablename_placeholder] = table_name
+        result_tables.append(table_name)
+
+    templates_mapping = {
+        "udf_name": udf_name,
+        "node_id": node_config.identifier,
+    }
+    templates_mapping.update(output_table_names)
+
+    udf_statements = []
+    for output_table in udf_execution_queries.output_tables:
+        udf_statements.append(output_table.drop_query.substitute(**templates_mapping))
+        udf_statements.append(output_table.create_query.substitute(**templates_mapping))
+    if udf_execution_queries.udf_definition_query:
+        udf_statements.append(
+            udf_execution_queries.udf_definition_query.substitute(**templates_mapping)
+        )
+    udf_statements.append(
+        udf_execution_queries.udf_select_query.substitute(**templates_mapping)
     )
 
-    return udf_creation_stmt, udf_execution_stmt, result_table_name
+    return udf_statements, result_tables

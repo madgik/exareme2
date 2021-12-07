@@ -44,24 +44,26 @@ class InputDataSpecificationsDTO:
     y: Optional[InputDataSpecificationDTO] = None
 
     def __init__(self, input_data_spec: InputDataSpecifications):
-        self.x = InputDataSpecificationDTO(
-            label=input_data_spec.x.label,
-            desc=input_data_spec.x.desc,
-            types=input_data_spec.x.types,
-            notblank=input_data_spec.x.notblank,
-            multiple=input_data_spec.x.multiple,
-            stattypes=input_data_spec.x.stattypes,
-            enumslen=input_data_spec.x.enumslen,
-        )
-        self.y = InputDataSpecificationDTO(
-            label=input_data_spec.y.label,
-            desc=input_data_spec.y.desc,
-            types=input_data_spec.y.types,
-            notblank=input_data_spec.y.notblank,
-            multiple=input_data_spec.y.multiple,
-            stattypes=input_data_spec.y.stattypes,
-            enumslen=input_data_spec.y.enumslen,
-        )
+        if input_data_spec.x:
+            self.x = InputDataSpecificationDTO(
+                label=input_data_spec.x.label,
+                desc=input_data_spec.x.desc,
+                types=input_data_spec.x.types,
+                notblank=input_data_spec.x.notblank,
+                multiple=input_data_spec.x.multiple,
+                stattypes=input_data_spec.x.stattypes,
+                enumslen=input_data_spec.x.enumslen,
+            )
+        if input_data_spec.y:
+            self.y = InputDataSpecificationDTO(
+                label=input_data_spec.y.label,
+                desc=input_data_spec.y.desc,
+                types=input_data_spec.y.types,
+                notblank=input_data_spec.y.notblank,
+                multiple=input_data_spec.y.multiple,
+                stattypes=input_data_spec.y.stattypes,
+                enumslen=input_data_spec.y.enumslen,
+            )
         self.pathology = InputDataSpecificationDTO(
             label="Pathology of the data.",
             desc="The pathology that the algorithm will run on.",

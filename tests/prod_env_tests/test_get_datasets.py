@@ -2,7 +2,7 @@ import json
 
 import requests
 
-from tests.e2e_tests import datasets_url
+from tests.prod_env_tests import datasets_url
 
 proper_node_schemas = {
     "localnode1": {

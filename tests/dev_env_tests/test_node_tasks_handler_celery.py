@@ -97,9 +97,11 @@ def test_create_table(node_task_handler, a_test_table_params):
     table_name = node_task_handler.create_table(
         context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
     )
-    print(f"{table_name=}")
 
-    assert table_name.startswith(f"normal_{command_id}_{TASKS_CONTEXT_ID}_")
+    table_name_parts = table_name.split("_")
+    assert table_name_parts[0] == "normal"
+    assert table_name_parts[2] == TASKS_CONTEXT_ID
+    assert table_name_parts[3] == command_id
 
 
 @pytest.mark.usefixtures("cleanup")

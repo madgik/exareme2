@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from time import sleep
 from typing import List
 
 import pymonetdb
@@ -8,6 +9,7 @@ from mipengine.node import node_logger as logging
 
 BROKEN_PIPE_MAX_ATTEMPTS = 50
 OCC_MAX_ATTEMPTS = 50
+INTEGRITY_ERROR_RETRY_INTERVAL = 0.5
 
 
 class Singleton(type):
@@ -117,6 +119,7 @@ class MonetDB(metaclass=Singleton):
                 except pymonetdb.exceptions.IntegrityError as exc:
                     integrity_error = exc
                     self._connection.rollback()
+                    sleep(INTEGRITY_ERROR_RETRY_INTERVAL)
                     continue
                 except Exception as exc:
                     self._connection.rollback()

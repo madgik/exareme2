@@ -59,7 +59,10 @@ def create_pathology_view(
         The name of the created view
     """
     view_name = create_table_name(
-        TableType.VIEW, command_id, context_id, node_config.identifier
+        TableType.VIEW,
+        node_config.identifier,
+        context_id,
+        command_id,
     )
     columns.insert(0, DATA_TABLE_PRIMARY_KEY)
 
@@ -104,7 +107,10 @@ def create_view(
         The name of the created view
     """
     view_name = create_table_name(
-        TableType.VIEW, command_id, context_id, node_config.identifier
+        TableType.VIEW,
+        node_config.identifier,
+        context_id,
+        command_id,
     )
     views.create_view(
         view_name=view_name,

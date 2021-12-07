@@ -126,6 +126,9 @@ def _validate_algorithm_inputdata(
     inputdata_spec: InputDataSpecification,
     pathology: str,
 ):
+    if not inputdata_values and not inputdata_spec:
+        return
+
     if not inputdata_values:
         if inputdata_spec.notblank:
             raise BadUserInput(
