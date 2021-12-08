@@ -27,7 +27,7 @@ def run(algo_interface):
 
     local_state, local_result = local_run(
         func_name=make_unique_func_name(local_step_1),
-        positional_args=[X],
+        keyword_args={"table": X},
         share_to_global=[False, True],
     )
 
@@ -39,13 +39,15 @@ def run(algo_interface):
 
     local_result = local_run(
         func_name=make_unique_func_name(local_step_2),
-        positional_args=[local_state, global_result],
+        positional_args=[local_state],
+        keyword_args={"global_transfer": global_result},
         share_to_global=True,
     )
 
     global_result = global_run(
         func_name=make_unique_func_name(global_step_2),
-        positional_args=[global_state, local_result],
+        positional_args=[global_state],
+        keyword_args={"local_transfers": local_result},
     )
 
     std_deviation = json.loads(global_result.get_table_data()[0][1])["deviation"]

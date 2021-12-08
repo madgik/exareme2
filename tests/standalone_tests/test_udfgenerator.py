@@ -1192,6 +1192,21 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         assert "inconsistent mappings" in err_msg
 
 
+class TestUDFGen_KW_args_on_tensor_operation:
+    def test_generate_udf_queries(self):
+        funcname = TensorBinaryOp.MATMUL.name
+        posargs = []
+        keywordargs = {"Μ": 5, "v": 7}
+        with pytest.raises(UDFBadCall) as e:
+            _ = generate_udf_queries(
+                funcname,
+                posargs,
+                keywordargs,
+            )
+        err_msg, *_ = e.value.args
+        assert "Keyword args are not supported for tensor operations." in err_msg
+
+
 class _TestGenerateUDFQueries:
     """
     This class does not run as a test, it's only inherited
