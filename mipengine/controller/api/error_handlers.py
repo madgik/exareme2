@@ -18,14 +18,14 @@ INSUFFICIENT_DATA_ERROR_MESSAGE = (
     "provided because there are insufficient data."
 )
 
-ALGORITHM_EXUCUTION_ERROR = "An error occured during the execution of the algorithm"
+ALGORITHM_EXUCUTION_ERROR_MESSAGE = "An error occured during the execution of the algorithm"
 
 
 class HTTPStatusCode(enum.IntEnum):
     BAD_REQUEST = 400
     BAD_USER_INPUT = 460
     INSUFFICIENT_DATA_ERROR = 461
-    ALGORITHM_EXECUTION_ERROR = 462
+    ALGORITHM_EXECUTION_ERROR = 512
     UNEXPECTED_ERROR = 500
 
 
@@ -56,7 +56,7 @@ def handle_privacy_error(error: InsufficientDataError):
 @error_handlers.app_errorhandler(AlgorithmExecutionException)
 def handle_algorithm_excecution_exception(error: AlgorithmExecutionException):
     print(f"(error_handlers::handle_algorithm_excecution_exception) {error=}")
-    return ALGORITHM_EXUCUTION_ERROR, HTTPStatusCode.ALGORITHM_EXECUTION_ERROR
+    return ALGORITHM_EXUCUTION_ERROR_MESSAGE, HTTPStatusCode.ALGORITHM_EXECUTION_ERROR
 
 
 @error_handlers.app_errorhandler(Exception)

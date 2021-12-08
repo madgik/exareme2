@@ -180,7 +180,6 @@ class AlgorithmExecutor:
         except Exception as exc:
             # logger.info(f"cleaning up global_node FAILED {exc=}")
             print(f"(AlgorithmExecutor) cleaning up global_node FAILED {exc=}")
-            pass
 
         # logger.info(f"cleaning up local nodes:{self._local_nodes=}")
         print(f"(AlgorithmExecutor) cleaning up local nodes:{self._local_nodes=}")
@@ -192,7 +191,6 @@ class AlgorithmExecutor:
             except Exception as exc:
                 # logger.info(f"cleaning up {node=} FAILED {exc=}")
                 print(f"(AlgorithmExecutor) cleaning up {node=} FAILED {exc=}")
-                pass
 
 
 class _Node:
