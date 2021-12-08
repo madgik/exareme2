@@ -1,12 +1,15 @@
+import json
 import uuid
 
 import pytest
+import requests
 
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import InsufficientDataError
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
+from tests.dev_env_tests import algorithms_url
 from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 from tests.dev_env_tests.nodes_communication import get_celery_app
 
@@ -242,6 +245,31 @@ def test_pathology_view_with_filters(context_id):
     view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()
     view_schema = TableSchema.parse_raw(view_schema_json)
     assert view_schema == schema
+
+
+def test_bad_filters_exception():
+    algorithm_name = "standard_deviation"
+    request_params = {
+        "inputdata": {
+            "pathology": "dementia",
+            "datasets": ["edsd"],
+            "x": [
+                "lefthippocampus",
+            ],
+            "filters": {"whateveeeeeer": "!!!"},
+        },
+    }
+
+    algorithm_url = algorithms_url + "/" + algorithm_name
+    headers = {"Content-type": "application/json", "Accept": "text/plain"}
+    response = requests.post(
+        algorithm_url,
+        data=json.dumps(request_params),
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert "Invalid filters format." in response.text
 
 
 def test_pathology_view_with_privacy_error(context_id):
