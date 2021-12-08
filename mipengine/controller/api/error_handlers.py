@@ -38,7 +38,10 @@ def handle_bad_user_input(error: BadUserInput):
 
 @error_handlers.app_errorhandler(InsufficientDataError)
 def handle_privacy_error(error: InsufficientDataError):
-    ctrl_logger.getRequestLogger().info(f"Insufficient Data Error: \n " + error.message)
+    # TODO: Add proper context id. Related JIRA issue: https://team-1617704806227.atlassian.net/browse/MIP-486
+    # ctrl_logger.get_request_logger("demoContextId123").info(
+    #     f"Insufficient Data Error: \n " + error.message
+    # )
     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
 
 
@@ -47,7 +50,9 @@ def handle_privacy_error(error: InsufficientDataError):
 #  It's better to propagate, the error it's at least visible
 # @error_handlers.app_errorhandler(Exception)
 # def handle_unexpected_exception(error: Exception):
-#     ctrl_logger.getRequestLogger().error(
+# TODO: Add proper context id. Related JIRA issue: https://team-1617704806227.atlassian.net/browse/MIP-486
+
+#     ctrl_logger.getRequestLogger("demoContextId123").error(
 #         f"Internal Server Error."
 #         f"\nErrorType: {type(error)}"
 #         f"\nError: {error}"

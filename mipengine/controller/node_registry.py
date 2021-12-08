@@ -72,7 +72,7 @@ class NodeRegistry:
             self.nodes: List[NodeInfo] = await _get_nodes_info(nodes_addresses)
 
             # DEBUG
-            ctrl_logger.getBackgroundServiceLogger().info(
+            ctrl_logger.get_background_service_logger().debug(
                 f"Nodes:{[node.id for node in self.nodes]}"
             )
             # ..to print full nodes info
