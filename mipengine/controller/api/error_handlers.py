@@ -33,9 +33,9 @@ def handle_bad_user_input(error: BadUserInput):
 @error_handlers.app_errorhandler(InsufficientDataError)
 def handle_privacy_error(error: InsufficientDataError):
     # TODO: Add proper context id. Related JIRA issue: https://team-1617704806227.atlassian.net/browse/MIP-486
-    ctrl_logger.get_request_logger("demoContextId123").info(
-        f"Insufficient Data Error: \n " + error.message
-    )
+    # ctrl_logger.get_request_logger("demoContextId123").info(
+    #     f"Insufficient Data Error: \n " + error.message
+    # )
     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
 
 
