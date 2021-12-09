@@ -77,7 +77,9 @@ class AlgorithmExecutor:
         algorithm_execution_dto: AlgorithmExecutionDTO,
         nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
     ):
-        self._logger=ctrl_logger.get_request_logger(context_id=algorithm_execution_dto.context_id)
+        self._logger = ctrl_logger.get_request_logger(
+            context_id=algorithm_execution_dto.context_id
+        )
         self._nodes_tasks_handlers_dto = nodes_tasks_handlers_dto
         self._algorithm_execution_dto = algorithm_execution_dto
 
@@ -142,9 +144,7 @@ class AlgorithmExecutor:
             )
             self._instantiate_algorithm_execution_interface()
             algorithm_result = self.algorithm_flow_module.run(self._execution_interface)
-            self._logger.info(
-                f"finished execution of algorithm:{self._algorithm_name}"
-            )
+            self._logger.info(f"finished execution of algorithm:{self._algorithm_name}")
             return algorithm_result
         except (
             SoftTimeLimitExceeded,
@@ -157,10 +157,11 @@ class AlgorithmExecutor:
                 "stopped responding"
             )
             self._logger.error(f"{error_message} \n{err=}")
-            
+
             raise AlgorithmExecutionException(error_message)
         except Exception as exc:
             import traceback
+
             self._logger.error(f"{traceback.format_exc()}")
             raise exc
         finally:

@@ -28,7 +28,7 @@ class Controller:
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
     ):
         context_id = get_a_uniqueid()
-        logger=ctrl_logger.get_request_logger(context_id=context_id)
+        logger = ctrl_logger.get_request_logger(context_id=context_id)
 
         all_nodes_tasks_handlers = self._create_nodes_tasks_handlers(
             context_id=context_id,

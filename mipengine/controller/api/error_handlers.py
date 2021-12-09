@@ -60,6 +60,7 @@ def handle_algorithm_excecution_exception(error: AlgorithmExecutionException):
     print(f"(error_handlers::handle_algorithm_excecution_exception) {error=}")
     return ALGORITHM_EXUCUTION_ERROR_MESSAGE, HTTPStatusCode.ALGORITHM_EXECUTION_ERROR
 
+
 # TODO BUG https://team-1617704806227.atlassian.net/browse/MIP-476
 #  Default error handler doesn't contain enough error information.
 #  It's better to propagate, the error it's at least visible
