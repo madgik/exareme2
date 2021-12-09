@@ -13,7 +13,6 @@ from mipengine.controller import DeploymentType
 from mipengine.controller import config as controller_config
 from mipengine.controller.celery_app import get_node_celery_app
 
-# from mipengine.controller.celery_app import task_to_async
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.controller import controller_logger as ctrl_logger
@@ -21,7 +20,7 @@ from mipengine.controller import controller_logger as ctrl_logger
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
 # so the module can be easily unit tested
 
-logger = ctrl_logger.getLogger(__name__)
+logger = ctrl_logger.get_background_service_logger()
 
 GET_NODE_INFO_SIGNATURE = "mipengine.node.tasks.common.get_node_info"
 NODE_REGISTRY_UPDATE_INTERVAL = controller_config.node_registry_update_interval
@@ -114,10 +113,7 @@ class NodeRegistry:
             nodes_addresses = _get_nodes_addresses()
             self.nodes: List[NodeInfo] = await _get_nodes_info(nodes_addresses)
 
-            # DEBUG
-            print(
-                f"--> NodeRegistry just updated. Nodes:{[node.id for node in self.nodes]}"
-            )
+            logger.debug(f"Nodes:{[node.id for node in self.nodes]}")
             # ..to print full nodes info
             # from devtools import debug
             # debug(self.nodes)

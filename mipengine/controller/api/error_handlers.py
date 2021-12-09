@@ -5,11 +5,11 @@ from quart import Blueprint
 
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
+from mipengine.filters import FilterError
 from mipengine.node_tasks_DTOs import InsufficientDataError
 from mipengine.controller.algorithm_executor import AlgorithmExecutionException
 from mipengine.controller import controller_logger as ctrl_logger
 
-logger = ctrl_logger.getLogger(__name__)
 
 error_handlers = Blueprint("error_handlers", __name__)
 
@@ -18,7 +18,9 @@ INSUFFICIENT_DATA_ERROR_MESSAGE = (
     "provided because there are insufficient data."
 )
 
-ALGORITHM_EXUCUTION_ERROR_MESSAGE = "An error occured during the execution of the algorithm"
+ALGORITHM_EXUCUTION_ERROR_MESSAGE = (
+    "An error occured during the execution of the algorithm"
+)
 
 
 class HTTPStatusCode(enum.IntEnum):
@@ -34,6 +36,11 @@ def handle_bad_request(error: BadRequest):
     return error.message, HTTPStatusCode.BAD_REQUEST
 
 
+@error_handlers.app_errorhandler(FilterError)
+def handle_bad_request(error: FilterError):
+    return error.message, HTTPStatusCode.BAD_REQUEST
+
+
 @error_handlers.app_errorhandler(BadUserInput)
 def handle_bad_user_input(error: BadUserInput):
     return error.message, HTTPStatusCode.BAD_USER_INPUT
@@ -41,15 +48,10 @@ def handle_bad_user_input(error: BadUserInput):
 
 @error_handlers.app_errorhandler(InsufficientDataError)
 def handle_privacy_error(error: InsufficientDataError):
-    # logger.info(
-    #     f"(error_handlers::handle_privacy_error) Insufficient Data Error: \n "
-    #     + error.message
+    # TODO: Add proper context id. Related JIRA issue: https://team-1617704806227.atlassian.net/browse/MIP-486
+    # ctrl_logger.get_request_logger("demoContextId123").info(
+    #     f"Insufficient Data Error: \n " + error.message
     # )
-    print(
-        f"(error_handlers::handle_privacy_error) Insufficient Data Error: \n "
-        + error.message
-    )
-
     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
 
 
@@ -58,17 +60,18 @@ def handle_algorithm_excecution_exception(error: AlgorithmExecutionException):
     print(f"(error_handlers::handle_algorithm_excecution_exception) {error=}")
     return ALGORITHM_EXUCUTION_ERROR_MESSAGE, HTTPStatusCode.ALGORITHM_EXECUTION_ERROR
 
+# TODO BUG https://team-1617704806227.atlassian.net/browse/MIP-476
+#  Default error handler doesn't contain enough error information.
+#  It's better to propagate, the error it's at least visible
+# @error_handlers.app_errorhandler(Exception)
+# def handle_unexpected_exception(error: Exception):
+# TODO: Add proper context id. Related JIRA issue: https://team-1617704806227.atlassian.net/browse/MIP-486
 
-@error_handlers.app_errorhandler(Exception)
-def handle_unexpected_exception(error: Exception):
-    import traceback
-
-    traceback_str = "".join(traceback.format_tb(error.__traceback__))
-    # logger.error(
-    #     f"(error_handlers::handle_unexpected_exception) Unexpected Exception raised->\n{traceback_str} {error}"
-    # )
-    print(
-        f"(error_handlers::handle_unexpected_exception) Unexpected Exception raised->\n{traceback_str} {error}"
-    )
-
-    return "", HTTPStatusCode.UNEXPECTED_ERROR
+#     ctrl_logger.getRequestLogger("demoContextId123").error(
+#         f"Internal Server Error."
+#         f"\nErrorType: {type(error)}"
+#         f"\nError: {error}"
+#         f"\nTraceback: {traceback.print_tb(error.__traceback__)}"
+#     )
+#
+#     return "", HTTPStatusCode.UNEXPECTED_ERROR

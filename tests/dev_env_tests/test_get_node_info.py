@@ -9,8 +9,8 @@ from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableSchema
-from tests.integration_tests.nodes_communication import get_celery_app
-from tests.integration_tests.nodes_communication import get_celery_task_signature
+from tests.dev_env_tests.nodes_communication import get_celery_app
+from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 
 
 @pytest.fixture(autouse=True)

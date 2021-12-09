@@ -112,7 +112,7 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-  unit_tests:
+  standalone_tests:
     needs: setup_cache_poetry
     runs-on: ubuntu-latest
     steps:
@@ -141,10 +141,32 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
 
-      - name: Run unit tests
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Load MONETDB cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/monetdb
+          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles( 'monetdb/**' )}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-monetdb-
+
+      - name: Build MONETDB docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: monetdb/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipenginedb:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/monetdb
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
+
+      - name: Run standalone tests
         run: |
           source .venv/bin/activate
-          poetry run pytest --cov=mipengine --cov-report=xml tests/unit_tests
+          poetry run pytest --cov=mipengine --cov-report=xml tests/standalone_tests
 
       - name: Publish coverage on codeclimate
         uses: paambaati/codeclimate-action@v2.7.5
@@ -154,7 +176,7 @@ jobs:
           coverageLocations: |
             ./coverage.xml:coverage.py
 
-  integration_tests:
+  dev_env_tests:
     needs: [setup_cache_poetry, setup_cache_rabbitmq]
     runs-on: ubuntu-latest
     steps:
@@ -178,6 +200,10 @@ jobs:
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -228,12 +254,8 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root
-
       - name: Copy .deployment.toml file
-        run: cp ./tests/integration_tests/deployment_template.toml .deployment.toml
+        run: cp ./tests/dev_env_tests/deployment_template.toml .deployment.toml
 
       - name: Create config files
         run: poetry run inv create-configs
@@ -249,10 +271,10 @@ jobs:
           poetry run inv start-node --all
           poetry run inv start-controller --detached
 
-      - name: Run integration tests
-        run: poetry run pytest tests/integration_tests
+      - name: Run development env tests
+        run: poetry run pytest tests/dev_env_tests
 
-  e2e_tests:
+  prod_env_tests:
     needs: [setup_cache_poetry, setup_cache_rabbitmq]
     runs-on: ubuntu-latest
     steps:
@@ -396,7 +418,7 @@ jobs:
         uses: helm/kind-action@v1.2.0
         with:
           cluster_name: kind
-          config: tests/e2e_tests/kind_configuration/kind_cluster.yaml
+          config: tests/prod_env_tests/kind_configuration/kind_cluster.yaml
 
       - name: Install Helm
         uses: azure/setup-helm@v1
@@ -418,8 +440,8 @@ jobs:
           kind load docker-image madgik/mipenginedb:latest
           kind load docker-image madgik/mipengine_rabbitmq:latest
 
-      - name: Copy e2e_tests values.yaml
-        run: cp -r tests/e2e_tests/kubernetes_values.yaml kubernetes/values.yaml
+      - name: Copy prod_env_tests values.yaml
+        run: cp -r tests/prod_env_tests/kubernetes_values.yaml kubernetes/values.yaml
 
       - name: Deploy Helm
         run: helm install mipengine kubernetes/
@@ -429,5 +451,5 @@ jobs:
         with:
           time: '120s' #https://team-1617704806227.atlassian.net/browse/MIP-248
 
-      - name: Run e2e tests
-        run: poetry run pytest tests/e2e_tests
+      - name: Run production env tests
+        run: poetry run pytest tests/prod_env_tests

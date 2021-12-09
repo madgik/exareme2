@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import List, Final
 
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
-from mipengine.controller.node_tasks_handler_celery import CeleryParamsDTO
+
+from mipengine.controller.celery_app import get_node_celery_app
 
 from mipengine.node_tasks_DTOs import TableSchema, ColumnInfo
 from mipengine import DType
@@ -25,17 +26,11 @@ import subprocess
 
 PROJECT_ROOT = Path(mipengine.__file__).parent.parent
 
-TASKS_CONTEXT_ID = "contextid412"
+TASKS_CONTEXT_ID = "cntxt1234"
 
 
 @pytest.fixture
 def node_task_handler_params():
-    # The instantiation of a celery app object requires the following parameters: ip,port
-    # user, password, vhost and the transport options(max_retries,interval_start,
-    # interval_step,interval_max)
-    # Node config: ip and port are read from the node config
-    # Controller config: user, password, vhost and the transport options are read from
-    # the controller config
     NODES_CONFIG_DIR = path.join(path.join(PROJECT_ROOT, "configs"), "nodes")
     a_localnode_config_file = ""
     for filename in listdir(NODES_CONFIG_DIR):
@@ -54,25 +49,20 @@ def node_task_handler_params():
         tmp = toml.load(fp)
         # TODO celery params and rabbitmq params in the config files should be one..
         node_id = tmp["identifier"]
-        celery_params = tmp["celery"]
-        rabbitmq_params = tmp["rabbitmq"]
-        monetdb_params = tmp["monetdb"]
-        celery_params_dto = CeleryParamsDTO(
-            task_queue_domain=rabbitmq_params["ip"],
-            task_queue_port=rabbitmq_params["port"],
-            db_domain=monetdb_params["ip"],
-            db_port=monetdb_params["port"],
-            user=controller_config.rabbitmq.user,
-            password=controller_config.rabbitmq.password,
-            vhost=controller_config.rabbitmq.vhost,
-            max_retries=controller_config.rabbitmq.celery_tasks_max_retries,
-            interval_start=controller_config.rabbitmq.celery_tasks_interval_start,
-            interval_step=controller_config.rabbitmq.celery_tasks_interval_step,
-            interval_max=controller_config.rabbitmq.celery_tasks_interval_max,
-            tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-        )
+        queue_domain = tmp["rabbitmq"]["ip"]
+        queue_port = tmp["rabbitmq"]["port"]
+        queue_address = ":".join([str(queue_domain), str(queue_port)])
+        db_domain = tmp["monetdb"]["ip"]
+        db_port = tmp["monetdb"]["port"]
+        db_address = ":".join([str(queue_domain), str(queue_port)])
+        tasks_timeout = controller_config.rabbitmq.celery_tasks_timeout
 
-    return {"node_id": node_id, "celery_params": celery_params_dto}
+    return {
+        "node_id": node_id,
+        "node_queue_addr": queue_address,
+        "node_db_addr": db_address,
+        "tasks_timeout": tasks_timeout,
+    }
 
 
 @pytest.fixture
@@ -115,16 +105,21 @@ def cleanup(node_task_handler_params):
     # teardown
     node_task_handler = NodeTasksHandlerCelery(
         node_id=node_task_handler_params["node_id"],
-        celery_params=node_task_handler_params["celery_params"],
+        node_queue_addr=node_task_handler_params["node_queue_addr"],
+        node_db_addr=node_task_handler_params["node_db_addr"],
+        tasks_timeout=node_task_handler_params["tasks_timeout"],
     )
     node_task_handler.clean_up(context_id=TASKS_CONTEXT_ID)
 
 
 @pytest.mark.usefixtures("cleanup")
 def test_create_table(node_task_handler_params, test_table_params):
+
     node_task_handler = NodeTasksHandlerCelery(
         node_id=node_task_handler_params["node_id"],
-        celery_params=node_task_handler_params["celery_params"],
+        node_queue_addr=node_task_handler_params["node_queue_addr"],
+        node_db_addr=node_task_handler_params["node_db_addr"],
+        tasks_timeout=node_task_handler_params["tasks_timeout"],
     )
 
     command_id = test_table_params["command_id"]
@@ -133,14 +128,20 @@ def test_create_table(node_task_handler_params, test_table_params):
     table_name = node_task_handler.create_table(
         context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
     )
-    assert table_name.startswith(f"normal_{command_id}_{TASKS_CONTEXT_ID}_")
+
+    table_name_parts = table_name.split("_")
+    assert table_name_parts[0] == "normal"
+    assert table_name_parts[2] == TASKS_CONTEXT_ID
+    assert table_name_parts[3] == command_id
 
 
 @pytest.mark.usefixtures("cleanup")
 def test_get_tables(node_task_handler_params, test_table_params):
     node_task_handler = NodeTasksHandlerCelery(
         node_id=node_task_handler_params["node_id"],
-        celery_params=node_task_handler_params["celery_params"],
+        node_queue_addr=node_task_handler_params["node_queue_addr"],
+        node_db_addr=node_task_handler_params["node_db_addr"],
+        tasks_timeout=node_task_handler_params["tasks_timeout"],
     )
 
     command_id = test_table_params["command_id"]
@@ -156,9 +157,10 @@ def test_get_tables(node_task_handler_params, test_table_params):
 def test_get_table_schema(node_task_handler_params, test_table_params):
     node_task_handler = NodeTasksHandlerCelery(
         node_id=node_task_handler_params["node_id"],
-        celery_params=node_task_handler_params["celery_params"],
+        node_queue_addr=node_task_handler_params["node_queue_addr"],
+        node_db_addr=node_task_handler_params["node_db_addr"],
+        tasks_timeout=node_task_handler_params["tasks_timeout"],
     )
-
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
     table_name = node_task_handler.create_table(
@@ -175,7 +177,9 @@ def test_broker_connection_closed_exception_get_table_schema(
 
     node_task_handler = NodeTasksHandlerCelery(
         node_id=node_task_handler_params["node_id"],
-        celery_params=node_task_handler_params["celery_params"],
+        node_queue_addr=node_task_handler_params["node_queue_addr"],
+        node_db_addr=node_task_handler_params["node_db_addr"],
+        tasks_timeout=node_task_handler_params["tasks_timeout"],
     )
 
     # create a test table on the node
@@ -211,10 +215,11 @@ def test_broker_connection_closed_exception_get_table_schema(
 def test_broker_connection_closed_exception_queue_udf(
     node_task_handler_params, test_view_params
 ):
-
     node_task_handler = NodeTasksHandlerCelery(
         node_id=node_task_handler_params["node_id"],
-        celery_params=node_task_handler_params["celery_params"],
+        node_queue_addr=node_task_handler_params["node_queue_addr"],
+        node_db_addr=node_task_handler_params["node_db_addr"],
+        tasks_timeout=node_task_handler_params["tasks_timeout"],
     )
 
     # create a test view
@@ -232,15 +237,16 @@ def test_broker_connection_closed_exception_queue_udf(
     subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
 
     # queue the udf
-    positional_args = {"kind": 1, "value": view_name}
-    positional_args_json = json.dumps(positional_args)
+    func_name = "relation_to_matrix_4lfu"
+    args = json.dumps({"kind": 1, "value": view_name})
+    keyword_args = {"rel": args}
     with pytest.raises(ClosedBrokerConnectionError):
         async_result = node_task_handler.queue_run_udf(
             context_id=TASKS_CONTEXT_ID,
             command_id=1,
-            func_name="relation_to_matrix_53ft",
-            positional_args=[positional_args_json],
-            keyword_args={},
+            func_name=func_name,
+            positional_args=[],
+            keyword_args=keyword_args,
         )
 
     # Restart the rabbitmq container of this node
@@ -263,10 +269,11 @@ def test_broker_connection_closed_exception_queue_udf(
 def test_broker_connection_closed_exception_get_udf_result(
     node_task_handler_params, test_view_params
 ):
-
     node_task_handler = NodeTasksHandlerCelery(
         node_id=node_task_handler_params["node_id"],
-        celery_params=node_task_handler_params["celery_params"],
+        node_queue_addr=node_task_handler_params["node_queue_addr"],
+        node_db_addr=node_task_handler_params["node_db_addr"],
+        tasks_timeout=node_task_handler_params["tasks_timeout"],
     )
 
     # create a test view
@@ -278,15 +285,16 @@ def test_broker_connection_closed_exception_get_udf_result(
         filters=None,
     )
 
-    # queue a udf
-    positional_args = {"kind": 1, "value": view_name}
-    positional_args_json = json.dumps(positional_args)
+    # queue the udf
+    func_name = "relation_to_matrix_4lfu"
+    args = json.dumps({"kind": 1, "value": view_name})
+    keyword_args = {"rel": args}
     async_result = node_task_handler.queue_run_udf(
         context_id=TASKS_CONTEXT_ID,
         command_id=1,
-        func_name="relation_to_matrix_53ft",
-        positional_args=[positional_args_json],
-        keyword_args={},
+        func_name=func_name,
+        positional_args=[],
+        keyword_args=keyword_args,
     )
 
     # Stop rabbitmq container of this node
@@ -314,9 +322,10 @@ def test_broker_connection_closed_exception_get_udf_result(
 def test_time_limit_exceeded_exception(node_task_handler_params, test_table_params):
     node_task_handler = NodeTasksHandlerCelery(
         node_id=node_task_handler_params["node_id"],
-        celery_params=node_task_handler_params["celery_params"],
+        node_queue_addr=node_task_handler_params["node_queue_addr"],
+        node_db_addr=node_task_handler_params["node_db_addr"],
+        tasks_timeout=node_task_handler_params["tasks_timeout"],
     )
-
     # create a test table
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]

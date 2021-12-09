@@ -4,9 +4,6 @@ import concurrent.futures
 import datetime
 import random
 
-import logging
-import traceback
-
 from typing import Dict, List, Tuple, Optional, Any
 
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
@@ -21,8 +18,6 @@ from mipengine.controller import config as controller_config
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller import controller_logger as ctrl_logger
 
-logger = ctrl_logger.getLogger(__name__)
-
 
 class Controller:
     def __init__(self):
@@ -32,8 +27,8 @@ class Controller:
     async def exec_algorithm(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
     ):
-
         context_id = get_a_uniqueid()
+        logger=ctrl_logger.get_request_logger(context_id=context_id)
 
         all_nodes_tasks_handlers = self._create_nodes_tasks_handlers(
             context_id=context_id,
@@ -64,16 +59,7 @@ class Controller:
 
         loop = asyncio.get_running_loop()
 
-        # DEBUG
-        # logger.info(
-        #     f"\n(Controller) starts executing-> {algorithm_name=} with "
-        #     f"{context_id=}\n"
-        # )
-        print(
-            f"\n(Controller) starts executing-> {algorithm_name=} with "
-            f"{context_id=}\n"
-        )
-        # DEBUG end
+        logger.info(f"starts executing->  {algorithm_name=}")
 
         algorithm_result = await loop.run_in_executor(
             None,
@@ -82,12 +68,8 @@ class Controller:
             all_nodes_tasks_handlers,
         )
 
-        # DEBUG(future logging..)
-        # logger.info(f"\n(Controller) FINISHED->  {algorithm_name=} with {context_id=}")
-        print(f"\n(Controller) FINISHED->  {algorithm_name=} with {context_id=}")
-        # logger.info(f"\n(Controller) {algorithm_result.json()=}\n")
-        print(f"\n(Controller) {algorithm_result.json()=}\n")
-        # DEBUG end
+        logger.info(f"finished execution->  {algorithm_name=}")
+        logger.info(f"algorithm result-> {algorithm_result.json()=}")
 
         return algorithm_result.json()
 

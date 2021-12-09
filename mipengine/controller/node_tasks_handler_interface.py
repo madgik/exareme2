@@ -113,7 +113,7 @@ class INodeTasksHandler(ABC):
         pass
 
     @abstractmethod
-    def get_queued_udf_result(self, async_result: IQueuedUDFAsyncResult):
+    def get_queued_udf_result(self, async_result: IQueuedUDFAsyncResult) -> List[str]:
         pass
 
     @abstractmethod

@@ -1,3 +1,4 @@
+import importlib
 import logging
 import typing
 from dataclasses import dataclass
@@ -11,7 +12,7 @@ from typing import Optional
 
 from dataclasses_json import dataclass_json
 
-from mipengine import algorithms
+from mipengine import ALGORITHM_FOLDERS
 
 # TODO Enums are not supported from the dataclass_json library
 # For now some helper methods are added.
@@ -73,8 +74,8 @@ class InputDataSpecification:
 @dataclass_json
 @dataclass
 class InputDataSpecifications:
-    x: Optional[InputDataSpecification]
-    y: Optional[InputDataSpecification]
+    x: Optional[InputDataSpecification] = None
+    y: Optional[InputDataSpecification] = None
 
 
 @unique
@@ -123,25 +124,25 @@ class AlgorithmsSpecifications:
     enabled_algorithms: Dict[str, AlgorithmSpecifications]
 
     def __init__(self):
-        algorithms_path = Path(algorithms.__file__).parent
-
         all_algorithms = {}
-        for algorithm_property_path in algorithms_path.glob("*.json"):
-            try:
-                algorithm = AlgorithmSpecifications.from_json(
-                    open(algorithm_property_path).read()
-                )
-            except Exception as e:
-                logging.error(f"Parsing property file: {algorithm_property_path}")
-                raise e
-            all_algorithms[algorithm.name] = algorithm
+        for algorithms_path in ALGORITHM_FOLDERS.split(","):
+            algorithms_path = Path(algorithms_path)
+            for algorithm_property_path in algorithms_path.glob("*.json"):
+                try:
+                    algorithm = AlgorithmSpecifications.from_json(
+                        open(algorithm_property_path).read()
+                    )
+                except Exception as e:
+                    logging.error(f"Parsing property file: {algorithm_property_path}")
+                    raise e
+                all_algorithms[algorithm.name] = algorithm
 
-        # The algorithm key should be in snake case format, to make searching for an algorithm easier.
-        self.enabled_algorithms = {
-            algorithm.name: algorithm
-            for algorithm in all_algorithms.values()
-            if algorithm.enabled
-        }
+            # The algorithm key should be in snake case format, to make searching for an algorithm easier.
+            self.enabled_algorithms = {
+                algorithm.name: algorithm
+                for algorithm in all_algorithms.values()
+                if algorithm.enabled
+            }
 
 
 algorithms_specifications = AlgorithmsSpecifications()

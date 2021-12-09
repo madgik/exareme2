@@ -5,9 +5,9 @@ from mipengine.node_tasks_DTOs import TableData
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
-from tests.integration_tests.nodes_communication import get_celery_task_signature
-from tests.integration_tests.nodes_communication import get_celery_app
-from tests.integration_tests.nodes_communication import get_node_config_by_id
+from tests.dev_env_tests.nodes_communication import get_celery_task_signature
+from tests.dev_env_tests.nodes_communication import get_celery_app
+from tests.dev_env_tests.nodes_communication import get_node_config_by_id
 
 local_node_1_id = "localnode1"
 local_node_2_id = "localnode2"

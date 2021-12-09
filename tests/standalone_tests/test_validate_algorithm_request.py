@@ -225,7 +225,41 @@ def mock_algorithms_specs():
                 ),
             },
             flags={"formula": False},
-        )
+        ),
+        "algorithm_without_y": AlgorithmSpecifications(
+            name="algorithm_without_y",
+            desc="algorithm_without_y",
+            label="algorithm_without_y",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                x=InputDataSpecification(
+                    label="features",
+                    desc="Features",
+                    types=["real"],
+                    stattypes=["numerical"],
+                    notblank=True,
+                    multiple=True,
+                    enumslen=None,
+                ),
+            ),
+        ),
+        "algorithm_without_x": AlgorithmSpecifications(
+            name="algorithm_without_x",
+            desc="algorithm_without_x",
+            label="algorithm_without_x",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="features",
+                    desc="Features",
+                    types=["real"],
+                    stattypes=["numerical"],
+                    notblank=True,
+                    multiple=True,
+                    enumslen=None,
+                ),
+            ),
+        ),
     }
 
     with patch(
@@ -259,6 +293,26 @@ def get_parametrization_list_success_cases():
                     y=["test_cde3"],
                 ),
                 parameters={"parameter1": [1, 3], "parameter2": 3},
+            ),
+        ),
+        (
+            "algorithm_without_x",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    pathology="test_schema2",
+                    datasets=["test_dataset2", "test_dataset3"],
+                    y=["test_cde1"],
+                ),
+            ),
+        ),
+        (
+            "algorithm_without_y",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    pathology="test_schema2",
+                    datasets=["test_dataset2", "test_dataset3"],
+                    x=["test_cde1"],
+                ),
             ),
         ),
     ]

@@ -15,7 +15,7 @@ from mipengine.udfgen import (
     tensor,
     udf,
 )
-from mipengine.algorithms.result import TabularDataResult
+from mipengine.algorithm_result_DTOs import TabularDataResult
 
 
 PREC = 1e-6
@@ -33,12 +33,12 @@ def run(algo_interface):
 
     X = local_run(
         func_name=make_unique_func_name(relation_to_matrix),
-        positional_args={"rel": X_relation},
+        keyword_args={"rel": X_relation},
     )
 
     y = local_run(
         func_name=make_unique_func_name(label_binarize),
-        positional_args={"y": y_relation, "classes": classes},
+        keyword_args={"y": y_relation, "classes": classes},
     )
 
     # init model
@@ -46,76 +46,76 @@ def run(algo_interface):
     ncols = len(table_schema.columns)
     coeff = local_run(
         func_name=make_unique_func_name(zeros1),
-        positional_args={"n": ncols},
+        keyword_args={"n": ncols},
     )
 
     logloss = 1e6
     while True:
         z = local_run(
             func_name=TensorBinaryOp.MATMUL.name,
-            positional_args={"Μ": X, "v": coeff},
+            positional_args=[X, coeff],
         )
 
         s = local_run(
             func_name=make_unique_func_name(tensor_expit),
-            positional_args={"t": z},
+            keyword_args={"t": z},
         )
 
         one_minus_s = local_run(
             func_name=TensorBinaryOp.SUB.name,
-            positional_args={"const": 1, "t": s},
+            positional_args=[1, s],
         )
 
         d = local_run(
             func_name=TensorBinaryOp.MUL.name,
-            positional_args={"t1": s, "t2": one_minus_s},
+            positional_args=[s, one_minus_s],
         )
 
         y_minus_s = local_run(
             func_name=TensorBinaryOp.SUB.name,
-            positional_args={"t1": y, "t2": s},
+            positional_args=[y, s],
         )
 
         y_ratio = local_run(
             func_name=TensorBinaryOp.DIV.name,
-            positional_args={"t1": y_minus_s, "t2": d},
+            positional_args=[y_minus_s, d],
         )
 
         X_transpose = local_run(
             func_name=TensorUnaryOp.TRANSPOSE.name,
-            positional_args={"t1": X},
+            positional_args=[X],
         )
 
         d_diag = local_run(
             func_name=make_unique_func_name(diag),
-            positional_args={"vec": d},
+            keyword_args={"vec": d},
         )
 
         Xtranspose_dot_ddiag = local_run(
             func_name=TensorBinaryOp.MATMUL.name,
-            positional_args={"t1": X_transpose, "t2": d_diag},
+            positional_args=[X_transpose, d_diag],
         )
 
         hessian = local_run(
             func_name=TensorBinaryOp.MATMUL.name,
-            positional_args={"t1": Xtranspose_dot_ddiag, "t2": X},
+            positional_args=[Xtranspose_dot_ddiag, X],
             share_to_global=True,
         )
 
         z_plus_yratio = local_run(
             func_name=TensorBinaryOp.ADD.name,
-            positional_args={"t1": z, "t2": y_ratio},
+            positional_args=[z, y_ratio],
         )
 
         grad = local_run(
             func_name=TensorBinaryOp.MATMUL.name,
-            positional_args={"t1": Xtranspose_dot_ddiag, "t2": z_plus_yratio},
+            positional_args=[Xtranspose_dot_ddiag, z_plus_yratio],
             share_to_global=True,
         )
 
         newlogloss = local_run(
             func_name=make_unique_func_name(logistic_loss),
-            positional_args={"v1": y, "v2": s},
+            keyword_args={"v1": y, "v2": s},
         )
 
         newlogloss = sum(newlogloss.get_table_data())
@@ -123,12 +123,12 @@ def run(algo_interface):
         # ~~~~~~~~ Global part ~~~~~~~~ #
         hessian_global = global_run(
             func_name=make_unique_func_name(sum_tensors),
-            positional_args=[hessian],
+            keyword_args={"xs": hessian},
         )
 
         hessian_inverse = global_run(
             func_name=make_unique_func_name(mat_inverse),
-            positional_args=[hessian_global],
+            keyword_args={"m": hessian_global},
         )
         coeff = global_run(
             func_name=TensorBinaryOp.MATMUL.name,
@@ -265,7 +265,7 @@ def sum_tensors(xs):
 
 
 def test_logistic_regression():
-    data = pd.read_csv("tests/integration_tests/data/dementia/edsd.csv")
+    data = pd.read_csv("tests/dev_env_tests/data/dementia/edsd.csv")
     y_name = "alzheimerbroadcategory"
     x_names = [
         "lefthippocampus",

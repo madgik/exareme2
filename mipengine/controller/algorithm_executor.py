@@ -1,29 +1,32 @@
-from typing import Dict, List, Tuple, Any, Optional, Callable
-import importlib
-from pydantic import BaseModel
 from abc import ABC
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
-from celery.exceptions import TimeoutError
 from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
+from celery.exceptions import TimeoutError
+from pydantic import BaseModel
+
+from mipengine import import_algorithm_modules
+from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
+from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
+from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
+
+from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
+from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
+from mipengine.controller import controller_logger as ctrl_logger
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 
-from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
-from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
-
-from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
-from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
-
-from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
-from mipengine.controller import controller_logger as ctrl_logger
-
-logger = ctrl_logger.getLogger(__name__)
-
-ALGORITHMS_FOLDER = "mipengine.algorithms"
+algorithm_modules = import_algorithm_modules()
 
 
 class _TableName:
@@ -31,9 +34,9 @@ class _TableName:
         self._full_name = table_name
         full_name_split = self._full_name.split("_")
         self._table_type = full_name_split[0]
-        self._command_id = full_name_split[1]
+        self._node_id = full_name_split[1]
         self._context_id = full_name_split[2]
-        self._node_id = full_name_split[3]
+        self._command_id = full_name_split[3]
 
     @property
     def full_table_name(self):
@@ -74,6 +77,7 @@ class AlgorithmExecutor:
         algorithm_execution_dto: AlgorithmExecutionDTO,
         nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
     ):
+        self._logger=ctrl_logger.get_request_logger(context_id=algorithm_execution_dto.context_id)
         self._nodes_tasks_handlers_dto = nodes_tasks_handlers_dto
         self._algorithm_execution_dto = algorithm_execution_dto
 
@@ -83,11 +87,6 @@ class AlgorithmExecutor:
         self._global_node = None
         self._local_nodes = []
         self._execution_interface = None
-
-        # import the algorithm flow module
-        self.algorithm_flow_module = importlib.import_module(
-            f"{ALGORITHMS_FOLDER}.{self._algorithm_name}"
-        )
 
     def _instantiate_nodes(self):
         # instantiate the GLOBAL Node object
@@ -131,18 +130,20 @@ class AlgorithmExecutor:
             algo_execution_interface_dto
         )
 
+        # Get algorithm module
+        self.algorithm_flow_module = algorithm_modules[self._algorithm_name]
+
     def run(self):
         try:
             self._instantiate_nodes()
-            print(
-                f"(AlgorithmExecutor) executing algorithm with {self._context_id=} on "
+            self._logger.info(
+                f"executing algorithm:{self._algorithm_name} on "
                 f"local nodes: {self._local_nodes=}"
             )
             self._instantiate_algorithm_execution_interface()
             algorithm_result = self.algorithm_flow_module.run(self._execution_interface)
-            print(
-                f"(AlgorithmExecutor) finished execution of algorithm "
-                f"with {self._context_id=}"
+            self._logger.info(
+                f"finished execution of algorithm:{self._algorithm_name}"
             )
             return algorithm_result
         except (
@@ -155,42 +156,29 @@ class AlgorithmExecutor:
                 "One of the nodes participating in the algorithm execution "
                 "stopped responding"
             )
-
-            # logger.error(
-            #     f"(AlgorithmExecutor) ERROR: {error_message=} \n{err=}"
-            # )
-            print(f"(AlgorithmExecutor) ERROR: {error_message=} \n{err=}")
-
+            self._logger.error(f"{error_message} \n{err=}")
+            
             raise AlgorithmExecutionException(error_message)
         except Exception as exc:
             import traceback
-
-            # logger.info(f"{traceback.format_exc()=}")
-            print(f"{traceback.format_exc()=}")
-
+            self._logger.error(f"{traceback.format_exc()}")
             raise exc
         finally:
             self.clean_up()
 
     def clean_up(self):
-        # logger.info(f"cleaning up global_node")
-        print(f"(AlgorithmExecutor) cleaning up global_node")
+        self._logger.info(f"cleaning up global_node")
         try:
             self._global_node.clean_up()
         except Exception as exc:
-            # logger.info(f"cleaning up global_node FAILED {exc=}")
-            print(f"(AlgorithmExecutor) cleaning up global_node FAILED {exc=}")
-
-        # logger.info(f"cleaning up local nodes:{self._local_nodes=}")
-        print(f"(AlgorithmExecutor) cleaning up local nodes:{self._local_nodes=}")
+            self._logger.debug(f"cleaning up global_node FAILED {exc=}")
+        self._logger.info(f"cleaning up local nodes:{self._local_nodes}")
         for node in self._local_nodes:
-            # logger.info(f"cleaning up {node=}")
-            print(f"(AlgorithmExecutor) cleaning up {node=}")
+            self._logger.info(f"\tcleaning up {node=}")
             try:
                 node.clean_up()
             except Exception as exc:
-                # logger.info(f"cleaning up {node=} FAILED {exc=}")
-                print(f"(AlgorithmExecutor) cleaning up {node=} FAILED {exc=}")
+                self._logger.debug(f"cleaning up {node=} FAILED {exc=}")
 
 
 class _Node:
@@ -225,27 +213,28 @@ class _Node:
 
         # initial view for variables in X
         variable = "x"
-        command_id = str(initial_view_tables_params["commandId"]) + variable
-        view_name = self.create_pathology_view(
-            command_id=command_id,
-            pathology=initial_view_tables_params["pathology"],
-            columns=initial_view_tables_params[variable],
-            filters=initial_view_tables_params["filters"],
-        )
-
-        initial_view_tables["x"] = view_name
+        if initial_view_tables_params[variable]:
+            command_id = str(initial_view_tables_params["commandId"]) + variable
+            view_name = self.create_pathology_view(
+                command_id=command_id,
+                pathology=initial_view_tables_params["pathology"],
+                columns=initial_view_tables_params[variable],
+                filters=initial_view_tables_params["filters"],
+            )
+            initial_view_tables["x"] = view_name
 
         # initial view for variables in Y
         variable = "y"
-        command_id = str(initial_view_tables_params["commandId"]) + variable
-        view_name = self.create_pathology_view(
-            command_id=command_id,
-            pathology=initial_view_tables_params["pathology"],
-            columns=initial_view_tables_params[variable],
-            filters=initial_view_tables_params["filters"],
-        )
+        if initial_view_tables_params[variable]:
+            command_id = str(initial_view_tables_params["commandId"]) + variable
+            view_name = self.create_pathology_view(
+                command_id=command_id,
+                pathology=initial_view_tables_params["pathology"],
+                columns=initial_view_tables_params[variable],
+                filters=initial_view_tables_params["filters"],
+            )
 
-        initial_view_tables["y"] = view_name
+            initial_view_tables["y"] = view_name
 
         return initial_view_tables
 
@@ -344,7 +333,7 @@ class _Node:
             keyword_args=keyword_args,
         )
 
-    def get_queued_udf_result(self, async_result: IQueuedUDFAsyncResult):
+    def get_queued_udf_result(self, async_result: IQueuedUDFAsyncResult) -> List[str]:
         return self._node_tasks_handler.get_queued_udf_result(async_result)
 
     def get_udfs(self, algorithm_name) -> List[str]:
@@ -373,8 +362,8 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     local_nodes: List[_Node]
     algorithm_name: str
     algorithm_parameters: Optional[Dict[str, List[str]]] = None
-    x_variables: List[str]
-    y_variables: List[str]
+    x_variables: Optional[List[str]] = None
+    y_variables: Optional[List[str]] = None
 
     class Config:
         arbitrary_types_allowed = True
@@ -427,9 +416,10 @@ class _AlgorithmExecutionInterface:
     def run_udf_on_local_nodes(
         self,
         func_name: str,
-        positional_args: Dict[str, "_LocalNodeTable"],
-        share_to_global: bool = False,
-    ):  # -> GlobalNodeTable or LocalNodeTable
+        positional_args: Optional[List["_LocalNodeTable"]] = (),
+        keyword_args: Optional[Dict[str, "_LocalNodeTable"]] = {},
+        share_to_global: Union[bool, List[bool]] = None,
+    ):  # -> List of GlobalNodeTables or LocalNodeTables
         # queue exec_udf task on all local nodes
         # wait for all nodes to complete the tasks execution
         # one new table per local node was generated
@@ -441,9 +431,8 @@ class _AlgorithmExecutionInterface:
         tasks = {}
         for node in self._local_nodes:
             # TODO get the nodes from the LocalNodeTables in the positional_args
-            positional_args_transfrormed = []
-            keyword_args_transformed = {}
-            for var_name, val in positional_args.items():
+            positional_udf_args = []
+            for val in positional_args:
                 if isinstance(val, _LocalNodeTable):
                     udf_argument = UDFArgument(
                         kind=UDFArgumentKind.TABLE,
@@ -456,52 +445,149 @@ class _AlgorithmExecutionInterface:
                     )
                 else:
                     udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=val)
-                positional_args_transfrormed.append(udf_argument.json())
-                # keyword_args_transformed[var_name] = udf_argument.json()
+                positional_udf_args.append(udf_argument.json())
+
+            keyword_udf_args = {}
+            for var_name, val in keyword_args.items():
+                if isinstance(val, _LocalNodeTable):
+                    udf_argument = UDFArgument(
+                        kind=UDFArgumentKind.TABLE,
+                        value=val.nodes_tables[node].full_table_name,
+                    )
+                elif isinstance(val, _GlobalNodeTable):
+                    raise Exception(
+                        f"(run_udf_on_local_nodes) GlobalNodeTable types are not "
+                        f"accepted from run_udf_on_local_nodes"
+                    )
+                else:
+                    udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=val)
+                keyword_udf_args[var_name] = udf_argument.json()
+
             task = node.queue_run_udf(
                 command_id=command_id,
                 func_name=func_name,
-                positional_args=positional_args_transfrormed,
-                keyword_args={},
+                positional_args=positional_udf_args,
+                keyword_args=keyword_udf_args,
             )
             tasks[node] = task
 
-        udf_result_tables = {}
+        udf_results_tables: List[Dict[_Node, _TableName]] = []
         for node, task in tasks.items():
-            result = node.get_queued_udf_result(task)
-            table_name = _TableName(result)
-            udf_result_tables[node] = table_name
+            task_results = node.get_queued_udf_result(task)
+            # Initialize the result tables when we know the number of results
+            if len(udf_results_tables) == 0:
+                udf_results_tables = []
+                for _ in task_results:
+                    udf_results_tables.append({})
 
-            # ceate remote table on global node
-            if share_to_global:
-                # TODO: try block missing
-                table_schema = node.get_table_schema(table_name)
-                self._global_node.create_remote_table(
-                    table_name=table_name.full_table_name,
-                    table_schema=table_schema,
-                    native_node=node,
-                )
+            for task_result, udf_result_tables in zip(task_results, udf_results_tables):
+                udf_result_tables[node] = _TableName(task_result)
 
-        # create merge table on global
-        if share_to_global:
-            remote_tables_info = list(udf_result_tables.values())
-            remote_table_names = [
-                remote_table_info for remote_table_info in remote_tables_info
-            ]
-            merge_table_global = self._global_node.create_merge_table(
-                command_id=command_id, table_names=remote_table_names
+            self._share_results_on_global(
+                func_name, node, share_to_global, task_results
             )
-            return _GlobalNodeTable(node_table={self._global_node: merge_table_global})
 
-        else:
-            return _LocalNodeTable(nodes_tables=udf_result_tables)
+        final_result_tables = self._create_node_tables_for_global_udf(
+            command_id,
+            share_to_global,
+            udf_results_tables,
+        )
+
+        if len(final_result_tables) == 1:
+            return final_result_tables[0]
+        return final_result_tables
+
+    def _share_results_on_global(
+        self,
+        func_name: str,
+        node: _Node,
+        share_results: Union[bool, List[bool]],
+        results: List[str],
+    ):
+        if not share_results:
+            return
+
+        if type(share_results) == bool:
+            share_results = [share_results]
+        if len(share_results) != len(results):
+            raise AlgorithmExecutionException(
+                f"Method {func_name} has {len(results)} results but 'share_to_global' "
+                f"has a length of {len(share_results)}. They should match."
+            )
+
+        for share_results, table_name in zip(share_results, results):
+            if not share_results:
+                continue
+
+            table_schema = node.get_table_schema(_TableName(table_name))
+            self._global_node.create_remote_table(
+                table_name=table_name,
+                table_schema=table_schema,
+                native_node=node,
+            )
+
+    def _create_node_tables_for_global_udf(
+        self,
+        command_id: str,
+        share_results: Union[bool, List[bool]],
+        results_tables: List[Dict[_Node, _TableName]],
+    ) -> List["_INodeTable"]:
+        """
+        Receives a list of results and if they should be shared,
+        then creates the proper INodeTable objects.
+
+        If the table should be shared, a merge table will be created in the global node.
+        The tables will exist in the globalnode already (as remote tables), so only a "merge" action is needed.
+        The response will either be a "GlobalNodeTable" or a "LocalNodeTable".
+
+        Parameters
+        ----------
+            command_id: str
+                The command identifier, common among all nodes for this action.
+            share_results: Union[bool, List[bool]]
+            results_tables: List[Dict[_Node, _TableName]]
+                A udf can have multiple results and runs on multiple nodes.
+                For example, there are 3 results, each result is in 2 nodes.
+                udf_result_tables = [
+                    {"node_1": "table_1",
+                     "node_2": "table_1"},
+                    {"node_1": "table_2",
+                     "node_2": "table_2"},
+                    {"node_1": "table_3",
+                     "node_2": "table_3"},
+                ]
+        Returns
+        -------
+            List[_INodeTable]
+        """
+        if not share_results:
+            return [_LocalNodeTable(nodes_tables=result) for result in results_tables]
+
+        if type(share_results) == bool:
+            share_results = [share_results]
+
+        final_results = []
+        for share, result_tables in zip(share_results, results_tables):
+            if not share:
+                final_results.append(_LocalNodeTable(nodes_tables=result_tables))
+                continue
+
+            remote_tablenames = list(result_tables.values())
+            merge_table = self._global_node.create_merge_table(
+                command_id=command_id, table_names=remote_tablenames
+            )
+            final_results.append(
+                _GlobalNodeTable(node_table={self._global_node: merge_table})
+            )
+        return final_results
 
     def run_udf_on_global_node(
         self,
         func_name: str,
-        positional_args: List["_GlobalNodeTable"],
-        share_to_locals: bool = False,
-    ):  # -> GlobalNodeTable or LocalNodeTable
+        positional_args: Optional[List["_GlobalNodeTable"]] = (),
+        keyword_args: Optional[Dict[str, "_GlobalNodeTable"]] = {},
+        share_to_locals: Union[bool, List[bool]] = None,
+    ):  # -> List of GlobalNodeTables or LocalNodeTables
         # check the input tables are GlobalNodeTable(s)
         # queue exec_udf on the global node
         # wait for it to complete
@@ -511,8 +597,10 @@ class _AlgorithmExecutionInterface:
         # TODO: try/catches tasks can throw exceptions
         command_id = get_next_command_id()
 
-        positional_args_transfrormed = []
-        # keyword_args_transformed = {}
+        if type(share_to_locals) == bool:
+            share_to_locals = [share_to_locals]
+
+        positional_udf_args = []
         for val in positional_args:
             if isinstance(val, _GlobalNodeTable):
                 udf_argument = UDFArgument(
@@ -526,35 +614,86 @@ class _AlgorithmExecutionInterface:
                 )
             else:
                 udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=str(val))
-            positional_args_transfrormed.append(udf_argument.json())
+            positional_udf_args.append(udf_argument.json())
+
+        keyword_udf_args = {}
+        for var_name, val in keyword_args.items():
+            if isinstance(val, _GlobalNodeTable):
+                udf_argument = UDFArgument(
+                    kind=UDFArgumentKind.TABLE,
+                    value=list(val.node_table.values())[0].full_table_name,
+                )  # TODO: da fuck is dat
+            elif isinstance(val, _LocalNodeTable):
+                raise Exception(
+                    "(run_udf_on_global_node) LocalNodeTable types are not "
+                    "accepted from run_udf_on_global_nodes"
+                )
+            else:
+                udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=str(val))
+            keyword_udf_args[var_name] = udf_argument.json()
 
         task = self._global_node.queue_run_udf(
             command_id=command_id,
             func_name=func_name,
-            positional_args=positional_args_transfrormed,
-            keyword_args={},
+            positional_args=positional_udf_args,
+            keyword_args=keyword_udf_args,
         )
-        udf_result_table = self._global_node.get_queued_udf_result(task)
+        udf_result_tables = self._global_node.get_queued_udf_result(task)
 
-        if share_to_locals:
-            table_schema: TableSchema = self._global_node.get_table_schema(
-                _TableName(udf_result_table)
+        final_results_table = self._share_results_on_locals(
+            func_name, share_to_locals, udf_result_tables
+        )
+        if len(final_results_table) == 1:
+            return final_results_table[0]
+        return final_results_table
+
+    def _share_results_on_locals(
+        self,
+        func_name: str,
+        share_to_locals: Union[bool, List[bool]],
+        results_tables: List[str],
+    ) -> List["_INodeTable"]:
+        if not share_to_locals:
+            return [
+                _GlobalNodeTable(
+                    node_table={self._global_node: _TableName(result_table)}
+                )
+                for result_table in results_tables
+            ]
+
+        if len(share_to_locals) != len(results_tables):
+            raise AlgorithmExecutionException(
+                f"Method {func_name} has {len(results_tables)} results but 'share_to_global' "
+                f"has a length of {len(share_to_locals)}. They should match."
             )
-            local_nodes_tables = {}
+
+        final_results_tables = []
+        for share, result_table in zip(share_to_locals, results_tables):
+            if not share:
+                final_results_tables.append(
+                    _GlobalNodeTable(
+                        node_table={self._global_node: _TableName(result_table)}
+                    )
+                )
+                continue
+
+            table_schema = self._global_node.get_table_schema(_TableName(result_table))
+            # TODO do not block here, first send the request to all local nodes and then block for the result
             for node in self._local_nodes:
-                # TODO do not block here, first send the request to all local nodes and then block for the result
                 node.create_remote_table(
-                    table_name=udf_result_table,
+                    table_name=result_table,
                     table_schema=table_schema,
                     native_node=self._global_node,
                 )
-                local_nodes_tables[node] = _TableName(udf_result_table)
 
-            return _LocalNodeTable(nodes_tables=local_nodes_tables)
+            local_nodes_tables = {
+                node: _TableName(result_table) for node in self._local_nodes
+            }
+            final_results_tables.append(
+                _LocalNodeTable(nodes_tables=local_nodes_tables)
+            )
 
-        return _GlobalNodeTable(
-            node_table={self._global_node: _TableName(udf_result_table)}
-        )
+        return final_results_tables
 
     # TABLES functionality
     def get_table_data(self, node_table) -> TableData:

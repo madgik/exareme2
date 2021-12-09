@@ -264,6 +264,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         ).get(self._tasks_timeout)
 
     # UDFs functionality
+    @broker_connection_closed_handler
     def queue_run_udf(
         self,
         context_id: str,
@@ -282,7 +283,6 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             positional_args_json=positional_args,
             keyword_args_json=keyword_args,
         )
-
         return QueuedUDFAsyncResult(
             node_id=self.node_id,
             command_id=command_id,
@@ -295,9 +295,8 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_queued_udf_result(self, async_result: QueuedUDFAsyncResult):
-        result = async_result.get(self._tasks_timeout)
-        return result
+    def get_queued_udf_result(self, async_result: QueuedUDFAsyncResult) -> List[str]:
+        return async_result.get(self._tasks_timeout)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
