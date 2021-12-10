@@ -64,4 +64,6 @@ def test_pos_and_kw_args_in_algorithm_flow(
         data=json.dumps(request_dict),
         headers=headers,
     )
-    assert response.status_code == 200
+    assert (
+        response.status_code == 200
+    ), f"Response status: {response.status_code} , response message: {response.text}"

@@ -268,7 +268,9 @@ def test_bad_filters_exception():
         headers=headers,
     )
 
-    assert response.status_code == 400
+    assert (
+        response.status_code == 400
+    ), f"Response status: {response.status_code} , response message: {response.text}"
     assert "Invalid filters format." in response.text
 
 
