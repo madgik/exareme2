@@ -271,6 +271,11 @@ jobs:
           poetry run inv start-node --all
           poetry run inv start-controller --detached
 
+      - name: Wait for services to start
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '30s' #https://team-1617704806227.atlassian.net/browse/MIP-248
+
       - name: Run development env tests
         run: poetry run pytest tests/dev_env_tests
 
