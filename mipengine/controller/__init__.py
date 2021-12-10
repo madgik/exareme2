@@ -1,3 +1,4 @@
+import logging
 import os
 from enum import Enum
 from enum import unique
@@ -5,6 +6,7 @@ from importlib.resources import open_text
 from logging.config import dictConfig
 
 import envtoml
+from quart.logging import serving_handler
 
 from mipengine import AttrDict
 from mipengine import controller
@@ -44,6 +46,13 @@ dictConfig(
                 "level": config.log_level,
                 "handlers": ["controller_background_service_hdl"],
             },
+            "quart.serving": {
+                "level": config.framework_log_level,
+            },
         },
     }
+)
+
+serving_handler.setFormatter(
+    logging.Formatter("%(asctime)s - %(levelname)s - CONTROLLER - WEBAPI - %(message)s")
 )

@@ -1,6 +1,8 @@
 identifier = "$NODE_IDENTIFIER"
-log_level = "$LOG_LEVEL"
 role = "$NODE_ROLE"
+
+log_level = "$LOG_LEVEL"
+framework_log_level = "$FRAMEWORK_LOG_LEVEL"
 
 cdes_metadata_path = "./tests/demo_data"
 

@@ -36,7 +36,7 @@ def setup_celery_logging(*args, **kwargs):
     sh.setFormatter(formatter)
     logger.addHandler(sh)
 
-    logger.setLevel(node_config.log_level)
+    logger.setLevel(node_config.framework_log_level)
 
 
 celery.conf.worker_concurrency = node_config.celery.worker_concurrency
