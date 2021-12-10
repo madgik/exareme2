@@ -172,14 +172,14 @@ class AlgorithmExecutor:
         try:
             self._global_node.clean_up()
         except Exception as exc:
-            self._logger.debug(f"cleaning up global_node FAILED {exc=}")
+            self._logger.error(f"cleaning up global_node FAILED {exc=}")
         self._logger.info(f"cleaning up local nodes:{self._local_nodes}")
         for node in self._local_nodes:
             self._logger.info(f"\tcleaning up {node=}")
             try:
                 node.clean_up()
             except Exception as exc:
-                self._logger.debug(f"cleaning up {node=} FAILED {exc=}")
+                self._logger.error(f"cleaning up {node=} FAILED {exc=}")
 
 
 class _Node:
