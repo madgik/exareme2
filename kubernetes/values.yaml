@@ -2,7 +2,7 @@ mipengine_images:
   repository: madgik
   version: latest
 
-log_level: DEBUG
+log_level: INFO
 framework_log_level: INFO
 
 cdes_path: /opt/data
