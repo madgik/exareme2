@@ -19,7 +19,7 @@ You can either create the files manually or using a '.deployment.toml' file with
 ```
 ip = "172.17.0.1"
 log_level = "INFO"
-celery_log_level ="INFO"
+framework_log_level ="INFO"
 monetdb_image = "madgik/mipenginedb:dev1.3"
 
 [[nodes]]
@@ -112,6 +112,7 @@ def create_configs(c):
         node_config["identifier"] = node["id"]
         node_config["role"] = node["role"]
         node_config["log_level"] = deployment_config["log_level"]
+        node_config["framework_log_level"] = deployment_config["framework_log_level"]
 
         node_config["monetdb"]["ip"] = deployment_config["ip"]
         node_config["monetdb"]["port"] = node["monetdb_port"]
@@ -128,6 +129,9 @@ def create_configs(c):
     with open(CONTROLLER_CONFIG_TEMPLATE_FILE) as fp:
         template_controller_config = toml.load(fp)
     controller_config = template_controller_config.copy()
+    controller_config["log_level"] = deployment_config["log_level"]
+    controller_config["framework_log_level"] = deployment_config["framework_log_level"]
+
     controller_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
     controller_config["node_registry_update_interval"] = deployment_config[
         "node_registry_update_interval"
@@ -377,7 +381,7 @@ def start_node(
     c,
     node=None,
     all_=False,
-    celery_log_level=None,
+    framework_log_level=None,
     detached=False,
     algorithm_folders=None,
 ):
@@ -386,15 +390,15 @@ def start_node(
 
     :param node: The node to start, using the proper file in the `NODES_CONFIG_DIR`.
     :param all_: If set, the nodes of which the configuration file exists, will be started.
-    :param celery_log_level: If not provided, it will look into the `DEPLOYMENT_CONFIG_FILE`.
+    :param framework_log_level: If not provided, it will look into the `DEPLOYMENT_CONFIG_FILE`.
     :param detached: If set to True, it will start the service in the background.
     :param algorithm_folders: Used from the services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
 
     The containers related to the services remain unchanged.
     """
 
-    if not celery_log_level:
-        celery_log_level = get_deployment_config("celery_log_level")
+    if not framework_log_level:
+        framework_log_level = get_deployment_config("framework_log_level")
 
     if not algorithm_folders:
         algorithm_folders = get_deployment_config("algorithm_folders")
@@ -416,14 +420,14 @@ def start_node(
                 if detached or all_:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
-                        f"-A mipengine.node.node worker -l {celery_log_level} >> {outpath} "
+                        f"-A mipengine.node.node worker -l {framework_log_level} >> {outpath} "
                         f"--purge 2>&1"
                     )
                     run(c, cmd, wait=False)
                 else:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
-                        f"mipengine.node.node worker -l {celery_log_level} --purge"
+                        f"mipengine.node.node worker -l {framework_log_level} --purge"
                     )
                     run(c, cmd, attach_=True)
 
@@ -483,7 +487,7 @@ def deploy(
     start_all=True,
     start_controller_=False,
     start_nodes=False,
-    celery_log_level=None,
+    framework_log_level=None,
     monetdb_image=None,
     algorithm_folders=None,
 ):
@@ -494,13 +498,13 @@ def deploy(
     :param start_all: Start all node/controller services flag.
     :param start_controller_: Start controller services flag.
     :param start_nodes: Start all nodes flag.
-    :param celery_log_level: Used for the engine services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param framework_log_level: Used for the engine services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_image: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param algorithm_folders: Used from the services.
     """
 
-    if not celery_log_level:
-        celery_log_level = get_deployment_config("celery_log_level")
+    if not framework_log_level:
+        framework_log_level = get_deployment_config("framework_log_level")
 
     if not monetdb_image:
         monetdb_image = get_deployment_config("monetdb_image")
@@ -530,7 +534,7 @@ def deploy(
         start_node(
             c,
             all_=True,
-            celery_log_level=celery_log_level,
+            framework_log_level=framework_log_level,
             detached=True,
             algorithm_folders=algorithm_folders,
         )

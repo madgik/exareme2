@@ -2,6 +2,9 @@ mipengine_images:
   repository: madgik
   version: latest
 
+log_level: INFO
+framework_log_level: INFO
+
 cdes_path: /opt/data
 
 monetdb_storage: /opt/monetdb

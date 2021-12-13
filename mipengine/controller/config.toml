@@ -1,4 +1,6 @@
-log_level = "INFO"
+log_level = "$LOG_LEVEL"
+framework_log_level = "$FRAMEWORK_LOG_LEVEL"
+
 cdes_metadata_path = "$CDES_METADATA_PATH"
 
 deployment_type="$DEPLOYMENT_TYPE"
