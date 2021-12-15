@@ -217,7 +217,16 @@ class TestUDFValidation:
             def f(x):
                 return x
 
-        assert "Invalid parameter names in udf decorator" in str(exc)
+        assert "The parameters: y were not provided in the func definition." in str(exc)
+
+    def test_validate_func_as_udf_undeclared_parameter_names(self):
+        with pytest.raises(UDFBadDefinition) as exc:
+
+            @udf(y=tensor(int, 1), return_type=scalar(int))
+            def f(y, x):
+                return x
+
+        assert "The parameters: x were not defined in the decorator." in str(exc)
 
     def test_validate_func_as_udf_no_return_type(self):
         with pytest.raises(UDFBadDefinition) as exc:
@@ -226,7 +235,7 @@ class TestUDFValidation:
             def f(x):
                 return x
 
-        assert "Invalid parameter names in udf decorator" in str(exc)
+        assert "No return_type defined." in str(exc)
 
     def test_validate_func_as_valid_udf_with_state_and_transfer_input(self):
         @udf(

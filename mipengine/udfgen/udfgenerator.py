@@ -1352,12 +1352,7 @@ class UDFDecorator:
     def __call__(self, **kwargs):
         def decorator(func):
             parameter_names = get_func_parameter_names(func)
-            if not decorator_parameter_names_are_valid(parameter_names, kwargs):
-                raise UDFBadDefinition(
-                    f"Invalid parameter names in udf decorator of {func}: "
-                    f"parameter names: {parameter_names}, "
-                    f"decorator kwargs: {kwargs}."
-                )
+            validate_decorator_parameter_names(parameter_names, kwargs)
             signature = make_udf_signature(parameter_names, kwargs)
             validate_udf_signature_types(signature)
             validate_udf_return_statement(func)
@@ -1405,15 +1400,32 @@ class UDFBadDefinition(Exception):
     function. These checks are made as soon as the function is defined."""
 
 
-def decorator_parameter_names_are_valid(parameter_names, decorator_kwargs):
-    """Returns False if parameter_names are not contained in decorator_kwargs
-    or if 'return_type' is not contained in decorator_kwargs, True
-    otherwise."""
-    if not set(parameter_names) <= set(decorator_kwargs):
-        return False
+def validate_decorator_parameter_names(parameter_names, decorator_kwargs):
+    """
+    Validates:
+     1) that decorator parameter names and func kwargs names match.
+     2) that "return_type" exists as a decorator parameter.
+    """
     if "return_type" not in decorator_kwargs:
-        return False
-    return True
+        raise UDFBadDefinition("No return_type defined.")
+
+    parameter_names = set(parameter_names)
+    decorator_parameter_names = set(decorator_kwargs.keys())
+    decorator_parameter_names.remove("return_type")  # not a parameter
+    if parameter_names == decorator_parameter_names:
+        return
+
+    parameters_not_provided = decorator_parameter_names - parameter_names
+    if parameters_not_provided:
+        raise UDFBadDefinition(
+            f"The parameters: {','.join(parameters_not_provided)} were not provided in the func definition."
+        )
+
+    parameters_not_defined_in_dec = parameter_names - decorator_parameter_names
+    if parameters_not_defined_in_dec:
+        raise UDFBadDefinition(
+            f"The parameters: {','.join(parameters_not_defined_in_dec)} were not defined in the decorator."
+        )
 
 
 def make_udf_signature(parameter_names, decorator_kwargs):
