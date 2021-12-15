@@ -401,10 +401,10 @@ def get_return_type_template(output_type):
 
 def iotype_to_sql_schema(iotype, name_prefix=""):
     if isinstance(iotype, ScalarType):
-        return f"result {iotype.dtype.to_sql()}"
+        return f'"result" {iotype.dtype.to_sql()}'
     column_names = iotype.column_names(name_prefix)
     types = [dtype.to_sql() for _, dtype in iotype.schema]
-    sql_params = [f"{name} {dtype}" for name, dtype in zip(column_names, types)]
+    sql_params = [f'"{name}" {dtype}' for name, dtype in zip(column_names, types)]
     return SEP.join(sql_params)
 
 
@@ -1995,7 +1995,7 @@ def get_drop_and_create_table_templates(
     drop_table = DROP_TABLE_IF_EXISTS + " $" + table_name + SCOLON
     output_schema = iotype_to_sql_schema(main_output_type)
     if not isinstance(main_output_type, ScalarType):
-        output_schema = f"node_id {dt.STR.to_sql()}," + output_schema
+        output_schema = f'"node_id" {dt.STR.to_sql()},' + output_schema
     create_table = CREATE_TABLE + " $" + table_name + f"({output_schema})" + SCOLON
     udf_output_tables.append(
         UDFOutputTable(
@@ -2010,7 +2010,7 @@ def get_drop_and_create_table_templates(
     for pos, sec_output_type in enumerate(sec_output_types):
         table_name = get_loopback_table_template_name(pos)
         drop_table = DROP_TABLE_IF_EXISTS + " $" + table_name + SCOLON
-        output_schema = f"node_id {dt.STR.to_sql()}," + iotype_to_sql_schema(
+        output_schema = f'"node_id" {dt.STR.to_sql()},' + iotype_to_sql_schema(
             sec_output_type
         )
         create_table = CREATE_TABLE + " $" + table_name + f"({output_schema})" + SCOLON
