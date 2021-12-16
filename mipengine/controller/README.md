@@ -8,10 +8,27 @@ To build a new image you must be on the project root `MIP-Engine`, then
 docker build -t <USERNAME>/mipengine_controller:<IMAGETAG> -f mipengine/controller/Dockerfile .
 ```
 
-## Run
+## Run with env file
 
-Then run the following command with your own env variables:
+Create a file with the nodes' locations, for example:
 
 ```
-docker run -d --name controller -p 5000:5000 -e NODE_REGISTRY_IP=172.17.0.1 -e NODE_REGISTRY_PORT=8500 hbpmip/mipengine_controller:0.1
+["172.17.0.1:5670", "172.17.0.1:5671", "172.17.0.1:5672"]
+```
+
+Create an env_file with the following variables:
+
+```
+LOG_LEVEL=INFO
+FRAMEWORK_LOG_LEVEL=INFO
+CDES_METADATA_PATH=172.17.0.1
+DEPLOYMENT_TYPE=LOCAL
+NODE_REGISTRY_UPDATE_INTERVAL=30
+LOCALNODES_CONFIG_FILE=/home/user/localnodes_config.json
+```
+
+Then start the container with:
+
+```
+docker run -d --name <CONTAINER_NAME> --env-file=.env_file <USERNAME>/mipengine_controller:<IMAGETAG>
 ```

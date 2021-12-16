@@ -451,5 +451,14 @@ jobs:
         with:
           time: '120s' #https://team-1617704806227.atlassian.net/browse/MIP-248
 
+      - name: Controller logs
+        run: kubectl logs deployment/mipengine-controller-deployment
+
+      - name: Globalnode logs
+        run: kubectl logs deployment/mipengine-globalnode-deployment -c node
+
+      - name: Localnode logs
+        run: kubectl logs deployment/mipengine-localnode-deployment -c node
+
       - name: Run production env tests
         run: poetry run pytest tests/prod_env_tests
