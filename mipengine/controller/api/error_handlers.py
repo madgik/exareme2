@@ -7,7 +7,10 @@ from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.filters import FilterError
 from mipengine.node_tasks_DTOs import InsufficientDataError
-from mipengine.controller.algorithm_executor import AlgorithmExecutionException
+from mipengine.controller.algorithm_executor import (
+    AlgorithmExecutionException,
+    NodeDownAlgorithmExecutionException,
+)
 from mipengine.controller import controller_logger as ctrl_logger
 
 
@@ -18,16 +21,12 @@ INSUFFICIENT_DATA_ERROR_MESSAGE = (
     "provided because there are insufficient data."
 )
 
-ALGORITHM_EXUCUTION_ERROR_MESSAGE = (
-    "An error occured during the execution of the algorithm"
-)
-
 
 class HTTPStatusCode(enum.IntEnum):
     BAD_REQUEST = 400
     BAD_USER_INPUT = 460
     INSUFFICIENT_DATA_ERROR = 461
-    ALGORITHM_EXECUTION_ERROR = 512
+    NODE_DOWN_ALGORITHM_EXECUTION_ERROR = 512
     UNEXPECTED_ERROR = 500
 
 
@@ -55,10 +54,15 @@ def handle_privacy_error(error: InsufficientDataError):
     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
 
 
-@error_handlers.app_errorhandler(AlgorithmExecutionException)
-def handle_algorithm_excecution_exception(error: AlgorithmExecutionException):
+@error_handlers.app_errorhandler(NodeDownAlgorithmExecutionException)
+def handle_node_down_algorithm_excecution_exception(
+    error: NodeDownAlgorithmExecutionException,
+):
     print(f"(error_handlers::handle_algorithm_excecution_exception) {error=}")
-    return ALGORITHM_EXUCUTION_ERROR_MESSAGE, HTTPStatusCode.ALGORITHM_EXECUTION_ERROR
+    return (
+        error.message,
+        HTTPStatusCode.NODE_DOWN_ALGORITHM_EXECUTION_ERROR,
+    )
 
 
 # TODO BUG https://team-1617704806227.atlassian.net/browse/MIP-476

@@ -70,7 +70,13 @@ class AlgorithmExecutionException(Exception):
         super().__init__(message)
         self.message = message
 
-
+class NodeDownAlgorithmExecutionException(Exception):
+    def __init__(self):
+        message="One of the nodes participating in the algorithm execution "\
+            "stopped responding"
+        super().__init__(message)
+        self.message = message
+        
 class AlgorithmExecutor:
     def __init__(
         self,
@@ -152,13 +158,9 @@ class AlgorithmExecutor:
             TimeoutError,
             ClosedBrokerConnectionError,
         ) as err:
-            error_message = (
-                "One of the nodes participating in the algorithm execution "
-                "stopped responding"
-            )
-            self._logger.error(f"{error_message} \n{err=}")
+            self._logger.error(f"{err=}")
 
-            raise AlgorithmExecutionException(error_message)
+            raise NodeDownAlgorithmExecutionException()
         except Exception as exc:
             import traceback
 
