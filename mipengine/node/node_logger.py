@@ -6,7 +6,7 @@ from functools import wraps
 from mipengine.node import config as node_config
 
 
-def _init_logger(context_id=None):
+def init_logger(context_id=None):
     logger = logging.getLogger("node")
     if context_id is None:
         formatter = logging.Formatter(
@@ -48,7 +48,7 @@ def initialise_logger(func):
         else:
             context_id = None
 
-        _init_logger(context_id)
+        init_logger(context_id)
         return func(*args, **kwargs)
 
     return wrapper

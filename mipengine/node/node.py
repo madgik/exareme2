@@ -4,12 +4,15 @@ from celery import Celery
 from celery import signals
 
 from mipengine.node import config as node_config
+from mipengine.node.node_logger import init_logger
 
 rabbitmq_credentials = node_config.rabbitmq.user + ":" + node_config.rabbitmq.password
 rabbitmq_socket_addr = node_config.rabbitmq.ip + ":" + str(node_config.rabbitmq.port)
 vhost = node_config.rabbitmq.vhost
 
-print("Creating the celery app...")
+node_logger = init_logger("NODE INITIALIZATION")
+
+node_logger.info("Creating the celery app...")
 celery = Celery(
     "mipengine.node",
     broker=f"amqp://{rabbitmq_credentials}@{rabbitmq_socket_addr}/{vhost}",
@@ -23,7 +26,7 @@ celery = Celery(
         "mipengine.node.tasks.udfs",
     ],
 )
-print("Celery app created.")
+node_logger.info("Celery app created.")
 
 
 @signals.setup_logging.connect
@@ -51,4 +54,4 @@ and the connection with the broker (rabbitmq) is established.
 If the connection cannot be established, no message is shown,
 so we need to know it failed at this point.
 """
-print("Connecting with broker...")
+node_logger.info("Connecting with broker...")
