@@ -1,17 +1,21 @@
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
-from mipengine.controller.node_tasks_handler_interface import IQueueUDFAsyncResult
+from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from pydantic import BaseModel, conint
 from ipaddress import IPv4Address
 from celery import Celery
 
-from typing import List, Tuple, Final, Callable
+from celery.result import AsyncResult
+
+from typing import List, Tuple, Final, Callable, Dict, Any
 
 from celery.exceptions import TimeoutError
 from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
+from kombu.exceptions import OperationalError
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.controller.celery_app import get_node_celery_app
 
 TASK_SIGNATURES: Final = {
     "get_tables": "mipengine.node.tasks.tables.get_tables",
@@ -31,33 +35,19 @@ TASK_SIGNATURES: Final = {
 }
 
 
-class QueueUDFAsyncResult(IQueueUDFAsyncResult):
-    def get(self, timeout=None):
-        return self.async_result.get(timeout)
-
-
-class CeleryParamsDTO(BaseModel):
-    task_queue_domain: IPv4Address
-    task_queue_port: conint(ge=1024, le=65535)
-
-    db_domain: IPv4Address
-    db_port: conint(ge=1024, le=65535)
-
-    user: str
-    password: str
-    vhost: str
-
-    tasks_timeout: conint(ge=0)
-    max_retries: conint(ge=0)
-    interval_start: conint(ge=0)
-    interval_step: conint(ge=0)
-    interval_max: conint(ge=0)
-
-
 def time_limit_exceeded_handler(method: Callable):
-    def inner(ref, *args, **kargs):
+    def inner(ref, *args, **kwargs):
+        # the following exceptions are thrown when the get() method is called
+        # on an AsyncResult.
+        # SoftTimeLimitExceeded and TimeLimitExceeded are raised by the celery app
+        # instantiating the workers that execute the task (aka the node's celery app)
+        # and propagated here, whereas the
+        # TimeoutError exception is raised by the caller celery app (aka the
+        # NodeTasksHandlerCelery), when the get() method has not returned after a time
+        # limit is exceeded. The time limit is independently defined on the caller
+        # celery app (the NodeTasksHandlerCelery) and executing celery app (the node)
         try:
-            return method(ref, *args, **kargs)
+            return method(ref, *args, **kwargs)
         except SoftTimeLimitExceeded as stle:
             # TODO should use kwargs here..
             raise SoftTimeLimitExceeded(
@@ -71,44 +61,54 @@ def time_limit_exceeded_handler(method: Callable):
         except TimeoutError as te:
             # TODO should use kwargs here..
             raise TimeoutError(
-                {"node_id": ref.node_id, "task": method.__name__, "args": args}
+                {
+                    "node_id": ref.node_id,
+                    "task": method.__name__,
+                    "args": args,
+                    "kwargs": kwargs,
+                }
             )
 
     return inner
 
 
+def broker_connection_closed_handler(method: Callable):
+    def inner(ref, *args, **kwargs):
+        try:
+            return method(ref, *args, **kwargs)
+        except (OperationalError, ConnectionResetError) as err:
+            raise ClosedBrokerConnectionError(
+                message=f"Connection to broker closed for node:{ref.node_id} when tried "
+                f"to call {method} with task_kwargs={kwargs}",
+                node_id=ref.node_id,
+            )
+
+    return inner
+
+
+class QueuedUDFAsyncResult(IQueuedUDFAsyncResult):
+    @time_limit_exceeded_handler
+    @broker_connection_closed_handler
+    def get(self, timeout=None):
+        return self.async_result.get(timeout)
+
+
+class ClosedBrokerConnectionError(Exception):
+    def __init__(self, node_id: str, message: str):
+        self.node_id = node_id
+        super().__init__(message)
+
+
 class NodeTasksHandlerCelery(INodeTasksHandler):
 
     # TODO create custom type and validator for the socket address
-    def __init__(self, node_id: str, celery_params: "CeleryParamsDTO"):
+    def __init__(
+        self, node_id: str, node_queue_addr: str, node_db_addr: str, tasks_timeout
+    ):
         self._node_id = node_id
-
-        user = celery_params.user
-        password = celery_params.password
-
-        queue_addr = ":".join(
-            [str(celery_params.task_queue_domain), str(celery_params.task_queue_port)]
-        )
-        vhost = celery_params.vhost
-        broker = f"amqp://{user}:{password}@{queue_addr}/{vhost}"
-
-        celery_app = Celery(broker=broker, backend="rpc://")
-
-        broker_transport_options = {
-            "max_retries": celery_params.max_retries,
-            "interval_start": celery_params.interval_start,
-            "interval_step": celery_params.interval_step,
-            "interval_max": celery_params.interval_max,
-        }
-        celery_app.conf.broker_transport_options = broker_transport_options
-
-        self._celery_app = celery_app
-
-        self._db_address = ":".join(
-            [str(celery_params.db_domain), str(celery_params.db_port)]
-        )
-
-        self._task_timeout = celery_params.tasks_timeout
+        self._celery_app = get_node_celery_app(node_queue_addr)
+        self._db_address = node_db_addr
+        self._tasks_timeout = tasks_timeout
 
     @property
     def node_id(self):
@@ -118,45 +118,77 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     def node_data_address(self):
         return self._db_address
 
+    def _apply_async(self, task_signature, **kwargs) -> AsyncResult:
+        # The existing connection to the broker is passed in apply_async because the
+        # default behaviour (not passing a
+        # connection object), when the broker is down, is for the celery app to try to
+        # create a new connection to the broker, without raising any exceptions.
+        # Nevertheless while the broker is down the call to apply_async just hangs
+        # waiting for a connection with the broker to be established. Passing the
+        # existing connection object to apply_async causes the call to raise an
+        # exception if the broker is down
+        async_result = task_signature.apply_async(
+            connection=self._celery_app.broker_connection(), kwargs=kwargs
+        )
+
+        return async_result
+
     # TABLES functionality
     @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def get_tables(self, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_tables"])
-        result = task_signature.delay(context_id=context_id).get(self._task_timeout)
+        result = self._apply_async(
+            task_signature=task_signature, context_id=context_id
+        ).get(self._tasks_timeout)
         return [table_name for table_name in result]
 
     @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def get_table_schema(self, table_name: str):
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_schema"])
-        result = task_signature.delay(table_name=table_name).get(self._task_timeout)
+        result = self._apply_async(
+            task_signature=task_signature, table_name=table_name
+        ).get(self._tasks_timeout)
         return TableSchema.parse_raw(result)
 
     @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def get_table_data(self, table_name: str) -> TableData:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_data"])
-        result = task_signature.delay(table_name=table_name).get(self._task_timeout)
+        result = self._apply_async(
+            task_signature=task_signature, table_name=table_name
+        ).get(self._tasks_timeout)
         return TableData.parse_raw(result)
 
     @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def create_table(
         self, context_id: str, command_id: str, schema: TableSchema
     ) -> str:
         schema_json = schema.json()
         task_signature = self._celery_app.signature(TASK_SIGNATURES["create_table"])
-        result = task_signature.delay(
-            context_id=context_id, command_id=command_id, schema_json=schema_json
-        ).get(self._task_timeout)
+        result = self._apply_async(
+            task_signature=task_signature,
+            context_id=context_id,
+            command_id=command_id,
+            schema_json=schema_json,
+        ).get(self._tasks_timeout)
         return result
 
     # VIEWS functionality
     @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def get_views(self, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_views"])
-        result = task_signature.delay(context_id=context_id).get(self._task_timeout)
+        result = self._apply_async(
+            task_signature=task_signature, context_id=context_id
+        ).get(self._tasks_timeout)
         return result
 
     # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
     @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def create_pathology_view(
         self,
         context_id: str,
@@ -168,47 +200,55 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["create_pathology_view"]
         )
-
-        result = task_signature.delay(
+        result = self._apply_async(
+            task_signature=task_signature,
             context_id=context_id,
             command_id=command_id,
             pathology=pathology,
             columns=columns,
             filters=filters,
-        ).get(self._task_timeout)
-
+        ).get(self._tasks_timeout)
         return result
 
     # MERGE TABLES functionality
     @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def get_merge_tables(self, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_merge_tables"])
-        result = task_signature.delay(context_id=context_id).get(self._task_timeout)
+        result = self._apply_async(
+            task_signature=task_signature, context_id=context_id
+        ).get(self._tasks_timeout)
         return result
 
     @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def create_merge_table(
         self, context_id: str, command_id: str, table_names: List[str]
     ):
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["create_merge_table"]
         )
-        result = task_signature.delay(
+        result = self._apply_async(
+            task_signature=task_signature,
             command_id=command_id,
             context_id=context_id,
             table_names=table_names,
-        ).get(self._task_timeout)
+        ).get(self._tasks_timeout)
         return result
 
     # REMOTE TABLES functionality
     @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def get_remote_tables(self, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["get_remote_tables"]
         )
-        return task_signature.delay(context_id=context_id).get(self._task_timeout)
+        return self._apply_async(
+            task_signature=task_signature, context_id=context_id
+        ).get(self._tasks_timeout)
 
     @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def create_remote_table(
         self, table_name: str, table_schema: TableSchema, original_db_url: str
     ) -> str:
@@ -216,13 +256,15 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["create_remote_table"]
         )
-        task_signature.delay(
+        self._apply_async(
+            task_signature=task_signature,
             table_name=table_name,
             table_schema_json=table_schema_json,
             monetdb_socket_address=original_db_url,
-        ).get(self._task_timeout)
+        ).get(self._tasks_timeout)
 
     # UDFs functionality
+    @broker_connection_closed_handler
     def queue_run_udf(
         self,
         context_id: str,
@@ -230,17 +272,19 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         func_name: str,
         positional_args,
         keyword_args,
-    ) -> QueueUDFAsyncResult:
+    ) -> QueuedUDFAsyncResult:
+
         task_signature = self._celery_app.signature(TASK_SIGNATURES["run_udf"])
-        async_result = task_signature.delay(
+        async_result = self._apply_async(
+            task_signature=task_signature,
             command_id=command_id,
             context_id=context_id,
             func_name=func_name,
             positional_args_json=positional_args,
             keyword_args_json=keyword_args,
         )
-
-        return QueueUDFAsyncResult(
+        return QueuedUDFAsyncResult(
+            node_id=self.node_id,
             command_id=command_id,
             context_id=context_id,
             func_name=func_name,
@@ -250,21 +294,22 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         )
 
     @time_limit_exceeded_handler
-    def get_queued_udf_result(self, async_result: QueueUDFAsyncResult) -> List[str]:
-        return async_result.get(self._task_timeout)
+    @broker_connection_closed_handler
+    def get_queued_udf_result(self, async_result: QueuedUDFAsyncResult) -> List[str]:
+        return async_result.get(self._tasks_timeout)
 
     @time_limit_exceeded_handler
-    def get_udf(self, algorithm_name) -> List[str]:
-        pass
-
-    @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def get_udfs(self, algorithm_name) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_udfs"])
-        result = task_signature.delay(algorithm_name).get(self._task_timeout)
+        result = self._apply_async(
+            task_signature=task_signature, algorithm_name=algorithm_name
+        ).get(self._tasks_timeout)
         return result
 
     # return the generated monetdb pythonudf
     @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def get_run_udf_query(
         self,
         context_id: str,
@@ -275,16 +320,22 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["get_run_udf_query"]
         )
-        result = task_signature.delay(
+        result = self._apply_async(
+            task_signature=task_signature,
             command_id=command_id,
             context_id=context_id,
             func_name=func_name,
             positional_args_json=positional_args,
             keyword_args_json={},
-        ).get(self._task_timeout)
+        ).get(self._tasks_timeout)
         return result
 
     # CLEANUP functionality
+    @time_limit_exceeded_handler
+    @broker_connection_closed_handler
     def clean_up(self, context_id: str):
+
         task_signature = self._celery_app.signature(TASK_SIGNATURES["clean_up"])
-        task_signature.delay(context_id)
+        self._apply_async(task_signature=task_signature, context_id=context_id).get(
+            self._tasks_timeout
+        )

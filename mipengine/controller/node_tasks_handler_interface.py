@@ -18,7 +18,8 @@ class IAsyncResult(BaseModel, ABC):
         pass
 
 
-class IQueueUDFAsyncResult(IAsyncResult):
+class IQueuedUDFAsyncResult(IAsyncResult, ABC):
+    node_id: str
     command_id: str
     context_id: str
     func_name: str
@@ -108,11 +109,11 @@ class INodeTasksHandler(ABC):
         func_name: str,
         positional_args,
         keyword_args,
-    ) -> IQueueUDFAsyncResult:
+    ) -> IQueuedUDFAsyncResult:
         pass
 
     @abstractmethod
-    def get_queued_udf_result(self, async_result: IQueueUDFAsyncResult) -> List[str]:
+    def get_queued_udf_result(self, async_result: IQueuedUDFAsyncResult) -> List[str]:
         pass
 
     @abstractmethod

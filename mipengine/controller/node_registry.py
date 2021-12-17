@@ -4,12 +4,15 @@ import sys
 from typing import Any
 from typing import List, Dict
 
+from celery import Celery
+from asgiref.sync import sync_to_async
+
 import dns.resolver
 
 from mipengine.controller import DeploymentType
 from mipengine.controller import config as controller_config
 from mipengine.controller.celery_app import get_node_celery_app
-from mipengine.controller.celery_app import task_to_async
+
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.controller import controller_logger as ctrl_logger
@@ -17,8 +20,12 @@ from mipengine.controller import controller_logger as ctrl_logger
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
 # so the module can be easily unit tested
 
+logger = ctrl_logger.get_background_service_logger()
+
 GET_NODE_INFO_SIGNATURE = "mipengine.node.tasks.common.get_node_info"
 NODE_REGISTRY_UPDATE_INTERVAL = controller_config.node_registry_update_interval
+
+CELERY_TASKS_TIMEOUT = controller_config.rabbitmq.celery_tasks_timeout
 
 
 def _get_nodes_addresses_from_file() -> List[str]:
@@ -44,10 +51,24 @@ def _get_nodes_addresses() -> List[str]:
 
 
 async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
-    cel_apps = [get_node_celery_app(socket_addr) for socket_addr in nodes_socket_addr]
-    nodes_task_signature = [app.signature(GET_NODE_INFO_SIGNATURE) for app in cel_apps]
+    celery_apps = [
+        get_node_celery_app(socket_addr) for socket_addr in nodes_socket_addr
+    ]
+    nodes_task_signature = {
+        celery_app: celery_app.signature(GET_NODE_INFO_SIGNATURE)
+        for celery_app in celery_apps
+    }
 
-    tasks_coroutines = [task_to_async(task)() for task in nodes_task_signature]
+    # when broker(rabbitmq) is down, if the existing broker connection is not passed in
+    # apply_async (in _task_to_async::wrapper), celery (or anyway some internal celery
+    # component) will try to create a new connection to the broker until the apply_async
+    # succeeds, wich causes the call to apply_async to hang indefinetelly until the
+    # broker is back up. This way(passing the existing broker connection to apply_async)
+    # it raises a ConnectionResetError or an OperationalError and it does not hang
+    tasks_coroutines = [
+        _task_to_async(task)(connection=app.broker_connection())
+        for app, task in nodes_task_signature.items()
+    ]
     results = await asyncio.gather(*tasks_coroutines, return_exceptions=True)
     nodes_info = [
         NodeInfo.parse_raw(result)
@@ -55,6 +76,27 @@ async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
         if not isinstance(result, Exception)
     ]
     return nodes_info
+
+
+# Converts a Celery task to an async function
+# Celery doesn't currently support asyncio "await" while "getting" a result
+# Copied from https://github.com/celery/celery/issues/6603
+def _task_to_async(task):
+    async def wrapper(*args, **kwargs):
+        total_delay = 0
+        delay = 0.1
+        async_result = await sync_to_async(task.apply_async)(*args, **kwargs)
+        while not async_result.ready():
+            total_delay += delay
+            if total_delay > CELERY_TASKS_TIMEOUT:
+                raise TimeoutError(
+                    f"Celery task: {task} didn't respond in {CELERY_TASKS_TIMEOUT}s."
+                )
+            await asyncio.sleep(delay)
+            delay = min(delay * 1.5, 2)  # exponential backoff, max 2 seconds
+        return async_result.get(timeout=CELERY_TASKS_TIMEOUT - total_delay)
+
+    return wrapper
 
 
 def _have_common_elements(a: List[Any], b: List[Any]):
@@ -71,10 +113,7 @@ class NodeRegistry:
             nodes_addresses = _get_nodes_addresses()
             self.nodes: List[NodeInfo] = await _get_nodes_info(nodes_addresses)
 
-            # DEBUG
-            ctrl_logger.get_background_service_logger().debug(
-                f"Nodes:{[node.id for node in self.nodes]}"
-            )
+            logger.debug(f"Nodes:{[node.id for node in self.nodes]}")
             # ..to print full nodes info
             # from devtools import debug
             # debug(self.nodes)

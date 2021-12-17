@@ -16,7 +16,11 @@ from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
-from mipengine.controller.node_tasks_handler_interface import IQueueUDFAsyncResult
+
+from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
+from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
+from mipengine.controller import controller_logger as ctrl_logger
+
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
@@ -67,19 +71,40 @@ class AlgorithmExecutionException(Exception):
         self.message = message
 
 
+class NodeDownAlgorithmExecutionException(Exception):
+    def __init__(self):
+        message = (
+            "One of the nodes participating in the algorithm execution "
+            "stopped responding"
+        )
+        super().__init__(message)
+        self.message = message
+
+
 class AlgorithmExecutor:
     def __init__(
         self,
         algorithm_execution_dto: AlgorithmExecutionDTO,
         nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
     ):
+        self._logger = ctrl_logger.get_request_logger(
+            context_id=algorithm_execution_dto.context_id
+        )
+        self._nodes_tasks_handlers_dto = nodes_tasks_handlers_dto
+        self._algorithm_execution_dto = algorithm_execution_dto
+
         self._context_id = algorithm_execution_dto.context_id
         self._algorithm_name = algorithm_execution_dto.algorithm_name
 
+        self._global_node = None
+        self._local_nodes = []
+        self._execution_interface = None
+
+    def _instantiate_nodes(self):
         # instantiate the GLOBAL Node object
-        self.global_node = _Node(
+        self._global_node = _Node(
             context_id=self._context_id,
-            node_tasks_handler=nodes_tasks_handlers_dto.global_node_tasks_handler,
+            node_tasks_handler=self._nodes_tasks_handlers_dto.global_node_tasks_handler,
         )
 
         # Parameters for the creation of the view tables in the db. Each of the LOCAL
@@ -87,68 +112,80 @@ class AlgorithmExecutor:
         # tables
         initial_view_tables_params = {
             "commandId": get_next_command_id(),
-            "pathology": algorithm_execution_dto.algorithm_request_dto.inputdata.pathology,
-            "datasets": algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
-            "x": algorithm_execution_dto.algorithm_request_dto.inputdata.x,
-            "y": algorithm_execution_dto.algorithm_request_dto.inputdata.y,
-            "filters": algorithm_execution_dto.algorithm_request_dto.inputdata.filters,
+            "pathology": self._algorithm_execution_dto.algorithm_request_dto.inputdata.pathology,
+            "datasets": self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
+            "x": self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
+            "y": self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
+            "filters": self._algorithm_execution_dto.algorithm_request_dto.inputdata.filters,
         }
 
         # instantiate the LOCAL Node objects
-        self.local_nodes = [
+        self._local_nodes = [
             _Node(
                 context_id=self._context_id,
                 node_tasks_handler=node_tasks_handler,
                 initial_view_tables_params=initial_view_tables_params,
             )
-            for node_tasks_handler in nodes_tasks_handlers_dto.local_nodes_tasks_handlers
+            for node_tasks_handler in self._nodes_tasks_handlers_dto.local_nodes_tasks_handlers
         ]
 
+    def _instantiate_algorithm_execution_interface(self):
         algo_execution_interface_dto = _AlgorithmExecutionInterfaceDTO(
-            global_node=self.global_node,
-            local_nodes=self.local_nodes,
+            global_node=self._global_node,
+            local_nodes=self._local_nodes,
             algorithm_name=self._algorithm_name,
-            algorithm_parameters=algorithm_execution_dto.algorithm_request_dto.parameters,
-            x_variables=algorithm_execution_dto.algorithm_request_dto.inputdata.x,
-            y_variables=algorithm_execution_dto.algorithm_request_dto.inputdata.y,
+            algorithm_parameters=self._algorithm_execution_dto.algorithm_request_dto.parameters,
+            x_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
+            y_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
         )
-        self.execution_interface = _AlgorithmExecutionInterface(
+        self._execution_interface = _AlgorithmExecutionInterface(
             algo_execution_interface_dto
         )
 
         # Get algorithm module
         self.algorithm_flow_module = algorithm_modules[self._algorithm_name]
 
-        # Context id to be added in the future
-        self._logger = ctrl_logger.get_request_logger(self._context_id)
-
     def run(self):
         try:
-            algorithm_result = self.algorithm_flow_module.run(self.execution_interface)
-            return algorithm_result
-        except (SoftTimeLimitExceeded, TimeLimitExceeded, TimeoutError) as err:
-            error_message = (
-                "One of the nodes participating in the algorithm execution "
-                "stopped responding"
+            self._instantiate_nodes()
+            self._logger.info(
+                f"executing algorithm:{self._algorithm_name} on "
+                f"local nodes: {self._local_nodes=}"
             )
-            self._logger.error(f"{error_message} \n{err=}")  # TODO logging..
+            self._instantiate_algorithm_execution_interface()
+            algorithm_result = self.algorithm_flow_module.run(self._execution_interface)
+            self._logger.info(f"finished execution of algorithm:{self._algorithm_name}")
+            return algorithm_result
+        except (
+            SoftTimeLimitExceeded,
+            TimeLimitExceeded,
+            TimeoutError,
+            ClosedBrokerConnectionError,
+        ) as err:
+            self._logger.error(f"{err=}")
 
-            raise AlgorithmExecutionException(error_message)
+            raise NodeDownAlgorithmExecutionException()
         except Exception as exc:
             import traceback
 
-            self._logger.info(f"{traceback.format_exc()}")
+            self._logger.error(f"{traceback.format_exc()}")
             raise exc
         finally:
             self.clean_up()
 
     def clean_up(self):
-        # TODO logging..
-        self._logger.info(f"----> cleaning up global_node")
-        self.global_node.clean_up()
-        for node in self.local_nodes:
-            self._logger.info(f"----> cleaning up {node:}")
-            node.clean_up()
+        self._logger.info(f"cleaning up global_node")
+        try:
+            self._global_node.clean_up()
+        except Exception as exc:
+            self._logger.error(f"cleaning up global_node FAILED {exc=}")
+        self._logger.info(f"cleaning up local nodes:{self._local_nodes}")
+        for node in self._local_nodes:
+            self._logger.info(f"\tcleaning up {node=}")
+            try:
+                node.clean_up()
+            except Exception as exc:
+                self._logger.error(f"cleaning up {node=} FAILED {exc=}")
 
 
 class _Node:
@@ -249,6 +286,7 @@ class _Node:
         columns: List[str],
         filters: List[str],
     ) -> _TableName:
+
         result = self._node_tasks_handler.create_pathology_view(
             context_id=self.context_id,
             command_id=command_id,
@@ -293,7 +331,7 @@ class _Node:
 
     def queue_run_udf(
         self, command_id: str, func_name: str, positional_args, keyword_args
-    ) -> IQueueUDFAsyncResult:
+    ) -> IQueuedUDFAsyncResult:
         return self._node_tasks_handler.queue_run_udf(
             context_id=self.context_id,
             command_id=command_id,
@@ -302,7 +340,7 @@ class _Node:
             keyword_args=keyword_args,
         )
 
-    def get_queued_udf_result(self, async_result: IQueueUDFAsyncResult) -> List[str]:
+    def get_queued_udf_result(self, async_result: IQueuedUDFAsyncResult) -> List[str]:
         return self._node_tasks_handler.get_queued_udf_result(async_result)
 
     def get_udfs(self, algorithm_name) -> List[str]:
