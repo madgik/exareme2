@@ -1061,6 +1061,23 @@ class TestUDFGenBase:
             "INSERT INTO test_merge_transfer_table(node_id, transfer) VALUES(2, '{\"num\":10}')"
         )
 
+    # TODO Should become more dynamic in the future.
+    # It should receive a TableInfo object as input and maybe data as well.
+    @pytest.fixture(scope="function")
+    def create_tensor_table(self, db):
+        db.execute(
+            "CREATE TABLE tensor_in_db(node_id VARCHAR(500), dim0 INT, dim1 INT, val INT)"
+        )
+        db.execute(
+            "INSERT INTO tensor_in_db(node_id, dim0, dim1, val) VALUES('1', 0, 0, 3)"
+        )
+        db.execute(
+            "INSERT INTO tensor_in_db(node_id, dim0, dim1, val) VALUES('1', 0, 1, 4)"
+        )
+        db.execute(
+            "INSERT INTO tensor_in_db(node_id, dim0, dim1, val) VALUES('1', 0, 2, 7)"
+        )
+
 
 class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
     @pytest.fixture(scope="class")
@@ -1424,6 +1441,28 @@ FROM
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
                 "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" REAL);',
             }
+        ]
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures("use_database", "create_tensor_table")
+    def test_udf_with_db(
+        self,
+        concrete_udf_output_tables,
+        concrete_udf_def,
+        concrete_udf_sel,
+        db,
+        create_tensor_table,
+    ):
+        db.execute(concrete_udf_output_tables)
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        output_table_values = db.execute(
+            "SELECT * FROM main_output_table_name"
+        ).fetchall()
+        assert output_table_values == [
+            ("1", 0, 0, 3.0),
+            ("1", 0, 1, 4.0),
+            ("1", 0, 2, 7.0),
         ]
 
 
