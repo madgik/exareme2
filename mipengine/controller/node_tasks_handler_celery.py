@@ -251,7 +251,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     @broker_connection_closed_handler
     def create_remote_table(
         self, table_name: str, table_schema: TableSchema, original_db_url: str
-    ) -> str:
+    ):
         table_schema_json = table_schema.json()
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["create_remote_table"]
