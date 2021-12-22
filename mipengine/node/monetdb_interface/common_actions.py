@@ -3,6 +3,9 @@ from typing import Union
 
 from mipengine import DType
 from mipengine.node_exceptions import TablesNotFound
+from mipengine.node_tasks_DTOs import ColumnDataFloat
+from mipengine.node_tasks_DTOs import ColumnDataInt
+from mipengine.node_tasks_DTOs import ColumnDataStr
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
@@ -10,6 +13,7 @@ from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 # TODO We need to add the PRIVATE/OPEN table logic
 from mipengine.node_tasks_DTOs import TableType
+from mipengine.node_tasks_DTOs import _ColumnData
 
 
 def create_table_name(
@@ -145,7 +149,7 @@ def get_table_names(table_type: TableType, context_id: str) -> List[str]:
     return [table[0] for table in table_names]
 
 
-def get_table_data(table_name: str) -> List[List[Union[float, int, str, None]]]:
+def get_table_data(table_name: str) -> List:
     """
     Retrieves the data of a table with specific name from the monetdb.
 
@@ -168,8 +172,32 @@ def get_table_data(table_name: str) -> List[List[Union[float, int, str, None]]]:
         WHERE tables.system=false
         """
     )
-
+    data = list(zip(*data))
     return data
+
+
+def get_columns_data(
+    schema, data
+) -> List[Union[ColumnDataInt, ColumnDataStr, ColumnDataFloat]]:
+    columns_data = []
+    for count in range(0, len(data)):
+        current_column = schema.columns[count]
+        current_values = data[count]
+        if current_column.dtype == DType.INT:
+            columns_data.append(
+                ColumnDataInt(name=current_column.name, data=current_values)
+            )
+        elif schema.columns[count].dtype in [DType.STR, DType.JSON]:
+            columns_data.append(
+                ColumnDataStr(name=current_column.name, data=current_values)
+            )
+        elif schema.columns[count].dtype == DType.FLOAT:
+            columns_data.append(
+                ColumnDataFloat(name=current_column.name, data=current_values)
+            )
+        else:
+            raise ValueError("Invalid column type")
+    return columns_data
 
 
 def get_initial_data_schemas() -> List[str]:

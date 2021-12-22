@@ -37,7 +37,7 @@ def get_parametrization_list_success_cases():
             {"name": "std_deviation", "type": "number"},
         ],
         "data": [
-            ["lefthippocampus", "0.3773485998788057"],
+            ["lefthippocampus", 0.3773485998788057],
         ],
     }
     # TODO quotes should be removed from the lefthippocampus value.

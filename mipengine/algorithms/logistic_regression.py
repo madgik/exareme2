@@ -4,6 +4,8 @@ from typing import TypeVar
 import numpy
 import pandas as pd
 
+from mipengine.algorithm_result_DTOs import ColumnDataFloat
+from mipengine.algorithm_result_DTOs import ColumnDataStr
 from mipengine.udfgen import (
     TensorBinaryOp,
     TensorUnaryOp,
@@ -144,15 +146,14 @@ def run(algo_interface):
             break
         logloss = newlogloss
 
-    coeff_values = [c for _, _, c in coeff.get_table_data()]
+    coeff_values = coeff.get_table_data()[2]
     x_variables = algo_interface.x_variables
     result = TabularDataResult(
         title="Logistic Regression Coefficients",
         columns=[
-            {"name": "variable", "type": "string"},
-            {"name": "coefficient", "type": "number"},
+            ColumnDataStr(name="variable", data=x_variables),
+            ColumnDataFloat(name="coefficient", data=coeff_values),
         ],
-        data=[[varname, coeff] for varname, coeff in zip(x_variables, coeff_values)],
     )
     return result
 

@@ -33,15 +33,10 @@ def get_parametrization_list_success_cases():
     expected_response = {
         "title": "Standard Deviation",
         "columns": [
-            {"name": "variable", "type": "string"},
-            {"name": "std_deviation", "type": "number"},
-        ],
-        "data": [
-            ["lefthippocampus", "0.3773485998788057"],
+            {"name": "variable", "type": "STR", "data": ["lefthippocampus"]},
+            {"name": "std_deviation", "type": "FLOAT", "data": [0.3773485998788057]},
         ],
     }
-    # TODO quotes should be removed from the lefthippocampus value.
-    # BUG related https://team-1617704806227.atlassian.net/browse/MIP-260
 
     parametrization_list = []
     parametrization_list.append((algorithm_name, request_dict, expected_response))
@@ -64,9 +59,13 @@ def test_local_global_step_algorithms(algorithm_name, request_dict, expected_res
     )
     assert response.status_code == 200
     assert response.json()["title"] == expected_response["title"]
-    assert response.json()["columns"] == expected_response["columns"]
-    assert response.json()["data"][0][0] == expected_response["data"][0][0]
+    assert len(response.json()["columns"]) == len(expected_response["columns"])
+    for count in range(0, len(response.json()["columns"])):
+        expected_column = expected_response["columns"][count]
+        response_column = response.json()["columns"][count]
+        assert response_column["name"] == expected_column["name"]
+        assert response_column["type"] == expected_column["type"]
     # Assert the standard deviation with 4 decimals only
-    assert round(float(response.json()["data"][0][1]), 4) == round(
-        float(expected_response["data"][0][1]), 4
+    assert round(float(response.json()["columns"][1]["data"][0]), 4) == round(
+        float(expected_response["columns"][1]["data"][0]), 4
     )

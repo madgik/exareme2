@@ -69,7 +69,9 @@ def get_table_data(table_name: str) -> str:
     """
     schema = common_actions.get_table_schema(table_name)
     data = common_actions.get_table_data(table_name)
-    return TableData(schema_=schema, data_=data).json()
+    columns = common_actions.get_columns_data(schema, data)
+
+    return TableData(name=table_name, columns=columns).json()
 
 
 @shared_task

@@ -1,10 +1,8 @@
 import pytest
 
-import json
 import toml
 from os import path, listdir
 from pathlib import Path
-from typing import List, Final
 
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.controller.node_tasks_handler_celery import CeleryParamsDTO

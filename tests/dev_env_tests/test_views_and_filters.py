@@ -77,10 +77,8 @@ def test_view_without_filters(context_id):
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.parse_raw(view_data_json)
-    assert all(
-        len(columns) == len(view_intended_schema.columns) for columns in view_data.data_
-    )
-    assert view_data.schema_ == view_intended_schema
+    assert len(view_data.columns) == len(view_intended_schema.columns)
+    assert view_data.name == view_name
 
 
 def test_view_with_filters(context_id):
@@ -141,11 +139,9 @@ def test_view_with_filters(context_id):
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.parse_raw(view_data_json)
-    assert len(view_data.data_) == 1
-    assert all(
-        len(columns) == len(view_intended_schema.columns) for columns in view_data.data_
-    )
-    assert view_data.schema_ == view_intended_schema
+    assert len(view_data.columns) == 2
+    assert len(view_data.columns) == len(view_intended_schema.columns)
+    assert view_data.name == view_name
 
 
 def test_pathology_view_without_filters(context_id):
@@ -180,8 +176,8 @@ def test_pathology_view_without_filters(context_id):
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.parse_raw(view_data_json)
-    assert all(len(columns) == len(schema.columns) for columns in view_data.data_)
-    assert view_data.schema_ == schema
+    assert len(view_data.columns) == len(schema.columns)
+    assert view_data.name == view_name
 
     view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()
     view_schema = TableSchema.parse_raw(view_schema_json)
@@ -239,8 +235,8 @@ def test_pathology_view_with_filters(context_id):
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
     view_data = TableData.parse_raw(view_data_json)
-    assert all(len(columns) == len(schema.columns) for columns in view_data.data_)
-    assert view_data.schema_ == schema
+    assert len(view_data.columns) == len(schema.columns)
+    assert view_data.name == view_name
 
     view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()
     view_schema = TableSchema.parse_raw(view_schema_json)

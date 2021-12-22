@@ -1,7 +1,6 @@
 import enum
 from abc import ABC
 from typing import Any
-from typing import Dict
 from typing import List
 from typing import Union
 
@@ -69,24 +68,44 @@ class TableInfo(ImmutableBaseModel):
     _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 
 
-class TableView(ImmutableBaseModel):
-    datasets: List[str]
-    columns: List[str]
-    filter: Dict
+class _ColumnData(ImmutableBaseModel):
+    name: str
+    type: DType
 
-    _validate_identifiers = validator(
-        "datasets",
-        "columns",
-        each_item=True,
-        allow_reuse=True,
-    )(validate_identifier)
+    @validator("type")
+    def validate_type(cls, tp):
+        if cls.__name__ == "ColumnData":
+            raise TypeError(
+                "ColumnData should not be instantiated. "
+                "Use ColumnDataInt, ColumnDataStr or ColumnDataFloat instead."
+            )
+        column_type = cls.__fields__["type"].default
+        if tp != column_type:
+            raise ValueError(
+                f"Objects of type {cls.__name__} have a fixed type {column_type}, "
+                f"you cannot use {tp} in the constructor."
+            )
+        return tp
+
+
+class ColumnDataInt(_ColumnData):
+    data: List[Union[None, int]]
+    type = DType.INT
+
+
+class ColumnDataStr(_ColumnData):
+    data: List[Union[None, str]]
+    type = DType.STR
+
+
+class ColumnDataFloat(_ColumnData):
+    data: List[Union[None, float]]
+    type = DType.FLOAT
 
 
 class TableData(ImmutableBaseModel):
-    schema_: TableSchema
-    data_: List[List[Union[float, int, str, None]]]
-    # Union is problematic in pydantic we keep track on that with bug report
-    # https://team-1617704806227.atlassian.net/browse/MIP-245
+    name: str
+    columns: List[Union[ColumnDataInt, ColumnDataStr, ColumnDataFloat]]
 
 
 class UDFArgument(ImmutableBaseModel):

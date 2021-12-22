@@ -3,12 +3,14 @@ from typing import List
 import pytest
 from pydantic import ValidationError
 
+from mipengine.node_tasks_DTOs import ColumnDataFloat
+from mipengine.node_tasks_DTOs import ColumnDataInt
+from mipengine.node_tasks_DTOs import ColumnDataStr
 from mipengine.node_tasks_DTOs import (
     DType,
     ColumnInfo,
     TableSchema,
     TableInfo,
-    TableView,
     TableData,
     UDFArgument,
 )
@@ -66,6 +68,21 @@ def test_table_schema():
     assert isinstance(cols, List)
     assert isinstance(cols[0], ColumnInfo)
     assert isinstance(cols[1], ColumnInfo)
+
+
+def test_table_data_with_different_column_types():
+    expected_columns = [
+        ColumnDataFloat(data=[1.0, None], name="column1"),
+        ColumnDataInt(data=[2, None], name="column2"),
+        ColumnDataStr(data=["3", None], name="column3"),
+        ColumnDataInt(data=[4, 4], name="column4"),
+        ColumnDataFloat(data=[5.0, 5.0], name="column5"),
+    ]
+    data = TableData(
+        name="table_name",
+        columns=expected_columns,
+    )
+    assert data.columns == expected_columns
 
 
 # validation check for TableSchema with error
@@ -160,45 +177,28 @@ def test_table_info_immutable():
         info.name = "newname"
 
 
-def test_table_view_error():
-    with pytest.raises(ValidationError):
-        TableView(datasets=[34, "bar", "baz"], columns=[], filter=[])
-
-
-def test_table_view_immutable():
-    view = TableView(
-        datasets=["name"],
-        columns=["test"],
-        filter={},
-    )
-    with pytest.raises(TypeError):
-        view.datasets = []
-
-
 def test_table_data_error():
     with pytest.raises(ValidationError):
-        TableData(schema_="foo", data_=34)
+        TableData(name="foo", columns=34)
 
 
 def test_table_data_immutable():
     data = TableData(
-        schema_=TableSchema(
-            columns=[
-                ColumnInfo(name="layla", dtype=DType.FLOAT),
-                ColumnInfo(name="sheila", dtype=DType.FLOAT),
-            ],
-        ),
-        data_=[],
+        name="table",
+        columns=[
+            ColumnDataFloat(name="layla", data=[9.1]),
+            ColumnDataFloat(name="sheila", data=[9.1]),
+        ],
     )
     with pytest.raises(TypeError):
-        data.data_ = []
+        data.name = "newname"
 
 
 def test_table_data():
     with pytest.raises(ValidationError):
         TableData(
-            schema_="this is not a TableSchema object",
-            data_="and this is not a list of tuples",
+            name="this is not a TableSchema object",
+            columns="and this is not a list of tuples",
         )
 
 

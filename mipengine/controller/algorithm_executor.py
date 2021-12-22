@@ -707,9 +707,12 @@ class _LocalNodeTable(_INodeTable):
         tables_data = []
         for node, table_name in self.nodes_tables.items():
             tables_data.append(node.get_table_data(table_name))
-        tables_data_flat = [table_data.data_ for table_data in tables_data]
+        tables_data_flat = [table_data.columns for table_data in tables_data]
         tables_data_flat = [
-            k for i in tables_data_flat for j in i for k in j
+            elem
+            for table in tables_data_flat
+            for column in table
+            for elem in column.data
         ]  # TODO bejesus..
         return tables_data_flat
 
@@ -718,7 +721,7 @@ class _LocalNodeTable(_INodeTable):
         r += f"schema: {self.get_table_schema()}\n"
         for node, table_name in self.nodes_tables.items():
             r += f"{node} - {table_name} \ndata(LIMIT 20):\n"
-            tmp = [str(row) for row in node.get_table_data(table_name).data_[0:20]]
+            tmp = [str(row) for row in node.get_table_data(table_name).columns[0:20]]
             r += "\n".join(tmp)
             r += "\n"
         return r
@@ -753,7 +756,7 @@ class _GlobalNodeTable(_INodeTable):
     def get_table_data(self):  # -> {Node:TableData}
         node = list(self.node_table.keys())[0]
         table_name: _TableName = list(self.node_table.values())[0]
-        table_data = node.get_table_data(table_name).data_
+        table_data = [column.data for column in node.get_table_data(table_name).columns]
         return table_data
 
     def __repr__(self):
