@@ -1,11 +1,10 @@
 from typing import List
-from typing import Union
 
 from mipengine import DType
 from mipengine.node_exceptions import TablesNotFound
-from mipengine.node_tasks_DTOs import ColumnDataFloat
-from mipengine.node_tasks_DTOs import ColumnDataInt
-from mipengine.node_tasks_DTOs import ColumnDataStr
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataInt
+from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
@@ -13,7 +12,7 @@ from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 # TODO We need to add the PRIVATE/OPEN table logic
 from mipengine.node_tasks_DTOs import TableType
-from mipengine.node_tasks_DTOs import _ColumnData
+from mipengine.table_data_DTOs import _ColumnData
 
 
 def create_table_name(
@@ -160,8 +159,8 @@ def get_table_data(table_name: str) -> List:
 
     Returns
     ------
-    List[List[Union[str, int, float, bool]]
-        The data of the table.
+    List
+        The data of the table row-stored.
     """
 
     data = MonetDB().execute_and_fetchall(
@@ -172,13 +171,29 @@ def get_table_data(table_name: str) -> List:
         WHERE tables.system=false
         """
     )
-    data = list(zip(*data))
     return data
 
 
-def get_columns_data(
-    schema, data
-) -> List[Union[ColumnDataInt, ColumnDataStr, ColumnDataFloat]]:
+def get_columns_data(schema: TableSchema, data: List) -> List[_ColumnData]:
+    """
+    Returns a list of columns data which will contain name, type and the data of the specific column
+
+    Parameters
+    ----------
+    schema : TableSchema
+        The schema of table
+    data : List
+        The data of the table column-stored
+
+    Returns
+    ------
+    List[_ColumnData]
+        A list of column data
+    """
+    # TableData contain columns
+    # so we need to switch the data given from the database from row-stored to column-stored
+    data = list(zip(*data))
+
     columns_data = []
     for count in range(0, len(data)):
         current_column = schema.columns[count]
@@ -187,11 +202,11 @@ def get_columns_data(
             columns_data.append(
                 ColumnDataInt(name=current_column.name, data=current_values)
             )
-        elif schema.columns[count].dtype in [DType.STR, DType.JSON]:
+        elif current_column.dtype in [DType.STR, DType.JSON]:
             columns_data.append(
                 ColumnDataStr(name=current_column.name, data=current_values)
             )
-        elif schema.columns[count].dtype == DType.FLOAT:
+        elif current_column.dtype == DType.FLOAT:
             columns_data.append(
                 ColumnDataFloat(name=current_column.name, data=current_values)
             )

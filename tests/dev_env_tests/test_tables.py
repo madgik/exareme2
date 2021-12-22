@@ -1,9 +1,9 @@
 import pytest
 import uuid as uuid
 
-from mipengine.node_tasks_DTOs import ColumnDataFloat
-from mipengine.node_tasks_DTOs import ColumnDataInt
-from mipengine.node_tasks_DTOs import ColumnDataStr
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataInt
+from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableData

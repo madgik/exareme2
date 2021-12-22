@@ -759,7 +759,8 @@ class _LocalNodeTable(_INodeTable):
         r += f"schema: {self.get_table_schema()}\n"
         for node, table_name in self.nodes_tables.items():
             r += f"{node} - {table_name} \ndata(LIMIT 20):\n"
-            tmp = [str(row) for row in node.get_table_data(table_name).columns[0:20]]
+            rows = list(zip(*node.get_table_data(table_name).columns))
+            tmp = [str(row) for row in rows[0:20]]
             r += "\n".join(tmp)
             r += "\n"
         return r

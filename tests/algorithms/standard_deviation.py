@@ -1,8 +1,8 @@
 import json
 from typing import TypeVar
 
-from mipengine.algorithm_result_DTOs import ColumnDataFloat
-from mipengine.algorithm_result_DTOs import ColumnDataStr
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.udfgen import (
     make_unique_func_name,
     relation,

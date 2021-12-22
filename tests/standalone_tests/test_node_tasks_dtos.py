@@ -3,9 +3,9 @@ from typing import List
 import pytest
 from pydantic import ValidationError
 
-from mipengine.node_tasks_DTOs import ColumnDataFloat
-from mipengine.node_tasks_DTOs import ColumnDataInt
-from mipengine.node_tasks_DTOs import ColumnDataStr
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataInt
+from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.node_tasks_DTOs import (
     DType,
     ColumnInfo,

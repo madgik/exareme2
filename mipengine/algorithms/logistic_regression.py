@@ -4,8 +4,8 @@ from typing import TypeVar
 import numpy
 import pandas as pd
 
-from mipengine.algorithm_result_DTOs import ColumnDataFloat
-from mipengine.algorithm_result_DTOs import ColumnDataStr
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.udfgen import (
     TensorBinaryOp,
     TensorUnaryOp,
