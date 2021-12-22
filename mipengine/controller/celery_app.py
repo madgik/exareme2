@@ -1,11 +1,6 @@
-import asyncio
-
-from asgiref.sync import sync_to_async
 from celery import Celery
 
 from mipengine.controller import config as controller_config
-
-CELERY_TASKS_TIMEOUT = controller_config.rabbitmq.celery_tasks_timeout
 
 
 def get_node_celery_app(socket_addr):
@@ -23,24 +18,3 @@ def get_node_celery_app(socket_addr):
     cel_app.conf.broker_transport_options = broker_transport_options
 
     return cel_app
-
-
-# Converts a Celery task to an async function
-# Celery doesn't currently support asyncio "await" while "getting" a result
-# Copied from https://github.com/celery/celery/issues/6603
-def task_to_async(task):
-    async def wrapper(*args, **kwargs):
-        total_delay = 0
-        delay = 0.1
-        async_result = await sync_to_async(task.delay)(*args, **kwargs)
-        while not async_result.ready():
-            total_delay += delay
-            if total_delay > CELERY_TASKS_TIMEOUT:
-                raise TimeoutError(
-                    f"Celery task: {task} didn't respond in {CELERY_TASKS_TIMEOUT}s."
-                )
-            await asyncio.sleep(delay)
-            delay = min(delay * 1.5, 2)  # exponential backoff, max 2 seconds
-        return async_result.get(timeout=CELERY_TASKS_TIMEOUT - total_delay)
-
-    return wrapper

@@ -4,15 +4,9 @@ import concurrent.futures
 import datetime
 import random
 
-import logging
-import traceback
-
 from typing import Dict, List, Tuple, Optional, Any
 
-from mipengine.controller.node_tasks_handler_celery import (
-    NodeTasksHandlerCelery,
-    CeleryParamsDTO,
-)
+from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.algorithm_execution_DTOs import (
@@ -33,8 +27,8 @@ class Controller:
     async def exec_algorithm(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
     ):
-
         context_id = get_a_uniqueid()
+        logger = ctrl_logger.get_request_logger(context_id=context_id)
 
         all_nodes_tasks_handlers = self._create_nodes_tasks_handlers(
             context_id=context_id,
@@ -65,10 +59,7 @@ class Controller:
 
         loop = asyncio.get_running_loop()
 
-        # TODO: Add proper context id. Related JIRA issue: https://team-1617704806227.atlassian.net/browse/MIP-486
-        ctrl_logger.get_request_logger("demoContextId123").debug(
-            f"starts executing->  {algorithm_name=} with {context_id=}"
-        )
+        logger.info(f"starts executing->  {algorithm_name=}")
 
         algorithm_result = await loop.run_in_executor(
             None,
@@ -77,16 +68,8 @@ class Controller:
             all_nodes_tasks_handlers,
         )
 
-        # DEBUG(future logging..)
-        # TODO: Add proper context id. Related JIRA issue: https://team-1617704806227.atlassian.net/browse/MIP-486
-        ctrl_logger.get_request_logger("demoContextId123").info(
-            f"\n(controller.py::exec_algorithm) FINISHED->  {algorithm_name=} "
-            f"with {context_id=}"
-        )
-        ctrl_logger.get_request_logger("demoContextId123").info(
-            f"{algorithm_result.json()=}\n"
-        )
-        # DEBUG end
+        logger.info(f"finished execution->  {algorithm_name=}")
+        logger.info(f"algorithm result-> {algorithm_result.json()=}")
 
         return algorithm_result.json()
 
@@ -125,55 +108,38 @@ class Controller:
         self, context_id: str, pathology: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
 
-        # Get only teh relevant nodes from the node registry
+        # Get only the relevant nodes from the node registry
         global_node = node_registry.get_all_global_nodes()[0]
         local_nodes = node_registry.get_nodes_with_any_of_datasets(
             schema=pathology,
             datasets=datasets,
         )
 
-        # Global Node, gather the Celery Parameters
-        global_node_celery_params_dto = CeleryParamsDTO(
-            task_queue_domain=global_node.ip,
-            task_queue_port=global_node.port,
-            db_domain=global_node.db_ip,
-            db_port=global_node.db_port,
-            user=controller_config.rabbitmq.user,
-            password=controller_config.rabbitmq.password,
-            vhost=controller_config.rabbitmq.vhost,
-            max_retries=controller_config.rabbitmq.celery_tasks_max_retries,
-            interval_start=controller_config.rabbitmq.celery_tasks_interval_start,
-            interval_step=controller_config.rabbitmq.celery_tasks_interval_step,
-            interval_max=controller_config.rabbitmq.celery_tasks_interval_max,
-            tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-        )
+        queue_address = ":".join([str(global_node.ip), str(global_node.port)])
+        db_address = ":".join([str(global_node.db_ip), str(global_node.db_port)])
+        tasks_timeout = controller_config.rabbitmq.celery_tasks_timeout
         # Instantiate the INodeTasksHandler for the Global Node
         global_node_tasks_handler = NodeTasksHandlerCelery(
-            node_id=global_node.id, celery_params=global_node_celery_params_dto
+            node_id=global_node.id,
+            node_queue_addr=queue_address,
+            node_db_addr=db_address,
+            tasks_timeout=tasks_timeout,
         )
 
         local_nodes_tasks_handlers = []
         for local_node in local_nodes:
-            # Local Nodes, gather the Celery Parameters
-            celery_params = CeleryParamsDTO(
-                task_queue_domain=local_node.ip,
-                task_queue_port=local_node.port,
-                db_domain=local_node.db_ip,
-                db_port=local_node.db_port,
-                user=controller_config.rabbitmq.user,
-                password=controller_config.rabbitmq.password,
-                vhost=controller_config.rabbitmq.vhost,
-                max_retries=controller_config.rabbitmq.celery_tasks_max_retries,
-                interval_start=controller_config.rabbitmq.celery_tasks_interval_start,
-                interval_step=controller_config.rabbitmq.celery_tasks_interval_step,
-                interval_max=controller_config.rabbitmq.celery_tasks_interval_max,
-                tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+            # Instantiate the INodeTasksHandlers for the Local Nodes
+            queue_address = ":".join([str(local_node.ip), str(local_node.port)])
+            db_address = ":".join([str(local_node.db_ip), str(local_node.db_port)])
+            tasks_timeout = controller_config.rabbitmq.celery_tasks_timeout
+
+            node_tasks_handler = NodeTasksHandlerCelery(
+                node_id=local_node.id,
+                node_queue_addr=queue_address,
+                node_db_addr=db_address,
+                tasks_timeout=tasks_timeout,
             )
 
-            # Instantiate the INodeTasksHandlers for the Local Nodes
-            node_tasks_handler = NodeTasksHandlerCelery(
-                node_id=local_node.id, celery_params=celery_params
-            )
             local_nodes_tasks_handlers.append(node_tasks_handler)
 
         return NodesTasksHandlersDTO(

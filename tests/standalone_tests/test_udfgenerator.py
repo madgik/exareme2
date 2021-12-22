@@ -217,7 +217,16 @@ class TestUDFValidation:
             def f(x):
                 return x
 
-        assert "Invalid parameter names in udf decorator" in str(exc)
+        assert "The parameters: y were not provided in the func definition." in str(exc)
+
+    def test_validate_func_as_udf_undeclared_parameter_names(self):
+        with pytest.raises(UDFBadDefinition) as exc:
+
+            @udf(y=tensor(int, 1), return_type=scalar(int))
+            def f(y, x):
+                return x
+
+        assert "The parameters: x were not defined in the decorator." in str(exc)
 
     def test_validate_func_as_udf_no_return_type(self):
         with pytest.raises(UDFBadDefinition) as exc:
@@ -226,7 +235,7 @@ class TestUDFValidation:
             def f(x):
                 return x
 
-        assert "Invalid parameter names in udf decorator" in str(exc)
+        assert "No return_type defined." in str(exc)
 
     def test_validate_func_as_valid_udf_with_state_and_transfer_input(self):
         @udf(
@@ -1052,6 +1061,23 @@ class TestUDFGenBase:
             "INSERT INTO test_merge_transfer_table(node_id, transfer) VALUES(2, '{\"num\":10}')"
         )
 
+    # TODO Should become more dynamic in the future.
+    # It should receive a TableInfo object as input and maybe data as well.
+    @pytest.fixture(scope="function")
+    def create_tensor_table(self, db):
+        db.execute(
+            "CREATE TABLE tensor_in_db(node_id VARCHAR(500), dim0 INT, dim1 INT, val INT)"
+        )
+        db.execute(
+            "INSERT INTO tensor_in_db(node_id, dim0, dim1, val) VALUES('1', 0, 0, 3)"
+        )
+        db.execute(
+            "INSERT INTO tensor_in_db(node_id, dim0, dim1, val) VALUES('1', 0, 1, 4)"
+        )
+        db.execute(
+            "INSERT INTO tensor_in_db(node_id, dim0, dim1, val) VALUES('1', 0, 2, 7)"
+        )
+
 
 class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
     @pytest.fixture(scope="class")
@@ -1303,9 +1329,9 @@ class TestUDFGen_TensorToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(x_dim0 INT,x_dim1 INT,x_val INT)
+$udf_name("x_dim0" INT,"x_dim1" INT,"x_val" INT)
 RETURNS
-TABLE(dim0 INT,dim1 INT,val REAL)
+TABLE("dim0" INT,"dim1" INT,"val" REAL)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -1338,8 +1364,105 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" REAL);',
             }
+        ]
+
+
+class TestUDFGen_TensorParameterWithCapitalLetter(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        T = TypeVar("T")
+
+        @udf(X=tensor(dtype=T, ndims=2), return_type=tensor(dtype=DType.FLOAT, ndims=2))
+        def f(X):
+            result = X
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="tensor_in_db",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="node_id", dtype=DType.STR),
+                        ColumnInfo(name="dim0", dtype=DType.INT),
+                        ColumnInfo(name="dim1", dtype=DType.INT),
+                        ColumnInfo(name="val", dtype=DType.INT),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            )
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name("X_dim0" INT,"X_dim1" INT,"X_val" INT)
+RETURNS
+TABLE("dim0" INT,"dim1" INT,"val" REAL)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    X = udfio.from_tensor_table({n: _columns[n] for n in ['X_dim0', 'X_dim1', 'X_val']})
+    result = X
+    return udfio.as_tensor_table(numpy.array(result))
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name((
+        SELECT
+            tensor_in_db.dim0,
+            tensor_in_db.dim1,
+            tensor_in_db.val
+        FROM
+            tensor_in_db
+    ));"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" REAL);',
+            }
+        ]
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures("use_database", "create_tensor_table")
+    def test_udf_with_db(
+        self,
+        concrete_udf_output_tables,
+        concrete_udf_def,
+        concrete_udf_sel,
+        db,
+        create_tensor_table,
+    ):
+        db.execute(concrete_udf_output_tables)
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        output_table_values = db.execute(
+            "SELECT * FROM main_output_table_name"
+        ).fetchall()
+        assert output_table_values == [
+            ("1", 0, 0, 3.0),
+            ("1", 0, 1, 4.0),
+            ("1", 0, 2, 7.0),
         ]
 
 
@@ -1375,9 +1498,9 @@ class TestUDFGen_RelationToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(r_col0 INT,r_col1 REAL,r_col2 VARCHAR(500))
+$udf_name("r_col0" INT,"r_col1" REAL,"r_col2" VARCHAR(500))
 RETURNS
-TABLE(dim0 INT,dim1 INT,val REAL)
+TABLE("dim0" INT,"dim1" INT,"val" REAL)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -1410,7 +1533,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" REAL);',
             }
         ]
 
@@ -1451,9 +1574,9 @@ class TestUDFGen_TensorToRelation(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(x_dim0 INT,x_val INT)
+$udf_name("x_dim0" INT,"x_val" INT)
 RETURNS
-TABLE(ci INT,cf REAL)
+TABLE("ci" INT,"cf" REAL)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -1484,7 +1607,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),ci INT,cf REAL);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"ci" INT,"cf" REAL);',
             }
         ]
 
@@ -1524,7 +1647,7 @@ class TestUDFGen_LiteralArgument(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(x_dim0 INT,x_val INT)
+$udf_name("x_dim0" INT,"x_val" INT)
 RETURNS
 INT
 LANGUAGE PYTHON
@@ -1552,7 +1675,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(result INT);",
+                "create_query": 'CREATE TABLE $main_output_table_name("result" INT);',
             }
         ]
 
@@ -1594,7 +1717,7 @@ class TestUDFGen_ManyLiteralArguments(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(x_dim0 INT,x_val INT)
+$udf_name("x_dim0" INT,"x_val" INT)
 RETURNS
 INT
 LANGUAGE PYTHON
@@ -1623,7 +1746,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(result INT);",
+                "create_query": 'CREATE TABLE $main_output_table_name("result" INT);',
             }
         ]
 
@@ -1650,7 +1773,7 @@ class TestUDFGen_NoArguments(TestUDFGenBase, _TestGenerateUDFQueries):
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(dim0 INT,val INT)
+TABLE("dim0" INT,"val" INT)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -1675,7 +1798,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val INT);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);',
             }
         ]
 
@@ -1713,9 +1836,9 @@ class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase, _TestGenerateUDFQueries)
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(r_c0 INT,r_c1 REAL,r_c2 VARCHAR(500))
+$udf_name("r_c0" INT,"r_c1" REAL,"r_c2" VARCHAR(500))
 RETURNS
-TABLE(dim0 INT,dim1 INT,val REAL)
+TABLE("dim0" INT,"dim1" INT,"val" REAL)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -1748,7 +1871,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" REAL);',
             }
         ]
 
@@ -1787,9 +1910,9 @@ class TestUDFGen_UnknownReturnDimensions(TestUDFGenBase, _TestGenerateUDFQueries
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(t_dim0 INT,t_dim1 INT,t_val INT)
+$udf_name("t_dim0" INT,"t_dim1" INT,"t_val" INT)
 RETURNS
-TABLE(dim0 INT,dim1 INT,val INT)
+TABLE("dim0" INT,"dim1" INT,"val" INT)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -1822,7 +1945,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val INT);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" INT);',
             }
         ]
 
@@ -1872,9 +1995,9 @@ class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueries
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(x_dim0 INT,x_val INT,y_dim0 INT,y_val INT)
+$udf_name("x_dim0" INT,"x_val" INT,"y_dim0" INT,"y_val" INT)
 RETURNS
-TABLE(dim0 INT,val INT)
+TABLE("dim0" INT,"val" INT)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -1912,7 +2035,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val INT);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);',
             }
         ]
 
@@ -1974,9 +2097,9 @@ class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueri
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(x_dim0 INT,x_val INT,y_dim0 INT,y_val INT,z_dim0 INT,z_val INT)
+$udf_name("x_dim0" INT,"x_val" INT,"y_dim0" INT,"y_val" INT,"z_dim0" INT,"z_val" INT)
 RETURNS
-TABLE(dim0 INT,val INT)
+TABLE("dim0" INT,"val" INT)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -2019,7 +2142,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val INT);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);',
             }
         ]
 
@@ -2084,9 +2207,9 @@ class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase, _TestGenerateUDFQueri
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(x_dim0 INT,x_dim1 INT,x_val INT,y_dim0 INT,y_dim1 INT,y_val INT,z_dim0 INT,z_dim1 INT,z_val INT)
+$udf_name("x_dim0" INT,"x_dim1" INT,"x_val" INT,"y_dim0" INT,"y_dim1" INT,"y_val" INT,"z_dim0" INT,"z_dim1" INT,"z_val" INT)
 RETURNS
-TABLE(dim0 INT,dim1 INT,val INT)
+TABLE("dim0" INT,"dim1" INT,"val" INT)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -2134,7 +2257,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val INT);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" INT);',
             }
         ]
 
@@ -2190,7 +2313,7 @@ class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase, _TestGenerateUDFQuerie
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(x_dim0 INT,x_val INT,y_dim0 INT,y_val INT)
+$udf_name("x_dim0" INT,"x_val" INT,"y_dim0" INT,"y_val" INT)
 RETURNS
 REAL
 LANGUAGE PYTHON
@@ -2221,7 +2344,7 @@ WHERE
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(result REAL);",
+                "create_query": 'CREATE TABLE $main_output_table_name("result" REAL);',
             }
         ]
 
@@ -2287,7 +2410,7 @@ ORDER BY
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val REAL);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" REAL);',
             }
         ]
 
@@ -2357,7 +2480,7 @@ ORDER BY
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" REAL);',
             }
         ]
 
@@ -2405,7 +2528,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val REAL);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" REAL);',
             }
         ]
 
@@ -2443,7 +2566,7 @@ class TestUDFGen_ScalarReturn(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(x_dim0 INT,x_dim1 INT,x_val INT)
+$udf_name("x_dim0" INT,"x_dim1" INT,"x_val" INT)
 RETURNS
 INT
 LANGUAGE PYTHON
@@ -2470,7 +2593,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(result INT);",
+                "create_query": 'CREATE TABLE $main_output_table_name("result" INT);',
             }
         ]
 
@@ -2508,9 +2631,9 @@ class TestUDFGen_MergeTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(xs_node_id VARCHAR(500),xs_dim0 INT,xs_val INT)
+$udf_name("xs_node_id" VARCHAR(500),"xs_dim0" INT,"xs_val" INT)
 RETURNS
-TABLE(dim0 INT,val INT)
+TABLE("dim0" INT,"val" INT)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -2543,7 +2666,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val INT);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);',
             }
         ]
 
@@ -2578,7 +2701,7 @@ class TestUDFGen_TracebackFlag(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def expected_udfdef(self):
         return r"""CREATE OR REPLACE FUNCTION
-$udf_name(x_dim0 INT,x_val INT)
+$udf_name("x_dim0" INT,"x_val" INT)
 RETURNS
 VARCHAR(500)
 LANGUAGE PYTHON
@@ -2622,7 +2745,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(result VARCHAR(500));",
+                "create_query": 'CREATE TABLE $main_output_table_name("result" VARCHAR(500));',
             }
         ]
 
@@ -2651,7 +2774,7 @@ class TestUDFGen_StateReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(state BLOB)
+TABLE("state" BLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -2678,7 +2801,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);',
             }
         ]
 
@@ -2730,7 +2853,7 @@ class TestUDFGen_StateInputandReturnType(TestUDFGenBase, _TestGenerateUDFQueries
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(state BLOB)
+TABLE("state" BLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -2759,7 +2882,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);',
             }
         ]
 
@@ -2796,7 +2919,7 @@ class TestUDFGen_TransferReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(transfer CLOB)
+TABLE("transfer" CLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -2823,7 +2946,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),transfer CLOB);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);',
             }
         ]
 
@@ -2875,7 +2998,7 @@ class TestUDFGen_TransferInputAndReturnType(TestUDFGenBase, _TestGenerateUDFQuer
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(transfer CLOB)
+TABLE("transfer" CLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -2904,7 +3027,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),transfer CLOB);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);',
             }
         ]
 
@@ -2958,7 +3081,7 @@ class TestUDFGen_TransferInputAndStateReturnType(
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(state BLOB)
+TABLE("state" BLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -2988,7 +3111,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);',
             }
         ]
 
@@ -3053,7 +3176,7 @@ class TestUDFGen_TransferAndStateInputandStateReturnType(
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(state BLOB)
+TABLE("state" BLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -3086,7 +3209,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);',
             }
         ]
 
@@ -3156,7 +3279,7 @@ class TestUDFGen_MergeTransferAndStateInputandTransferReturnType(
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(transfer CLOB)
+TABLE("transfer" CLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -3191,7 +3314,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),transfer CLOB);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);',
             }
         ]
 
@@ -3256,7 +3379,7 @@ class TestUDFGen_LocalStepLogic(TestUDFGenBase, _TestGenerateUDFQueries):
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(state BLOB)
+TABLE("state" BLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -3289,12 +3412,12 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);',
             },
             {
                 "tablename_placeholder": "loopback_table_name_0",
                 "drop_query": "DROP TABLE IF EXISTS $loopback_table_name_0;",
-                "create_query": "CREATE TABLE $loopback_table_name_0(node_id VARCHAR(500),transfer CLOB);",
+                "create_query": 'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"transfer" CLOB);',
             },
         ]
 
@@ -3366,7 +3489,7 @@ class TestUDFGen_LocalStepLogic_Transfer_first_input_and_output(
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(transfer CLOB)
+TABLE("transfer" CLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -3399,12 +3522,12 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),transfer CLOB);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);',
             },
             {
                 "tablename_placeholder": "loopback_table_name_0",
                 "drop_query": "DROP TABLE IF EXISTS $loopback_table_name_0;",
-                "create_query": "CREATE TABLE $loopback_table_name_0(node_id VARCHAR(500),state BLOB);",
+                "create_query": 'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"state" BLOB);',
             },
         ]
 
@@ -3477,7 +3600,7 @@ class TestUDFGen_GlobalStepLogic(TestUDFGenBase, _TestGenerateUDFQueries):
 CREATE OR REPLACE FUNCTION
 $udf_name()
 RETURNS
-TABLE(state BLOB)
+TABLE("state" BLOB)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -3513,12 +3636,12 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);',
             },
             {
                 "tablename_placeholder": "loopback_table_name_0",
                 "drop_query": "DROP TABLE IF EXISTS $loopback_table_name_0;",
-                "create_query": "CREATE TABLE $loopback_table_name_0(node_id VARCHAR(500),transfer CLOB);",
+                "create_query": 'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"transfer" CLOB);',
             },
         ]
 
@@ -3623,12 +3746,12 @@ FROM
 #             {
 #                 "tablename_placeholder": "main_output_table_name",
 #                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-#                 "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),state BLOB);",
+#                 "create_query": "CREATE TABLE $main_output_table_name(\"node_id\" VARCHAR(500),\"state\" BLOB);",
 #             },
 #             {
 #                 "tablename_placeholder": "loopback_table_name_0",
 #                 "drop_query": "DROP TABLE IF EXISTS $loopback_table_name_0;",
-#                 "create_query": "CREATE TABLE $loopback_table_name_0(node_id VARCHAR(500),transfer CLOB);",
+#                 "create_query": "CREATE TABLE $loopback_table_name_0(\"node_id\" VARCHAR(500),\"transfer\" CLOB);",
 #             },
 #         ]
 #
