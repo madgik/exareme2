@@ -40,8 +40,6 @@ def get_parametrization_list_success_cases():
             ["lefthippocampus", 0.3773485998788057],
         ],
     }
-    # TODO quotes should be removed from the lefthippocampus value.
-    # BUG related https://team-1617704806227.atlassian.net/browse/MIP-260
 
     parametrization_list = []
     parametrization_list.append((algorithm_name, request_dict, expected_response))
