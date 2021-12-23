@@ -16,6 +16,7 @@ from mipengine.udfgen.udfgenerator import (
 
 class PCAResult(BaseModel):
     title: str
+    n_obs: int
     eigenvalues: List[float]
     eigenvectors: List[List[float]]
 
@@ -46,11 +47,13 @@ def run(algo_interface):
         keyword_args=dict(local_transfers=local_transfers, prev_state=global_state),
     )
     result = json.loads(result.get_table_data()[0][1])
+    n_obs = result["n_obs"]
     eigenvalues = result["eigenvalues"]
     eigenvectors = result["eigenvectors"]
 
     result = PCAResult(
         title="Eigenvalues and Eigenvectors",
+        n_obs=n_obs,
         eigenvalues=eigenvalues,
         eigenvectors=eigenvectors,
     )
@@ -113,6 +116,7 @@ def global2(local_transfers, prev_state):
     eigenvectors = eigenvectors.T
 
     transfer_ = dict(
+        n_obs=n_obs,
         eigenvalues=eigenvalues.tolist(),
         eigenvectors=eigenvectors.tolist(),
     )
