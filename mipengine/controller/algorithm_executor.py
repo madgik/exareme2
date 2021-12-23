@@ -1,4 +1,5 @@
 from abc import ABC
+
 from typing import Any
 from typing import Dict
 from typing import List
@@ -21,61 +22,19 @@ from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncRes
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller import controller_logger as ctrl_logger
 
+from mipengine.controller.algorithm_executor_helpers import _INode
+from mipengine.controller.algorithm_executor_helpers import TableName
+
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 
+
 algorithm_modules = import_algorithm_modules()
 
 
-class _TableName:
-    def __init__(self, table_name):
-        self._full_name = table_name
-        full_name_split = self._full_name.split("_")
-        self._table_type = full_name_split[0]
-        self._node_id = full_name_split[1]
-        self._context_id = full_name_split[2]
-        self._command_id = full_name_split[3]
-        self._command_subid = full_name_split[4]
 
-    @property
-    def full_table_name(self):
-        return self._full_name
-
-    @property
-    def table_type(self):
-        return self._table_type
-
-    @property
-    def node_id(self):
-        return self._node_id
-
-    @property
-    def context_id(self):
-        return self._context_id
-
-    @property
-    def command_id(self):
-        return self._command_id
-
-    @property
-    def command_subid(self):
-        return self._command_subid
-
-    def without_node_id(self):
-        return (
-            self._table_type
-            + "_"
-            + self._context_id
-            + "_"
-            + self._command_id
-            + "_"
-            + self._command_subid
-        )
-
-    def __repr__(self):
-        return self.full_table_name
 
 
 class AlgorithmExecutionException(Exception):
@@ -92,6 +51,12 @@ class NodeDownAlgorithmExecutionException(Exception):
         )
         super().__init__(message)
         self.message = message
+
+
+class InconsistentTableSchemasException(Exception):
+    def __init__(self, tables_schemas: Dict["_INodeTable", TableSchema]):
+        message = f"Tables: {tables_schemas} do not have a common schema"
+        super().__init__(message)
 
 
 class AlgorithmExecutor:
@@ -201,8 +166,7 @@ class AlgorithmExecutor:
             except Exception as exc:
                 self._logger.error(f"cleaning up {node=} FAILED {exc=}")
 
-
-class _Node:
+class _Node(_INode):
     def __init__(
         self,
         context_id: str,
@@ -265,30 +229,30 @@ class _Node:
 
     # TABLES functionality
 
-    def get_tables(self) -> List[_TableName]:
+    def get_tables(self) -> List[TableName]:
         return self._node_tasks_handler.get_tables(context_id=self.context_id)
 
-    def get_table_schema(self, table_name: _TableName):
+    def get_table_schema(self, table_name: TableName):
         return self._node_tasks_handler.get_table_schema(
             table_name=table_name.full_table_name
         )
 
-    def get_table_data(self, table_name: _TableName) -> TableData:
+    def get_table_data(self, table_name: TableName) -> TableData:
         return self._node_tasks_handler.get_table_data(table_name.full_table_name)
 
-    def create_table(self, command_id: str, schema: TableSchema) -> _TableName:
+    def create_table(self, command_id: str, schema: TableSchema) -> TableName:
         schema_json = schema.json()
         return self._node_tasks_handler.create_table(
             context_id=self.context_id,
             command_id=command_id,
-            schema_json=schema_json,
+            schema=schema_json,
         )
 
     # VIEWS functionality
 
-    def get_views(self) -> List[_TableName]:
+    def get_views(self) -> List[TableName]:
         result = self._node_tasks_handler.get_views(context_id=self.context_id)
-        return [_TableName(table_name) for table_name in result]
+        return [TableName(table_name) for table_name in result]
 
     # TODO: this is very specific to mip, very inconsistent with the rest, has to
     # be abstracted somehow
@@ -299,7 +263,7 @@ class _Node:
         pathology: str,
         columns: List[str],
         filters: List[str],
-    ) -> _TableName:
+    ) -> TableName:
 
         result = self._node_tasks_handler.create_pathology_view(
             context_id=self.context_id,
@@ -308,22 +272,22 @@ class _Node:
             columns=columns,
             filters=filters,
         )
-        return _TableName(result)
+        return TableName(result)
 
     # MERGE TABLES functionality
 
-    def get_merge_tables(self) -> List[_TableName]:
+    def get_merge_tables(self) -> List[TableName]:
         result = self._node_tasks_handler.get_merge_tables(context_id=self.context_id)
-        return [_TableName(table_name) for table_name in result]
+        return [TableName(table_name) for table_name in result]
 
-    def create_merge_table(self, command_id: str, table_names: List[_TableName]):
+    def create_merge_table(self, command_id: str, table_names: List[TableName]):
         table_names = [table_name.full_table_name for table_name in table_names]
         result = self._node_tasks_handler.create_merge_table(
             context_id=self.context_id,
             command_id=command_id,
             table_names=table_names,
         )
-        return _TableName(result)
+        return TableName(result)
 
     # REMOTE TABLES functionality
 
@@ -355,10 +319,10 @@ class _Node:
 
     def get_queued_udf_result(
         self, async_result: IQueuedUDFAsyncResult
-    ) -> List[_TableName]:
+    ) -> List[TableName]:
 
         result = self._node_tasks_handler.get_queued_udf_result(async_result)
-        return [_TableName(table) for table in result]
+        return [TableName(table) for table in result]
 
     def get_udfs(self, algorithm_name) -> List[str]:
         return self._node_tasks_handler.get_udfs(algorithm_name)
@@ -471,9 +435,9 @@ class _AlgorithmExecutionInterface:
             tasks[node] = task
 
         # Get udf results from each local node
-        all_nodes_result_tables: Dict[int, [(Node, _TableName)]] = {}
+        all_nodes_result_tables: Dict[int, [(Node, TableName)]] = {}
         for node, task in tasks.items():
-            node_result_tables: List[str] = node.get_queued_udf_result(task)
+            node_result_tables: List[TableName] = node.get_queued_udf_result(task)
 
             for index, task_result in enumerate(node_result_tables):
                 if index not in all_nodes_result_tables:
@@ -488,25 +452,30 @@ class _AlgorithmExecutionInterface:
         results_after_sharing_step = []
         if share_to_global:
             for index, share in enumerate(share_to_global):
-                relevant_tables_per_node = all_nodes_result_tables[index]
-                nodes = [tupple[0] for tupple in relevant_tables_per_node]
-                tables = [tupple[1] for tupple in relevant_tables_per_node]
+                nodes_tables: List[
+                    Tuple["_Node", TableName]
+                ] = all_nodes_result_tables[index]
+                nodes = [tupple[0] for tupple in nodes_tables]
+                tables = [tupple[1] for tupple in nodes_tables]
                 if share:
                     if self._is_single_node_execution():
                         merge_table = tables[0]
                     else:
-                        # TODO: check schemas are consistent??
-                        # schema=self.check_table_schemas_identical(relevant_tables_per_node)
-                        # if schema==None:
-                        #     raise Exception
-                        table_schema = nodes[0].get_table_schema(tables[0])
+                        # check the tables have the same schema
+                        check, tables_schemas, common_schema = check_same_schema_tables(
+                            nodes_tables
+                        )
+                        if check == False:
+                            raise InconsistentTableSchemasException(tables_schemas)
+
+                        # create remote tabels on global node
                         for index, node in enumerate(nodes):
                             self._global_node.create_remote_table(
                                 table_name=tables[index]._full_name,
-                                table_schema=table_schema,
+                                table_schema=common_schema,
                                 native_node=node,
                             )
-                        # create merge table
+                        # merge remote tables into one merge table on global
                         merge_table = self._global_node.create_merge_table(
                             command_id, tables
                         )
@@ -517,32 +486,20 @@ class _AlgorithmExecutionInterface:
                 else:
                     # package it to _LocalNodeTable and append it
                     results_after_sharing_step.append(
-                        _LocalNodeTable(nodes_tables=dict(relevant_tables_per_node))
+                        _LocalNodeTable(nodes_tables=dict(nodes_tables))
                     )
         else:
             # package all tables to _LocalNodeTable and return it
             for index, node_tables in all_nodes_result_tables.items():
-                results_after_sharing_step.append(_LocalNodeTable(nodes_tables=dict(node_tables)))
+                results_after_sharing_step.append(
+                    _LocalNodeTable(nodes_tables=dict(node_tables))
+                )
 
         # backward compatibility.. TODO always return list??
         if len(results_after_sharing_step) == 1:
             results_after_sharing_step = results_after_sharing_step[0]
         return results_after_sharing_step
-    
-    def check_table_schemas_identical(self,tables:List[Tuple["_Node","_INodeTable"]])->(bool,[TableSchema]):
-        prev_schema=None
-        for node,table in tables:
-            tmp=node.get_table_schema(table)
-            if prev_schema:
-                if tmp!=prev_schema:
-                    return None
-            else:
-                prev_schema=tmp
-        return prev_schema
-                    
-    # class InconsistentTableSchemasException(Exception):
-    #     def __init__(self):
-            
+
     def run_udf_on_global_node(
         self,
         func_name: str,
@@ -691,7 +648,7 @@ class _INodeTable(ABC):
 
 
 class _LocalNodeTable(_INodeTable):
-    def __init__(self, nodes_tables: Dict["_Node", "_TableName"]):
+    def __init__(self, nodes_tables: Dict["_Node", "TableName"]):
         self._nodes_tables = nodes_tables
 
         if not self._validate_matching_table_names(list(self._nodes_tables.values())):
@@ -725,7 +682,7 @@ class _LocalNodeTable(_INodeTable):
             r += f"\t{node=} {table_name=}\n"
         return r
 
-    def _validate_matching_table_names(self, table_names: List[_TableName]):
+    def _validate_matching_table_names(self, table_names: List[TableName]):
         table_name_without_node_id = table_names[0].without_node_id()
         for table_name in table_names:
             if table_name.without_node_id() != table_name_without_node_id:
@@ -738,7 +695,7 @@ class _LocalNodeTable(_INodeTable):
 
 
 class _GlobalNodeTable(_INodeTable):
-    def __init__(self, node: "_Node", table_name: "_TableName"):
+    def __init__(self, node: "_Node", table_name: "TableName"):
         self._node = node
         self._table_name = table_name
 
@@ -762,6 +719,34 @@ class _GlobalNodeTable(_INodeTable):
     def __repr__(self):
         r = f"GlobalNodeTable: \n\tschema={self.get_table_schema()}\n \t{self.table_name=}\n"
         return r
+
+
+def check_same_schema_tables(
+    tables: List[Tuple[_INode, TableName]]
+) -> (bool, Dict[TableName,TableSchema], TableSchema):
+    """
+    Returns :
+    First part of the returning tuple is True if all tables have the same schema.
+    Second part f the tuple is dictionary with keys:table names and vals:the 
+    corresponding table schema
+    Third is the common TableSchema, if all tables have the same schema, else None
+    """
+
+    have_common_schema = True
+    schemas = {}
+    reference_schema = None
+    for node, table in tables:
+        schemas[table] = node.get_table_schema(table)
+        if reference_schema:
+            if schemas[table] != reference_schema:
+                have_common_schema = False
+        else:
+            reference_schema = schemas[table]
+
+    if have_common_schema:
+        return have_common_schema, schemas, reference_schema
+    else:
+        return have_common_schema, schemas, None
 
 
 # NOTE tried to turn this into a generator, the problem is there are multiple consumers
