@@ -34,9 +34,6 @@ from mipengine.node_tasks_DTOs import UDFArgumentKind
 algorithm_modules = import_algorithm_modules()
 
 
-
-
-
 class AlgorithmExecutionException(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -165,6 +162,7 @@ class AlgorithmExecutor:
                 node.clean_up()
             except Exception as exc:
                 self._logger.error(f"cleaning up {node=} FAILED {exc=}")
+
 
 class _Node(_INode):
     def __init__(
@@ -452,9 +450,9 @@ class _AlgorithmExecutionInterface:
         results_after_sharing_step = []
         if share_to_global:
             for index, share in enumerate(share_to_global):
-                nodes_tables: List[
-                    Tuple["_Node", TableName]
-                ] = all_nodes_result_tables[index]
+                nodes_tables: List[Tuple["_Node", TableName]] = all_nodes_result_tables[
+                    index
+                ]
                 nodes = [tupple[0] for tupple in nodes_tables]
                 tables = [tupple[1] for tupple in nodes_tables]
                 if share:
@@ -723,11 +721,11 @@ class _GlobalNodeTable(_INodeTable):
 
 def check_same_schema_tables(
     tables: List[Tuple[_INode, TableName]]
-) -> (bool, Dict[TableName,TableSchema], TableSchema):
+) -> (bool, Dict[TableName, TableSchema], TableSchema):
     """
     Returns :
     First part of the returning tuple is True if all tables have the same schema.
-    Second part f the tuple is dictionary with keys:table names and vals:the 
+    Second part f the tuple is dictionary with keys:table names and vals:the
     corresponding table schema
     Third is the common TableSchema, if all tables have the same schema, else None
     """
