@@ -94,6 +94,14 @@ class UDFArgument(ImmutableBaseModel):
     value: Any
 
 
+class UDFPosArguments(ImmutableBaseModel):
+    args: List[UDFArgument]
+
+
+class UDFKeyArguments(ImmutableBaseModel):
+    kwargs: Dict[str, UDFArgument]
+
+
 # ~~~~~~~~~~~~~~~~~~~ Exceptions ~~~~~~~~~~~~~~~~~~~~~~ #
 
 

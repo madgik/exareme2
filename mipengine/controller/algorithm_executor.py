@@ -24,11 +24,15 @@ from mipengine.controller import controller_logger as ctrl_logger
 
 from mipengine.controller.algorithm_executor_helpers import _INode
 from mipengine.controller.algorithm_executor_helpers import TableName
+from mipengine.controller.algorithm_executor_helpers import Literal
+
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
+from mipengine.node_tasks_DTOs import UDFPosArguments
+from mipengine.node_tasks_DTOs import UDFKeyArguments
 
 
 algorithm_modules = import_algorithm_modules()
@@ -54,6 +58,85 @@ class InconsistentTableSchemasException(Exception):
     def __init__(self, tables_schemas: Dict["_INodeTable", TableSchema]):
         message = f"Tables: {tables_schemas} do not have a common schema"
         super().__init__(message)
+
+
+class INodeTable(ABC):
+    # TODO: better abstraction here...
+    pass
+
+
+class _LocalNodeTable(INodeTable):
+    def __init__(self, nodes_tables: Dict["_Node", "TableName"]):
+        self._nodes_tables = nodes_tables
+
+        if not self._validate_matching_table_names(list(self._nodes_tables.values())):
+            raise self.MismatchingTableNamesException(
+                [table_name.full_table_name for table_name in nodes_tables.values()]
+            )
+
+    @property
+    def nodes_tables(self):
+        return self._nodes_tables
+
+    # TODO this is redundant, either remove it or overload all node methods here?
+    def get_table_schema(self) -> TableSchema:
+        node = list(self.nodes_tables.keys())[0]
+        table = self.nodes_tables[node]
+        return node.get_table_schema(table)
+
+    def get_table_data(self) -> TableData:
+        tables_data = []
+        for node, table_name in self.nodes_tables.items():
+            tables_data.append(node.get_table_data(table_name))
+        tables_data_flat = [table_data.data_ for table_data in tables_data]
+        tables_data_flat = [
+            k for i in tables_data_flat for j in i for k in j
+        ]  # TODO bejesus..
+        return tables_data_flat
+
+    def __repr__(self):
+        r = f"LocalNodeTable: {self.get_table_schema()}\n"
+        for node, table_name in self.nodes_tables.items():
+            r += f"\t{node=} {table_name=}\n"
+        return r
+
+    def _validate_matching_table_names(self, table_names: List[TableName]):
+        table_name_without_node_id = table_names[0].without_node_id()
+        for table_name in table_names:
+            if table_name.without_node_id() != table_name_without_node_id:
+                return False
+        return True
+
+    class MismatchingTableNamesException(Exception):
+        def __init__(self, table_names):
+            self.message = f"Mismatched table names ->{table_names}"
+
+
+class _GlobalNodeTable(INodeTable):
+    def __init__(self, node: "_Node", table_name: "TableName"):
+        self._node = node
+        self._table_name = table_name
+
+    @property
+    def node(self):
+        return self._node
+
+    @property
+    def table_name(self):
+        return self._table_name
+
+    # TODO this is redundant, either remove it or overload all node methods here?
+    def get_table_schema(self) -> TableSchema:
+        table_schema: TableSchema = self.node.get_table_schema(self.table_name).columns
+        return table_schema
+
+    def get_table_data(self) -> TableData:
+        table_data = self.node.get_table_data(self.table_name).data_
+        return table_data
+
+    def __repr__(self):
+        r = f"GlobalNodeTable: \n\tschema={self.get_table_schema()}\n \t{self.table_name=}\n"
+        return r
 
 
 class AlgorithmExecutor:
@@ -305,7 +388,11 @@ class _Node(_INode):
 
     # UDFs functionality
     def queue_run_udf(
-        self, command_id: str, func_name: str, positional_args, keyword_args
+        self,
+        command_id: str,
+        func_name: str,
+        positional_args: Optional[UDFPosArguments] = None,
+        keyword_args: Optional[UDFKeyArguments] = None,
     ) -> IQueuedUDFAsyncResult:
         return self._node_tasks_handler.queue_run_udf(
             context_id=self.context_id,
@@ -406,14 +493,14 @@ class _AlgorithmExecutionInterface:
     def run_udf_on_local_nodes(
         self,
         func_name: str,
-        positional_args: Optional[List["_LocalNodeTable"]] = (),
-        keyword_args: Optional[Dict[str, "_LocalNodeTable"]] = {},
+        positional_args: Optional[List[Union[_LocalNodeTable, Literal]]] = None,
+        keyword_args: Optional[Dict[str, Union[_LocalNodeTable, Literal]]] = None,
         share_to_global: Union[bool, List[bool]] = None,
     ) -> List["_INodeTable"]:
         # 1. queues run_udf task on all local nodes
         # 2. waits for all nodes to complete the tasks execution
         # 3. one(or multiple) new table(s) per local node was generated
-        # 4. queues create_remote_table on global for each of the generated tables
+        # 4. create remote tables on global for each of the generated tables
         # 4. create merge table on global node to merge the remote tables
 
         command_id = get_next_command_id()
@@ -421,8 +508,16 @@ class _AlgorithmExecutionInterface:
         # Queue the udf on all local nodes
         tasks = {}
         for node in self._local_nodes:
-            positional_udf_args = self._transform_run_udf_posargs(positional_args, node)
-            keyword_udf_args = self._transform_run_udf_kwargs(keyword_args, node)
+            positional_udf_args = (
+                self._algoexec_posargs_to_udf_posargs(positional_args, node)
+                if positional_args
+                else None
+            )
+            keyword_udf_args = (
+                self._algoexec_kwargs_to_udf_kwargs(keyword_args, node)
+                if keyword_args
+                else None
+            )
 
             task = node.queue_run_udf(
                 command_id=command_id,
@@ -443,14 +538,24 @@ class _AlgorithmExecutionInterface:
                 all_nodes_result_tables[index].append((node, task_result))
 
         # Transform share_to_global variable
-        if share_to_global != None and not isinstance(share_to_global, list):
-            share_to_global = [share_to_global for _ in range(len(node_result_tables))]
+        if isinstance(share_to_global, list):
+            if len(share_to_global) != len(node_result_tables):
+                raise Exception(
+                    f"{len(share_to_global)=}!={len(node_result_tables)=} "
+                    f"in run_udf_on_local_nodes with {func_name=}, "
+                    f"{positional_args=}, {keyword_args=}"
+                )
+        else:
+            if share_to_global != None:
+                share_to_global = [
+                    share_to_global for _ in range(len(node_result_tables))
+                ]
 
         # Handle sharing results to global node
         results_after_sharing_step = []
         if share_to_global:
             for index, share in enumerate(share_to_global):
-                nodes_tables: List[Tuple["_Node", TableName]] = all_nodes_result_tables[
+                nodes_tables: List[Tuple[_Node, TableName]] = all_nodes_result_tables[
                     index
                 ]
                 nodes = [tupple[0] for tupple in nodes_tables]
@@ -501,8 +606,8 @@ class _AlgorithmExecutionInterface:
     def run_udf_on_global_node(
         self,
         func_name: str,
-        positional_args: Optional[List["_GlobalNodeTable"]] = (),
-        keyword_args: Optional[Dict[str, "_GlobalNodeTable"]] = {},
+        positional_args: Optional[List[Union[_GlobalNodeTable, Literal]]] = None,
+        keyword_args: Optional[Dict[str, Union[_GlobalNodeTable, Literal]]] = None,
         share_to_locals: Union[bool, List[bool]] = None,
     ) -> List["_INodeTable"]:
         # 1. check the input tables are of type _GlobalNodeTable
@@ -513,8 +618,14 @@ class _AlgorithmExecutionInterface:
 
         command_id = get_next_command_id()
 
-        positional_udf_args = self._transform_run_udf_posargs(positional_args)
-        keyword_udf_args = self._transform_run_udf_kwargs(keyword_args)
+        positional_udf_args = (
+            self._algoexec_posargs_to_udf_posargs(positional_args)
+            if positional_args
+            else None
+        )
+        keyword_udf_args = (
+            self._algoexec_kwargs_to_udf_kwargs(keyword_args) if keyword_args else None
+        )
 
         # Queue the udf on global node
         task = self._global_node.queue_run_udf(
@@ -528,17 +639,23 @@ class _AlgorithmExecutionInterface:
         result_tables = self._global_node.get_queued_udf_result(task)
 
         # Transform share_to_locals variable
-        if share_to_locals != None and not isinstance(share_to_locals, list):
-            share_to_locals = [share_to_locals for _ in range(len(result_tables))]
+        if isinstance(share_to_locals, list):
+            if len(share_to_locals) != len(result_tables):
+                raise Exception(
+                    f"{len(share_to_global)=}!={len(result_tables)=} in "
+                    f"run_udf_on_local_nodes with {func_name=}, "
+                    f"{positional_args=}, {keyword_args=}"
+                )
+        else:
+            if share_to_locals != None:
+                share_to_locals = [share_to_locals for _ in range(len(result_tables))]
 
         # Handle sharing result to local nodes
         final_results = []
         if share_to_locals:
-            # TODO: check the provided share_to_.. appropriate size
             for index, share in enumerate(share_to_locals):
                 if share:
                     if self._is_single_node_execution():
-                        # breakpoint()
                         local_tables = [(self._global_node, result_tables[0])]
                     else:
                         local_tables = []
@@ -589,134 +706,46 @@ class _AlgorithmExecutionInterface:
                 f"(AlgorithmExecutionInterface::get_table_schema) node_table type-> {type(node_table)} not acceptable"
             )
 
-    def _transform_run_udf_kwargs(
-        self, keyword_args: List["_LocalNodeTable"], node: "_Node" = None
+    # -------------helper methods------------
+    def _algoexec_kwargs_to_udf_kwargs(
+        self,
+        algoexec_kwargs: Dict[str, Union[INodeTable, Literal]],
+        node: _Node = None,
+    ) -> UDFKeyArguments:
+        udf_kwargs = UDFKeyArguments(kwargs={})
+        for key, val in algoexec_kwargs.items():
+            udf_argument = self._algoexec_arg_to_udf_arg(val, node)
+            udf_kwargs.kwargs[key] = udf_argument.json()
+        return udf_kwargs
+
+    def _algoexec_posargs_to_udf_posargs(
+        self, algoexec_posargs: List[Union[INodeTable, Literal]], node: _Node = None
+    ) -> UDFPosArguments:
+        udf_posargs = UDFPosArguments(args=[])
+        for val in algoexec_posargs:
+            udf_argument = self._algoexec_arg_to_udf_arg(val, node)
+            udf_posargs.args.append(udf_argument.json())
+        return udf_posargs
+
+    def _algoexec_arg_to_udf_arg(
+        self, algoexec_arg: Union[INodeTable, Literal], node: _Node = None
     ):
-        keyword_args_transformed = {}
-        for var_name, val in keyword_args.items():
-            if isinstance(val, _INodeTable):
-                if isinstance(val, _LocalNodeTable):
-                    table_name = val.nodes_tables[node].full_table_name
-                elif isinstance(val, _GlobalNodeTable):
-                    table_name = val.table_name.full_table_name
-                else:
-                    raise Exception(f"_transform_run_udf_posargs received {type(val)=}")
-                udf_argument = UDFArgument(kind=UDFArgumentKind.TABLE, value=table_name)
-                # elif isinstance(val, _GlobalNodeTable):
-                #     raise Exception(
-                #         f"(run_udf_on_local_nodes) GlobalNodeTable types are not "
-                #         f"accepted from run_udf_on_local_nodes"
-                #     )
+        if isinstance(algoexec_arg, INodeTable):
+            # TODO check LocalNodeTable always comes with node
+            if node:
+                table_name = algoexec_arg.nodes_tables[node].full_table_name
             else:
-                udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=val)
-            keyword_args_transformed[var_name] = udf_argument.json()
-        return keyword_args_transformed
-
-    def _transform_run_udf_posargs(
-        self, positional_args: List["_INodeTable"], node: "_Node" = None
-    ):
-        positional_args_transfrormed = []
-        for val in positional_args:
-            if isinstance(val, _INodeTable):
-                if isinstance(val, _LocalNodeTable):
-                    table_name = val.nodes_tables[node].full_table_name
-                elif isinstance(val, _GlobalNodeTable):
-                    # breakpoint()
-                    table_name = val.table_name.full_table_name
-                else:
-                    raise Exception(f"_transform_run_udf_posargs received {type(val)=}")
-                udf_argument = UDFArgument(
-                    kind=UDFArgumentKind.TABLE,
-                    value=table_name,
-                )
-            # elif isinstance(val, _GlobalNodeTable):
-            #     raise Exception(
-            #         f"(run_udf_on_local_nodes) GlobalNodeTable types are not "
-            #         f"accepted from run_udf_on_local_nodes"
-            #     )
-            else:
-                udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=val)
-            positional_args_transfrormed.append(udf_argument.json())
-        return positional_args_transfrormed
-
-
-class _INodeTable(ABC):
-    # TODO: better abstraction here...
-    pass
-
-
-class _LocalNodeTable(_INodeTable):
-    def __init__(self, nodes_tables: Dict["_Node", "TableName"]):
-        self._nodes_tables = nodes_tables
-
-        if not self._validate_matching_table_names(list(self._nodes_tables.values())):
-            raise self.MismatchingTableNamesException(
-                [table_name.full_table_name for table_name in nodes_tables.values()]
+                table_name = algoexec_arg.table_name.full_table_name
+            udf_argument = UDFArgument(
+                kind=UDFArgumentKind.TABLE,
+                value=table_name,
             )
-
-    @property
-    def nodes_tables(self):
-        return self._nodes_tables
-
-    # TODO this is redundant, either remove it or overload all node methods here?
-    def get_table_schema(self) -> TableSchema:
-        node = list(self.nodes_tables.keys())[0]
-        table = self.nodes_tables[node]
-        return node.get_table_schema(table)
-
-    def get_table_data(self) -> TableData:
-        tables_data = []
-        for node, table_name in self.nodes_tables.items():
-            tables_data.append(node.get_table_data(table_name))
-        tables_data_flat = [table_data.data_ for table_data in tables_data]
-        tables_data_flat = [
-            k for i in tables_data_flat for j in i for k in j
-        ]  # TODO bejesus..
-        return tables_data_flat
-
-    def __repr__(self):
-        r = f"LocalNodeTable: {self.get_table_schema()}\n"
-        for node, table_name in self.nodes_tables.items():
-            r += f"\t{node=} {table_name=}\n"
-        return r
-
-    def _validate_matching_table_names(self, table_names: List[TableName]):
-        table_name_without_node_id = table_names[0].without_node_id()
-        for table_name in table_names:
-            if table_name.without_node_id() != table_name_without_node_id:
-                return False
-        return True
-
-    class MismatchingTableNamesException(Exception):
-        def __init__(self, table_names):
-            self.message = f"Mismatched table names ->{table_names}"
-
-
-class _GlobalNodeTable(_INodeTable):
-    def __init__(self, node: "_Node", table_name: "TableName"):
-        self._node = node
-        self._table_name = table_name
-
-    @property
-    def node(self):
-        return self._node
-
-    @property
-    def table_name(self):
-        return self._table_name
-
-    # TODO this is redundant, either remove it or overload all node methods here?
-    def get_table_schema(self) -> TableSchema:
-        table_schema: TableSchema = self.node.get_table_schema(self.table_name).columns
-        return table_schema
-
-    def get_table_data(self) -> TableData:
-        table_data = self.node.get_table_data(self.table_name).data_
-        return table_data
-
-    def __repr__(self):
-        r = f"GlobalNodeTable: \n\tschema={self.get_table_schema()}\n \t{self.table_name=}\n"
-        return r
+        elif isinstance(algoexec_arg, Literal):
+            udf_argument = UDFArgument(kind=algoexec_arg.kind, value=algoexec_arg.value)
+        else:
+            # TODO specific exception
+            raise Exception(f"{type(algoexec_arg)=} is not accepted...")
+        return udf_argument
 
 
 def check_same_schema_tables(

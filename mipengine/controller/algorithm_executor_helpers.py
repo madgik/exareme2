@@ -1,11 +1,14 @@
 from abc import ABC
 from abc import abstractmethod
 from typing import List
+from typing import Any
 
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import DType
 from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import ImmutableBaseModel
+from mipengine.node_tasks_DTOs import UDFArgumentKind
 
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 
@@ -57,6 +60,14 @@ class TableName:
 
     def __repr__(self):
         return self.full_table_name
+
+
+class Literal(ImmutableBaseModel):
+    value: Any
+    kind = UDFArgumentKind.LITERAL
+
+    class Config:
+        allow_mutation = False
 
 
 class _INode(ABC):

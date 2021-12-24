@@ -6,7 +6,7 @@ from celery import Celery
 
 from celery.result import AsyncResult
 
-from typing import List, Tuple, Final, Callable, Dict, Any
+from typing import List, Tuple, Final, Callable, Dict, Any, Optional
 
 from celery.exceptions import TimeoutError
 from billiard.exceptions import SoftTimeLimitExceeded
@@ -16,6 +16,9 @@ from kombu.exceptions import OperationalError
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.controller.celery_app import get_node_celery_app
+
+from mipengine.node_tasks_DTOs import UDFPosArguments
+from mipengine.node_tasks_DTOs import UDFKeyArguments
 
 TASK_SIGNATURES: Final = {
     "get_tables": "mipengine.node.tasks.tables.get_tables",
@@ -270,8 +273,8 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         context_id: str,
         command_id: str,
         func_name: str,
-        positional_args,
-        keyword_args,
+        positional_args: Optional[UDFPosArguments] = None,
+        keyword_args: Optional[UDFKeyArguments] = None,
     ) -> QueuedUDFAsyncResult:
 
         task_signature = self._celery_app.signature(TASK_SIGNATURES["run_udf"])
@@ -280,8 +283,8 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             command_id=command_id,
             context_id=context_id,
             func_name=func_name,
-            positional_args_json=positional_args,
-            keyword_args_json=keyword_args,
+            positional_args_json=positional_args.args if positional_args else [],
+            keyword_args_json=keyword_args.kwargs if keyword_args else {},
         )
         return QueuedUDFAsyncResult(
             node_id=self.node_id,
