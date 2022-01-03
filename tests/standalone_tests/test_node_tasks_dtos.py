@@ -198,7 +198,7 @@ def test_tabular_data_immutable():
 def test_tabular_data():
     with pytest.raises(ValidationError):
         TabularData(
-            name="this is not a table name object",
+            name="this is not a table name",
             columns="and this is not a list of columns",
         )
 
