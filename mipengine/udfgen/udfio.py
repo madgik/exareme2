@@ -84,3 +84,69 @@ def merge_tensor_to_list(columns):
     ]
     xs = [from_tensor_table(cols) for cols in all_cols]
     return xs
+
+
+def secure_transfers_to_merged_dict(transfers):
+    """
+    Converts a list of secure transfer dictionaries to one dictionary that
+    contains the aggregation of all the initial values.
+    """
+    # TODO Should also work for "decimals", "min", "max" and "union"
+
+    result = {}
+
+    # Get all keys from a list of dicts
+    all_keys = set().union(*(d.keys() for d in transfers))
+    for key in all_keys:
+        operation = transfers[0][key]["operation"]
+        op_type = transfers[0][key]["type"]
+        if operation == "addition":
+            if op_type == "int":
+                result[key] = _add_secure_transfer_key_integer_data(key, transfers)
+            else:
+                raise NotImplementedError(
+                    f"Secure transfer type: {type} not supported for operation: {operation}"
+                )
+        else:
+            raise NotImplementedError(
+                f"Secure transfer operation not supported: {operation}"
+            )
+    return result
+
+
+def _add_secure_transfer_key_integer_data(key, transfers):
+    """
+    Given a list of secure_transfer dicts, it sums the data of the key provided.
+    The values should be integers.
+    """
+    result = transfers[0][key]["data"]
+    for transfer in transfers[1:]:
+        if transfer[key]["operation"] != "addition":
+            raise ValueError(
+                f"All secure transfer keys should have the same 'operation' value. 'addition' != {transfer[key]['operation']}"
+            )
+        if transfer[key]["type"] != "int":
+            raise ValueError(
+                f"All secure transfer keys should have the same 'type' value. 'int' != {transfer[key]['type']}"
+            )
+        result = _add_integer_type_values(result, transfer[key]["data"])
+    return result
+
+
+def _add_integer_type_values(value1, value2):
+    """
+    The values could be either integers or lists that contain other lists or integers.
+    The type of the values should not change, only the value.
+    """
+    if type(value1) != type(value2):
+        raise TypeError(
+            f"Secure transfer data have different types: {type(value1)} != {type(value2)}"
+        )
+
+    if isinstance(value1, list):
+        result = []
+        for e1, e2 in zip(value1, value2):
+            result.append(_add_integer_type_values(e1, e2))
+        return result
+    else:
+        return value1 + value2

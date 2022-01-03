@@ -88,6 +88,7 @@ def test_get_table_schema(node_tasks_handler_celery, test_table_params):
     assert schema_result == schema
 
 
+@pytest.mark.slow
 def test_broker_connection_closed_exception_get_table_schema(
     node_tasks_handler_celery, test_table_params
 ):
@@ -110,6 +111,7 @@ def test_broker_connection_closed_exception_get_table_schema(
         node_tasks_handler_celery.get_table_schema(table_name)
 
 
+@pytest.mark.slow
 def test_broker_connection_closed_exception_queue_udf(
     node_tasks_handler_celery, test_table_params
 ):
@@ -139,6 +141,7 @@ def test_broker_connection_closed_exception_queue_udf(
         )
 
 
+@pytest.mark.slow
 def test_time_limit_exceeded_exception(node_tasks_handler_celery, test_table_params):
     pids = node_tasks_handler_celery["pids"]
     node_tasks_handler_celery = node_tasks_handler_celery["tasks_handler"]

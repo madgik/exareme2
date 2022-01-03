@@ -266,8 +266,10 @@ __all__ = [
     "scalar",
     "literal",
     "transfer",
-    "state",
     "merge_transfer",
+    "state",
+    "secure_transfer",
+    "merge_secure_transfer",
     "generate_udf_queries",
     "TensorUnaryOp",
     "TensorBinaryOp",
@@ -331,13 +333,21 @@ def get_build_template(input_type: "InputType"):
         loopback_query = f'__transfer_str = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"][0]'
         dict_parse = "{varname} = json.loads(__transfer_str)"
         return LN.join([loopback_query, dict_parse])
+    if isinstance(input_type, MergeSecureTransferType):
+        colname = input_type.data_column_name
+        loopback_query = f'__transfer_strs = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"]'
+        dict_parse = "__transfers = [json.loads(str) for str in __transfer_strs]"
+        transfers_data_aggregation = (
+            "{varname} = udfio.secure_transfers_to_merged_dict(__transfers)"
+        )
+        return LN.join([loopback_query, dict_parse, transfers_data_aggregation])
     if isinstance(input_type, StateType):
         colname = input_type.data_column_name
         loopback_query = f'__state_str = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"][0]'
         dict_parse = "{varname} = pickle.loads(__state_str)"
         return LN.join([str(loopback_query), dict_parse])
     raise NotImplementedError(
-        f"Type {input_type} doesn't have a return statement template."
+        f"Type {input_type} doesn't have a build statement template."
     )
 
 
@@ -355,6 +365,8 @@ def get_return_stmt_template(output_type: "OutputType"):
     if isinstance(output_type, StateType):
         return "return pickle.dumps({return_name})"
     if isinstance(output_type, TransferType):
+        return "return json.dumps({return_name})"
+    if isinstance(output_type, SecureTransferType):
         return "return json.dumps({return_name})"
     raise NotImplementedError(
         f"Type {output_type} doesn't have a return statement template."
@@ -582,7 +594,7 @@ class LoopbackOutputType(OutputType):
     pass
 
 
-class TableType(InputType, OutputType, ABC):
+class TableType(ABC):
     @property
     @abstractmethod
     def schema(self):
@@ -593,7 +605,7 @@ class TableType(InputType, OutputType, ABC):
         return [prefix + name for name, _ in self.schema]
 
 
-class TensorType(TableType, ParametrizedType):
+class TensorType(TableType, ParametrizedType, InputType, OutputType):
     def __init__(self, dtype, ndims):
         self.dtype = dt.from_py(dtype) if isinstance(dtype, type) else dtype
         self.ndims = ndims
@@ -609,7 +621,7 @@ def tensor(dtype, ndims):
     return TensorType(dtype, ndims)
 
 
-class MergeTensorType(TableType, ParametrizedType):
+class MergeTensorType(TableType, ParametrizedType, InputType, OutputType):
     def __init__(self, dtype, ndims):
         self.dtype = dt.from_py(dtype) if isinstance(dtype, type) else dtype
         self.ndims = ndims
@@ -626,7 +638,7 @@ def merge_tensor(dtype, ndims):
     return MergeTensorType(dtype, ndims)
 
 
-class RelationType(TableType, ParametrizedType):
+class RelationType(TableType, ParametrizedType, InputType, OutputType):
     def __init__(self, schema):
         if isinstance(schema, TypeVar):
             self._schema = schema
@@ -654,7 +666,7 @@ def scalar(dtype):
     return ScalarType(dtype)
 
 
-class DictType(TableType, LoopbackOutputType, ABC):
+class DictType(TableType, ABC):
     _data_column_name: str
     _data_column_type: dt
 
@@ -671,7 +683,7 @@ class DictType(TableType, LoopbackOutputType, ABC):
         return [(self.data_column_name, self.data_column_type)]
 
 
-class TransferType(DictType):
+class TransferType(DictType, InputType, LoopbackOutputType):
     _data_column_name = "transfer"
     _data_column_type = dt.JSON
 
@@ -680,15 +692,34 @@ def transfer():
     return TransferType()
 
 
-class MergeTransferType(TransferType):
-    pass
+class MergeTransferType(DictType, InputType):
+    _data_column_name = "transfer"
+    _data_column_type = dt.JSON
 
 
 def merge_transfer():
     return MergeTransferType()
 
 
-class StateType(DictType):
+class SecureTransferType(DictType, LoopbackOutputType):
+    _data_column_name = "secure_transfer"
+    _data_column_type = dt.JSON
+
+
+def secure_transfer():
+    return SecureTransferType()
+
+
+class MergeSecureTransferType(DictType, InputType):
+    _data_column_name = "secure_transfer"
+    _data_column_type = dt.JSON
+
+
+def merge_secure_transfer():
+    return MergeSecureTransferType()
+
+
+class StateType(DictType, InputType, LoopbackOutputType):
     _data_column_name = "state"
     _data_column_type = dt.BINARY
 
@@ -790,6 +821,13 @@ class StateArg(DictArg):
 
 class TransferArg(DictArg):
     type = transfer()
+
+    def __init__(self, table_name: str):
+        super().__init__(table_name)
+
+
+class SecureTransferArg(DictArg):
+    type = secure_transfer()
 
     def __init__(self, table_name: str):
         super().__init__(table_name)
@@ -1008,9 +1046,14 @@ class UDFBody(ASTNode):
             + [main_return_type]
             + sec_return_types
         )
+
+        import_pickle = is_any_element_of_type(StateType, all_types)
+        import_json = is_any_element_of_type(
+            TransferType, all_types
+        ) or is_any_element_of_type(SecureTransferType, all_types)
         self.imports = Imports(
-            import_pickle=is_any_element_of_type(StateType, all_types),
-            import_json=is_any_element_of_type(TransferType, all_types),
+            import_pickle=import_pickle,
+            import_json=import_json,
         )
 
     def compile(self) -> str:
@@ -1599,9 +1642,10 @@ def convert_udfgenarg_to_udfarg(udfgen_arg) -> UDFArgument:
 
 
 def convert_table_info_to_table_arg(table_info):
-    "add new input args"
     if is_transfertype_schema(table_info.schema_.columns):
         return TransferArg(table_name=table_info.name)
+    if is_securetransfertype_schema(table_info.schema_.columns):
+        return SecureTransferArg(table_name=table_info.name)
     if is_statetype_schema(table_info.schema_.columns):
         if table_info.type_ == DBTableType.REMOTE:
             raise UDFBadCall("Usage of state is only allowed on local tables.")
@@ -1631,6 +1675,11 @@ def is_tensor_schema(schema):
 def is_transfertype_schema(schema):
     schema = [(col.name, col.dtype) for col in schema]
     return all(column in schema for column in TransferType().schema)
+
+
+def is_securetransfertype_schema(schema):
+    schema = [(col.name, col.dtype) for col in schema]
+    return all(column in schema for column in SecureTransferType().schema)
 
 
 def is_statetype_schema(schema):
@@ -1734,6 +1783,10 @@ def resolve_merge_table_args(
         is_transfer = isinstance(arg, TransferArg)
         return is_transfer and isinstance(exp_types[argname], MergeTransferType)
 
+    def is_merge_secure_transfer(arg, argname, exp_types):
+        is_transfer = isinstance(arg, SecureTransferArg)
+        return is_transfer and isinstance(exp_types[argname], MergeSecureTransferType)
+
     udf_args = deepcopy(udf_args)
     for argname, arg in udf_args.items():
         if is_merge_tensor(arg, argname, expected_table_types):
@@ -1741,6 +1794,8 @@ def resolve_merge_table_args(
             arg.type = merge_tensor(dtype=tensor_type.dtype, ndims=tensor_type.ndims)
         if is_merge_transfer(arg, argname, expected_table_types):
             udf_args[argname].type = merge_transfer()
+        if is_merge_secure_transfer(arg, argname, expected_table_types):
+            udf_args[argname].type = merge_secure_transfer()
 
     return udf_args
 

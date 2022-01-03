@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 
 from mipengine.udfgen.udfio import merge_tensor_to_list
+from mipengine.udfgen.udfio import secure_transfers_to_merged_dict
 
 
 def test_merge_tensor_to_list_2tables_0D():
@@ -66,3 +67,160 @@ def test_merge_tensor_to_list_no_nodeid():
     )
     with pytest.raises(ValueError):
         xs = merge_tensor_to_list(columns)
+
+
+def get_secure_transfer_success_cases():
+    secure_transfers_cases = [
+        (
+            [
+                {
+                    "a": {"data": 2, "type": "int", "operation": "addition"},
+                },
+                {
+                    "a": {"data": 3, "type": "int", "operation": "addition"},
+                },
+            ],
+            {"a": 5},
+        ),
+        (
+            [
+                {
+                    "a": {"data": 2, "type": "int", "operation": "addition"},
+                    "b": {"data": 5, "type": "int", "operation": "addition"},
+                },
+                {
+                    "a": {"data": 3, "type": "int", "operation": "addition"},
+                    "b": {"data": 7, "type": "int", "operation": "addition"},
+                },
+            ],
+            {"a": 5, "b": 12},
+        ),
+        (
+            [
+                {
+                    "a": {"data": [1, 2, 3], "type": "int", "operation": "addition"},
+                },
+                {
+                    "a": {"data": [9, 8, 7], "type": "int", "operation": "addition"},
+                },
+            ],
+            {
+                "a": [10, 10, 10],
+            },
+        ),
+        (
+            [
+                {
+                    "a": {"data": 10, "type": "int", "operation": "addition"},
+                    "b": {
+                        "data": [10, 20, 30, 40, 50, 60],
+                        "type": "int",
+                        "operation": "addition",
+                    },
+                    "c": {
+                        "data": [[10, 20, 30, 40, 50, 60], [70, 80, 90]],
+                        "type": "int",
+                        "operation": "addition",
+                    },
+                },
+                {
+                    "a": {"data": 100, "type": "int", "operation": "addition"},
+                    "b": {
+                        "data": [100, 200, 300, 400, 500, 600],
+                        "type": "int",
+                        "operation": "addition",
+                    },
+                    "c": {
+                        "data": [[100, 200, 300, 400, 500, 600], [700, 800, 900]],
+                        "type": "int",
+                        "operation": "addition",
+                    },
+                },
+            ],
+            {
+                "a": 110,
+                "b": [110, 220, 330, 440, 550, 660],
+                "c": [[110, 220, 330, 440, 550, 660], [770, 880, 990]],
+            },
+        ),
+    ]
+    return secure_transfers_cases
+
+
+@pytest.mark.parametrize("transfers, result", get_secure_transfer_success_cases())
+def test_secure_transfers_to_merged_dict(transfers, result):
+    assert secure_transfers_to_merged_dict(transfers) == result
+
+
+def get_secure_transfers_fail_cases():
+    secure_transfers_fail_cases = [
+        (
+            [
+                {
+                    "a": {"data": 2, "type": "int", "operation": "addition"},
+                },
+                {
+                    "a": {"data": 3, "type": "int", "operation": "whatever"},
+                },
+            ],
+            (
+                ValueError,
+                "All secure transfer keys should have the same 'operation' .*",
+            ),
+        ),
+        (
+            [
+                {
+                    "a": {"data": 2, "type": "int", "operation": "addition"},
+                },
+                {
+                    "a": {"data": 3, "type": "decimal", "operation": "addition"},
+                },
+            ],
+            (ValueError, "All secure transfer keys should have the same 'type' .*"),
+        ),
+        (
+            [
+                {
+                    "a": {"data": 2, "type": "int", "operation": "addition"},
+                },
+                {
+                    "a": {"data": [3], "type": "int", "operation": "addition"},
+                },
+            ],
+            (TypeError, "Secure transfer data have different types: .*"),
+        ),
+        (
+            [
+                {
+                    "a": {"data": 2, "type": "whatever", "operation": "addition"},
+                },
+                {
+                    "a": {"data": 3, "type": "whatever", "operation": "addition"},
+                },
+            ],
+            (
+                NotImplementedError,
+                "Secure transfer type: .* not supported for operation: .*",
+            ),
+        ),
+        (
+            [
+                {
+                    "a": {"data": 2, "type": "int", "operation": "whatever"},
+                },
+                {
+                    "a": {"data": 3, "type": "int", "operation": "addition"},
+                },
+            ],
+            (NotImplementedError, "Secure transfer operation not supported: .*"),
+        ),
+    ]
+    return secure_transfers_fail_cases
+
+
+@pytest.mark.parametrize("transfers, exception", get_secure_transfers_fail_cases())
+def test_secure_transfers_to_merged_dict_fail_cases(transfers, exception):
+    exception_type, exception_message = exception
+    with pytest.raises(exception_type, match=exception_message):
+        secure_transfers_to_merged_dict(transfers)

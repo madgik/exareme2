@@ -13,6 +13,8 @@ from mipengine.node_tasks_DTOs import (
     TableSchema,
     TableType,
 )
+from mipengine.udfgen import merge_secure_transfer
+from mipengine.udfgen import secure_transfer
 from mipengine.udfgen.udfgenerator import (
     Column,
     IOType,
@@ -376,6 +378,54 @@ class TestUDFValidation:
                 return x
 
         assert "tensors and relations" in str(exc)
+
+    def test_validate_func_as_valid_udf_with_secure_transfer_output(self):
+        @udf(
+            y=state(),
+            return_type=secure_transfer(),
+        )
+        def f(y):
+            y = {"num": 1}
+            return y
+
+        assert udf.registry != {}
+
+    def test_validate_func_as_invalid_udf_with_secure_transfer_input(self):
+        with pytest.raises(UDFBadDefinition) as exc:
+
+            @udf(
+                x=secure_transfer(),
+                return_type=transfer(),
+            )
+            def f(x):
+                y = {"num": 1}
+                return y
+
+        assert "Input types of func are not subclasses of InputType:" in str(exc)
+
+    def test_validate_func_as_valid_udf_with_merge_secure_transfer_input(self):
+        @udf(
+            y=merge_secure_transfer(),
+            return_type=transfer(),
+        )
+        def f(y):
+            y = {"num": 1}
+            return y
+
+        assert udf.registry != {}
+
+    def test_validate_func_as_invalid_udf_with_merge_secure_transfer_output(self):
+        with pytest.raises(UDFBadDefinition) as exc:
+
+            @udf(
+                x=state(),
+                return_type=merge_secure_transfer(),
+            )
+            def f(x):
+                y = {"num": 1}
+                return y
+
+        assert "Output type of func is not subclass of OutputType:" in str(exc)
 
 
 class TestMappingsCoincide:
@@ -1059,6 +1109,21 @@ class TestUDFGenBase:
         )
         db.execute(
             "INSERT INTO test_merge_transfer_table(node_id, transfer) VALUES(2, '{\"num\":10}')"
+        )
+
+    @pytest.fixture(scope="function")
+    def create_merge_secure_transfer_table(self, db):
+        db.execute(
+            "CREATE TABLE test_merge_secure_transfer_table(node_id VARCHAR(500), secure_transfer CLOB)"
+        )
+        db.execute(
+            'INSERT INTO test_merge_secure_transfer_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": 1, "type": "int", "operation": "addition"}}\')'
+        )
+        db.execute(
+            'INSERT INTO test_merge_secure_transfer_table(node_id, secure_transfer) VALUES(2, \'{"sum": {"data": 10, "type": "int", "operation": "addition"}}\')'
+        )
+        db.execute(
+            'INSERT INTO test_merge_secure_transfer_table(node_id, secure_transfer) VALUES(3, \'{"sum": {"data": 100, "type": "int", "operation": "addition"}}\')'
         )
 
     # TODO Should become more dynamic in the future.
@@ -3665,6 +3730,179 @@ FROM
         ).fetchone()
         result2 = json.loads(transfer_)
         assert result2 == {"num": 75}
+
+
+class TestUDFGen_SecureTransferOutput_with_SMPC_off(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            state=state(),
+            return_type=secure_transfer(),
+        )
+        def f(state):
+            result = {
+                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+            }
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="test_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("secure_transfer" CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    import json
+    __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
+    state = pickle.loads(__state_str)
+    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
+        }
+    return json.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"secure_transfer" CLOB);',
+            },
+        ]
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_database",
+        "create_state_table",
+    )
+    def test_udf_with_db(
+        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    ):
+        db.execute(concrete_udf_output_tables)
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        secure_transfer_, *_ = db.execute(
+            "SELECT secure_transfer FROM main_output_table_name"
+        ).fetchone()
+        result = json.loads(secure_transfer_)
+        assert result == {"sum": {"data": 5, "type": "int", "operation": "addition"}}
+
+
+class TestUDFGen_MergeSecureTransferInput_with_SMPC_off(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            transfer=merge_secure_transfer(),
+            return_type=transfer(),
+        )
+        def f(transfer):
+            return transfer
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="test_merge_secure_transfer_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="secure_transfer", dtype=DType.JSON),
+                    ]
+                ),
+                type_=TableType.REMOTE,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("transfer" CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import json
+    __transfer_strs = _conn.execute("SELECT secure_transfer from test_merge_secure_transfer_table;")["secure_transfer"]
+    __transfers = [json.loads(str) for str in __transfer_strs]
+    transfer = udfio.secure_transfers_to_merged_dict(__transfers)
+    return json.dumps(transfer)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);',
+            },
+        ]
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_database",
+        "create_merge_secure_transfer_table",
+    )
+    def test_udf_with_db(
+        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    ):
+        db.execute(concrete_udf_output_tables)
+        db.execute(concrete_udf_def)
+        db.execute(concrete_udf_sel)
+        transfer, *_ = db.execute(
+            "SELECT transfer FROM main_output_table_name"
+        ).fetchone()
+        result = json.loads(transfer)
+        assert result == {"sum": 111}
 
 
 # TODO It's currently not possible to have a scalar output from state,transfer input. There is not input table...
