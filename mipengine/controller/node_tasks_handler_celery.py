@@ -13,14 +13,14 @@ from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
 from kombu.exceptions import OperationalError
 
-from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TabularData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.controller.celery_app import get_node_celery_app
 
 TASK_SIGNATURES: Final = {
     "get_tables": "mipengine.node.tasks.tables.get_tables",
     "get_table_schema": "mipengine.node.tasks.common.get_table_schema",
-    "get_table_data": "mipengine.node.tasks.common.get_table_data",
+    "get_tabular_data": "mipengine.node.tasks.common.get_tabular_data",
     "create_table": "mipengine.node.tasks.tables.create_table",
     "get_views": "mipengine.node.tasks.views.get_views",
     "create_pathology_view": "mipengine.node.tasks.views.create_pathology_view",
@@ -154,12 +154,12 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_table_data(self, table_name: str) -> TableData:
-        task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_data"])
+    def get_tabular_data(self, table_name: str) -> TabularData:
+        task_signature = self._celery_app.signature(TASK_SIGNATURES["get_tabular_data"])
         result = self._apply_async(
             task_signature=task_signature, table_name=table_name
         ).get(self._tasks_timeout)
-        return TableData.parse_raw(result)
+        return TabularData.parse_raw(result)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler

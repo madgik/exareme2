@@ -2,9 +2,11 @@ from typing import List
 
 from mipengine import DType
 from mipengine.node_exceptions import TablesNotFound
-from mipengine.table_data_DTOs import ColumnDataFloat
-from mipengine.table_data_DTOs import ColumnDataInt
-from mipengine.table_data_DTOs import ColumnDataStr
+from mipengine.tabular_data_DTOs import ColumnDataBinary
+from mipengine.tabular_data_DTOs import ColumnDataFloat
+from mipengine.tabular_data_DTOs import ColumnDataInt
+from mipengine.tabular_data_DTOs import ColumnDataJSON
+from mipengine.tabular_data_DTOs import ColumnDataStr
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
@@ -12,7 +14,7 @@ from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 # TODO We need to add the PRIVATE/OPEN table logic
 from mipengine.node_tasks_DTOs import TableType
-from mipengine.table_data_DTOs import _ColumnData
+from mipengine.tabular_data_DTOs import _ColumnData
 
 
 def create_table_name(
@@ -148,19 +150,21 @@ def get_table_names(table_type: TableType, context_id: str) -> List[str]:
     return [table[0] for table in table_names]
 
 
-def get_table_data(table_name: str) -> List:
+def get_tabular_data(table_name: str, schema: TableSchema) -> List[_ColumnData]:
     """
-    Retrieves the data of a table with specific name from the monetdb.
+    Returns a list of columns data which will contain name, type and the data of the specific column.
 
     Parameters
     ----------
     table_name : str
         The name of the table
+    schema : TableSchema
+        The schema of table
 
     Returns
     ------
-    List
-        The data of the table row-stored.
+    List[_ColumnData]
+        A list of column data
     """
 
     data = MonetDB().execute_and_fetchall(
@@ -171,44 +175,32 @@ def get_table_data(table_name: str) -> List:
         WHERE tables.system=false
         """
     )
-    return data
 
-
-def get_columns_data(schema: TableSchema, data: List) -> List[_ColumnData]:
-    """
-    Returns a list of columns data which will contain name, type and the data of the specific column
-
-    Parameters
-    ----------
-    schema : TableSchema
-        The schema of table
-    data : List
-        The data of the table column-stored
-
-    Returns
-    ------
-    List[_ColumnData]
-        A list of column data
-    """
-    # TableData contain columns
-    # so we need to switch the data given from the database from row-stored to column-stored
+    # TabularData contain columns
+    # we need to switch the data given from the database from row-stored to column-stored
     data = list(zip(*data))
 
     columns_data = []
-    for count in range(0, len(data)):
-        current_column = schema.columns[count]
-        current_values = data[count]
+    for current_column, current_values in zip(schema.columns, data):
         if current_column.dtype == DType.INT:
             columns_data.append(
                 ColumnDataInt(name=current_column.name, data=current_values)
             )
-        elif current_column.dtype in [DType.STR, DType.JSON]:
+        elif current_column.dtype == DType.STR:
             columns_data.append(
                 ColumnDataStr(name=current_column.name, data=current_values)
             )
         elif current_column.dtype == DType.FLOAT:
             columns_data.append(
                 ColumnDataFloat(name=current_column.name, data=current_values)
+            )
+        elif current_column.dtype == DType.JSON:
+            columns_data.append(
+                ColumnDataJSON(name=current_column.name, data=current_values)
+            )
+        elif current_column.dtype == DType.BINARY:
+            columns_data.append(
+                ColumnDataBinary(name=current_column.name, data=current_values)
             )
         else:
             raise ValueError("Invalid column type")

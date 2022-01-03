@@ -3,15 +3,15 @@ from typing import List
 import pytest
 from pydantic import ValidationError
 
-from mipengine.table_data_DTOs import ColumnDataFloat
-from mipengine.table_data_DTOs import ColumnDataInt
-from mipengine.table_data_DTOs import ColumnDataStr
+from mipengine.tabular_data_DTOs import ColumnDataFloat
+from mipengine.tabular_data_DTOs import ColumnDataInt
+from mipengine.tabular_data_DTOs import ColumnDataStr
 from mipengine.node_tasks_DTOs import (
     DType,
     ColumnInfo,
     TableSchema,
     TableInfo,
-    TableData,
+    TabularData,
     UDFArgument,
 )
 from mipengine.node_tasks_DTOs import TableType
@@ -70,7 +70,7 @@ def test_table_schema():
     assert isinstance(cols[1], ColumnInfo)
 
 
-def test_table_data_with_different_column_types():
+def test_tabular_data_with_different_column_types():
     expected_columns = [
         ColumnDataFloat(data=[1.0, None], name="column1"),
         ColumnDataInt(data=[2, None], name="column2"),
@@ -78,11 +78,12 @@ def test_table_data_with_different_column_types():
         ColumnDataInt(data=[4, 4], name="column4"),
         ColumnDataFloat(data=[5.0, 5.0], name="column5"),
     ]
-    data = TableData(
+    data = TabularData(
         name="table_name",
         columns=expected_columns,
     )
     assert data.columns == expected_columns
+    assert TabularData.parse_raw(data.json()) == data
 
 
 # validation check for TableSchema with error
@@ -177,13 +178,13 @@ def test_table_info_immutable():
         info.name = "newname"
 
 
-def test_table_data_error():
+def test_tabular_data_error():
     with pytest.raises(ValidationError):
-        TableData(name="foo", columns=34)
+        TabularData(name="foo", columns=34)
 
 
-def test_table_data_immutable():
-    data = TableData(
+def test_tabular_data_immutable():
+    data = TabularData(
         name="table",
         columns=[
             ColumnDataFloat(name="layla", data=[9.1]),
@@ -194,11 +195,11 @@ def test_table_data_immutable():
         data.name = "newname"
 
 
-def test_table_data():
+def test_tabular_data():
     with pytest.raises(ValidationError):
-        TableData(
-            name="this is not a TableSchema object",
-            columns="and this is not a list of tuples",
+        TabularData(
+            name="this is not a table name object",
+            columns="and this is not a list of columns",
         )
 
 

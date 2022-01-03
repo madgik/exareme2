@@ -7,7 +7,7 @@ import requests
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import InsufficientDataError
-from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TabularData
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.dev_env_tests import algorithms_url
 from tests.dev_env_tests.nodes_communication import get_celery_task_signature
@@ -24,7 +24,7 @@ local_node_create_pathology_view = get_celery_task_signature(
 )
 local_node_create_view = get_celery_task_signature(local_node, "create_view")
 local_node_get_views = get_celery_task_signature(local_node, "get_views")
-local_node_get_view_data = get_celery_task_signature(local_node, "get_table_data")
+local_node_get_view_data = get_celery_task_signature(local_node, "get_tabular_data")
 local_node_get_view_schema = get_celery_task_signature(local_node, "get_table_schema")
 local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
@@ -76,7 +76,7 @@ def test_view_without_filters(context_id):
     assert view_intended_schema == TableSchema.parse_raw(schema_result_json)
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
-    view_data = TableData.parse_raw(view_data_json)
+    view_data = TabularData.parse_raw(view_data_json)
     assert len(view_data.columns) == len(view_intended_schema.columns)
     assert view_data.name == view_name
 
@@ -138,7 +138,7 @@ def test_view_with_filters(context_id):
     assert view_intended_schema == TableSchema.parse_raw(schema_result_json)
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
-    view_data = TableData.parse_raw(view_data_json)
+    view_data = TabularData.parse_raw(view_data_json)
     assert len(view_data.columns) == 2
     assert len(view_data.columns) == len(view_intended_schema.columns)
     assert view_data.name == view_name
@@ -175,7 +175,7 @@ def test_pathology_view_without_filters(context_id):
     assert schema == TableSchema.parse_raw(schema_result_json)
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
-    view_data = TableData.parse_raw(view_data_json)
+    view_data = TabularData.parse_raw(view_data_json)
     assert len(view_data.columns) == len(schema.columns)
     assert view_data.name == view_name
 
@@ -234,7 +234,7 @@ def test_pathology_view_with_filters(context_id):
     assert schema == TableSchema.parse_raw(schema_result_json)
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
-    view_data = TableData.parse_raw(view_data_json)
+    view_data = TabularData.parse_raw(view_data_json)
     assert len(view_data.columns) == len(schema.columns)
     assert view_data.name == view_name
 

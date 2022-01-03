@@ -6,7 +6,7 @@ from typing import Tuple
 
 from pydantic import BaseModel
 
-from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TabularData
 from mipengine.node_tasks_DTOs import TableSchema
 
 
@@ -52,7 +52,7 @@ class INodeTasksHandler(ABC):
         pass
 
     @abstractmethod
-    def get_table_data(self, table_name: str) -> TableData:
+    def get_tabular_data(self, table_name: str) -> TabularData:
         pass
 
     @abstractmethod

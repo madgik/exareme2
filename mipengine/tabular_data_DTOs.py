@@ -19,10 +19,10 @@ class _ColumnData(ImmutableBaseModel):
 
     @validator("type")
     def validate_type(cls, tp):
-        if cls.__name__ == "ColumnData":
+        if cls.__name__ == "_ColumnData":
             raise TypeError(
                 "ColumnData should not be instantiated. "
-                "Use ColumnDataInt, ColumnDataStr or ColumnDataFloat instead."
+                "Use ColumnDataInt, ColumnDataStr, ColumnDataFloat, ColumnDataJSON  or ColumnDataBinary instead."
             )
         column_type = cls.__fields__["type"].default
         if tp != column_type:
@@ -46,3 +46,13 @@ class ColumnDataStr(_ColumnData):
 class ColumnDataFloat(_ColumnData):
     data: List[Union[None, float]]
     type = DType.FLOAT
+
+
+class ColumnDataJSON(_ColumnData):
+    data: List[Union[None, str]]
+    type = DType.JSON
+
+
+class ColumnDataBinary(_ColumnData):
+    data: List[Union[None, int]]
+    type = DType.BINARY
