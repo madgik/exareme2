@@ -40,6 +40,11 @@ spec:
           value: "mipengine-nodes-service"
         - name: LOCALNODES_PORT
           value: "5672"
+        - name: SMPC_ENABLED
+          value: {{ quote .Values.smpc.enabled }}
+        - name: SMPC_OPTIONAL
+          value: {{ quote .Values.smpc.optional }}
+
       volumes:
       - name: metadata
         hostPath:

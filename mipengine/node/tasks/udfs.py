@@ -4,22 +4,19 @@ from typing import Tuple
 
 from celery import shared_task
 
-from mipengine import import_algorithm_modules
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.common_actions import get_table_type
 from mipengine.node.node_logger import initialise_logger
+from mipengine.node_exceptions import SMPCUsageError
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 from mipengine.udfgen import generate_udf_queries
 from mipengine.udfgen.udfgenerator import udf as udf_registry
-
-
-import_algorithm_modules()
 
 
 @shared_task
@@ -41,6 +38,7 @@ def run_udf(
     func_name: str,
     positional_args_json: List[str],
     keyword_args_json: Dict[str, str],
+    use_smpc: bool = False,
 ) -> List[str]:
     """
     Creates the UDF, if provided, and adds it in the database.
@@ -58,12 +56,14 @@ def run_udf(
             Positional arguments of the udf call.
         keyword_args_json: dict[str, str(UDFArgument)]
             Keyword arguments of the udf call.
-
+        use_smpc: bool
+            Should SMPC be used?
     Returns
     -------
         List[str]
             The names of the tables where the udf execution results are in.
     """
+    _validate_smpc_usage(use_smpc)
 
     positional_args = [UDFArgument.parse_raw(arg) for arg in positional_args_json]
 
@@ -72,7 +72,12 @@ def run_udf(
     }
 
     udf_statements, result_table_names = _generate_udf_statements(
-        command_id, context_id, func_name, positional_args, keyword_args
+        command_id=command_id,
+        context_id=context_id,
+        func_name=func_name,
+        positional_args=positional_args,
+        keyword_args=keyword_args,
+        use_smpc=use_smpc,
     )
 
     udfs.run_udf(udf_statements)
@@ -88,6 +93,7 @@ def get_run_udf_query(
     func_name: str,
     positional_args_json: List[str],
     keyword_args_json: Dict[str, str],
+    use_smpc: bool = False,
 ) -> List[str]:
     """
     Fetches the sql statements that represent the execution of the udf.
@@ -104,13 +110,15 @@ def get_run_udf_query(
             Positional arguments of the udf call.
         keyword_args_json: dict[str, str(UDFArgument)]
             Keyword arguments of the udf call.
-
+        use_smpc: bool
+            Should SMPC be used?
     Returns
     -------
         List[str]
             A list of the statements that would be executed in the DB.
 
     """
+    _validate_smpc_usage(use_smpc)
 
     positional_args = [UDFArgument.parse_raw(arg) for arg in positional_args_json]
 
@@ -119,10 +127,28 @@ def get_run_udf_query(
     }
 
     udf_statements, _ = _generate_udf_statements(
-        command_id, context_id, func_name, positional_args, keyword_args
+        command_id=command_id,
+        context_id=context_id,
+        func_name=func_name,
+        positional_args=positional_args,
+        keyword_args=keyword_args,
+        use_smpc=use_smpc,
     )
 
     return udf_statements
+
+
+def _validate_smpc_usage(use_smpc: bool):
+    """
+    Validates if smpc can be used or if it must be used based on the NODE configs.
+    """
+    if use_smpc and not node_config.smpc.enabled:
+        raise SMPCUsageError("SMPC cannot be used, since it's not enabled on the node.")
+
+    if not use_smpc and node_config.smpc.enabled and not node_config.smpc.optional:
+        raise SMPCUsageError(
+            "The computation cannot be made without SMPC. SMPC usage is not optional."
+        )
 
 
 def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
@@ -170,13 +196,16 @@ def _generate_udf_statements(
     func_name: str,
     positional_args: List[UDFArgument],
     keyword_args: Dict[str, UDFArgument],
+    use_smpc: bool,
 ) -> Tuple[List[str], List[str]]:
     allowed_func_name = func_name.replace(".", "_")  # A dot is not an allowed character
     udf_name = _create_udf_name(allowed_func_name, command_id, context_id)
 
     gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
 
-    udf_execution_queries = generate_udf_queries(func_name, gen_pos_args, gen_kw_args)
+    udf_execution_queries = generate_udf_queries(
+        func_name, gen_pos_args, gen_kw_args, use_smpc
+    )
 
     result_tables = []
     output_table_names = {}

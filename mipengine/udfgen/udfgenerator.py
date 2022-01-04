@@ -311,7 +311,7 @@ ROWID = "row_id"
 
 # TODO refactor these, polymorphism?
 # Currently DictTypes are loaded with loopback queries only.
-def get_build_template(input_type: "InputType"):
+def get_build_template(input_type: "InputType", smpc_used: bool):
     if not isinstance(input_type, InputType):
         raise TypeError(
             f"Build template only for InputTypes. Type provided: {input_type}"
@@ -329,18 +329,24 @@ def get_build_template(input_type: "InputType"):
         dict_parse = "{varname} = [json.loads(str) for str in __transfer_strs]"
         return LN.join([loopback_query, dict_parse])
     if isinstance(input_type, TransferType):
-        colname = input_type.data_column_name
-        loopback_query = f'__transfer_str = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"][0]'
-        dict_parse = "{varname} = json.loads(__transfer_str)"
-        return LN.join([loopback_query, dict_parse])
+        if smpc_used:
+            raise NotImplementedError("Not supported yet.")
+        else:
+            colname = input_type.data_column_name
+            loopback_query = f'__transfer_str = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"][0]'
+            dict_parse = "{varname} = json.loads(__transfer_str)"
+            return LN.join([loopback_query, dict_parse])
     if isinstance(input_type, MergeSecureTransferType):
-        colname = input_type.data_column_name
-        loopback_query = f'__transfer_strs = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"]'
-        dict_parse = "__transfers = [json.loads(str) for str in __transfer_strs]"
-        transfers_data_aggregation = (
-            "{varname} = udfio.secure_transfers_to_merged_dict(__transfers)"
-        )
-        return LN.join([loopback_query, dict_parse, transfers_data_aggregation])
+        if smpc_used:
+            raise NotImplementedError("Not supported yet.")
+        else:
+            colname = input_type.data_column_name
+            loopback_query = f'__transfer_strs = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"]'
+            dict_parse = "__transfers = [json.loads(str) for str in __transfer_strs]"
+            transfers_data_aggregation = (
+                "{varname} = udfio.secure_transfers_to_merged_dict(__transfers)"
+            )
+            return LN.join([loopback_query, dict_parse, transfers_data_aggregation])
     if isinstance(input_type, StateType):
         colname = input_type.data_column_name
         loopback_query = f'__state_str = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"][0]'
@@ -965,9 +971,9 @@ class TableBuild(ASTNode):
 
 
 class TableBuilds(ASTNode):
-    def __init__(self, table_args: Dict[str, TableArg]):
+    def __init__(self, table_args: Dict[str, TableArg], smpc_used: bool):
         self.table_builds = [
-            TableBuild(arg_name, arg, template=get_build_template(arg.type))
+            TableBuild(arg_name, arg, template=get_build_template(arg.type, smpc_used))
             for arg_name, arg in table_args.items()
         ]
 
@@ -1033,13 +1039,14 @@ class UDFBody(ASTNode):
         main_return_type: OutputType,
         sec_return_names: List[str],
         sec_return_types: List[OutputType],
+        smpc_used: bool,
     ):
         self.returnless_stmts = UDFBodyStatements(statements)
         self.loopback_return_stmts = UDFLoopbackReturnStatements(
             sec_return_names=sec_return_names, sec_return_types=sec_return_types
         )
         self.return_stmt = UDFReturnStatement(main_return_name, main_return_type)
-        self.table_builds = TableBuilds(table_args)
+        self.table_builds = TableBuilds(table_args, smpc_used)
         self.literals = LiteralAssignments(literal_args)
         all_types = (
             [arg.type for arg in table_args.values()]
@@ -1117,6 +1124,7 @@ class UDFDefinition(ASTNode):
         literal_args: Dict[str, LiteralArg],
         main_output_type: OutputType,
         sec_output_types: List[OutputType],
+        smpc_used: bool,
         traceback=False,
     ):
         self.header = UDFHeader(
@@ -1132,6 +1140,7 @@ class UDFDefinition(ASTNode):
             main_return_type=main_output_type,
             sec_return_names=funcparts.sec_return_names,
             sec_return_types=sec_output_types,
+            smpc_used=smpc_used,
         )
         self.body = UDFTracebackCatcher(body) if traceback else body
 
@@ -1402,10 +1411,6 @@ class UDFDecorator:
             funcparts = breakup_function(func, signature)
             validate_udf_table_input_types(funcparts.table_input_types)
             funcname = funcparts.qualname
-            if funcname in self.registry:
-                raise UDFBadDefinition(
-                    f"A function named {funcname} is already in the udf registry."
-                )
             self.registry[funcname] = funcparts
             return func
 
@@ -1586,6 +1591,7 @@ def generate_udf_queries(
     func_name: str,
     positional_args: List[UDFGenArgument],
     keyword_args: Dict[str, UDFGenArgument],
+    smpc_used: bool,
     traceback=False,
 ) -> UDFExecutionQueries:
     """
@@ -1594,6 +1600,7 @@ def generate_udf_queries(
     func_name: The name of the udf to run
     positional_args: Positional arguments
     keyword_args: Keyword arguments
+    smpc_used: Is SMPC used in the computations?
     traceback: Run the udf with traceback enabled to get logs
 
     Returns
@@ -1623,6 +1630,7 @@ def generate_udf_queries(
         posargs=udf_posargs,
         keywordargs=udf_kwargs,
         udfregistry=udf.registry,
+        smpc_used=smpc_used,
         traceback=traceback,
     )
 
@@ -1699,6 +1707,7 @@ def get_udf_templates_using_udfregistry(
     posargs: List[UDFArgument],
     keywordargs: Dict[str, UDFArgument],
     udfregistry: dict,
+    smpc_used: bool,
     traceback=False,
 ) -> UDFExecutionQueries:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
@@ -1726,6 +1735,7 @@ def get_udf_templates_using_udfregistry(
         input_args=udf_args,
         main_output_type=main_output_type,
         sec_output_types=sec_output_types,
+        smpc_used=smpc_used,
         traceback=traceback,
     )
 
@@ -1854,6 +1864,7 @@ def get_udf_definition_template(
     input_args: Dict[str, UDFArgument],
     main_output_type: OutputType,
     sec_output_types: List[OutputType],
+    smpc_used: bool,
     traceback=False,
 ) -> Template:
     table_args: Dict[str, TableArg] = get_items_of_type(TableArg, mapping=input_args)
@@ -1870,6 +1881,7 @@ def get_udf_definition_template(
         main_output_type=main_output_type,
         sec_output_types=sec_output_types,
         literal_args=literal_args,
+        smpc_used=smpc_used,
         traceback=traceback,
     )
     return Template(udf_definition.compile())

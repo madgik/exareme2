@@ -56,8 +56,6 @@ from mipengine.udfgen.udfgenerator import (
     verify_declared_typeparams_match_passed_type,
 )
 from mipengine.udfgen.udfgenerator import get_main_table_template_name
-from mipengine.udfgen_DTOs import UDFExecutionQueries
-from mipengine.udfgen_DTOs import UDFOutputTable
 
 
 @pytest.fixture(autouse=True)
@@ -514,22 +512,6 @@ def test_transfer_schema():
 def test_state_schema():
     to = state()
     assert to.schema == [("state", DType.BINARY)]
-
-
-def test_udf_decorator_already_there():
-    @udf(return_type=scalar(int))
-    def already_there():
-        x = 1
-        return x
-
-    with pytest.raises(UDFBadDefinition) as exc:
-
-        @udf(return_type=scalar(int))
-        def already_there():
-            x = 1
-            return x
-
-    assert "already in the udf registry" in str(exc)
 
 
 def test_convert_udfgenargs_to_udfargs_relation():
@@ -1163,7 +1145,7 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
         keywordargs = {"z": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
             _, _ = get_udf_templates_using_udfregistry(
-                funcname, posargs, keywordargs, udfregistry
+                funcname, posargs, keywordargs, udfregistry, False
             )
         assert "UDF argument names do not match UDF parameter names" in str(exc)
 
@@ -1204,7 +1186,7 @@ class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry)
+            _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry, False)
         assert "should be of type" in str(exc)
 
 
@@ -1247,7 +1229,7 @@ class TestUDFGen_InvalidUDFArgs_TensorTableInTransferArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry)
+            _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry, False)
         assert "should be of type" in str(exc)
 
 
@@ -1274,10 +1256,11 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         keywordargs = {}
         with pytest.raises(ValueError) as e:
             _, _ = get_udf_templates_using_udfregistry(
-                funcname,
-                posargs,
-                keywordargs,
-                udfregistry,
+                funcname=funcname,
+                posargs=posargs,
+                keywordargs=keywordargs,
+                udfregistry=udfregistry,
+                smpc_used=False,
             )
         err_msg, *_ = e.value.args
         assert "inconsistent mappings" in err_msg
@@ -1289,11 +1272,7 @@ class TestUDFGen_KW_args_on_tensor_operation:
         posargs = []
         keywordargs = {"Μ": 5, "v": 7}
         with pytest.raises(UDFBadCall) as e:
-            _ = generate_udf_queries(
-                funcname,
-                posargs,
-                keywordargs,
-            )
+            _ = generate_udf_queries(funcname, posargs, keywordargs, False)
         err_msg, *_ = e.value.args
         assert "Keyword args are not supported for tensor operations." in err_msg
 
@@ -1338,7 +1317,11 @@ class _TestGenerateUDFQueries:
         traceback,
     ):
         udf_execution_queries = generate_udf_queries(
-            funcname, positional_args, {}, traceback=traceback
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+            traceback=traceback,
         )
         if expected_udfdef != "":
             assert (

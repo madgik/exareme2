@@ -120,6 +120,9 @@ def create_configs(c):
         node_config["rabbitmq"]["ip"] = deployment_config["ip"]
         node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
 
+        node_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
+        node_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
+
         NODES_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
         with open(node_config_file, "w+") as fp:

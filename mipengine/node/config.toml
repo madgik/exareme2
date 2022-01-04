@@ -29,3 +29,7 @@ port = "$MONETDB_PORT"
 database = "db"
 username = "monetdb"
 password = "monetdb"
+
+[smpc]
+enabled = "$SMPC_ENABLED"
+optional = "$SMPC_OPTIONAL"

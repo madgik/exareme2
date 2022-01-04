@@ -14,3 +14,7 @@ controller:
   celery_tasks_timeout: 60
 
 localnodes: 2
+
+smpc:
+  enabled: true
+  optional: false
