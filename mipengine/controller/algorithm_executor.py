@@ -113,17 +113,15 @@ class _Node(_INode):
 
         return initial_view_tables
 
-
     @property
-    def node_address(self)->str:
+    def node_address(self) -> str:
         return self._node_tasks_handler.node_data_address
-
 
     # TABLES functionality
     def get_tables(self) -> List[TableName]:
         return self._node_tasks_handler.get_tables(context_id=self.context_id)
 
-    def get_table_schema(self, table_name: TableName)->TableSchema:
+    def get_table_schema(self, table_name: TableName) -> TableSchema:
         return self._node_tasks_handler.get_table_schema(
             table_name=table_name.full_table_name
         )
@@ -169,7 +167,9 @@ class _Node(_INode):
         result = self._node_tasks_handler.get_merge_tables(context_id=self.context_id)
         return [TableName(table_name) for table_name in result]
 
-    def create_merge_table(self, command_id: str, table_names: List[TableName])->TableName:
+    def create_merge_table(
+        self, command_id: str, table_names: List[TableName]
+    ) -> TableName:
         table_names = [table_name.full_table_name for table_name in table_names]
         result = self._node_tasks_handler.create_merge_table(
             context_id=self.context_id,
@@ -274,7 +274,7 @@ class _LocalNodeTable(INodeTable):
             r += f"\t{node=} {table_name=}\n"
         return r
 
-    def _validate_matching_table_names(self, table_names: List[TableName])->bool:
+    def _validate_matching_table_names(self, table_names: List[TableName]) -> bool:
         table_name_without_node_id = table_names[0].without_node_id()
         for table_name in table_names:
             if table_name.without_node_id() != table_name_without_node_id:
@@ -292,11 +292,11 @@ class _GlobalNodeTable(INodeTable):
         self._table_name = table_name
 
     @property
-    def node(self)->_INode:
+    def node(self) -> _INode:
         return self._node
 
     @property
-    def table_name(self)->TableName:
+    def table_name(self) -> TableName:
         return self._table_name
 
     # TODO this is redundant, either remove it or overload all node methods here?
@@ -495,19 +495,19 @@ class _AlgorithmExecutionInterface:
         return self._global_node == self._local_nodes[0]
 
     @property
-    def initial_view_tables(self)->Dict[str,_LocalNodeTable]:
+    def initial_view_tables(self) -> Dict[str, _LocalNodeTable]:
         return self._initial_view_tables
 
     @property
-    def algorithm_parameters(self)->Dict[str,Any]:
+    def algorithm_parameters(self) -> Dict[str, Any]:
         return self._algorithm_parameters
 
     @property
-    def x_variables(self)->List[str]:
+    def x_variables(self) -> List[str]:
         return self._x_variables
 
     @property
-    def y_variables(self)->List[str]:
+    def y_variables(self) -> List[str]:
         return self._y_variables
 
     # UDFs functionality
@@ -600,71 +600,6 @@ class _AlgorithmExecutionInterface:
             results_after_sharing_step = results_after_sharing_step[0]
         return results_after_sharing_step
 
-    def _handle_table_sharing_locals_to_global(
-        self,
-        share_list: List[bool],
-        indexed_node_tables: Dict[int, List[Tuple[_Node, TableName]]],
-        command_id: int,
-    ) -> List[INodeTable]:
-        handled_tables = []
-        for index, share in enumerate(share_list):
-            nodes_tables: List[Tuple[_Node, TableName]] = indexed_node_tables[index]
-            nodes = [tupple[0] for tupple in nodes_tables]
-            tables = [tupple[1] for tupple in nodes_tables]
-            if share:
-                if self._is_single_node_execution():
-                    merge_table = tables[0]
-                else:
-                    # check the tables have the same schema
-                    check, tables_schemas, common_schema = check_same_schema_tables(
-                        nodes_tables
-                    )
-                    if check == False:
-                        raise InconsistentTableSchemasException(tables_schemas)
-
-                    # create remote tabels on global node
-                    for index, node in enumerate(nodes):
-                        self._global_node.create_remote_table(
-                            table_name=tables[index]._full_name,
-                            table_schema=common_schema,
-                            native_node=node,
-                        )
-                    # merge remote tables into one merge table on global node
-                    merge_table = self._global_node.create_merge_table(
-                        command_id, tables
-                    )
-
-                handled_tables.append(
-                    _GlobalNodeTable(node=self._global_node, table_name=merge_table)
-                )
-            else:
-                handled_tables.append(_LocalNodeTable(nodes_tables=dict(nodes_tables)))
-        return handled_tables
-
-    def _get_run_udf_results(
-        self, tasks: Dict[_Node, IQueuedUDFAsyncResult]
-    ) -> Dict[int, List[Tuple[_Node, TableName]]]:
-        raise_inconsistent_udf_result_exc = False
-        all_nodes_result_tables = {}
-        number_of_result_tables = None
-        for node, task in tasks.items():
-            node_result_tables: List[TableName] = node.get_queued_udf_result(task)
-            number_of_result_tables_current_node = len(node_result_tables)
-            if number_of_result_tables:
-                if number_of_result_tables_current_node != number_of_result_tables:
-                    raise_inconsistent_udf_result_exc = True
-            else:
-                number_of_result_tables = number_of_result_tables_current_node
-            for index, task_result in enumerate(node_result_tables):
-                if index not in all_nodes_result_tables:
-                    all_nodes_result_tables[index] = []
-                all_nodes_result_tables[index].append((node, task_result))
-
-        if raise_inconsistent_udf_result_exc:
-            raise InconsistentUDFResultSizeException(all_nodes_result_tables)
-        else:
-            return all_nodes_result_tables
-
     def run_udf_on_global_node(
         self,
         func_name: str,
@@ -744,6 +679,71 @@ class _AlgorithmExecutionInterface:
             final_results = final_results[0]
         return final_results
 
+    def _handle_table_sharing_locals_to_global(
+        self,
+        share_list: List[bool],
+        indexed_node_tables: Dict[int, List[Tuple[_Node, TableName]]],
+        command_id: int,
+    ) -> List[INodeTable]:
+        handled_tables = []
+        for index, share in enumerate(share_list):
+            nodes_tables: List[Tuple[_Node, TableName]] = indexed_node_tables[index]
+            nodes = [tupple[0] for tupple in nodes_tables]
+            tables = [tupple[1] for tupple in nodes_tables]
+            if share:
+                if self._is_single_node_execution():
+                    merge_table = tables[0]
+                else:
+                    # check the tables have the same schema
+                    check, tables_schemas, common_schema = check_same_schema_tables(
+                        nodes_tables
+                    )
+                    if check == False:
+                        raise InconsistentTableSchemasException(tables_schemas)
+
+                    # create remote tabels on global node
+                    for index, node in enumerate(nodes):
+                        self._global_node.create_remote_table(
+                            table_name=tables[index]._full_name,
+                            table_schema=common_schema,
+                            native_node=node,
+                        )
+                    # merge remote tables into one merge table on global node
+                    merge_table = self._global_node.create_merge_table(
+                        command_id, tables
+                    )
+
+                handled_tables.append(
+                    _GlobalNodeTable(node=self._global_node, table_name=merge_table)
+                )
+            else:
+                handled_tables.append(_LocalNodeTable(nodes_tables=dict(nodes_tables)))
+        return handled_tables
+
+    def _get_run_udf_results(
+        self, tasks: Dict[_Node, IQueuedUDFAsyncResult]
+    ) -> Dict[int, List[Tuple[_Node, TableName]]]:
+        raise_inconsistent_udf_result_exc = False
+        all_nodes_result_tables = {}
+        number_of_result_tables = None
+        for node, task in tasks.items():
+            node_result_tables: List[TableName] = node.get_queued_udf_result(task)
+            number_of_result_tables_current_node = len(node_result_tables)
+            if number_of_result_tables:
+                if number_of_result_tables_current_node != number_of_result_tables:
+                    raise_inconsistent_udf_result_exc = True
+            else:
+                number_of_result_tables = number_of_result_tables_current_node
+            for index, task_result in enumerate(node_result_tables):
+                if index not in all_nodes_result_tables:
+                    all_nodes_result_tables[index] = []
+                all_nodes_result_tables[index].append((node, task_result))
+
+        if raise_inconsistent_udf_result_exc:
+            raise InconsistentUDFResultSizeException(all_nodes_result_tables)
+        else:
+            return all_nodes_result_tables
+
     def _handle_table_sharing_global_to_locals(
         self, share_list: List[bool], tables: List[TableName], command_id=int
     ) -> List[INodeTable]:
@@ -800,7 +800,7 @@ class _AlgorithmExecutionInterface:
 
     def _algoexec_arg_to_udf_arg(
         self, algoexec_arg: Union[INodeTable, Literal], node: _Node = None
-    )->UDFArgument:
+    ) -> UDFArgument:
         if isinstance(algoexec_arg, INodeTable):
             if node:
                 table_name = algoexec_arg.nodes_tables[node].full_table_name
@@ -846,10 +846,7 @@ def check_same_schema_tables(
         return have_common_schema, schemas, None
 
 
-# NOTE tried to turn this into a generator, the problem is there are multiple consumers
-# so the generator should be singleton in some way, the solutions were more complicated
-# than this simple implementation
-def get_next_command_id()->int:
+def get_next_command_id() -> int:
     if hasattr(get_next_command_id, "index"):
         get_next_command_id.index += 1
     else:
