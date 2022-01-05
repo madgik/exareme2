@@ -528,22 +528,19 @@ class _AlgorithmExecutionInterface:
 
         command_id = get_next_command_id()
 
-        # check positional_args and keyword_args do not contain _GlobalNodeTable(s)
-        for node_table in positional_args:
-            if isinstance(node_table, _GlobalNodeTable):
-                raise Exception(
-                    f"positional_args contains {node_table=} of "
-                    f"type {type(node_table)=} which is not acceptable from "
-                    f"run_udf_on_local_nodes. {positional_args=}"
-                )
-        for node_table in keyword_args.values():
-            if isinstance(node_table, _GlobalNodeTable):
-                raise Exception(
-                    f"keyword_args contains {node_table=} of "
-                    f"type {type(node_table)=} which is not acceptable from "
-                    f"run_udf_on_local_nodes. {keyword_args=}"
-                )
-
+        #check positional_args and keyword_args do not contain _GlobalNodeTable(s)
+        for arg in positional_args or []:
+            if isinstance(arg,_LocalNodeTable) and isinstance(arg,Literal):
+                raise Exception(f"positional_args contains {arg=} of "
+                                f"type {type(arg)=} which is not acceptable from "
+                                f"run_udf_on_local_nodes. {positional_args=}")
+        if keyword_args:
+            for arg in keyword_args.values():
+                if isinstance(arg,_LocalNodeTable) and isinstance(arg,Literal):
+                    raise Exception(f"keyword_args contains {arg=} of "
+                                    f"type {type(arg)=} which is not acceptable from "
+                                    f"run_udf_on_local_nodes. {keyword_args=}")
+            
         # Queue the udf on all local nodes
         tasks = {}
         for node in self._local_nodes:
@@ -680,22 +677,19 @@ class _AlgorithmExecutionInterface:
 
         command_id = get_next_command_id()
 
-        # check positional_args and keyword_args do not contain _GlobalNodeTable(s)
-        for node_table in positional_args:
-            if isinstance(node_table, _LocalNodeTable):
-                raise Exception(
-                    f"positional_args contains {node_table=} of "
-                    f"type {type(node_table)=} which is not acceptable from "
-                    f"run_udf_on_global_node. {positional_args=}"
-                )
-        for node_table in keyword_args.values():
-            if isinstance(node_table, _LocalNodeTable):
-                raise Exception(
-                    f"keyword_args contains {node_table=} of "
-                    f"type {type(node_table)=} which is not acceptable from "
-                    f"run_udf_on_global_node. {keyword_args=}"
-                )
-
+        #check positional_args and keyword_args do not contain _GlobalNodeTable(s)
+        for arg in positional_args or []:
+            if isinstance(arg,_GlobalNodeTable) and isinstance(arg,Literal):
+                raise Exception(f"positional_args contains {arg=} of "
+                                f"type {type(arg)=} which is not acceptable from "
+                                f"run_udf_on_global_node. {positional_args=}")
+        if keyword_args:
+            for arg in keyword_args.values():
+                if isinstance(arg,_GlobalNodeTable) and isinstance(arg,Literal):
+                    raise Exception(f"keyword_args contains {arg=} of "
+                                    f"type {type(arg)=} which is not acceptable from "
+                                    f"run_udf_on_global_node. {keyword_args=}")
+            
         positional_udf_args = (
             self._algoexec_posargs_to_udf_posargs(positional_args)
             if positional_args
@@ -704,6 +698,7 @@ class _AlgorithmExecutionInterface:
         keyword_udf_args = (
             self._algoexec_kwargs_to_udf_kwargs(keyword_args) if keyword_args else None
         )
+        
         # Queue the udf on global node
         task = self._global_node.queue_run_udf(
             command_id=command_id,
@@ -758,7 +753,6 @@ class _AlgorithmExecutionInterface:
                             native_node=self._global_node,
                         )
                         local_tables.append((node, tables[index]))
-                # breakpoint()
                 handled_tables.append(_LocalNodeTable(nodes_tables=dict(local_tables)))
 
             else:
