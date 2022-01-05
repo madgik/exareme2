@@ -114,11 +114,11 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         self._tasks_timeout = tasks_timeout
 
     @property
-    def node_id(self):
+    def node_id(self) -> str:
         return self._node_id
 
     @property
-    def node_data_address(self):
+    def node_data_address(self) -> str:
         return self._db_address
 
     def _apply_async(self, task_signature, **kwargs) -> AsyncResult:
@@ -148,7 +148,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_table_schema(self, table_name: str):
+    def get_table_schema(self, table_name: str) -> TableSchema:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_schema"])
         result = self._apply_async(
             task_signature=task_signature, table_name=table_name

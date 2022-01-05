@@ -24,30 +24,30 @@ class TableName:
         self._command_subid = full_name_split[4]
 
     @property
-    def full_table_name(self):
+    def full_table_name(self) -> str:
         return self._full_name
 
     @property
-    def table_type(self):
+    def table_type(self) -> str:
         return self._table_type
 
     @property
-    def node_id(self):
+    def node_id(self) -> str:
         return self._node_id
 
     @property
-    def context_id(self):
+    def context_id(self) -> str:
         return self._context_id
 
     @property
-    def command_id(self):
+    def command_id(self) -> str:
         return self._command_id
 
     @property
-    def command_subid(self):
+    def command_subid(self) -> str:
         return self._command_subid
 
-    def without_node_id(self):
+    def without_node_id(self) -> str:
         return (
             self._table_type
             + "_"

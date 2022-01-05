@@ -54,32 +54,184 @@ class NodeDownAlgorithmExecutionException(Exception):
         self.message = message
 
 
-class InconsistentTableSchemasException(Exception):
-    def __init__(self, tables_schemas: Dict["_INodeTable", TableSchema]):
-        message = f"Tables: {tables_schemas} do not have a common schema"
-        super().__init__(message)
-
-
-class InconsistentUDFResultSizeException(Exception):
-    def __init__(self, result_tables: Dict[int, List[Tuple["_Node", TableName]]]):
-        message = (
-            f"The following udf execution results on multiple nodes should have "
-            f"the same number of results.\nResults:{result_tables}"
-        )
-        super().__init__(message)
-
-
-class InconsistentShareTablesValue(Exception):
+class _Node(_INode):
     def __init__(
         self,
-        share_list: List[bool],
-        result_tables: Dict[int, List[Tuple["_Node", TableName]]],
+        context_id: str,
+        node_tasks_handler: INodeTasksHandler,
+        initial_view_tables_params: Dict[str, Any] = None,
     ):
-        message = (
-            f"The size of the {share_list=} does not match the size of the "
-            f"{result_tables=}"
+        self._node_tasks_handler = node_tasks_handler
+        self.node_id = self._node_tasks_handler.node_id
+
+        self.context_id = context_id
+
+        self._initial_view_tables = None
+        if initial_view_tables_params is not None:
+            self._initial_view_tables = self._create_initial_view_tables(
+                initial_view_tables_params
+            )
+
+    def __repr__(self):
+        return f"{self.node_id}"
+
+    @property
+    def initial_view_tables(self) -> Dict[str, TableName]:
+        return self._initial_view_tables
+
+    def _create_initial_view_tables(
+        self, initial_view_tables_params
+    ) -> Dict[str, TableName]:
+        # will contain the views created from the pathology, datasets. Its keys are
+        # the variable sets x, y etc
+        initial_view_tables = {}
+
+        # initial view for variables in X
+        variable = "x"
+        if initial_view_tables_params[variable]:
+            command_id = str(initial_view_tables_params["commandId"]) + variable
+            view_name = self.create_pathology_view(
+                command_id=command_id,
+                pathology=initial_view_tables_params["pathology"],
+                columns=initial_view_tables_params[variable],
+                filters=initial_view_tables_params["filters"],
+            )
+            initial_view_tables["x"] = view_name
+
+        # initial view for variables in Y
+        variable = "y"
+        if initial_view_tables_params[variable]:
+            command_id = str(initial_view_tables_params["commandId"]) + variable
+            view_name = self.create_pathology_view(
+                command_id=command_id,
+                pathology=initial_view_tables_params["pathology"],
+                columns=initial_view_tables_params[variable],
+                filters=initial_view_tables_params["filters"],
+            )
+
+            initial_view_tables["y"] = view_name
+
+        return initial_view_tables
+
+
+    @property
+    def node_address(self)->str:
+        return self._node_tasks_handler.node_data_address
+
+
+    # TABLES functionality
+    def get_tables(self) -> List[TableName]:
+        return self._node_tasks_handler.get_tables(context_id=self.context_id)
+
+    def get_table_schema(self, table_name: TableName)->TableSchema:
+        return self._node_tasks_handler.get_table_schema(
+            table_name=table_name.full_table_name
         )
-        super().__init__(message)
+
+    def get_table_data(self, table_name: TableName) -> TableData:
+        return self._node_tasks_handler.get_table_data(table_name.full_table_name)
+
+    def create_table(self, command_id: str, schema: TableSchema) -> TableName:
+        schema_json = schema.json()
+        return self._node_tasks_handler.create_table(
+            context_id=self.context_id,
+            command_id=command_id,
+            schema=schema_json,
+        )
+
+    # VIEWS functionality
+    def get_views(self) -> List[TableName]:
+        result = self._node_tasks_handler.get_views(context_id=self.context_id)
+        return [TableName(table_name) for table_name in result]
+
+    # TODO: this is very specific to mip, very inconsistent with the rest, has to
+    # be abstracted somehow
+    def create_pathology_view(
+        self,
+        command_id: str,
+        pathology: str,
+        columns: List[str],
+        filters: List[str],
+    ) -> TableName:
+
+        result = self._node_tasks_handler.create_pathology_view(
+            context_id=self.context_id,
+            command_id=command_id,
+            pathology=pathology,
+            columns=columns,
+            filters=filters,
+        )
+        return TableName(result)
+
+    # MERGE TABLES functionality
+
+    def get_merge_tables(self) -> List[TableName]:
+        result = self._node_tasks_handler.get_merge_tables(context_id=self.context_id)
+        return [TableName(table_name) for table_name in result]
+
+    def create_merge_table(self, command_id: str, table_names: List[TableName])->TableName:
+        table_names = [table_name.full_table_name for table_name in table_names]
+        result = self._node_tasks_handler.create_merge_table(
+            context_id=self.context_id,
+            command_id=command_id,
+            table_names=table_names,
+        )
+        return TableName(result)
+
+    # REMOTE TABLES functionality
+
+    def get_remote_tables(self) -> List[str]:
+        return self._node_tasks_handler.get_remote_tables(context_id=self.context_id)
+
+    def create_remote_table(
+        self, table_name: str, table_schema: TableSchema, native_node: "_Node"
+    ):
+
+        monetdb_socket_addr = native_node.node_address
+        self._node_tasks_handler.create_remote_table(
+            table_name=table_name,
+            table_schema=table_schema,
+            original_db_url=monetdb_socket_addr,
+        )
+
+    # UDFs functionality
+    def queue_run_udf(
+        self,
+        command_id: str,
+        func_name: str,
+        positional_args: Optional[UDFPosArguments] = None,
+        keyword_args: Optional[UDFKeyArguments] = None,
+    ) -> IQueuedUDFAsyncResult:
+        return self._node_tasks_handler.queue_run_udf(
+            context_id=self.context_id,
+            command_id=command_id,
+            func_name=func_name,
+            positional_args=positional_args,
+            keyword_args=keyword_args,
+        )
+
+    def get_queued_udf_result(
+        self, async_result: IQueuedUDFAsyncResult
+    ) -> List[TableName]:
+
+        result = self._node_tasks_handler.get_queued_udf_result(async_result)
+        return [TableName(table) for table in result]
+
+    def get_udfs(self, algorithm_name) -> List[str]:
+        return self._node_tasks_handler.get_udfs(algorithm_name)
+
+    def get_run_udf_query(
+        self, command_id: str, func_name: str, positional_args: List["_INodeTable"]
+    ) -> Tuple[str, str]:
+        return self._node_tasks_handler.get_run_udf_query(
+            context_id=self.context_id,
+            command_id=command_id,
+            func_name=func_name,
+            positional_args=positional_args,
+        )
+
+    def clean_up(self):
+        self._node_tasks_handler.clean_up(context_id=self.context_id)
 
 
 class INodeTable(ABC):
@@ -88,7 +240,7 @@ class INodeTable(ABC):
 
 
 class _LocalNodeTable(INodeTable):
-    def __init__(self, nodes_tables: Dict["_Node", "TableName"]):
+    def __init__(self, nodes_tables: Dict[_Node, TableName]):
         self._nodes_tables = nodes_tables
 
         if not self._validate_matching_table_names(list(self._nodes_tables.values())):
@@ -97,7 +249,7 @@ class _LocalNodeTable(INodeTable):
             )
 
     @property
-    def nodes_tables(self):
+    def nodes_tables(self) -> Dict[_Node, TableName]:
         return self._nodes_tables
 
     # TODO this is redundant, either remove it or overload all node methods here?
@@ -122,7 +274,7 @@ class _LocalNodeTable(INodeTable):
             r += f"\t{node=} {table_name=}\n"
         return r
 
-    def _validate_matching_table_names(self, table_names: List[TableName]):
+    def _validate_matching_table_names(self, table_names: List[TableName])->bool:
         table_name_without_node_id = table_names[0].without_node_id()
         for table_name in table_names:
             if table_name.without_node_id() != table_name_without_node_id:
@@ -135,16 +287,16 @@ class _LocalNodeTable(INodeTable):
 
 
 class _GlobalNodeTable(INodeTable):
-    def __init__(self, node: "_Node", table_name: "TableName"):
+    def __init__(self, node: _Node, table_name: TableName):
         self._node = node
         self._table_name = table_name
 
     @property
-    def node(self):
+    def node(self)->_INode:
         return self._node
 
     @property
-    def table_name(self):
+    def table_name(self)->TableName:
         return self._table_name
 
     # TODO this is redundant, either remove it or overload all node methods here?
@@ -159,6 +311,34 @@ class _GlobalNodeTable(INodeTable):
     def __repr__(self):
         r = f"GlobalNodeTable: \n\tschema={self.get_table_schema()}\n \t{self.table_name=}\n"
         return r
+
+
+class InconsistentTableSchemasException(Exception):
+    def __init__(self, tables_schemas: Dict[INodeTable, TableSchema]):
+        message = f"Tables: {tables_schemas} do not have a common schema"
+        super().__init__(message)
+
+
+class InconsistentUDFResultSizeException(Exception):
+    def __init__(self, result_tables: Dict[int, List[Tuple["_Node", TableName]]]):
+        message = (
+            f"The following udf execution results on multiple nodes should have "
+            f"the same number of results.\nResults:{result_tables}"
+        )
+        super().__init__(message)
+
+
+class InconsistentShareTablesValueException(Exception):
+    def __init__(
+        self,
+        share_list: List[bool],
+        result_tables: Dict[int, List[Tuple["_Node", TableName]]],
+    ):
+        message = (
+            f"The size of the {share_list=} does not match the size of the "
+            f"{result_tables=}"
+        )
+        super().__init__(message)
 
 
 class AlgorithmExecutor:
@@ -269,187 +449,6 @@ class AlgorithmExecutor:
                 self._logger.error(f"cleaning up {node=} FAILED {exc=}")
 
 
-class _Node(_INode):
-    def __init__(
-        self,
-        context_id: str,
-        node_tasks_handler: INodeTasksHandler,
-        initial_view_tables_params: Dict[str, Any] = None,
-    ):
-        self._node_tasks_handler = node_tasks_handler
-        self.node_id = self._node_tasks_handler.node_id
-
-        self.context_id = context_id
-
-        self._initial_view_tables = None
-        if initial_view_tables_params is not None:
-            self._initial_view_tables = self._create_initial_view_tables(
-                initial_view_tables_params
-            )
-
-    def __repr__(self):
-        return f"{self.node_id}"
-
-    @property
-    def initial_view_tables(self):
-        return self._initial_view_tables
-
-    def _create_initial_view_tables(self, initial_view_tables_params):
-        # will contain the views created from the pathology, datasets. Its keys are
-        # the variable sets x, y etc
-        initial_view_tables = {}
-
-        # initial view for variables in X
-        variable = "x"
-        if initial_view_tables_params[variable]:
-            command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_pathology_view(
-                command_id=command_id,
-                pathology=initial_view_tables_params["pathology"],
-                columns=initial_view_tables_params[variable],
-                filters=initial_view_tables_params["filters"],
-            )
-            initial_view_tables["x"] = view_name
-
-        # initial view for variables in Y
-        variable = "y"
-        if initial_view_tables_params[variable]:
-            command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_pathology_view(
-                command_id=command_id,
-                pathology=initial_view_tables_params["pathology"],
-                columns=initial_view_tables_params[variable],
-                filters=initial_view_tables_params["filters"],
-            )
-
-            initial_view_tables["y"] = view_name
-
-        return initial_view_tables
-
-    @property
-    def node_address(self):
-        return self._node_tasks_handler.node_data_address
-
-    # TABLES functionality
-
-    def get_tables(self) -> List[TableName]:
-        return self._node_tasks_handler.get_tables(context_id=self.context_id)
-
-    def get_table_schema(self, table_name: TableName):
-        return self._node_tasks_handler.get_table_schema(
-            table_name=table_name.full_table_name
-        )
-
-    def get_table_data(self, table_name: TableName) -> TableData:
-        return self._node_tasks_handler.get_table_data(table_name.full_table_name)
-
-    def create_table(self, command_id: str, schema: TableSchema) -> TableName:
-        schema_json = schema.json()
-        return self._node_tasks_handler.create_table(
-            context_id=self.context_id,
-            command_id=command_id,
-            schema=schema_json,
-        )
-
-    # VIEWS functionality
-
-    def get_views(self) -> List[TableName]:
-        result = self._node_tasks_handler.get_views(context_id=self.context_id)
-        return [TableName(table_name) for table_name in result]
-
-    # TODO: this is very specific to mip, very inconsistent with the rest, has to
-    # be abstracted somehow
-
-    def create_pathology_view(
-        self,
-        command_id: str,
-        pathology: str,
-        columns: List[str],
-        filters: List[str],
-    ) -> TableName:
-
-        result = self._node_tasks_handler.create_pathology_view(
-            context_id=self.context_id,
-            command_id=command_id,
-            pathology=pathology,
-            columns=columns,
-            filters=filters,
-        )
-        return TableName(result)
-
-    # MERGE TABLES functionality
-
-    def get_merge_tables(self) -> List[TableName]:
-        result = self._node_tasks_handler.get_merge_tables(context_id=self.context_id)
-        return [TableName(table_name) for table_name in result]
-
-    def create_merge_table(self, command_id: str, table_names: List[TableName]):
-        table_names = [table_name.full_table_name for table_name in table_names]
-        result = self._node_tasks_handler.create_merge_table(
-            context_id=self.context_id,
-            command_id=command_id,
-            table_names=table_names,
-        )
-        return TableName(result)
-
-    # REMOTE TABLES functionality
-
-    def get_remote_tables(self) -> List[str]:
-        return self._node_tasks_handler.get_remote_tables(context_id=self.context_id)
-
-    def create_remote_table(
-        self, table_name: str, table_schema: TableSchema, native_node: "_Node"
-    ):
-
-        monetdb_socket_addr = native_node.node_address
-        self._node_tasks_handler.create_remote_table(
-            table_name=table_name,
-            table_schema=table_schema,
-            original_db_url=monetdb_socket_addr,
-        )
-
-    # UDFs functionality
-    def queue_run_udf(
-        self,
-        command_id: str,
-        func_name: str,
-        positional_args: Optional[UDFPosArguments] = None,
-        keyword_args: Optional[UDFKeyArguments] = None,
-    ) -> IQueuedUDFAsyncResult:
-        return self._node_tasks_handler.queue_run_udf(
-            context_id=self.context_id,
-            command_id=command_id,
-            func_name=func_name,
-            positional_args=positional_args,
-            keyword_args=keyword_args,
-        )
-
-    def get_queued_udf_result(
-        self, async_result: IQueuedUDFAsyncResult
-    ) -> List[TableName]:
-
-        result = self._node_tasks_handler.get_queued_udf_result(async_result)
-        return [TableName(table) for table in result]
-
-    def get_udfs(self, algorithm_name) -> List[str]:
-        return self._node_tasks_handler.get_udfs(algorithm_name)
-
-    def get_run_udf_query(
-        self, command_id: str, func_name: str, positional_args: List["_INodeTable"]
-    ) -> Tuple[str, str]:
-        return self._node_tasks_handler.get_run_udf_query(
-            context_id=self.context_id,
-            command_id=command_id,
-            func_name=func_name,
-            positional_args=positional_args,
-        )
-
-    # CLEANUP functionality
-
-    def clean_up(self):
-        self._node_tasks_handler.clean_up(context_id=self.context_id)
-
-
 class _AlgorithmExecutionInterfaceDTO(BaseModel):
     global_node: _Node
     local_nodes: List[_Node]
@@ -496,19 +495,19 @@ class _AlgorithmExecutionInterface:
         return self._global_node == self._local_nodes[0]
 
     @property
-    def initial_view_tables(self):
+    def initial_view_tables(self)->Dict[str,_LocalNodeTable]:
         return self._initial_view_tables
 
     @property
-    def algorithm_parameters(self):
+    def algorithm_parameters(self)->Dict[str,Any]:
         return self._algorithm_parameters
 
     @property
-    def x_variables(self):
+    def x_variables(self)->List[str]:
         return self._x_variables
 
     @property
-    def y_variables(self):
+    def y_variables(self)->List[str]:
         return self._y_variables
 
     # UDFs functionality
@@ -518,7 +517,7 @@ class _AlgorithmExecutionInterface:
         positional_args: Optional[List[Union[_LocalNodeTable, Literal]]] = None,
         keyword_args: Optional[Dict[str, Union[_LocalNodeTable, Literal]]] = None,
         share_to_global: Union[bool, List[bool]] = None,
-    ) -> List["_INodeTable"]:
+    ) -> List[INodeTable]:
         # 1. check positional_args and keyword_args tables do not contain _GlobalNodeTable(s)
         # 2. queues run_udf task on all local nodes
         # 3. waits for all nodes to complete the tasks execution
@@ -528,19 +527,23 @@ class _AlgorithmExecutionInterface:
 
         command_id = get_next_command_id()
 
-        #check positional_args and keyword_args do not contain _GlobalNodeTable(s)
+        # check positional_args and keyword_args do not contain _GlobalNodeTable(s)
         for arg in positional_args or []:
-            if isinstance(arg,_LocalNodeTable) and isinstance(arg,Literal):
-                raise Exception(f"positional_args contains {arg=} of "
-                                f"type {type(arg)=} which is not acceptable from "
-                                f"run_udf_on_local_nodes. {positional_args=}")
+            if isinstance(arg, _LocalNodeTable) and isinstance(arg, Literal):
+                raise Exception(
+                    f"positional_args contains {arg=} of "
+                    f"type {type(arg)=} which is not acceptable from "
+                    f"run_udf_on_local_nodes. {positional_args=}"
+                )
         if keyword_args:
             for arg in keyword_args.values():
-                if isinstance(arg,_LocalNodeTable) and isinstance(arg,Literal):
-                    raise Exception(f"keyword_args contains {arg=} of "
-                                    f"type {type(arg)=} which is not acceptable from "
-                                    f"run_udf_on_local_nodes. {keyword_args=}")
-            
+                if isinstance(arg, _LocalNodeTable) and isinstance(arg, Literal):
+                    raise Exception(
+                        f"keyword_args contains {arg=} of "
+                        f"type {type(arg)=} which is not acceptable from "
+                        f"run_udf_on_local_nodes. {keyword_args=}"
+                    )
+
         # Queue the udf on all local nodes
         tasks = {}
         for node in self._local_nodes:
@@ -570,7 +573,7 @@ class _AlgorithmExecutionInterface:
         number_of_results = len(all_nodes_result_tables.keys())
         if isinstance(share_to_global, list):
             if len(share_to_global) != number_of_results:
-                raise InconsistentShareTablesValue(
+                raise InconsistentShareTablesValueException(
                     share_to_global, all_nodes_result_tables
                 )
         else:
@@ -668,7 +671,7 @@ class _AlgorithmExecutionInterface:
         positional_args: Optional[List[Union[_GlobalNodeTable, Literal]]] = None,
         keyword_args: Optional[Dict[str, Union[_GlobalNodeTable, Literal]]] = None,
         share_to_locals: Union[bool, List[bool]] = None,
-    ) -> List["_INodeTable"]:
+    ) -> List[INodeTable]:
         # 1. check positional_args and keyword_args tables do not contain _LocalNodeTable(s)
         # 2. queue run_udf on the global node
         # 3. wait for it to complete
@@ -677,19 +680,23 @@ class _AlgorithmExecutionInterface:
 
         command_id = get_next_command_id()
 
-        #check positional_args and keyword_args do not contain _GlobalNodeTable(s)
+        # check positional_args and keyword_args do not contain _GlobalNodeTable(s)
         for arg in positional_args or []:
-            if isinstance(arg,_GlobalNodeTable) and isinstance(arg,Literal):
-                raise Exception(f"positional_args contains {arg=} of "
-                                f"type {type(arg)=} which is not acceptable from "
-                                f"run_udf_on_global_node. {positional_args=}")
+            if isinstance(arg, _GlobalNodeTable) and isinstance(arg, Literal):
+                raise Exception(
+                    f"positional_args contains {arg=} of "
+                    f"type {type(arg)=} which is not acceptable from "
+                    f"run_udf_on_global_node. {positional_args=}"
+                )
         if keyword_args:
             for arg in keyword_args.values():
-                if isinstance(arg,_GlobalNodeTable) and isinstance(arg,Literal):
-                    raise Exception(f"keyword_args contains {arg=} of "
-                                    f"type {type(arg)=} which is not acceptable from "
-                                    f"run_udf_on_global_node. {keyword_args=}")
-            
+                if isinstance(arg, _GlobalNodeTable) and isinstance(arg, Literal):
+                    raise Exception(
+                        f"keyword_args contains {arg=} of "
+                        f"type {type(arg)=} which is not acceptable from "
+                        f"run_udf_on_global_node. {keyword_args=}"
+                    )
+
         positional_udf_args = (
             self._algoexec_posargs_to_udf_posargs(positional_args)
             if positional_args
@@ -698,7 +705,7 @@ class _AlgorithmExecutionInterface:
         keyword_udf_args = (
             self._algoexec_kwargs_to_udf_kwargs(keyword_args) if keyword_args else None
         )
-        
+
         # Queue the udf on global node
         task = self._global_node.queue_run_udf(
             command_id=command_id,
@@ -713,7 +720,9 @@ class _AlgorithmExecutionInterface:
         # Transform share_to_locals variable
         if isinstance(share_to_locals, list):
             if len(share_to_locals) != len(result_tables):
-                raise InconsistentShareTablesValue(share_to_locals, result_tables)
+                raise InconsistentShareTablesValueException(
+                    share_to_locals, result_tables
+                )
         else:
             if share_to_locals != None:
                 share_to_locals = [share_to_locals for _ in range(len(result_tables))]
@@ -766,14 +775,7 @@ class _AlgorithmExecutionInterface:
         return node_table.get_table_data()
 
     def get_table_schema(self, node_table) -> TableSchema:
-        if isinstance(node_table, _LocalNodeTable) or isinstance(
-            node_table, _GlobalNodeTable
-        ):
-            return node_table.get_table_schema()
-        else:  # TODO specific exception
-            raise Exception(
-                f"(AlgorithmExecutionInterface::get_table_schema) node_table type-> {type(node_table)} not acceptable"
-            )
+        return node_table.get_table_schema()
 
     # -------------helper methods------------
     def _algoexec_kwargs_to_udf_kwargs(
@@ -798,9 +800,8 @@ class _AlgorithmExecutionInterface:
 
     def _algoexec_arg_to_udf_arg(
         self, algoexec_arg: Union[INodeTable, Literal], node: _Node = None
-    ):
+    )->UDFArgument:
         if isinstance(algoexec_arg, INodeTable):
-            # TODO check LocalNodeTable always comes with node
             if node:
                 table_name = algoexec_arg.nodes_tables[node].full_table_name
             else:
@@ -848,7 +849,7 @@ def check_same_schema_tables(
 # NOTE tried to turn this into a generator, the problem is there are multiple consumers
 # so the generator should be singleton in some way, the solutions were more complicated
 # than this simple implementation
-def get_next_command_id():
+def get_next_command_id()->int:
     if hasattr(get_next_command_id, "index"):
         get_next_command_id.index += 1
     else:
