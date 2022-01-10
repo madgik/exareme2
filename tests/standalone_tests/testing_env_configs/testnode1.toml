@@ -1,0 +1,28 @@
+identifier = "testnode1"
+log_level = "DEBUG"
+role = "LOCALNODE"
+cdes_metadata_path = "./tests/demo_data"
+
+[privacy]
+minimum_row_count = 10
+
+[celery]
+worker_concurrency = 1
+task_soft_time_limit = 30
+task_time_limit = 60
+run_udf_soft_time_limit = 30
+run_udf_time_limit = 60
+
+[rabbitmq]
+ip = "172.17.0.1"
+port = 5700
+user = "user"
+password = "password"
+vhost = "user_vhost"
+
+[monetdb]
+ip = "172.17.0.1"
+port = 50456
+database = "db"
+username = "monetdb"
+password = "monetdb"
