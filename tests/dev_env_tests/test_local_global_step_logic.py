@@ -29,7 +29,7 @@ def get_parametrization_list_success_cases():
             },
         },
     }
-
+    
     return [(algorithm_name, request_dict)]
 
 
@@ -46,4 +46,4 @@ def test_local_global_step_algorithms(algorithm_name, request_dict):
         data=json.dumps(request_dict),
         headers=headers,
     )
-    assert response.status_code == 200
+    assert response.status_code == 200   

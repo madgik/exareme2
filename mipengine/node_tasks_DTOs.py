@@ -1,7 +1,6 @@
 import enum
 from abc import ABC
 from typing import Any
-from typing import Dict
 from typing import List
 from typing import Union
 
@@ -13,6 +12,11 @@ from pydantic import (
 from mipengine import DType
 
 # ~~~~~~~~~~~~~~~~~~~~ Enums ~~~~~~~~~~~~~~~~~~~~ #
+from mipengine.table_data_DTOs import ColumnDataBinary
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataInt
+from mipengine.table_data_DTOs import ColumnDataJSON
+from mipengine.table_data_DTOs import ColumnDataStr
 
 
 class UDFArgumentKind(enum.Enum):
@@ -69,24 +73,17 @@ class TableInfo(ImmutableBaseModel):
     _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 
 
-class TableView(ImmutableBaseModel):
-    datasets: List[str]
-    columns: List[str]
-    filter: Dict
-
-    _validate_identifiers = validator(
-        "datasets",
-        "columns",
-        each_item=True,
-        allow_reuse=True,
-    )(validate_identifier)
-
-
 class TableData(ImmutableBaseModel):
-    schema_: TableSchema
-    data_: List[List[Union[float, int, str, None]]]
-    # Union is problematic in pydantic we keep track on that with bug report
-    # https://team-1617704806227.atlassian.net/browse/MIP-245
+    name: str
+    columns: List[
+        Union[
+            ColumnDataInt,
+            ColumnDataStr,
+            ColumnDataFloat,
+            ColumnDataJSON,
+            ColumnDataBinary,
+        ]
+    ]
 
 
 class UDFArgument(ImmutableBaseModel):
