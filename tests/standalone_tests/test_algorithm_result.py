@@ -1,6 +1,6 @@
 import pytest
 
-from mipengine.algorithm_result_DTOs import TabularDataResult
+from mipengine.algorithm_flow_DTOs import TabularDataResult
 
 
 @pytest.fixture

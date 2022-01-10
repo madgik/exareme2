@@ -15,8 +15,8 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 
-from mipengine.algorithm_result_DTOs import TabularDataResult
-from mipengine.algorithm_result_DTOs import TabularDataColumn
+from mipengine.algorithm_DTOs import TabularDataResult
+from mipengine.algorithm_DTOs import TabularDataColumn
 
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 
