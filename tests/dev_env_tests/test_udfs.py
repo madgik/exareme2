@@ -7,7 +7,7 @@ from billiard.exceptions import TimeLimitExceeded
 
 from mipengine import DType
 from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TabularData
+from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
@@ -30,8 +30,8 @@ local_node_create_table = nodes_communication.get_celery_task_signature(
 local_node_insert_data_to_table = nodes_communication.get_celery_task_signature(
     localnode_app, "insert_data_to_table"
 )
-local_node_get_tabular_data = nodes_communication.get_celery_task_signature(
-    localnode_app, "get_tabular_data"
+local_node_get_table_data = nodes_communication.get_celery_task_signature(
+    localnode_app, "get_table_data"
 )
 local_node_cleanup = nodes_communication.get_celery_task_signature(
     localnode_app, "clean_up"
@@ -92,13 +92,13 @@ def test_run_udf_relation_to_scalar(context_id, table_with_one_column_and_ten_ro
         keyword_args_json=args,
     ).get()
 
-    tabular_data_json = local_node_get_tabular_data.delay(
+    table_data_json = local_node_get_table_data.delay(
         table_name=result_table_name
     ).get()
 
-    tabular_data: TabularData = TabularData.parse_raw(tabular_data_json)
+    table_data: TableData = TableData.parse_raw(table_data_json)
 
-    assert tabular_data.columns[0].data[0] == 10
+    assert table_data.columns[0].data[0] == 10
 
 
 def test_run_udf_state_and_transfer_output(
@@ -120,11 +120,11 @@ def test_run_udf_state_and_transfer_output(
         keyword_args_json=args,
     ).get()
 
-    transfer_tabular_data_json = local_node_get_tabular_data.delay(
+    transfer_table_data_json = local_node_get_table_data.delay(
         table_name=transfer_result_table
     ).get()
-    tabular_data: TabularData = TabularData.parse_raw(transfer_tabular_data_json)
-    transfer_result_str = tabular_data.columns[1].data[0]
+    table_data: TableData = TableData.parse_raw(transfer_table_data_json)
+    transfer_result_str = table_data.columns[1].data[0]
     transfer_result = json.loads(transfer_result_str)
     assert "count" in transfer_result.keys()
     assert transfer_result["count"] == 10

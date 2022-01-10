@@ -1,8 +1,8 @@
 import json
 from typing import TypeVar
 
-from mipengine.tabular_data_DTOs import ColumnDataFloat
-from mipengine.tabular_data_DTOs import ColumnDataStr
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.udfgen import (
     make_unique_func_name,
     relation,
@@ -49,7 +49,7 @@ def run(algo_interface):
         positional_args=[global_state, local_result],
     )
 
-    std_deviation = json.loads(global_result.get_tabular_data()[1][0])["deviation"]
+    std_deviation = json.loads(global_result.get_table_data()[1][0])["deviation"]
     x_variables = algo_interface.x_variables
 
     result = TabularDataResult(

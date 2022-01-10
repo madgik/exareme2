@@ -21,7 +21,7 @@ from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncRes
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller import controller_logger as ctrl_logger
 
-from mipengine.node_tasks_DTOs import TabularData
+from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
@@ -259,8 +259,8 @@ class _Node:
             table_name=table_name.full_table_name
         )
 
-    def get_tabular_data(self, table_name: _TableName) -> TabularData:
-        return self._node_tasks_handler.get_tabular_data(table_name.full_table_name)
+    def get_table_data(self, table_name: _TableName) -> TableData:
+        return self._node_tasks_handler.get_table_data(table_name.full_table_name)
 
     def create_table(self, command_id: str, schema: TableSchema) -> _TableName:
         schema_json = schema.json()
@@ -703,8 +703,8 @@ class _AlgorithmExecutionInterface:
         return final_results_tables
 
     # TABLES functionality
-    def get_tabular_data(self, node_table) -> TabularData:
-        return node_table.get_tabular_data()
+    def get_table_data(self, node_table) -> TableData:
+        return node_table.get_table_data()
 
     def get_table_schema(self, node_table) -> TableSchema:
         if isinstance(node_table, _LocalNodeTable) or isinstance(
@@ -741,11 +741,11 @@ class _LocalNodeTable(_INodeTable):
         table = self.nodes_tables[node]
         return node.get_table_schema(table)
 
-    def get_tabular_data(self):  # -> {Node:TabularData}
+    def get_table_data(self):  # -> {Node:TableData}
         tables_data = []
         for node, table_name in self.nodes_tables.items():
-            tables_data.append(node.get_tabular_data(table_name))
-        tables_data_flat = [tabular_data.columns for tabular_data in tables_data]
+            tables_data.append(node.get_table_data(table_name))
+        tables_data_flat = [table_data.columns for table_data in tables_data]
         tables_data_flat = [
             elem
             for table in tables_data_flat
@@ -759,7 +759,7 @@ class _LocalNodeTable(_INodeTable):
         r += f"schema: {self.get_table_schema()}\n"
         for node, table_name in self.nodes_tables.items():
             r += f"{node} - {table_name} \ndata(LIMIT 20):\n"
-            rows = list(zip(*node.get_tabular_data(table_name).columns))
+            rows = list(zip(*node.get_table_data(table_name).columns))
             tmp = [str(row) for row in rows[0:20]]
             r += "\n".join(tmp)
             r += "\n"
@@ -792,13 +792,11 @@ class _GlobalNodeTable(_INodeTable):
         table_schema: TableSchema = node.get_table_schema(table_name).columns
         return table_schema
 
-    def get_tabular_data(self):  # -> {Node:TabularData}
+    def get_table_data(self):  # -> {Node:TableData}
         node = list(self.node_table.keys())[0]
         table_name: _TableName = list(self.node_table.values())[0]
-        tabular_data = [
-            column.data for column in node.get_tabular_data(table_name).columns
-        ]
-        return tabular_data
+        table_data = [column.data for column in node.get_table_data(table_name).columns]
+        return table_data
 
     def __repr__(self):
         node = list(self.node_table.keys())[0]
@@ -806,7 +804,7 @@ class _GlobalNodeTable(_INodeTable):
         r = f"GlobalNodeTable: {table_name.full_table_name}"
         r += f"\nschema: {self.get_table_schema()}"
         r += f"\ndata (LIMIT 20): \n"
-        tmp = [str(row) for row in self.get_tabular_data()[0:20]]
+        tmp = [str(row) for row in self.get_table_data()[0:20]]
         r += "\n".join(tmp)
         return r
 

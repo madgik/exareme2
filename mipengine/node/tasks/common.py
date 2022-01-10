@@ -6,7 +6,7 @@ from mipengine.node.monetdb_interface.common_actions import get_initial_data_sch
 from mipengine.node.monetdb_interface.common_actions import get_schema_datasets
 from mipengine.node.node_logger import initialise_logger
 from mipengine.node_info_DTOs import NodeInfo
-from mipengine.node_tasks_DTOs import TabularData
+from mipengine.node_tasks_DTOs import TableData
 
 
 @shared_task
@@ -55,7 +55,7 @@ def get_table_schema(table_name: str) -> str:
 
 @shared_task
 @initialise_logger
-def get_tabular_data(table_name: str) -> str:
+def get_table_data(table_name: str) -> str:
     """
     Parameters
     ----------
@@ -64,13 +64,13 @@ def get_tabular_data(table_name: str) -> str:
 
     Returns
     ------
-    str(TabularData)
-        An object of TabularData in a jsonified format
+    str(TableData)
+        An object of TableData in a jsonified format
     """
     schema = common_actions.get_table_schema(table_name)
-    columns = common_actions.get_tabular_data(table_name, schema)
+    columns = common_actions.get_table_data(table_name, schema)
 
-    return TabularData(name=table_name, columns=columns).json()
+    return TableData(name=table_name, columns=columns).json()
 
 
 @shared_task

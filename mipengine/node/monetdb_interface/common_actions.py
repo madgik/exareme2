@@ -2,11 +2,11 @@ from typing import List
 
 from mipengine import DType
 from mipengine.node_exceptions import TablesNotFound
-from mipengine.tabular_data_DTOs import ColumnDataBinary
-from mipengine.tabular_data_DTOs import ColumnDataFloat
-from mipengine.tabular_data_DTOs import ColumnDataInt
-from mipengine.tabular_data_DTOs import ColumnDataJSON
-from mipengine.tabular_data_DTOs import ColumnDataStr
+from mipengine.table_data_DTOs import ColumnDataBinary
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataInt
+from mipengine.table_data_DTOs import ColumnDataJSON
+from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
@@ -14,7 +14,7 @@ from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 # TODO We need to add the PRIVATE/OPEN table logic
 from mipengine.node_tasks_DTOs import TableType
-from mipengine.tabular_data_DTOs import _ColumnData
+from mipengine.table_data_DTOs import _ColumnData
 
 
 def create_table_name(
@@ -150,7 +150,7 @@ def get_table_names(table_type: TableType, context_id: str) -> List[str]:
     return [table[0] for table in table_names]
 
 
-def get_tabular_data(table_name: str, schema: TableSchema) -> List[_ColumnData]:
+def get_table_data(table_name: str, schema: TableSchema) -> List[_ColumnData]:
     """
     Returns a list of columns data which will contain name, type and the data of the specific column.
 
@@ -176,7 +176,7 @@ def get_tabular_data(table_name: str, schema: TableSchema) -> List[_ColumnData]:
         """
     )
 
-    # TabularData contain columns
+    # TableData contain columns
     # we need to switch the data given from the database from row-stored to column-stored
     data = list(zip(*data))
 

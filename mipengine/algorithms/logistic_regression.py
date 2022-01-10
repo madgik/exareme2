@@ -4,8 +4,8 @@ from typing import TypeVar
 import numpy
 import pandas as pd
 
-from mipengine.tabular_data_DTOs import ColumnDataFloat
-from mipengine.tabular_data_DTOs import ColumnDataStr
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.udfgen import (
     TensorBinaryOp,
     TensorUnaryOp,
@@ -120,7 +120,7 @@ def run(algo_interface):
             keyword_args={"v1": y, "v2": s},
         )
 
-        newlogloss = sum(newlogloss.get_tabular_data())
+        newlogloss = sum(newlogloss.get_table_data())
 
         # ~~~~~~~~ Global part ~~~~~~~~ #
         hessian_global = global_run(
@@ -146,7 +146,7 @@ def run(algo_interface):
             break
         logloss = newlogloss
 
-    coeff_values = coeff.get_tabular_data()[2]
+    coeff_values = coeff.get_table_data()[2]
     x_variables = algo_interface.x_variables
     result = TabularDataResult(
         title="Logistic Regression Coefficients",

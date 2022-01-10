@@ -1,7 +1,7 @@
 import uuid
 import pytest
 from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TabularData
+from mipengine.node_tasks_DTOs import TableData
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.dev_env_tests.nodes_communication import get_celery_task_signature
@@ -35,8 +35,8 @@ global_node_create_merge_table = get_celery_task_signature(
 global_node_get_merge_tables = get_celery_task_signature(
     global_node, "get_merge_tables"
 )
-global_node_get_merge_tabular_data = get_celery_task_signature(
-    global_node, "get_tabular_data"
+global_node_get_merge_table_data = get_celery_task_signature(
+    global_node, "get_table_data"
 )
 
 clean_up_node1 = get_celery_task_signature(local_node_1, "clean_up")
@@ -120,11 +120,11 @@ def test_create_merge_table_with_remote_tables(context_id):
     assert merge_table_name in merge_tables
 
     # Validate merge table row count
-    tabular_data_json = global_node_get_merge_tabular_data.delay(
+    table_data_json = global_node_get_merge_table_data.delay(
         table_name=merge_table_name
     ).get()
-    tabular_data = TabularData.parse_raw(tabular_data_json)
-    column_count = len(tabular_data.columns)
+    table_data = TableData.parse_raw(table_data_json)
+    column_count = len(table_data.columns)
     assert column_count == 3
-    row_count = len(tabular_data.columns[0].data)
+    row_count = len(table_data.columns[0].data)
     assert row_count == 6

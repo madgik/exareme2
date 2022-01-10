@@ -12,11 +12,11 @@ from pydantic import (
 from mipengine import DType
 
 # ~~~~~~~~~~~~~~~~~~~~ Enums ~~~~~~~~~~~~~~~~~~~~ #
-from mipengine.tabular_data_DTOs import ColumnDataBinary
-from mipengine.tabular_data_DTOs import ColumnDataFloat
-from mipengine.tabular_data_DTOs import ColumnDataInt
-from mipengine.tabular_data_DTOs import ColumnDataJSON
-from mipengine.tabular_data_DTOs import ColumnDataStr
+from mipengine.table_data_DTOs import ColumnDataBinary
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataInt
+from mipengine.table_data_DTOs import ColumnDataJSON
+from mipengine.table_data_DTOs import ColumnDataStr
 
 
 class UDFArgumentKind(enum.Enum):
@@ -73,7 +73,7 @@ class TableInfo(ImmutableBaseModel):
     _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 
 
-class TabularData(ImmutableBaseModel):
+class TableData(ImmutableBaseModel):
     name: str
     columns: List[
         Union[

@@ -3,15 +3,15 @@ from typing import List
 import pytest
 from pydantic import ValidationError
 
-from mipengine.tabular_data_DTOs import ColumnDataFloat
-from mipengine.tabular_data_DTOs import ColumnDataInt
-from mipengine.tabular_data_DTOs import ColumnDataStr
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataInt
+from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.node_tasks_DTOs import (
     DType,
     ColumnInfo,
     TableSchema,
     TableInfo,
-    TabularData,
+    TableData,
     UDFArgument,
 )
 from mipengine.node_tasks_DTOs import TableType
@@ -78,12 +78,12 @@ def test_tabular_data_with_different_column_types():
         ColumnDataInt(data=[4, 4], name="column4"),
         ColumnDataFloat(data=[5.0, 5.0], name="column5"),
     ]
-    data = TabularData(
+    data = TableData(
         name="table_name",
         columns=expected_columns,
     )
     assert data.columns == expected_columns
-    assert TabularData.parse_raw(data.json()) == data
+    assert TableData.parse_raw(data.json()) == data
 
 
 # validation check for TableSchema with error
@@ -180,11 +180,11 @@ def test_table_info_immutable():
 
 def test_tabular_data_error():
     with pytest.raises(ValidationError):
-        TabularData(name="foo", columns=34)
+        TableData(name="foo", columns=34)
 
 
 def test_tabular_data_immutable():
-    data = TabularData(
+    data = TableData(
         name="table",
         columns=[
             ColumnDataFloat(name="layla", data=[9.1]),
@@ -197,7 +197,7 @@ def test_tabular_data_immutable():
 
 def test_tabular_data():
     with pytest.raises(ValidationError):
-        TabularData(
+        TableData(
             name="this is not a table name",
             columns="and this is not a list of columns",
         )
