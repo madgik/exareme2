@@ -30,30 +30,14 @@ def get_parametrization_list_success_cases():
         },
     }
 
-    expected_response = {
-        "title": "Standard Deviation",
-        "columns": [
-            {"name": "variable", "type": "string"},
-            {"name": "std_deviation", "type": "number"},
-        ],
-        "data": [
-            ["lefthippocampus", "0.3773485998788057"],
-        ],
-    }
-    # TODO quotes should be removed from the lefthippocampus value.
-    # BUG related https://team-1617704806227.atlassian.net/browse/MIP-260
-
-    parametrization_list = []
-    parametrization_list.append((algorithm_name, request_dict, expected_response))
-
-    return parametrization_list
+    return [(algorithm_name, request_dict)]
 
 
 @pytest.mark.parametrize(
-    "algorithm_name, request_dict, expected_response",
+    "algorithm_name, request_dict",
     get_parametrization_list_success_cases(),
 )
-def test_local_global_step_algorithms(algorithm_name, request_dict, expected_response):
+def test_local_global_step_algorithms(algorithm_name, request_dict):
     algorithm_url = algorithms_url + "/" + algorithm_name
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
@@ -63,10 +47,3 @@ def test_local_global_step_algorithms(algorithm_name, request_dict, expected_res
         headers=headers,
     )
     assert response.status_code == 200
-    assert response.json()["title"] == expected_response["title"]
-    assert response.json()["columns"] == expected_response["columns"]
-    assert response.json()["data"][0][0] == expected_response["data"][0][0]
-    # Assert the standard deviation with 4 decimals only
-    assert round(float(response.json()["data"][0][1]), 4) == round(
-        float(expected_response["data"][0][1]), 4
-    )
