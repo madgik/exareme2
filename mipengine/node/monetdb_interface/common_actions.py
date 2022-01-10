@@ -150,7 +150,7 @@ def get_table_names(table_type: TableType, context_id: str) -> List[str]:
     return [table[0] for table in table_names]
 
 
-def get_table_data(table_name: str, schema: TableSchema) -> List[_ColumnData]:
+def get_table_data(table_name: str) -> List[_ColumnData]:
     """
     Returns a list of columns data which will contain name, type and the data of the specific column.
 
@@ -158,14 +158,13 @@ def get_table_data(table_name: str, schema: TableSchema) -> List[_ColumnData]:
     ----------
     table_name : str
         The name of the table
-    schema : TableSchema
-        The schema of table
 
     Returns
     ------
     List[_ColumnData]
         A list of column data
     """
+    schema = get_table_schema(table_name)
 
     data = MonetDB().execute_and_fetchall(
         f"""

@@ -70,7 +70,7 @@ def test_table_schema():
     assert isinstance(cols[1], ColumnInfo)
 
 
-def test_tabular_data_with_different_column_types():
+def test_table_data_with_different_column_types():
     expected_columns = [
         ColumnDataFloat(data=[1.0, None], name="column1"),
         ColumnDataInt(data=[2, None], name="column2"),
@@ -178,12 +178,12 @@ def test_table_info_immutable():
         info.name = "newname"
 
 
-def test_tabular_data_error():
+def test_table_data_error():
     with pytest.raises(ValidationError):
         TableData(name="foo", columns=34)
 
 
-def test_tabular_data_immutable():
+def test_table_data_immutable():
     data = TableData(
         name="table",
         columns=[
@@ -195,7 +195,7 @@ def test_tabular_data_immutable():
         data.name = "newname"
 
 
-def test_tabular_data():
+def test_table_data():
     with pytest.raises(ValidationError):
         TableData(
             name="this is not a table name",

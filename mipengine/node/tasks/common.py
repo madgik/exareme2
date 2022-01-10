@@ -67,8 +67,7 @@ def get_table_data(table_name: str) -> str:
     str(TableData)
         An object of TableData in a jsonified format
     """
-    schema = common_actions.get_table_schema(table_name)
-    columns = common_actions.get_table_data(table_name, schema)
+    columns = common_actions.get_table_data(table_name)
 
     return TableData(name=table_name, columns=columns).json()
 
