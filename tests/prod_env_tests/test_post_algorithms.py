@@ -97,7 +97,6 @@ def test_post_algorithm_success(algorithm_name, request_dict, expected_response)
     assert response.status_code == 200
 
 
-@pytest.mark.xfail(reason="https://team-1617704806227.atlassian.net/browse/MIP-260")
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_success_cases(),

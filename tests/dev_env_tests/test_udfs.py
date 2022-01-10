@@ -98,7 +98,7 @@ def test_run_udf_relation_to_scalar(context_id, table_with_one_column_and_ten_ro
 
     table_data: TableData = TableData.parse_raw(table_data_json)
 
-    assert table_data.data_[0][0] == 10
+    assert table_data.columns[0].data[0] == 10
 
 
 def test_run_udf_state_and_transfer_output(
@@ -124,7 +124,7 @@ def test_run_udf_state_and_transfer_output(
         table_name=transfer_result_table
     ).get()
     table_data: TableData = TableData.parse_raw(transfer_table_data_json)
-    _, transfer_result_str = table_data.data_[0]
+    transfer_result_str = table_data.columns[1].data[0]
     transfer_result = json.loads(transfer_result_str)
     assert "count" in transfer_result.keys()
     assert transfer_result["count"] == 10
