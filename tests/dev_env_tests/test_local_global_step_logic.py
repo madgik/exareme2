@@ -29,7 +29,6 @@ def get_parametrization_list_success_cases():
             },
         },
     }
-
     return [(algorithm_name, request_dict)]
 
 
