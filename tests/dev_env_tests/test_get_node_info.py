@@ -48,19 +48,19 @@ test_cases_get_node_info = [
 
 
 @pytest.mark.parametrize(
-    "node_id, proper_node_info",
+    "node_id, expected_node_info",
     test_cases_get_node_info,
 )
-def test_get_node_info(node_id, proper_node_info):
+def test_get_node_info(node_id, expected_node_info):
     node_app = get_celery_app(node_id)
     node_info_signature = get_celery_task_signature(node_app, "get_node_info")
     task_response = node_info_signature.delay().get()
     node_info = NodeInfo.parse_raw(task_response)
 
-    # Compare all the NodeInfo but the datasets_per_schema, it's tested separately
-    node_info.datasets_per_schema = None
-    proper_node_info.datasets_per_schema = None
-    assert node_info == proper_node_info
+    # Compare id and role. IPs and ports are machine dependent and
+    # datasets_per_schema is tested elsewhere.
+    assert node_info.id == expected_node_info.id
+    assert node_info.role == expected_node_info.role
 
 
 def setup_data_table_in_db(node_id, datasets_per_schema):
@@ -81,8 +81,8 @@ def setup_data_table_in_db(node_id, datasets_per_schema):
             add_values_to_table(node_id, table_name, table_values)
 
 
-# The create_table task cannot be used because it requires specific table name convention
-# that doesn't fit with the initial data table names
+# The create_table task cannot be used because it requires specific table name
+# convention that doesn't fit with the initial data table names
 def create_data_table_in_db(node_id, table_name, table_schema):
     sql_columns_schema_query = convert_schema_to_sql_query_format(table_schema)
     sql_query = (
@@ -151,22 +151,22 @@ test_cases_get_node_info_datasets = [
 
 
 @pytest.mark.parametrize(
-    "node_id, proper_datasets_per_schema",
+    "node_id, expected_datasets_per_schema",
     test_cases_get_node_info_datasets,
 )
-def test_get_node_info_datasets(node_id, proper_datasets_per_schema):
-    setup_data_table_in_db(node_id, proper_datasets_per_schema)
+def test_get_node_info_datasets(node_id, expected_datasets_per_schema):
+    setup_data_table_in_db(node_id, expected_datasets_per_schema)
     node_app = get_celery_app(node_id)
     get_node_info_signature = get_celery_task_signature(node_app, "get_node_info")
     task_response = get_node_info_signature.delay().get()
     node_info = NodeInfo.parse_raw(task_response)
 
     assert set(node_info.datasets_per_schema.keys()) == set(
-        proper_datasets_per_schema.keys()
+        expected_datasets_per_schema.keys()
     )
-    for schema in proper_datasets_per_schema.keys():
+    for schema in expected_datasets_per_schema.keys():
         assert set(node_info.datasets_per_schema[schema]) == set(
-            proper_datasets_per_schema[schema]
+            expected_datasets_per_schema[schema]
         )
 
-    teardown_data_tables_in_db(node_id, proper_datasets_per_schema)
+    teardown_data_tables_in_db(node_id, expected_datasets_per_schema)
