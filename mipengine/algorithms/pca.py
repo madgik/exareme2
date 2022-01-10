@@ -25,7 +25,7 @@ def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
     global_run = algo_interface.run_udf_on_global_node
 
-    X_relation: "LocalNodeTable" = algo_interface.initial_view_tables["x"]
+    X_relation = algo_interface.initial_view_tables["x"]
 
     local_transfers = local_run(
         func_name=make_unique_func_name(local1),
@@ -107,9 +107,9 @@ def local2(x, global_transfer):
 def global2(local_transfers, prev_state):
     gramian = sum(numpy.array(t["gramian"]) for t in local_transfers)
     n_obs = prev_state["n_obs"]
+    covariance = gramian / (n_obs - 1)
 
-    covariance = numpy.divide(gramian, n_obs - 1)
-    eigenvalues, eigenvectors = numpy.linalg.eigh(covariance)
+    eigenvalues, eigenvectors = numpy.linalg.eig(covariance)
     idx = eigenvalues.argsort()[::-1]
     eigenvalues = eigenvalues[idx]
     eigenvectors = eigenvectors[:, idx]
