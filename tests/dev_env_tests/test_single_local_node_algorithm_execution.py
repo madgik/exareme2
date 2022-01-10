@@ -1,0 +1,136 @@
+import pytest
+import asyncio
+import time
+
+# from mipengine.controller.controller import Controller
+# from mipengine.controller.node_registry import node_registry
+
+from tests.dev_env_tests.nodes_communication import get_celery_task_signature
+from tests.dev_env_tests.nodes_communication import get_celery_app
+from tests.dev_env_tests.nodes_communication import get_node_config_by_id
+
+from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
+from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
+from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
+from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
+
+from mipengine.algorithm_result_DTOs import TabularDataResult
+from mipengine.algorithm_result_DTOs import TabularDataColumn
+
+from mipengine.controller.algorithm_executor import AlgorithmExecutor
+
+
+def get_parametrization():
+
+    algo_execution_dto = AlgorithmExecutionDTO(
+        context_id="123",
+        algorithm_name="logistic_regression",
+        algorithm_request_dto=AlgorithmRequestDTO(
+            inputdata=AlgorithmInputDataDTO(
+                pathology="dementia",
+                datasets=["edsd"],
+                filters={
+                    "condition": "AND",
+                    "rules": [
+                        {
+                            "id": "dataset",
+                            "type": "string",
+                            "value": ["edsd"],
+                            "operator": "in",
+                        },
+                        {
+                            "condition": "AND",
+                            "rules": [
+                                {
+                                    "id": variable,
+                                    "type": "string",
+                                    "operator": "is_not_null",
+                                    "value": None,
+                                }
+                                for variable in [
+                                    "lefthippocampus",
+                                    "righthippocampus",
+                                    "rightppplanumpolare",
+                                    "leftamygdala",
+                                    "rightamygdala",
+                                    "alzheimerbroadcategory",
+                                ]
+                            ],
+                        },
+                    ],
+                    "valid": True,
+                },
+                x=[
+                    "lefthippocampus",
+                    "righthippocampus",
+                    "rightppplanumpolare",
+                    "leftamygdala",
+                    "rightamygdala",
+                ],
+                y=["alzheimerbroadcategory"],
+            ),
+            parameters={"classes": ["AD", "CN"]},
+        ),
+    )
+
+    expected_result = TabularDataResult(
+        title="Logistic Regression Coefficients",
+        columns=[
+            TabularDataColumn(name="variable", type="string"),
+            TabularDataColumn(name="coefficient", type="number"),
+        ],
+        data=[
+            ["lefthippocampus", -3.809188],
+            ["righthippocampus", 4.595969],
+            ["rightppplanumpolare", 3.6549711],
+            ["leftamygdala", -2.4617643],
+            ["rightamygdala", -11.787596],
+        ],
+    )
+
+    return [(algo_execution_dto, expected_result)]
+
+
+@pytest.mark.parametrize(
+    "algo_execution_dto,expected_result",
+    get_parametrization(),
+)
+def test_single_local_node_algorithm_execution(algo_execution_dto, expected_result):
+
+    local_node_id = "localnode1"
+    global_node_id = "globalnode"
+
+    # GLOBALNODE
+    node_config = get_node_config_by_id(global_node_id)
+    queue_addr = str(node_config.rabbitmq.ip) + ":" + str(node_config.rabbitmq.port)
+    db_addr = str(node_config.monetdb.ip) + ":" + str(node_config.monetdb.port)
+    global_node_task_handler = NodeTasksHandlerCelery(
+        node_id=global_node_id,
+        node_queue_addr=queue_addr,
+        node_db_addr=db_addr,
+        tasks_timeout=45,
+    )
+
+    # LOCALNODE
+    node_config = get_node_config_by_id(local_node_id)
+    queue_addr = str(node_config.rabbitmq.ip) + ":" + str(node_config.rabbitmq.port)
+    db_addr = str(node_config.monetdb.ip) + ":" + str(node_config.monetdb.port)
+    local_node_task_handler = NodeTasksHandlerCelery(
+        node_id=local_node_id,
+        node_queue_addr=queue_addr,
+        node_db_addr=db_addr,
+        tasks_timeout=45,
+    )
+
+    single_node_task_handler = NodesTasksHandlersDTO(
+        global_node_tasks_handler=global_node_task_handler,
+        local_nodes_tasks_handlers=[local_node_task_handler],
+    )
+    algo_executor = AlgorithmExecutor(
+        algorithm_execution_dto=algo_execution_dto,
+        nodes_tasks_handlers_dto=single_node_task_handler,
+    )
+    result = algo_executor.run()
+
+    assert result == expected_result

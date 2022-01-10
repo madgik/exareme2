@@ -269,7 +269,7 @@ class _LocalNodeTable(INodeTable):
         return tables_data_flat
 
     def __repr__(self):
-        r = f"LocalNodeTable: {self.get_table_schema()}\n"
+        r = f"\n\tLocalNodeTable: {self.get_table_schema()}\n"
         for node, table_name in self.nodes_tables.items():
             r += f"\t{node=} {table_name=}\n"
         return r
@@ -309,7 +309,7 @@ class _GlobalNodeTable(INodeTable):
         return table_data
 
     def __repr__(self):
-        r = f"GlobalNodeTable: \n\tschema={self.get_table_schema()}\n \t{self.table_name=}\n"
+        r = f"\n\tGlobalNodeTable: \n\tschema={self.get_table_schema()}\n \t{self.table_name=}\n"
         return r
 
 
@@ -598,6 +598,7 @@ class _AlgorithmExecutionInterface:
         # backward compatibility.. TODO always return list??
         if len(results_after_sharing_step) == 1:
             results_after_sharing_step = results_after_sharing_step[0]
+
         return results_after_sharing_step
 
     def run_udf_on_global_node(
