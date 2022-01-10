@@ -102,7 +102,7 @@ def test_post_algorithm_success(algorithm_name, request_dict, expected_response)
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_success_cases(),
 )
-def test_post_algorithm_proper_result(algorithm_name, request_dict, expected_response):
+def test_post_algorithm_correct_result(algorithm_name, request_dict, expected_response):
     algorithm_url = algorithms_url + "/" + algorithm_name
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
@@ -111,7 +111,7 @@ def test_post_algorithm_proper_result(algorithm_name, request_dict, expected_res
         data=json.dumps(request_dict),
         headers=headers,
     )
-    assert not response.json() == expected_response
+    assert response.json() == expected_response
 
 
 def get_parametrization_list_exception_cases():
