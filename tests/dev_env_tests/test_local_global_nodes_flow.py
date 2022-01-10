@@ -4,7 +4,6 @@ from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableType
 from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 from tests.dev_env_tests.nodes_communication import get_celery_app
 from tests.dev_env_tests.nodes_communication import get_node_config_by_id
@@ -125,5 +124,7 @@ def test_create_merge_table_with_remote_tables(context_id):
         table_name=merge_table_name
     ).get()
     table_data = TableData.parse_raw(table_data_json)
-    row_count = len(table_data.data_)
+    column_count = len(table_data.columns)
+    assert column_count == 3
+    row_count = len(table_data.columns[0].data)
     assert row_count == 6

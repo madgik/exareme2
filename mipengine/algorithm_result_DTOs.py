@@ -1,13 +1,13 @@
-from typing import List, Union
+from typing import List
+from typing import Union
+
 from pydantic import BaseModel
 
-
-class TabularDataColumn(BaseModel):
-    name: str
-    type: str
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataInt
+from mipengine.table_data_DTOs import ColumnDataStr
 
 
 class TabularDataResult(BaseModel):
     title: str
-    columns: List[TabularDataColumn]
-    data: List[List[Union[float, str]]]
+    columns: List[Union[ColumnDataInt, ColumnDataStr, ColumnDataFloat]]
