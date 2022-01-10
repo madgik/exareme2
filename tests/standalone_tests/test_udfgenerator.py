@@ -1305,7 +1305,7 @@ class TestUDFGen_TensorToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
 CREATE OR REPLACE FUNCTION
 $udf_name(x_dim0 INT,x_dim1 INT,x_val INT)
 RETURNS
-TABLE(dim0 INT,dim1 INT,val REAL)
+TABLE(dim0 INT,dim1 INT,val DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -1338,7 +1338,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val DOUBLE);",
             }
         ]
 
@@ -1375,9 +1375,9 @@ class TestUDFGen_RelationToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(r_col0 INT,r_col1 REAL,r_col2 VARCHAR(500))
+$udf_name(r_col0 INT,r_col1 DOUBLE,r_col2 VARCHAR(500))
 RETURNS
-TABLE(dim0 INT,dim1 INT,val REAL)
+TABLE(dim0 INT,dim1 INT,val DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -1410,7 +1410,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val DOUBLE);",
             }
         ]
 
@@ -1453,7 +1453,7 @@ class TestUDFGen_TensorToRelation(TestUDFGenBase, _TestGenerateUDFQueries):
 CREATE OR REPLACE FUNCTION
 $udf_name(x_dim0 INT,x_val INT)
 RETURNS
-TABLE(ci INT,cf REAL)
+TABLE(ci INT,cf DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -1484,7 +1484,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),ci INT,cf REAL);",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),ci INT,cf DOUBLE);",
             }
         ]
 
@@ -1713,9 +1713,9 @@ class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase, _TestGenerateUDFQueries)
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name(r_c0 INT,r_c1 REAL,r_c2 VARCHAR(500))
+$udf_name(r_c0 INT,r_c1 DOUBLE,r_c2 VARCHAR(500))
 RETURNS
-TABLE(dim0 INT,dim1 INT,val REAL)
+TABLE(dim0 INT,dim1 INT,val DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -1748,7 +1748,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val DOUBLE);",
             }
         ]
 
@@ -2192,7 +2192,7 @@ class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase, _TestGenerateUDFQuerie
 CREATE OR REPLACE FUNCTION
 $udf_name(x_dim0 INT,x_val INT,y_dim0 INT,y_val INT)
 RETURNS
-REAL
+DOUBLE
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -2221,7 +2221,7 @@ WHERE
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(result REAL);",
+                "create_query": "CREATE TABLE $main_output_table_name(result DOUBLE);",
             }
         ]
 
@@ -2287,7 +2287,7 @@ ORDER BY
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val REAL);",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val DOUBLE);",
             }
         ]
 
@@ -2357,7 +2357,7 @@ ORDER BY
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val REAL);",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,dim1 INT,val DOUBLE);",
             }
         ]
 
@@ -2405,7 +2405,7 @@ FROM
             {
                 "tablename_placeholder": "main_output_table_name",
                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val REAL);",
+                "create_query": "CREATE TABLE $main_output_table_name(node_id VARCHAR(500),dim0 INT,val DOUBLE);",
             }
         ]
 
