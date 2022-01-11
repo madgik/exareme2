@@ -23,12 +23,11 @@
       "variables": [
         {
           "isCategorical": false,
-          "minValue": "0",
+          "minValue": 0,
           "code": "age_value",
-          "maxValue": "130",
+          "maxValue": 130,
           "sql_type": "int",
           "description": "",
-          "enumerations": [],
           "label": "Age",
           "units": "years",
           "type": "integer",
@@ -576,9 +575,9 @@
       "variables": [
         {
           "isCategorical": false,
-          "minValue": "1.54",
+          "minValue": 1.54,
           "code": "laboratory_procedure_glucose_value",
-          "maxValue": "36.00",
+          "maxValue": 36.00,
           "sql_type": "real",
           "description": "Laboratory procedure glucose value",
           "enumerations": [],
@@ -589,9 +588,9 @@
         },
         {
           "isCategorical": false,
-          "minValue": "3.40",
+          "minValue": 3.40,
           "code": "laboratory_procedure_hemoglobin_value",
-          "maxValue": "18.00",
+          "maxValue": 18.00,
           "sql_type": "real",
           "description": "Laboratory procedure hemoglobin value ",
           "enumerations": [],

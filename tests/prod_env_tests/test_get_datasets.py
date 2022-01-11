@@ -8,23 +8,17 @@ proper_node_schemas = {
     "localnode1": {
         "dementia": [
             "edsd",
-            "fake_longitudinal",
-            "demo_data",
             "ppmi",
             "desd-synthdata",
         ],
-        "mentalhealth": ["demo"],
         "tbi": ["dummy_tbi"],
     },
     "localnode2": {
         "dementia": [
             "edsd",
-            "fake_longitudinal",
-            "demo_data",
             "ppmi",
             "desd-synthdata",
         ],
-        "mentalhealth": ["demo"],
         "tbi": ["dummy_tbi"],
     },
 }

@@ -217,10 +217,7 @@ def get_initial_data_schemas() -> List[str]:
     """
 
     schema_table_names = MonetDB().execute_and_fetchall(
-        f"""
-            SELECT name FROM tables
-            WHERE name LIKE '%\\\\_data' ESCAPE '\\\\'
-            AND system = false"""
+        f'SELECT code FROM "mipdb_metadata"."data_models"'
     )
 
     # Flatten the list
@@ -230,11 +227,7 @@ def get_initial_data_schemas() -> List[str]:
         for schema_table_name in schema_table
     ]
 
-    # The first part of the table is the dataset schema (pathology)
-    # Table name convention = <schema_name>_data
-    schema_names = [table_name.split("_")[0] for table_name in schema_table_names]
-
-    return schema_names
+    return schema_table_names
 
 
 def get_schema_datasets(schema_name) -> List[str]:
@@ -249,7 +242,14 @@ def get_schema_datasets(schema_name) -> List[str]:
 
     datasets_rows = MonetDB().execute_and_fetchall(
         f"""
-        SELECT DISTINCT(dataset) FROM {schema_name}_data
+        SELECT code
+        FROM "mipdb_metadata"."datasets"
+        WHERE data_model_id =
+        (
+            SELECT data_model_id
+            FROM "mipdb_metadata"."data_models"
+            WHERE code = '{schema_name}'
+        )
         """
     )
 
@@ -257,7 +257,6 @@ def get_schema_datasets(schema_name) -> List[str]:
     datasets = [
         dataset_name for dataset_row in datasets_rows for dataset_name in dataset_row
     ]
-
     return datasets
 
 

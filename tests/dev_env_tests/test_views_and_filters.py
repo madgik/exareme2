@@ -164,7 +164,7 @@ def test_pathology_view_without_filters(context_id):
 
     schema = TableSchema(
         columns=[
-            ColumnInfo(name="row_id", dtype=DType.INT),
+            ColumnInfo(name="row_id", dtype=DType.STR),
             ColumnInfo(name="dataset", dtype=DType.STR),
             ColumnInfo(name="age_value", dtype=DType.INT),
             ColumnInfo(name="gcs_motor_response_scale", dtype=DType.STR),
@@ -223,7 +223,7 @@ def test_pathology_view_with_filters(context_id):
 
     schema = TableSchema(
         columns=[
-            ColumnInfo(name="row_id", dtype=DType.INT),
+            ColumnInfo(name="row_id", dtype=DType.STR),
             ColumnInfo(name="dataset", dtype=DType.STR),
             ColumnInfo(name="age_value", dtype=DType.INT),
             ColumnInfo(name="gcs_motor_response_scale", dtype=DType.STR),
