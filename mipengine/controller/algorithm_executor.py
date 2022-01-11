@@ -259,14 +259,17 @@ class _LocalNodeTable(INodeTable):
         table = self.nodes_tables[node]
         return node.get_table_schema(table)
 
-    def get_table_data(self) -> TableData:
+    def get_table_data(self) -> List[Union[int, float, str]]:
         tables_data = []
         for node, table_name in self.nodes_tables.items():
             tables_data.append(node.get_table_data(table_name))
-        tables_data_flat = [table_data.data_ for table_data in tables_data]
+        tables_data_flat = [table_data.columns for table_data in tables_data]
         tables_data_flat = [
-            k for i in tables_data_flat for j in i for k in j
-        ]  # TODO bejesus..
+            elem
+            for table in tables_data_flat
+            for column in table
+            for elem in column.data
+        ]
         return tables_data_flat
 
     def __repr__(self):
@@ -305,8 +308,10 @@ class _GlobalNodeTable(INodeTable):
         table_schema: TableSchema = self.node.get_table_schema(self.table_name).columns
         return table_schema
 
-    def get_table_data(self) -> TableData:
-        table_data = self.node.get_table_data(self.table_name).data_
+    def get_table_data(self) -> List[Union[int, float, str]]:
+        table_data = [
+            column.data for column in self.node.get_table_data(self.table_name).columns
+        ]
         return table_data
 
     def __repr__(self):

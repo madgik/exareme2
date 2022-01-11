@@ -1,7 +1,8 @@
 import json
 from typing import TypeVar
 
-
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.udfgen import (
     make_unique_func_name,
     relation,
@@ -49,17 +50,14 @@ def run(algo_interface):
         positional_args=[global_state],
         keyword_args={"local_transfers": local_result},
     )
-
-    std_deviation = json.loads(global_result.get_table_data()[0][1])["deviation"]
+    std_deviation = json.loads(global_result.get_table_data()[1][0])["deviation"]
     x_variables = algo_interface.x_variables
-
     result = TabularDataResult(
         title="Standard Deviation",
         columns=[
-            {"name": "variable", "type": "string"},
-            {"name": "std_deviation", "type": "number"},
+            ColumnDataStr(name="variable", data=x_variables),
+            ColumnDataFloat(name="std_deviation", data=[std_deviation]),
         ],
-        data=[[x_variables[0], std_deviation]],
     )
     return result
 

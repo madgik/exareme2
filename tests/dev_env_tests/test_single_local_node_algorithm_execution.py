@@ -1,11 +1,5 @@
 import pytest
-import asyncio
-import time
 
-# from mipengine.controller.controller import Controller
-# from mipengine.controller.node_registry import node_registry
-
-from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 from tests.dev_env_tests.nodes_communication import get_celery_app
 from tests.dev_env_tests.nodes_communication import get_node_config_by_id
 
@@ -15,8 +9,11 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 
-from mipengine.algorithm_DTOs import TabularDataResult
-from mipengine.algorithm_DTOs import TabularDataColumn
+from mipengine.algorithm_flow_DTOs import TabularDataResult
+
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataStr
+from mipengine import DType
 
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 
@@ -77,15 +74,22 @@ def get_parametrization():
     expected_result = TabularDataResult(
         title="Logistic Regression Coefficients",
         columns=[
-            TabularDataColumn(name="variable", type="string"),
-            TabularDataColumn(name="coefficient", type="number"),
-        ],
-        data=[
-            ["lefthippocampus", -3.809188],
-            ["righthippocampus", 4.595969],
-            ["rightppplanumpolare", 3.6549711],
-            ["leftamygdala", -2.4617643],
-            ["rightamygdala", -11.787596],
+            ColumnDataStr(
+                name="variable",
+                type=DType.STR,
+                data=[
+                    "lefthippocampus",
+                    "righthippocampus",
+                    "rightppplanumpolare",
+                    "leftamygdala",
+                    "rightamygdala",
+                ],
+            ),
+            ColumnDataFloat(
+                name="coefficient",
+                type=DType.FLOAT,
+                data=[-3.809188, 4.595969, 3.6549711, -2.4617643, -11.787596],
+            ),
         ],
     )
 
