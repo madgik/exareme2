@@ -333,9 +333,7 @@ class InconsistentUDFResultSizeException(Exception):
 
 class InconsistentShareTablesValueException(Exception):
     def __init__(
-        self,
-        share_list: List[bool],
-        result_tables: Dict[int, List[Tuple["_Node", TableName]]],
+        self, share_list: Union[bool, List[bool]], result_tables: Union[list, dict]
     ):
         message = (
             f"The size of the {share_list=} does not match the size of the "
@@ -519,7 +517,7 @@ class _AlgorithmExecutionInterface:
         func_name: str,
         positional_args: Optional[List[Union[_LocalNodeTable, Literal]]] = None,
         keyword_args: Optional[Dict[str, Union[_LocalNodeTable, Literal]]] = None,
-        share_to_global: Union[bool, List[bool]] = None,
+        share_to_global: Union[bool, List[bool]] = False,
     ) -> List[INodeTable]:
         # 1. check positional_args and keyword_args tables do not contain _GlobalNodeTable(s)
         # 2. queues run_udf task on all local nodes
@@ -579,9 +577,16 @@ class _AlgorithmExecutionInterface:
                 raise InconsistentShareTablesValueException(
                     share_to_global, all_nodes_result_tables
                 )
+        elif isinstance(share_to_global, bool):
+            if number_of_results != 1:
+                raise InconsistentShareTablesValueException(
+                    share_to_global, all_nodes_result_tables
+                )
+            share_to_global = [share_to_global]
         else:
-            if share_to_global != None:
-                share_to_global = [share_to_global for _ in range(number_of_results)]
+            raise Exception(
+                f"share_to_global must be of type bool or List[bool] but {type(share_to_global)=} was passed"
+            )
 
         # Handle sharing results to global node
         if share_to_global:
@@ -598,7 +603,7 @@ class _AlgorithmExecutionInterface:
                     _LocalNodeTable(nodes_tables=dict(node_tables))
                 )
 
-        # backward compatibility.. TODO always return list??
+        # TODO always return list??
         if len(results_after_sharing_step) == 1:
             results_after_sharing_step = results_after_sharing_step[0]
 
@@ -609,7 +614,7 @@ class _AlgorithmExecutionInterface:
         func_name: str,
         positional_args: Optional[List[Union[_GlobalNodeTable, Literal]]] = None,
         keyword_args: Optional[Dict[str, Union[_GlobalNodeTable, Literal]]] = None,
-        share_to_locals: Union[bool, List[bool]] = None,
+        share_to_locals: Union[bool, List[bool]] = False,
     ) -> List[INodeTable]:
         # 1. check positional_args and keyword_args tables do not contain _LocalNodeTable(s)
         # 2. queue run_udf on the global node
@@ -657,14 +662,22 @@ class _AlgorithmExecutionInterface:
         result_tables = self._global_node.get_queued_udf_result(task)
 
         # Transform share_to_locals variable
+        number_of_results = len(result_tables)
         if isinstance(share_to_locals, list):
-            if len(share_to_locals) != len(result_tables):
+            if len(share_to_locals) != number_of_results:
                 raise InconsistentShareTablesValueException(
                     share_to_locals, result_tables
                 )
+        elif isinstance(share_to_locals, bool):
+            if number_of_results != 1:
+                raise InconsistentShareTablesValueException(
+                    share_to_locals, result_tables
+                )
+            share_to_locals = [share_to_locals]
         else:
-            if share_to_locals != None:
-                share_to_locals = [share_to_locals for _ in range(len(result_tables))]
+            raise Exception(
+                f"share_to_locals must be of type bool or List[bool] but {type(share_to_locals)=} was passed"
+            )
 
         # Handle sharing result to local nodes
         if share_to_locals:
@@ -828,9 +841,9 @@ def check_same_schema_tables(
     """
     Returns :
     bool: True if all tables have the same schema.
-    Dict[TableName, TableSchema]: keys:table names and values:the corresponding
+    Dict[TableName, TableSchema]: keys:table name and values:the corresponding
     table schema
-    TableSchem: the common TableSchema, if all tables have the same schema, else None
+    TableSchema: the common TableSchema, if all tables have the same schema, else None
     """
 
     have_common_schema = True
