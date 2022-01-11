@@ -1,17 +1,33 @@
-import requests
 import json
+import requests
+
+from devtools import debug
+
+from mipengine.controller.api.algorithm_request_dto import (
+    AlgorithmInputDataDTO,
+    AlgorithmRequestDTO,
+)
 
 
-def do_post_request(input):
+def do_post_request():
     url = "http://127.0.0.1:5000/algorithms" + "/pca"
 
+    pathology = "dementia"
+    datasets = ["edsd"]
+    x = [
+        "lefthippocampus",
+        "righthippocampus",
+        "rightppplanumpolare",
+        "leftamygdala",
+        "rightamygdala",
+    ]
     filters = {
         "condition": "AND",
         "rules": [
             {
                 "id": "dataset",
                 "type": "string",
-                "value": input["inputdata"]["datasets"],
+                "value": datasets,
                 "operator": "in",
             },
             {
@@ -23,22 +39,38 @@ def do_post_request(input):
                         "operator": "is_not_null",
                         "value": None,
                     }
-                    for variable in input["inputdata"]["x"]
+                    for variable in x
                 ],
             },
         ],
         "valid": True,
     }
-    input["inputdata"]["filters"] = filters
-    request_json = json.dumps(input)
+
+    algorithm_input_data = AlgorithmInputDataDTO(
+        pathology=pathology,
+        datasets=datasets,
+        filters=filters,
+        x=x,
+    )
+
+    algorithm_request = AlgorithmRequestDTO(
+        inputdata=algorithm_input_data,
+        parameters={},
+    )
+
+    print(f"POSTing to {url}:")
+    debug(algorithm_request)
+
+    request_json = algorithm_request.json()
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
     response = requests.post(url, data=request_json, headers=headers)
+
     return response
 
 
-# if __name__ == "__main__":
-#     response = do_post_request(input)
-#     print(f"\nResponse:")
-#     print(f"Status code-> {response.status_code}")
-#     print(f"Algorithm result-> {response.text}")
+if __name__ == "__main__":
+    response = do_post_request()
+    print("\nResponse:")
+    print(f"{response.status_code=}")
+    print(f"Result={json.dumps(json.loads(response.text), indent=4)}")
