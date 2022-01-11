@@ -18,89 +18,59 @@ from mipengine import DType
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 
 
-def get_parametrization():
-
-    algo_execution_dto = AlgorithmExecutionDTO(
-        context_id="123",
-        algorithm_name="logistic_regression",
-        algorithm_request_dto=AlgorithmRequestDTO(
-            inputdata=AlgorithmInputDataDTO(
-                pathology="dementia",
-                datasets=["edsd"],
-                filters={
-                    "condition": "AND",
-                    "rules": [
-                        {
-                            "id": "dataset",
-                            "type": "string",
-                            "value": ["edsd"],
-                            "operator": "in",
-                        },
-                        {
-                            "condition": "AND",
-                            "rules": [
-                                {
-                                    "id": variable,
-                                    "type": "string",
-                                    "operator": "is_not_null",
-                                    "value": None,
-                                }
-                                for variable in [
-                                    "lefthippocampus",
-                                    "righthippocampus",
-                                    "rightppplanumpolare",
-                                    "leftamygdala",
-                                    "rightamygdala",
-                                    "alzheimerbroadcategory",
-                                ]
-                            ],
-                        },
-                    ],
-                    "valid": True,
-                },
-                x=[
-                    "lefthippocampus",
-                    "righthippocampus",
-                    "rightppplanumpolare",
-                    "leftamygdala",
-                    "rightamygdala",
+algo_execution_dto = AlgorithmExecutionDTO(
+    context_id="123",
+    algorithm_name="logistic_regression",
+    algorithm_request_dto=AlgorithmRequestDTO(
+        inputdata=AlgorithmInputDataDTO(
+            pathology="dementia",
+            datasets=["edsd"],
+            filters={
+                "condition": "AND",
+                "rules": [
+                    {
+                        "id": "dataset",
+                        "type": "string",
+                        "value": ["edsd"],
+                        "operator": "in",
+                    },
+                    {
+                        "condition": "AND",
+                        "rules": [
+                            {
+                                "id": variable,
+                                "type": "string",
+                                "operator": "is_not_null",
+                                "value": None,
+                            }
+                            for variable in [
+                                "lefthippocampus",
+                                "righthippocampus",
+                                "rightppplanumpolare",
+                                "leftamygdala",
+                                "rightamygdala",
+                                "alzheimerbroadcategory",
+                            ]
+                        ],
+                    },
                 ],
-                y=["alzheimerbroadcategory"],
-            ),
-            parameters={"classes": ["AD", "CN"]},
+                "valid": True,
+            },
+            x=[
+                "lefthippocampus",
+                "righthippocampus",
+                "rightppplanumpolare",
+                "leftamygdala",
+                "rightamygdala",
+            ],
+            y=["alzheimerbroadcategory"],
         ),
-    )
-
-    expected_result = TabularDataResult(
-        title="Logistic Regression Coefficients",
-        columns=[
-            ColumnDataStr(
-                name="variable",
-                type=DType.STR,
-                data=[
-                    "lefthippocampus",
-                    "righthippocampus",
-                    "rightppplanumpolare",
-                    "leftamygdala",
-                    "rightamygdala",
-                ],
-            ),
-            ColumnDataFloat(
-                name="coefficient",
-                type=DType.FLOAT,
-                data=[-3.809188, 4.595969, 3.6549711, -2.4617643, -11.787596],
-            ),
-        ],
-    )
-
-    return [(algo_execution_dto, expected_result)]
-
-
-@pytest.mark.parametrize(
-    "algo_execution_dto,expected_result",
-    get_parametrization(),
+        parameters={"classes": ["AD", "CN"]},
+    ),
 )
-def test_single_local_node_algorithm_execution(algo_execution_dto, expected_result):
+
+
+def test_single_local_node_algorithm_execution():
 
     local_node_id = "localnode1"
     global_node_id = "globalnode"
@@ -137,4 +107,4 @@ def test_single_local_node_algorithm_execution(algo_execution_dto, expected_resu
     )
     result = algo_executor.run()
 
-    assert result == expected_result
+    assert isinstance(result, TabularDataResult)
