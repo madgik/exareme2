@@ -12,7 +12,7 @@ from billiard.exceptions import TimeLimitExceeded
 from celery.exceptions import TimeoutError
 from pydantic import BaseModel
 
-from mipengine import import_algorithm_modules
+from mipengine import algorithm_modules
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
@@ -34,9 +34,6 @@ from mipengine.node_tasks_DTOs import UDFPosArguments
 from mipengine.node_tasks_DTOs import UDFKeyArguments
 
 from mipengine.algorithm_flow_DTOs import Literal
-
-
-algorithm_modules = import_algorithm_modules()
 
 
 class AlgorithmExecutionException(Exception):
