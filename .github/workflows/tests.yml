@@ -382,4 +382,4 @@ jobs:
         run: kubectl logs deployment/mipengine-localnode-deployment -c node
 
       - name: Run production env tests
-        run: poetry run pytest tests/prod_env_tests tests/algorithms --verbosity=2
+        run: poetry run pytest tests/prod_env_tests --verbosity=2
