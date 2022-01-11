@@ -47,7 +47,6 @@ def get_test_params(expected_file, slc=None):
         params = json.load(f)["test_cases"]
     if not slc:
         slc = slice(len(params))
-        print(f"{slc =}")
     params = [(p["input"], p["output"]) for p in params[slc]]
     return params
 

@@ -11,17 +11,18 @@ class DType(Enum):
     mappings are also provided as class methods for convenience."""
 
     INT = "INT"
-    FLOAT = "DOUBLE"
-    STR = f"VARCHAR({VARCHAR_SIZE})"
-    JSON = "CLOB"  # (BUG) A monet udf cannot return a JSON type.
-    BINARY = "BLOB"
+    FLOAT = "FLOAT"
+    STR = "STR"
+    JSON = "JSON"
+    BINARY = "BINARY"
 
     def to_py(self):
         mapping = self.dtype2py()
         return mapping[self]
 
     def to_sql(self):
-        return self.value
+        mapping = self.dtype2sql()
+        return mapping[self]
 
     @classmethod
     def from_py(cls, pytype):
@@ -31,7 +32,7 @@ class DType(Enum):
     @classmethod
     def from_sql(cls, sql_type):
         mapping = cls.sql2dtype()
-        return mapping[sql_type.upper()]  # SQL always print upper-case by convention
+        return mapping[sql_type.upper()]  # In SQL always print upper-case by convention
 
     @classmethod
     def from_cde(cls, cde_type):
@@ -52,7 +53,13 @@ class DType(Enum):
 
     @classmethod
     def dtype2sql(cls):
-        return {enum: enum.value for enum in cls}
+        return {
+            cls.INT: "INT",
+            cls.FLOAT: "DOUBLE",
+            cls.STR: f"VARCHAR({VARCHAR_SIZE})",
+            cls.JSON: "CLOB",  # (BUG) A MonetDB udf cannot return a JSON type.
+            cls.BINARY: "BLOB",
+        }
 
     @classmethod
     def py2dtype(cls):
