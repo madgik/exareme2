@@ -466,22 +466,6 @@ def test_state_schema():
     assert to.schema == [("state", DType.BINARY)]
 
 
-def test_udf_decorator_already_there():
-    @udf(return_type=scalar(int))
-    def already_there():
-        x = 1
-        return x
-
-    with pytest.raises(UDFBadDefinition) as exc:
-
-        @udf(return_type=scalar(int))
-        def already_there():
-            x = 1
-            return x
-
-    assert "already in the udf registry" in str(exc)
-
-
 def test_convert_udfgenargs_to_udfargs_relation():
     udfgen_posargs = [
         TableInfo(

@@ -16,7 +16,7 @@ __all__ = [
     "AttrDict",
     "ALGORITHM_FOLDERS_ENV_VARIABLE",
     "ALGORITHM_FOLDERS",
-    "import_algorithm_modules",
+    "algorithm_modules",
 ]
 
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
@@ -61,3 +61,6 @@ def import_algorithm_modules() -> Dict[str, ModuleType]:
         all_modules.update(modules)
 
     return all_modules
+
+
+algorithm_modules = import_algorithm_modules()

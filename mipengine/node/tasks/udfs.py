@@ -19,9 +19,6 @@ from mipengine.udfgen import generate_udf_queries
 from mipengine.udfgen.udfgenerator import udf as udf_registry
 
 
-import_algorithm_modules()
-
-
 @shared_task
 @initialise_logger
 def get_udf(func_name: str) -> str:

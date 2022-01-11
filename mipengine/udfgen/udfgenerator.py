@@ -1359,10 +1359,6 @@ class UDFDecorator:
             funcparts = breakup_function(func, signature)
             validate_udf_table_input_types(funcparts.table_input_types)
             funcname = funcparts.qualname
-            if funcname in self.registry:
-                raise UDFBadDefinition(
-                    f"A function named {funcname} is already in the udf registry."
-                )
             self.registry[funcname] = funcparts
             return func
 
