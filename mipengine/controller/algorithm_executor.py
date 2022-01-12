@@ -561,7 +561,9 @@ class _AlgorithmExecutionInterface:
                 )
         if keyword_args:
             for arg in keyword_args.values():
-                if not isinstance(arg, _LocalNodeTable) and not isinstance(arg, Literal):
+                if not isinstance(arg, _LocalNodeTable) and not isinstance(
+                    arg, Literal
+                ):
                     raise Exception(
                         f"keyword_args contains {arg=} of "
                         f"type {type(arg)=} which is not acceptable from "
@@ -658,7 +660,9 @@ class _AlgorithmExecutionInterface:
                 )
         if keyword_args:
             for arg in keyword_args.values():
-                if not isinstance(arg, _GlobalNodeTable) and not isinstance(arg, Literal):
+                if not isinstance(arg, _GlobalNodeTable) and not isinstance(
+                    arg, Literal
+                ):
                     raise Exception(
                         f"keyword_args contains {arg=} of "
                         f"type {type(arg)=} which is not acceptable from "
