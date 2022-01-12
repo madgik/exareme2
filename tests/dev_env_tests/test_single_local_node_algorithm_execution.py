@@ -1,5 +1,11 @@
+from unittest.mock import patch
+
 import pytest
 
+from mipengine.common_data_elements import CommonDataElement
+from mipengine.common_data_elements import CommonDataElements
+from mipengine.common_data_elements import MetadataEnumeration
+from mipengine.common_data_elements import MetadataVariable
 from tests.dev_env_tests.nodes_communication import get_celery_app
 from tests.dev_env_tests.nodes_communication import get_node_config_by_id
 
@@ -70,7 +76,80 @@ algo_execution_dto = AlgorithmExecutionDTO(
 )
 
 
-def test_single_local_node_algorithm_execution():
+@pytest.fixture(scope="function")
+def mock_cdes():
+    common_data_elements = CommonDataElements()
+    common_data_elements.pathologies = {
+        "dementia": {
+            "lefthippocampus": CommonDataElement(
+                MetadataVariable(
+                    code="lefthippocampus",
+                    label="Left Hippocampus",
+                    sql_type="real",
+                    isCategorical=False,
+                )
+            ),
+            "righthippocampus": CommonDataElement(
+                MetadataVariable(
+                    code="righthippocampus",
+                    label="Right Hippocampus",
+                    sql_type="real",
+                    isCategorical=False,
+                )
+            ),
+            "rightppplanumpolare": CommonDataElement(
+                MetadataVariable(
+                    code="rightppplanumpolare",
+                    label="Right planum polare",
+                    sql_type="real",
+                    isCategorical=False,
+                )
+            ),
+            "leftamygdala": CommonDataElement(
+                MetadataVariable(
+                    code="leftamygdala",
+                    label="Left Amygdala",
+                    sql_type="real",
+                    isCategorical=False,
+                )
+            ),
+            "rightamygdala": CommonDataElement(
+                MetadataVariable(
+                    code="rightamygdala",
+                    label="Right Amygdala",
+                    sql_type="real",
+                    isCategorical=False,
+                )
+            ),
+            "alzheimerbroadcategory": CommonDataElement(
+                MetadataVariable(
+                    code="alzheimerbroadcategory",
+                    label="There will be two broad categories taken into account. Alzheimer s disease (AD) in which the diagnostic is 100% certain and <Other> comprising the rest of Alzheimer s related categories. The <Other> category refers to Alzheime s related diagnosis which origin can be traced to other pathology eg. vascular. In this category MCI diagnosis can also be found. In summary  all Alzheimer s related diagnosis that are not pure.",
+                    sql_type="text",
+                    isCategorical=True,
+                    enumerations=[
+                        MetadataEnumeration(
+                            code="AD",
+                            label="Alzheimer’s disease",
+                        ),
+                        MetadataEnumeration(
+                            code="CN",
+                            label="Cognitively Normal",
+                        ),
+                    ],
+                )
+            ),
+        },
+    }
+
+    with patch(
+        "mipengine.controller.algorithm_executor.controller_common_data_elements",
+        common_data_elements,
+    ):
+        yield
+
+
+def test_single_local_node_algorithm_execution(mock_cdes):
 
     local_node_id = "localnode1"
     global_node_id = "globalnode"
