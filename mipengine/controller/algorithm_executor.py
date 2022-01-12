@@ -13,6 +13,9 @@ from pydantic import BaseModel
 
 from mipengine import algorithm_modules
 from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller.controller_common_data_elements import (
+    controller_common_data_elements,
+)
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
@@ -135,6 +138,8 @@ class AlgorithmExecutor:
             algorithm_parameters=self._algorithm_execution_dto.algorithm_request_dto.parameters,
             x_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
             y_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
+            pathology=self._algorithm_execution_dto.algorithm_request_dto.inputdata.pathology,
+            datasets=self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
         )
         self._execution_interface = _AlgorithmExecutionInterface(
             algo_execution_interface_dto
@@ -369,6 +374,8 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     algorithm_parameters: Optional[Dict[str, List[str]]] = None
     x_variables: Optional[List[str]] = None
     y_variables: Optional[List[str]] = None
+    pathology: str
+    datasets: List[str]
 
     class Config:
         arbitrary_types_allowed = True
@@ -382,6 +389,15 @@ class _AlgorithmExecutionInterface:
         self._algorithm_parameters = algo_execution_interface_dto.algorithm_parameters
         self._x_variables = algo_execution_interface_dto.x_variables
         self._y_variables = algo_execution_interface_dto.y_variables
+        pathology = algo_execution_interface_dto.pathology
+        self._datasets = algo_execution_interface_dto.datasets
+        cdes = controller_common_data_elements.pathologies[pathology]
+        varnames = (self._x_variables or []) + (self._y_variables or [])
+        self._metadata = {
+            varname: cde.__dict__
+            for varname, cde in cdes.items()
+            if varname in varnames
+        }
 
         # TODO: validate all local nodes have created the base_view_table??
         self._initial_view_tables = {}
@@ -416,6 +432,14 @@ class _AlgorithmExecutionInterface:
     @property
     def y_variables(self):
         return self._y_variables
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @property
+    def datasets(self):
+        return self._datasets
 
     # UDFs functionality
     def run_udf_on_local_nodes(
