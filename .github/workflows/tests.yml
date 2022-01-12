@@ -319,8 +319,11 @@ jobs:
         with:
           time: '10s'
 
-      - name: Load data into MONETDB
-        run: poetry run inv load-data --port 50000
+      - name: Initialize MONETDB with mipdb initial metadata tables
+        run: poetry run mipdb init --ip 172.17.0.1 --port 50000
+
+      - name: Load data into MONETDB container
+        run: poetry run mipdb load-folder ./tests/demo_data/  --ip 172.17.0.1 --port 50000
 
       - name: Backup MONETDB data
         run: |
