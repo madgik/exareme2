@@ -551,24 +551,9 @@ class _AlgorithmExecutionInterface:
 
         command_id = get_next_command_id()
 
-        # check positional_args and keyword_args do not contain _GlobalNodeTable(s)
-        for arg in positional_args or []:
-            if not isinstance(arg, _LocalNodeTable) and not isinstance(arg, Literal):
-                raise Exception(
-                    f"positional_args contains {arg=} of "
-                    f"type {type(arg)=} which is not acceptable from "
-                    f"run_udf_on_local_nodes. {positional_args=}"
-                )
-        if keyword_args:
-            for arg in keyword_args.values():
-                if not isinstance(arg, _LocalNodeTable) and not isinstance(
-                    arg, Literal
-                ):
-                    raise Exception(
-                        f"keyword_args contains {arg=} of "
-                        f"type {type(arg)=} which is not acceptable from "
-                        f"run_udf_on_local_nodes. {keyword_args=}"
-                    )
+        self._validate_run_udf_on_local_nodes_args(
+            positional_args=positional_args, keyword_args=keyword_args
+        )
 
         # Queue the udf on all local nodes
         tasks = {}
@@ -650,24 +635,9 @@ class _AlgorithmExecutionInterface:
 
         command_id = get_next_command_id()
 
-        # check positional_args and keyword_args do not contain _LocalNodeTable(s)
-        for arg in positional_args or []:
-            if not isinstance(arg, _GlobalNodeTable) and not isinstance(arg, Literal):
-                raise Exception(
-                    f"positional_args contains {arg=} of "
-                    f"type {type(arg)=} which is not acceptable from "
-                    f"run_udf_on_global_node. {positional_args=}"
-                )
-        if keyword_args:
-            for arg in keyword_args.values():
-                if not isinstance(arg, _GlobalNodeTable) and not isinstance(
-                    arg, Literal
-                ):
-                    raise Exception(
-                        f"keyword_args contains {arg=} of "
-                        f"type {type(arg)=} which is not acceptable from "
-                        f"run_udf_on_global_node. {keyword_args=}"
-                    )
+        self._validate_run_udf_on_global_node_args(
+            positional_args=positional_args, keyword_args=keyword_args
+        )
 
         positional_udf_args = (
             self._algoexec_posargs_to_udf_posargs(positional_args)
@@ -724,6 +694,14 @@ class _AlgorithmExecutionInterface:
             final_results = final_results[0]
         return final_results
 
+    # TABLES functionality
+    def get_table_data(self, node_table) -> TableData:
+        return node_table.get_table_data()
+
+    def get_table_schema(self, node_table) -> TableSchema:
+        return node_table.get_table_schema()
+
+    # -------------helper methods------------
     def _handle_table_sharing_locals_to_global(
         self,
         share_list: List[bool],
@@ -770,15 +748,18 @@ class _AlgorithmExecutionInterface:
     ) -> Dict[int, List[Tuple[_Node, TableName]]]:
         raise_inconsistent_udf_result_exc = False
         all_nodes_result_tables = {}
-        number_of_result_tables = None
+        expected_number_of_result_tables = None
         for node, task in tasks.items():
             node_result_tables: List[TableName] = node.get_queued_udf_result(task)
             number_of_result_tables_current_node = len(node_result_tables)
-            if number_of_result_tables:
-                if number_of_result_tables_current_node != number_of_result_tables:
+            if expected_number_of_result_tables:
+                if (
+                    number_of_result_tables_current_node
+                    != expected_number_of_result_tables
+                ):
                     raise_inconsistent_udf_result_exc = True
             else:
-                number_of_result_tables = number_of_result_tables_current_node
+                expected_number_of_result_tables = number_of_result_tables_current_node
             for index, task_result in enumerate(node_result_tables):
                 if index not in all_nodes_result_tables:
                     all_nodes_result_tables[index] = []
@@ -815,14 +796,55 @@ class _AlgorithmExecutionInterface:
                 )
         return handled_tables
 
-    # TABLES functionality
-    def get_table_data(self, node_table) -> TableData:
-        return node_table.get_table_data()
+    # check positional_args and keyword_args do not contain _LocalNodeTable(s)
+    def _validate_run_udf_on_global_node_args(
+        self,
+        positional_args: Optional[List[Union[_GlobalNodeTable, Literal]]] = None,
+        keyword_args: Optional[Dict[str, Union[_GlobalNodeTable, Literal]]] = None,
+    ):
+        for arg in positional_args or []:
+            if not isinstance(arg, _GlobalNodeTable) and not isinstance(arg, Literal):
+                raise Exception(
+                    f"positional_args contains {arg=} of "
+                    f"type {type(arg)=} which is not acceptable from "
+                    f"run_udf_on_global_node. {positional_args=}"
+                )
+        if keyword_args:
+            for arg in keyword_args.values():
+                if not isinstance(arg, _GlobalNodeTable) and not isinstance(
+                    arg, Literal
+                ):
+                    raise Exception(
+                        f"keyword_args contains {arg=} of "
+                        f"type {type(arg)=} which is not acceptable from "
+                        f"run_udf_on_global_node. {keyword_args=}"
+                    )
 
-    def get_table_schema(self, node_table) -> TableSchema:
-        return node_table.get_table_schema()
+    # check positional_args and keyword_args do not contain _GlobalNodeTable(s)
+    def _validate_run_udf_on_local_nodes_args(
+        self,
+        positional_args: Optional[List[Union[_LocalNodeTable, Literal]]] = None,
+        keyword_args: Optional[Dict[str, Union[_LocalNodeTable, Literal]]] = None,
+    ):
+        for arg in positional_args or []:
+            if not isinstance(arg, _LocalNodeTable) and not isinstance(arg, Literal):
+                raise Exception(
+                    f"positional_args contains {arg=} of "
+                    f"type {type(arg)=} which is not acceptable from "
+                    f"run_udf_on_local_nodes. {positional_args=}"
+                )
+        if keyword_args:
+            for arg in keyword_args.values():
+                if not isinstance(arg, _LocalNodeTable) and not isinstance(
+                    arg, Literal
+                ):
+                    raise Exception(
+                        f"keyword_args contains {arg=} of "
+                        f"type {type(arg)=} which is not acceptable from "
+                        f"run_udf_on_local_nodes. {keyword_args=}"
+                    )
 
-    # -------------helper methods------------
+    
     def _algoexec_kwargs_to_udf_kwargs(
         self,
         algoexec_kwargs: Dict[str, Union[INodeTable, Literal]],
