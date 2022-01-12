@@ -89,7 +89,7 @@ jobs:
       - name: Run standalone tests
         run: |
           source .venv/bin/activate
-          poetry run pytest --cov=mipengine --cov-report=xml tests/standalone_tests
+          poetry run pytest --cov=mipengine --cov-report=xml tests/standalone_tests --verbosity=2
 
       - name: Publish coverage on codeclimate
         uses: paambaati/codeclimate-action@v2.7.5
@@ -194,7 +194,7 @@ jobs:
           poetry run inv start-controller --detached
 
       - name: Run development env tests
-        run: poetry run pytest tests/dev_env_tests
+        run: poetry run pytest tests/dev_env_tests --verbosity=2
 
   prod_env_tests:
     runs-on: ubuntu-latest
@@ -382,4 +382,4 @@ jobs:
         run: kubectl logs deployment/mipengine-localnode-deployment -c node
 
       - name: Run production env tests
-        run: poetry run pytest tests/prod_env_tests
+        run: poetry run pytest tests/prod_env_tests --verbosity=2
