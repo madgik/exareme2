@@ -608,7 +608,8 @@ class _AlgorithmExecutionInterface:
             share_to_global = [share_to_global]
         else:
             raise Exception(
-                f"share_to_global must be of type bool or List[bool] but {type(share_to_global)=} was passed"
+                f"share_to_global must be of type bool or List[bool] but "
+                f"{type(share_to_global)=} was passed"
             )
 
         # Handle sharing results to global node
@@ -647,7 +648,7 @@ class _AlgorithmExecutionInterface:
 
         command_id = get_next_command_id()
 
-        # check positional_args and keyword_args do not contain _GlobalNodeTable(s)
+        # check positional_args and keyword_args do not contain _LocalNodeTable(s)
         for arg in positional_args or []:
             if not isinstance(arg, _GlobalNodeTable) and not isinstance(arg, Literal):
                 raise Exception(
