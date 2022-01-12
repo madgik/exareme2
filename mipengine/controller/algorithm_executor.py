@@ -242,11 +242,7 @@ class INodeTable(ABC):
 class _LocalNodeTable(INodeTable):
     def __init__(self, nodes_tables: Dict[_Node, TableName]):
         self._nodes_tables = nodes_tables
-
-        if not self._validate_matching_table_names(list(self._nodes_tables.values())):
-            raise self.MismatchingTableNamesException(
-                [table_name.full_table_name for table_name in nodes_tables.values()]
-            )
+        self._validate_matching_table_names(list(self._nodes_tables.values()))
 
     @property
     def nodes_tables(self) -> Dict[_Node, TableName]:
@@ -281,8 +277,9 @@ class _LocalNodeTable(INodeTable):
         table_name_without_node_id = table_names[0].without_node_id()
         for table_name in table_names:
             if table_name.without_node_id() != table_name_without_node_id:
-                return False
-        return True
+                raise self.MismatchingTableNamesException(
+                    [table_name.full_table_name for table_name in nodes_tables.values()]
+                )
 
     class MismatchingTableNamesException(Exception):
         def __init__(self, table_names):
@@ -844,7 +841,6 @@ class _AlgorithmExecutionInterface:
                         f"run_udf_on_local_nodes. {keyword_args=}"
                     )
 
-    
     def _algoexec_kwargs_to_udf_kwargs(
         self,
         algoexec_kwargs: Dict[str, Union[INodeTable, Literal]],
