@@ -22,19 +22,18 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
+from mipengine.controller.node_tasks_handler_interface import UDFPosArguments
+from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller import controller_logger as ctrl_logger
 
 from mipengine.controller.algorithm_executor_helpers import _INode
 from mipengine.controller.algorithm_executor_helpers import TableName
 
-
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
-from mipengine.node_tasks_DTOs import UDFPosArguments
-from mipengine.node_tasks_DTOs import UDFKeyArguments
 
 from mipengine.algorithm_flow_DTOs import Literal
 

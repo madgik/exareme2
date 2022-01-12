@@ -1,5 +1,8 @@
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
+from mipengine.controller.node_tasks_handler_interface import UDFPosArguments
+from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
+
 from pydantic import BaseModel, conint
 from ipaddress import IPv4Address
 from celery import Celery
@@ -16,9 +19,6 @@ from kombu.exceptions import OperationalError
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.controller.celery_app import get_node_celery_app
-
-from mipengine.node_tasks_DTOs import UDFPosArguments
-from mipengine.node_tasks_DTOs import UDFKeyArguments
 
 TASK_SIGNATURES: Final = {
     "get_tables": "mipengine.node.tasks.tables.get_tables",
