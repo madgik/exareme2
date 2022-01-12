@@ -73,8 +73,11 @@ jobs:
       - name: Start MONETDB container
         run: docker run -d -p 50000:50000 --name monetdb madgik/mipenginedb:latest
 
+      - name: Initialize the MONETDB
+        run: poetry run mipdb init --ip 172.17.0.1 --port 50000
+
       - name: Load data into MONETDB container
-        run: poetry run inv load-data --port 50000
+        run: poetry run mipdb load-folder ./tests/demo_data/  --ip 172.17.0.1 --port 50000
 
       - name: Commit MONETDB image with loaded demo_data
         run: docker commit monetdb madgik/mipenginedb_with_data:${{ github.event.release.tag_name }}
