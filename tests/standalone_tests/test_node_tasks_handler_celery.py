@@ -12,7 +12,8 @@ from mipengine.node_tasks_DTOs import TableSchema, ColumnInfo
 from mipengine import DType
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 
-from mipengine.node_tasks_DTOs import UDFKeyArguments
+from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
+
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 
