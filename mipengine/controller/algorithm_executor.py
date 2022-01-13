@@ -553,12 +553,12 @@ class _AlgorithmExecutionInterface:
         tasks = {}
         for node in self._local_nodes:
             positional_udf_args = (
-                self._algoexec_posargs_to_udf_posargs(positional_args, node)
+                self._algoexec_udf_posargs_to_node_udf_posargs(positional_args, node)
                 if positional_args
                 else None
             )
             keyword_udf_args = (
-                self._algoexec_kwargs_to_udf_kwargs(keyword_args, node)
+                self._algoexec_udf_kwargs_to_node_udf_kwargs(keyword_args, node)
                 if keyword_args
                 else None
             )
@@ -621,12 +621,14 @@ class _AlgorithmExecutionInterface:
         )
 
         positional_udf_args = (
-            self._algoexec_posargs_to_udf_posargs(positional_args)
+            self._algoexec_udf_posargs_to_node_udf_posargs(positional_args)
             if positional_args
             else None
         )
         keyword_udf_args = (
-            self._algoexec_kwargs_to_udf_kwargs(keyword_args) if keyword_args else None
+            self._algoexec_udf_kwargs_to_node_udf_kwargs(keyword_args)
+            if keyword_args
+            else None
         )
 
         # Queue the udf on global node
@@ -830,27 +832,27 @@ class _AlgorithmExecutionInterface:
                         f"run_udf_on_local_nodes. {keyword_args=}"
                     )
 
-    def _algoexec_kwargs_to_udf_kwargs(
+    def _algoexec_udf_kwargs_to_node_udf_kwargs(
         self,
         algoexec_kwargs: Dict[str, Union[INodeTable, Literal]],
         node: _Node = None,
     ) -> UDFKeyArguments:
         udf_kwargs = UDFKeyArguments(kwargs={})
         for key, val in algoexec_kwargs.items():
-            udf_argument = self._algoexec_arg_to_udf_arg(val, node)
+            udf_argument = self._algoexec_udf_arg_to_node_udf_arg(val, node)
             udf_kwargs.kwargs[key] = udf_argument.json()
         return udf_kwargs
 
-    def _algoexec_posargs_to_udf_posargs(
+    def _algoexec_udf_posargs_to_node_udf_posargs(
         self, algoexec_posargs: List[Union[INodeTable, Literal]], node: _Node = None
     ) -> UDFPosArguments:
         udf_posargs = UDFPosArguments(args=[])
         for val in algoexec_posargs:
-            udf_argument = self._algoexec_arg_to_udf_arg(val, node)
+            udf_argument = self._algoexec_udf_arg_to_node_udf_arg(val, node)
             udf_posargs.args.append(udf_argument.json())
         return udf_posargs
 
-    def _algoexec_arg_to_udf_arg(
+    def _algoexec_udf_arg_to_node_udf_arg(
         self, algoexec_arg: Union[INodeTable, Literal], node: _Node = None
     ) -> UDFArgument:
         if isinstance(algoexec_arg, INodeTable):
