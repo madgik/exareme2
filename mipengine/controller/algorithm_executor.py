@@ -243,9 +243,7 @@ class INodeTable(ABC):
 # how many local nodes are participating in the current algorithm execution, several
 # database tables are created on all participating local nodes. Irrespectevely of the
 # number of local nodes participating, the number of tables created on each of these local
-# nodes will be the same. Another common characteristic among these tables will be
-# that their names, which follow the 'tabletype_nodeid_contextid_commandid_commandsubid'
-# convention, will only differ on the <nodeid> part.
+# nodes will be the same.
 # Class _LocalNodeTable is the structure that represents the concept of these database
 # tables, created during the execution of a udf, in the algorithm execution layer. A key
 # concept is that a _LocalNodeTable can 'hold' pointers to 'relevant' tables existing in
