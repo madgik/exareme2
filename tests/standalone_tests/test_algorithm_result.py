@@ -1,5 +1,3 @@
-import pytest
-
 from mipengine import DType
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataInt
