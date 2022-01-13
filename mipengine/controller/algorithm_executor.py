@@ -332,12 +332,9 @@ class InconsistentUDFResultSizeException(Exception):
 
 class InconsistentShareTablesValueException(Exception):
     def __init__(
-        self, share_list: Union[bool, List[bool]], result_tables: Union[list, dict]
+        self, share_list: Union[bool, List[bool]], number_of_result_tables: int
     ):
-        message = (
-            f"The size of the {share_list=} does not match the size of the "
-            f"{result_tables=}"
-        )
+        message = f"The size of the {share_list=} does not match the {number_of_result_tables=}"
         super().__init__(message)
 
 
@@ -577,24 +574,11 @@ class _AlgorithmExecutionInterface:
         # Get udf results from each local node
         all_nodes_result_tables = self._get_run_udf_results(tasks)
 
-        # Transform share_to_global variable
+        # validate and transform share_to_global variable
         number_of_results = len(all_nodes_result_tables.keys())
-        if isinstance(share_to_global, list):
-            if len(share_to_global) != number_of_results:
-                raise InconsistentShareTablesValueException(
-                    share_to_global, all_nodes_result_tables
-                )
-        elif isinstance(share_to_global, bool):
-            if number_of_results != 1:
-                raise InconsistentShareTablesValueException(
-                    share_to_global, all_nodes_result_tables
-                )
+        self._validate_share_to(share_to_global, number_of_results)
+        if not isinstance(share_to_global, list):
             share_to_global = [share_to_global]
-        else:
-            raise Exception(
-                f"share_to_global must be of type bool or List[bool] but "
-                f"{type(share_to_global)=} was passed"
-            )
 
         # Handle sharing results to global node
         if share_to_global:
@@ -656,23 +640,11 @@ class _AlgorithmExecutionInterface:
         # Get udf result from global node
         result_tables = self._global_node.get_queued_udf_result(task)
 
-        # Transform share_to_locals variable
+        # validate and transform share_to_locals variable
         number_of_results = len(result_tables)
-        if isinstance(share_to_locals, list):
-            if len(share_to_locals) != number_of_results:
-                raise InconsistentShareTablesValueException(
-                    share_to_locals, result_tables
-                )
-        elif isinstance(share_to_locals, bool):
-            if number_of_results != 1:
-                raise InconsistentShareTablesValueException(
-                    share_to_locals, result_tables
-                )
+        self._validate_share_to(share_to_locals, number_of_results)
+        if not isinstance(share_to_locals, list):
             share_to_locals = [share_to_locals]
-        else:
-            raise Exception(
-                f"share_to_locals must be of type bool or List[bool] but {type(share_to_locals)=} was passed"
-            )
 
         # Handle sharing result to local nodes
         if share_to_locals:
@@ -792,6 +764,23 @@ class _AlgorithmExecutionInterface:
                     _GlobalNodeTable(node=self._global_node, table_name=tables[index])
                 )
         return handled_tables
+
+    def _validate_share_to(self, share_to: Union[bool, List[bool]], number_of_results):
+        if isinstance(share_to, list):
+            if len(share_to) != number_of_results:
+                raise InconsistentShareTablesValueException(
+                    share_to_locals, number_of_result_tables
+                )
+        elif isinstance(share_to, bool):
+            if number_of_results != 1:
+                raise InconsistentShareTablesValueException(
+                    share_to_locals, number_of_result_tables
+                )
+        else:
+            raise Exception(
+                f"share_to_locals must be of type bool or List[bool] but "
+                f"{type(share_to)=} was passed"
+            )
 
     # check positional_args and keyword_args do not contain _LocalNodeTable(s)
     def _validate_run_udf_on_global_node_args(
