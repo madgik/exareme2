@@ -235,7 +235,13 @@ def create_monetdb(c, node, monetdb_image=None):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"docker run -d -P -p {container_ports} --name {container_name} {monetdb_image}"
+        cmd = f"""docker run -d -P -p {container_ports} --name {container_name} {monetdb_image}"""
+        run(c, cmd)
+        message(
+            f"Initializing the {container_name}...",
+            Level.HEADER,
+        )
+        cmd = f"""poetry run mipdb init --ip 172.17.0.1 --port {node_config['monetdb']['port']}"""
         run(c, cmd)
 
 
@@ -268,14 +274,7 @@ def load_data(c, port=None):
         template_node_config = toml.load(fp)
     for port in local_node_ports:
         message(f"Loading data on MonetDB at port {port}...", Level.HEADER)
-        cmd = (
-            f"poetry run python -m mipengine.node.monetdb_interface.csv_importer "
-            f"-folder {DEMO_DATA_FOLDER} "
-            f"-user {template_node_config['monetdb']['username']} "
-            f"-pass {template_node_config['monetdb']['password']} "
-            f"-url localhost:{port} "
-            f"-farm db"
-        )
+        cmd = f"poetry run mipdb load-folder {DEMO_DATA_FOLDER}  --ip 172.17.0.1 --port {port} "
         run(c, cmd)
 
 
