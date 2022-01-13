@@ -595,7 +595,6 @@ class _AlgorithmExecutionInterface:
                     _LocalNodeTable(nodes_tables=dict(node_tables))
                 )
 
-        # TODO always return list??
         if len(results_after_sharing_step) == 1:
             results_after_sharing_step = results_after_sharing_step[0]
 
@@ -660,9 +659,9 @@ class _AlgorithmExecutionInterface:
                 for result_table in result_tables
             ]
 
-        # backward compatibility.. TODO always return list??
         if len(results_after_sharing_step) == 1:
             results_after_sharing_step = results_after_sharing_step[0]
+
         return results_after_sharing_step
 
     # TABLES functionality
