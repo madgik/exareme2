@@ -239,6 +239,23 @@ class INodeTable(ABC):
     pass
 
 
+# When _AlgorithmExecutionInterface::run_udf_on_local_nodes is called, depending on
+# how many local nodes are participating in the current algorithm execution, several
+# database tables are created on all participating local nodes. Irrespectevely of the
+# number of local nodes participating, the number of tables created on each of these local
+# nodes will be the same. Another common characteristic among these tables will be
+# that their names, which follow the 'tabletype_nodeid_contextid_commandid_commandsubid'
+# convention, will only differ on the <nodeid> part.
+# Class _LocalNodeTable is the structure that represents the concept of these database
+# tables, created during the execution of a udf, in the algorithm execution layer. A key
+# concept is that a _LocalNodeTable can 'hold' pointers to 'relevant' tables existing in
+# different local nodes accross the federation. By 'relevant' I mean tables that are
+# generated when triggering a udf execution accross sevral local nodes. By "pointers"
+# I mean table names and the aim is to hide the underline complexity, namely different
+# tables on different local nodes of the federation, from the algorithm flow and exposing
+# a single local table object that holds in the background pointers to several tables in
+# several local nodes. This is essentially achieved by keeping key/value mappings between
+# _Node and 'relevant' TableName objects
 class _LocalNodeTable(INodeTable):
     def __init__(self, nodes_tables: Dict[_Node, TableName]):
         self._nodes_tables = nodes_tables
@@ -398,9 +415,14 @@ class AlgorithmExecutor:
             pathology=self._algorithm_execution_dto.algorithm_request_dto.inputdata.pathology,
             datasets=self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
         )
-        self._execution_interface = _AlgorithmExecutionInterface(
-            algo_execution_interface_dto
-        )
+        if len(self._local_nodes) > 1:
+            self._execution_interface = _AlgorithmExecutionInterface(
+                algo_execution_interface_dto
+            )
+        else:
+            self._execution_interface = _SingleLocalNodeAlgorithmExecutionInterface(
+                algo_execution_interface_dto
+            )
 
         # Get algorithm module
         self.algorithm_flow_module = algorithm_modules[self._algorithm_name]
@@ -480,9 +502,6 @@ class _AlgorithmExecutionInterface:
             if varname in varnames
         }
 
-        if len(self._local_nodes) == 1:
-            self._global_node = self._local_nodes[0]
-
         # TODO: validate all local nodes have created the base_view_table??
         self._initial_view_tables = {}
         tmp_variable_node_table = {}
@@ -500,9 +519,6 @@ class _AlgorithmExecutionInterface:
             variable_name: _LocalNodeTable(node_table)
             for (variable_name, node_table) in tmp_variable_node_table.items()
         }
-
-    def _is_single_node_execution(self) -> bool:
-        return self._global_node == self._local_nodes[0]
 
     @property
     def initial_view_tables(self) -> Dict[str, _LocalNodeTable]:
@@ -681,36 +697,56 @@ class _AlgorithmExecutionInterface:
         handled_tables = []
         for index, share in enumerate(share_list):
             nodes_tables: List[Tuple[_Node, TableName]] = indexed_node_tables[index]
-            nodes = [tupple[0] for tupple in nodes_tables]
-            tables = [tupple[1] for tupple in nodes_tables]
             if share:
-                if self._is_single_node_execution():
-                    merge_table = tables[0]
-                else:
-                    # check the tables have the same schema
-                    check, tables_schemas, common_schema = check_same_schema_tables(
-                        nodes_tables
-                    )
-                    if check == False:
-                        raise InconsistentTableSchemasException(tables_schemas)
+                nodes = [tupple[0] for tupple in nodes_tables]
+                tables = [tupple[1] for tupple in nodes_tables]
 
-                    # create remote tabels on global node
-                    for index, node in enumerate(nodes):
-                        self._global_node.create_remote_table(
-                            table_name=tables[index]._full_name,
-                            table_schema=common_schema,
-                            native_node=node,
-                        )
-                    # merge remote tables into one merge table on global node
-                    merge_table = self._global_node.create_merge_table(
-                        command_id, tables
+                # check the tables have the same schema
+                check, tables_schemas, common_schema = check_same_schema_tables(
+                    nodes_tables
+                )
+                if check == False:
+                    raise InconsistentTableSchemasException(tables_schemas)
+
+                # create remote tabels on global node
+                for index, node in enumerate(nodes):
+                    self._global_node.create_remote_table(
+                        table_name=tables[index]._full_name,
+                        table_schema=common_schema,
+                        native_node=node,
                     )
+                # merge remote tables into one merge table on global node
+                merge_table = self._global_node.create_merge_table(command_id, tables)
 
                 handled_tables.append(
                     _GlobalNodeTable(node=self._global_node, table_name=merge_table)
                 )
             else:
                 handled_tables.append(_LocalNodeTable(nodes_tables=dict(nodes_tables)))
+        return handled_tables
+
+    def _handle_table_sharing_global_to_locals(
+        self, share_list: List[bool], tables: List[TableName], command_id=int
+    ) -> List[INodeTable]:
+        handled_tables = []
+        for index, share in enumerate(share_list):
+            if share:
+                local_tables = []
+                table_schema = self._global_node.get_table_schema(tables[index])
+                for node in self._local_nodes:
+                    node.create_remote_table(
+                        table_name=tables[index]._full_name,
+                        table_schema=table_schema,
+                        native_node=self._global_node,
+                    )
+                    local_tables.append((node, tables[index]))
+
+                handled_tables.append(_LocalNodeTable(nodes_tables=dict(local_tables)))
+
+            else:
+                handled_tables.append(
+                    _GlobalNodeTable(node=self._global_node, table_name=tables[index])
+                )
         return handled_tables
 
     def _get_run_udf_results(
@@ -739,32 +775,6 @@ class _AlgorithmExecutionInterface:
             raise InconsistentUDFResultSizeException(all_nodes_result_tables)
         else:
             return all_nodes_result_tables
-
-    def _handle_table_sharing_global_to_locals(
-        self, share_list: List[bool], tables: List[TableName], command_id=int
-    ) -> List[INodeTable]:
-        handled_tables = []
-        for index, share in enumerate(share_list):
-            if share:
-                if self._is_single_node_execution():
-                    local_tables = [(self._global_node, tables[0])]
-                else:
-                    local_tables = []
-                    table_schema = self._global_node.get_table_schema(tables[index])
-                    for node in self._local_nodes:
-                        node.create_remote_table(
-                            table_name=tables[index]._full_name,
-                            table_schema=table_schema,
-                            native_node=self._global_node,
-                        )
-                        local_tables.append((node, tables[index]))
-                handled_tables.append(_LocalNodeTable(nodes_tables=dict(local_tables)))
-
-            else:
-                handled_tables.append(
-                    _GlobalNodeTable(node=self._global_node, table_name=tables[index])
-                )
-        return handled_tables
 
     def _validate_share_to(self, share_to: Union[bool, List[bool]], number_of_results):
         if isinstance(share_to, list):
@@ -869,6 +879,51 @@ class _AlgorithmExecutionInterface:
             # TODO specific exception
             raise Exception(f"{type(algoexec_arg)=} is not accepted...")
         return udf_argument
+
+
+class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
+    def __init__(self, algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO):
+        super().__init__(algo_execution_interface_dto)
+        self._global_node = self._local_nodes[0]
+
+    def _handle_table_sharing_locals_to_global(
+        self,
+        share_list: List[bool],
+        indexed_node_tables: Dict[int, List[Tuple[_Node, TableName]]],
+        command_id: int,
+    ) -> List[INodeTable]:
+
+        handled_tables = []
+        for index, share in enumerate(share_list):
+            node_table_tuple: List[Tuple[_Node, TableName]] = indexed_node_tables[index]
+            if share:
+                table_name = node_table_tuple[0][1]
+                handled_tables.append(
+                    _GlobalNodeTable(node=self._global_node, table_name=table_name)
+                )
+            else:
+                handled_tables.append(
+                    _LocalNodeTable(nodes_tables=dict(node_table_tuple))
+                )
+        return handled_tables
+
+    def _handle_table_sharing_global_to_locals(
+        self, share_list: List[bool], tables: List[TableName], command_id=int
+    ) -> List[INodeTable]:
+
+        handled_tables = []
+        for index, share in enumerate(share_list):
+            if share:
+                local_tables = (self._global_node, tables[index])
+                handled_tables.append(
+                    _LocalNodeTable(nodes_tables=dict([local_tables]))
+                )
+
+            else:
+                handled_tables.append(
+                    _GlobalNodeTable(node=self._global_node, table_name=tables[index])
+                )
+        return handled_tables
 
 
 def check_same_schema_tables(
