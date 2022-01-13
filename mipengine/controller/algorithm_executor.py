@@ -650,20 +650,20 @@ class _AlgorithmExecutionInterface:
 
         # Handle sharing result to local nodes
         if share_to_locals:
-            final_results = self._handle_table_sharing_global_to_locals(
+            results_after_sharing_step = self._handle_table_sharing_global_to_locals(
                 share_list=share_to_locals, tables=result_tables, command_id=command_id
             )
 
         else:
-            final_results = [
+            results_after_sharing_step = [
                 _GlobalNodeTable(node=self._global_node, table_name=result_table)
                 for result_table in result_tables
             ]
 
         # backward compatibility.. TODO always return list??
-        if len(final_results) == 1:
-            final_results = final_results[0]
-        return final_results
+        if len(results_after_sharing_step) == 1:
+            results_after_sharing_step = results_after_sharing_step[0]
+        return results_after_sharing_step
 
     # TABLES functionality
     def get_table_data(self, node_table) -> TableData:
