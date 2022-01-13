@@ -239,21 +239,19 @@ class INodeTable(ABC):
     pass
 
 
-# When _AlgorithmExecutionInterface::run_udf_on_local_nodes is called, depending on
+# When _AlgorithmExecutionInterface::run_udf_on_local_nodes(..) is called, depending on
 # how many local nodes are participating in the current algorithm execution, several
 # database tables are created on all participating local nodes. Irrespectevely of the
 # number of local nodes participating, the number of tables created on each of these local
 # nodes will be the same.
 # Class _LocalNodeTable is the structure that represents the concept of these database
 # tables, created during the execution of a udf, in the algorithm execution layer. A key
-# concept is that a _LocalNodeTable can 'hold' pointers to 'relevant' tables existing in
+# concept is that a _LocalNodeTable stores 'pointers' to 'relevant' tables existing in
 # different local nodes accross the federation. By 'relevant' I mean tables that are
-# generated when triggering a udf execution accross sevral local nodes. By "pointers"
-# I mean table names and the aim is to hide the underline complexity, namely different
-# tables on different local nodes of the federation, from the algorithm flow and exposing
-# a single local table object that holds in the background pointers to several tables in
-# several local nodes. This is essentially achieved by keeping key/value mappings between
-# _Node and 'relevant' TableName objects
+# generated when triggering a udf execution accross several local nodes. By 'pointers'
+# I mean mapping between local nodes and table names and the aim is to hide the underline
+# complexity from the algorithm flow and exposing a single 'local node table' object that
+# stores in the background pointers to several tables in several local nodes.
 class _LocalNodeTable(INodeTable):
     def __init__(self, nodes_tables: Dict[_Node, TableName]):
         self._nodes_tables = nodes_tables
