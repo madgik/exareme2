@@ -723,11 +723,7 @@ class _AlgorithmExecutionInterface:
                 tables = [tupple[1] for tupple in nodes_tables]
 
                 # check the tables have the same schema
-                check, tables_schemas, common_schema = check_same_schema_tables(
-                    nodes_tables
-                )
-                if check == False:
-                    raise InconsistentTableSchemasException(tables_schemas)
+                common_schema = self._validate_same_schema_tables(nodes_tables)
 
                 # create remote tabels on global node
                 for index, node in enumerate(nodes):
@@ -897,33 +893,30 @@ class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
                 )
         return handled_tables
 
+    def _validate_same_schema_tables(
+        self, tables: List[Tuple[_INode, TableName]]
+    ) -> TableSchema:
 
-def check_same_schema_tables(
-    tables: List[Tuple[_INode, TableName]]
-) -> (bool, Dict[TableName, TableSchema], TableSchema):
-    """
-    Returns :
-    bool: True if all tables have the same schema.
-    Dict[TableName, TableSchema]: keys:table name and values:the corresponding
-    table schema
-    TableSchema: the common TableSchema, if all tables have the same schema, else None
-    """
+        """
+        Returns :
+        TableSchema: the common TableSchema, if all tables have the same schema
+        """
 
-    have_common_schema = True
-    schemas = {}
-    reference_schema = None
-    for node, table in tables:
-        schemas[table] = node.get_table_schema(table)
-        if reference_schema:
-            if schemas[table] != reference_schema:
-                have_common_schema = False
+        have_common_schema = True
+        reference_schema = None
+        for node, table in tables:
+            schemas[table] = node.get_table_schema(table)
+            if reference_schema:
+                if schemas[table] != reference_schema:
+                    have_common_schema = False
+            else:
+                reference_schema = schemas[table]
+
+        if not have_common_schema:
+            raise InconsistentTableSchemasException(tables_schemas)
+
         else:
-            reference_schema = schemas[table]
-
-    if have_common_schema:
-        return have_common_schema, schemas, reference_schema
-    else:
-        return have_common_schema, schemas, None
+            return reference_schema
 
 
 def get_next_command_id() -> int:
