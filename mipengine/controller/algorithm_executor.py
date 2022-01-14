@@ -35,8 +35,6 @@ from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
 from mipengine.node_tasks_DTOs import UDFArgumentKind
 
-from mipengine.algorithm_flow_DTOs import Literal
-
 
 class AlgorithmExecutionException(Exception):
     def __init__(self, message):
@@ -52,7 +50,6 @@ class NodeDownAlgorithmExecutionException(Exception):
         )
         super().__init__(message)
         self.message = message
-
 
 class _Node(_INode):
     def __init__(
@@ -544,8 +541,8 @@ class _AlgorithmExecutionInterface:
     def run_udf_on_local_nodes(
         self,
         func_name: str,
-        positional_args: Optional[List[Union[_LocalNodeTable, Literal]]] = None,
-        keyword_args: Optional[Dict[str, Union[_LocalNodeTable, Literal]]] = None,
+        positional_args: Optional[List[Any]] = None,
+        keyword_args: Optional[Dict[str, Any]] = None,
         share_to_global: Union[bool, List[bool]] = False,
     ) -> List[INodeTable]:
         # 1. check positional_args and keyword_args tables do not contain _GlobalNodeTable(s)
@@ -557,8 +554,10 @@ class _AlgorithmExecutionInterface:
 
         command_id = get_next_command_id()
 
-        self._validate_run_udf_on_local_nodes_args(
-            positional_args=positional_args, keyword_args=keyword_args
+        self._validate_run_udf_args(
+            positional_args=positional_args,
+            keyword_args=keyword_args,
+            args_must_not_contain=_GlobalNodeTable,
         )
 
         # Queue the udf on all local nodes
@@ -615,8 +614,8 @@ class _AlgorithmExecutionInterface:
     def run_udf_on_global_node(
         self,
         func_name: str,
-        positional_args: Optional[List[Union[_GlobalNodeTable, Literal]]] = None,
-        keyword_args: Optional[Dict[str, Union[_GlobalNodeTable, Literal]]] = None,
+        positional_args: Optional[List[Any]] = None,
+        keyword_args: Optional[Dict[str, Any]] = None,
         share_to_locals: Union[bool, List[bool]] = False,
     ) -> List[INodeTable]:
         # 1. check positional_args and keyword_args tables do not contain _LocalNodeTable(s)
@@ -627,8 +626,10 @@ class _AlgorithmExecutionInterface:
 
         command_id = get_next_command_id()
 
-        self._validate_run_udf_on_global_node_args(
-            positional_args=positional_args, keyword_args=keyword_args
+        self._validate_run_udf_args(
+            positional_args=positional_args,
+            keyword_args=keyword_args,
+            args_must_not_contain=_LocalNodeTable,
         )
 
         positional_udf_args = (
@@ -684,6 +685,29 @@ class _AlgorithmExecutionInterface:
         return node_table.get_table_schema()
 
     # -------------helper methods------------
+
+    def _validate_run_udf_args(
+        self,
+        args_must_not_contain: type,
+        positional_args: Optional[List[Any]] = None,
+        keyword_args: Optional[Dict[str, Any]] = None,
+    ):
+        for arg in positional_args or []:
+            if isinstance(arg, args_must_not_contain):
+                raise Exception(
+                    f"positional_args contains {arg=} of "
+                    f"type {type(arg)=} which is not acceptable from "
+                    f"run_udf_on_local_nodes. {positional_args=}"
+                )
+        if keyword_args:
+            for arg in keyword_args.values():
+                if isinstance(arg, args_must_not_contain):
+                    raise Exception(
+                        f"keyword_args contains {arg=} of "
+                        f"type {type(arg)=} which is not acceptable from "
+                        f"run_udf_on_local_nodes. {keyword_args=}"
+                    )
+
     def _handle_table_sharing_locals_to_global(
         self,
         share_list: List[bool],
@@ -789,76 +813,30 @@ class _AlgorithmExecutionInterface:
                 f"{type(share_to)=} was passed"
             )
 
-    # check positional_args and keyword_args do not contain _LocalNodeTable(s)
-    def _validate_run_udf_on_global_node_args(
-        self,
-        positional_args: Optional[List[Union[_GlobalNodeTable, Literal]]] = None,
-        keyword_args: Optional[Dict[str, Union[_GlobalNodeTable, Literal]]] = None,
-    ):
-        for arg in positional_args or []:
-            if not isinstance(arg, _GlobalNodeTable) and not isinstance(arg, Literal):
-                raise Exception(
-                    f"positional_args contains {arg=} of "
-                    f"type {type(arg)=} which is not acceptable from "
-                    f"run_udf_on_global_node. {positional_args=}"
-                )
-        if keyword_args:
-            for arg in keyword_args.values():
-                if not isinstance(arg, _GlobalNodeTable) and not isinstance(
-                    arg, Literal
-                ):
-                    raise Exception(
-                        f"keyword_args contains {arg=} of "
-                        f"type {type(arg)=} which is not acceptable from "
-                        f"run_udf_on_global_node. {keyword_args=}"
-                    )
-
-    # check positional_args and keyword_args do not contain _GlobalNodeTable(s)
-    def _validate_run_udf_on_local_nodes_args(
-        self,
-        positional_args: Optional[List[Union[_LocalNodeTable, Literal]]] = None,
-        keyword_args: Optional[Dict[str, Union[_LocalNodeTable, Literal]]] = None,
-    ):
-        for arg in positional_args or []:
-            if not isinstance(arg, _LocalNodeTable) and not isinstance(arg, Literal):
-                raise Exception(
-                    f"positional_args contains {arg=} of "
-                    f"type {type(arg)=} which is not acceptable from "
-                    f"run_udf_on_local_nodes. {positional_args=}"
-                )
-        if keyword_args:
-            for arg in keyword_args.values():
-                if not isinstance(arg, _LocalNodeTable) and not isinstance(
-                    arg, Literal
-                ):
-                    raise Exception(
-                        f"keyword_args contains {arg=} of "
-                        f"type {type(arg)=} which is not acceptable from "
-                        f"run_udf_on_local_nodes. {keyword_args=}"
-                    )
-
     def _algoexec_udf_kwargs_to_node_udf_kwargs(
         self,
-        algoexec_kwargs: Dict[str, Union[INodeTable, Literal]],
+        algoexec_kwargs: Dict[str, Any],
         node: _Node = None,
     ) -> UDFKeyArguments:
         udf_kwargs = UDFKeyArguments(kwargs={})
-        for key, val in algoexec_kwargs.items():
-            udf_argument = self._algoexec_udf_arg_to_node_udf_arg(val, node)
+        for key, arg in algoexec_kwargs.items():
+            udf_argument = self._algoexec_udf_arg_to_node_udf_arg(arg, node)
             udf_kwargs.kwargs[key] = udf_argument.json()
         return udf_kwargs
 
     def _algoexec_udf_posargs_to_node_udf_posargs(
-        self, algoexec_posargs: List[Union[INodeTable, Literal]], node: _Node = None
+        self,
+        algoexec_posargs: List[Any],
+        node: _Node = None,
     ) -> UDFPosArguments:
         udf_posargs = UDFPosArguments(args=[])
-        for val in algoexec_posargs:
-            udf_argument = self._algoexec_udf_arg_to_node_udf_arg(val, node)
+        for arg in algoexec_posargs:
+            udf_argument = self._algoexec_udf_arg_to_node_udf_arg(arg, node)
             udf_posargs.args.append(udf_argument.json())
         return udf_posargs
 
     def _algoexec_udf_arg_to_node_udf_arg(
-        self, algoexec_arg: Union[INodeTable, Literal], node: _Node = None
+        self, algoexec_arg: Any, node: _Node = None
     ) -> UDFArgument:
         if isinstance(algoexec_arg, INodeTable):
             if node:
@@ -869,11 +847,8 @@ class _AlgorithmExecutionInterface:
                 kind=UDFArgumentKind.TABLE,
                 value=table_name,
             )
-        elif isinstance(algoexec_arg, Literal):
-            udf_argument = UDFArgument(kind=algoexec_arg.kind, value=algoexec_arg.value)
         else:
-            # TODO specific exception
-            raise Exception(f"{type(algoexec_arg)=} is not accepted...")
+            udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=algoexec_arg)
         return udf_argument
 
 

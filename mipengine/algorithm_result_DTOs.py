@@ -11,8 +11,3 @@ from mipengine.table_data_DTOs import ColumnDataStr
 class TabularDataResult(ImmutableBaseModel):
     title: str
     columns: List[Union[ColumnDataInt, ColumnDataStr, ColumnDataFloat]]
-
-
-class Literal(ImmutableBaseModel):
-    value: Any
-    kind = UDFArgumentKind.LITERAL
