@@ -2,7 +2,7 @@ from mipengine import DType
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataInt
 from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.algorithm_flow_DTOs import TabularDataResult
+from mipengine.algorithm_result_DTOs import TabularDataResult
 
 
 def test_tabular_data_result():
