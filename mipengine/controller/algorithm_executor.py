@@ -51,6 +51,7 @@ class NodeDownAlgorithmExecutionException(Exception):
         super().__init__(message)
         self.message = message
 
+
 class _Node(_INode):
     def __init__(
         self,
