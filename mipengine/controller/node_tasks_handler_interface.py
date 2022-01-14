@@ -23,8 +23,8 @@ class IQueuedUDFAsyncResult(IAsyncResult, ABC):
     command_id: str
     context_id: str
     func_name: str
-    positional_args: list
-    keyword_args: dict
+    positional_args: str
+    keyword_args: str
 
 
 class INodeTasksHandler(ABC):

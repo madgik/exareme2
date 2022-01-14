@@ -20,11 +20,13 @@ from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.node_tasks_DTOs import NodeLiteralDTO
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import UDFArgument
-from mipengine.node_tasks_DTOs import UDFArgumentKind
+from mipengine.node_tasks_DTOs import NodeTableDTO
+from mipengine.node_tasks_DTOs import UDFKeyArguments
+from mipengine.node_tasks_DTOs import UDFPosArguments
 
 
 class _TableName:
@@ -439,9 +441,8 @@ class _AlgorithmExecutionInterface:
             positional_udf_args = []
             for val in positional_args:
                 if isinstance(val, _LocalNodeTable):
-                    udf_argument = UDFArgument(
-                        kind=UDFArgumentKind.TABLE,
-                        value=val.nodes_tables[node].full_table_name,
+                    udf_argument = NodeTableDTO(
+                        value=val.nodes_tables[node].full_table_name
                     )
                 elif isinstance(val, _GlobalNodeTable):
                     raise Exception(
@@ -449,14 +450,13 @@ class _AlgorithmExecutionInterface:
                         f"accepted from run_udf_on_local_nodes"
                     )
                 else:
-                    udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=val)
-                positional_udf_args.append(udf_argument.json())
+                    udf_argument = NodeLiteralDTO(value=val)
+                positional_udf_args.append(udf_argument)
 
             keyword_udf_args = {}
             for var_name, val in keyword_args.items():
                 if isinstance(val, _LocalNodeTable):
-                    udf_argument = UDFArgument(
-                        kind=UDFArgumentKind.TABLE,
+                    udf_argument = NodeTableDTO(
                         value=val.nodes_tables[node].full_table_name,
                     )
                 elif isinstance(val, _GlobalNodeTable):
@@ -465,14 +465,15 @@ class _AlgorithmExecutionInterface:
                         f"accepted from run_udf_on_local_nodes"
                     )
                 else:
-                    udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=val)
-                keyword_udf_args[var_name] = udf_argument.json()
+                    print(val)
+                    udf_argument = NodeLiteralDTO(value=val)
+                keyword_udf_args[var_name] = udf_argument
 
             task = node.queue_run_udf(
                 command_id=command_id,
                 func_name=func_name,
-                positional_args=positional_udf_args,
-                keyword_args=keyword_udf_args,
+                positional_args=UDFPosArguments(args=positional_udf_args).json(),
+                keyword_args=UDFKeyArguments(args=keyword_udf_args).json(),
             )
             tasks[node] = task
 
@@ -608,8 +609,7 @@ class _AlgorithmExecutionInterface:
         positional_udf_args = []
         for val in positional_args:
             if isinstance(val, _GlobalNodeTable):
-                udf_argument = UDFArgument(
-                    kind=UDFArgumentKind.TABLE,
+                udf_argument = NodeTableDTO(
                     value=list(val.node_table.values())[0].full_table_name,
                 )  # TODO: da fuck is dat
             elif isinstance(val, _LocalNodeTable):
@@ -618,14 +618,13 @@ class _AlgorithmExecutionInterface:
                     "accepted from run_udf_on_global_nodes"
                 )
             else:
-                udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=str(val))
-            positional_udf_args.append(udf_argument.json())
+                udf_argument = NodeLiteralDTO(value=str(val))
+            positional_udf_args.append(udf_argument)
 
         keyword_udf_args = {}
         for var_name, val in keyword_args.items():
             if isinstance(val, _GlobalNodeTable):
-                udf_argument = UDFArgument(
-                    kind=UDFArgumentKind.TABLE,
+                udf_argument = NodeTableDTO(
                     value=list(val.node_table.values())[0].full_table_name,
                 )  # TODO: da fuck is dat
             elif isinstance(val, _LocalNodeTable):
@@ -634,14 +633,14 @@ class _AlgorithmExecutionInterface:
                     "accepted from run_udf_on_global_nodes"
                 )
             else:
-                udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=str(val))
-            keyword_udf_args[var_name] = udf_argument.json()
+                udf_argument = NodeLiteralDTO(value=str(val))
+            keyword_udf_args[var_name] = udf_argument
 
         task = self._global_node.queue_run_udf(
             command_id=command_id,
             func_name=func_name,
-            positional_args=positional_udf_args,
-            keyword_args=keyword_udf_args,
+            positional_args=UDFPosArguments(args=positional_udf_args).json(),
+            keyword_args=UDFKeyArguments(args=keyword_udf_args).json(),
         )
         udf_result_tables = self._global_node.get_queued_udf_result(task)
 
