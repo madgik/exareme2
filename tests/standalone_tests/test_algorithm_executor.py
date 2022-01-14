@@ -5,7 +5,6 @@ from random import randint
 
 from mipengine.controller.algorithm_executor_helpers import _INode
 from mipengine.controller.algorithm_executor_helpers import TableName
-from mipengine.controller.algorithm_executor import check_same_schema_tables
 
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 
@@ -13,6 +12,8 @@ from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import DType
 from mipengine.node_tasks_DTOs import TableData
+
+# TODO does not contain any test, just a placeholder..
 
 
 class NodeMock(_INode):
@@ -96,37 +97,3 @@ def test_table_schema_b():
         ]
     )
     return {"command_id": command_id, "schema": schema}
-
-
-def test_check_same_schema_tables(test_table_schema_a, test_table_schema_b):
-    node = NodeMock()
-    table_a_schema_a = node.create_table(
-        command_id=test_table_schema_a["command_id"],
-        schema=test_table_schema_a["schema"],
-    )
-    table_b_schema_a = node.create_table(
-        command_id=test_table_schema_a["command_id"],
-        schema=test_table_schema_a["schema"],
-    )
-    t = [(node, table_a_schema_a), (node, table_b_schema_a)]
-    check, schemas, common_schema = check_same_schema_tables(t)
-
-    assert check == True
-    assert schemas == {
-        table_a_schema_a: test_table_schema_a["schema"],
-        table_b_schema_a: test_table_schema_a["schema"],
-    }
-    assert common_schema == test_table_schema_a["schema"]
-
-    table_c_schema_b = node.create_table(
-        command_id=test_table_schema_b["command_id"],
-        schema=test_table_schema_b["schema"],
-    )
-    t = [(node, table_c_schema_b), (node, table_a_schema_a)]
-    check, schemas, common_schema = check_same_schema_tables(t)
-    assert check == False
-    assert schemas == {
-        table_c_schema_b: test_table_schema_b["schema"],
-        table_a_schema_a: test_table_schema_a["schema"],
-    }
-    assert common_schema == None
