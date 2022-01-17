@@ -3,11 +3,16 @@ from abc import abstractmethod
 from typing import Any
 from typing import List
 from typing import Tuple
+from typing import Optional
+from typing import Dict
 
 from pydantic import BaseModel
 
+from mipengine.node_tasks_DTOs import ImmutableBaseModel
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import UDFArgument
+from mipengine.node_tasks_DTOs import UDFArgumentKind
 
 
 class IAsyncResult(BaseModel, ABC):
@@ -18,13 +23,21 @@ class IAsyncResult(BaseModel, ABC):
         pass
 
 
+class UDFPosArguments(ImmutableBaseModel):
+    args: List[UDFArgument]
+
+
+class UDFKeyArguments(ImmutableBaseModel):
+    kwargs: Dict[str, UDFArgument]
+
+
 class IQueuedUDFAsyncResult(IAsyncResult, ABC):
     node_id: str
     command_id: str
     context_id: str
     func_name: str
-    positional_args: list
-    keyword_args: dict
+    positional_args: Optional[UDFPosArguments] = None
+    keyword_args: Optional[UDFKeyArguments] = None
 
 
 class INodeTasksHandler(ABC):
@@ -107,8 +120,8 @@ class INodeTasksHandler(ABC):
         context_id: str,
         command_id: str,
         func_name: str,
-        positional_args,
-        keyword_args,
+        positional_args: Optional[UDFPosArguments] = None,
+        keyword_args: Optional[UDFKeyArguments] = None,
     ) -> IQueuedUDFAsyncResult:
         pass
 

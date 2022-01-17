@@ -2,6 +2,7 @@ import enum
 from abc import ABC
 from typing import Any
 from typing import List
+from typing import Dict
 from typing import Union
 
 from pydantic import (
