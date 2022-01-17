@@ -848,6 +848,32 @@ class _AlgorithmExecutionInterface:
             udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=algoexec_arg)
         return udf_argument
 
+    def _validate_same_schema_tables(
+        self, tables: List[Tuple[_INode, TableName]]
+    ) -> TableSchema:
+
+        """
+        Returns :
+        TableSchema: the common TableSchema, if all tables have the same schema
+        """
+
+        have_common_schema = True
+        reference_schema = None
+        schemas = {}
+        for node, table in tables:
+            schemas[table] = node.get_table_schema(table)
+            if reference_schema:
+                if schemas[table] != reference_schema:
+                    have_common_schema = False
+            else:
+                reference_schema = schemas[table]
+
+        if not have_common_schema:
+            raise InconsistentTableSchemasException(tables_schemas)
+
+        else:
+            return reference_schema
+
 
 class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
     def __init__(self, algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO):
@@ -892,31 +918,6 @@ class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
                     _GlobalNodeTable(node=self._global_node, table_name=tables[index])
                 )
         return handled_tables
-
-    def _validate_same_schema_tables(
-        self, tables: List[Tuple[_INode, TableName]]
-    ) -> TableSchema:
-
-        """
-        Returns :
-        TableSchema: the common TableSchema, if all tables have the same schema
-        """
-
-        have_common_schema = True
-        reference_schema = None
-        for node, table in tables:
-            schemas[table] = node.get_table_schema(table)
-            if reference_schema:
-                if schemas[table] != reference_schema:
-                    have_common_schema = False
-            else:
-                reference_schema = schemas[table]
-
-        if not have_common_schema:
-            raise InconsistentTableSchemasException(tables_schemas)
-
-        else:
-            return reference_schema
 
 
 def get_next_command_id() -> int:
