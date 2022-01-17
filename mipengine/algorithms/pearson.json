@@ -1,0 +1,25 @@
+{
+    "name": "pearson",
+    "desc": "Pearson Correlation",
+    "label": "Pearson Correlation",
+    "enabled": true,
+    "inputdata": {
+        "y": {
+            "label": "Variables",
+            "desc": "Variables",
+            "types": ["real", "int"],
+            "stattypes": ["numerical"],
+            "notblank": true,
+            "multiple": true
+        },
+        "x": {
+            "label": "Covariates",
+            "desc": "Covariates",
+            "types": ["real", "int"],
+            "stattypes": ["numerical"],
+            "notblank": false,
+            "multiple": true
+        }
+    },
+    "parameters": {}
+}
