@@ -1,8 +1,12 @@
 from typing import List
-from typing import Union
 
 from mipengine import DType
 from mipengine.node_exceptions import TablesNotFound
+from mipengine.table_data_DTOs import ColumnDataBinary
+from mipengine.table_data_DTOs import ColumnDataFloat
+from mipengine.table_data_DTOs import ColumnDataInt
+from mipengine.table_data_DTOs import ColumnDataJSON
+from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
@@ -10,6 +14,7 @@ from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 # TODO We need to add the PRIVATE/OPEN table logic
 from mipengine.node_tasks_DTOs import TableType
+from mipengine.table_data_DTOs import _ColumnData
 
 
 def create_table_name(
@@ -145,9 +150,9 @@ def get_table_names(table_type: TableType, context_id: str) -> List[str]:
     return [table[0] for table in table_names]
 
 
-def get_table_data(table_name: str) -> List[List[Union[float, int, str, None]]]:
+def get_table_data(table_name: str) -> List[_ColumnData]:
     """
-    Retrieves the data of a table with specific name from the monetdb.
+    Returns a list of columns data which will contain name, type and the data of the specific column.
 
     Parameters
     ----------
@@ -156,9 +161,10 @@ def get_table_data(table_name: str) -> List[List[Union[float, int, str, None]]]:
 
     Returns
     ------
-    List[List[Union[str, int, float, bool]]
-        The data of the table.
+    List[_ColumnData]
+        A list of column data
     """
+    schema = get_table_schema(table_name)
 
     data = MonetDB().execute_and_fetchall(
         f"""
@@ -169,7 +175,35 @@ def get_table_data(table_name: str) -> List[List[Union[float, int, str, None]]]:
         """
     )
 
-    return data
+    # TableData contain columns
+    # we need to switch the data given from the database from row-stored to column-stored
+    data = list(zip(*data))
+
+    columns_data = []
+    for current_column, current_values in zip(schema.columns, data):
+        if current_column.dtype == DType.INT:
+            columns_data.append(
+                ColumnDataInt(name=current_column.name, data=current_values)
+            )
+        elif current_column.dtype == DType.STR:
+            columns_data.append(
+                ColumnDataStr(name=current_column.name, data=current_values)
+            )
+        elif current_column.dtype == DType.FLOAT:
+            columns_data.append(
+                ColumnDataFloat(name=current_column.name, data=current_values)
+            )
+        elif current_column.dtype == DType.JSON:
+            columns_data.append(
+                ColumnDataJSON(name=current_column.name, data=current_values)
+            )
+        elif current_column.dtype == DType.BINARY:
+            columns_data.append(
+                ColumnDataBinary(name=current_column.name, data=current_values)
+            )
+        else:
+            raise ValueError("Invalid column type")
+    return columns_data
 
 
 def get_initial_data_schemas() -> List[str]:
@@ -183,10 +217,7 @@ def get_initial_data_schemas() -> List[str]:
     """
 
     schema_table_names = MonetDB().execute_and_fetchall(
-        f"""
-            SELECT name FROM tables
-            WHERE name LIKE '%\\\\_data' ESCAPE '\\\\'
-            AND system = false"""
+        f'SELECT code FROM "mipdb_metadata"."data_models"'
     )
 
     # Flatten the list
@@ -196,11 +227,7 @@ def get_initial_data_schemas() -> List[str]:
         for schema_table_name in schema_table
     ]
 
-    # The first part of the table is the dataset schema (pathology)
-    # Table name convention = <schema_name>_data
-    schema_names = [table_name.split("_")[0] for table_name in schema_table_names]
-
-    return schema_names
+    return schema_table_names
 
 
 def get_schema_datasets(schema_name) -> List[str]:
@@ -215,7 +242,14 @@ def get_schema_datasets(schema_name) -> List[str]:
 
     datasets_rows = MonetDB().execute_and_fetchall(
         f"""
-        SELECT DISTINCT(dataset) FROM {schema_name}_data
+        SELECT code
+        FROM "mipdb_metadata"."datasets"
+        WHERE data_model_id =
+        (
+            SELECT data_model_id
+            FROM "mipdb_metadata"."data_models"
+            WHERE code = '{schema_name}'
+        )
         """
     )
 
@@ -223,7 +257,6 @@ def get_schema_datasets(schema_name) -> List[str]:
     datasets = [
         dataset_name for dataset_row in datasets_rows for dataset_name in dataset_row
     ]
-
     return datasets
 
 

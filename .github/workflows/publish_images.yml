@@ -53,35 +53,6 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v2
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
-
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root
-
-      - name: Start MONETDB container
-        run: docker run -d -p 50000:50000 --name monetdb madgik/mipenginedb:latest
-
-      - name: Load data into MONETDB container
-        run: poetry run inv load-data --port 50000
-
-      - name: Commit MONETDB image with loaded demo_data
-        run: docker commit monetdb madgik/mipenginedb_with_data:${{ github.event.release.tag_name }}
-
-      - name: Push the MONETDB demo_data image to dockerhub
-        run: docker push madgik/mipenginedb_with_data:${{ github.event.release.tag_name }}
-
   build_and_push_rabbitmq:
     name: Build RABBITMQ image and push to dockerhub
     runs-on: ubuntu-latest

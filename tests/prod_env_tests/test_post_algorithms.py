@@ -1,6 +1,8 @@
 import json
 import re
 
+import numpy as np
+
 import pytest
 import requests
 
@@ -63,15 +65,28 @@ def get_parametrization_list_success_cases():
     expected_response = {
         "title": "Logistic Regression Coefficients",
         "columns": [
-            {"name": "variable", "type": "string"},
-            {"name": "coefficient", "type": "number"},
-        ],
-        "data": [
-            ["lefthippocampus", -3.809188],
-            ["righthippocampus", 4.595969],
-            ["rightppplanumpolare", 3.6549711],
-            ["leftamygdala", -2.4617643],
-            ["rightamygdala", -11.787596],
+            {
+                "name": "variable",
+                "type": "STR",
+                "data": [
+                    "lefthippocampus",
+                    "righthippocampus",
+                    "rightppplanumpolare",
+                    "leftamygdala",
+                    "rightamygdala",
+                ],
+            },
+            {
+                "name": "coefficient",
+                "type": "FLOAT",
+                "data": [
+                    -3.808690138615198,
+                    4.595468450104967,
+                    3.6548996108914924,
+                    -2.46237146733095,
+                    -11.786703468254302,
+                ],
+            },
         ],
     }
 
@@ -97,12 +112,11 @@ def test_post_algorithm_success(algorithm_name, request_dict, expected_response)
     assert response.status_code == 200
 
 
-@pytest.mark.xfail(reason="https://team-1617704806227.atlassian.net/browse/MIP-260")
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_success_cases(),
 )
-def test_post_algorithm_proper_result(algorithm_name, request_dict, expected_response):
+def test_post_algorithm_correct_result(algorithm_name, request_dict, expected_response):
     algorithm_url = algorithms_url + "/" + algorithm_name
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
@@ -111,7 +125,17 @@ def test_post_algorithm_proper_result(algorithm_name, request_dict, expected_res
         data=json.dumps(request_dict),
         headers=headers,
     )
-    assert not response.json() == expected_response
+    response = response.json()
+    columns = response["columns"]
+    expected_columns = expected_response["columns"]
+
+    for column, expected_column in zip(columns, expected_columns):
+        assert column["name"] == expected_column["name"]
+        assert column["type"] == expected_column["type"]
+        if column["type"] == "STR":
+            assert column["data"] == expected_column["data"]
+        elif column["type"] == "FLOAT":
+            np.testing.assert_allclose(column["data"], expected_column["data"])
 
 
 def get_parametrization_list_exception_cases():

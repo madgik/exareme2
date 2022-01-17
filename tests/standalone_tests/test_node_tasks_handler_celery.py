@@ -1,10 +1,14 @@
 import pytest
-import json
 
+from mipengine.node_tasks_DTOs import NodeTableDTO
+from mipengine.node_tasks_DTOs import UDFPosArguments
 from .conftest import kill_node_service
 from mipengine.node_tasks_DTOs import TableSchema, ColumnInfo
 from mipengine import DType
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
+
+from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
+
 from celery.exceptions import TimeoutError
 
 from .conftest import remove_tmp_localnode_rabbitmq
@@ -120,14 +124,14 @@ def test_broker_connection_closed_exception_queue_udf(
 
     # queue the udf
     func_name = "relation_to_matrix_4lfu"
-    args = json.dumps({"kind": 1, "value": table_name})
-    keyword_args = {"rel": args}
+    arg = NodeTableDTO(value=table_name)
+    keyword_args = UDFKeyArguments(args={"rel": arg})
     with pytest.raises(ClosedBrokerConnectionError):
         _ = tmp_localnode_tasks_handler_celery.queue_run_udf(
             context_id=TASKS_CONTEXT_ID,
             command_id=1,
             func_name=func_name,
-            positional_args=[],
+            positional_args=UDFPosArguments(args=[]),
             keyword_args=keyword_args,
         )
 

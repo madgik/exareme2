@@ -24,9 +24,9 @@ def validate_smpc_templates_match(
     Nothing, only throws exception if they don't match.
     """
 
-    table_data = get_table_data(table_name)
-    first_template, *_ = table_data[0]
-    for template, *_ in table_data[1:]:
+    template_column = get_table_data(table_name)[0].data
+    first_template, *_ = template_column
+    for template in template_column[1:]:
         if template != first_template:
             raise ValueError(
                 f"SMPC templates dont match. \n {first_template} \n != \n {template}"

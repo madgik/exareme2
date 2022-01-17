@@ -99,9 +99,9 @@ class CommonDataElements:
                 pathology_metadata_folder / PATHOLOGY_METADATA_FILENAME
             )
             try:
-                pathology_metadata: MetadataGroup = MetadataGroup.from_json(
-                    open(pathology_metadata_filepath).read()
-                )
+                with open(pathology_metadata_filepath) as file:
+                    contents = file.read()
+                    pathology_metadata = MetadataGroup.from_json(contents)
                 self.pathologies[pathology_metadata.code] = {
                     variable.code: CommonDataElement(variable)
                     for group in pathology_metadata

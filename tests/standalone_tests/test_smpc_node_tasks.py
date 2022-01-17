@@ -120,7 +120,7 @@ def validate_dict_table_data_match_expected(
     assert table_name is not None
     table_data_str = get_table_data_task.delay(table_name=table_name).get()
     table_data: TableData = TableData.parse_raw(table_data_str)
-    _, result_str = table_data.data_[0]
+    result_str, *_ = table_data.columns[1].data
     result = json.loads(result_str)
     assert result == expected_values
 

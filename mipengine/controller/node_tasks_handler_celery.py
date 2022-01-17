@@ -1,12 +1,15 @@
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
+from mipengine.controller.node_tasks_handler_interface import UDFPosArguments
+from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
+
 from pydantic import BaseModel, conint
 from ipaddress import IPv4Address
 from celery import Celery
 
 from celery.result import AsyncResult
 
-from typing import List, Tuple, Final, Callable, Dict, Any
+from typing import List, Tuple, Final, Callable, Dict, Any, Optional
 
 from celery.exceptions import TimeoutError
 from billiard.exceptions import SoftTimeLimitExceeded
@@ -16,6 +19,7 @@ from kombu.exceptions import OperationalError
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.controller.celery_app import get_node_celery_app
+from mipengine.node_tasks_DTOs import UDFResults
 
 TASK_SIGNATURES: Final = {
     "get_tables": "mipengine.node.tasks.tables.get_tables",
@@ -111,11 +115,11 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         self._tasks_timeout = tasks_timeout
 
     @property
-    def node_id(self):
+    def node_id(self) -> str:
         return self._node_id
 
     @property
-    def node_data_address(self):
+    def node_data_address(self) -> str:
         return self._db_address
 
     def _apply_async(self, task_signature, **kwargs) -> AsyncResult:
@@ -145,7 +149,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_table_schema(self, table_name: str):
+    def get_table_schema(self, table_name: str) -> TableSchema:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_schema"])
         result = self._apply_async(
             task_signature=task_signature, table_name=table_name
@@ -251,7 +255,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     @broker_connection_closed_handler
     def create_remote_table(
         self, table_name: str, table_schema: TableSchema, original_db_url: str
-    ) -> str:
+    ):
         table_schema_json = table_schema.json()
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["create_remote_table"]
@@ -270,8 +274,8 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         context_id: str,
         command_id: str,
         func_name: str,
-        positional_args,
-        keyword_args,
+        positional_args: UDFPosArguments,
+        keyword_args: UDFKeyArguments,
     ) -> QueuedUDFAsyncResult:
 
         task_signature = self._celery_app.signature(TASK_SIGNATURES["run_udf"])
@@ -280,8 +284,8 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             command_id=command_id,
             context_id=context_id,
             func_name=func_name,
-            positional_args_json=positional_args,
-            keyword_args_json=keyword_args,
+            positional_args_json=positional_args.json(),
+            keyword_args_json=keyword_args.json(),
         )
         return QueuedUDFAsyncResult(
             node_id=self.node_id,
@@ -295,8 +299,9 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_queued_udf_result(self, async_result: QueuedUDFAsyncResult) -> List[str]:
-        return async_result.get(self._tasks_timeout)
+    def get_queued_udf_result(self, async_result: QueuedUDFAsyncResult) -> UDFResults:
+        result_str = async_result.get(self._tasks_timeout)
+        return UDFResults.parse_raw(result_str)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
