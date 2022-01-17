@@ -79,21 +79,11 @@ def get_celery_task_signature(celery_app, task):
             "mipengine.node.tasks.udfs.get_run_udf_query"
         ),
         "clean_up": celery_app.signature("mipengine.node.tasks.common.clean_up"),
+        "validate_smpc_templates_match": celery_app.signature(
+            "mipengine.node.tasks.smpc.validate_smpc_templates_match"
+        ),
     }
 
     if task not in signature_mapping.keys():
         raise ValueError(f"Task: {task} is not a valid task.")
     return signature_mapping.get(task)
-
-
-def execute_in_db(node_id, query, *args, **kwargs):
-    username = "monetdb"
-    password = "monetdb"
-    port = get_node_config_by_id(node_id)["monetdb"]["port"]
-    dbfarm = "db"
-    url = f"monetdb://{username}:{password}@localhost:{port}/{dbfarm}:"
-    return (
-        sqlalchemy.create_engine(url, echo=True)
-        .execute(query, *args, **kwargs)
-        .fetchone()
-    )

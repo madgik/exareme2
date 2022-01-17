@@ -74,6 +74,46 @@ def create_table_with_secure_transfer_results(celery_app) -> Tuple[str, int]:
     return table_name, secure_transfer_1_value + secure_transfer_2_value
 
 
+def create_table_with_multiple_secure_transfer_templates(
+    celery_app, similar: bool
+) -> str:
+    create_table_task = get_celery_task_signature(celery_app, "create_table")
+    insert_data_to_table_task = get_celery_task_signature(
+        celery_app, "insert_data_to_table"
+    )
+    table_schema = TableSchema(
+        columns=[
+            ColumnInfo(name="secure_transfer", dtype=DType.JSON),
+        ]
+    )
+    table_name = create_table_task.delay(
+        context_id=context_id,
+        command_id=uuid.uuid4().hex,
+        schema_json=table_schema.json(),
+    ).get()
+    secure_transfer_template = {
+        "sum": {"data": [0, 1, 2, 3], "type": "int", "operation": "addition"}
+    }
+    differenet_secure_transfer_template = {
+        "sum": {"data": 0, "type": "int", "operation": "addition"}
+    }
+
+    if similar:
+        values = [
+            [json.dumps(secure_transfer_template)],
+            [json.dumps(secure_transfer_template)],
+        ]
+    else:
+        values = [
+            [json.dumps(secure_transfer_template)],
+            [json.dumps(differenet_secure_transfer_template)],
+        ]
+
+    insert_data_to_table_task.delay(table_name=table_name, values=values).get()
+
+    return table_name
+
+
 def validate_dict_table_data_match_expected(
     get_table_data_task, table_name, expected_values
 ):
@@ -163,7 +203,7 @@ def test_secure_transfer_input_with_smpc_off(
 
 
 def test_secure_transfer_flow_with_smpc_on(
-    smpc_localnode_node_service, smpc_localnode_celery_app
+    smpc_localnode_node_service, use_localnode_1_database, smpc_localnode_celery_app
 ):
     run_udf_task = get_celery_task_signature(smpc_localnode_celery_app, "run_udf")
     get_table_data_task = get_celery_task_signature(
@@ -242,3 +282,40 @@ def test_secure_transfer_flow_with_smpc_on(
         global_step_result.value,
         expected_result,
     )
+
+
+def test_validate_smpc_templates_match(
+    smpc_localnode_node_service, use_localnode_1_database, smpc_localnode_celery_app
+):
+    validate_smpc_templates_match_task = get_celery_task_signature(
+        smpc_localnode_celery_app, "validate_smpc_templates_match"
+    )
+
+    table_name = create_table_with_multiple_secure_transfer_templates(
+        smpc_localnode_celery_app, True
+    )
+
+    try:
+        validate_smpc_templates_match_task.delay(
+            context_id=context_id, table_name=table_name
+        ).get()
+    except Exception as exc:
+        pytest.fail(f"No exception should be raised. Exception: {exc}")
+
+
+def test_validate_smpc_templates_dont_match(
+    smpc_localnode_node_service, use_localnode_1_database, smpc_localnode_celery_app
+):
+    validate_smpc_templates_match_task = get_celery_task_signature(
+        smpc_localnode_celery_app, "validate_smpc_templates_match"
+    )
+
+    table_name = create_table_with_multiple_secure_transfer_templates(
+        smpc_localnode_celery_app, False
+    )
+
+    with pytest.raises(ValueError) as exc:
+        validate_smpc_templates_match_task.delay(
+            context_id=context_id, table_name=table_name
+        ).get()
+    assert "SMPC templates dont match." in str(exc)

@@ -24,6 +24,7 @@ celery = Celery(
         "mipengine.node.tasks.views",
         "mipengine.node.tasks.common",
         "mipengine.node.tasks.udfs",
+        "mipengine.node.tasks.smpc",
     ],
 )
 node_logger.info("Celery app created.")
