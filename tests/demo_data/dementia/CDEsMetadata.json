@@ -19,8 +19,8 @@
           "label": "DESD-synthdata"
         },
         {
-          "code": "fake_longitudinal",
-          "label": "Longitudinal"
+          "code": "desd-synthdata-8rows",
+          "label": "Small synthetic dataset"
         }
       ],
       "label": "Dataset",
