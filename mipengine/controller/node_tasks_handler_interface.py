@@ -12,7 +12,6 @@ from mipengine.node_tasks_DTOs import ImmutableBaseModel
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFArgument
-from mipengine.node_tasks_DTOs import UDFArgumentKind
 
 
 class IAsyncResult(BaseModel, ABC):
@@ -79,7 +78,8 @@ class INodeTasksHandler(ABC):
     def get_views(self, context_id: str) -> List[str]:
         pass
 
-    # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
+    # TODO: this is very specific to mip, very inconsistent with the rest, has to be
+    # abstracted somehow
     @abstractmethod
     def create_pathology_view(
         self,
