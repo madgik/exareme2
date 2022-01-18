@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import random
 import json
-from functools import partial
+from functools import partial, cached_property
 
 from tqdm import tqdm
 import pandas as pd
@@ -91,21 +91,22 @@ class InputDataVariable(ABC):
         self._notblank = notblank
         self._multiple = multiple
 
+    @property
     @abstractmethod
-    def get_all_variables(self):
+    def all_variables(self):
         pass
 
     def draw(self):
         if not self._notblank and not coin():
             return
-        all_variables = self.get_all_variables()
         num = triangular() if self._multiple else 1
-        choice = random_permutation(all_variables, r=num)
+        choice = random_permutation(self.all_variables, r=num)
         return choice
 
 
 class NumericalInputDataVariables(InputDataVariable):
-    def get_all_variables(self):
+    @cached_property
+    def all_variables(self):
         """Gets the names of all numerical variables available."""
         numerical_vars = self.db.get_numerical_variables()
         return numerical_vars
@@ -173,11 +174,14 @@ class InputGenerator:
 class DatasetsGenerator:
     db = DB()
 
+    @cached_property
+    def all_datasets(self):
+        return self.db.get_datasets()
+
     def draw(self):
-        datasets = self.db.get_datasets()
-        num = len(datasets)
+        num = len(self.all_datasets)
         num_datasets = random.randint(1, num)
-        return random_permutation(datasets, r=num_datasets)
+        return random_permutation(self.all_datasets, r=num_datasets)
 
 
 class FiltersGenerator:
