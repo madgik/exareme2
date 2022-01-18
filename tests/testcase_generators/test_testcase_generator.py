@@ -5,21 +5,17 @@ import json
 import pytest
 
 from tests.testcase_generators.testcase_generator import (
+    EnumFromCDE,
+    EnumFromList,
+    FloatParameter,
     NumericalInputDataVariables,
     InputGenerator,
     TestCaseGenerator,
     DB,
+    IntegerParameter,
+    make_parameters,
 )
 
-
-# XXX Uncomment next statement to test TestCaseGenerator. However, comment
-# again before commiting. We don't need to test the TestCaseGenerator on a
-# regular basis. We only test while developing new features.
-pytestmark = pytest.mark.skip(
-    "These tests rely on a MonetDB container already loaded with data. They are "
-    "useful for developing TestCaseGenerator features only and are not related to "
-    "the MIP engine."
-)
 
 TESTCASEGEN_PATH = "tests.testcase_generators.testcase_generator"
 
@@ -176,8 +172,51 @@ def test_db_get_data_table():
     assert data_table is not None
 
 
+def test_db_get_enumerations():
+    enums = DB().get_enumerations("gender")
+    assert set(enums) == {"F", "M"}
+
+
 def test_db_get_data_table_replicas():
     data_table_once = DB().get_data_table(replicas=1)
     data_table_twice = DB().get_data_table(replicas=2)
     assert len(data_table_once) != 0
     assert len(data_table_once) * 2 == len(data_table_twice)
+
+
+def test_int_parameter():
+    assert 1 <= IntegerParameter(min=1, max=5).draw() <= 5
+
+
+def test_float_parameter():
+    assert 2.71 <= FloatParameter(min=2.71, max=3.14).draw() <= 3.14
+
+
+def test_enum_from_list_parameter():
+    enums = ["a", "b", "c"]
+    assert EnumFromList(enums).draw() in enums
+
+
+def test_enum_from_cde_parameter():
+    varname = "gender"
+    assert EnumFromCDE(varname).draw() in {"F", "M"}
+
+
+def test_make_enum_from_cde_parameter():
+    properties = {"type": "enum_from_cde", "variable_name": "y"}
+    y = ["a_variable"]
+    enum = make_parameters(properties, y)
+    assert enum.varname == "a_variable"
+
+
+def test_make_enum_from_cde_parameter__error_multiple_vars():
+    properties = {"type": "enum_from_cde", "variable_name": "y"}
+    y = ["a_variable", "another_one"]
+    with pytest.raises(AssertionError):
+        make_parameters(properties, y)
+
+
+def test_make_enum_from_cde_parameter__error_unknown_type():
+    properties = {"type": "unknown"}
+    with pytest.raises(TypeError):
+        make_parameters(properties)
