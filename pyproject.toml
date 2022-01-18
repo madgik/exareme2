@@ -47,6 +47,7 @@ markers = [
     "database: these tests depend on an external dockerized MonetDB service running (deselect with '-m \"not database\"')",
 ]
 filterwarnings = ["ignore::DeprecationWarning"]
+norecursedirs = ["tests/testcase_generators"]
 
 [tool.coverage.run]
 source_pkgs = ['mipengine']

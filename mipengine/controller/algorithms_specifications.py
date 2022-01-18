@@ -102,7 +102,7 @@ class ParameterSpecification:
     type: str
     notblank: bool
     multiple: bool
-    default: "typing.Any"
+    default: Any = None
     enums: Optional[List[Any]] = None
     min: Optional[int] = None
     max: Optional[int] = None
