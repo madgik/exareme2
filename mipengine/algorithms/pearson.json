@@ -21,5 +21,16 @@
             "multiple": true
         }
     },
-    "parameters": {}
+    "parameters": {
+        "alpha": {
+            "label": "Confidence level",
+            "desc": "The confidence level α used in the calculation of the confidence intervals for the correlation coefficients.",
+            "type": "float",
+            "default": 0.95,
+            "min": 0.0,
+            "max": 1.0,
+            "notblank": true,
+            "multiple": false
+        }
+    }
 }
