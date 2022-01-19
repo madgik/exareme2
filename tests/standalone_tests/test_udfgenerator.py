@@ -53,9 +53,9 @@ from mipengine.udfgen.udfgenerator import (
     udf,
     verify_declared_typeparams_match_passed_type,
 )
-from mipengine.udfgen_IO_Types import SMPCTablesInfo
-from mipengine.udfgen_IO_Types import SMPCUDFGenResult
-from mipengine.udfgen_IO_Types import TableUDFGenResult
+from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
+from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
+from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
 
 
 @pytest.fixture(autouse=True)

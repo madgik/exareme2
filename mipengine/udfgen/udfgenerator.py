@@ -299,11 +299,11 @@ from typing import Tuple
 from mipengine import DType as dt
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType as DBTableType
-from mipengine.udfgen_IO_Types import SMPCTablesInfo
-from mipengine.udfgen_IO_Types import SMPCUDFGenResult
-from mipengine.udfgen_IO_Types import UDFGenExecutionQueries
-from mipengine.udfgen_IO_Types import TableUDFGenResult
-from mipengine.udfgen_IO_Types import UDFGenResult
+from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
+from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
+from mipengine.udfgen.udfgen_DTOs import UDFGenExecutionQueries
+from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
+from mipengine.udfgen.udfgen_DTOs import UDFGenResult
 
 __all__ = [
     "udf",
