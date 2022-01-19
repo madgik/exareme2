@@ -22,31 +22,41 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
-RABBITMQ_GLOBALNODE_NAME = "rabbitmq_testg_lobalnode"
+RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_lobalnode"
 RABBITMQ_LOCALNODE_1_NAME = "rabbitmq_test_localnode1"
 RABBITMQ_LOCALNODE_2_NAME = "rabbitmq_test_localnode2"
 RABBITMQ_TMP_LOCALNODE_NAME = "rabbitmq_test_tmp_localnode"
-RABBITMQ_SMPC_LOCALNODE_NAME = "rabbitmq_test_smpc_localnode"
+RABBITMQ_SMPC_GLOBALNODE_NAME = "rabbitmq_test_smpc_globalnode"
+RABBITMQ_SMPC_LOCALNODE1_NAME = "rabbitmq_test_smpc_localnode1"
+RABBITMQ_SMPC_LOCALNODE2_NAME = "rabbitmq_test_smpc_localnode2"
 RABBITMQ_GLOBALNODE_PORT = 60000
 RABBITMQ_LOCALNODE_1_PORT = 60001
 RABBITMQ_LOCALNODE_2_PORT = 60002
 RABBITMQ_TMP_LOCALNODE_PORT = 60003
-RABBITMQ_SMPC_LOCALNODE_PORT = 60004
+RABBITMQ_SMPC_GLOBALNODE_PORT = 60004
+RABBITMQ_SMPC_LOCALNODE1_PORT = 60005
+RABBITMQ_SMPC_LOCALNODE2_PORT = 60006
 MONETDB_GLOBALNODE_NAME = "monetdb_test_globalnode"
 MONETDB_LOCALNODE_1_NAME = "monetdb_test_localnode1"
 MONETDB_LOCALNODE_2_NAME = "monetdb_test_localnode2"
 MONETDB_TMP_LOCALNODE_NAME = "monetdb_test_tmp_localnode"
-MONETDB_SMPC_LOCALNODE_NAME = "monetdb_test_smpc_localnode"
+MONETDB_SMPC_GLOBALNODE_NAME = "monetdb_test_smpc_globalnode"
+MONETDB_SMPC_LOCALNODE1_NAME = "monetdb_test_smpc_localnode1"
+MONETDB_SMPC_LOCALNODE2_NAME = "monetdb_test_smpc_localnode2"
 MONETDB_GLOBALNODE_PORT = 61000
 MONETDB_LOCALNODE_1_PORT = 61001
 MONETDB_LOCALNODE_2_PORT = 61002
 MONETDB_TMP_LOCALNODE_PORT = 61003
-MONETDB_SMPC_LOCALNODE_PORT = 61004
+MONETDB_SMPC_GLOBALNODE_PORT = 61004
+MONETDB_SMPC_LOCALNODE1_PORT = 61005
+MONETDB_SMPC_LOCALNODE2_PORT = 61006
 GLOBALNODE_CONFIG_FILE = "globalnode.toml"
 LOCALNODE_1_CONFIG_FILE = "localnode1.toml"
 LOCALNODE_2_CONFIG_FILE = "localnode2.toml"
 LOCALNODE_TMP_CONFIG_FILE = "tmp_localnode.toml"
-LOCALNODE_SMPC_CONFIG_FILE = "smpc_localnode.toml"
+GLOBALNODE_SMPC_CONFIG_FILE = "smpc_globalnode.toml"
+LOCALNODE1_SMPC_CONFIG_FILE = "smpc_localnode1.toml"
+LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
 
 TASKS_TIMEOUT = 10
 
@@ -121,9 +131,29 @@ def monetdb_localnode_2():
 
 
 @pytest.fixture(scope="session")
-def monetdb_smpc_localnode():
-    cont_name = MONETDB_SMPC_LOCALNODE_NAME
-    cont_port = MONETDB_SMPC_LOCALNODE_PORT
+def monetdb_smpc_globalnode():
+    cont_name = MONETDB_SMPC_GLOBALNODE_NAME
+    cont_port = MONETDB_SMPC_GLOBALNODE_PORT
+    _create_monetdb_container(cont_name, cont_port)
+    yield
+    # TODO Very slow development if containers are always removed afterwards
+    # _remove_monetdb_container(cont_name)
+
+
+@pytest.fixture(scope="session")
+def monetdb_smpc_localnode1():
+    cont_name = MONETDB_SMPC_LOCALNODE1_NAME
+    cont_port = MONETDB_SMPC_LOCALNODE1_PORT
+    _create_monetdb_container(cont_name, cont_port)
+    yield
+    # TODO Very slow development if containers are always removed afterwards
+    # _remove_monetdb_container(cont_name)
+
+
+@pytest.fixture(scope="session")
+def monetdb_smpc_localnode2():
+    cont_name = MONETDB_SMPC_LOCALNODE2_NAME
+    cont_port = MONETDB_SMPC_LOCALNODE2_PORT
     _create_monetdb_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -174,8 +204,18 @@ def localnode_2_db_cursor():
 
 
 @pytest.fixture(scope="session")
-def localnode_smpc_db_cursor():
-    return _create_db_cursor(MONETDB_SMPC_LOCALNODE_PORT)
+def globalnode_smpc_db_cursor():
+    return _create_db_cursor(MONETDB_SMPC_GLOBALNODE_PORT)
+
+
+@pytest.fixture(scope="session")
+def localnode1_smpc_db_cursor():
+    return _create_db_cursor(MONETDB_SMPC_LOCALNODE1_PORT)
+
+
+@pytest.fixture(scope="session")
+def localnode2_smpc_db_cursor():
+    return _create_db_cursor(MONETDB_SMPC_LOCALNODE2_PORT)
 
 
 @pytest.fixture(scope="function")
@@ -187,7 +227,7 @@ def _clean_db(cursor):
     select_user_tables = "SELECT name FROM sys.tables WHERE system=FALSE"
     user_tables = cursor.execute(select_user_tables).fetchall()
     for table_name, *_ in user_tables:
-        cursor.execute(f"DROP TABLE {table_name}")
+        cursor.execute(f"DROP TABLE {table_name} CASCADE")
 
 
 @pytest.fixture(scope="function")
@@ -203,9 +243,21 @@ def clean_localnode_1_db(localnode_1_db_cursor):
 
 
 @pytest.fixture(scope="function")
-def clean_smpc_localnode_db(localnode_smpc_db_cursor):
+def clean_smpc_globalnode_db(globalnode_smpc_db_cursor):
     yield
-    _clean_db(localnode_smpc_db_cursor)
+    _clean_db(globalnode_smpc_db_cursor)
+
+
+@pytest.fixture(scope="function")
+def clean_smpc_localnode1_db(localnode1_smpc_db_cursor):
+    yield
+    _clean_db(localnode1_smpc_db_cursor)
+
+
+@pytest.fixture(scope="function")
+def clean_smpc_localnode2_db(localnode2_smpc_db_cursor):
+    yield
+    _clean_db(localnode2_smpc_db_cursor)
 
 
 @pytest.fixture(scope="function")
@@ -230,7 +282,17 @@ def use_localnode_2_database(monetdb_localnode_2, clean_localnode_2_db):
 
 
 @pytest.fixture(scope="function")
-def use_smpc_localnode_database(monetdb_smpc_localnode, clean_smpc_localnode_db):
+def use_smpc_globalnode_database(monetdb_smpc_globalnode, clean_smpc_globalnode_db):
+    pass
+
+
+@pytest.fixture(scope="function")
+def use_smpc_localnode1_database(monetdb_smpc_localnode1, clean_smpc_localnode1_db):
+    pass
+
+
+@pytest.fixture(scope="function")
+def use_smpc_localnode2_database(monetdb_smpc_localnode2, clean_smpc_localnode2_db):
     pass
 
 
@@ -294,9 +356,29 @@ def rabbitmq_localnode_2():
 
 
 @pytest.fixture(scope="session")
-def rabbitmq_smpc_localnode():
-    cont_name = RABBITMQ_SMPC_LOCALNODE_NAME
-    cont_port = RABBITMQ_SMPC_LOCALNODE_PORT
+def rabbitmq_smpc_globalnode():
+    cont_name = RABBITMQ_SMPC_GLOBALNODE_NAME
+    cont_port = RABBITMQ_SMPC_GLOBALNODE_PORT
+    _create_rabbitmq_container(cont_name, cont_port)
+    yield
+    # TODO Very slow development if containers are always removed afterwards
+    # _remove_rabbitmq_container(cont_name)
+
+
+@pytest.fixture(scope="session")
+def rabbitmq_smpc_localnode1():
+    cont_name = RABBITMQ_SMPC_LOCALNODE1_NAME
+    cont_port = RABBITMQ_SMPC_LOCALNODE1_PORT
+    _create_rabbitmq_container(cont_name, cont_port)
+    yield
+    # TODO Very slow development if containers are always removed afterwards
+    # _remove_rabbitmq_container(cont_name)
+
+
+@pytest.fixture(scope="session")
+def rabbitmq_smpc_localnode2():
+    cont_name = RABBITMQ_SMPC_LOCALNODE2_NAME
+    cont_port = RABBITMQ_SMPC_LOCALNODE2_PORT
     _create_rabbitmq_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -382,8 +464,28 @@ def localnode_2_node_service(rabbitmq_localnode_2, monetdb_localnode_2):
 
 
 @pytest.fixture(scope="session")
-def smpc_localnode_node_service(rabbitmq_smpc_localnode, monetdb_smpc_localnode):
-    node_config_file = LOCALNODE_SMPC_CONFIG_FILE
+def smpc_globalnode_node_service(rabbitmq_smpc_globalnode, monetdb_smpc_globalnode):
+    node_config_file = GLOBALNODE_SMPC_CONFIG_FILE
+    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
+    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    yield
+    kill_node_service(proc)
+
+
+@pytest.fixture(scope="session")
+def smpc_localnode1_node_service(rabbitmq_smpc_localnode1, monetdb_smpc_localnode1):
+    node_config_file = LOCALNODE1_SMPC_CONFIG_FILE
+    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
+    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    yield
+    kill_node_service(proc)
+
+
+@pytest.fixture(scope="session")
+def smpc_localnode2_node_service(rabbitmq_smpc_localnode2, monetdb_smpc_localnode2):
+    node_config_file = LOCALNODE2_SMPC_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)

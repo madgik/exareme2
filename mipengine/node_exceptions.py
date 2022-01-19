@@ -62,3 +62,11 @@ class InvalidNodeId(Exception):
 
 class SMPCUsageError(Exception):
     pass
+
+
+class SMPCCommunicationError(Exception):
+    pass
+
+
+class SMPCComputationError(Exception):
+    pass

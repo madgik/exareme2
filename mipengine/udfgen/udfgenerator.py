@@ -401,7 +401,7 @@ def _get_secure_transfer_main_return_stmt_template(output_type, smpc_used):
             min_op_tmpl,
             max_op_tmpl,
             union_op_tmpl,
-        ) = _get_smpc_computation_table_template_names(_get_main_table_template_name())
+        ) = _get_smpc_table_template_names(_get_main_table_template_name())
         return_stmts.extend(
             _get_secure_transfer_op_return_stmt_template(
                 output_type.add_op, add_op_tmpl, "add_op"
@@ -464,7 +464,7 @@ def _get_secure_transfer_sec_return_stmt_template(
             min_op_tmpl,
             max_op_tmpl,
             union_op_tmpl,
-        ) = _get_smpc_computation_table_template_names(tablename_placeholder)
+        ) = _get_smpc_table_template_names(tablename_placeholder)
         return_stmts.append(
             '_conn.execute(f"INSERT INTO $'
             + template_tmpl
@@ -2327,7 +2327,7 @@ def _get_loopback_tables_template_names(
     ]
 
 
-def _get_smpc_computation_table_template_names(prefix: str):
+def _get_smpc_table_template_names(prefix: str):
     """
     This is used when a secure transfer is returned with smpc enabled.
     The secure_transfer is one output_type but needs to be broken into
@@ -2355,16 +2355,14 @@ def _create_table_udf_output(output_type: OutputType, table_name: str) -> UDFGen
     )
 
 
-def _create_smpc_computation_udf_output(
-    output_type: SecureTransferType, table_name_prefix: str
-):
+def _create_smpc_udf_output(output_type: SecureTransferType, table_name_prefix: str):
     (
         template_tmpl,
         add_op_tmpl,
         min_op_tmpl,
         max_op_tmpl,
         union_op_tmpl,
-    ) = _get_smpc_computation_table_template_names(table_name_prefix)
+    ) = _get_smpc_table_template_names(table_name_prefix)
     template = _create_table_udf_output(output_type, template_tmpl)
     add_op = None
     min_op = None
@@ -2391,7 +2389,7 @@ def _create_udf_output(
     output_type: OutputType, table_name: str, smpc_used: bool
 ) -> UDFGenResult:
     if isinstance(output_type, SecureTransferType) and smpc_used:
-        return _create_smpc_computation_udf_output(output_type, table_name)
+        return _create_smpc_udf_output(output_type, table_name)
     else:
         return _create_table_udf_output(output_type, table_name)
 

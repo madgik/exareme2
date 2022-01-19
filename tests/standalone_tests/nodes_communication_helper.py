@@ -82,6 +82,12 @@ def get_celery_task_signature(celery_app, task):
         "validate_smpc_templates_match": celery_app.signature(
             "mipengine.node.tasks.smpc.validate_smpc_templates_match"
         ),
+        "load_data_to_smpc_client": celery_app.signature(
+            "mipengine.node.tasks.smpc.load_data_to_smpc_client"
+        ),
+        "get_smpc_result": celery_app.signature(
+            "mipengine.node.tasks.smpc.get_smpc_result"
+        ),
     }
 
     if task not in signature_mapping.keys():

@@ -33,3 +33,8 @@ password = "monetdb"
 [smpc]
 enabled = "$SMPC_ENABLED"
 optional = "$SMPC_OPTIONAL"
+client_id = "$SMPC_CLIENT_ID"
+client_address = "$SMPC_CLIENT_ADDRESS"
+coordinator_address = "$SMPC_COORDINATOR_ADDRESS"
+get_result_interval = "$SMPC_GET_RESULT_INTERVAL"
+get_result_max_retries = "$SMPC_GET_RESULT_MAX_RETRIES"
