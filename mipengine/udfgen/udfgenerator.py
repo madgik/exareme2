@@ -173,6 +173,50 @@ Global UDF step Example
 NOTE: Even though it's not mandatory, it's faster to have state as the first input/output.
 
 
+secure_transfer explained
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+There is also the option of using secure_transfer instead of transfer
+if you want the algorithm to support integration with the SMPC cluster.
+The local/global udfs steps using secure_transfer would look like:
+Local UDF step Example
+~~~~~~~~~~~~~~~~~~~~~~
+>>> @udf(x=state(), y=transfer(), return_type=[state(), secure_transfer()])
+... def local_step(x, y):
+...     state["x"] = x["key"]
+...     state["y"] = y["key"]
+...     transfer["sum"] = {"data": x["key"] + y["key"], "type": "int", "operation": "addition"}
+...     return state, transfer
+
+Global UDF step Example
+~~~~~~~~~~~~~~~~~~~~~~
+>>> @udf(x=state(), y=secure_transfer(), return_type=[state(), transfer()])
+... def global_step(x, y):
+...     state["x"] = x["key"]
+...     sum = y["sum"]      # The values from all the local nodes are already aggregated
+...     state["y"] = sum
+...     transfer["sum"] = x["key"] + y["key"]
+...     return state, transfer
+
+So, the secure_transfer dict sent should be of the format:
+>>> {
+...    "data": DATA,
+...    "type": TYPE,
+...    "operation": OPERATION
+... }
+
+The data could be an int/float or a list containing other lists or float/int.
+
+The type enumerations are:
+    - "int"
+    - "decimal" (Not yet implemented)
+
+The operation enumerations are:
+    - "addition"
+    - "min" (Not yet implemented)
+    - "max" (Not yet implemented)
+    - "union" (Not yet implemented)
+
+
 2. Translating and calling UDFs
 -------------------------------
 
