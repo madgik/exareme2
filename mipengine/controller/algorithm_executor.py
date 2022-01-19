@@ -1,5 +1,4 @@
 from abc import ABC
-
 from typing import Any
 from typing import Dict
 from typing import List
@@ -14,65 +13,23 @@ from pydantic import BaseModel
 
 from mipengine import algorithm_modules
 from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
+from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
+from mipengine.controller.algorithm_executor_helpers import TableName
+from mipengine.controller.algorithm_executor_helpers import _INode
 from mipengine.controller.controller_common_data_elements import (
     controller_common_data_elements,
 )
-from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
-from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
-from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
-
-from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
-from mipengine.controller.node_tasks_handler_interface import UDFPosArguments
-from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
-from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
+from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import NodeLiteralDTO
-
-from mipengine.controller.algorithm_executor_helpers import _INode
-from mipengine.controller.algorithm_executor_helpers import TableName
+from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import NodeUDFDTO
-
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import UDFKeyArguments
 from mipengine.node_tasks_DTOs import UDFPosArguments
-
-
-class _TableName:
-    def __init__(self, table_name):
-        self._full_name = table_name
-        full_name_split = self._full_name.split("_")
-        self._table_type = full_name_split[0]
-        self._node_id = full_name_split[1]
-        self._context_id = full_name_split[2]
-        self._command_id = full_name_split[3]
-
-    @property
-    def full_table_name(self):
-        return self._full_name
-
-    @property
-    def table_type(self):
-        return self._table_type
-
-    @property
-    def command_id(self):
-        return self._command_id
-
-    @property
-    def context_id(self):
-        return self._context_id
-
-    @property
-    def node_id(self):
-        return self._node_id
-
-    def without_node_id(self):
-        return self._table_type + "_" + self._command_id + "_" + self._context_id
-
-    def __repr__(self):
-        return self.full_table_name
 
 
 class AlgorithmExecutionException(Exception):
@@ -333,12 +290,14 @@ class _LocalNodeTable(INodeTable):
         for table_name in table_names:
             if table_name.without_node_id() != table_name_without_node_id:
                 raise self.MismatchingTableNamesException(
-                    [table_name.full_table_name for table_name in nodes_tables.values()]
+                    [table_name.full_table_name for table_name in table_names]
                 )
 
     class MismatchingTableNamesException(Exception):
-        def __init__(self, table_names):
-            self.message = f"Mismatched table names ->{table_names}"
+        def __init__(self, table_names: List[str]):
+            message = f"Mismatched table names ->{table_names}"
+            super().__init__(message)
+            self.message = message
 
 
 class _GlobalNodeTable(INodeTable):
@@ -410,6 +369,7 @@ class AlgorithmExecutor:
 
         self._global_node = None
         self._local_nodes = []
+        self._algorithm_flow_module = None
         self._execution_interface = None
 
     def _instantiate_nodes(self):
@@ -463,7 +423,7 @@ class AlgorithmExecutor:
             )
 
         # Get algorithm module
-        self.algorithm_flow_module = algorithm_modules[self._algorithm_name]
+        self._algorithm_flow_module = algorithm_modules[self._algorithm_name]
 
     def run(self):
         try:
@@ -473,7 +433,9 @@ class AlgorithmExecutor:
                 f"local nodes: {self._local_nodes=}"
             )
             self._instantiate_algorithm_execution_interface()
-            algorithm_result = self.algorithm_flow_module.run(self._execution_interface)
+            algorithm_result = self._algorithm_flow_module.run(
+                self._execution_interface
+            )
             self._logger.info(f"finished execution of algorithm:{self._algorithm_name}")
             return algorithm_result
         except (
@@ -494,7 +456,7 @@ class AlgorithmExecutor:
             self.clean_up()
 
     def clean_up(self):
-        self._logger.info(f"cleaning up global_node")
+        self._logger.info("cleaning up global_node")
         try:
             self._global_node.clean_up()
         except Exception as exc:
@@ -642,7 +604,7 @@ class _AlgorithmExecutionInterface:
         else:
             # if nothing to share, package all tables as _LocalNodeTable(s)
             results_after_sharing_step = []
-            for index, node_tables in all_nodes_result_tables.items():
+            for node_tables in all_nodes_result_tables.values():
                 results_after_sharing_step.append(
                     _LocalNodeTable(nodes_tables=dict(node_tables))
                 )
@@ -698,7 +660,7 @@ class _AlgorithmExecutionInterface:
         # Handle sharing result to local nodes
         if share_to_locals:
             results_after_sharing_step = self._handle_table_sharing_global_to_locals(
-                share_list=share_to_locals, tables=result_tables, command_id=command_id
+                share_list=share_to_locals, tables=result_tables
             )
         else:
             results_after_sharing_step = [
@@ -761,7 +723,7 @@ class _AlgorithmExecutionInterface:
                 # create remote tabels on global node
                 for index, node in enumerate(nodes):
                     self._global_node.create_remote_table(
-                        table_name=tables[index]._full_name,
+                        table_name=tables[index].full_table_name,
                         table_schema=common_schema,
                         native_node=node,
                     )
@@ -776,7 +738,7 @@ class _AlgorithmExecutionInterface:
         return handled_tables
 
     def _handle_table_sharing_global_to_locals(
-        self, share_list: List[bool], tables: List[TableName], command_id=int
+        self, share_list: List[bool], tables: List[TableName]
     ) -> List[INodeTable]:
         handled_tables = []
         for index, share in enumerate(share_list):
@@ -785,7 +747,7 @@ class _AlgorithmExecutionInterface:
                 table_schema = self._global_node.get_table_schema(tables[index])
                 for node in self._local_nodes:
                     node.create_remote_table(
-                        table_name=tables[index]._full_name,
+                        table_name=tables[index].full_table_name,
                         table_schema=table_schema,
                         native_node=self._global_node,
                     )
@@ -823,20 +785,16 @@ class _AlgorithmExecutionInterface:
 
         if raise_inconsistent_udf_result_exc:
             raise InconsistentUDFResultSizeException(all_nodes_result_tables)
-        else:
-            return all_nodes_result_tables
+
+        return all_nodes_result_tables
 
     def _validate_share_to(self, share_to: Union[bool, List[bool]], number_of_results):
         if isinstance(share_to, list):
             if len(share_to) != number_of_results:
-                raise InconsistentShareTablesValueException(
-                    share_to_locals, number_of_result_tables
-                )
+                raise InconsistentShareTablesValueException(share_to, number_of_results)
         elif isinstance(share_to, bool):
             if number_of_results != 1:
-                raise InconsistentShareTablesValueException(
-                    share_to_locals, number_of_result_tables
-                )
+                raise InconsistentShareTablesValueException(share_to, number_of_results)
         else:
             raise Exception(
                 f"share_to_locals must be of type bool or List[bool] but "
@@ -905,9 +863,9 @@ class _AlgorithmExecutionInterface:
                 reference_schema = schemas[table]
 
         if not have_common_schema:
-            raise InconsistentTableSchemasException(tables_schemas)
-        else:
-            return reference_schema
+            raise InconsistentTableSchemasException(schemas)
+
+        return reference_schema
 
 
 class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
@@ -937,7 +895,7 @@ class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
         return handled_tables
 
     def _handle_table_sharing_global_to_locals(
-        self, share_list: List[bool], tables: List[TableName], command_id=int
+        self, share_list: List[bool], tables: List[TableName]
     ) -> List[INodeTable]:
 
         handled_tables = []

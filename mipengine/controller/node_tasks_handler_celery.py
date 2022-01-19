@@ -1,20 +1,16 @@
-from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
-from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
-from mipengine.controller.node_tasks_handler_interface import UDFPosArguments
-from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
-
-from pydantic import BaseModel, conint
-from ipaddress import IPv4Address
-from celery import Celery
+from typing import List, Tuple, Final, Callable, Optional
 
 from celery.result import AsyncResult
-
-from typing import List, Tuple, Final, Callable, Dict, Any, Optional
 
 from celery.exceptions import TimeoutError
 from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
 from kombu.exceptions import OperationalError
+
+from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
+from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
+from mipengine.controller.node_tasks_handler_interface import UDFPosArguments
+from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
@@ -52,17 +48,17 @@ def time_limit_exceeded_handler(method: Callable):
         # celery app (the NodeTasksHandlerCelery) and executing celery app (the node)
         try:
             return method(ref, *args, **kwargs)
-        except SoftTimeLimitExceeded as stle:
+        except SoftTimeLimitExceeded:
             # TODO should use kwargs here..
             raise SoftTimeLimitExceeded(
                 {"node_id": ref.node_id, "task": method.__name__, "args": args}
             )
-        except TimeLimitExceeded as tle:
+        except TimeLimitExceeded:
             # TODO should use kwargs here..
             raise TimeLimitExceeded(
                 {"node_id": ref.node_id, "task": method.__name__, "args": args}
             )
-        except TimeoutError as te:
+        except TimeoutError:
             # TODO should use kwargs here..
             raise TimeoutError(
                 {
@@ -80,7 +76,7 @@ def broker_connection_closed_handler(method: Callable):
     def inner(ref, *args, **kwargs):
         try:
             return method(ref, *args, **kwargs)
-        except (OperationalError, ConnectionResetError) as err:
+        except (OperationalError, ConnectionResetError):
             raise ClosedBrokerConnectionError(
                 message=f"Connection to broker closed for node:{ref.node_id} when tried "
                 f"to call {method} with task_kwargs={kwargs}",
@@ -145,7 +141,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         result = self._apply_async(
             task_signature=task_signature, context_id=context_id
         ).get(self._tasks_timeout)
-        return [table_name for table_name in result]
+        return list(result)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler

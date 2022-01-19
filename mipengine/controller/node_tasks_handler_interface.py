@@ -70,7 +70,8 @@ class INodeTasksHandler(ABC):
     def get_views(self, context_id: str) -> List[str]:
         pass
 
-    # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
+    # TODO: this is very specific to mip, very inconsistent with the rest, has to be
+    # abstracted somehow
     @abstractmethod
     def create_pathology_view(
         self,

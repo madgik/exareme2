@@ -1,14 +1,12 @@
 import enum
 from abc import ABC
 from typing import Any
-from typing import List
 from typing import Dict
+from typing import List
 from typing import Union
 
-from pydantic import (
-    BaseModel,
-    validator,
-)
+from pydantic import BaseModel
+from pydantic import validator
 
 from mipengine import DType
 
