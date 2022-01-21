@@ -1519,6 +1519,305 @@ FROM
         ]
 
 
+class TestUDFGen_2RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        S = TypeVar("S")
+
+        @udf(
+            r1=relation(schema=S),
+            r2=relation(schema=S),
+            return_type=tensor(dtype=DType.FLOAT, ndims=2),
+        )
+        def f(r1, r2):
+            result = r1
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="rel1_in_db",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="col0", dtype=DType.INT),
+                        ColumnInfo(name="col1", dtype=DType.FLOAT),
+                        ColumnInfo(name="col2", dtype=DType.STR),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+            TableInfo(
+                name="rel2_in_db",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="col4", dtype=DType.INT),
+                        ColumnInfo(name="col5", dtype=DType.FLOAT),
+                        ColumnInfo(name="col6", dtype=DType.STR),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name("r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_col4" INT,"r2_col5" DOUBLE,"r2_col6" VARCHAR(500))
+RETURNS
+TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    r1 = pd.DataFrame({n: _columns[n] for n in ['r1_col0', 'r1_col1', 'r1_col2']})
+    r2 = pd.DataFrame({n: _columns[n] for n in ['r2_col4', 'r2_col5', 'r2_col6']})
+    result = r1
+    return udfio.as_tensor_table(numpy.array(result))
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name((
+        SELECT
+            rel1_in_db.col0,
+            rel1_in_db.col1,
+            rel1_in_db.col2,
+            rel2_in_db.col4,
+            rel2_in_db.col5,
+            rel2_in_db.col6
+        FROM
+            rel1_in_db,
+            rel2_in_db
+        WHERE
+            rel1_in_db.row_id=rel2_in_db.row_id
+    ));"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
+            }
+        ]
+
+
+class TestUDFGen_3RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        S = TypeVar("S")
+
+        @udf(
+            r1=relation(schema=S),
+            r2=relation(schema=S),
+            r3=relation(schema=S),
+            return_type=tensor(dtype=DType.FLOAT, ndims=2),
+        )
+        def f(r1, r2, r3):
+            result = r1
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="rel1_in_db",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="col0", dtype=DType.INT),
+                        ColumnInfo(name="col1", dtype=DType.FLOAT),
+                        ColumnInfo(name="col2", dtype=DType.STR),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+            TableInfo(
+                name="rel2_in_db",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="col4", dtype=DType.INT),
+                        ColumnInfo(name="col5", dtype=DType.FLOAT),
+                        ColumnInfo(name="col6", dtype=DType.STR),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+            TableInfo(
+                name="rel3_in_db",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="col8", dtype=DType.INT),
+                        ColumnInfo(name="col9", dtype=DType.FLOAT),
+                        ColumnInfo(name="col10", dtype=DType.STR),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name("r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_col4" INT,"r2_col5" DOUBLE,"r2_col6" VARCHAR(500),"r3_col8" INT,"r3_col9" DOUBLE,"r3_col10" VARCHAR(500))
+RETURNS
+TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    r1 = pd.DataFrame({n: _columns[n] for n in ['r1_col0', 'r1_col1', 'r1_col2']})
+    r2 = pd.DataFrame({n: _columns[n] for n in ['r2_col4', 'r2_col5', 'r2_col6']})
+    r3 = pd.DataFrame({n: _columns[n] for n in ['r3_col8', 'r3_col9', 'r3_col10']})
+    result = r1
+    return udfio.as_tensor_table(numpy.array(result))
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name((
+        SELECT
+            rel1_in_db.col0,
+            rel1_in_db.col1,
+            rel1_in_db.col2,
+            rel2_in_db.col4,
+            rel2_in_db.col5,
+            rel2_in_db.col6,
+            rel3_in_db.col8,
+            rel3_in_db.col9,
+            rel3_in_db.col10
+        FROM
+            rel1_in_db,
+            rel2_in_db,
+            rel3_in_db
+        WHERE
+            rel1_in_db.row_id=rel2_in_db.row_id AND
+            rel1_in_db.row_id=rel3_in_db.row_id
+    ));"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
+            }
+        ]
+
+
+class TestUDFGen_2SameRelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        S = TypeVar("S")
+
+        @udf(
+            r1=relation(schema=S),
+            r2=relation(schema=S),
+            return_type=tensor(dtype=DType.FLOAT, ndims=2),
+        )
+        def f(r1, r2):
+            result = r1
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="rel1_in_db",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="col0", dtype=DType.INT),
+                        ColumnInfo(name="col1", dtype=DType.FLOAT),
+                        ColumnInfo(name="col2", dtype=DType.STR),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+            TableInfo(
+                name="rel1_in_db",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="col0", dtype=DType.INT),
+                        ColumnInfo(name="col1", dtype=DType.FLOAT),
+                        ColumnInfo(name="col2", dtype=DType.STR),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name("r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_col0" INT,"r2_col1" DOUBLE,"r2_col2" VARCHAR(500))
+RETURNS
+TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    r1 = pd.DataFrame({n: _columns[n] for n in ['r1_col0', 'r1_col1', 'r1_col2']})
+    r2 = pd.DataFrame({n: _columns[n] for n in ['r2_col0', 'r2_col1', 'r2_col2']})
+    result = r1
+    return udfio.as_tensor_table(numpy.array(result))
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name((
+        SELECT
+            rel1_in_db.col0,
+            rel1_in_db.col1,
+            rel1_in_db.col2,
+            rel1_in_db.col0,
+            rel1_in_db.col1,
+            rel1_in_db.col2
+        FROM
+            rel1_in_db
+        WHERE
+            rel1_in_db.row_id=rel1_in_db.row_id
+    ));"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_output_tables(self):
+        return [
+            {
+                "tablename_placeholder": "main_output_table_name",
+                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
+                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
+            }
+        ]
+
+
 class TestUDFGen_TensorToRelation(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
