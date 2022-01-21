@@ -1,18 +1,14 @@
 import enum
-import traceback
 
 from quart import Blueprint
 
+from mipengine.controller.algorithm_executor import (
+    NodeDownAlgorithmExecutionException,
+)
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.filters import FilterError
 from mipengine.node_tasks_DTOs import InsufficientDataError
-from mipengine.controller.algorithm_executor import (
-    AlgorithmExecutionException,
-    NodeDownAlgorithmExecutionException,
-)
-from mipengine.controller import controller_logger as ctrl_logger
-
 
 error_handlers = Blueprint("error_handlers", __name__)
 

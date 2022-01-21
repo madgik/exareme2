@@ -11,6 +11,7 @@ from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.controller.node_tasks_handler_interface import UDFPosArguments
 from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
+from mipengine.node_tasks_DTOs import NodeUDFDTO
 
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
@@ -316,7 +317,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         context_id: str,
         command_id: str,
         func_name: str,
-        positional_args: List[str],
+        positional_args: UDFPosArguments,
     ) -> Tuple[str, str]:
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["get_run_udf_query"]
@@ -326,8 +327,8 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             command_id=command_id,
             context_id=context_id,
             func_name=func_name,
-            positional_args_json=positional_args,
-            keyword_args_json={},
+            positional_args_json=positional_args.json(),
+            keyword_args_json=UDFKeyArguments(args={}).json(),
         ).get(self._tasks_timeout)
         return result
 

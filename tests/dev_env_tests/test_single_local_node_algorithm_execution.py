@@ -150,22 +150,8 @@ def mock_cdes():
 
 
 def test_single_local_node_algorithm_execution(mock_cdes):
-
     local_node_id = "localnode1"
-    global_node_id = "globalnode"
 
-    # GLOBALNODE
-    node_config = get_node_config_by_id(global_node_id)
-    queue_addr = str(node_config.rabbitmq.ip) + ":" + str(node_config.rabbitmq.port)
-    db_addr = str(node_config.monetdb.ip) + ":" + str(node_config.monetdb.port)
-    global_node_task_handler = NodeTasksHandlerCelery(
-        node_id=global_node_id,
-        node_queue_addr=queue_addr,
-        node_db_addr=db_addr,
-        tasks_timeout=45,
-    )
-
-    # LOCALNODE
     node_config = get_node_config_by_id(local_node_id)
     queue_addr = str(node_config.rabbitmq.ip) + ":" + str(node_config.rabbitmq.port)
     db_addr = str(node_config.monetdb.ip) + ":" + str(node_config.monetdb.port)
@@ -177,7 +163,7 @@ def test_single_local_node_algorithm_execution(mock_cdes):
     )
 
     single_node_task_handler = NodesTasksHandlersDTO(
-        global_node_tasks_handler=global_node_task_handler,
+        global_node_tasks_handler=local_node_task_handler,
         local_nodes_tasks_handlers=[local_node_task_handler],
     )
     algo_executor = AlgorithmExecutor(

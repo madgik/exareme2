@@ -7,6 +7,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from mipengine.node_tasks_DTOs import NodeUDFDTO
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFKeyArguments
@@ -132,7 +133,7 @@ class INodeTasksHandler(ABC):
         context_id: str,
         command_id: str,
         func_name: str,
-        positional_args: List[str],
+        positional_args: List[NodeUDFDTO],
     ) -> Tuple[str, str]:
         pass
 
