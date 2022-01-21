@@ -1940,10 +1940,6 @@ def get_udf_select_template(output_type: OutputType, table_args: Dict[str, Table
     relations = get_table_ast_nodes_from_table_args(table_args, arg_type=RelationArg)
     tables = tensors or relations
     columns = [column for table in tables for column in table.columns.values()]
-    if tensors and relations:
-        raise UDFBadDefinition(
-            "Tensors combined with Relations as UDF input is not supported."
-        )
     where_clause = get_where_clause_for_tensors(tensors) if tensors else None
     where_clause = (
         get_where_clause_for_relations(relations) if relations else where_clause
