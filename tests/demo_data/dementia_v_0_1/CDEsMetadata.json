@@ -19,7 +19,7 @@
           "label": "DESD-synthdata"
         },
         {
-          "code": "desd-synthdata-8rows",
+          "code": "edsd-synthdata-9rows",
           "label": "Small synthetic dataset"
         }
       ],
@@ -2004,7 +2004,7 @@
           "description": "Describes the tendency of the patient to use either the right or the left hand more naturally than the other.",
           "enumerations": [
             {
-              "code": "R",
+              "code": "Rpo",
               "label": "Right"
             },
             {

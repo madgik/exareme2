@@ -1913,7 +1913,7 @@ class TestUDFGen_LiteralArgument(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="the_table",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -1982,7 +1982,7 @@ class TestUDFGen_ManyLiteralArguments(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="tensor_in_db",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -2102,7 +2102,7 @@ class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase, _TestGenerateUDFQueries)
                 name="rel_in_db",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="c0", dtype=DType.INT),
                         ColumnInfo(name="c1", dtype=DType.FLOAT),
                         ColumnInfo(name="c2", dtype=DType.STR),
@@ -2176,7 +2176,7 @@ class TestUDFGen_UnknownReturnDimensions(TestUDFGenBase, _TestGenerateUDFQueries
                 name="tens_in_db",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="dim1", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
@@ -2251,7 +2251,7 @@ class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueries
                 name="tens0",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -2262,7 +2262,7 @@ class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueries
                 name="tens1",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -2342,7 +2342,7 @@ class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueri
                 name="tens0",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -2353,7 +2353,7 @@ class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueri
                 name="tens1",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -2364,7 +2364,7 @@ class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueri
                 name="tens2",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -2449,7 +2449,7 @@ class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase, _TestGenerateUDFQueri
                 name="tens0",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="dim1", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
@@ -2461,7 +2461,7 @@ class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase, _TestGenerateUDFQueri
                 name="tens1",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="dim1", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
@@ -2473,7 +2473,7 @@ class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase, _TestGenerateUDFQueri
                 name="tens2",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="dim1", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
@@ -2569,7 +2569,7 @@ class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase, _TestGenerateUDFQuerie
                 name="tens0",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -2580,7 +2580,7 @@ class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase, _TestGenerateUDFQuerie
                 name="tens1",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -2832,7 +2832,7 @@ class TestUDFGen_ScalarReturn(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="tensor_in_db",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="dim1", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
@@ -2898,7 +2898,7 @@ class TestUDFGen_MergeTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="merge_table",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="row_id", dtype=DType.STR),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
