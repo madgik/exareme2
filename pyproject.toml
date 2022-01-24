@@ -22,7 +22,7 @@ scikit-learn = "^0.24.2"
 pydantic = "^1.8.2"
 envtoml = "~0.1.2"
 requests = "^2.26.0"
-mipdb = "^0.1.0"
+mipdb = "0.1.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.3"
