@@ -164,7 +164,7 @@ def test_pathology_view_without_filters(context_id):
 
     schema = TableSchema(
         columns=[
-            ColumnInfo(name="row_id", dtype=DType.STR),
+            ColumnInfo(name="row_id", dtype=DType.INT),
             ColumnInfo(name="dataset", dtype=DType.STR),
             ColumnInfo(name="age_value", dtype=DType.INT),
             ColumnInfo(name="gcs_motor_response_scale", dtype=DType.STR),
@@ -172,6 +172,7 @@ def test_pathology_view_without_filters(context_id):
         ]
     )
     schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
+    print(TableSchema.parse_raw(schema_result_json))
     assert schema == TableSchema.parse_raw(schema_result_json)
 
     view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
@@ -223,7 +224,7 @@ def test_pathology_view_with_filters(context_id):
 
     schema = TableSchema(
         columns=[
-            ColumnInfo(name="row_id", dtype=DType.STR),
+            ColumnInfo(name="row_id", dtype=DType.INT),
             ColumnInfo(name="dataset", dtype=DType.STR),
             ColumnInfo(name="age_value", dtype=DType.INT),
             ColumnInfo(name="gcs_motor_response_scale", dtype=DType.STR),

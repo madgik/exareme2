@@ -1609,9 +1609,23 @@ class SelectClause(ASTNode):
         return LN.join([SELECT, indent(parameters, prefix=SPC4)])
 
 
+def get_distinct_tables(tables):
+    distinct_tables = []
+    for table in tables:
+        table_exists = False
+        for d_table in distinct_tables:
+            if table.name == d_table.name:
+                table_exists = True
+                break
+        if not table_exists:
+            distinct_tables.append(table)
+    return distinct_tables
+
+
 class FromClause(ASTNode):
     def __init__(self, tables, use_alias=True):
-        self.tables = tables
+        # Remove duplicate tables, sql doesn't accept "FROM test1, test1
+        self.tables = get_distinct_tables(tables)
         self.use_alias = use_alias
 
     def compile(self) -> str:
@@ -2307,6 +2321,9 @@ def get_udf_select_template(output_type: OutputType, table_args: Dict[str, Table
     tables = tensors or relations
     columns = [column for table in tables for column in table.columns.values()]
     where_clause = get_where_clause_for_tensors(tensors) if tensors else None
+    where_clause = (
+        get_where_clause_for_relations(relations) if relations else where_clause
+    )
     if isinstance(output_type, ScalarType):
         func = ScalarFunction(name="$udf_name", columns=columns)
         select_stmt = Select([func], tables, where_clause)
@@ -2333,6 +2350,27 @@ def get_where_clause_for_tensors(tensors):
         for table in tail_tensors
         for colname in head_tensor.columns.keys()
         if colname.startswith("dim")
+    ]
+    return where_clause
+
+
+def get_where_clause_for_relations(relations):
+    if len(relations) == 1:
+        return None
+
+    head_relation, *tail_relations = relations
+    where_clause = [
+        ColumnEqualityClause(
+            column1=Column(
+                name="row_id",
+                table=head_relation,
+            ),
+            column2=Column(
+                name="row_id",
+                table=relation,
+            ),
+        )
+        for relation in tail_relations
     ]
     return where_clause
 
