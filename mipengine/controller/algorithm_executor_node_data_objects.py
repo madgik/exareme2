@@ -209,26 +209,16 @@ class LocalNodesSMPCTables(LocalNodesData):
         union_op_nodes_tables = {}
         for node, node_smpc_tables in nodes_smpc_tables.items():
             template_nodes_tables[node] = node_smpc_tables.template
-            if node_smpc_tables.add_op:
-                add_op_nodes_tables[node] = node_smpc_tables.add_op
-            if node_smpc_tables.min_op:
-                min_op_nodes_tables[node] = node_smpc_tables.min_op
-            if node_smpc_tables.max_op:
-                max_op_nodes_tables[node] = node_smpc_tables.max_op
-            if node_smpc_tables.union_op:
-                union_op_nodes_tables[node] = node_smpc_tables.union_op
+            add_op_nodes_tables[node] = node_smpc_tables.add_op
+            min_op_nodes_tables[node] = node_smpc_tables.min_op
+            max_op_nodes_tables[node] = node_smpc_tables.max_op
+            union_op_nodes_tables[node] = node_smpc_tables.union_op
         self.template = LocalNodesTable(template_nodes_tables)
-        self.add_op = (
-            LocalNodesTable(add_op_nodes_tables) if add_op_nodes_tables else None
-        )
-        self.min_op = (
-            LocalNodesTable(min_op_nodes_tables) if min_op_nodes_tables else None
-        )
-        self.max_op = (
-            LocalNodesTable(max_op_nodes_tables) if max_op_nodes_tables else None
-        )
-        self.union_op = (
-            LocalNodesTable(union_op_nodes_tables) if union_op_nodes_tables else None
+        self.add_op = create_local_nodes_table_from_nodes_tables(add_op_nodes_tables)
+        self.min_op = create_local_nodes_table_from_nodes_tables(min_op_nodes_tables)
+        self.max_op = create_local_nodes_table_from_nodes_tables(max_op_nodes_tables)
+        self.union_op = create_local_nodes_table_from_nodes_tables(
+            union_op_nodes_tables
         )
 
 
@@ -320,30 +310,44 @@ def _algoexec_udf_arg_to_node_udf_arg(
     elif isinstance(algoexec_arg, GlobalNodeSMPCTables):
         return NodeSMPCDTO(
             value=NodeSMPCValueDTO(
-                template=NodeTableDTO(
-                    value=algoexec_arg.template.table.full_table_name
+                template=NodeTableDTO(algoexec_arg.template.table.full_table_name),
+                add_op_values=create_node_table_dto_from_global_node_table(
+                    algoexec_arg.add_op
                 ),
-                add_op_values=NodeTableDTO(
-                    value=algoexec_arg.add_op.table.full_table_name
-                )
-                if algoexec_arg.add_op
-                else None,
-                min_op_values=NodeTableDTO(
-                    value=algoexec_arg.min_op.table.full_table_name
-                )
-                if algoexec_arg.min_op
-                else None,
-                max_op_values=NodeTableDTO(
-                    value=algoexec_arg.max_op.table.full_table_name
-                )
-                if algoexec_arg.max_op
-                else None,
-                union_op_values=NodeTableDTO(
-                    value=algoexec_arg.union_op.table.full_table_name
-                )
-                if algoexec_arg.union_op
-                else None,
+                min_op_values=create_node_table_dto_from_global_node_table(
+                    algoexec_arg.min_op
+                ),
+                max_op_values=create_node_table_dto_from_global_node_table(
+                    algoexec_arg.max_op
+                ),
+                union_op_values=create_node_table_dto_from_global_node_table(
+                    algoexec_arg.union_op
+                ),
             )
         )
     else:
         return NodeLiteralDTO(value=algoexec_arg)
+
+
+def create_node_table_from_node_table_dto(node_table_dto: NodeTableDTO):
+    if not node_table_dto:
+        return None
+
+    return NodeTable(table_name=node_table_dto.value)
+
+
+def create_node_table_dto_from_global_node_table(node_table: GlobalNodeTable):
+    if not node_table:
+        return None
+
+    return NodeTableDTO(value=node_table.table.full_table_name)
+
+
+def create_local_nodes_table_from_nodes_tables(
+    nodes_tables: Dict["LocalNode", Union[NodeTable, None]]
+):
+    for table in nodes_tables.values():
+        if not table:
+            return None
+
+    return LocalNodesTable(nodes_tables)

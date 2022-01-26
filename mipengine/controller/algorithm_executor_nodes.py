@@ -8,6 +8,9 @@ from typing import Tuple
 from mipengine.controller.algorithm_executor_node_data_objects import NodeData
 from mipengine.controller.algorithm_executor_node_data_objects import NodeSMPCTables
 from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
+from mipengine.controller.algorithm_executor_node_data_objects import (
+    create_node_table_from_node_table_dto,
+)
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
@@ -286,18 +289,18 @@ class LocalNode(_Node):
                 udf_results.append(
                     NodeSMPCTables(
                         template=NodeTable(result.value.template.value),
-                        add_op=NodeTable(result.value.add_op_values.value)
-                        if result.value.add_op_values
-                        else None,
-                        min_op=NodeTable(result.value.min_op_values.value)
-                        if result.value.min_op_values
-                        else None,
-                        max_op=NodeTable(result.value.max_op_values.value)
-                        if result.value.max_op_values
-                        else None,
-                        union_op=NodeTable(result.value.union_op_values.value)
-                        if result.value.union_op_values
-                        else None,
+                        add_op=create_node_table_from_node_table_dto(
+                            result.value.add_op_values
+                        ),
+                        min_op=create_node_table_from_node_table_dto(
+                            result.value.min_op_values
+                        ),
+                        max_op=create_node_table_from_node_table_dto(
+                            result.value.max_op_values
+                        ),
+                        union_op=create_node_table_from_node_table_dto(
+                            result.value.union_op_values
+                        ),
                     )
                 )
             else:
