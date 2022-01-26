@@ -89,53 +89,6 @@ def get_parametrization_list_success_cases():
     parametrization_list.append((algorithm_name, request_dict, expected_response))
     # END ~~~~~~~~~~success case 1~~~~~~~~~~
 
-    # ~~~~~~~~~~success case 2~~~~~~~~~~
-    algorithm_name = "smpc_standard_deviation"
-    request_dict = {
-        "inputdata": {
-            "pathology": "dementia",
-            "datasets": ["edsd"],
-            "x": [
-                "lefthippocampus",
-            ],
-            "filters": {
-                "condition": "AND",
-                "rules": [
-                    {
-                        "id": "dataset",
-                        "type": "string",
-                        "value": ["edsd"],
-                        "operator": "in",
-                    },
-                    {
-                        "condition": "AND",
-                        "rules": [
-                            {
-                                "id": variable,
-                                "type": "string",
-                                "operator": "is_not_null",
-                                "value": None,
-                            }
-                            for variable in [
-                                "lefthippocampus",
-                            ]
-                        ],
-                    },
-                ],
-                "valid": True,
-            },
-        },
-    }
-    expected_response = {
-        "title": "Standard Deviation",
-        "columns": [
-            {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.3611575592573076], "type": "FLOAT"},
-        ],
-    }
-    parametrization_list.append((algorithm_name, request_dict, expected_response))
-    # END ~~~~~~~~~~success case 2~~~~~~~~~~
-
     return parametrization_list
 
 
