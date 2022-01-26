@@ -1867,13 +1867,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -1979,13 +1981,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -2072,13 +2076,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
 
