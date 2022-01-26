@@ -10,7 +10,7 @@ from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.common_actions import get_table_type
 from mipengine.node.node_logger import initialise_logger
-from mipengine.node_exceptions import SMPCUsageError
+from mipengine.smpc_cluster_comm_helpers import SMPCUsageError
 from mipengine.node_tasks_DTOs import NodeLiteralDTO
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
 from mipengine.node_tasks_DTOs import NodeSMPCValueDTO
@@ -22,6 +22,7 @@ from mipengine.node_tasks_DTOs import UDFKeyArguments
 from mipengine.node_tasks_DTOs import UDFPosArguments
 from mipengine.node_tasks_DTOs import UDFResults
 from mipengine.node_tasks_DTOs import _NodeUDFDTOType
+from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 from mipengine.udfgen import generate_udf_queries
 from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
 from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
@@ -75,7 +76,7 @@ def run_udf(
         str(UDFResults)
             The results, with the tablenames, that the execution created.
     """
-    _validate_smpc_usage(use_smpc)
+    validate_smpc_usage(use_smpc, node_config.smpc.enabled, node_config.smpc.optional)
 
     positional_args = UDFPosArguments.parse_raw(positional_args_json)
     keyword_args = UDFKeyArguments.parse_raw(keyword_args_json)
@@ -127,7 +128,7 @@ def get_run_udf_query(
             A list of the statements that would be executed in the DB.
 
     """
-    _validate_smpc_usage(use_smpc)
+    validate_smpc_usage(use_smpc, node_config.smpc.enabled, node_config.smpc.optional)
 
     positional_args = UDFPosArguments.parse_raw(positional_args_json)
     keyword_args = UDFKeyArguments.parse_raw(keyword_args_json)
@@ -142,19 +143,6 @@ def get_run_udf_query(
     )
 
     return udf_statements
-
-
-def _validate_smpc_usage(use_smpc: bool):
-    """
-    Validates if smpc can be used or if it must be used based on the NODE configs.
-    """
-    if use_smpc and not node_config.smpc.enabled:
-        raise SMPCUsageError("SMPC cannot be used, since it's not enabled on the node.")
-
-    if not use_smpc and node_config.smpc.enabled and not node_config.smpc.optional:
-        raise SMPCUsageError(
-            "The computation cannot be made without SMPC. SMPC usage is not optional."
-        )
 
 
 def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:

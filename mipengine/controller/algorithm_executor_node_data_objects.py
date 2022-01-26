@@ -5,6 +5,8 @@ from typing import List
 from typing import Union
 
 from mipengine.node_tasks_DTOs import NodeLiteralDTO
+from mipengine.node_tasks_DTOs import NodeSMPCDTO
+from mipengine.node_tasks_DTOs import NodeSMPCValueDTO
 from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import NodeUDFDTO
 from mipengine.node_tasks_DTOs import TableSchema
@@ -94,11 +96,11 @@ class AlgoExecData(ABC):
     pass
 
 
-class LocalNodesData(AlgoExecData):
+class LocalNodesData(AlgoExecData, ABC):
     pass
 
 
-class GlobalNodeData(AlgoExecData):
+class GlobalNodeData(AlgoExecData, ABC):
     pass
 
 
@@ -199,12 +201,35 @@ class LocalNodesSMPCTables(LocalNodesData):
     max_op: LocalNodesTable
     union_op: LocalNodesTable
 
-    def __init__(self, template, add_op, min_op, max_op, union_op):
-        self.template = template
-        self.add_op = add_op
-        self.min_op = min_op
-        self.max_op = max_op
-        self.union_op = union_op
+    def __init__(self, nodes_smpc_tables: Dict["LocalNode", NodeSMPCTables]):
+        template_nodes_tables = {}
+        add_op_nodes_tables = {}
+        min_op_nodes_tables = {}
+        max_op_nodes_tables = {}
+        union_op_nodes_tables = {}
+        for node, node_smpc_tables in nodes_smpc_tables.items():
+            template_nodes_tables[node] = node_smpc_tables.template
+            if node_smpc_tables.add_op:
+                add_op_nodes_tables[node] = node_smpc_tables.add_op
+            if node_smpc_tables.min_op:
+                min_op_nodes_tables[node] = node_smpc_tables.min_op
+            if node_smpc_tables.max_op:
+                max_op_nodes_tables[node] = node_smpc_tables.max_op
+            if node_smpc_tables.union_op:
+                union_op_nodes_tables[node] = node_smpc_tables.union_op
+        self.template = LocalNodesTable(template_nodes_tables)
+        self.add_op = (
+            LocalNodesTable(add_op_nodes_tables) if add_op_nodes_tables else None
+        )
+        self.min_op = (
+            LocalNodesTable(min_op_nodes_tables) if min_op_nodes_tables else None
+        )
+        self.max_op = (
+            LocalNodesTable(max_op_nodes_tables) if max_op_nodes_tables else None
+        )
+        self.union_op = (
+            LocalNodesTable(union_op_nodes_tables) if union_op_nodes_tables else None
+        )
 
 
 class GlobalNodeSMPCTables(GlobalNodeData):
@@ -250,7 +275,7 @@ def algoexec_udf_posargs_to_node_udf_posargs(
 
 
 def _algoexec_udf_arg_to_node_udf_arg(
-    algoexec_arg: Any, local_node: "LocalNode" = None
+    algoexec_arg: AlgoExecData, local_node: "LocalNode" = None
 ) -> NodeUDFDTO:
     """
     Converts the algorithm executor run_udf input arguments, coming from the algorithm flow
@@ -275,10 +300,50 @@ def _algoexec_udf_arg_to_node_udf_arg(
     elif isinstance(algoexec_arg, GlobalNodeTable):
         return NodeTableDTO(value=algoexec_arg.table.full_table_name)
     elif isinstance(algoexec_arg, LocalNodesSMPCTables):
-        # TODO Controller integration with SMPC
-        raise NotImplementedError
+        return NodeSMPCDTO(
+            value=NodeSMPCValueDTO(
+                template=algoexec_arg.template.nodes_tables[local_node].full_table_name,
+                add_op_values=algoexec_arg.add_op.nodes_tables[
+                    local_node
+                ].full_table_name,
+                min_op_values=algoexec_arg.min_op.nodes_tables[
+                    local_node
+                ].full_table_name,
+                max_op_values=algoexec_arg.max_op.nodes_tables[
+                    local_node
+                ].full_table_name,
+                union_op_values=algoexec_arg.union_op.nodes_tables[
+                    local_node
+                ].full_table_name,
+            )
+        )
     elif isinstance(algoexec_arg, GlobalNodeSMPCTables):
-        # TODO Controller integration with SMPC
-        raise NotImplementedError
+        return NodeSMPCDTO(
+            value=NodeSMPCValueDTO(
+                template=NodeTableDTO(
+                    value=algoexec_arg.template.table.full_table_name
+                ),
+                add_op_values=NodeTableDTO(
+                    value=algoexec_arg.add_op.table.full_table_name
+                )
+                if algoexec_arg.add_op
+                else None,
+                min_op_values=NodeTableDTO(
+                    value=algoexec_arg.min_op.table.full_table_name
+                )
+                if algoexec_arg.min_op
+                else None,
+                max_op_values=NodeTableDTO(
+                    value=algoexec_arg.max_op.table.full_table_name
+                )
+                if algoexec_arg.max_op
+                else None,
+                union_op_values=NodeTableDTO(
+                    value=algoexec_arg.union_op.table.full_table_name
+                )
+                if algoexec_arg.union_op
+                else None,
+            )
+        )
     else:
         return NodeLiteralDTO(value=algoexec_arg)

@@ -148,6 +148,9 @@ def create_configs(c):
     controller_config["localnodes"]["dns"] = ""
     controller_config["localnodes"]["port"] = ""
 
+    controller_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
+    controller_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
+
     CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
     with open(controller_config_file, "w+") as fp:

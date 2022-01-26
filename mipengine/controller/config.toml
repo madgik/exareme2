@@ -25,3 +25,4 @@ celery_tasks_interval_max=0.5
 [smpc]
 enabled = "$SMPC_ENABLED"
 optional = "$SMPC_OPTIONAL"
+coordinator_address = "$SMPC_COORDINATOR_ADDRESS"

@@ -37,7 +37,7 @@ class Controller:
         )
 
         # TODO: AlgorithmExecutor is not yet implemented with asyncio. This is a
-        # temprorary solution for not blocking the calling function
+        # temporary solution for not blocking the calling function
         def run_algorithm_executor_in_threadpool(
             algorithm_execution_dto: AlgorithmExecutionDTO,
             all_nodes_tasks_handlers: NodesTasksHandlersDTO,

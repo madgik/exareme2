@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from mipengine import algorithm_modules
 from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller import config as ctrl_config
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor_node_data_objects import AlgoExecData
@@ -36,6 +37,14 @@ from mipengine.controller.algorithm_executor_node_data_objects import (
 )
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.controller.algorithm_executor_nodes import LocalNode
+from mipengine.controller.algorithm_executor_smpc_helper import get_smpc_results
+from mipengine.controller.algorithm_executor_smpc_helper import (
+    load_data_to_smpc_clients,
+)
+from mipengine.controller.algorithm_executor_smpc_helper import (
+    trigger_smpc_computations,
+)
+from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.controller_common_data_elements import (
     controller_common_data_elements,
 )
@@ -134,6 +143,25 @@ class AlgorithmExecutor:
             for node_tasks_handler in self._nodes_tasks_handlers_dto.local_nodes_tasks_handlers
         ]
 
+    def _get_use_smpc_flag(self) -> bool:
+        """
+        SMPC usage is initially defined from the config file.
+
+        If the smpc flag exists in the request and smpc usage is optional,
+        then it's defined from the request.
+        """
+        algo_request = self._algorithm_execution_dto.algorithm_request_dto
+
+        use_smpc = ctrl_config.smpc.enabled
+        if (
+            ctrl_config.smpc.optional
+            and algo_request.flags
+            and USE_SMPC_FLAG in algo_request.flags.keys()
+        ):
+            use_smpc = algo_request.flags[USE_SMPC_FLAG]
+
+        return use_smpc
+
     def _instantiate_algorithm_execution_interface(self):
         algo_execution_interface_dto = _AlgorithmExecutionInterfaceDTO(
             global_node=self._global_node,
@@ -144,6 +172,7 @@ class AlgorithmExecutor:
             y_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
             pathology=self._algorithm_execution_dto.algorithm_request_dto.inputdata.pathology,
             datasets=self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
+            use_smpc=self._get_use_smpc_flag(),
         )
         if len(self._local_nodes) > 1:
             self._execution_interface = _AlgorithmExecutionInterface(
@@ -211,6 +240,7 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     y_variables: Optional[List[str]] = None
     pathology: str
     datasets: List[str]
+    use_smpc: bool
 
     class Config:
         arbitrary_types_allowed = True
@@ -226,6 +256,7 @@ class _AlgorithmExecutionInterface:
         self._y_variables = algo_execution_interface_dto.y_variables
         pathology = algo_execution_interface_dto.pathology
         self._datasets = algo_execution_interface_dto.datasets
+        self._use_smpc = algo_execution_interface_dto.use_smpc
         cdes = controller_common_data_elements.pathologies[pathology]
         varnames = (self._x_variables or []) + (self._y_variables or [])
         self._metadata = {
@@ -276,6 +307,10 @@ class _AlgorithmExecutionInterface:
     def datasets(self):
         return self._datasets
 
+    @property
+    def use_smpc(self):
+        return self._use_smpc
+
     # UDFs functionality
     def run_udf_on_local_nodes(
         self,
@@ -313,6 +348,7 @@ class _AlgorithmExecutionInterface:
                 func_name=func_name,
                 positional_args=positional_udf_args,
                 keyword_args=keyword_udf_args,
+                use_smpc=self.use_smpc,
             )
             tasks[node] = task
 
@@ -358,8 +394,7 @@ class _AlgorithmExecutionInterface:
             if isinstance(first_result, NodeTable):
                 results.append(LocalNodesTable(dict(nodes_result)))
             elif isinstance(first_result, NodeSMPCTables):
-                # TODO Controller integration with SMPC
-                raise NotImplementedError
+                results.append(LocalNodesSMPCTables(dict(nodes_result)))
             else:
                 raise NotImplementedError
         return results
@@ -370,18 +405,16 @@ class _AlgorithmExecutionInterface:
         command_id: int,
     ) -> GlobalNodeData:
         if isinstance(local_nodes_data, LocalNodesTable):
-            return self._share_local_table_result_to_global(
+            return self._share_local_table_to_global(
                 local_node_table=local_nodes_data,
                 command_id=command_id,
             )
         elif isinstance(local_nodes_data, LocalNodesSMPCTables):
-            return self._share_local_smpc_tables_result_to_global(
-                local_nodes_data, command_id
-            )
+            return self._share_local_smpc_tables_to_global(local_nodes_data, command_id)
 
         raise NotImplementedError
 
-    def _share_local_table_result_to_global(
+    def _share_local_table_to_global(
         self,
         local_node_table: LocalNodesTable,
         command_id: int,
@@ -406,13 +439,48 @@ class _AlgorithmExecutionInterface:
 
         return GlobalNodeTable(node=self._global_node, table=merge_table)
 
-    def _share_local_smpc_tables_result_to_global(
+    def _share_local_smpc_tables_to_global(
         self,
         nodes_smpc_tables: LocalNodesSMPCTables,
         command_id: int,
     ) -> GlobalNodeSMPCTables:
-        # TODO Controller integration with SMPC
-        raise NotImplementedError
+        global_template_table = self._share_local_table_to_global(
+            local_node_table=nodes_smpc_tables.template, command_id=command_id
+        )
+        self._global_node.validate_smpc_templates_match(
+            global_template_table.table.full_table_name
+        )
+
+        smpc_clients_per_op = load_data_to_smpc_clients(command_id, nodes_smpc_tables)
+
+        (add_op, min_op, max_op, union_op,) = trigger_smpc_computations(
+            context_id=self._global_node.context_id,
+            command_id=command_id,
+            smpc_clients_per_op=smpc_clients_per_op,
+        )
+
+        (
+            add_op_result_table,
+            min_op_result_table,
+            max_op_result_table,
+            union_op_result_table,
+        ) = get_smpc_results(
+            node=self._global_node,
+            context_id=self._global_node.context_id,
+            command_id=command_id,
+            add_op=add_op,
+            min_op=min_op,
+            max_op=max_op,
+            union_op=union_op,
+        )
+
+        return GlobalNodeSMPCTables(
+            template=global_template_table,
+            add_op=add_op_result_table,
+            min_op=min_op_result_table,
+            max_op=max_op_result_table,
+            union_op=union_op_result_table,
+        )
 
     def run_udf_on_global_node(
         self,
@@ -443,6 +511,7 @@ class _AlgorithmExecutionInterface:
             func_name=func_name,
             positional_args=positional_udf_args,
             keyword_args=keyword_udf_args,
+            use_smpc=self.use_smpc,
         )
 
         node_tables = self._global_node.get_queued_udf_result(task)
@@ -624,8 +693,28 @@ class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
                 table=local_nodes_data.nodes_tables[self._local_nodes[0]],
             )
         elif isinstance(local_nodes_data, LocalNodesSMPCTables):
-            # TODO Controller integration with SMPC
-            raise NotImplementedError
+            return GlobalNodeSMPCTables(
+                template=GlobalNodeTable(
+                    node=self._global_node,
+                    table=local_nodes_data.template.nodes_tables[self._local_nodes[0]],
+                ),
+                add_op=GlobalNodeTable(
+                    node=self._global_node,
+                    table=local_nodes_data.add_op.nodes_tables[self._local_nodes[0]],
+                ),
+                min_op=GlobalNodeTable(
+                    node=self._global_node,
+                    table=local_nodes_data.min_op.nodes_tables[self._local_nodes[0]],
+                ),
+                max_op=GlobalNodeTable(
+                    node=self._global_node,
+                    table=local_nodes_data.max_op.nodes_tables[self._local_nodes[0]],
+                ),
+                union_op=GlobalNodeTable(
+                    node=self._global_node,
+                    table=local_nodes_data.union_op.nodes_tables[self._local_nodes[0]],
+                ),
+            )
 
         raise NotImplementedError
 

@@ -11,85 +11,8 @@ from tests.prod_env_tests import algorithms_url
 
 def get_parametrization_list_success_cases():
     parametrization_list = []
-    # ~~~~~~~~~~success case 1~~~~~~~~~~
-    algorithm_name = "logistic_regression"
-    request_dict = {
-        "inputdata": {
-            "pathology": "dementia",
-            "datasets": ["edsd"],
-            "x": [
-                "lefthippocampus",
-                "righthippocampus",
-                "rightppplanumpolare",
-                "leftamygdala",
-                "rightamygdala",
-            ],
-            "y": ["alzheimerbroadcategory"],
-            "filters": {
-                "condition": "AND",
-                "rules": [
-                    {
-                        "id": "dataset",
-                        "type": "string",
-                        "value": ["edsd"],
-                        "operator": "in",
-                    },
-                    {
-                        "condition": "AND",
-                        "rules": [
-                            {
-                                "id": variable,
-                                "type": "string",
-                                "operator": "is_not_null",
-                                "value": None,
-                            }
-                            for variable in [
-                                "lefthippocampus",
-                                "righthippocampus",
-                                "rightppplanumpolare",
-                                "leftamygdala",
-                                "rightamygdala",
-                                "alzheimerbroadcategory",
-                            ]
-                        ],
-                    },
-                ],
-                "valid": True,
-            },
-        },
-        "parameters": {"classes": ["AD", "CN"]},
-    }
-    expected_response = {
-        "title": "Logistic Regression Coefficients",
-        "columns": [
-            {
-                "name": "variable",
-                "type": "STR",
-                "data": [
-                    "lefthippocampus",
-                    "righthippocampus",
-                    "rightppplanumpolare",
-                    "leftamygdala",
-                    "rightamygdala",
-                ],
-            },
-            {
-                "name": "coefficient",
-                "type": "FLOAT",
-                "data": [
-                    -3.808690138615198,
-                    4.595468450104967,
-                    3.6548996108914924,
-                    -2.46237146733095,
-                    -11.786703468254302,
-                ],
-            },
-        ],
-    }
-    parametrization_list.append((algorithm_name, request_dict, expected_response))
-    # END ~~~~~~~~~~success case 1~~~~~~~~~~
 
-    # ~~~~~~~~~~success case 2~~~~~~~~~~
+    # ~~~~~~~~~~success case 1~~~~~~~~~~
     algorithm_name = "smpc_standard_deviation"
     request_dict = {
         "inputdata": {
@@ -134,16 +57,68 @@ def get_parametrization_list_success_cases():
         ],
     }
     parametrization_list.append((algorithm_name, request_dict, expected_response))
-    # END ~~~~~~~~~~success case 2~~~~~~~~~~
+    # END ~~~~~~~~~~success case 1~~~~~~~~~~
 
+    # ~~~~~~~~~~success case 2~~~~~~~~~~
+    algorithm_name = "smpc_standard_deviation"
+    request_dict = {
+        "inputdata": {
+            "pathology": "dementia",
+            "datasets": ["edsd"],
+            "x": [
+                "lefthippocampus",
+            ],
+            "filters": {
+                "condition": "AND",
+                "rules": [
+                    {
+                        "id": "dataset",
+                        "type": "string",
+                        "value": ["edsd"],
+                        "operator": "in",
+                    },
+                    {
+                        "condition": "AND",
+                        "rules": [
+                            {
+                                "id": variable,
+                                "type": "string",
+                                "operator": "is_not_null",
+                                "value": None,
+                            }
+                            for variable in [
+                                "lefthippocampus",
+                            ]
+                        ],
+                    },
+                ],
+                "valid": True,
+            },
+        },
+        "flags": {
+            "smpc": True,
+        },
+    }
+    expected_response = {
+        "title": "Standard Deviation",
+        "columns": [
+            {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
+            {"name": "std_deviation", "data": [0.3611575592573076], "type": "FLOAT"},
+        ],
+    }
+    parametrization_list.append((algorithm_name, request_dict, expected_response))
+    # END ~~~~~~~~~~success case 2~~~~~~~~~~
     return parametrization_list
 
 
+# @pytest.mark.skip(
+#     reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
+# )
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_success_cases(),
 )
-def test_post_algorithms(algorithm_name, request_dict, expected_response):
+def test_post_smpc_algorithm(algorithm_name, request_dict, expected_response):
     algorithm_url = algorithms_url + "/" + algorithm_name
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
@@ -153,99 +128,77 @@ def test_post_algorithms(algorithm_name, request_dict, expected_response):
         headers=headers,
     )
     assert response.status_code == 200
-
-    response = response.json()
-    columns = response["columns"]
-    expected_columns = expected_response["columns"]
-
-    for column, expected_column in zip(columns, expected_columns):
-        assert column["name"] == expected_column["name"]
-        assert column["type"] == expected_column["type"]
-        if column["type"] == "STR":
-            assert column["data"] == expected_column["data"]
-        elif column["type"] == "FLOAT":
-            np.testing.assert_allclose(column["data"], expected_column["data"])
+    assert json.loads(response.text) == expected_response
 
 
 def get_parametrization_list_exception_cases():
     parametrization_list = []
-
-    # ~~~~~~~~~~exception case 1~~~~~~~~~~
-    algorithm_name = "logistic_regression"
-    request_dict = {
-        "wrong_name": {
-            "pathology": "dementia",
-            "datasets": ["test_dataset1", "test_dataset2"],
-            "x": ["test_cde1", "test_cde2"],
-            "y": ["test_cde3"],
-        }
-    }
-    expected_response = (400, ".*Algorithm execution request malformed")
-    parametrization_list.append((algorithm_name, request_dict, expected_response))
-
-    # ~~~~~~~~~~exception case 2~~~~~~~~~~
-    algorithm_name = "logistic_regression"
-    request_dict = {
-        "inputdata": {
-            "pathology": "non_existing",
-            "datasets": ["test_dataset1", "test_dataset2"],
-            "x": ["test_cde1", "test_cde2"],
-            "y": ["test_cde3"],
-        },
-    }
-
-    expected_response = (460, "Pathology .* does not exist.*")
-    parametrization_list.append((algorithm_name, request_dict, expected_response))
-
-    # ~~~~~~~~~~exception case 3~~~~~~~~~~
-    algorithm_name = "logistic_regression"
+    algorithm_name = "smpc_standard_deviation"
     request_dict = {
         "inputdata": {
             "pathology": "dementia",
             "datasets": ["edsd"],
-            "x": ["lefthippocampus"],
-            "y": ["alzheimerbroadcategory"],
+            "x": [
+                "lefthippocampus",
+            ],
             "filters": {
                 "condition": "AND",
                 "rules": [
                     {
-                        "condition": "OR",
+                        "id": "dataset",
+                        "type": "string",
+                        "value": ["edsd"],
+                        "operator": "in",
+                    },
+                    {
+                        "condition": "AND",
                         "rules": [
                             {
-                                "id": "subjectage",
-                                "field": "subjectage",
-                                "type": "real",
-                                "input": "number",
-                                "operator": "greater",
-                                "value": 200.0,
+                                "id": variable,
+                                "type": "string",
+                                "operator": "is_not_null",
+                                "value": None,
                             }
+                            for variable in [
+                                "lefthippocampus",
+                            ]
                         ],
-                    }
+                    },
                 ],
                 "valid": True,
             },
         },
-        "parameters": {"classes": ["AD", "CN"]},
+        "flags": {
+            "smpc": False,
+        },
     }
 
     expected_response = (
-        461,
-        "The algorithm could not run with the input provided because there are insufficient data.",
+        462,
+        "The computation cannot be made without SMPC.",
     )
+
     parametrization_list.append((algorithm_name, request_dict, expected_response))
 
     return parametrization_list
 
 
+# @pytest.mark.skip(
+#     reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
+# )
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_exception_cases(),
 )
-def test_post_algorithm_error(algorithm_name, request_dict, expected_response):
+def test_post_smpc_algorithm_exception(algorithm_name, request_dict, expected_response):
     algorithm_url = algorithms_url + "/" + algorithm_name
+
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    request_json = json.dumps(request_dict)
-    response = requests.post(algorithm_url, data=request_json, headers=headers)
+    response = requests.post(
+        algorithm_url,
+        data=json.dumps(request_dict),
+        headers=headers,
+    )
     exp_response_status, exp_response_message = expected_response
     assert response.status_code == exp_response_status
     assert re.search(exp_response_message, response.text)

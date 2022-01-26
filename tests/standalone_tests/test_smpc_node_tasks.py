@@ -18,8 +18,8 @@ from mipengine.node_tasks_DTOs import UDFPosArguments
 from mipengine.node_tasks_DTOs import UDFResults
 from mipengine.smpc_DTOs import SMPCRequestData
 from mipengine.smpc_DTOs import SMPCRequestType
-from mipengine.smpc_cluster_communication import ADD_DATASET_ENDPOINT
-from mipengine.smpc_cluster_communication import TRIGGER_COMPUTATION_ENDPOINT
+from mipengine.smpc_cluster_comm_helpers import ADD_DATASET_ENDPOINT
+from mipengine.smpc_cluster_comm_helpers import TRIGGER_COMPUTATION_ENDPOINT
 from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import smpc_global_step
 from tests.algorithms.orphan_udfs import smpc_local_step

@@ -2,7 +2,6 @@ from os import path
 
 import toml
 from celery import Celery
-import sqlalchemy
 
 from mipengine import AttrDict
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER

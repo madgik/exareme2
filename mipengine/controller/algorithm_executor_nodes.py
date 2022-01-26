@@ -236,6 +236,7 @@ class _Node(_INode, ABC):
         func_name: str,
         positional_args: UDFPosArguments,
         keyword_args: UDFKeyArguments,
+        use_smpc: bool = False,
     ) -> IQueuedUDFAsyncResult:
         return self._node_tasks_handler.queue_run_udf(
             context_id=self.context_id,
@@ -243,7 +244,11 @@ class _Node(_INode, ABC):
             func_name=func_name,
             positional_args=positional_args,
             keyword_args=keyword_args,
+            use_smpc=use_smpc,
         )
+
+    # TODO Controller integration with SMPC
+    # use_smpc should be coming from the request
 
     @abstractmethod
     def get_queued_udf_result(
@@ -281,15 +286,28 @@ class LocalNode(_Node):
                 udf_results.append(
                     NodeSMPCTables(
                         template=NodeTable(result.value.template.value),
-                        add_op=NodeTable(result.value.add_op_values.value),
-                        min_op=NodeTable(result.value.min_op_values.value),
-                        max_op=NodeTable(result.value.max_op_values.value),
-                        union_op=NodeTable(result.value.union_op_values.value),
+                        add_op=NodeTable(result.value.add_op_values.value)
+                        if result.value.add_op_values
+                        else None,
+                        min_op=NodeTable(result.value.min_op_values.value)
+                        if result.value.min_op_values
+                        else None,
+                        max_op=NodeTable(result.value.max_op_values.value)
+                        if result.value.max_op_values
+                        else None,
+                        union_op=NodeTable(result.value.union_op_values.value)
+                        if result.value.union_op_values
+                        else None,
                     )
                 )
             else:
                 raise NotImplementedError
         return udf_results
+
+    def load_data_to_smpc_client(self, table_name: str, jobid: str) -> int:
+        return self._node_tasks_handler.load_data_to_smpc_client(
+            self.context_id, table_name, jobid
+        )
 
 
 class GlobalNode(_Node):
@@ -306,3 +324,20 @@ class GlobalNode(_Node):
             else:
                 raise NotImplementedError
         return results
+
+    def validate_smpc_templates_match(
+        self,
+        table_name: str,
+    ):
+        self._node_tasks_handler.validate_smpc_templates_match(
+            self.context_id, table_name
+        )
+
+    def get_smpc_result(
+        self,
+        command_id: int,
+        jobid: str,
+    ) -> str:
+        return self._node_tasks_handler.get_smpc_result(
+            self.context_id, str(command_id), jobid
+        )

@@ -4,25 +4,26 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.common_data_elements import CommonDataElement, CommonDataElements
-from mipengine.controller.controller_common_data_elements import (
-    controller_common_data_elements,
-)
+from mipengine.common_data_elements import CommonDataElement
+from mipengine.common_data_elements import CommonDataElements
+from mipengine.controller import config as ctrl_config
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
+from mipengine.controller.algorithms_specifications import InputDataSpecification
+from mipengine.controller.algorithms_specifications import InputDataSpecifications
 from mipengine.controller.algorithms_specifications import InputDataStatType
 from mipengine.controller.algorithms_specifications import InputDataType
 from mipengine.controller.algorithms_specifications import ParameterSpecification
-from mipengine.controller.algorithms_specifications import InputDataSpecification
-from mipengine.controller.algorithms_specifications import InputDataSpecifications
 from mipengine.controller.algorithms_specifications import algorithms_specifications
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-
+from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-
-from mipengine.controller import config
+from mipengine.controller.controller_common_data_elements import (
+    controller_common_data_elements,
+)
 from mipengine.filters import validate_filter
+from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-90
@@ -62,6 +63,8 @@ def _validate_algorithm_request_body(
         algorithm_request_dto.parameters,
         algorithm_specs.parameters,
     )
+
+    _validate_flags(algorithm_request_dto.flags)
 
 
 def _validate_inputdata(
@@ -109,7 +112,7 @@ def _validate_inputdata_filter(pathology, filter):
     Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
     """
-    common_data_elements = CommonDataElements(config.cdes_metadata_path)
+    common_data_elements = CommonDataElements(ctrl_config.cdes_metadata_path)
     validate_filter(common_data_elements, pathology, filter)
 
 
@@ -324,4 +327,16 @@ def _validate_parameter_inside_min_max(
         raise BadUserInput(
             f"Parameter '{parameter_spec.label}' values "
             f"should be less than {parameter_spec.max} ."
+        )
+
+
+def _validate_flags(
+    flags: Dict[str, Any],
+):
+    if not flags:
+        return
+
+    if USE_SMPC_FLAG in flags.keys():
+        validate_smpc_usage(
+            flags[USE_SMPC_FLAG], ctrl_config.smpc.enabled, ctrl_config.smpc.optional
         )

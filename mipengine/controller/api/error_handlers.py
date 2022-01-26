@@ -9,6 +9,7 @@ from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.filters import FilterError
 from mipengine.node_tasks_DTOs import InsufficientDataError
+from mipengine.smpc_cluster_comm_helpers import SMPCUsageError
 
 error_handlers = Blueprint("error_handlers", __name__)
 
@@ -22,6 +23,7 @@ class HTTPStatusCode(enum.IntEnum):
     BAD_REQUEST = 400
     BAD_USER_INPUT = 460
     INSUFFICIENT_DATA_ERROR = 461
+    SMPC_USAGE_ERROR = 462
     NODE_DOWN_ALGORITHM_EXECUTION_ERROR = 512
     UNEXPECTED_ERROR = 500
 
@@ -48,6 +50,11 @@ def handle_privacy_error(error: InsufficientDataError):
     #     f"Insufficient Data Error: \n " + error.message
     # )
     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
+
+
+@error_handlers.app_errorhandler(SMPCUsageError)
+def handle_privacy_error(error: SMPCUsageError):
+    return error.message, HTTPStatusCode.SMPC_USAGE_ERROR
 
 
 @error_handlers.app_errorhandler(NodeDownAlgorithmExecutionException)

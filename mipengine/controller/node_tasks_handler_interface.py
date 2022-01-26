@@ -30,6 +30,7 @@ class IQueuedUDFAsyncResult(IAsyncResult, ABC):
     func_name: str
     positional_args: Optional[UDFPosArguments] = None
     keyword_args: Optional[UDFKeyArguments] = None
+    use_smpc: bool = False
 
 
 class INodeTasksHandler(ABC):
@@ -103,7 +104,7 @@ class INodeTasksHandler(ABC):
     @abstractmethod
     def create_remote_table(
         self, table_name: str, table_schema: TableSchema, original_db_url: str
-    ) -> str:  # TODO create
+    ) -> str:
         pass
 
     # UDFs functionality
@@ -115,6 +116,7 @@ class INodeTasksHandler(ABC):
         func_name: str,
         positional_args: Optional[UDFPosArguments] = None,
         keyword_args: Optional[UDFKeyArguments] = None,
+        use_smpc: bool = False,
     ) -> IQueuedUDFAsyncResult:
         pass
 
@@ -140,4 +142,28 @@ class INodeTasksHandler(ABC):
     # CLEANUP functionality
     @abstractmethod
     def clean_up(self, context_id: str):
+        pass
+
+    # ------------- SMPC functionality ---------------
+    @abstractmethod
+    def validate_smpc_templates_match(
+        self,
+        context_id: str,
+        table_name: str,
+    ):
+        pass
+
+    @abstractmethod
+    def load_data_to_smpc_client(
+        self, context_id: str, table_name: str, jobid: str
+    ) -> int:
+        pass
+
+    @abstractmethod
+    def get_smpc_result(
+        self,
+        context_id: str,
+        command_id: str,
+        jobid: str,
+    ) -> str:
         pass

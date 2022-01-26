@@ -1,17 +1,17 @@
-import pytest
-from typing import List
-from typing import Dict
 from random import randint
+from typing import Dict
+from typing import List
 
-from mipengine.controller.algorithm_executor_helpers import _INode
-from mipengine.controller.algorithm_executor_helpers import NodeTable
+import pytest
 
+from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
+from mipengine.controller.algorithm_executor_nodes import _INode
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
-
-from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import DType
 from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TableSchema
+
 
 # TODO does not contain any test, just a placeholder..
 

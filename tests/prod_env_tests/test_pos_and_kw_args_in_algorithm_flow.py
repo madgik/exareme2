@@ -30,30 +30,17 @@ def get_parametrization_list_success_cases():
         },
     }
 
-    expected_response = {
-        "title": "Standard Deviation",
-        "columns": [
-            {"name": "variable", "type": "string"},
-            {"name": "std_deviation", "type": "number"},
-        ],
-        "data": [
-            ["lefthippocampus", 0.3773485998788057],
-        ],
-    }
-
     parametrization_list = []
-    parametrization_list.append((algorithm_name, request_dict, expected_response))
+    parametrization_list.append((algorithm_name, request_dict))
 
     return parametrization_list
 
 
 @pytest.mark.parametrize(
-    "algorithm_name, request_dict, expected_response",
+    "algorithm_name, request_dict",
     get_parametrization_list_success_cases(),
 )
-def test_pos_and_kw_args_in_algorithm_flow(
-    algorithm_name, request_dict, expected_response
-):
+def test_pos_and_kw_args_in_algorithm_flow(algorithm_name, request_dict):
     algorithm_url = algorithms_url + "/" + algorithm_name
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
