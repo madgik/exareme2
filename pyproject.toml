@@ -46,6 +46,7 @@ mipdb = "0.1.1"
 [tool.pytest.ini_options]
 markers = [
     "database: these tests depend on an external dockerized MonetDB service running (deselect with '-m \"not database\"')",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]
 filterwarnings = ["ignore::DeprecationWarning"]
 

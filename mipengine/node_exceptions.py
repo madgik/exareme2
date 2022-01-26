@@ -58,3 +58,15 @@ class InvalidNodeId(Exception):
         self.node_id = node_id
         self.message = f"Invalid node id .Node id is : {self.node_id}. Node id should be alphanumeric."
         super().__init__(self.message)
+
+
+class SMPCUsageError(Exception):
+    pass
+
+
+class SMPCCommunicationError(Exception):
+    pass
+
+
+class SMPCComputationError(Exception):
+    pass

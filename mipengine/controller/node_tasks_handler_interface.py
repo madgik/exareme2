@@ -4,14 +4,14 @@ from typing import Any
 from typing import List
 from typing import Tuple
 from typing import Optional
-from typing import Dict
 
 from pydantic import BaseModel
 
-from mipengine.node_tasks_DTOs import ImmutableBaseModel
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import UDFArgument
+from mipengine.node_tasks_DTOs import UDFKeyArguments
+from mipengine.node_tasks_DTOs import UDFPosArguments
+from mipengine.node_tasks_DTOs import UDFResults
 
 
 class IAsyncResult(BaseModel, ABC):
@@ -20,14 +20,6 @@ class IAsyncResult(BaseModel, ABC):
     @abstractmethod
     def get(self, timeout=None):
         pass
-
-
-class UDFPosArguments(ImmutableBaseModel):
-    args: List[UDFArgument]
-
-
-class UDFKeyArguments(ImmutableBaseModel):
-    kwargs: Dict[str, UDFArgument]
 
 
 class IQueuedUDFAsyncResult(IAsyncResult, ABC):
@@ -126,14 +118,14 @@ class INodeTasksHandler(ABC):
         pass
 
     @abstractmethod
-    def get_queued_udf_result(self, async_result: IQueuedUDFAsyncResult) -> List[str]:
+    def get_queued_udf_result(self, async_result: IQueuedUDFAsyncResult) -> UDFResults:
         pass
 
     @abstractmethod
     def get_udfs(self, algorithm_name) -> List[str]:
         pass
 
-    # return the generated monetdb pythonudf
+    # return the generated monetdb python udf
     @abstractmethod
     def get_run_udf_query(
         self,

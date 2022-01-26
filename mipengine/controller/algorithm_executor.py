@@ -1,5 +1,4 @@
 from abc import ABC
-
 from typing import Any
 from typing import Dict
 from typing import List
@@ -14,25 +13,23 @@ from pydantic import BaseModel
 
 from mipengine import algorithm_modules
 from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
+from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
+from mipengine.controller.algorithm_executor_helpers import TableName
+from mipengine.controller.algorithm_executor_helpers import _INode
 from mipengine.controller.controller_common_data_elements import (
     controller_common_data_elements,
 )
-from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
-from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
-from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
-
-from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
-from mipengine.controller.node_tasks_handler_interface import UDFPosArguments
-from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
-
-from mipengine.controller.algorithm_executor_helpers import _INode
-from mipengine.controller.algorithm_executor_helpers import TableName
-
+from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
+from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
+from mipengine.node_tasks_DTOs import NodeLiteralDTO
+from mipengine.node_tasks_DTOs import NodeTableDTO
+from mipengine.node_tasks_DTOs import NodeUDFDTO
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import UDFArgument
-from mipengine.node_tasks_DTOs import UDFArgumentKind
+from mipengine.node_tasks_DTOs import UDFKeyArguments
+from mipengine.node_tasks_DTOs import UDFPosArguments
 
 
 class AlgorithmExecutionException(Exception):
@@ -196,8 +193,8 @@ class _Node(_INode):
         self,
         command_id: str,
         func_name: str,
-        positional_args: Optional[UDFPosArguments] = None,
-        keyword_args: Optional[UDFKeyArguments] = None,
+        positional_args: UDFPosArguments,
+        keyword_args: UDFKeyArguments,
     ) -> IQueuedUDFAsyncResult:
         return self._node_tasks_handler.queue_run_udf(
             context_id=self.context_id,
@@ -210,9 +207,14 @@ class _Node(_INode):
     def get_queued_udf_result(
         self, async_result: IQueuedUDFAsyncResult
     ) -> List[TableName]:
-
-        result = self._node_tasks_handler.get_queued_udf_result(async_result)
-        return [TableName(table) for table in result]
+        udf_results = self._node_tasks_handler.get_queued_udf_result(async_result)
+        tables = []
+        for result in udf_results.results:
+            if isinstance(result, NodeTableDTO):
+                tables.append(TableName(result.value))
+            else:
+                raise NotImplementedError
+        return tables
 
     def get_udfs(self, algorithm_name) -> List[str]:
         return self._node_tasks_handler.get_udfs(algorithm_name)
@@ -568,15 +570,11 @@ class _AlgorithmExecutionInterface:
         # Queue the udf on all local nodes
         tasks = {}
         for node in self._local_nodes:
-            positional_udf_args = (
-                self._algoexec_udf_posargs_to_node_udf_posargs(positional_args, node)
-                if positional_args
-                else None
+            positional_udf_args = self._algoexec_udf_posargs_to_node_udf_posargs(
+                positional_args, node
             )
-            keyword_udf_args = (
-                self._algoexec_udf_kwargs_to_node_udf_kwargs(keyword_args, node)
-                if keyword_args
-                else None
+            keyword_udf_args = self._algoexec_udf_kwargs_to_node_udf_kwargs(
+                keyword_args, node
             )
 
             task = node.queue_run_udf(
@@ -637,16 +635,10 @@ class _AlgorithmExecutionInterface:
             args_must_not_contain=_LocalNodeTable,
         )
 
-        positional_udf_args = (
-            self._algoexec_udf_posargs_to_node_udf_posargs(positional_args)
-            if positional_args
-            else None
+        positional_udf_args = self._algoexec_udf_posargs_to_node_udf_posargs(
+            positional_args
         )
-        keyword_udf_args = (
-            self._algoexec_udf_kwargs_to_node_udf_kwargs(keyword_args)
-            if keyword_args
-            else None
-        )
+        keyword_udf_args = self._algoexec_udf_kwargs_to_node_udf_kwargs(keyword_args)
 
         # Queue the udf on global node
         task = self._global_node.queue_run_udf(
@@ -670,7 +662,6 @@ class _AlgorithmExecutionInterface:
             results_after_sharing_step = self._handle_table_sharing_global_to_locals(
                 share_list=share_to_locals, tables=result_tables
             )
-
         else:
             results_after_sharing_step = [
                 _GlobalNodeTable(node=self._global_node, table_name=result_table)
@@ -815,37 +806,40 @@ class _AlgorithmExecutionInterface:
         algoexec_kwargs: Dict[str, Any],
         node: _Node = None,
     ) -> UDFKeyArguments:
-        udf_kwargs = UDFKeyArguments(kwargs={})
+        if not algoexec_kwargs:
+            return UDFKeyArguments(args={})
+
+        args = {}
         for key, arg in algoexec_kwargs.items():
             udf_argument = self._algoexec_udf_arg_to_node_udf_arg(arg, node)
-            udf_kwargs.kwargs[key] = udf_argument.json()
-        return udf_kwargs
+            args[key] = udf_argument
+        return UDFKeyArguments(args=args)
 
     def _algoexec_udf_posargs_to_node_udf_posargs(
         self,
         algoexec_posargs: List[Any],
         node: _Node = None,
     ) -> UDFPosArguments:
-        udf_posargs = UDFPosArguments(args=[])
+        if not algoexec_posargs:
+            return UDFPosArguments(args=[])
+
+        args = []
         for arg in algoexec_posargs:
             udf_argument = self._algoexec_udf_arg_to_node_udf_arg(arg, node)
-            udf_posargs.args.append(udf_argument.json())
-        return udf_posargs
+            args.append(udf_argument)
+        return UDFPosArguments(args=args)
 
     def _algoexec_udf_arg_to_node_udf_arg(
         self, algoexec_arg: Any, node: _Node = None
-    ) -> UDFArgument:
+    ) -> NodeUDFDTO:
         if isinstance(algoexec_arg, INodeTable):
             if node:
                 table_name = algoexec_arg.nodes_tables[node].full_table_name
             else:
                 table_name = algoexec_arg.table_name.full_table_name
-            udf_argument = UDFArgument(
-                kind=UDFArgumentKind.TABLE,
-                value=table_name,
-            )
+            udf_argument = NodeTableDTO(value=table_name)
         else:
-            udf_argument = UDFArgument(kind=UDFArgumentKind.LITERAL, value=algoexec_arg)
+            udf_argument = NodeLiteralDTO(value=algoexec_arg)
         return udf_argument
 
     def _validate_same_schema_tables(

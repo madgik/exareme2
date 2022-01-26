@@ -15,6 +15,7 @@ from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.controller.celery_app import get_node_celery_app
+from mipengine.node_tasks_DTOs import UDFResults
 
 TASK_SIGNATURES: Final = {
     "get_tables": "mipengine.node.tasks.tables.get_tables",
@@ -269,8 +270,8 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         context_id: str,
         command_id: str,
         func_name: str,
-        positional_args: Optional[UDFPosArguments] = None,
-        keyword_args: Optional[UDFKeyArguments] = None,
+        positional_args: UDFPosArguments,
+        keyword_args: UDFKeyArguments,
     ) -> QueuedUDFAsyncResult:
 
         task_signature = self._celery_app.signature(TASK_SIGNATURES["run_udf"])
@@ -279,8 +280,8 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             command_id=command_id,
             context_id=context_id,
             func_name=func_name,
-            positional_args_json=positional_args.args if positional_args else [],
-            keyword_args_json=keyword_args.kwargs if keyword_args else {},
+            positional_args_json=positional_args.json(),
+            keyword_args_json=keyword_args.json(),
         )
         return QueuedUDFAsyncResult(
             node_id=self.node_id,
@@ -294,8 +295,9 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_queued_udf_result(self, async_result: QueuedUDFAsyncResult) -> List[str]:
-        return async_result.get(self._tasks_timeout)
+    def get_queued_udf_result(self, async_result: QueuedUDFAsyncResult) -> UDFResults:
+        result_str = async_result.get(self._tasks_timeout)
+        return UDFResults.parse_raw(result_str)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler

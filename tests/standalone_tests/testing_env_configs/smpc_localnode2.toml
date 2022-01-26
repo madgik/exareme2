@@ -1,5 +1,7 @@
-identifier = "testnode1"
+identifier = "test_smpc_localnode2"
 log_level = "DEBUG"
+framework_log_level = "INFO"
+
 role = "LOCALNODE"
 cdes_metadata_path = "./tests/demo_data"
 
@@ -15,14 +17,23 @@ run_udf_time_limit = 60
 
 [rabbitmq]
 ip = "172.17.0.1"
-port = 5700
+port = 60006
 user = "user"
 password = "password"
 vhost = "user_vhost"
 
 [monetdb]
 ip = "172.17.0.1"
-port = 50456
+port = 61006
 database = "db"
 username = "monetdb"
 password = "monetdb"
+
+[smpc]
+enabled = true
+optional = false
+client_id = 2
+client_address = "http://dl058.madgik.di.uoa.gr:9002"
+coordinator_address = "http://dl056.madgik.di.uoa.gr:12314"
+get_result_interval = 0.5
+get_result_max_retries = 120

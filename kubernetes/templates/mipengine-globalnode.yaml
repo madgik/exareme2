@@ -65,6 +65,10 @@ spec:
               fieldPath: status.podIP
         - name: MONETDB_PORT
           value: "50000"
+        - name: SMPC_ENABLED
+          value: {{ quote .Values.smpc.enabled }}
+        - name: SMPC_OPTIONAL
+          value: {{ quote .Values.smpc.optional }}
 
       volumes:
       - name: monetdb-data
