@@ -1,8 +1,8 @@
 ip = "172.17.0.1"
 log_level = "INFO"
 framework_log_level ="INFO"
-monetdb_image = "madgik/mipenginedb:latest"
-rabbitmq_image = "madgik/mipengine_rabbitmq:latest"
+monetdb_image = "madgik/mipenginedb:testing"
+rabbitmq_image = "madgik/mipengine_rabbitmq:testing"
 
 cdes_metadata_path = "./tests/demo_data"
 
