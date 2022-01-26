@@ -2,10 +2,18 @@ from string import Template
 from typing import List
 from typing import Optional
 
+from pydantic import BaseModel
+
 from mipengine.node_tasks_DTOs import TableInfo
 
 
-class UDFGenResult:
+class UDFGenBaseModel(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
+        allow_mutation = False
+
+
+class UDFGenResult(UDFGenBaseModel):
     pass
 
 
@@ -13,16 +21,6 @@ class TableUDFGenResult(UDFGenResult):
     tablename_placeholder: str
     drop_query: Template
     create_query: Template
-
-    def __init__(
-        self,
-        tablename_placeholder,
-        drop_query,
-        create_query,
-    ):
-        self.tablename_placeholder = tablename_placeholder
-        self.drop_query = drop_query
-        self.create_query = create_query
 
     def __eq__(self, other):
         if self.tablename_placeholder != other.tablename_placeholder:
@@ -45,24 +43,10 @@ class TableUDFGenResult(UDFGenResult):
 
 class SMPCUDFGenResult(UDFGenResult):
     template: TableUDFGenResult
-    add_op_values: TableUDFGenResult
-    min_op_values: TableUDFGenResult
-    max_op_values: TableUDFGenResult
-    union_op_values: TableUDFGenResult
-
-    def __init__(
-        self,
-        template,
-        add_op_values=None,
-        min_op_values=None,
-        max_op_values=None,
-        union_op_values=None,
-    ):
-        self.template = template
-        self.add_op_values = add_op_values
-        self.min_op_values = min_op_values
-        self.max_op_values = max_op_values
-        self.union_op_values = union_op_values
+    add_op_values: Optional[TableUDFGenResult] = None
+    min_op_values: Optional[TableUDFGenResult] = None
+    max_op_values: Optional[TableUDFGenResult] = None
+    union_op_values: Optional[TableUDFGenResult] = None
 
     def __eq__(self, other):
         if self.template != other.template:
@@ -89,20 +73,10 @@ class SMPCUDFGenResult(UDFGenResult):
         )
 
 
-class UDFGenExecutionQueries:
+class UDFGenExecutionQueries(UDFGenBaseModel):
     udf_results: List[UDFGenResult]
-    udf_definition_query: Optional[Template]
+    udf_definition_query: Optional[Template] = None
     udf_select_query: Template
-
-    def __init__(
-        self,
-        udf_results,
-        udf_select_query,
-        udf_definition_query=None,
-    ):
-        self.udf_results = udf_results
-        self.udf_definition_query = udf_definition_query
-        self.udf_select_query = udf_select_query
 
     def __repr__(self):
         udf_definition_query_str = "None"
@@ -117,26 +91,12 @@ class UDFGenExecutionQueries:
         )
 
 
-class SMPCTablesInfo:
+class SMPCTablesInfo(UDFGenBaseModel):
     template: TableInfo
-    add_op_values: TableInfo
-    min_op_values: TableInfo
-    max_op_values: TableInfo
-    union_op_values: TableInfo
-
-    def __init__(
-        self,
-        template,
-        add_op_values=None,
-        min_op_values=None,
-        max_op_values=None,
-        union_op_values=None,
-    ):
-        self.template = template
-        self.add_op_values = add_op_values
-        self.min_op_values = min_op_values
-        self.max_op_values = max_op_values
-        self.union_op_values = union_op_values
+    add_op_values: Optional[TableInfo] = None
+    min_op_values: Optional[TableInfo] = None
+    max_op_values: Optional[TableInfo] = None
+    union_op_values: Optional[TableInfo] = None
 
     def __repr__(self):
         return (
