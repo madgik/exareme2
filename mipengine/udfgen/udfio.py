@@ -97,7 +97,7 @@ def merge_tensor_to_list(columns):
 # TODO Add validate_secure_transfer_object
 
 
-def secure_transfers_to_merged_dict(transfers):
+def secure_transfers_to_merged_dict(transfers: List[dict]):
     """
     Converts a list of secure transfer dictionaries to one dictionary that
     contains the aggregation of all the initial values.
@@ -125,7 +125,7 @@ def secure_transfers_to_merged_dict(transfers):
     return result
 
 
-def _add_secure_transfer_key_integer_data(key, transfers):
+def _add_secure_transfer_key_integer_data(key, transfers: List[dict]):
     """
     Given a list of secure_transfer dicts, it sums the data of the key provided.
     The values should be integers.
@@ -144,7 +144,7 @@ def _add_secure_transfer_key_integer_data(key, transfers):
     return result
 
 
-def _add_integer_type_values(value1, value2):
+def _add_integer_type_values(value1: Tuple[int, list], value2: Tuple[int, list]):
     """
     The values could be either integers or lists that contain other lists or integers.
     The type of the values should not change, only the value.
@@ -198,7 +198,9 @@ def _flatten_int_data_and_keep_relative_positions(
         raise NotImplementedError
 
 
-def _unflatten_int_data_using_relative_positions(data_tmpl, flat_values):
+def _unflatten_int_data_using_relative_positions(
+    data_tmpl: Union[list, int], flat_values: List[int]
+):
     """
     It's doing the exact opposite of _flatten_int_data_and_keep_relative_positions.
     This is used to reconstruct the secure_transfer object after the computations
@@ -218,7 +220,7 @@ def _unflatten_int_data_using_relative_positions(data_tmpl, flat_values):
         )
 
 
-def split_secure_transfer_dict(dict_) -> Tuple[dict, list, list, list, list]:
+def split_secure_transfer_dict(dict_: dict) -> Tuple[dict, list, list, list, list]:
     """
     When SMPC is used a secure transfer dict should be split in different parts:
     1) The template of the dict with relative positions instead of values,
@@ -251,11 +253,11 @@ def split_secure_transfer_dict(dict_) -> Tuple[dict, list, list, list, list]:
 
 
 def construct_secure_transfer_dict(
-    template,
-    add_op_values=None,
-    min_op_values=None,
-    max_op_values=None,
-    union_op_values=None,
+    template: dict,
+    add_op_values: List[int] = None,
+    min_op_values: List[int] = None,
+    max_op_values: List[int] = None,
+    union_op_values: List[int] = None,
 ) -> dict:
     """
     When SMPC is used a secure_transfer dict is broken into template and values.
