@@ -102,7 +102,7 @@ class ParameterSpecification:
     type: str
     notblank: bool
     multiple: bool
-    default: Any = None
+    default: "typing.Any"  # Dataclass doesn't support the Any type. Don't change.
     enums: Optional[List[Any]] = None
     min: Optional[int] = None
     max: Optional[int] = None
