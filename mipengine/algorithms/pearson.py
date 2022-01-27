@@ -60,10 +60,26 @@ def run(algo_interface):
     result = json.loads(result.get_table_data()[1][0])
     n_obs = result["n_obs"]
 
-    correlations = result["correlations"]
-    p_values = result["p_values"]
-    ci_hi = result["ci_hi"]
-    ci_lo = result["ci_lo"]
+    corr_dict, p_values_dict, ci_hi_dict, ci_lo_dict = create_dicts(
+        result, row_names, column_names
+    )
+
+    result = PearsonResult(
+        title="Pearson Correlation Coefficient",
+        n_obs=n_obs,
+        correlations=corr_dict,
+        p_values=p_values_dict,
+        ci_hi=ci_hi_dict,
+        ci_lo=ci_lo_dict,
+    )
+    return result
+
+
+def create_dicts(global_result, row_names, column_names):
+    correlations = global_result["correlations"]
+    p_values = global_result["p_values"]
+    ci_hi = global_result["ci_hi"]
+    ci_lo = global_result["ci_lo"]
 
     corr_dict = {}
     corr_dict["variables"] = row_names
@@ -81,15 +97,7 @@ def run(algo_interface):
     ci_lo_dict["variables"] = row_names
     ci_lo_dict.update({key: value for key, value in zip(column_names, ci_lo)})
 
-    result = PearsonResult(
-        title="Pearson Correlation Coefficient",
-        n_obs=n_obs,
-        correlations=corr_dict,
-        p_values=p_values_dict,
-        ci_hi=ci_hi_dict,
-        ci_lo=ci_lo_dict,
-    )
-    return result
+    return corr_dict, p_values_dict, ci_hi_dict, ci_lo_dict
 
 
 S = TypeVar("S")
