@@ -131,10 +131,6 @@ def global1(local_transfers, alpha):
     import scipy.special as special
     import scipy.stats as st
 
-    P_VALUE_CUTOFF = 0.001
-    # P_VALUE_CUTOFF_STR = "< " + str(P_VALUE_CUTOFF)
-    CONFIDENCE = 0.95
-
     n_obs = sum(t["n_obs"] for t in local_transfers)
     sx = sum(numpy.array(t["sx"]) for t in local_transfers)
     sy = sum(numpy.array(t["sy"]) for t in local_transfers)
@@ -157,7 +153,6 @@ def global1(local_transfers, alpha):
     p_values[abs(correlations) == 1] = 0
     r_z = numpy.arctanh(correlations)
     se = 1 / numpy.sqrt(n_obs - 3)
-    # alpha = 1 - CONFIDENCE
     z = st.norm.ppf(1 - alpha / 2)
     lo_z, hi_z = r_z - z * se, r_z + z * se
     ci_lo, ci_hi = numpy.tanh((lo_z, hi_z))
