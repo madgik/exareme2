@@ -17,10 +17,6 @@
         {
           "code": "desd-synthdata",
           "label": "DESD-synthdata"
-        },
-        {
-          "code": "edsd-synthdata-9rows",
-          "label": "Small synthetic dataset"
         }
       ],
       "label": "Dataset",
