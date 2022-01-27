@@ -472,7 +472,7 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     global_node: _Node
     local_nodes: List[_Node]
     algorithm_name: str
-    algorithm_parameters: Optional[Dict[str, List[str]]] = None
+    algorithm_parameters: Optional[Dict[str, Any]] = None
     x_variables: Optional[List[str]] = None
     y_variables: Optional[List[str]] = None
     pathology: str
