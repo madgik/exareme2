@@ -12,15 +12,15 @@ from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 
 TESTING_DATAMODEL = "dementia"
-DATA_TABLENAME = f"{TESTING_DATAMODEL}_data"
-METADATA_TABLENAME = f"{TESTING_DATAMODEL}_metadata"
+DATA_TABLENAME = f""""{TESTING_DATAMODEL}:0.1".primary_data"""
+METADATA_TABLENAME = f""""{TESTING_DATAMODEL}:0.1".variables_metadata"""
 
 MAX_TABLE_SIZE = 60
 MIN_TABLE_SIZE = 1
 TABLE_SIZE_MODE = 10
 
 # XXX Change according to your local setup
-DB_IP = "192.168.100.51"
+DB_IP = "172.17.0.1"
 DB_PORT = 50001
 DB_USER = "monetdb"
 DB_PASS = "monetdb"
@@ -38,13 +38,13 @@ class DB(MonetDB):
         )
 
     def get_numerical_variables(self):
-        query = f"SELECT code FROM {METADATA_TABLENAME} "
-        query += "WHERE categorical=FALSE AND sql_type<>'text'"
+        query = f"""select code from {METADATA_TABLENAME} """
+        query += """ where metadata LIKE '%"isCategorical": false%' AND (metadata LIKE '%"sql_type": "real"%' OR metadata LIKE '%"sql_type": "int"%'); """
         variables = pd.read_sql(query, self._connection)
         return variables["code"].tolist()
 
     def get_nominal_variables(self):
-        query = f"SELECT code FROM {METADATA_TABLENAME} WHERE categorical=TRUE"
+        query = f"""select code from {METADATA_TABLENAME} where metadata LIKE '%"isCategorical": true%'; """
         variables = pd.read_sql(query, self._connection)
         return variables["code"].tolist()
 
@@ -221,6 +221,7 @@ class InputGenerator:
             for name, properties in specs["inputdata"].items()
         }
         y, x = specs["inputdata"].get("y"), specs["inputdata"].get("y")
+
         self.parameter_gens = {
             name: make_parameters(properties, y, x)
             for name, properties in specs["parameters"].items()
@@ -237,6 +238,11 @@ class InputGenerator:
                 name: inputdata_vars.draw()
                 for name, inputdata_vars in self.inputdata_gens.items()
             }
+            # removes vars found in both y and x, from x
+            if inputdata["x"] != None:
+                diff = set(inputdata["y"]) & set(inputdata["x"])
+                inputdata["x"] = tuple(set(inputdata["x"]) - diff)
+
             inputdata["pathology"] = TESTING_DATAMODEL
             inputdata["datasets"] = self.datasets_gen.draw()
             inputdata["filters"] = self.filters_gen.draw()
@@ -323,6 +329,7 @@ class TestCaseGenerator(ABC):
         y = list(inputdata["y"])
         x = inputdata.get("x", None)
         x = list(x) if x else []
+
         variables = list(set(y + x))
         full_data = self.all_data[variables + ["dataset"]]
         full_data = full_data[full_data.dataset.isin(datasets)]
