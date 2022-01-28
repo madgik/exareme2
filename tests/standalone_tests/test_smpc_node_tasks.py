@@ -95,12 +95,8 @@ def create_table_with_secure_transfer_results_with_smpc_off(
     secure_transfer_1_value = 100
     secure_transfer_2_value = 11
 
-    secure_transfer_1 = {
-        "sum": {"data": secure_transfer_1_value, "type": "int", "operation": "addition"}
-    }
-    secure_transfer_2 = {
-        "sum": {"data": secure_transfer_2_value, "type": "int", "operation": "addition"}
-    }
+    secure_transfer_1 = {"sum": {"data": secure_transfer_1_value, "operation": "sum"}}
+    secure_transfer_2 = {"sum": {"data": secure_transfer_2_value, "operation": "sum"}}
     values = [
         ["localnode1", json.dumps(secure_transfer_1)],
         ["localnode2", json.dumps(secure_transfer_2)],
@@ -119,12 +115,8 @@ def create_table_with_multiple_secure_transfer_templates(
 
     table_name = create_secure_transfer_table(celery_app)
 
-    secure_transfer_template = {
-        "sum": {"data": [0, 1, 2, 3], "type": "int", "operation": "addition"}
-    }
-    different_secure_transfer_template = {
-        "sum": {"data": 0, "type": "int", "operation": "addition"}
-    }
+    secure_transfer_template = {"sum": {"data": [0, 1, 2, 3], "operation": "sum"}}
+    different_secure_transfer_template = {"sum": {"data": 0, "operation": "sum"}}
 
     if similar:
         values = [
@@ -142,20 +134,20 @@ def create_table_with_multiple_secure_transfer_templates(
     return table_name
 
 
-def create_table_with_smpc_add_op_values(celery_app) -> Tuple[str, str]:
+def create_table_with_smpc_sum_op_values(celery_app) -> Tuple[str, str]:
     insert_data_to_table_task = get_celery_task_signature(
         celery_app, "insert_data_to_table"
     )
     table_name = create_secure_transfer_table(celery_app)
 
-    add_op_values = [0, 1, 2, 3, 4, 5]
+    sum_op_values = [0, 1, 2, 3, 4, 5]
     values = [
-        ["localnode1", json.dumps(add_op_values)],
+        ["localnode1", json.dumps(sum_op_values)],
     ]
 
     insert_data_to_table_task.delay(table_name=table_name, values=values).get()
 
-    return table_name, json.dumps(add_op_values)
+    return table_name, json.dumps(sum_op_values)
 
 
 def validate_dict_table_data_match_expected(
@@ -197,9 +189,7 @@ def test_secure_transfer_output_with_smpc_off(
     secure_transfer_result = results[0]
     assert isinstance(secure_transfer_result, NodeTableDTO)
 
-    expected_result = {
-        "sum": {"data": input_table_name_sum, "type": "int", "operation": "addition"}
-    }
+    expected_result = {"sum": {"data": input_table_name_sum, "operation": "sum"}}
     validate_dict_table_data_match_expected(
         get_table_data_task,
         secure_transfer_result.value,
@@ -321,19 +311,19 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     assert isinstance(smpc_result, NodeSMPCDTO)
 
     assert smpc_result.value.template is not None
-    expected_template = {"sum": {"data": 0, "type": "int", "operation": "addition"}}
+    expected_template = {"sum": {"data": 0, "operation": "sum"}}
     validate_dict_table_data_match_expected(
         get_table_data_task,
         smpc_result.value.template.value,
         expected_template,
     )
 
-    assert smpc_result.value.add_op_values is not None
-    expected_add_op_values = [input_table_name_sum]
+    assert smpc_result.value.sum_op_values is not None
+    expected_sum_op_values = [input_table_name_sum]
     validate_dict_table_data_match_expected(
         get_table_data_task,
-        smpc_result.value.add_op_values.value,
-        expected_add_op_values,
+        smpc_result.value.sum_op_values.value,
+        expected_sum_op_values,
     )
 
     # ----------------------- SECURE TRANSFER INPUT----------------------
@@ -342,7 +332,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     smpc_arg = NodeSMPCDTO(
         value=NodeSMPCValueDTO(
             template=NodeTableDTO(value=smpc_result.value.template.value),
-            add_op_values=NodeTableDTO(value=smpc_result.value.add_op_values.value),
+            sum_op_values=NodeTableDTO(value=smpc_result.value.sum_op_values.value),
         )
     )
 
@@ -396,7 +386,7 @@ def test_load_data_to_smpc_client(
     use_smpc_localnode1_database,
     smpc_localnode1_celery_app,
 ):
-    table_name, add_op_values_str = create_table_with_smpc_add_op_values(
+    table_name, sum_op_values_str = create_table_with_smpc_sum_op_values(
         smpc_localnode1_celery_app
     )
 
@@ -424,10 +414,10 @@ def test_load_data_to_smpc_client(
 
     # TODO Remove when smpc cluster call is fixed
     # The problem is that the call returns the integers as string
-    # assert response.text == add_op_values_str
+    # assert response.text == sum_op_values_str
     result = json.loads(response.text)
     result = [int(elem) for elem in result]
-    assert json.dumps(result) == add_op_values_str
+    assert json.dumps(result) == sum_op_values_str
 
 
 def test_get_smpc_result_from_localnode_fails(
@@ -629,12 +619,12 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     # --------- LOAD LOCALNODE ADD OP DATA TO SMPC CLIENTS -----------------
     smpc_client_1 = load_data_to_smpc_client_task_localnode1.delay(
         context_id=context_id,
-        table_name=local_1_smpc_result.value.add_op_values.value,
+        table_name=local_1_smpc_result.value.sum_op_values.value,
         jobid=smpc_job_id,
     ).get()
     smpc_client_2 = load_data_to_smpc_client_task_localnode2.delay(
         context_id=context_id,
-        table_name=local_2_smpc_result.value.add_op_values.value,
+        table_name=local_2_smpc_result.value.sum_op_values.value,
         jobid=smpc_job_id,
     ).get()
 
@@ -658,7 +648,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     assert response.status_code == 200
 
     # --------- Get Results of SMPC in globalnode -----------------
-    add_op_values_tablename = get_smpc_result_task_globalnode.delay(
+    sum_op_values_tablename = get_smpc_result_task_globalnode.delay(
         context_id=context_id,
         command_id="4",
         jobid=smpc_job_id,
@@ -668,7 +658,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_arg = NodeSMPCDTO(
         value=NodeSMPCValueDTO(
             template=NodeTableDTO(value=globalnode_template_tablename),
-            add_op_values=NodeTableDTO(value=add_op_values_tablename),
+            sum_op_values=NodeTableDTO(value=sum_op_values_tablename),
         )
     )
     pos_args_str = UDFPosArguments(args=[smpc_arg]).json()

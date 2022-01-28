@@ -178,7 +178,7 @@ def _create_smpc_results_table(context_id, command_id, smpc_op_result_data):
 def _get_smpc_values_from_table_data(table_data: List[ColumnData], op: SMPCRequestType):
     if op == SMPCRequestType.SUM:
         node_id_column, values_column = table_data
-        add_op_values = values_column.data
+        sum_op_values = values_column.data
     else:
         raise NotImplementedError
-    return add_op_values
+    return sum_op_values

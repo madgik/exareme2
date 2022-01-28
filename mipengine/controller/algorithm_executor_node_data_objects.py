@@ -73,14 +73,14 @@ class NodeTable(NodeData):
 
 class NodeSMPCTables(NodeData):
     template: NodeTable
-    add_op: NodeTable
+    sum_op: NodeTable
     min_op: NodeTable
     max_op: NodeTable
     union_op: NodeTable
 
-    def __init__(self, template, add_op, min_op, max_op, union_op):
+    def __init__(self, template, sum_op, min_op, max_op, union_op):
         self.template = template
-        self.add_op = add_op
+        self.sum_op = sum_op
         self.min_op = min_op
         self.max_op = max_op
         self.union_op = union_op
@@ -196,25 +196,25 @@ class GlobalNodeTable(GlobalNodeData):
 
 class LocalNodesSMPCTables(LocalNodesData):
     template: LocalNodesTable
-    add_op: LocalNodesTable
+    sum_op: LocalNodesTable
     min_op: LocalNodesTable
     max_op: LocalNodesTable
     union_op: LocalNodesTable
 
     def __init__(self, nodes_smpc_tables: Dict["LocalNode", NodeSMPCTables]):
         template_nodes_tables = {}
-        add_op_nodes_tables = {}
+        sum_op_nodes_tables = {}
         min_op_nodes_tables = {}
         max_op_nodes_tables = {}
         union_op_nodes_tables = {}
         for node, node_smpc_tables in nodes_smpc_tables.items():
             template_nodes_tables[node] = node_smpc_tables.template
-            add_op_nodes_tables[node] = node_smpc_tables.add_op
+            sum_op_nodes_tables[node] = node_smpc_tables.sum_op
             min_op_nodes_tables[node] = node_smpc_tables.min_op
             max_op_nodes_tables[node] = node_smpc_tables.max_op
             union_op_nodes_tables[node] = node_smpc_tables.union_op
         self.template = LocalNodesTable(template_nodes_tables)
-        self.add_op = create_local_nodes_table_from_nodes_tables(add_op_nodes_tables)
+        self.sum_op = create_local_nodes_table_from_nodes_tables(sum_op_nodes_tables)
         self.min_op = create_local_nodes_table_from_nodes_tables(min_op_nodes_tables)
         self.max_op = create_local_nodes_table_from_nodes_tables(max_op_nodes_tables)
         self.union_op = create_local_nodes_table_from_nodes_tables(
@@ -224,14 +224,14 @@ class LocalNodesSMPCTables(LocalNodesData):
 
 class GlobalNodeSMPCTables(GlobalNodeData):
     template: GlobalNodeTable
-    add_op: GlobalNodeTable
+    sum_op: GlobalNodeTable
     min_op: GlobalNodeTable
     max_op: GlobalNodeTable
     union_op: GlobalNodeTable
 
-    def __init__(self, template, add_op, min_op, max_op, union_op):
+    def __init__(self, template, sum_op, min_op, max_op, union_op):
         self.template = template
-        self.add_op = add_op
+        self.sum_op = sum_op
         self.min_op = min_op
         self.max_op = max_op
         self.union_op = union_op
@@ -293,7 +293,7 @@ def _algoexec_udf_arg_to_node_udf_arg(
         return NodeSMPCDTO(
             value=NodeSMPCValueDTO(
                 template=algoexec_arg.template.nodes_tables[local_node].full_table_name,
-                add_op_values=algoexec_arg.add_op.nodes_tables[
+                sum_op_values=algoexec_arg.sum_op.nodes_tables[
                     local_node
                 ].full_table_name,
                 min_op_values=algoexec_arg.min_op.nodes_tables[
@@ -311,8 +311,8 @@ def _algoexec_udf_arg_to_node_udf_arg(
         return NodeSMPCDTO(
             value=NodeSMPCValueDTO(
                 template=NodeTableDTO(algoexec_arg.template.table.full_table_name),
-                add_op_values=create_node_table_dto_from_global_node_table(
-                    algoexec_arg.add_op
+                sum_op_values=create_node_table_dto_from_global_node_table(
+                    algoexec_arg.sum_op
                 ),
                 min_op_values=create_node_table_dto_from_global_node_table(
                     algoexec_arg.min_op

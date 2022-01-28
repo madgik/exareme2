@@ -163,9 +163,9 @@ def _create_table_info_from_tablename(tablename: str):
 
 def _convert_smpc_udf2udfgen_arg(udf_argument: NodeSMPCDTO):
     template = _create_table_info_from_tablename(udf_argument.value.template.value)
-    add_op = (
-        _create_table_info_from_tablename(udf_argument.value.add_op_values.value)
-        if udf_argument.value.add_op_values
+    sum_op = (
+        _create_table_info_from_tablename(udf_argument.value.sum_op_values.value)
+        if udf_argument.value.sum_op_values
         else None
     )
     min_op = (
@@ -185,7 +185,7 @@ def _convert_smpc_udf2udfgen_arg(udf_argument: NodeSMPCDTO):
     )
     return SMPCTablesInfo(
         template=template,
-        add_op_values=add_op,
+        sum_op_values=sum_op,
         min_op_values=min_op,
         max_op_values=max_op,
         union_op_values=union_op,
@@ -258,8 +258,8 @@ def _get_all_table_results_from_smpc_result(
 ) -> List[TableUDFGenResult]:
     table_results = [smpc_result.template]
     table_results.append(
-        smpc_result.add_op_values
-    ) if smpc_result.add_op_values else None
+        smpc_result.sum_op_values
+    ) if smpc_result.sum_op_values else None
     table_results.append(
         smpc_result.min_op_values
     ) if smpc_result.min_op_values else None
@@ -343,13 +343,13 @@ def _convert_udfgen2udf_smpc_result_and_mapping(
         udfgen_result.template, context_id, command_id, command_subid
     )
 
-    if udfgen_result.add_op_values:
-        (add_op_udf_result, mapping,) = _convert_udfgen2udf_table_result_and_mapping(
-            udfgen_result.add_op_values, context_id, command_id, command_subid + 1
+    if udfgen_result.sum_op_values:
+        (sum_op_udf_result, mapping,) = _convert_udfgen2udf_table_result_and_mapping(
+            udfgen_result.sum_op_values, context_id, command_id, command_subid + 1
         )
         table_names_tmpl_mapping.update(mapping)
     else:
-        add_op_udf_result = None
+        sum_op_udf_result = None
 
     if udfgen_result.min_op_values:
         (min_op_udf_result, mapping,) = _convert_udfgen2udf_table_result_and_mapping(
@@ -378,7 +378,7 @@ def _convert_udfgen2udf_smpc_result_and_mapping(
     result = NodeSMPCDTO(
         value=NodeSMPCValueDTO(
             template=template_udf_result,
-            add_op_values=add_op_udf_result,
+            sum_op_values=sum_op_udf_result,
             min_op_values=min_op_udf_result,
             max_op_values=max_op_udf_result,
             union_op_values=union_op_udf_result,

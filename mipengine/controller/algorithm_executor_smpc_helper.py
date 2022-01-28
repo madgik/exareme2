@@ -37,8 +37,8 @@ def load_operation_data_to_smpc_clients(
 def load_data_to_smpc_clients(
     command_id: int, smpc_tables: LocalNodesSMPCTables
 ) -> Tuple[List[int], List[int], List[int], List[int]]:
-    add_op_smpc_clients = load_operation_data_to_smpc_clients(
-        command_id, smpc_tables.add_op, SMPCRequestType.SUM
+    sum_op_smpc_clients = load_operation_data_to_smpc_clients(
+        command_id, smpc_tables.sum_op, SMPCRequestType.SUM
     )
     min_op_smpc_clients = load_operation_data_to_smpc_clients(
         command_id, smpc_tables.min_op, SMPCRequestType.MIN
@@ -50,7 +50,7 @@ def load_data_to_smpc_clients(
         command_id, smpc_tables.union_op, SMPCRequestType.UNION
     )
     return (
-        add_op_smpc_clients,
+        sum_op_smpc_clients,
         min_op_smpc_clients,
         max_op_smpc_clients,
         union_op_smpc_clients,
@@ -83,13 +83,13 @@ def trigger_smpc_computations(
     smpc_clients_per_op: Tuple[List[int], List[int], List[int], List[int]],
 ) -> Tuple[bool, bool, bool, bool]:
     (
-        add_op_smpc_clients,
+        sum_op_smpc_clients,
         min_op_smpc_clients,
         max_op_smpc_clients,
         union_op_smpc_clients,
     ) = smpc_clients_per_op
-    add_op = trigger_smpc_operation_computation(
-        context_id, command_id, SMPCRequestType.SUM, add_op_smpc_clients
+    sum_op = trigger_smpc_operation_computation(
+        context_id, command_id, SMPCRequestType.SUM, sum_op_smpc_clients
     )
     min_op = trigger_smpc_operation_computation(
         context_id, command_id, SMPCRequestType.MIN, min_op_smpc_clients
@@ -100,19 +100,19 @@ def trigger_smpc_computations(
     union_op = trigger_smpc_operation_computation(
         context_id, command_id, SMPCRequestType.UNION, union_op_smpc_clients
     )
-    return add_op, min_op, max_op, union_op
+    return sum_op, min_op, max_op, union_op
 
 
 def get_smpc_results(
     node: GlobalNode,
     context_id: str,
     command_id: int,
-    add_op: bool,
+    sum_op: bool,
     min_op: bool,
     max_op: bool,
     union_op: bool,
 ) -> Tuple[GlobalNodeTable, GlobalNodeTable, GlobalNodeTable, GlobalNodeTable]:
-    add_op_result_table = (
+    sum_op_result_table = (
         node.get_smpc_result(
             command_id=command_id,
             jobid=get_smpc_job_id(
@@ -121,7 +121,7 @@ def get_smpc_results(
                 operation=SMPCRequestType.SUM,
             ),
         )
-        if add_op
+        if sum_op
         else None
     )
     min_op_result_table = (
@@ -162,8 +162,8 @@ def get_smpc_results(
     )
 
     result = (
-        GlobalNodeTable(node=node, table=NodeTable(table_name=add_op_result_table))
-        if add_op_result_table
+        GlobalNodeTable(node=node, table=NodeTable(table_name=sum_op_result_table))
+        if sum_op_result_table
         else None,
         GlobalNodeTable(node=node, table=NodeTable(table_name=min_op_result_table))
         if min_op_result_table

@@ -76,10 +76,10 @@ def get_secure_transfers_to_merged_dict_success_cases():
         (
             [
                 {
-                    "a": {"data": 2, "type": "int", "operation": "addition"},
+                    "a": {"data": 2, "operation": "sum"},
                 },
                 {
-                    "a": {"data": 3, "type": "int", "operation": "addition"},
+                    "a": {"data": 3, "operation": "sum"},
                 },
             ],
             {"a": 5},
@@ -87,12 +87,12 @@ def get_secure_transfers_to_merged_dict_success_cases():
         (
             [
                 {
-                    "a": {"data": 2, "type": "int", "operation": "addition"},
-                    "b": {"data": 5, "type": "int", "operation": "addition"},
+                    "a": {"data": 2, "operation": "sum"},
+                    "b": {"data": 5, "operation": "sum"},
                 },
                 {
-                    "a": {"data": 3, "type": "int", "operation": "addition"},
-                    "b": {"data": 7, "type": "int", "operation": "addition"},
+                    "a": {"data": 3, "operation": "sum"},
+                    "b": {"data": 7, "operation": "sum"},
                 },
             ],
             {"a": 5, "b": 12},
@@ -100,10 +100,10 @@ def get_secure_transfers_to_merged_dict_success_cases():
         (
             [
                 {
-                    "a": {"data": [1, 2, 3], "type": "int", "operation": "addition"},
+                    "a": {"data": [1, 2, 3], "operation": "sum"},
                 },
                 {
-                    "a": {"data": [9, 8, 7], "type": "int", "operation": "addition"},
+                    "a": {"data": [9, 8, 7], "operation": "sum"},
                 },
             ],
             {
@@ -113,29 +113,25 @@ def get_secure_transfers_to_merged_dict_success_cases():
         (
             [
                 {
-                    "a": {"data": 10, "type": "int", "operation": "addition"},
+                    "a": {"data": 10, "operation": "sum"},
                     "b": {
                         "data": [10, 20, 30, 40, 50, 60],
-                        "type": "int",
-                        "operation": "addition",
+                        "operation": "sum",
                     },
                     "c": {
                         "data": [[10, 20, 30, 40, 50, 60], [70, 80, 90]],
-                        "type": "int",
-                        "operation": "addition",
+                        "operation": "sum",
                     },
                 },
                 {
-                    "a": {"data": 100, "type": "int", "operation": "addition"},
+                    "a": {"data": 100, "operation": "sum"},
                     "b": {
                         "data": [100, 200, 300, 400, 500, 600],
-                        "type": "int",
-                        "operation": "addition",
+                        "operation": "sum",
                     },
                     "c": {
                         "data": [[100, 200, 300, 400, 500, 600], [700, 800, 900]],
-                        "type": "int",
-                        "operation": "addition",
+                        "operation": "sum",
                     },
                 },
             ],
@@ -143,6 +139,37 @@ def get_secure_transfers_to_merged_dict_success_cases():
                 "a": 110,
                 "b": [110, 220, 330, 440, 550, 660],
                 "c": [[110, 220, 330, 440, 550, 660], [770, 880, 990]],
+            },
+        ),
+        (
+            [
+                {
+                    "sum": {"data": 10, "operation": "sum"},
+                    "min": {
+                        "data": [10, 200, 30, 400, 50, 600],
+                        "operation": "min",
+                    },
+                    "max": {
+                        "data": [[100, 20, 300, 40, 500, 60], [700, 80, 900]],
+                        "operation": "max",
+                    },
+                },
+                {
+                    "sum": {"data": 100, "operation": "sum"},
+                    "min": {
+                        "data": [100, 20, 300, 40, 500, 60],
+                        "operation": "min",
+                    },
+                    "max": {
+                        "data": [[10, 200, 30, 400, 50, 600], [70, 800, 90]],
+                        "operation": "max",
+                    },
+                },
+            ],
+            {
+                "sum": 110,
+                "min": [10, 20, 30, 40, 50, 60],
+                "max": [[100, 200, 300, 400, 500, 600], [700, 800, 900]],
             },
         ),
     ]
@@ -156,91 +183,15 @@ def test_secure_transfer_to_merged_dict(transfers, result):
     assert secure_transfers_to_merged_dict(transfers) == result
 
 
-def get_secure_transfers_merged_to_dict_fail_cases():
-    secure_transfers_fail_cases = [
-        (
-            [
-                {
-                    "a": {"data": 2, "type": "int", "operation": "addition"},
-                },
-                {
-                    "a": {"data": 3, "type": "int", "operation": "whatever"},
-                },
-            ],
-            (
-                ValueError,
-                "All secure transfer keys should have the same 'operation' .*",
-            ),
-        ),
-        (
-            [
-                {
-                    "a": {"data": 2, "type": "int", "operation": "addition"},
-                },
-                {
-                    "a": {"data": 3, "type": "decimal", "operation": "addition"},
-                },
-            ],
-            (ValueError, "All secure transfer keys should have the same 'type' .*"),
-        ),
-        (
-            [
-                {
-                    "a": {"data": 2, "type": "int", "operation": "addition"},
-                },
-                {
-                    "a": {"data": [3], "type": "int", "operation": "addition"},
-                },
-            ],
-            (TypeError, "Secure transfer data have different types: .*"),
-        ),
-        (
-            [
-                {
-                    "a": {"data": 2, "type": "whatever", "operation": "addition"},
-                },
-                {
-                    "a": {"data": 3, "type": "whatever", "operation": "addition"},
-                },
-            ],
-            (
-                NotImplementedError,
-                "Secure transfer type: .* not supported for operation: .*",
-            ),
-        ),
-        (
-            [
-                {
-                    "a": {"data": 2, "type": "int", "operation": "whatever"},
-                },
-                {
-                    "a": {"data": 3, "type": "int", "operation": "addition"},
-                },
-            ],
-            (NotImplementedError, "Secure transfer operation not supported: .*"),
-        ),
-    ]
-    return secure_transfers_fail_cases
-
-
-@pytest.mark.parametrize(
-    "transfers, exception", get_secure_transfers_merged_to_dict_fail_cases()
-)
-def test_secure_transfers_to_merged_dict_fail_cases(transfers, exception):
-    exception_type, exception_message = exception
-    with pytest.raises(exception_type, match=exception_message):
-        secure_transfers_to_merged_dict(transfers)
-
-
 def get_secure_transfer_dict_success_cases():
     secure_transfer_cases = [
         (
             {
-                "a": {"data": 2, "type": "int", "operation": "addition"},
+                "a": {"data": 2, "operation": "sum"},
             },
             (
                 {
-                    "a": {"data": 0, "type": "int", "operation": "addition"},
+                    "a": {"data": 0, "operation": "sum"},
                 },
                 [2],
                 [],
@@ -253,13 +204,13 @@ def get_secure_transfer_dict_success_cases():
         ),
         (
             {
-                "a": {"data": 2, "type": "int", "operation": "addition"},
-                "b": {"data": 5, "type": "int", "operation": "addition"},
+                "a": {"data": 2, "operation": "sum"},
+                "b": {"data": 5, "operation": "sum"},
             },
             (
                 {
-                    "a": {"data": 0, "type": "int", "operation": "addition"},
-                    "b": {"data": 1, "type": "int", "operation": "addition"},
+                    "a": {"data": 0, "operation": "sum"},
+                    "b": {"data": 1, "operation": "sum"},
                 },
                 [2, 5],
                 [],
@@ -270,11 +221,11 @@ def get_secure_transfer_dict_success_cases():
         ),
         (
             {
-                "a": {"data": [1, 2, 3], "type": "int", "operation": "addition"},
+                "a": {"data": [1, 2, 3], "operation": "sum"},
             },
             (
                 {
-                    "a": {"data": [0, 1, 2], "type": "int", "operation": "addition"},
+                    "a": {"data": [0, 1, 2], "operation": "sum"},
                 },
                 [1, 2, 3],
                 [],
@@ -287,30 +238,26 @@ def get_secure_transfer_dict_success_cases():
         ),
         (
             {
-                "a": {"data": 10, "type": "int", "operation": "addition"},
+                "a": {"data": 10, "operation": "sum"},
                 "b": {
                     "data": [10, 20, 30, 40, 50, 60],
-                    "type": "int",
-                    "operation": "addition",
+                    "operation": "sum",
                 },
                 "c": {
                     "data": [[10, 20, 30, 40, 50, 60], [70, 80, 90]],
-                    "type": "int",
-                    "operation": "addition",
+                    "operation": "sum",
                 },
             },
             (
                 {
-                    "a": {"data": 0, "type": "int", "operation": "addition"},
+                    "a": {"data": 0, "operation": "sum"},
                     "b": {
                         "data": [1, 2, 3, 4, 5, 6],
-                        "type": "int",
-                        "operation": "addition",
+                        "operation": "sum",
                     },
                     "c": {
                         "data": [[7, 8, 9, 10, 11, 12], [13, 14, 15]],
-                        "type": "int",
-                        "operation": "addition",
+                        "operation": "sum",
                     },
                 },
                 [10, 10, 20, 30, 40, 50, 60, 10, 20, 30, 40, 50, 60, 70, 80, 90],
@@ -322,6 +269,92 @@ def get_secure_transfer_dict_success_cases():
                 "a": 10,
                 "b": [10, 20, 30, 40, 50, 60],
                 "c": [[10, 20, 30, 40, 50, 60], [70, 80, 90]],
+            },
+        ),
+        (
+            {
+                "min": {"data": [2, 5.6], "operation": "min"},
+            },
+            (
+                {
+                    "min": {"data": [0, 1], "operation": "min"},
+                },
+                [],
+                [2, 5.6],
+                [],
+                [],
+            ),
+            {
+                "min": [2, 5.6],
+            },
+        ),
+        (
+            {
+                "max": {"data": [2, 5.6], "operation": "max"},
+            },
+            (
+                {
+                    "max": {"data": [0, 1], "operation": "max"},
+                },
+                [],
+                [],
+                [2, 5.6],
+                [],
+            ),
+            {
+                "max": [2, 5.6],
+            },
+        ),
+        (
+            {
+                "sum1": {"data": [1, 2, 3, 4.5], "operation": "sum"},
+                "sum2": {"data": [6, 7.8], "operation": "sum"},
+                "min1": {"data": [6, 7.8], "operation": "min"},
+                "min2": {"data": [1.5, 2.0], "operation": "min"},
+                "max1": {"data": [6.8, 7], "operation": "max"},
+                "max2": {"data": [1.5, 2], "operation": "max"},
+            },
+            (
+                {
+                    "sum1": {"data": [0, 1, 2, 3], "operation": "sum"},
+                    "sum2": {"data": [4, 5], "operation": "sum"},
+                    "min1": {"data": [0, 1], "operation": "min"},
+                    "min2": {"data": [2, 3], "operation": "min"},
+                    "max1": {"data": [0, 1], "operation": "max"},
+                    "max2": {"data": [2, 3], "operation": "max"},
+                },
+                [1, 2, 3, 4.5, 6, 7.8],
+                [6, 7.8, 1.5, 2.0],
+                [6.8, 7, 1.5, 2],
+                [],
+            ),
+            {
+                "sum1": [1, 2, 3, 4.5],
+                "sum2": [6, 7.8],
+                "min1": [6, 7.8],
+                "min2": [1.5, 2.0],
+                "max1": [6.8, 7],
+                "max2": [1.5, 2],
+            },
+        ),
+        (
+            {
+                "sum": {"data": [100, 200, 300], "operation": "sum"},
+                "max": {"data": 58, "operation": "max"},
+            },
+            (
+                {
+                    "sum": {"data": [0, 1, 2], "operation": "sum"},
+                    "max": {"data": 0, "operation": "max"},
+                },
+                [100, 200, 300],
+                [],
+                [58],
+                [],
+            ),
+            {
+                "sum": [100, 200, 300],
+                "max": 58,
             },
         ),
     ]
@@ -342,3 +375,122 @@ def test_split_secure_transfer_dict(secure_transfer, smpc_parts, final_result):
 )
 def test_construct_secure_transfer_dict(secure_transfer, smpc_parts, final_result):
     assert construct_secure_transfer_dict(*smpc_parts) == final_result
+
+
+def get_secure_transfers_merged_to_dict_fail_cases():
+    secure_transfers_fail_cases = [
+        (
+            [
+                {
+                    "a": {"data": 2, "operation": "sum"},
+                },
+                {
+                    "a": {"data": 3, "operation": "whatever"},
+                },
+            ],
+            (
+                ValueError,
+                "Secure Transfer operation is not supported: .*",
+            ),
+        ),
+        (
+            [
+                {
+                    "a": {"data": 2, "operation": "sum"},
+                },
+                {
+                    "a": {"data": 3, "operation": "min"},
+                },
+            ],
+            (
+                ValueError,
+                "All secure transfer keys should have the same 'operation' .*",
+            ),
+        ),
+        (
+            [
+                {
+                    "a": {"data": 2, "operation": "sum"},
+                },
+                {
+                    "a": {"data": [3], "operation": "sum"},
+                },
+            ],
+            (ValueError, "Secure transfers' data should have the same structure."),
+        ),
+        (
+            [
+                {
+                    "a": {"data": "tet", "operation": "sum"},
+                },
+                {
+                    "a": {"data": "tet", "operation": "sum"},
+                },
+            ],
+            (
+                TypeError,
+                "Secure transfer data must have one of the following types: .*",
+            ),
+        ),
+    ]
+    return secure_transfers_fail_cases
+
+
+@pytest.mark.parametrize(
+    "transfers, exception", get_secure_transfers_merged_to_dict_fail_cases()
+)
+def test_secure_transfers_to_merged_dict_fail_cases(transfers, exception):
+    exception_type, exception_message = exception
+    with pytest.raises(exception_type, match=exception_message):
+        secure_transfers_to_merged_dict(transfers)
+
+
+def get_split_secure_transfer_dict_fail_cases():
+    split_secure_transfer_dict_fail_cases = [
+        (
+            {
+                "a": {"data": 3, "operation": "whatever"},
+            },
+            (
+                ValueError,
+                "Secure Transfer operation is not supported: .*",
+            ),
+        ),
+        (
+            {
+                "a": {"data": "tet", "operation": "sum"},
+            },
+            (
+                TypeError,
+                "Secure Transfer key: 'a', operation: 'sum'. Error: Types allowed: .*",
+            ),
+        ),
+        (
+            {
+                "a": {"llalal": 0, "operation": "sum"},
+            },
+            (
+                ValueError,
+                "Each Secure Transfer key should contain data.",
+            ),
+        ),
+        (
+            {
+                "a": {"data": 0, "sdfs": "sum"},
+            },
+            (
+                ValueError,
+                "Each Secure Transfer key should contain an operation.",
+            ),
+        ),
+    ]
+    return split_secure_transfer_dict_fail_cases
+
+
+@pytest.mark.parametrize(
+    "result, exception", get_split_secure_transfer_dict_fail_cases()
+)
+def test_split_secure_transfer_dict_fail_cases(result, exception):
+    exception_type, exception_message = exception
+    with pytest.raises(exception_type, match=exception_message):
+        split_secure_transfer_dict(result)

@@ -289,8 +289,8 @@ class LocalNode(_Node):
                 udf_results.append(
                     NodeSMPCTables(
                         template=NodeTable(result.value.template.value),
-                        add_op=create_node_table_from_node_table_dto(
-                            result.value.add_op_values
+                        sum_op=create_node_table_from_node_table_dto(
+                            result.value.sum_op_values
                         ),
                         min_op=create_node_table_from_node_table_dto(
                             result.value.min_op_values

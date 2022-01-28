@@ -73,20 +73,20 @@ def relation_to_matrix(rel):
     return rel
 
 
-@udf(table=tensor(S, 2), return_type=[state(), secure_transfer(add_op=True)])
+@udf(table=tensor(S, 2), return_type=[state(), secure_transfer(sum_op=True)])
 def smpc_local_step_1(table):
     state_ = {"table": table}
     sum_ = 0
     for (element,) in table:
         sum_ += element
     secure_transfer_ = {
-        "sum": {"data": int(sum_), "type": "int", "operation": "addition"},
-        "count": {"data": len(table), "type": "int", "operation": "addition"},
+        "sum": {"data": int(sum_), "operation": "sum"},
+        "count": {"data": len(table), "operation": "sum"},
     }
     return state_, secure_transfer_
 
 
-@udf(locals_result=secure_transfer(add_op=True), return_type=[state(), transfer()])
+@udf(locals_result=secure_transfer(sum_op=True), return_type=[state(), transfer()])
 def smpc_global_step_1(locals_result):
     total_sum = locals_result["sum"]
     total_count = locals_result["count"]
@@ -99,7 +99,7 @@ def smpc_global_step_1(locals_result):
 @udf(
     prev_state=state(),
     global_transfer=transfer(),
-    return_type=secure_transfer(add_op=True),
+    return_type=secure_transfer(sum_op=True),
 )
 def smpc_local_step_2(prev_state, global_transfer):
     deviation_sum = 0
@@ -109,7 +109,7 @@ def smpc_local_step_2(prev_state, global_transfer):
         "deviation_sum": {
             "data": int(deviation_sum),
             "type": "int",
-            "operation": "addition",
+            "operation": "sum",
         }
     }
     return secure_transfer_
@@ -117,7 +117,7 @@ def smpc_local_step_2(prev_state, global_transfer):
 
 @udf(
     prev_state=state(),
-    locals_result=secure_transfer(add_op=True),
+    locals_result=secure_transfer(sum_op=True),
     return_type=transfer(),
 )
 def smpc_global_step_2(prev_state, locals_result):
