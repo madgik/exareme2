@@ -121,6 +121,8 @@ def mock_algorithms_modules():
     ):
         yield
 
+    mipengine.ALGORITHM_FOLDERS = "./mipengine/algorithms"
+
 
 def get_parametrization_list_success_cases():
     parametrization_list = []
