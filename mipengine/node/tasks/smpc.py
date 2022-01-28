@@ -4,6 +4,8 @@ from time import sleep
 from celery import shared_task
 from typing import List
 
+from typing import Optional
+
 from mipengine import DType
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface.common_actions import create_table_name
@@ -90,9 +92,10 @@ def load_data_to_smpc_client(context_id: str, table_name: str, jobid: str) -> in
 @shared_task
 @initialise_logger
 def get_smpc_result(
+    jobid: str,
     context_id: str,
     command_id: str,
-    jobid: str,
+    command_subid: Optional[str] = "0",
 ) -> str:
     """
     Fetches the results from an SMPC and writes them into a table.
@@ -101,6 +104,7 @@ def get_smpc_result(
     ----------
     context_id: An identifier of the action.
     command_id: An identifier for the command, used for naming the result table.
+    command_subid: An identifier for the command, used for naming the result table.
     jobid: The jobid of the SMPC.
 
     Returns
@@ -137,13 +141,16 @@ def get_smpc_result(
     results_table_name = _create_smpc_results_table(
         context_id=context_id,
         command_id=command_id,
+        command_subid=command_subid,
         smpc_op_result_data=smpc_response_with_output.computationOutput,
     )
 
     return results_table_name
 
 
-def _create_smpc_results_table(context_id, command_id, smpc_op_result_data):
+def _create_smpc_results_table(
+    context_id, command_id, command_subid, smpc_op_result_data
+):
     """
     Create a table with the SMPC specific schema
     and insert the results of the SMPC to it.
@@ -154,6 +161,7 @@ def _create_smpc_results_table(context_id, command_id, smpc_op_result_data):
         node_config.identifier,
         context_id,
         command_id,
+        command_subid,
     )
     table_schema = TableSchema(
         columns=[

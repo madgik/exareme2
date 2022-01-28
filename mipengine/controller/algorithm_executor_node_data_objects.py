@@ -284,7 +284,7 @@ def _algoexec_udf_arg_to_node_udf_arg(
     if isinstance(algoexec_arg, LocalNodesTable):
         if not local_node:
             raise ValueError(
-                "local_node parameter is required on LocalNodesTable convertion."
+                "local_node parameter is required on LocalNodesTable conversion."
             )
         return NodeTableDTO(value=algoexec_arg.nodes_tables[local_node].full_table_name)
     elif isinstance(algoexec_arg, GlobalNodeTable):
@@ -310,7 +310,9 @@ def _algoexec_udf_arg_to_node_udf_arg(
     elif isinstance(algoexec_arg, GlobalNodeSMPCTables):
         return NodeSMPCDTO(
             value=NodeSMPCValueDTO(
-                template=NodeTableDTO(algoexec_arg.template.table.full_table_name),
+                template=NodeTableDTO(
+                    value=algoexec_arg.template.table.full_table_name
+                ),
                 sum_op_values=create_node_table_dto_from_global_node_table(
                     algoexec_arg.sum_op
                 ),

@@ -5,6 +5,8 @@ from typing import Dict
 from typing import List
 from typing import Tuple
 
+from typing import Optional
+
 from mipengine.controller.algorithm_executor_node_data_objects import NodeData
 from mipengine.controller.algorithm_executor_node_data_objects import NodeSMPCTables
 from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
@@ -338,9 +340,13 @@ class GlobalNode(_Node):
 
     def get_smpc_result(
         self,
-        command_id: int,
         jobid: str,
+        command_id: str,
+        command_subid: Optional[str] = "0",
     ) -> str:
         return self._node_tasks_handler.get_smpc_result(
-            self.context_id, str(command_id), jobid
+            jobid=jobid,
+            context_id=self.context_id,
+            command_id=str(command_id),
+            command_subid=command_subid,
         )

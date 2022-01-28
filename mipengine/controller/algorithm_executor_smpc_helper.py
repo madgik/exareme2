@@ -114,48 +114,52 @@ def get_smpc_results(
 ) -> Tuple[GlobalNodeTable, GlobalNodeTable, GlobalNodeTable, GlobalNodeTable]:
     sum_op_result_table = (
         node.get_smpc_result(
-            command_id=command_id,
             jobid=get_smpc_job_id(
                 context_id=context_id,
                 command_id=command_id,
                 operation=SMPCRequestType.SUM,
             ),
+            command_id=str(command_id),
+            command_subid="0",
         )
         if sum_op
         else None
     )
     min_op_result_table = (
         node.get_smpc_result(
-            command_id=command_id,
             jobid=get_smpc_job_id(
                 context_id=context_id,
                 command_id=command_id,
                 operation=SMPCRequestType.MIN,
             ),
+            command_id=str(command_id),
+            command_subid="1",
         )
         if min_op
         else None
     )
     max_op_result_table = (
         node.get_smpc_result(
-            command_id=command_id,
             jobid=get_smpc_job_id(
                 context_id=context_id,
                 command_id=command_id,
                 operation=SMPCRequestType.MAX,
             ),
+            command_id=str(command_id),
+            command_subid="2",
         )
         if max_op
         else None
     )
     union_op_result_table = (
         node.get_smpc_result(
-            command_id=command_id,
             jobid=get_smpc_job_id(
                 context_id=context_id,
                 command_id=command_id,
                 operation=SMPCRequestType.UNION,
             ),
+            command_id=str(command_id),
+            command_subid="3",
         )
         if union_op
         else None

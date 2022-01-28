@@ -52,7 +52,9 @@ def get_parametrization_list_success_cases():
         "title": "Standard Deviation",
         "columns": [
             {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.3611575592573076], "type": "FLOAT"},
+            {"name": "std_deviation", "data": [0.3634506955662605], "type": "FLOAT"},
+            {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
+            {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
         ],
     }
     parametrization_list.append((algorithm_name, request_dict, expected_response))

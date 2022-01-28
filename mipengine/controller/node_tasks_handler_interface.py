@@ -162,8 +162,9 @@ class INodeTasksHandler(ABC):
     @abstractmethod
     def get_smpc_result(
         self,
+        jobid: str,
         context_id: str,
         command_id: str,
-        jobid: str,
+        command_subid: Optional[str] = "0",
     ) -> str:
         pass
