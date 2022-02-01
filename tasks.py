@@ -139,7 +139,9 @@ def create_configs(c):
     controller_config["node_registry_update_interval"] = deployment_config[
         "node_registry_update_interval"
     ]
-
+    controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
+        "celery_tasks_timeout"
+    ]
     controller_config["deployment_type"] = "LOCAL"
 
     controller_config["localnodes"]["config_file"] = str(
