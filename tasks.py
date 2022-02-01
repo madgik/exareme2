@@ -47,10 +47,12 @@ Paths are subject to change so in the following documentation the global variabl
 
 """
 import json
+import shutil
 import sys
 from enum import Enum
 from itertools import cycle
 from os import listdir
+from os import path
 from pathlib import Path
 from textwrap import indent
 from time import sleep
@@ -91,6 +93,9 @@ def create_configs(c):
     """
     Create the node and controller services config files, using 'DEPLOYMENT_CONFIG_FILE'.
     """
+    if path.exists(NODES_CONFIG_DIR) and path.isdir(NODES_CONFIG_DIR):
+        shutil.rmtree(NODES_CONFIG_DIR)
+    NODES_CONFIG_DIR.mkdir(parents=True)
 
     if not Path(DEPLOYMENT_CONFIG_FILE).is_file():
         raise FileNotFoundError(
@@ -100,7 +105,6 @@ def create_configs(c):
     with open(DEPLOYMENT_CONFIG_FILE) as fp:
         deployment_config = toml.load(fp)
 
-    # Create the nodes config files
     with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
         template_node_config = toml.load(fp)
 
@@ -123,7 +127,6 @@ def create_configs(c):
         node_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
         node_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
 
-        NODES_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
         with open(node_config_file, "w+") as fp:
             toml.dump(node_config, fp)
