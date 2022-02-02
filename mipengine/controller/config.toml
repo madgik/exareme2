@@ -16,8 +16,12 @@ port="$LOCALNODES_PORT"
 user = "user"
 password = "password"
 vhost = "user_vhost"
-celery_tasks_timeout=5
+celery_tasks_timeout="$CELERY_TASKS_TIMEOUT"
 celery_tasks_max_retries=3
 celery_tasks_interval_start=0
 celery_tasks_interval_step=0.2
 celery_tasks_interval_max=0.5
+
+[smpc]
+enabled = "$SMPC_ENABLED"
+optional = "$SMPC_OPTIONAL"

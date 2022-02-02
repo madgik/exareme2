@@ -12,10 +12,22 @@ from mipengine.node_tasks_DTOs import (
     TableSchema,
     TableInfo,
     TableData,
-    UDFArgument,
+    NodeUDFDTO,
 )
+from mipengine.node_tasks_DTOs import NodeLiteralDTO
+from mipengine.node_tasks_DTOs import NodeSMPCDTO
+from mipengine.node_tasks_DTOs import NodeSMPCValueDTO
+from mipengine.node_tasks_DTOs import NodeSMPCDTO
+from mipengine.node_tasks_DTOs import NodeSMPCValueDTO
 from mipengine.node_tasks_DTOs import TableType
-from mipengine.node_tasks_DTOs import UDFArgumentKind
+from mipengine.node_tasks_DTOs import NodeTableDTO
+from mipengine.node_tasks_DTOs import NodeTableDTO
+from mipengine.node_tasks_DTOs import UDFResults
+from mipengine.node_tasks_DTOs import _NodeUDFDTOType
+from mipengine.node_tasks_DTOs import UDFKeyArguments
+from mipengine.node_tasks_DTOs import UDFPosArguments
+from mipengine.node_tasks_DTOs import NodeUDFDTO
+from mipengine.node_tasks_DTOs import _NodeUDFDTOType
 
 
 @pytest.fixture
@@ -203,12 +215,112 @@ def test_table_data():
         )
 
 
-def test_udf_argument():
-    with pytest.raises(ValidationError):
-        UDFArgument(kind="Not a UDFArgumentKind", value="this can be anything")
+def test_udf_dto_instantiation():
+    with pytest.raises(ValidationError) as exc:
+        NodeUDFDTO(type="LITERAL", value="this can be anything")
+    assert "should not be instantiated." in str(exc)
 
 
-def test_udf_argument_immutable():
-    argument = UDFArgument(kind=UDFArgumentKind.TABLE, value=None)
-    with pytest.raises(TypeError):
-        argument.kind = UDFArgumentKind.LITERAL
+def test_udf_dtos_immutable():
+    argument = NodeTableDTO(value="whatever")
+    with pytest.raises(TypeError) as exc:
+        argument.value = "new"
+    assert "is immutable" in str(exc)
+
+    argument = NodeLiteralDTO(value=10)
+    with pytest.raises(TypeError) as exc:
+        argument.value = "new"
+    assert "is immutable" in str(exc)
+
+    argument = NodeSMPCDTO(
+        value=NodeSMPCValueDTO(template=NodeTableDTO(value="whatever"))
+    )
+    with pytest.raises(TypeError) as exc:
+        argument.value = "new"
+    assert "is immutable" in str(exc)
+
+
+def test_udf_dtos_correct_type():
+    argument = NodeTableDTO(value="whatever")
+    assert argument.type == _NodeUDFDTOType.TABLE
+
+    argument = NodeLiteralDTO(value=10)
+    assert argument.type == _NodeUDFDTOType.LITERAL
+
+    argument = NodeSMPCDTO(
+        value=NodeSMPCValueDTO(template=NodeTableDTO(value="whatever"))
+    )
+    assert argument.type == _NodeUDFDTOType.SMPC
+
+
+def get_udf_args_cases():
+    return [
+        [
+            NodeTableDTO(value="whatever"),
+        ],
+        [NodeTableDTO(value="whatever"), NodeLiteralDTO(value="whatever")],
+        [
+            NodeTableDTO(value="whatever"),
+            NodeLiteralDTO(value="whatever"),
+            NodeSMPCDTO(
+                value=NodeSMPCValueDTO(template=NodeTableDTO(value="whatever"))
+            ),
+        ],
+    ]
+
+
+@pytest.mark.parametrize("args", get_udf_args_cases())
+def test_pos_udf_arguments_correct_resolutions(args):
+    pos_args = UDFPosArguments(args=args)
+    pos_args_json = pos_args.json()
+
+    pos_args_unpacked = UDFPosArguments.parse_raw(pos_args_json)
+
+    assert pos_args == pos_args_unpacked
+
+
+@pytest.mark.parametrize("args", get_udf_args_cases())
+def test_kw_udf_arguments_correct_resolutions(args):
+    kw_args = UDFKeyArguments(args={pos: arg for pos, arg in enumerate(args)})
+    kw_args_json = kw_args.json()
+
+    kw_args_unpacked = UDFKeyArguments.parse_raw(kw_args_json)
+
+    assert kw_args == kw_args_unpacked
+
+
+def get_udf_results_cases():
+    return [
+        UDFResults(
+            results=[
+                NodeTableDTO(value="whatever"),
+            ],
+        ),
+        UDFResults(
+            results=[
+                NodeSMPCDTO(
+                    value=NodeSMPCValueDTO(template=NodeTableDTO(value="whatever"))
+                ),
+            ],
+        ),
+        UDFResults(
+            results=[
+                NodeTableDTO(value="whatever"),
+                NodeSMPCDTO(
+                    value=NodeSMPCValueDTO(template=NodeTableDTO(value="whatever"))
+                ),
+            ],
+        ),
+    ]
+
+
+@pytest.mark.parametrize("udf_results", get_udf_results_cases())
+def test_udf_results_correct_resolutions(udf_results):
+    udf_results_json = udf_results.json()
+
+    udf_results_unpacked = UDFResults.parse_raw(udf_results_json)
+
+    print(udf_results)
+    print(udf_results_unpacked)
+
+    assert udf_results == udf_results_unpacked

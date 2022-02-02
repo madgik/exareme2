@@ -60,6 +60,18 @@ class InvalidNodeId(Exception):
         super().__init__(self.message)
 
 
+class SMPCUsageError(Exception):
+    pass
+
+
+class SMPCCommunicationError(Exception):
+    pass
+
+
+class SMPCComputationError(Exception):
+    pass
+
+
 class ContextIDNotFound(Exception):
     """Exception raised while checking the presence of context_id in task's arguments.
 

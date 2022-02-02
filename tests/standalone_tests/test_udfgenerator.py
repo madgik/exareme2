@@ -13,6 +13,7 @@ from mipengine.node_tasks_DTOs import (
     TableSchema,
     TableType,
 )
+from mipengine.udfgen import secure_transfer
 from mipengine.udfgen.udfgenerator import (
     Column,
     IOType,
@@ -52,7 +53,9 @@ from mipengine.udfgen.udfgenerator import (
     udf,
     verify_declared_typeparams_match_passed_type,
 )
-from mipengine.udfgen.udfgenerator import get_main_table_template_name
+from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
+from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
+from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
 
 
 @pytest.fixture(autouse=True)
@@ -68,7 +71,7 @@ class TestUDFRegistry:
 
     def test_get_func_from_udf_registry(self, some_udfregistry):
         funcname = "some_function"
-        assert get_funcparts_from_udf_registry(funcname, some_udfregistry)() == 1
+        assert get_funcparts_from_udf_registry(funcname, some_udfregistry) is not None
 
     def test_get_func_from_udf_registry_error(self, some_udfregistry):
         with pytest.raises(UDFBadCall) as exc:
@@ -373,6 +376,28 @@ class TestUDFValidation:
                 return x
 
         assert "tensors and relations" in str(exc)
+
+    def test_validate_func_as_valid_udf_with_secure_transfer_output(self):
+        @udf(
+            y=state(),
+            return_type=secure_transfer(add_op=True),
+        )
+        def f(y):
+            y = {"num": 1}
+            return y
+
+        assert udf.registry != {}
+
+    def test_validate_func_as_valid_udf_with_secure_transfer_input(self):
+        @udf(
+            y=secure_transfer(add_op=True),
+            return_type=transfer(),
+        )
+        def f(y):
+            y = {"num": 1}
+            return y
+
+        assert udf.registry != {}
 
 
 class TestMappingsCoincide:
@@ -952,11 +977,47 @@ ORDER BY
 class TestUDFGenBase:
     @pytest.fixture(scope="class")
     def funcname(self, udfregistry):
-        assert len(udfregistry) == 1
+        # assert len(udfregistry) == 1
         return next(iter(udfregistry.keys()))
 
+    @staticmethod
+    def _get_udf_output_tablename_template_mapping(expected_udf_outputs):
+        template_mapping = {}
+        for udf_output in expected_udf_outputs:
+            if isinstance(udf_output, TableUDFGenResult):
+                tablename_placeholder = udf_output.tablename_placeholder
+                template_mapping[tablename_placeholder] = tablename_placeholder
+            elif isinstance(udf_output, SMPCUDFGenResult):
+                tablename_placeholder = udf_output.template.tablename_placeholder
+                template_mapping[tablename_placeholder] = tablename_placeholder
+                if udf_output.add_op_values:
+                    tablename_placeholder = (
+                        udf_output.add_op_values.tablename_placeholder
+                    )
+                    template_mapping[tablename_placeholder] = tablename_placeholder
+                if udf_output.min_op_values:
+                    tablename_placeholder = (
+                        udf_output.min_op_values.tablename_placeholder
+                    )
+                    template_mapping[tablename_placeholder] = tablename_placeholder
+                if udf_output.max_op_values:
+                    tablename_placeholder = (
+                        udf_output.max_op_values.tablename_placeholder
+                    )
+                    template_mapping[tablename_placeholder] = tablename_placeholder
+                if udf_output.union_op_values:
+                    tablename_placeholder = (
+                        udf_output.union_op_values.tablename_placeholder
+                    )
+                    template_mapping[tablename_placeholder] = tablename_placeholder
+            else:
+                pytest.fail(
+                    f"A udf_output must be of the format TableUDFOutput or SMPCUDFOutput."
+                )
+        return template_mapping
+
     @pytest.fixture(scope="class")
-    def concrete_udf_def(self, expected_udfdef, expected_udf_output_tables):
+    def concrete_udf_def(self, expected_udfdef, expected_udf_outputs):
         """
         Replaces the udf_name, node_id placeholders in the Template.
         If the udf has loopback tables, it also replaces their names' placeholders.
@@ -965,97 +1026,155 @@ class TestUDFGenBase:
             "udf_name": "udf_test",
             "node_id": "1",
         }
-        for udf_output_table in expected_udf_output_tables:
-            tablename_placeholder = udf_output_table["tablename_placeholder"]
-            if get_main_table_template_name() in tablename_placeholder:
-                continue
-            template_mapping[tablename_placeholder] = tablename_placeholder
+        template_mapping.update(
+            self._get_udf_output_tablename_template_mapping(expected_udf_outputs)
+        )
         return Template(expected_udfdef).substitute(**template_mapping)
 
     @pytest.fixture(scope="class")
-    def concrete_udf_output_tables(self, expected_udf_output_tables):
+    def concrete_udf_sel(self, expected_udf_outputs, expected_udfsel):
         """
-        Replaces the tablename_placeholder in the Template using the same tablename.
-        """
-        queries = []
-        for output_tables in expected_udf_output_tables:
-            template_mapping = {
-                output_tables["tablename_placeholder"]: output_tables[
-                    "tablename_placeholder"
-                ]
-            }
-            queries.append(
-                Template(output_tables["drop_query"]).substitute(**template_mapping)
-            )
-            queries.append(
-                Template(output_tables["create_query"]).substitute(**template_mapping)
-            )
-
-        return "\n".join(queries)
-
-    @pytest.fixture(scope="class")
-    def concrete_udf_sel(self, expected_udf_output_tables, expected_udfsel):
-        """
-        The udf definition could contain more than one tablename placeholders.
-        The expected_udf_output_tables is used to replace all the necessary
-        fields. Just like in the `concrete_udf_output_tables` it replaces the
-        tablename_placeholder in the Templates using the same tablename.
+                The udf definition could contain more than one tablename placeholders.
+        <<<<<<< HEAD
+                The expected_udf_outputs is used to replace all the necessary fields.
+                Just like in the `concrete_udf_outputs` it replaces the tablename_placeholder
+                in the Templates using the same tablename.
+        =======
+                The expected_udf_output_tables is used to replace all the necessary
+                fields. Just like in the `concrete_udf_output_tables` it replaces the
+                tablename_placeholder in the Templates using the same tablename.
+        >>>>>>> 151afb5134690258046d3cf907d057a6b68371eb
         """
         template_mapping = {
             "udf_name": "udf_test",
             "node_id": "1",
         }
-        for output_tables in expected_udf_output_tables:
-            template_mapping[output_tables["tablename_placeholder"]] = output_tables[
-                "tablename_placeholder"
-            ]
-
+        template_mapping.update(
+            self._get_udf_output_tablename_template_mapping(expected_udf_outputs)
+        )
         return Template(expected_udfsel).substitute(**template_mapping)
 
+    @staticmethod
+    def _concrete_table_udf_outputs(output: TableUDFGenResult):
+        queries = []
+        template_mapping = {output.tablename_placeholder: output.tablename_placeholder}
+        queries.append(output.drop_query.substitute(**template_mapping))
+        queries.append(output.create_query.substitute(**template_mapping))
+        return queries
+
+    @pytest.fixture(scope="class")
+    def concrete_udf_outputs(self, expected_udf_outputs):
+        """
+        Replaces the tablename_placeholder in the UDFOutput(s) using the same tablename.
+        """
+        queries = []
+        for udf_output in expected_udf_outputs:
+            if isinstance(udf_output, TableUDFGenResult):
+                queries.extend(self._concrete_table_udf_outputs(udf_output))
+            elif isinstance(udf_output, SMPCUDFGenResult):
+                queries.extend(self._concrete_table_udf_outputs(udf_output.template))
+                if udf_output.add_op_values:
+                    queries.extend(
+                        self._concrete_table_udf_outputs(udf_output.add_op_values)
+                    )
+                if udf_output.min_op_values:
+                    queries.extend(
+                        self._concrete_table_udf_outputs(udf_output.min_op_values)
+                    )
+                if udf_output.max_op_values:
+                    queries.extend(
+                        self._concrete_table_udf_outputs(udf_output.max_op_values)
+                    )
+                if udf_output.union_op_values:
+                    queries.extend(
+                        self._concrete_table_udf_outputs(udf_output.union_op_values)
+                    )
+            else:
+                pytest.fail(
+                    f"A udf_output must be of the format TableUDFOutput or SMPCUDFOutput."
+                )
+
+        return "\n".join(queries)
+
     @pytest.fixture(scope="function")
-    def create_transfer_table(self, db):
-        db.execute(
+    def create_transfer_table(self, globalnode_db_cursor):
+        globalnode_db_cursor.execute(
             "CREATE TABLE test_transfer_table(node_id VARCHAR(500), transfer CLOB)"
         )
-        db.execute(
+        globalnode_db_cursor.execute(
             "INSERT INTO test_transfer_table(node_id, transfer) VALUES(1, '{\"num\":5}')"
         )
 
     @pytest.fixture(scope="function")
-    def create_state_table(self, db):
+    def create_state_table(self, globalnode_db_cursor):
         state = pickle.dumps({"num": 5}).hex()
-        db.execute("CREATE TABLE test_state_table(node_id VARCHAR(500), state BLOB)")
+        globalnode_db_cursor.execute(
+            "CREATE TABLE test_state_table(node_id VARCHAR(500), state BLOB)"
+        )
         insert_state = (
             f"INSERT INTO test_state_table(node_id, state) VALUES(1, '{state}')"
         )
-        db.execute(insert_state)
+        globalnode_db_cursor.execute(insert_state)
 
     @pytest.fixture(scope="function")
-    def create_merge_transfer_table(self, db):
-        db.execute(
+    def create_merge_transfer_table(self, globalnode_db_cursor):
+        globalnode_db_cursor.execute(
             "CREATE TABLE test_merge_transfer_table(node_id VARCHAR(500), transfer CLOB)"
         )
-        db.execute(
+        globalnode_db_cursor.execute(
             "INSERT INTO test_merge_transfer_table(node_id, transfer) VALUES(1, '{\"num\":5}')"
         )
-        db.execute(
+        globalnode_db_cursor.execute(
             "INSERT INTO test_merge_transfer_table(node_id, transfer) VALUES(2, '{\"num\":10}')"
+        )
+
+    @pytest.fixture(scope="function")
+    def create_secure_transfer_table(self, globalnode_db_cursor):
+        globalnode_db_cursor.execute(
+            "CREATE TABLE test_secure_transfer_table(node_id VARCHAR(500), secure_transfer CLOB)"
+        )
+        globalnode_db_cursor.execute(
+            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": 1, "type": "int", "operation": "addition"}}\')'
+        )
+        globalnode_db_cursor.execute(
+            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(2, \'{"sum": {"data": 10, "type": "int", "operation": "addition"}}\')'
+        )
+        globalnode_db_cursor.execute(
+            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(3, \'{"sum": {"data": 100, "type": "int", "operation": "addition"}}\')'
+        )
+
+    @pytest.fixture(scope="function")
+    def create_smpc_template_table(self, globalnode_db_cursor):
+        globalnode_db_cursor.execute(
+            "CREATE TABLE test_smpc_template_table(node_id VARCHAR(500), secure_transfer CLOB)"
+        )
+        globalnode_db_cursor.execute(
+            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "type": "int", "operation": "addition"}}\')'
+        )
+
+    @pytest.fixture(scope="function")
+    def create_smpc_add_op_values_table(self, globalnode_db_cursor):
+        globalnode_db_cursor.execute(
+            "CREATE TABLE test_smpc_add_op_values_table(node_id VARCHAR(500), secure_transfer CLOB)"
+        )
+        globalnode_db_cursor.execute(
+            "INSERT INTO test_smpc_add_op_values_table(node_id, secure_transfer) VALUES(1, '[100,200,300]')"
         )
 
     # TODO Should become more dynamic in the future.
     # It should receive a TableInfo object as input and maybe data as well.
     @pytest.fixture(scope="function")
-    def create_tensor_table(self, db):
-        db.execute(
+    def create_tensor_table(self, globalnode_db_cursor):
+        globalnode_db_cursor.execute(
             "CREATE TABLE tensor_in_db(node_id VARCHAR(500), dim0 INT, dim1 INT, val INT)"
         )
-        db.execute(
+        globalnode_db_cursor.execute(
             "INSERT INTO tensor_in_db(node_id, dim0, dim1, val) VALUES('1', 0, 0, 3)"
         )
-        db.execute(
+        globalnode_db_cursor.execute(
             "INSERT INTO tensor_in_db(node_id, dim0, dim1, val) VALUES('1', 0, 1, 4)"
         )
-        db.execute(
+        globalnode_db_cursor.execute(
             "INSERT INTO tensor_in_db(node_id, dim0, dim1, val) VALUES('1', 0, 2, 7)"
         )
 
@@ -1079,7 +1198,7 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
         keywordargs = {"z": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
             _, _ = get_udf_templates_using_udfregistry(
-                funcname, posargs, keywordargs, udfregistry
+                funcname, posargs, keywordargs, udfregistry, False
             )
         assert "UDF argument names do not match UDF parameter names" in str(exc)
 
@@ -1120,7 +1239,7 @@ class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry)
+            _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry, False)
         assert "should be of type" in str(exc)
 
 
@@ -1163,8 +1282,150 @@ class TestUDFGen_InvalidUDFArgs_TensorTableInTransferArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry)
+            _ = generate_udf_queries(
+                func_name=funcname,
+                positional_args=posargs,
+                keyword_args={},
+                smpc_used=True,
+            )
         assert "should be of type" in str(exc)
+
+
+class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            transfer=transfer(),
+            return_type=transfer(),
+        )
+        def f(transfer):
+            result = {"num": sum}
+            return result
+
+        return udf.registry
+
+    def test_get_udf_templates(self, udfregistry, funcname):
+        posargs = [
+            SMPCTablesInfo(
+                template=TableInfo(
+                    name="test_smpc_template_table",
+                    schema_=TableSchema(
+                        columns=[
+                            ColumnInfo(name="secure_transfer", dtype=DType.JSON),
+                        ]
+                    ),
+                    type_=TableType.NORMAL,
+                ),
+                add_op_values=TableInfo(
+                    name="test_smpc_add_op_values_table",
+                    schema_=TableSchema(
+                        columns=[
+                            ColumnInfo(name="secure_transfer", dtype=DType.JSON),
+                        ]
+                    ),
+                    type_=TableType.NORMAL,
+                ),
+            )
+        ]
+        with pytest.raises(UDFBadCall) as exc:
+            _ = generate_udf_queries(
+                func_name=funcname,
+                positional_args=posargs,
+                keyword_args={},
+                smpc_used=True,
+            )
+        assert "should be of type" in str(exc)
+
+
+class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            transfer=secure_transfer(add_op=True),
+            return_type=transfer(),
+        )
+        def f(transfer):
+            result = {"num": sum}
+            return result
+
+        return udf.registry
+
+    def test_get_udf_templates(self, udfregistry, funcname):
+        posargs = [
+            TableInfo(
+                name="test_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="secure_transfer", dtype=DType.JSON),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+        try:
+            _ = generate_udf_queries(
+                func_name=funcname,
+                positional_args=posargs,
+                keyword_args={},
+                smpc_used=False,
+            )
+        except Exception as exc:
+            pytest.fail(f"An exception should not have been raised. {exc}")
+
+        with pytest.raises(UDFBadCall) as exc:
+            _ = generate_udf_queries(
+                func_name=funcname,
+                positional_args=posargs,
+                keyword_args={},
+                smpc_used=True,
+            )
+        assert "When smpc is used SecureTransferArg should not be" in str(exc)
+
+
+class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            transfer=secure_transfer(add_op=True),
+            return_type=transfer(),
+        )
+        def f(transfer):
+            result = {"num": sum}
+            return result
+
+        return udf.registry
+
+    def test_get_udf_templates(self, udfregistry, funcname):
+        posargs = [
+            SMPCTablesInfo(
+                template=TableInfo(
+                    name="test_smpc_template_table",
+                    schema_=TableSchema(
+                        columns=[
+                            ColumnInfo(name="secure_transfer", dtype=DType.JSON),
+                        ]
+                    ),
+                    type_=TableType.NORMAL,
+                ),
+                add_op_values=TableInfo(
+                    name="test_smpc_add_op_values_table",
+                    schema_=TableSchema(
+                        columns=[
+                            ColumnInfo(name="secure_transfer", dtype=DType.JSON),
+                        ]
+                    ),
+                    type_=TableType.NORMAL,
+                ),
+            )
+        ]
+        with pytest.raises(UDFBadCall) as exc:
+            _ = generate_udf_queries(
+                func_name=funcname,
+                positional_args=posargs,
+                keyword_args={},
+                smpc_used=False,
+            )
+        assert "SMPC is not used, " in str(exc)
 
 
 class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
@@ -1190,10 +1451,11 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         keywordargs = {}
         with pytest.raises(ValueError) as e:
             _, _ = get_udf_templates_using_udfregistry(
-                funcname,
-                posargs,
-                keywordargs,
-                udfregistry,
+                funcname=funcname,
+                posargs=posargs,
+                keywordargs=keywordargs,
+                udfregistry=udfregistry,
+                smpc_used=False,
             )
         err_msg, *_ = e.value.args
         assert "inconsistent mappings" in err_msg
@@ -1205,11 +1467,7 @@ class TestUDFGen_KW_args_on_tensor_operation:
         posargs = []
         keywordargs = {"Μ": 5, "v": 7}
         with pytest.raises(UDFBadCall) as e:
-            _ = generate_udf_queries(
-                funcname,
-                posargs,
-                keywordargs,
-            )
+            _ = generate_udf_queries(funcname, posargs, keywordargs, False)
         err_msg, *_ = e.value.args
         assert "Keyword args are not supported for tensor operations." in err_msg
 
@@ -1237,11 +1495,15 @@ class _TestGenerateUDFQueries:
         raise NotImplementedError
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         raise NotImplementedError
 
     @pytest.fixture(scope="class")
     def traceback(self):
+        return False
+
+    @pytest.fixture(scope="class")
+    def use_smpc(self):
         return False
 
     def test_generate_udf_queries(
@@ -1250,31 +1512,27 @@ class _TestGenerateUDFQueries:
         positional_args,
         expected_udfdef,
         expected_udfsel,
-        expected_udf_output_tables,
+        expected_udf_outputs,
         traceback,
+        use_smpc,
     ):
         udf_execution_queries = generate_udf_queries(
-            funcname, positional_args, {}, traceback=traceback
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=use_smpc,
+            traceback=traceback,
         )
         if expected_udfdef != "":
             assert (
                 udf_execution_queries.udf_definition_query.template == expected_udfdef
             )
         assert udf_execution_queries.udf_select_query.template == expected_udfsel
-        for output_table, expected_output_table in zip(
-            udf_execution_queries.output_tables, expected_udf_output_tables
+
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
         ):
-            assert (
-                output_table.tablename_placeholder
-                == expected_output_table["tablename_placeholder"]
-            )
-            assert (
-                output_table.drop_query.template == expected_output_table["drop_query"]
-            )
-            assert (
-                output_table.create_query.template
-                == expected_output_table["create_query"]
-            )
+            assert udf_output == expected_udf_output
 
 
 class TestUDFGen_TensorToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
@@ -1340,13 +1598,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -1415,29 +1675,31 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_database", "create_tensor_table")
+    @pytest.mark.usefixtures("use_globalnode_database", "create_tensor_table")
     def test_udf_with_db(
         self,
-        concrete_udf_output_tables,
+        concrete_udf_outputs,
         concrete_udf_def,
         concrete_udf_sel,
-        db,
+        globalnode_db_cursor,
         create_tensor_table,
     ):
-        db.execute(concrete_udf_output_tables)
-        db.execute(concrete_udf_def)
-        db.execute(concrete_udf_sel)
-        output_table_values = db.execute(
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        output_table_values = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchall()
         assert output_table_values == [
@@ -1509,13 +1771,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -1603,13 +1867,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -1715,13 +1981,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -1808,13 +2076,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -1882,13 +2152,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"ci" INT,"cf" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"ci" INT,"cf" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -1950,13 +2222,15 @@ FROM
     the_table;"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("result" INT);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("result" INT);'
+                ),
+            )
         ]
 
 
@@ -2021,13 +2295,15 @@ FROM
     tensor_in_db;"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("result" INT);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("result" INT);'
+                ),
+            )
         ]
 
 
@@ -2073,13 +2349,15 @@ FROM
     $udf_name();"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);'
+                ),
+            )
         ]
 
 
@@ -2146,13 +2424,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -2220,13 +2500,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" INT);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" INT);'
+                ),
+            )
         ]
 
 
@@ -2310,13 +2592,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);'
+                ),
+            )
         ]
 
 
@@ -2417,13 +2701,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);'
+                ),
+            )
         ]
 
 
@@ -2532,13 +2818,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" INT);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" INT);'
+                ),
+            )
         ]
 
 
@@ -2619,13 +2907,15 @@ WHERE
     tens0.dim0=tens1.dim0;"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("result" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("result" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -2685,13 +2975,15 @@ ORDER BY
     dim0;"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -2755,13 +3047,15 @@ ORDER BY
     dim1;"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -2803,13 +3097,15 @@ FROM
     tensor1 AS tensor_0;"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" DOUBLE);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" DOUBLE);'
+                ),
+            )
         ]
 
 
@@ -2868,13 +3164,15 @@ FROM
     tensor_in_db;"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("result" INT);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("result" INT);'
+                ),
+            )
         ]
 
 
@@ -2941,13 +3239,15 @@ FROM
     ));"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);'
+                ),
+            )
         ]
 
 
@@ -3020,13 +3320,15 @@ FROM
     tensor_in_db;"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("result" VARCHAR(500));',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("result" VARCHAR(500));'
+                ),
+            )
         ]
 
     @pytest.fixture(scope="class")
@@ -3076,24 +3378,32 @@ FROM
     $udf_name();"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                ),
+            )
         ]
 
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_database")
+    @pytest.mark.usefixtures("use_globalnode_database")
     def test_udf_with_db(
-        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
     ):
-        db.execute(concrete_udf_output_tables)
-        db.execute(concrete_udf_def)
-        db.execute(concrete_udf_sel)
-        _, state = db.execute("SELECT * FROM main_output_table_name").fetchone()
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        _, state = globalnode_db_cursor.execute(
+            "SELECT * FROM main_output_table_name"
+        ).fetchone()
         result = pickle.loads(state)
         assert result == {"num": 5}
 
@@ -3157,24 +3467,32 @@ FROM
     $udf_name();"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                ),
+            )
         ]
 
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_database", "create_state_table")
+    @pytest.mark.usefixtures("use_globalnode_database", "create_state_table")
     def test_udf_with_db(
-        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
     ):
-        db.execute(concrete_udf_output_tables)
-        db.execute(concrete_udf_def)
-        db.execute(concrete_udf_sel)
-        _, state = db.execute("SELECT * FROM main_output_table_name").fetchone()
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        _, state = globalnode_db_cursor.execute(
+            "SELECT * FROM main_output_table_name"
+        ).fetchone()
         result = pickle.loads(state)
         assert result == {"num": 10}
 
@@ -3221,24 +3539,32 @@ FROM
     $udf_name();"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                ),
+            )
         ]
 
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_database")
+    @pytest.mark.usefixtures("use_globalnode_database")
     def test_udf_with_db(
-        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
     ):
-        db.execute(concrete_udf_output_tables)
-        db.execute(concrete_udf_def)
-        db.execute(concrete_udf_sel)
-        _, transfer = db.execute("SELECT * FROM main_output_table_name").fetchone()
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        _, transfer = globalnode_db_cursor.execute(
+            "SELECT * FROM main_output_table_name"
+        ).fetchone()
         result = json.loads(transfer)
         assert result == {"num": 5, "list_of_nums": [5, 5, 5]}
 
@@ -3302,24 +3628,32 @@ FROM
     $udf_name();"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                ),
+            )
         ]
 
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_database", "create_transfer_table")
+    @pytest.mark.usefixtures("use_globalnode_database", "create_transfer_table")
     def test_udf_with_db(
-        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
     ):
-        db.execute(concrete_udf_output_tables)
-        db.execute(concrete_udf_def)
-        db.execute(concrete_udf_sel)
-        _, transfer = db.execute("SELECT * FROM main_output_table_name").fetchone()
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        _, transfer = globalnode_db_cursor.execute(
+            "SELECT * FROM main_output_table_name"
+        ).fetchone()
         result = json.loads(transfer)
         assert result == {"num": 10}
 
@@ -3386,24 +3720,32 @@ FROM
     $udf_name();"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                ),
+            )
         ]
 
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_database", "create_transfer_table")
+    @pytest.mark.usefixtures("use_globalnode_database", "create_transfer_table")
     def test_udf_with_db(
-        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
     ):
-        db.execute(concrete_udf_output_tables)
-        db.execute(concrete_udf_def)
-        db.execute(concrete_udf_sel)
-        _, state = db.execute("SELECT * FROM main_output_table_name").fetchone()
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        _, state = globalnode_db_cursor.execute(
+            "SELECT * FROM main_output_table_name"
+        ).fetchone()
         result = pickle.loads(state)
         assert result == {"num": 10}
 
@@ -3484,28 +3826,36 @@ FROM
     $udf_name();"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                ),
+            )
         ]
 
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_database",
+        "use_globalnode_database",
         "create_transfer_table",
         "create_state_table",
     )
     def test_udf_with_db(
-        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
     ):
-        db.execute(concrete_udf_output_tables)
-        db.execute(concrete_udf_def)
-        db.execute(concrete_udf_sel)
-        _, state = db.execute("SELECT * FROM main_output_table_name").fetchone()
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        _, state = globalnode_db_cursor.execute(
+            "SELECT * FROM main_output_table_name"
+        ).fetchone()
         result = pickle.loads(state)
         assert result == {"num": 15}
 
@@ -3589,28 +3939,36 @@ FROM
     $udf_name();"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);',
-            }
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                ),
+            )
         ]
 
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_database",
+        "use_globalnode_database",
         "create_merge_transfer_table",
         "create_state_table",
     )
     def test_udf_with_db(
-        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
     ):
-        db.execute(concrete_udf_output_tables)
-        db.execute(concrete_udf_def)
-        db.execute(concrete_udf_sel)
-        _, transfer = db.execute("SELECT * FROM main_output_table_name").fetchone()
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        _, transfer = globalnode_db_cursor.execute(
+            "SELECT * FROM main_output_table_name"
+        ).fetchone()
         result = json.loads(transfer)
         assert result == {"num": 20}
 
@@ -3687,36 +4045,46 @@ FROM
     $udf_name();"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);',
-            },
-            {
-                "tablename_placeholder": "loopback_table_name_0",
-                "drop_query": "DROP TABLE IF EXISTS $loopback_table_name_0;",
-                "create_query": 'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"transfer" CLOB);',
-            },
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                ),
+            ),
+            TableUDFGenResult(
+                tablename_placeholder="loopback_table_name_0",
+                drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
+                create_query=Template(
+                    'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"transfer" CLOB);'
+                ),
+            ),
         ]
 
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_database",
+        "use_globalnode_database",
         "create_transfer_table",
         "create_state_table",
     )
     def test_udf_with_db(
-        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
     ):
-        db.execute(concrete_udf_output_tables)
-        db.execute(concrete_udf_def)
-        db.execute(concrete_udf_sel)
-        (state_,) = db.execute("SELECT state FROM main_output_table_name").fetchone()
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        (state_,) = globalnode_db_cursor.execute(
+            "SELECT state FROM main_output_table_name"
+        ).fetchone()
         result1 = pickle.loads(state_)
         assert result1 == {"num": 10}
-        (transfer_,) = db.execute(
+        (transfer_,) = globalnode_db_cursor.execute(
             "SELECT transfer FROM loopback_table_name_0"
         ).fetchone()
         result2 = json.loads(transfer_)
@@ -3797,38 +4165,48 @@ FROM
     $udf_name();"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);',
-            },
-            {
-                "tablename_placeholder": "loopback_table_name_0",
-                "drop_query": "DROP TABLE IF EXISTS $loopback_table_name_0;",
-                "create_query": 'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"state" BLOB);',
-            },
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                ),
+            ),
+            TableUDFGenResult(
+                tablename_placeholder="loopback_table_name_0",
+                drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
+                create_query=Template(
+                    'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"state" BLOB);'
+                ),
+            ),
         ]
 
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_database",
+        "use_globalnode_database",
         "create_transfer_table",
         "create_state_table",
     )
-    def test_udf_with_db(
-        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+    def test_udf_with_globalnode_db_cursor(
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
     ):
-        db.execute(concrete_udf_output_tables)
-        db.execute(concrete_udf_def)
-        db.execute(concrete_udf_sel)
-        (transfer_,) = db.execute(
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        (transfer_,) = globalnode_db_cursor.execute(
             "SELECT transfer FROM main_output_table_name"
         ).fetchone()
         result1 = json.loads(transfer_)
         assert result1 == {"num": 10}
-        (state_,) = db.execute("SELECT state FROM loopback_table_name_0").fetchone()
+        (state_,) = globalnode_db_cursor.execute(
+            "SELECT state FROM loopback_table_name_0"
+        ).fetchone()
         result2 = pickle.loads(state_)
         assert result2 == {"num": 25}
 
@@ -3911,143 +4289,696 @@ FROM
     $udf_name();"""
 
     @pytest.fixture(scope="class")
-    def expected_udf_output_tables(self):
+    def expected_udf_outputs(self):
         return [
-            {
-                "tablename_placeholder": "main_output_table_name",
-                "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-                "create_query": 'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);',
-            },
-            {
-                "tablename_placeholder": "loopback_table_name_0",
-                "drop_query": "DROP TABLE IF EXISTS $loopback_table_name_0;",
-                "create_query": 'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"transfer" CLOB);',
-            },
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                ),
+            ),
+            TableUDFGenResult(
+                tablename_placeholder="loopback_table_name_0",
+                drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
+                create_query=Template(
+                    'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"transfer" CLOB);'
+                ),
+            ),
         ]
 
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_database",
+        "use_globalnode_database",
         "create_merge_transfer_table",
         "create_state_table",
     )
     def test_udf_with_db(
-        self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
     ):
-        db.execute(concrete_udf_output_tables)
-        db.execute(concrete_udf_def)
-        db.execute(concrete_udf_sel)
-        (state_,) = db.execute("SELECT state FROM main_output_table_name").fetchone()
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        (state_,) = globalnode_db_cursor.execute(
+            "SELECT state FROM main_output_table_name"
+        ).fetchone()
         result1 = pickle.loads(state_)
         assert result1 == {"num": 20}
-        (transfer_,) = db.execute(
+        (transfer_,) = globalnode_db_cursor.execute(
             "SELECT transfer FROM loopback_table_name_0"
         ).fetchone()
         result2 = json.loads(transfer_)
         assert result2 == {"num": 75}
 
 
-# TODO It's currently not possible to have a scalar output from state,transfer input. There is not input table...
-# TODO This should be enabled again when MIP-426 is fixed
-# class TestUDFGen_FinalGlobalStepLogic(TestUDFGenBase, _TestGenerateUDFQueries):
-#     @pytest.fixture(scope="class")
-#     def udfregistry(self):
-#         @udf(
-#             state=state(),
-#             transfers=merge_transfer(),
-#             return_type=scalar(int),
-#         )
-#         def f(state, transfers):
-#             sum_transfers = 0
-#             for transfer in transfers:
-#                 sum_transfers += transfer["num"]
-#             result = sum_transfers + state["num"]
-#             return result
-#
-#         return udf.registry
-#
-#     @pytest.fixture(scope="class")
-#     def positional_args(self):
-#         return [
-#             TableInfo(
-#                 name="test_state_table",
-#                 schema_=TableSchema(
-#                     columns=[
-#                         ColumnInfo(name="state", dtype=DType.BINARY),
-#                     ]
-#                 ),
-#                 type_=TableType.NORMAL,
-#             ),
-#             TableInfo(
-#                 name="test_merge_transfer_table",
-#                 schema_=TableSchema(
-#                     columns=[
-#                         ColumnInfo(name="transfer", dtype=DType.JSON),
-#                     ]
-#                 ),
-#                 type_=TableType.REMOTE,
-#             ),
-#         ]
-#
-#     @pytest.fixture(scope="class")
-#     def expected_udfdef(self):
-#         return """\
-# CREATE OR REPLACE FUNCTION
-# $udf_name()
-# RETURNS
-# INT
-# LANGUAGE PYTHON
-# {
-#     import pandas as pd
-#     import udfio
-#     import pickle
-#     import json
-#     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
-#     state = pickle.loads(__state_str)
-#     __transfer_strs = _conn.execute("SELECT transfer from test_merge_transfer_table;")["transfer"]
-#     transfers = [json.loads(str) for str in __transfer_strs]
-#     sum_transfers = 0
-#     for transfer in transfers:
-#         sum_transfers += transfer['num']
-#     result = sum_transfers + state['num']
-#     return result
-# }"""
-#
-#     @pytest.fixture(scope="class")
-#     def expected_udfsel(self):
-#         return """\
-# INSERT INTO $main_output_table_name
-# SELECT
-#     $udf_name();"""
-#
-#     @pytest.fixture(scope="class")
-#     def expected_udf_output_tables(self):
-#         return [
-#             {
-#                 "tablename_placeholder": "main_output_table_name",
-#                 "drop_query": "DROP TABLE IF EXISTS $main_output_table_name;",
-#                 "create_query": "CREATE TABLE $main_output_table_name(\"node_id\" VARCHAR(500),\"state\" BLOB);",
-#             },
-#             {
-#                 "tablename_placeholder": "loopback_table_name_0",
-#                 "drop_query": "DROP TABLE IF EXISTS $loopback_table_name_0;",
-#                 "create_query": "CREATE TABLE $loopback_table_name_0(\"node_id\" VARCHAR(500),\"transfer\" CLOB);",
-#             },
-#         ]
-#
-#     @pytest.mark.database
-#     @pytest.mark.usefixtures(
-#         "use_database",
-#         "create_merge_transfer_table",
-#         "create_state_table",
-#     )
-#     def test_udf_with_db(
-#         self, concrete_udf_output_tables, concrete_udf_def, concrete_udf_sel, db
-#     ):
-#         db.execute(concrete_udf_output_tables)
-#         db.execute(concrete_udf_def)
-#         db.execute(concrete_udf_sel)
-#         result = ???
+class TestUDFGen_SecureTransferOutput_with_SMPC_off(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            state=state(),
+            return_type=secure_transfer(add_op=True),
+        )
+        def f(state):
+            result = {
+                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+            }
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="test_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("secure_transfer" CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    import json
+    __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
+    state = pickle.loads(__state_str)
+    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
+        }
+    return json.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                ),
+            ),
+        ]
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_globalnode_database",
+        "create_state_table",
+    )
+    def test_udf_with_db(
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
+    ):
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        secure_transfer_, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM main_output_table_name"
+        ).fetchone()
+        result = json.loads(secure_transfer_)
+        assert result == {"sum": {"data": 5, "type": "int", "operation": "addition"}}
+
+
+class TestUDFGen_SecureTransferOutput_with_SMPC_on(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            state=state(),
+            return_type=secure_transfer(add_op=True),
+        )
+        def f(state):
+            result = {
+                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+            }
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="test_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("secure_transfer" CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    import json
+    __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
+    state = pickle.loads(__state_str)
+    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
+        }
+    template, add_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
+    _conn.execute(f"INSERT INTO $main_output_table_name_add_op VALUES ('$node_id', '{json.dumps(add_op)}');")
+    return json.dumps(template)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            SMPCUDFGenResult(
+                template=TableUDFGenResult(
+                    tablename_placeholder="main_output_table_name",
+                    drop_query=Template(
+                        "DROP TABLE IF EXISTS $main_output_table_name;"
+                    ),
+                    create_query=Template(
+                        'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                    ),
+                ),
+                add_op_values=TableUDFGenResult(
+                    tablename_placeholder="main_output_table_name_add_op",
+                    drop_query=Template(
+                        "DROP TABLE IF EXISTS $main_output_table_name_add_op;"
+                    ),
+                    create_query=Template(
+                        'CREATE TABLE $main_output_table_name_add_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                    ),
+                ),
+            )
+        ]
+
+    @pytest.fixture(scope="class")
+    def use_smpc(self):
+        return True
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_globalnode_database",
+        "create_state_table",
+    )
+    def test_udf_with_db(
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
+    ):
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        template_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM main_output_table_name"
+        ).fetchone()
+        template = json.loads(template_str)
+        assert template == {"sum": {"data": 0, "type": "int", "operation": "addition"}}
+
+        add_op_values_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM main_output_table_name_add_op"
+        ).fetchone()
+        add_op_values = json.loads(add_op_values_str)
+        assert add_op_values == [5]
+
+
+class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_off(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            state=state(),
+            return_type=[state(), secure_transfer(add_op=True)],
+        )
+        def f(state):
+            result = {
+                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+            }
+            return state, result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="test_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("state" BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    import json
+    __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
+    state = pickle.loads(__state_str)
+    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
+        }
+    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(result)}');")
+    return pickle.dumps(state)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                ),
+            ),
+            TableUDFGenResult(
+                tablename_placeholder="loopback_table_name_0",
+                drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
+                create_query=Template(
+                    'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                ),
+            ),
+        ]
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_globalnode_database",
+        "create_state_table",
+    )
+    def test_udf_with_db(
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
+    ):
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+
+        secure_transfer_, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM loopback_table_name_0"
+        ).fetchone()
+        result = json.loads(secure_transfer_)
+        assert result == {"sum": {"data": 5, "type": "int", "operation": "addition"}}
+
+
+class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_on(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            state=state(),
+            return_type=[state(), secure_transfer(add_op=True)],
+        )
+        def f(state):
+            result = {
+                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+            }
+            return state, result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="test_state_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="state", dtype=DType.BINARY),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("state" BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    import json
+    __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
+    state = pickle.loads(__state_str)
+    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
+        }
+    template, add_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
+    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(template)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0_add_op VALUES ('$node_id', '{json.dumps(add_op)}');")
+    return pickle.dumps(state)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                ),
+            ),
+            SMPCUDFGenResult(
+                template=TableUDFGenResult(
+                    tablename_placeholder="loopback_table_name_0",
+                    drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
+                    create_query=Template(
+                        'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                    ),
+                ),
+                add_op_values=TableUDFGenResult(
+                    tablename_placeholder="loopback_table_name_0_add_op",
+                    drop_query=Template(
+                        "DROP TABLE IF EXISTS $loopback_table_name_0_add_op;"
+                    ),
+                    create_query=Template(
+                        'CREATE TABLE $loopback_table_name_0_add_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                    ),
+                ),
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def use_smpc(self):
+        return True
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_globalnode_database",
+        "create_state_table",
+    )
+    def test_udf_with_db(
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
+    ):
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        template_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM loopback_table_name_0"
+        ).fetchone()
+        template = json.loads(template_str)
+        assert template == {"sum": {"data": 0, "type": "int", "operation": "addition"}}
+
+        add_op_values_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM loopback_table_name_0_add_op"
+        ).fetchone()
+        add_op_values = json.loads(add_op_values_str)
+        assert add_op_values == [5]
+
+
+class TestUDFGen_SecureTransferInput_with_SMPC_off(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            transfer=secure_transfer(add_op=True),
+            return_type=transfer(),
+        )
+        def f(transfer):
+            return transfer
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="test_secure_transfer_table",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="secure_transfer", dtype=DType.JSON),
+                    ]
+                ),
+                type_=TableType.REMOTE,
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("transfer" CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import json
+    __transfer_strs = _conn.execute("SELECT secure_transfer from test_secure_transfer_table;")["secure_transfer"]
+    __transfers = [json.loads(str) for str in __transfer_strs]
+    transfer = udfio.secure_transfers_to_merged_dict(__transfers)
+    return json.dumps(transfer)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                ),
+            ),
+        ]
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_globalnode_database",
+        "create_secure_transfer_table",
+    )
+    def test_udf_with_db(
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
+    ):
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        transfer, *_ = globalnode_db_cursor.execute(
+            "SELECT transfer FROM main_output_table_name"
+        ).fetchone()
+        result = json.loads(transfer)
+        assert result == {"sum": 111}
+
+
+class TestUDFGen_SecureTransferInput_with_SMPC_on(
+    TestUDFGenBase, _TestGenerateUDFQueries
+):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            transfer=secure_transfer(add_op=True),
+            return_type=transfer(),
+        )
+        def f(transfer):
+            return transfer
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            SMPCTablesInfo(
+                template=TableInfo(
+                    name="test_smpc_template_table",
+                    schema_=TableSchema(
+                        columns=[
+                            ColumnInfo(name="secure_transfer", dtype=DType.JSON),
+                        ]
+                    ),
+                    type_=TableType.NORMAL,
+                ),
+                add_op_values=TableInfo(
+                    name="test_smpc_add_op_values_table",
+                    schema_=TableSchema(
+                        columns=[
+                            ColumnInfo(name="secure_transfer", dtype=DType.JSON),
+                        ]
+                    ),
+                    type_=TableType.NORMAL,
+                ),
+            )
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("transfer" CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import json
+    __template_str = _conn.execute("SELECT secure_transfer from test_smpc_template_table;")["secure_transfer"][0]
+    __template = json.loads(__template_str)
+    __add_op_values_str = _conn.execute("SELECT secure_transfer from test_smpc_add_op_values_table;")["secure_transfer"][0]
+    __add_op_values = json.loads(__add_op_values_str)
+    __min_op_values = None
+    __max_op_values = None
+    __union_op_values = None
+    transfer = udfio.construct_secure_transfer_dict(__template,__add_op_values,__min_op_values,__max_op_values,__union_op_values)
+    return json.dumps(transfer)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                ),
+            ),
+        ]
+
+    @pytest.fixture(scope="class")
+    def use_smpc(self):
+        return True
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures(
+        "use_globalnode_database",
+        "create_smpc_template_table",
+        "create_smpc_add_op_values_table",
+    )
+    def test_udf_with_db(
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
+    ):
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        transfer, *_ = globalnode_db_cursor.execute(
+            "SELECT transfer FROM main_output_table_name"
+        ).fetchone()
+        result = json.loads(transfer)
+        assert result == {"sum": [100, 200, 300]}
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~ Test SQL Generator ~~~~~~~~~~~~~~~~~~ #

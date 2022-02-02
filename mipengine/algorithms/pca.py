@@ -25,7 +25,7 @@ def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
     global_run = algo_interface.run_udf_on_global_node
 
-    X_relation = algo_interface.initial_view_tables["x"]
+    X_relation = algo_interface.initial_view_tables["y"]
 
     local_transfers = local_run(
         func_name=make_unique_func_name(local1),

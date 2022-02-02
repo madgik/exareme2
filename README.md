@@ -52,6 +52,11 @@
    algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 
    node_registry_update_interval = 30
+   celery_tasks_timeout = 10
+
+   [smpc]
+   enabled=false
+   optional=false
 
    [[nodes]]
    id = "globalnode"

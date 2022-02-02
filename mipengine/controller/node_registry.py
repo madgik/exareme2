@@ -4,7 +4,6 @@ import sys
 from typing import Any
 from typing import List, Dict
 
-from celery import Celery
 from asgiref.sync import sync_to_async
 
 import dns.resolver
