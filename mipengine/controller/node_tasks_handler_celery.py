@@ -144,19 +144,19 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_table_schema(self, table_name: str) -> TableSchema:
+    def get_table_schema(self, context_id, table_name: str) -> TableSchema:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_schema"])
         result = self._apply_async(
-            task_signature=task_signature, table_name=table_name
+            task_signature=task_signature, context_id=context_id, table_name=table_name
         ).get(self._tasks_timeout)
         return TableSchema.parse_raw(result)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_table_data(self, table_name: str) -> TableData:
+    def get_table_data(self, context_id, table_name: str) -> TableData:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_data"])
         result = self._apply_async(
-            task_signature=task_signature, table_name=table_name
+            task_signature=task_signature, context_id=context_id, table_name=table_name
         ).get(self._tasks_timeout)
         return TableData.parse_raw(result)
 
@@ -249,7 +249,11 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
     def create_remote_table(
-        self, table_name: str, table_schema: TableSchema, original_db_url: str
+        self,
+        context_id,
+        table_name: str,
+        table_schema: TableSchema,
+        original_db_url: str,
     ):
         table_schema_json = table_schema.json()
         task_signature = self._celery_app.signature(
@@ -260,6 +264,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             table_name=table_name,
             table_schema_json=table_schema_json,
             monetdb_socket_address=original_db_url,
+            context_id=context_id,
         ).get(self._tasks_timeout)
 
     # UDFs functionality

@@ -50,9 +50,13 @@ def test_create_and_find_tables(context_id):
     assert table_1_name in tables
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    local_node_insert_data_to_table.delay(table_name=table_1_name, values=values).get()
+    local_node_insert_data_to_table.delay(
+        context_id=context_id, table_name=table_1_name, values=values
+    ).get()
 
-    table_data_json = local_node_get_table_data.delay(table_name=table_1_name).get()
+    table_data_json = local_node_get_table_data.delay(
+        context_id=context_id, table_name=table_1_name
+    ).get()
     table_data = TableData.parse_raw(table_data_json)
     expected_columns = [
         ColumnDataInt(name="col1", data=[1, 2, 3]),
@@ -71,9 +75,13 @@ def test_create_and_find_tables(context_id):
     assert table_2_name in tables
 
     values = [[1, 0.1, "test1"], [2, None, "None"], [3, 0.3, None]]
-    local_node_insert_data_to_table.delay(table_name=table_2_name, values=values).get()
+    local_node_insert_data_to_table.delay(
+        context_id=context_id, table_name=table_2_name, values=values
+    ).get()
 
-    table_data_json = local_node_get_table_data.delay(table_name=table_2_name).get()
+    table_data_json = local_node_get_table_data.delay(
+        context_id=context_id, table_name=table_2_name
+    ).get()
     table_data = TableData.parse_raw(table_data_json)
     expected_columns = [
         ColumnDataInt(name="col1", data=[1, 2, 3]),
@@ -83,6 +91,8 @@ def test_create_and_find_tables(context_id):
     assert table_data.name == table_2_name
     assert table_data.columns == expected_columns
 
-    table_schema_json = local_node_get_table_schema.delay(table_name=table_2_name).get()
+    table_schema_json = local_node_get_table_schema.delay(
+        context_id=context_id, table_name=table_2_name
+    ).get()
     table_schema_1 = TableSchema.parse_raw(table_schema_json)
     assert table_schema_1 == table_schema

@@ -59,14 +59,16 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
 @shared_task
 @initialise_logger
 def insert_data_to_table(
-    table_name: str, values: List[List[Union[str, int, float, bool]]]
+    context_id: str, table_name: str, values: List[List[Union[str, int, float, bool]]]
 ):
     """
     Parameters
     ----------
+    context_id : str
+        The id of the experiment
     table_name : str
-    The name of the table
+        The name of the table
     values : List[List[Union[str, int, float, bool]]
-    The data of the table to be inserted
+        The data of the table to be inserted
     """
     tables.insert_data_to_table(table_name, values)

@@ -58,3 +58,15 @@ class InvalidNodeId(Exception):
         self.node_id = node_id
         self.message = f"Invalid node id .Node id is : {self.node_id}. Node id should be alphanumeric."
         super().__init__(self.message)
+
+
+class ContextIDNotFound(Exception):
+    """Exception raised while checking the presence of context_id in task's arguments.
+
+    Attributes:
+        message -- explanation of the error
+    """
+
+    def __init__(self):
+        self.message = f"Context id is missing from task's arguments."
+        super().__init__(self.message)

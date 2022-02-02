@@ -56,6 +56,7 @@ def test_create_and_get_remote_table(context_id):
     ).get()
 
     global_node_create_remote_table.delay(
+        context_id=context_id,
         table_name=table_name,
         table_schema_json=table_schema.json(),
         monetdb_socket_address=local_node_monetdb_sock_address,

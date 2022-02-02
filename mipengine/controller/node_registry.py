@@ -17,6 +17,7 @@ from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.controller import controller_logger as ctrl_logger
 
+NODE_REGISTRY_CONTEXT_ID = "NODE_REGISTRY"
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
 # so the module can be easily unit tested
 
@@ -66,7 +67,9 @@ async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
     # broker is back up. This way(passing the existing broker connection to apply_async)
     # it raises a ConnectionResetError or an OperationalError and it does not hang
     tasks_coroutines = [
-        _task_to_async(task, connection=app.broker_connection())()
+        _task_to_async(task, connection=app.broker_connection())(
+            context_id=NODE_REGISTRY_CONTEXT_ID
+        )
         for app, task in nodes_task_signature.items()
     ]
     results = await asyncio.gather(*tasks_coroutines, return_exceptions=True)

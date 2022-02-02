@@ -62,7 +62,9 @@ def create_three_column_table_with_data(context_id, table_id: int):
     ).get()
 
     values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
-    local_node_insert_data_to_table.delay(table_name=table_name, values=values).get()
+    local_node_insert_data_to_table.delay(
+        context_id=context_id, table_name=table_name, values=values
+    ).get()
 
     return table_name
 

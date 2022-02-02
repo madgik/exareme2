@@ -21,7 +21,7 @@ from mipengine.udfgen.udfgenerator import udf as udf_registry
 
 @shared_task
 @initialise_logger
-def get_udf(func_name: str) -> str:
+def get_udf(context_id: str, func_name: str) -> str:
     return str(udf_registry.registry[func_name])
 
 

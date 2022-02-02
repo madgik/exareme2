@@ -54,7 +54,9 @@ def test_view_without_filters(context_id):
     ).get()
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    local_node_insert_data_to_table.delay(table_name=table_name, values=values).get()
+    local_node_insert_data_to_table.delay(
+        context_id=context_id, table_name=table_name, values=values
+    ).get()
     columns = ["col1", "col3"]
     view_name = local_node_create_view.delay(
         context_id=context_id,
@@ -72,10 +74,14 @@ def test_view_without_filters(context_id):
             ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
-    schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
+    schema_result_json = local_node_get_view_schema.delay(
+        context_id=context_id, table_name=view_name
+    ).get()
     assert view_intended_schema == TableSchema.parse_raw(schema_result_json)
 
-    view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
+    view_data_json = local_node_get_view_data.delay(
+        context_id=context_id, table_name=view_name
+    ).get()
     view_data = TableData.parse_raw(view_data_json)
     assert len(view_data.columns) == len(view_intended_schema.columns)
     assert view_data.name == view_name
@@ -97,7 +103,9 @@ def test_view_with_filters(context_id):
     ).get()
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    local_node_insert_data_to_table.delay(table_name=table_name, values=values).get()
+    local_node_insert_data_to_table.delay(
+        context_id=context_id, table_name=table_name, values=values
+    ).get()
     columns = ["col1", "col3"]
     rules = {
         "condition": "AND",
@@ -134,10 +142,14 @@ def test_view_with_filters(context_id):
             ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
-    schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
+    schema_result_json = local_node_get_view_schema.delay(
+        context_id=context_id, table_name=view_name
+    ).get()
     assert view_intended_schema == TableSchema.parse_raw(schema_result_json)
 
-    view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
+    view_data_json = local_node_get_view_data.delay(
+        context_id=context_id, table_name=view_name
+    ).get()
     view_data = TableData.parse_raw(view_data_json)
     assert len(view_data.columns) == 2
     assert len(view_data.columns) == len(view_intended_schema.columns)
@@ -171,16 +183,22 @@ def test_pathology_view_without_filters(context_id):
             ColumnInfo(name="pupil_reactivity_right_eye_result", dtype=DType.STR),
         ]
     )
-    schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
+    schema_result_json = local_node_get_view_schema.delay(
+        context_id=context_id, table_name=view_name
+    ).get()
     print(TableSchema.parse_raw(schema_result_json))
     assert schema == TableSchema.parse_raw(schema_result_json)
 
-    view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
+    view_data_json = local_node_get_view_data.delay(
+        context_id=context_id, table_name=view_name
+    ).get()
     view_data = TableData.parse_raw(view_data_json)
     assert len(view_data.columns) == len(schema.columns)
     assert view_data.name == view_name
 
-    view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()
+    view_schema_json = local_node_get_view_schema.delay(
+        context_id=context_id, table_name=view_name
+    ).get()
     view_schema = TableSchema.parse_raw(view_schema_json)
     assert view_schema == schema
 
@@ -231,15 +249,21 @@ def test_pathology_view_with_filters(context_id):
             ColumnInfo(name="pupil_reactivity_right_eye_result", dtype=DType.STR),
         ]
     )
-    schema_result_json = local_node_get_view_schema.delay(table_name=view_name).get()
+    schema_result_json = local_node_get_view_schema.delay(
+        context_id=context_id, table_name=view_name
+    ).get()
     assert schema == TableSchema.parse_raw(schema_result_json)
 
-    view_data_json = local_node_get_view_data.delay(table_name=view_name).get()
+    view_data_json = local_node_get_view_data.delay(
+        context_id=context_id, table_name=view_name
+    ).get()
     view_data = TableData.parse_raw(view_data_json)
     assert len(view_data.columns) == len(schema.columns)
     assert view_data.name == view_name
 
-    view_schema_json = local_node_get_view_schema.delay(table_name=view_name).get()
+    view_schema_json = local_node_get_view_schema.delay(
+        context_id=context_id, table_name=view_name
+    ).get()
     view_schema = TableSchema.parse_raw(view_schema_json)
     assert view_schema == schema
 
@@ -265,8 +289,8 @@ def test_bad_filters_exception():
         headers=headers,
     )
 
-    assert response.status_code == 400
     assert "Invalid filters format." in response.text
+    assert response.status_code == 400
 
 
 def test_pathology_view_with_privacy_error(context_id):

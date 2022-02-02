@@ -60,11 +60,11 @@ class INodeTasksHandler(ABC):
         pass
 
     @abstractmethod
-    def get_table_schema(self, table_name: str):
+    def get_table_schema(self, context_id: str, table_name: str):
         pass
 
     @abstractmethod
-    def get_table_data(self, table_name: str) -> TableData:
+    def get_table_data(self, context_id: str, table_name: str) -> TableData:
         pass
 
     @abstractmethod
@@ -109,7 +109,11 @@ class INodeTasksHandler(ABC):
 
     @abstractmethod
     def create_remote_table(
-        self, table_name: str, table_schema: TableSchema, original_db_url: str
+        self,
+        context_id: str,
+        table_name: str,
+        table_schema: TableSchema,
+        original_db_url: str,
     ) -> str:  # TODO create
         pass
 
@@ -130,7 +134,7 @@ class INodeTasksHandler(ABC):
         pass
 
     @abstractmethod
-    def get_udfs(self, algorithm_name) -> List[str]:
+    def get_udfs(self, context_id: str, algorithm_name) -> List[str]:
         pass
 
     # return the generated monetdb pythonudf

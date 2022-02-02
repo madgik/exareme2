@@ -27,11 +27,16 @@ def get_remote_tables(context_id: str) -> List[str]:
 @shared_task
 @initialise_logger
 def create_remote_table(
-    table_name: str, table_schema_json: str, monetdb_socket_address: str
+    context_id: str,
+    table_name: str,
+    table_schema_json: str,
+    monetdb_socket_address: str,
 ):
     """
     Parameters
     ----------
+    context_id : str
+        The id of the experiment.
     table_name : str
         The name of the table.
     table_schema : str(TableSchema)

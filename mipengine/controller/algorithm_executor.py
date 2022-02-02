@@ -120,11 +120,13 @@ class _Node(_INode):
 
     def get_table_schema(self, table_name: TableName) -> TableSchema:
         return self._node_tasks_handler.get_table_schema(
-            table_name=table_name.full_table_name
+            context_id=self.context_id, table_name=table_name.full_table_name
         )
 
     def get_table_data(self, table_name: TableName) -> TableData:
-        return self._node_tasks_handler.get_table_data(table_name.full_table_name)
+        return self._node_tasks_handler.get_table_data(
+            context_id=self.context_id, table_name=table_name.full_table_name
+        )
 
     def create_table(self, command_id: str, schema: TableSchema) -> TableName:
         schema_json = schema.json()
@@ -186,6 +188,7 @@ class _Node(_INode):
 
         monetdb_socket_addr = native_node.node_address
         self._node_tasks_handler.create_remote_table(
+            context_id=self.context_id,
             table_name=table_name,
             table_schema=table_schema,
             original_db_url=monetdb_socket_addr,

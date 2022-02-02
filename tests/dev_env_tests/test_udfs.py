@@ -60,16 +60,18 @@ def table_with_one_column_and_ten_rows(context_id):
         schema_json=table_schema.json(),
     ).get()
     values = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
-    local_node_insert_data_to_table.delay(table_name=table_name, values=values).get()
+    local_node_insert_data_to_table.delay(
+        context_id=context_id, table_name=table_name, values=values
+    ).get()
 
     return table_name
 
 
-def test_get_udf():
+def test_get_udf(context_id):
     from tests.algorithms.orphan_udfs import get_column_rows
 
     fetched_udf = local_node_get_udf.delay(
-        func_name=make_unique_func_name(get_column_rows)
+        context_id=context_id, func_name=make_unique_func_name(get_column_rows)
     ).get()
 
     assert get_column_rows.__name__ in fetched_udf
@@ -93,7 +95,7 @@ def test_run_udf_relation_to_scalar(context_id, table_with_one_column_and_ten_ro
     ).get()
 
     table_data_json = local_node_get_table_data.delay(
-        table_name=result_table_name
+        context_id=context_id, table_name=result_table_name
     ).get()
 
     table_data: TableData = TableData.parse_raw(table_data_json)
@@ -121,7 +123,7 @@ def test_run_udf_state_and_transfer_output(
     ).get()
 
     transfer_table_data_json = local_node_get_table_data.delay(
-        table_name=transfer_result_table
+        context_id=context_id, table_name=transfer_result_table
     ).get()
     table_data: TableData = TableData.parse_raw(transfer_table_data_json)
     transfer_result_str = table_data.columns[1].data[0]

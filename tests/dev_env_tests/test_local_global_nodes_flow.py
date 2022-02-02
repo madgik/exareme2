@@ -81,10 +81,10 @@ def test_create_merge_table_with_remote_tables(context_id):
     # Insert data into local tables
     values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
     local_node_1_insert_data_to_table.delay(
-        table_name=local_node_1_table_name, values=values
+        context_id=context_id, table_name=local_node_1_table_name, values=values
     ).get()
     local_node_2_insert_data_to_table.delay(
-        table_name=local_node_2_table_name, values=values
+        context_id=context_id, table_name=local_node_2_table_name, values=values
     ).get()
 
     # Create remote tables
@@ -95,11 +95,13 @@ def test_create_merge_table_with_remote_tables(context_id):
         f"{str(node_config_2.monetdb.ip)}:{node_config_2.monetdb.port}"
     )
     global_node_create_remote_table.delay(
+        context_id=context_id,
         table_name=local_node_1_table_name,
         table_schema_json=schema.json(),
         monetdb_socket_address=local_node_1_monetdb_sock_address,
     ).get()
     global_node_create_remote_table.delay(
+        context_id=context_id,
         table_name=local_node_2_table_name,
         table_schema_json=schema.json(),
         monetdb_socket_address=local_node_2_monetdb_sock_address,
@@ -121,7 +123,7 @@ def test_create_merge_table_with_remote_tables(context_id):
 
     # Validate merge table row count
     table_data_json = global_node_get_merge_table_data.delay(
-        table_name=merge_table_name
+        context_id=context_id, table_name=merge_table_name
     ).get()
     table_data = TableData.parse_raw(table_data_json)
     column_count = len(table_data.columns)

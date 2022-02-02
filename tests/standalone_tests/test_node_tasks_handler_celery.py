@@ -90,7 +90,9 @@ def test_get_table_schema(node_tasks_handler_celery, test_table_params):
     table_name = node_tasks_handler_celery.create_table(
         context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
     )
-    schema_result = node_tasks_handler_celery.get_table_schema(table_name)
+    schema_result = node_tasks_handler_celery.get_table_schema(
+        context_id=TASKS_CONTEXT_ID, table_name=table_name
+    )
     assert schema_result == schema
 
 
@@ -113,7 +115,9 @@ def test_broker_connection_closed_exception_get_table_schema(
     # Queue a test task quering the schema of the created table which to raise the
     # exception
     with pytest.raises(ClosedBrokerConnectionError):
-        node_tasks_handler_celery.get_table_schema(table_name)
+        node_tasks_handler_celery.get_table_schema(
+            context_id=TASKS_CONTEXT_ID, table_name=table_name
+        )
 
 
 def test_broker_connection_closed_exception_queue_udf(
@@ -160,4 +164,6 @@ def test_time_limit_exceeded_exception(node_tasks_handler_celery, test_table_par
 
     # Queue a task which will raise the exception
     with pytest.raises(TimeoutError):
-        schema_result = node_tasks_handler_celery.get_table_schema(table_name)
+        schema_result = node_tasks_handler_celery.get_table_schema(
+            context_id=TASKS_CONTEXT_ID, table_name=table_name
+        )

@@ -11,8 +11,12 @@ from mipengine.node_tasks_DTOs import TableData
 
 @shared_task
 @initialise_logger
-def get_node_info():
+def get_node_info(context_id: str):
     """
+    Parameters
+    ----------
+    context_id : str
+        The id of the experiment
     Returns
     ------
     str(NodeInfo)
@@ -37,12 +41,14 @@ def get_node_info():
 
 @shared_task
 @initialise_logger
-def get_table_schema(table_name: str) -> str:
+def get_table_schema(context_id: str, table_name: str) -> str:
     """
     Parameters
     ----------
+    context_id : str
+        The id of the experiment
     table_name : str
-    The name of the table
+        The name of the table
 
     Returns
     ------
@@ -55,10 +61,12 @@ def get_table_schema(table_name: str) -> str:
 
 @shared_task
 @initialise_logger
-def get_table_data(table_name: str) -> str:
+def get_table_data(context_id: str, table_name: str) -> str:
     """
     Parameters
     ----------
+    context_id : str
+        The id of the experiment
     table_name : str
         The name of the table
 
