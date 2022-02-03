@@ -62,7 +62,7 @@ def test_get_udf(localnode_1_node_service, localnode_1_celery_app):
     get_udf_task = get_celery_task_signature(localnode_1_celery_app, "get_udf")
 
     fetched_udf = get_udf_task.delay(
-        func_name=make_unique_func_name(get_column_rows)
+        context_id=context_id, func_name=make_unique_func_name(get_column_rows)
     ).get()
 
     assert get_column_rows.__name__ in fetched_udf
@@ -141,7 +141,7 @@ def test_run_udf_state_and_transfer_output(
     assert isinstance(transfer_result, NodeTableDTO)
 
     transfer_table_data_json = local_node_get_table_data.delay(
-        table_name=transfer_result.value
+        context_id=context_id, table_name=transfer_result.value
     ).get()
     table_data = TableData.parse_raw(transfer_table_data_json)
     transfer_result_str, *_ = table_data.columns[1].data
