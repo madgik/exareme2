@@ -24,15 +24,20 @@ local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
 
 @pytest.fixture(autouse=True)
-def context_id():
+def request_id():
+    return "test_tables_" + uuid.uuid4().hex + "_request"
+
+
+@pytest.fixture(autouse=True)
+def context_id(request_id):
     context_id = "test_tables_" + uuid.uuid4().hex
 
     yield context_id
 
-    local_node_cleanup.delay(context_id=context_id).get()
+    local_node_cleanup.delay(request_id=request_id, context_id=context_id).get()
 
 
-def test_create_and_find_tables(context_id):
+def test_create_and_find_tables(request_id, context_id):
     table_schema = TableSchema(
         columns=[
             ColumnInfo(name="col1", dtype=DType.INT),
@@ -42,20 +47,23 @@ def test_create_and_find_tables(context_id):
     )
 
     table_1_name = local_node_create_table.delay(
+        request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     ).get()
-    tables = local_node_get_tables.delay(context_id=context_id).get()
+    tables = local_node_get_tables.delay(
+        request_id=request_id, context_id=context_id
+    ).get()
     assert table_1_name in tables
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
     local_node_insert_data_to_table.delay(
-        context_id=context_id, table_name=table_1_name, values=values
+        request_id=request_id, table_name=table_1_name, values=values
     ).get()
 
     table_data_json = local_node_get_table_data.delay(
-        context_id=context_id, table_name=table_1_name
+        request_id=request_id, table_name=table_1_name
     ).get()
     table_data = TableData.parse_raw(table_data_json)
     expected_columns = [
@@ -67,20 +75,23 @@ def test_create_and_find_tables(context_id):
     assert table_data.columns == expected_columns
 
     table_2_name = local_node_create_table.delay(
+        request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     ).get()
-    tables = local_node_get_tables.delay(context_id=context_id).get()
+    tables = local_node_get_tables.delay(
+        request_id=request_id, context_id=context_id
+    ).get()
     assert table_2_name in tables
 
     values = [[1, 0.1, "test1"], [2, None, "None"], [3, 0.3, None]]
     local_node_insert_data_to_table.delay(
-        context_id=context_id, table_name=table_2_name, values=values
+        request_id=request_id, table_name=table_2_name, values=values
     ).get()
 
     table_data_json = local_node_get_table_data.delay(
-        context_id=context_id, table_name=table_2_name
+        request_id=request_id, table_name=table_2_name
     ).get()
     table_data = TableData.parse_raw(table_data_json)
     expected_columns = [
@@ -92,7 +103,7 @@ def test_create_and_find_tables(context_id):
     assert table_data.columns == expected_columns
 
     table_schema_json = local_node_get_table_schema.delay(
-        context_id=context_id, table_name=table_2_name
+        request_id=request_id, table_name=table_2_name
     ).get()
     table_schema_1 = TableSchema.parse_raw(table_schema_json)
     assert table_schema_1 == table_schema

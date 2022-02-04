@@ -14,6 +14,7 @@ from celery.exceptions import TimeoutError
 from .conftest import remove_tmp_localnode_rabbitmq
 
 TASKS_CONTEXT_ID = "cntxt1"
+TASKS_REQUEST_ID = "rqst1"
 
 
 @pytest.fixture
@@ -30,6 +31,7 @@ def test_table_params():
 
 @pytest.fixture
 def test_view_params():
+    request_id = TASKS_REQUEST_ID
     context_id = TASKS_CONTEXT_ID
     command_id = "0x"
     pathology = "dementia"
@@ -41,6 +43,7 @@ def test_view_params():
         "rightamygdala",
     ]
     return {
+        "request_id": request_id,
         "context_id": context_id,
         "command_id": command_id,
         "pathology": pathology,
@@ -55,7 +58,10 @@ def test_create_table(
     schema = test_table_params["schema"]
 
     table_name = globalnode_tasks_handler_celery.create_table(
-        context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
+        request_id=TASKS_REQUEST_ID,
+        context_id=TASKS_CONTEXT_ID,
+        command_id=command_id,
+        schema=schema,
     )
 
     table_name_parts = table_name.split("_")
@@ -70,9 +76,14 @@ def test_get_tables(
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
     table_name = globalnode_tasks_handler_celery.create_table(
-        context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
+        request_id=TASKS_REQUEST_ID,
+        context_id=TASKS_CONTEXT_ID,
+        command_id=command_id,
+        schema=schema,
     )
-    tables = globalnode_tasks_handler_celery.get_tables(context_id=TASKS_CONTEXT_ID)
+    tables = globalnode_tasks_handler_celery.get_tables(
+        request_id=TASKS_REQUEST_ID, context_id=TASKS_CONTEXT_ID
+    )
     assert table_name in tables
 
 
@@ -82,10 +93,13 @@ def test_get_table_schema(
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
     table_name = globalnode_tasks_handler_celery.create_table(
-        context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
+        request_id=TASKS_REQUEST_ID,
+        context_id=TASKS_CONTEXT_ID,
+        command_id=command_id,
+        schema=schema,
     )
     schema_result = globalnode_tasks_handler_celery.get_table_schema(
-        context_id=TASKS_CONTEXT_ID, table_name=table_name
+        request_id=TASKS_REQUEST_ID, table_name=table_name
     )
     assert schema_result == schema
 
@@ -99,7 +113,10 @@ def test_broker_connection_closed_exception_get_table_schema(
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
     table_name = tmp_localnode_tasks_handler_celery.create_table(
-        context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
+        request_id=TASKS_REQUEST_ID,
+        context_id=TASKS_CONTEXT_ID,
+        command_id=command_id,
+        schema=schema,
     )
 
     remove_tmp_localnode_rabbitmq()
@@ -108,7 +125,7 @@ def test_broker_connection_closed_exception_get_table_schema(
     # exception
     with pytest.raises(ClosedBrokerConnectionError):
         tmp_localnode_tasks_handler_celery.get_table_schema(
-            context_id=TASKS_CONTEXT_ID, table_name=table_name
+            request_id=TASKS_REQUEST_ID, table_name=table_name
         )
 
 
@@ -121,7 +138,10 @@ def test_broker_connection_closed_exception_queue_udf(
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
     table_name = tmp_localnode_tasks_handler_celery.create_table(
-        context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
+        request_id=TASKS_REQUEST_ID,
+        context_id=TASKS_CONTEXT_ID,
+        command_id=command_id,
+        schema=schema,
     )
 
     remove_tmp_localnode_rabbitmq()
@@ -132,6 +152,7 @@ def test_broker_connection_closed_exception_queue_udf(
     keyword_args = UDFKeyArguments(args={"rel": arg})
     with pytest.raises(ClosedBrokerConnectionError):
         _ = tmp_localnode_tasks_handler_celery.queue_run_udf(
+            request_id=TASKS_REQUEST_ID,
             context_id=TASKS_CONTEXT_ID,
             command_id=1,
             func_name=func_name,
@@ -150,7 +171,10 @@ def test_time_limit_exceeded_exception(
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
     table_name = tmp_localnode_tasks_handler_celery.create_table(
-        context_id=TASKS_CONTEXT_ID, command_id=command_id, schema=schema
+        request_id=TASKS_REQUEST_ID,
+        context_id=TASKS_CONTEXT_ID,
+        command_id=command_id,
+        schema=schema,
     )
 
     kill_node_service(tmp_localnode_node_service)
@@ -158,5 +182,5 @@ def test_time_limit_exceeded_exception(
     # Queue a task which will raise the exception
     with pytest.raises(TimeoutError):
         tmp_localnode_tasks_handler_celery.get_table_schema(
-            context_id=TASKS_CONTEXT_ID, table_name=table_name
+            request_id=TASKS_REQUEST_ID, table_name=table_name
         )

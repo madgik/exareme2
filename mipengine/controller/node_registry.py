@@ -16,7 +16,7 @@ from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.controller import controller_logger as ctrl_logger
 
-NODE_REGISTRY_CONTEXT_ID = "NODE_REGISTRY"
+NODE_REGISTRY_REQUEST_ID = "NODE_REGISTRY"
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
 # so the module can be easily unit tested
 
@@ -67,7 +67,7 @@ async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
     # it raises a ConnectionResetError or an OperationalError and it does not hang
     tasks_coroutines = [
         _task_to_async(task, connection=app.broker_connection())(
-            context_id=NODE_REGISTRY_CONTEXT_ID
+            request_id=NODE_REGISTRY_REQUEST_ID
         )
         for app, task in nodes_task_signature.items()
     ]

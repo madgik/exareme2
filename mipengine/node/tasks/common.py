@@ -11,12 +11,12 @@ from mipengine.node_tasks_DTOs import TableData
 
 @shared_task
 @initialise_logger
-def get_node_info(context_id: str):
+def get_node_info(request_id: str):
     """
     Parameters
     ----------
-    context_id : str
-        The id of the experiment
+    request_id : str
+        The identifier for the logging
     Returns
     ------
     str(NodeInfo)
@@ -41,12 +41,12 @@ def get_node_info(context_id: str):
 
 @shared_task
 @initialise_logger
-def get_table_schema(context_id: str, table_name: str) -> str:
+def get_table_schema(request_id: str, table_name: str) -> str:
     """
     Parameters
     ----------
-    context_id : str
-        The id of the experiment
+    request_id : str
+        The identifier for the logging
     table_name : str
         The name of the table
 
@@ -61,12 +61,12 @@ def get_table_schema(context_id: str, table_name: str) -> str:
 
 @shared_task
 @initialise_logger
-def get_table_data(context_id: str, table_name: str) -> str:
+def get_table_data(request_id: str, table_name: str) -> str:
     """
     Parameters
     ----------
-    context_id : str
-        The id of the experiment
+    request_id : str
+        The identifier for the logging
     table_name : str
         The name of the table
 
@@ -82,10 +82,12 @@ def get_table_data(context_id: str, table_name: str) -> str:
 
 @shared_task
 @initialise_logger
-def clean_up(context_id: str):
+def clean_up(request_id: str, context_id: str):
     """
     Parameters
     ----------
+    request_id : str
+        The identifier for the logging
     context_id : str
         The id of the experiment
     """

@@ -7,11 +7,11 @@ from mipengine.node import config as node_config
 from mipengine.node_exceptions import ContextIDNotFound
 
 
-def init_logger(context_id=None):
+def init_logger(request_id):
     logger = logging.getLogger("node")
 
     formatter = logging.Formatter(
-        f"%(asctime)s - %(levelname)s - NODE - {node_config.role} - {node_config.identifier} - %(module)s - %(funcName)s(%(lineno)d) - {context_id} - %(message)s"
+        f"%(asctime)s - %(levelname)s - NODE - {node_config.role} - {node_config.identifier} - %(module)s - %(funcName)s(%(lineno)d) - {request_id} - %(message)s"
     )
 
     # StreamHandler
@@ -34,17 +34,17 @@ def initialise_logger(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         arglist = inspect.getfullargspec(func)
-        if kwargs.get("context_id"):
-            context_id = kwargs.get("context_id")
-        elif "context_id" in arglist.args:
-            # finds the index of context_id arg in list of args from inspect
+        if kwargs.get("request_id"):
+            request_id = kwargs.get("request_id")
+        elif "request_id" in arglist.args:
+            # finds the index of request_id arg in list of args from inspect
             # and finds values in args list
-            context_id_index = arglist.args.index("context_id")
-            context_id = args[context_id_index]
+            request_id_index = arglist.args.index("request_id")
+            request_id = args[request_id_index]
         else:
             raise ContextIDNotFound()
 
-        init_logger(context_id)
+        init_logger(request_id)
         return func(*args, **kwargs)
 
     return wrapper

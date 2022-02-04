@@ -25,6 +25,7 @@ from tests.standalone_tests.nodes_communication_helper import get_node_config_by
 
 
 command_id = "command123"
+request_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10] + "_request"
 context_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10]
 
 
@@ -46,13 +47,14 @@ def create_table_with_one_column_and_ten_rows(celery_app) -> Tuple[str, int]:
         ]
     )
     table_name = create_table_task.delay(
+        request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     ).get()
     values = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
     insert_data_to_table_task.delay(
-        context_id=context_id, table_name=table_name, values=values
+        request_id=request_id, table_name=table_name, values=values
     ).get()
 
     return table_name, 55
@@ -62,7 +64,7 @@ def test_get_udf(localnode_1_node_service, localnode_1_celery_app):
     get_udf_task = get_celery_task_signature(localnode_1_celery_app, "get_udf")
 
     fetched_udf = get_udf_task.delay(
-        context_id=context_id, func_name=make_unique_func_name(get_column_rows)
+        request_id=request_id, func_name=make_unique_func_name(get_column_rows)
     ).get()
 
     assert get_column_rows.__name__ in fetched_udf
@@ -84,6 +86,7 @@ def test_run_udf_relation_to_scalar(
 
     udf_results_str = run_udf_task.delay(
         command_id="1",
+        request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(get_column_rows),
         positional_args_json=UDFPosArguments(args=[]).json(),
@@ -97,7 +100,7 @@ def test_run_udf_relation_to_scalar(
     assert isinstance(result, NodeTableDTO)
 
     table_data_json = local_node_get_table_data.delay(
-        context_id=context_id, table_name=result.value
+        request_id=request_id, table_name=result.value
     ).get()
 
     table_data = TableData.parse_raw(table_data_json)
@@ -125,6 +128,7 @@ def test_run_udf_state_and_transfer_output(
 
     udf_results_str = run_udf_task.delay(
         command_id="1",
+        request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(local_step),
         positional_args_json=UDFPosArguments(args=[]).json(),
@@ -141,7 +145,7 @@ def test_run_udf_state_and_transfer_output(
     assert isinstance(transfer_result, NodeTableDTO)
 
     transfer_table_data_json = local_node_get_table_data.delay(
-        context_id=context_id, table_name=transfer_result.value
+        request_id=request_id, table_name=transfer_result.value
     ).get()
     table_data = TableData.parse_raw(transfer_table_data_json)
     transfer_result_str, *_ = table_data.columns[1].data

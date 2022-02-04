@@ -33,6 +33,7 @@ from tests.standalone_tests.nodes_communication_helper import get_node_config_by
 from tests.standalone_tests.test_udfs import create_table_with_one_column_and_ten_rows
 
 
+request_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10] + "_request"
 context_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10]
 command_id = "command123"
 smpc_job_id = "testKey123"
@@ -74,6 +75,7 @@ def create_secure_transfer_table(celery_app) -> str:
         ]
     )
     table_name = create_table_task.delay(
+        request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
@@ -106,7 +108,7 @@ def create_table_with_secure_transfer_results_with_smpc_off(
         ["localnode2", json.dumps(secure_transfer_2)],
     ]
     insert_data_to_table_task.delay(
-        context_id=context_id, table_name=table_name, values=values
+        request_id=request_id, table_name=table_name, values=values
     ).get()
 
     return table_name, secure_transfer_1_value + secure_transfer_2_value
@@ -140,7 +142,7 @@ def create_table_with_multiple_secure_transfer_templates(
         ]
 
     insert_data_to_table_task.delay(
-        context_id=context_id, table_name=table_name, values=values
+        request_id=request_id, table_name=table_name, values=values
     ).get()
 
     return table_name
@@ -158,7 +160,7 @@ def create_table_with_smpc_add_op_values(celery_app) -> Tuple[str, str]:
     ]
 
     insert_data_to_table_task.delay(
-        context_id=context_id, table_name=table_name, values=values
+        request_id=request_id, table_name=table_name, values=values
     ).get()
 
     return table_name, json.dumps(add_op_values)
@@ -169,7 +171,7 @@ def validate_dict_table_data_match_expected(
 ):
     assert table_name is not None
     table_data_str = get_table_data_task.delay(
-        context_id=context_id, table_name=table_name
+        request_id=request_id, table_name=table_name
     ).get()
     table_data: TableData = TableData.parse_raw(table_data_str)
     result_str, *_ = table_data.columns[1].data
@@ -193,6 +195,7 @@ def test_secure_transfer_output_with_smpc_off(
 
     udf_results_str = run_udf_task.delay(
         command_id="1",
+        request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(smpc_local_step),
         positional_args_json=pos_args_str,
@@ -234,6 +237,7 @@ def test_secure_transfer_input_with_smpc_off(
 
     udf_results_str = run_udf_task.delay(
         command_id="1",
+        request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(smpc_global_step),
         positional_args_json=pos_args_str,
@@ -269,7 +273,7 @@ def test_validate_smpc_templates_match(
 
     try:
         validate_smpc_templates_match_task.delay(
-            context_id=context_id, table_name=table_name
+            request_id=request_id, table_name=table_name
         ).get()
     except Exception as exc:
         pytest.fail(f"No exception should be raised. Exception: {exc}")
@@ -290,7 +294,7 @@ def test_validate_smpc_templates_dont_match(
 
     with pytest.raises(ValueError) as exc:
         validate_smpc_templates_match_task.delay(
-            context_id=context_id, table_name=table_name
+            request_id=request_id, table_name=table_name
         ).get()
     assert "SMPC templates dont match." in str(exc)
 
@@ -315,6 +319,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
 
     udf_results_str = run_udf_task.delay(
         command_id="1",
+        request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(smpc_local_step),
         positional_args_json=pos_args_str,
@@ -358,6 +363,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
 
     udf_results_str = run_udf_task.delay(
         command_id="2",
+        request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(smpc_global_step),
         positional_args_json=pos_args_str,
@@ -389,7 +395,7 @@ def test_load_data_to_smpc_client_from_globalnode_fails(
 
     with pytest.raises(PermissionError) as exc:
         load_data_to_smpc_client_task.delay(
-            context_id=context_id,
+            request_id=request_id,
             table_name="whatever",
             jobid="whatever",
         ).get()
@@ -413,6 +419,7 @@ def test_load_data_to_smpc_client(
     )
 
     load_data_to_smpc_client_task.delay(
+        request_id=request_id,
         context_id=context_id,
         table_name=table_name,
         jobid="testKey123",
@@ -448,6 +455,7 @@ def test_get_smpc_result_from_localnode_fails(
 
     with pytest.raises(PermissionError) as exc:
         get_smpc_result_task.delay(
+            request_id="whatever",
             context_id="whatever",
             command_id="whatever",
             jobid="whatever",
@@ -497,6 +505,7 @@ def test_get_smpc_result(
 
     # --------------- GET SMPC RESULT IN GLOBALNODE ------------------------
     result_tablename = get_smpc_result_task.delay(
+        request_id=request_id,
         context_id=context_id,
         command_id=command_id,
         jobid=smpc_job_id,
@@ -575,6 +584,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
 
     udf_results_str_localnode1 = run_udf_task_localnode1.delay(
         command_id="1",
+        request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(smpc_local_step),
         positional_args_json=pos_args_str_localnode1,
@@ -584,6 +594,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
 
     udf_results_str_localnode2 = run_udf_task_localnode2.delay(
         command_id="2",
+        request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(smpc_local_step),
         positional_args_json=pos_args_str_localnode2,
@@ -598,7 +609,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
 
     # ---------- CREATE REMOTE/MERGE TABLE ON GLOBALNODE WITH SMPC TEMPLATE ---------
     template_table_schema_str = get_table_schema_task_localnode1.delay(
-        context_id=context_id, table_name=local_1_smpc_result.value.template.value
+        request_id=request_id, table_name=local_1_smpc_result.value.template.value
     ).get()
 
     localnode1_config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
@@ -611,18 +622,19 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
         f"{str(localnode2_config.monetdb.ip)}:{localnode2_config.monetdb.port}"
     )
     create_remote_table_task_globalnode.delay(
-        context_id=context_id,
+        request_id=request_id,
         table_name=local_1_smpc_result.value.template.value,
         table_schema_json=template_table_schema_str,
         monetdb_socket_address=localnode_1_monetdb_sock_address,
     ).get()
     create_remote_table_task_globalnode.delay(
-        context_id=context_id,
+        request_id=request_id,
         table_name=local_2_smpc_result.value.template.value,
         table_schema_json=template_table_schema_str,
         monetdb_socket_address=localnode_2_monetdb_sock_address,
     ).get()
     globalnode_template_tablename = create_merge_table_task_globalnode.delay(
+        request_id=request_id,
         context_id=context_id,
         command_id="3",
         table_names=[
@@ -632,17 +644,19 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     ).get()
 
     validate_smpc_templates_match_task_globalnode.delay(
-        context_id=context_id,
+        request_id=request_id,
         table_name=globalnode_template_tablename,
     ).get()
 
     # --------- LOAD LOCALNODE ADD OP DATA TO SMPC CLIENTS -----------------
     smpc_client_1 = load_data_to_smpc_client_task_localnode1.delay(
+        request_id=request_id,
         context_id=context_id,
         table_name=local_1_smpc_result.value.add_op_values.value,
         jobid=smpc_job_id,
     ).get()
     smpc_client_2 = load_data_to_smpc_client_task_localnode2.delay(
+        request_id=request_id,
         context_id=context_id,
         table_name=local_2_smpc_result.value.add_op_values.value,
         jobid=smpc_job_id,
@@ -669,6 +683,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
 
     # --------- Get Results of SMPC in globalnode -----------------
     add_op_values_tablename = get_smpc_result_task_globalnode.delay(
+        request_id=request_id,
         context_id=context_id,
         command_id="4",
         jobid=smpc_job_id,
@@ -684,6 +699,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     pos_args_str = UDFPosArguments(args=[smpc_arg]).json()
     udf_results_str = run_udf_task_globalnode.delay(
         command_id="5",
+        request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(smpc_global_step),
         positional_args_json=pos_args_str,

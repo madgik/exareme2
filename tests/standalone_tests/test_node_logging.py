@@ -27,7 +27,7 @@ def mock_node_config():
 
 
 @initialise_logger
-def pass_ctx_id(context_id):
+def pass_ctx_id(request_id):
     logger = node_logger.get_logger()
     logger.info("Yolo!")
     return logger
