@@ -307,6 +307,7 @@ from mipengine.udfgen.udfgen_DTOs import UDFGenResult
 
 __all__ = [
     "udf",
+    "udf_logger",
     "tensor",
     "relation",
     "merge_tensor",
@@ -772,6 +773,14 @@ class OutputType(IOType):
 
 class LoopbackOutputType(OutputType):
     pass
+
+
+class UDFLoggerType(InputType):
+    pass
+
+
+def udf_logger():
+    return UDFLoggerType()
 
 
 class TableType(ABC):
@@ -1730,10 +1739,12 @@ def validate_decorator_parameter_names(parameter_names, decorator_kwargs):
     Validates:
      1) that decorator parameter names and func kwargs names match.
      2) that "return_type" exists as a decorator parameter.
+     3) the udf_logger
     """
+    validate_udf_logger(parameter_names, decorator_kwargs)
+
     if "return_type" not in decorator_kwargs:
         raise UDFBadDefinition("No return_type defined.")
-
     parameter_names = set(parameter_names)
     decorator_parameter_names = set(decorator_kwargs.keys())
     decorator_parameter_names.remove("return_type")  # not a parameter
@@ -1751,6 +1762,28 @@ def validate_decorator_parameter_names(parameter_names, decorator_kwargs):
         raise UDFBadDefinition(
             f"The parameters: {','.join(parameters_not_defined_in_dec)} were not defined in the decorator."
         )
+
+
+def validate_udf_logger(parameter_names, decorator_kwargs):
+    """
+    udf_logger is a special case of a parameter.
+    It won't be provided by the user but from the udfgenerator.
+    1) Only one input of this type can exist.
+    2) It must be the final parameter, so it won't create problems with the positional arguments.
+    """
+    udf_logger_param_name = None
+    for param_name, param_type in decorator_kwargs.items():
+        if isinstance(param_type, UDFLoggerType):
+            if udf_logger_param_name:
+                raise UDFBadDefinition("Only one 'udf_logger' parameter can exist.")
+            udf_logger_param_name = param_name
+
+    if not udf_logger_param_name:
+        return
+
+    all_parameter_names_but_the_last = parameter_names[:-1]
+    if udf_logger_param_name in all_parameter_names_but_the_last:
+        raise UDFBadDefinition("'udf_logger' must be the last input parameter.")
 
 
 def make_udf_signature(parameter_names, decorator_kwargs):
@@ -1865,6 +1898,7 @@ class UDFBadCall(Exception):
 
 
 def generate_udf_queries(
+    request_id: str,
     func_name: str,
     positional_args: List[UDFGenArgument],
     keyword_args: Dict[str, UDFGenArgument],
@@ -1874,6 +1908,7 @@ def generate_udf_queries(
     """
     Parameters
     ----------
+    request_id: An identifier for logging purposes
     func_name: The name of the udf to run
     positional_args: Positional arguments
     keyword_args: Keyword arguments
@@ -1904,6 +1939,7 @@ def generate_udf_queries(
         )
 
     return get_udf_templates_using_udfregistry(
+        request_id=request_id,
         funcname=func_name,
         posargs=udf_posargs,
         keywordargs=udf_kwargs,
@@ -2020,6 +2056,7 @@ def convert_table_schema_to_relation_schema(table_schema):
 
 
 def get_udf_templates_using_udfregistry(
+    request_id: str,
     funcname: str,
     posargs: List[UDFArgument],
     keywordargs: Dict[str, UDFArgument],

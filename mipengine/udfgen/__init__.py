@@ -1,5 +1,6 @@
 from .udfgenerator import (
     udf,
+    udf_logger,
     tensor,
     relation,
     merge_tensor,
@@ -17,6 +18,7 @@ from .udfgenerator import (
 
 __all__ = [
     "udf",
+    "udf_logger",
     "tensor",
     "relation",
     "merge_tensor",

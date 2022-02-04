@@ -81,6 +81,7 @@ def run_udf(
     keyword_args = UDFKeyArguments.parse_raw(keyword_args_json)
 
     udf_statements, udf_results = _generate_udf_statements(
+        request_id=context_id,  # TODO change to request_id after merge with master
         command_id=command_id,
         context_id=context_id,
         func_name=func_name,
@@ -133,6 +134,7 @@ def get_run_udf_query(
     keyword_args = UDFKeyArguments.parse_raw(keyword_args_json)
 
     udf_statements, _ = _generate_udf_statements(
+        request_id=context_id,  # TODO change to request_id after merge with master
         command_id=command_id,
         context_id=context_id,
         func_name=func_name,
@@ -457,6 +459,7 @@ def convert_udfgen2udf_results_and_mapping(
 
 
 def _generate_udf_statements(
+    request_id: str,
     command_id: str,
     context_id: str,
     func_name: str,
@@ -470,7 +473,11 @@ def _generate_udf_statements(
     gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
 
     udf_execution_queries = generate_udf_queries(
-        func_name, gen_pos_args, gen_kw_args, use_smpc
+        request_id=request_id,
+        func_name=func_name,
+        positional_args=gen_pos_args,
+        keyword_args=gen_kw_args,
+        smpc_used=use_smpc,
     )
 
     (udf_results, templates_mapping,) = convert_udfgen2udf_results_and_mapping(
