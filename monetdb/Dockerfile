@@ -78,6 +78,7 @@ RUN pip3 install scikit-learn
 #######################################################
 COPY mipengine/udfgen/udfio.py /home/udflib/
 ENV PYTHONPATH "/home/udflib/"
+ENV LOG_LEVEL "INFO"
 
 #######################################################
 # DEV ONLY add username/password
