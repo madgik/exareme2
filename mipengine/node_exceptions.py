@@ -72,7 +72,7 @@ class SMPCComputationError(Exception):
     pass
 
 
-class ContextIDNotFound(Exception):
+class RequestIDNotFound(Exception):
     """Exception raised while checking the presence of context_id in task's arguments.
 
     Attributes:

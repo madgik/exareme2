@@ -63,8 +63,6 @@ def run_udf(
             The identifier for the logging
         command_id: str
             The command identifier, common among all nodes for this action.
-        request_id: str
-            The experiment identifier, common among all experiment related actions.
         context_id: str
             The experiment identifier, common among all experiment related actions.
         func_name: str

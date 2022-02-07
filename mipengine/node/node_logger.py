@@ -4,7 +4,9 @@ import time
 
 from functools import wraps
 from mipengine.node import config as node_config
-from mipengine.node_exceptions import ContextIDNotFound
+from mipengine.node_exceptions import RequestIDNotFound
+
+REQUEST_ID = "request_id"
 
 
 def init_logger(request_id):
@@ -34,15 +36,15 @@ def initialise_logger(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         arglist = inspect.getfullargspec(func)
-        if kwargs.get("request_id"):
-            request_id = kwargs.get("request_id")
-        elif "request_id" in arglist.args:
+        if kwargs.get(REQUEST_ID):
+            request_id = kwargs.get(REQUEST_ID)
+        elif REQUEST_ID in arglist.args:
             # finds the index of request_id arg in list of args from inspect
             # and finds values in args list
-            request_id_index = arglist.args.index("request_id")
+            request_id_index = arglist.args.index(REQUEST_ID)
             request_id = args[request_id_index]
         else:
-            raise ContextIDNotFound()
+            raise RequestIDNotFound()
 
         init_logger(request_id)
         return func(*args, **kwargs)
