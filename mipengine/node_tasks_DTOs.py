@@ -28,10 +28,10 @@ class _NodeUDFDTOType(enum.Enum):
 
 
 class TableType(enum.Enum):
-    NORMAL = enum.auto()
-    REMOTE = enum.auto()
-    MERGE = enum.auto()
-    VIEW = enum.auto()
+    NORMAL = "NORMAL"
+    REMOTE = "REMOTE"
+    MERGE = "MERGE"
+    VIEW = "VIEW"
 
     def __str__(self):
         return self.name

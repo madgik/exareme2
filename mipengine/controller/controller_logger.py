@@ -2,24 +2,24 @@ import logging
 from mipengine.controller import config as ctrl_config
 
 
-def get_request_logger(context_id):
+def get_request_logger(request_id):
     """
     Used for logging information produced after an endpoint request.
     """
     logger = (
-        init_logger(context_id)
-        if not logging.getLogger(context_id).hasHandlers()
-        else logging.getLogger(context_id)
+        init_logger(request_id)
+        if not logging.getLogger(request_id).hasHandlers()
+        else logging.getLogger(request_id)
     )
 
     return logger
 
 
-def init_logger(context_id):
-    logger = logging.getLogger(context_id)
+def init_logger(request_id):
+    logger = logging.getLogger(request_id)
 
     formatter = logging.Formatter(
-        f"%(asctime)s - %(levelname)s - CONTROLLER - %(module)s - %(funcName)s(%(lineno)d) - {context_id} - %(message)s"
+        f"%(asctime)s - %(levelname)s - CONTROLLER - %(module)s - %(funcName)s(%(lineno)d) - {request_id} - %(message)s"
     )
 
     # StreamHandler

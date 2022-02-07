@@ -28,7 +28,7 @@ def pca_request(input):
                         "operator": "is_not_null",
                         "value": None,
                     }
-                    for variable in input["inputdata"]["x"]
+                    for variable in input["inputdata"]["y"]
                 ],
             },
         ],
@@ -58,11 +58,16 @@ def test_pca_algorithm(test_input, expected):
 
     assert response.status_code == 200
     assert int(result["n_obs"]) == int(expected["n_obs"])
-    np.testing.assert_allclose(result["eigenvalues"], expected["eigen_vals"], rtol=1e-5)
+    np.testing.assert_allclose(
+        result["eigenvalues"],
+        expected["eigen_vals"],
+        rtol=1e-7,
+        atol=1e-10,
+    )
     for u, v in zip(result["eigenvectors"], expected["eigen_vecs"]):
         assert_vectors_are_collinear(u, v)
 
 
 def assert_vectors_are_collinear(u, v):
     cosine_similarity = np.dot(v, u) / (np.sqrt(np.dot(v, v)) * np.sqrt(np.dot(u, u)))
-    np.testing.assert_allclose(abs(cosine_similarity), 1, rtol=1e-7)
+    np.testing.assert_allclose(abs(cosine_similarity), 1, rtol=1e-7, atol=1e-10)

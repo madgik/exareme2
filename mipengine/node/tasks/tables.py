@@ -12,10 +12,12 @@ from mipengine.node_tasks_DTOs import TableType
 
 @shared_task
 @initialise_logger
-def get_tables(context_id: str) -> List[str]:
+def get_tables(request_id: str, context_id: str) -> List[str]:
     """
     Parameters
     ----------
+    request_id : str
+        The identifier for the logging
     context_id : str
     The id of the experiment
 
@@ -29,10 +31,14 @@ def get_tables(context_id: str) -> List[str]:
 
 @shared_task
 @initialise_logger
-def create_table(context_id: str, command_id: str, schema_json: str) -> str:
+def create_table(
+    request_id: str, context_id: str, command_id: str, schema_json: str
+) -> str:
     """
     Parameters
     ----------
+    request_id : str
+        The identifier for the logging
     context_id : str
         The id of the experiment
     command_id : str
@@ -59,14 +65,16 @@ def create_table(context_id: str, command_id: str, schema_json: str) -> str:
 @shared_task
 @initialise_logger
 def insert_data_to_table(
-    table_name: str, values: List[List[Union[str, int, float, bool]]]
+    request_id: str, table_name: str, values: List[List[Union[str, int, float, bool]]]
 ):
     """
     Parameters
     ----------
+    request_id : str
+        The identifier for the logging
     table_name : str
-    The name of the table
+        The name of the table
     values : List[List[Union[str, int, float, bool]]
-    The data of the table to be inserted
+        The data of the table to be inserted
     """
     tables.insert_data_to_table(table_name, values)

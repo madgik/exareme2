@@ -13,10 +13,12 @@ from mipengine.node_tasks_DTOs import TableType
 
 @shared_task
 @initialise_logger
-def get_views(context_id: str) -> List[str]:
+def get_views(request_id: str, context_id: str) -> List[str]:
     """
     Parameters
     ----------
+    request_id : str
+        The identifier for the logging
     context_id : str
         The id of the experiment
 
@@ -31,6 +33,7 @@ def get_views(context_id: str) -> List[str]:
 @shared_task
 @initialise_logger
 def create_pathology_view(
+    request_id: str,
     context_id: str,
     command_id: str,
     pathology: str,
@@ -42,6 +45,8 @@ def create_pathology_view(
 
     Parameters
     ----------
+    request_id : str
+        The identifier for the logging
     context_id : str
         The id of the experiment
     command_id : str
@@ -80,6 +85,7 @@ def create_pathology_view(
 @shared_task
 @initialise_logger
 def create_view(
+    request_id: str,
     context_id: str,
     command_id: str,
     table_name: str,
@@ -91,6 +97,8 @@ def create_view(
 
     Parameters
     ----------
+    request_id : str
+        The identifier for the logging
     context_id : str
         The id of the experiment
     command_id : str

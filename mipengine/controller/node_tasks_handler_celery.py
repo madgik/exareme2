@@ -141,40 +141,41 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     # TABLES functionality
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_tables(self, context_id: str) -> List[str]:
+    def get_tables(self, request_id: str, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_tables"])
         result = self._apply_async(
-            task_signature=task_signature, context_id=context_id
+            task_signature=task_signature, request_id=request_id, context_id=context_id
         ).get(self._tasks_timeout)
         return list(result)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_table_schema(self, table_name: str) -> TableSchema:
+    def get_table_schema(self, request_id, table_name: str) -> TableSchema:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_schema"])
         result = self._apply_async(
-            task_signature=task_signature, table_name=table_name
+            task_signature=task_signature, request_id=request_id, table_name=table_name
         ).get(self._tasks_timeout)
         return TableSchema.parse_raw(result)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_table_data(self, table_name: str) -> TableData:
+    def get_table_data(self, request_id, table_name: str) -> TableData:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_table_data"])
         result = self._apply_async(
-            task_signature=task_signature, table_name=table_name
+            task_signature=task_signature, request_id=request_id, table_name=table_name
         ).get(self._tasks_timeout)
         return TableData.parse_raw(result)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
     def create_table(
-        self, context_id: str, command_id: str, schema: TableSchema
+        self, request_id: str, context_id: str, command_id: str, schema: TableSchema
     ) -> str:
         schema_json = schema.json()
         task_signature = self._celery_app.signature(TASK_SIGNATURES["create_table"])
         result = self._apply_async(
             task_signature=task_signature,
+            request_id=request_id,
             context_id=context_id,
             command_id=command_id,
             schema_json=schema_json,
@@ -184,10 +185,10 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     # VIEWS functionality
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_views(self, context_id: str) -> List[str]:
+    def get_views(self, request_id: str, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_views"])
         result = self._apply_async(
-            task_signature=task_signature, context_id=context_id
+            task_signature=task_signature, request_id=request_id, context_id=context_id
         ).get(self._tasks_timeout)
         return result
 
@@ -196,6 +197,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     @broker_connection_closed_handler
     def create_pathology_view(
         self,
+        request_id: str,
         context_id: str,
         command_id: str,
         pathology: str,
@@ -207,6 +209,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         )
         result = self._apply_async(
             task_signature=task_signature,
+            request_id=request_id,
             context_id=context_id,
             command_id=command_id,
             pathology=pathology,
@@ -218,17 +221,17 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     # MERGE TABLES functionality
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_merge_tables(self, context_id: str) -> List[str]:
+    def get_merge_tables(self, request_id: str, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_merge_tables"])
         result = self._apply_async(
-            task_signature=task_signature, context_id=context_id
+            task_signature=task_signature, request_id=request_id, context_id=context_id
         ).get(self._tasks_timeout)
         return result
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
     def create_merge_table(
-        self, context_id: str, command_id: str, table_names: List[str]
+        self, request_id: str, context_id: str, command_id: str, table_names: List[str]
     ):
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["create_merge_table"]
@@ -236,6 +239,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         result = self._apply_async(
             task_signature=task_signature,
             command_id=command_id,
+            request_id=request_id,
             context_id=context_id,
             table_names=table_names,
         ).get(self._tasks_timeout)
@@ -244,18 +248,22 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     # REMOTE TABLES functionality
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def get_remote_tables(self, context_id: str) -> List[str]:
+    def get_remote_tables(self, request_id: str, context_id: str) -> List[str]:
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["get_remote_tables"]
         )
         return self._apply_async(
-            task_signature=task_signature, context_id=context_id
+            task_signature=task_signature, request_id=request_id, context_id=context_id
         ).get(self._tasks_timeout)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
     def create_remote_table(
-        self, table_name: str, table_schema: TableSchema, original_db_url: str
+        self,
+        request_id,
+        table_name: str,
+        table_schema: TableSchema,
+        original_db_url: str,
     ):
         table_schema_json = table_schema.json()
         task_signature = self._celery_app.signature(
@@ -266,12 +274,14 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             table_name=table_name,
             table_schema_json=table_schema_json,
             monetdb_socket_address=original_db_url,
+            request_id=request_id,
         ).get(self._tasks_timeout)
 
     # UDFs functionality
     @broker_connection_closed_handler
     def queue_run_udf(
         self,
+        request_id: str,
         context_id: str,
         command_id: str,
         func_name: str,
@@ -284,6 +294,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         async_result = self._apply_async(
             task_signature=task_signature,
             command_id=command_id,
+            request_id=request_id,
             context_id=context_id,
             func_name=func_name,
             positional_args_json=positional_args.json(),
@@ -293,6 +304,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         return QueuedUDFAsyncResult(
             node_id=self.node_id,
             command_id=command_id,
+            request_id=request_id,
             context_id=context_id,
             func_name=func_name,
             positional_args=positional_args,
@@ -321,6 +333,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     @broker_connection_closed_handler
     def get_run_udf_query(
         self,
+        request_id: str,
         context_id: str,
         command_id: str,
         func_name: str,
@@ -332,21 +345,13 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         result = self._apply_async(
             task_signature=task_signature,
             command_id=command_id,
+            request_id=request_id,
             context_id=context_id,
             func_name=func_name,
             positional_args_json=positional_args.json(),
             keyword_args_json=UDFKeyArguments(args={}).json(),
         ).get(self._tasks_timeout)
         return result
-
-    # CLEANUP functionality
-    @time_limit_exceeded_handler
-    @broker_connection_closed_handler
-    def clean_up(self, context_id: str):
-        task_signature = self._celery_app.signature(TASK_SIGNATURES["clean_up"])
-        self._apply_async(task_signature=task_signature, context_id=context_id).get(
-            self._tasks_timeout
-        )
 
     # ------------- SMPC functionality ---------------
     @time_limit_exceeded_handler
@@ -397,3 +402,12 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             command_id=command_id,
             command_subid=command_subid,
         ).get(self._tasks_timeout)
+
+    # CLEANUP functionality
+    @time_limit_exceeded_handler
+    @broker_connection_closed_handler
+    def clean_up(self, request_id: str, context_id: str):
+        task_signature = self._celery_app.signature(TASK_SIGNATURES["clean_up"])
+        self._apply_async(
+            task_signature=task_signature, request_id=request_id, context_id=context_id
+        )
