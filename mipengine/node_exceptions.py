@@ -70,3 +70,15 @@ class SMPCCommunicationError(Exception):
 
 class SMPCComputationError(Exception):
     pass
+
+
+class RequestIDNotFound(Exception):
+    """Exception raised while checking the presence of context_id in task's arguments.
+
+    Attributes:
+        message -- explanation of the error
+    """
+
+    def __init__(self):
+        self.message = f"Context id is missing from task's arguments."
+        super().__init__(self.message)

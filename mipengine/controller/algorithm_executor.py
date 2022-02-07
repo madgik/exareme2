@@ -51,12 +51,14 @@ class NodeDownAlgorithmExecutionException(Exception):
 class _Node(_INode):
     def __init__(
         self,
+        request_id: str,
         context_id: str,
         node_tasks_handler: INodeTasksHandler,
         initial_view_tables_params: Dict[str, Any] = None,
     ):
         self._node_tasks_handler = node_tasks_handler
         self.node_id = self._node_tasks_handler.node_id
+        self.request_id = request_id
 
         self.context_id = context_id
 
@@ -113,19 +115,24 @@ class _Node(_INode):
 
     # TABLES functionality
     def get_tables(self) -> List[TableName]:
-        return self._node_tasks_handler.get_tables(context_id=self.context_id)
+        return self._node_tasks_handler.get_tables(
+            request_id=self.request_id, context_id=self.context_id
+        )
 
     def get_table_schema(self, table_name: TableName) -> TableSchema:
         return self._node_tasks_handler.get_table_schema(
-            table_name=table_name.full_table_name
+            request_id=self.request_id, table_name=table_name.full_table_name
         )
 
     def get_table_data(self, table_name: TableName) -> TableData:
-        return self._node_tasks_handler.get_table_data(table_name.full_table_name)
+        return self._node_tasks_handler.get_table_data(
+            request_id=self.request_id, table_name=table_name.full_table_name
+        )
 
     def create_table(self, command_id: str, schema: TableSchema) -> TableName:
         schema_json = schema.json()
         return self._node_tasks_handler.create_table(
+            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             schema=schema_json,
@@ -133,7 +140,9 @@ class _Node(_INode):
 
     # VIEWS functionality
     def get_views(self) -> List[TableName]:
-        result = self._node_tasks_handler.get_views(context_id=self.context_id)
+        result = self._node_tasks_handler.get_views(
+            request_id=self.request_id, context_id=self.context_id
+        )
         return [TableName(table_name) for table_name in result]
 
     # TODO: this is very specific to mip, very inconsistent with the rest, has to
@@ -147,6 +156,7 @@ class _Node(_INode):
     ) -> TableName:
 
         result = self._node_tasks_handler.create_pathology_view(
+            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             pathology=pathology,
@@ -158,7 +168,9 @@ class _Node(_INode):
     # MERGE TABLES functionality
 
     def get_merge_tables(self) -> List[TableName]:
-        result = self._node_tasks_handler.get_merge_tables(context_id=self.context_id)
+        result = self._node_tasks_handler.get_merge_tables(
+            request_id=self.request_id, context_id=self.context_id
+        )
         return [TableName(table_name) for table_name in result]
 
     def create_merge_table(
@@ -166,6 +178,7 @@ class _Node(_INode):
     ) -> TableName:
         table_names = [table_name.full_table_name for table_name in table_names]
         result = self._node_tasks_handler.create_merge_table(
+            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             table_names=table_names,
@@ -175,7 +188,9 @@ class _Node(_INode):
     # REMOTE TABLES functionality
 
     def get_remote_tables(self) -> List[str]:
-        return self._node_tasks_handler.get_remote_tables(context_id=self.context_id)
+        return self._node_tasks_handler.get_remote_tables(
+            request_id=self.request_id, context_id=self.context_id
+        )
 
     def create_remote_table(
         self, table_name: str, table_schema: TableSchema, native_node: "_Node"
@@ -183,6 +198,7 @@ class _Node(_INode):
 
         monetdb_socket_addr = native_node.node_address
         self._node_tasks_handler.create_remote_table(
+            request_id=self.request_id,
             table_name=table_name,
             table_schema=table_schema,
             original_db_url=monetdb_socket_addr,
@@ -197,6 +213,7 @@ class _Node(_INode):
         keyword_args: UDFKeyArguments,
     ) -> IQueuedUDFAsyncResult:
         return self._node_tasks_handler.queue_run_udf(
+            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
@@ -223,6 +240,7 @@ class _Node(_INode):
         self, command_id: str, func_name: str, positional_args: List["_INodeTable"]
     ) -> Tuple[str, str]:
         return self._node_tasks_handler.get_run_udf_query(
+            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
@@ -230,7 +248,9 @@ class _Node(_INode):
         )
 
     def clean_up(self):
-        self._node_tasks_handler.clean_up(context_id=self.context_id)
+        self._node_tasks_handler.clean_up(
+            request_id=self.request_id, context_id=self.context_id
+        )
 
 
 class INodeTable(ABC):
@@ -359,11 +379,12 @@ class AlgorithmExecutor:
         nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
     ):
         self._logger = ctrl_logger.get_request_logger(
-            context_id=algorithm_execution_dto.context_id
+            request_id=algorithm_execution_dto.request_id
         )
         self._nodes_tasks_handlers_dto = nodes_tasks_handlers_dto
         self._algorithm_execution_dto = algorithm_execution_dto
 
+        self._request_id = algorithm_execution_dto.request_id
         self._context_id = algorithm_execution_dto.context_id
         self._algorithm_name = algorithm_execution_dto.algorithm_name
 
@@ -376,6 +397,7 @@ class AlgorithmExecutor:
 
         # instantiate the GLOBAL Node object
         self._global_node = _Node(
+            request_id=self._request_id,
             context_id=self._context_id,
             node_tasks_handler=self._nodes_tasks_handlers_dto.global_node_tasks_handler,
         )
@@ -395,6 +417,7 @@ class AlgorithmExecutor:
         # instantiate the LOCAL Node objects
         self._local_nodes = [
             _Node(
+                request_id=self._request_id,
                 context_id=self._context_id,
                 node_tasks_handler=node_tasks_handler,
                 initial_view_tables_params=initial_view_tables_params,

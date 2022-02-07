@@ -25,6 +25,7 @@ from mipengine.controller.algorithm_executor import AlgorithmExecutor
 
 
 algo_execution_dto = AlgorithmExecutionDTO(
+    request_id="123",
     context_id="123",
     algorithm_name="logistic_regression",
     algorithm_request_dto=AlgorithmRequestDTO(

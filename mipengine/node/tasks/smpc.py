@@ -27,7 +27,7 @@ from mipengine.table_data_DTOs import ColumnData
 @shared_task
 @initialise_logger
 def validate_smpc_templates_match(
-    context_id: str,
+    request_id: str,
     table_name: str,
 ):
     """
@@ -36,7 +36,7 @@ def validate_smpc_templates_match(
 
     Parameters
     ----------
-    context_id: An identifier of the action.
+    request_id: The identifier for the logging
     table_name: The table where the templates are located in.
 
     Returns
@@ -57,13 +57,13 @@ def validate_smpc_templates_match(
 
 @shared_task
 @initialise_logger
-def load_data_to_smpc_client(context_id: str, table_name: str, jobid: str) -> int:
+def load_data_to_smpc_client(request_id: str, table_name: str, jobid: str) -> int:
     """
     Loads SMPC data into the SMPC client to be used for a computation.
 
     Parameters
     ----------
-    context_id: An identifier of the action.
+    request_id: The identifier for the logging
     table_name: The table where the SMPC op values are located in.
     jobid: An identifier for the SMPC job.
 
@@ -90,6 +90,7 @@ def load_data_to_smpc_client(context_id: str, table_name: str, jobid: str) -> in
 @shared_task
 @initialise_logger
 def get_smpc_result(
+    request_id: str,
     context_id: str,
     command_id: str,
     jobid: str,
@@ -99,6 +100,7 @@ def get_smpc_result(
 
     Parameters
     ----------
+    request_id: The identifier for the logging
     context_id: An identifier of the action.
     command_id: An identifier for the command, used for naming the result table.
     jobid: The jobid of the SMPC.
@@ -143,7 +145,7 @@ def get_smpc_result(
     return results_table_name
 
 
-def create_smpc_results_table(context_id, command_id, smpc_op_result_data):
+def create_smpc_results_table(request_id, context_id, command_id, smpc_op_result_data):
     """
     Create a table with the SMPC specific schema
     and insert the results of the SMPC to it.
