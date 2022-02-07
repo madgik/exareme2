@@ -310,7 +310,9 @@ def _algoexec_udf_arg_to_node_udf_arg(
     elif isinstance(algoexec_arg, GlobalNodeSMPCTables):
         return NodeSMPCDTO(
             value=NodeSMPCValueDTO(
-                template=NodeTableDTO(algoexec_arg.template.table.full_table_name),
+                template=NodeTableDTO(
+                    value=algoexec_arg.template.table.full_table_name
+                ),
                 add_op_values=create_node_table_dto_from_global_node_table(
                     algoexec_arg.add_op
                 ),

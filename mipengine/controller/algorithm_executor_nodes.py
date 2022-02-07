@@ -73,7 +73,11 @@ class _INode(ABC):
 
     @abstractmethod
     def queue_run_udf(
-        self, command_id: str, func_name: str, positional_args, keyword_args
+        self,
+        command_id: str,
+        func_name: str,
+        positional_args: UDFPosArguments,
+        keyword_args: UDFKeyArguments,
     ) -> IQueuedUDFAsyncResult:
         pass
 
@@ -203,7 +207,6 @@ class _Node(_INode, ABC):
         return NodeTable(result)
 
     # MERGE TABLES functionality
-
     def get_merge_tables(self) -> List[NodeTable]:
         result = self._node_tasks_handler.get_merge_tables(context_id=self.context_id)
         return [NodeTable(table_name) for table_name in result]
@@ -217,7 +220,6 @@ class _Node(_INode, ABC):
         return NodeTable(result)
 
     # REMOTE TABLES functionality
-
     def get_remote_tables(self) -> List[str]:
         return self._node_tasks_handler.get_remote_tables(context_id=self.context_id)
 
@@ -249,9 +251,6 @@ class _Node(_INode, ABC):
             keyword_args=keyword_args,
             use_smpc=use_smpc,
         )
-
-    # TODO Controller integration with SMPC
-    # use_smpc should be coming from the request
 
     @abstractmethod
     def get_queued_udf_result(
