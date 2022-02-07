@@ -2,11 +2,11 @@ from typing import List
 from typing import Tuple
 
 from mipengine.controller import config as ctrl_config
-from mipengine.controller.algorithm_executor_node_data_objects import GlobalNodeTable
-from mipengine.controller.algorithm_executor_node_data_objects import (
+from mipengine.controller.algorithm_executor_data_objects import GlobalNodeTable
+from mipengine.controller.algorithm_executor_data_objects import (
     LocalNodesSMPCTables,
 )
-from mipengine.controller.algorithm_executor_node_data_objects import LocalNodesTable
+from mipengine.controller.algorithm_executor_data_objects import LocalNodesTable
 from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.smpc_DTOs import SMPCRequestType

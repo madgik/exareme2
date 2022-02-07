@@ -3,16 +3,12 @@ from abc import abstractmethod
 from typing import Any
 from typing import Dict
 from typing import List
-from typing import Tuple
-
 from typing import Optional
+from typing import Tuple
 
 from mipengine.controller.algorithm_executor_node_data_objects import NodeData
 from mipengine.controller.algorithm_executor_node_data_objects import NodeSMPCTables
 from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
-from mipengine.controller.algorithm_executor_node_data_objects import (
-    create_node_table_from_node_table_dto,
-)
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
@@ -69,7 +65,7 @@ class _INode(ABC):
 
     @abstractmethod
     def create_remote_table(
-        self, table_name: str, table_schema: TableSchema, native_node: "_Node"
+        self, table_name: str, table_schema: TableSchema, native_node: "_INode"
     ):
         pass
 
@@ -328,6 +324,13 @@ class LocalNode(_Node):
         return self._node_tasks_handler.load_data_to_smpc_client(
             self.context_id, table_name, jobid
         )
+
+
+def create_node_table_from_node_table_dto(node_table_dto: NodeTableDTO):
+    if not node_table_dto:
+        return None
+
+    return NodeTable(table_name=node_table_dto.value)
 
 
 class GlobalNode(_Node):
