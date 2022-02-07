@@ -269,12 +269,6 @@ class _Node(_INode, ABC):
             use_smpc=use_smpc,
         )
 
-    @abstractmethod
-    def get_queued_udf_result(
-        self, async_result: IQueuedUDFAsyncResult
-    ) -> List[NodeData]:
-        raise NotImplementedError
-
     def get_udfs(self, algorithm_name) -> List[str]:
         return self._node_tasks_handler.get_udfs(
             request_id=self.request_id, algorithm_name=algorithm_name
