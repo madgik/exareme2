@@ -10,9 +10,7 @@ from tests.prod_env_tests import algorithms_url
 
 
 def get_parametrization_list_success_cases():
-
     parametrization_list = []
-
     # ~~~~~~~~~~success case 1~~~~~~~~~~
     algorithm_name = "logistic_regression"
     request_dict = {
@@ -61,7 +59,6 @@ def get_parametrization_list_success_cases():
         },
         "parameters": {"classes": ["AD", "CN"]},
     }
-
     expected_response = {
         "title": "Logistic Regression Coefficients",
         "columns": [
@@ -89,7 +86,6 @@ def get_parametrization_list_success_cases():
             },
         ],
     }
-
     parametrization_list.append((algorithm_name, request_dict, expected_response))
     # END ~~~~~~~~~~success case 1~~~~~~~~~~
 
@@ -100,7 +96,7 @@ def get_parametrization_list_success_cases():
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_success_cases(),
 )
-def test_post_algorithm_success(algorithm_name, request_dict, expected_response):
+def test_post_algorithms(algorithm_name, request_dict, expected_response):
     algorithm_url = algorithms_url + "/" + algorithm_name
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
@@ -111,20 +107,6 @@ def test_post_algorithm_success(algorithm_name, request_dict, expected_response)
     )
     assert response.status_code == 200
 
-
-@pytest.mark.parametrize(
-    "algorithm_name, request_dict, expected_response",
-    get_parametrization_list_success_cases(),
-)
-def test_post_algorithm_correct_result(algorithm_name, request_dict, expected_response):
-    algorithm_url = algorithms_url + "/" + algorithm_name
-
-    headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    response = requests.post(
-        algorithm_url,
-        data=json.dumps(request_dict),
-        headers=headers,
-    )
     response = response.json()
     columns = response["columns"]
     expected_columns = expected_response["columns"]

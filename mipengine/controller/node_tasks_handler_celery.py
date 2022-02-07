@@ -1,20 +1,21 @@
-from typing import List, Tuple, Final, Callable, Optional
+from typing import Callable
+from typing import Final
+from typing import List
+from typing import Tuple
 
-from celery.result import AsyncResult
-
-from celery.exceptions import TimeoutError
 from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
+from celery.exceptions import TimeoutError
+from celery.result import AsyncResult
 from kombu.exceptions import OperationalError
 
+from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
-from mipengine.controller.node_tasks_handler_interface import UDFPosArguments
 from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
-
+from mipengine.controller.node_tasks_handler_interface import UDFPosArguments
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.node_tasks_DTOs import UDFResults
 
 TASK_SIGNATURES: Final = {
@@ -32,6 +33,9 @@ TASK_SIGNATURES: Final = {
     "run_udf": "mipengine.node.tasks.udfs.run_udf",
     "get_run_udf_query": "mipengine.node.tasks.udfs.get_run_udf_query",
     "clean_up": "mipengine.node.tasks.common.clean_up",
+    "validate_smpc_templates_match": "mipengine.node.tasks.smpc.validate_smpc_templates_match",
+    "load_data_to_smpc_client": "mipengine.node.tasks.smpc.load_data_to_smpc_client",
+    "get_smpc_result": "mipengine.node.tasks.smpc.get_smpc_result",
 }
 
 
@@ -282,6 +286,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         func_name: str,
         positional_args: UDFPosArguments,
         keyword_args: UDFKeyArguments,
+        use_smpc: bool = False,
     ) -> QueuedUDFAsyncResult:
 
         task_signature = self._celery_app.signature(TASK_SIGNATURES["run_udf"])
@@ -293,6 +298,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             func_name=func_name,
             positional_args_json=positional_args.json(),
             keyword_args_json=keyword_args.json(),
+            use_smpc=use_smpc,
         )
         return QueuedUDFAsyncResult(
             node_id=self.node_id,
@@ -302,6 +308,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             func_name=func_name,
             positional_args=positional_args,
             keyword_args=keyword_args,
+            use_smpc=use_smpc,
             async_result=async_result,
         )
 
@@ -329,7 +336,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         context_id: str,
         command_id: str,
         func_name: str,
-        positional_args: List[str],
+        positional_args: UDFPosArguments,
     ) -> Tuple[str, str]:
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["get_run_udf_query"]
@@ -340,17 +347,64 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             request_id=request_id,
             context_id=context_id,
             func_name=func_name,
-            positional_args_json=positional_args,
-            keyword_args_json={},
+            positional_args_json=positional_args.json(),
+            keyword_args_json=UDFKeyArguments(args={}).json(),
         ).get(self._tasks_timeout)
         return result
+
+    # ------------- SMPC functionality ---------------
+    @time_limit_exceeded_handler
+    @broker_connection_closed_handler
+    def validate_smpc_templates_match(
+        self,
+        context_id: str,
+        table_name: str,
+    ):
+        task_signature = self._celery_app.signature(
+            TASK_SIGNATURES["validate_smpc_templates_match"]
+        )
+        self._apply_async(
+            task_signature=task_signature,
+            context_id=context_id,
+            table_name=table_name,
+        ).get(self._tasks_timeout)
+
+    @time_limit_exceeded_handler
+    @broker_connection_closed_handler
+    def load_data_to_smpc_client(
+        self, context_id: str, table_name: str, jobid: str
+    ) -> int:
+        task_signature = self._celery_app.signature(
+            TASK_SIGNATURES["load_data_to_smpc_client"]
+        )
+        return self._apply_async(
+            task_signature=task_signature,
+            context_id=context_id,
+            table_name=table_name,
+            jobid=jobid,
+        ).get(self._tasks_timeout)
+
+    @time_limit_exceeded_handler
+    @broker_connection_closed_handler
+    def get_smpc_result(
+        self,
+        context_id: str,
+        command_id: str,
+        jobid: str,
+    ) -> str:
+        task_signature = self._celery_app.signature(TASK_SIGNATURES["get_smpc_result"])
+        return self._apply_async(
+            task_signature=task_signature,
+            context_id=context_id,
+            command_id=command_id,
+            jobid=jobid,
+        ).get(self._tasks_timeout)
 
     # CLEANUP functionality
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
     def clean_up(self, request_id: str, context_id: str):
-
         task_signature = self._celery_app.signature(TASK_SIGNATURES["clean_up"])
         self._apply_async(
             task_signature=task_signature, request_id=request_id, context_id=context_id
-        ).get(self._tasks_timeout)
+        )

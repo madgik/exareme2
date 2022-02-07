@@ -149,6 +149,7 @@ pyrightconfig.json
 # mip deployment config file
 .deployment.toml
 /configs
+/smpc_configs
 
 # Used from tests to run sequentially
 semaphore.lock

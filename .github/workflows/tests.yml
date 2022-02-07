@@ -44,7 +44,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles( 'monetdb/**' )}}
+          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
           restore-keys: |
             ${{ runner.os }}-buildx-monetdb-
 
@@ -134,7 +134,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles( 'monetdb/**' )}}
+          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
           restore-keys: |
             ${{ runner.os }}-buildx-monetdb-
 
@@ -145,7 +145,7 @@ jobs:
           file: monetdb/Dockerfile
           push: false
           load: true
-          tags: madgik/mipenginedb:latest
+          tags: madgik/mipenginedb:testing
           cache-from: type=local,src=/tmp/.buildx-cache/monetdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
 
@@ -164,7 +164,7 @@ jobs:
           file: rabbitmq/Dockerfile
           push: false
           load: true
-          tags: madgik/mipengine_rabbitmq:latest
+          tags: madgik/mipengine_rabbitmq:testing
           cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
           cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
 
@@ -231,7 +231,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles( 'monetdb/**' )}}
+          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
           restore-keys: |
             ${{ runner.os }}-buildx-monetdb-
 

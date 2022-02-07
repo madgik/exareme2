@@ -1,17 +1,17 @@
-import pytest
-from typing import List
-from typing import Dict
 from random import randint
+from typing import Dict
+from typing import List
 
-from mipengine.controller.algorithm_executor_helpers import _INode
-from mipengine.controller.algorithm_executor_helpers import TableName
+import pytest
 
+from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
+from mipengine.controller.algorithm_executor_nodes import _INode
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
-
-from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import DType
 from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TableSchema
+
 
 # TODO does not contain any test, just a placeholder..
 
@@ -20,22 +20,22 @@ class NodeMock(_INode):
     def __init__(self):
         self.tables: Dict[str, TableSchema] = {}
 
-    def get_tables(self) -> List[TableName]:
+    def get_tables(self) -> List[NodeTable]:
         pass
 
-    def get_table_schema(self, table_name: TableName):
+    def get_table_schema(self, table_name: NodeTable):
         return self.tables[table_name]
 
-    def get_table_data(self, table_name: TableName) -> TableData:
+    def get_table_data(self, table_name: NodeTable) -> TableData:
         pass
 
-    def create_table(self, command_id: str, schema: TableSchema) -> TableName:
+    def create_table(self, command_id: str, schema: TableSchema) -> NodeTable:
         table_name = f"normal_testnode_cntxtid1_cmdid{randint(0,999)}_cmdsubid1"
-        table_name = TableName(table_name)
+        table_name = NodeTable(table_name)
         self.tables[table_name] = schema
         return table_name
 
-    def get_views(self) -> List[TableName]:
+    def get_views(self) -> List[NodeTable]:
         pass
 
     def create_pathology_view(
@@ -44,13 +44,13 @@ class NodeMock(_INode):
         pathology: str,
         columns: List[str],
         filters: List[str],
-    ) -> TableName:
+    ) -> NodeTable:
         pass
 
-    def get_merge_tables(self) -> List[TableName]:
+    def get_merge_tables(self) -> List[NodeTable]:
         pass
 
-    def create_merge_table(self, command_id: str, table_names: List[TableName]):
+    def create_merge_table(self, command_id: str, table_names: List[NodeTable]):
         pass
 
     def get_remote_tables(self) -> List[str]:
@@ -68,7 +68,7 @@ class NodeMock(_INode):
 
     def get_queued_udf_result(
         self, async_result: IQueuedUDFAsyncResult
-    ) -> List[TableName]:
+    ) -> List[NodeTable]:
         pass
 
     def get_udfs(self, algorithm_name) -> List[str]:
