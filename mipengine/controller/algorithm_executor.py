@@ -11,8 +11,8 @@ from celery.exceptions import TimeoutError
 from pydantic import BaseModel
 
 from mipengine import algorithm_modules
-from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller import config as ctrl_config
+from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor_node_data_objects import AlgoExecData
@@ -100,11 +100,12 @@ class AlgorithmExecutor:
         nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
     ):
         self._logger = ctrl_logger.get_request_logger(
-            context_id=algorithm_execution_dto.context_id
+            request_id=algorithm_execution_dto.request_id
         )
         self._nodes_tasks_handlers_dto = nodes_tasks_handlers_dto
         self._algorithm_execution_dto = algorithm_execution_dto
 
+        self._request_id = algorithm_execution_dto.request_id
         self._context_id = algorithm_execution_dto.context_id
         self._algorithm_name = algorithm_execution_dto.algorithm_name
 
@@ -117,6 +118,7 @@ class AlgorithmExecutor:
 
         # instantiate the GLOBAL Node object
         self._global_node = GlobalNode(
+            request_id=self._request_id,
             context_id=self._context_id,
             node_tasks_handler=self._nodes_tasks_handlers_dto.global_node_tasks_handler,
         )
@@ -136,6 +138,7 @@ class AlgorithmExecutor:
         # instantiate the LOCAL Node objects
         self._local_nodes = [
             LocalNode(
+                request_id=self._request_id,
                 context_id=self._context_id,
                 node_tasks_handler=node_tasks_handler,
                 initial_view_tables_params=initial_view_tables_params,

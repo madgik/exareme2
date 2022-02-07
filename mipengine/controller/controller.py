@@ -27,11 +27,13 @@ class Controller:
     async def exec_algorithm(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
     ):
+        # TODO The request id should optionally be given, in case it is not given then we generate a new one.
+        # For now to complete the node part of the task we will generate every time a new unique request_id
+        request_id = get_a_uniqueid()
         context_id = get_a_uniqueid()
-        logger = ctrl_logger.get_request_logger(context_id=context_id)
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
 
         all_nodes_tasks_handlers = self._create_nodes_tasks_handlers(
-            context_id=context_id,
             pathology=algorithm_request_dto.inputdata.pathology,
             datasets=algorithm_request_dto.inputdata.datasets,
         )
@@ -52,6 +54,7 @@ class Controller:
                 return result
 
         algorithm_execution_dto = AlgorithmExecutionDTO(
+            request_id=request_id,
             context_id=context_id,
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
@@ -105,7 +108,7 @@ class Controller:
         return node_registry.get_all_local_nodes()
 
     def _create_nodes_tasks_handlers(
-        self, context_id: str, pathology: str, datasets: List[str]
+        self, pathology: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
 
         # Get only the relevant nodes from the node registry

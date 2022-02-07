@@ -34,7 +34,7 @@ from mipengine.udfgen.udfgenerator import udf as udf_registry
 
 @shared_task
 @initialise_logger
-def get_udf(func_name: str) -> str:
+def get_udf(request_id: str, func_name: str) -> str:
     return str(udf_registry.registry[func_name])
 
 
@@ -46,6 +46,7 @@ def get_udf(func_name: str) -> str:
 @shared_task
 @initialise_logger
 def run_udf(
+    request_id: str,
     command_id: str,
     context_id: str,
     func_name: str,
@@ -59,6 +60,8 @@ def run_udf(
 
     Parameters
     ----------
+        request_id : str
+            The identifier for the logging
         command_id: str
             The command identifier, common among all nodes for this action.
         context_id: str
@@ -99,6 +102,7 @@ def run_udf(
 @initialise_logger
 def get_run_udf_query(
     command_id: str,
+    request_id: str,
     context_id: str,
     func_name: str,
     positional_args_json: str,
@@ -112,6 +116,8 @@ def get_run_udf_query(
     ----------
         command_id: str
             The command identifier, common among all nodes for this action.
+        request_id : str
+            The identifier for the logging
         context_id: str
             The experiment identifier, common among all experiment related actions.
         func_name: str

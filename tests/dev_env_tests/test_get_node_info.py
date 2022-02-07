@@ -1,14 +1,10 @@
+import uuid
+
 import fasteners
 import pytest
 import subprocess
 
-from mipengine.node.monetdb_interface.common_actions import (
-    convert_schema_to_sql_query_format,
-)
 from mipengine.node_info_DTOs import NodeInfo
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.datatypes import DType
-from mipengine.node_tasks_DTOs import TableSchema
 from tests.dev_env_tests.nodes_communication import get_celery_app
 from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 
@@ -52,9 +48,10 @@ test_cases_get_node_info = [
     test_cases_get_node_info,
 )
 def test_get_node_info(node_id, expected_node_info):
+    request_id = "test_node_info_" + uuid.uuid4().hex + "_request"
     node_app = get_celery_app(node_id)
     node_info_signature = get_celery_task_signature(node_app, "get_node_info")
-    task_response = node_info_signature.delay().get()
+    task_response = node_info_signature.delay(request_id=request_id).get()
     node_info = NodeInfo.parse_raw(task_response)
 
     # Compare id and role. IPs and ports are machine dependent and
@@ -135,10 +132,11 @@ test_cases_get_node_info_datasets = [
     test_cases_get_node_info_datasets,
 )
 def test_get_node_info_datasets(node_id, expected_datasets_per_schema):
+    request_id = "test_node_info_" + uuid.uuid4().hex + "_request"
     setup_data_table_in_db(node_id, expected_datasets_per_schema)
     node_app = get_celery_app(node_id)
     get_node_info_signature = get_celery_task_signature(node_app, "get_node_info")
-    task_response = get_node_info_signature.delay().get()
+    task_response = get_node_info_signature.delay(request_id=request_id).get()
     node_info = NodeInfo.parse_raw(task_response)
 
     assert set(node_info.datasets_per_schema.keys()) == set(

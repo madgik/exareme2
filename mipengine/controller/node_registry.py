@@ -16,6 +16,7 @@ from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.controller import controller_logger as ctrl_logger
 
+NODE_REGISTRY_REQUEST_ID = "NODE_REGISTRY"
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
 # so the module can be easily unit tested
 
@@ -61,11 +62,13 @@ async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
     # when broker(rabbitmq) is down, if the existing broker connection is not passed in
     # apply_async (in _task_to_async::wrapper), celery (or anyway some internal celery
     # component) will try to create a new connection to the broker until the apply_async
-    # succeeds, wich causes the call to apply_async to hang indefinetelly until the
+    # succeeds, which causes the call to apply_async to hang indefinitely until the
     # broker is back up. This way(passing the existing broker connection to apply_async)
     # it raises a ConnectionResetError or an OperationalError and it does not hang
     tasks_coroutines = [
-        _task_to_async(task)(connection=app.broker_connection())
+        _task_to_async(task, connection=app.broker_connection())(
+            request_id=NODE_REGISTRY_REQUEST_ID
+        )
         for app, task in nodes_task_signature.items()
     ]
     results = await asyncio.gather(*tasks_coroutines, return_exceptions=True)
@@ -80,11 +83,15 @@ async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
 # Converts a Celery task to an async function
 # Celery doesn't currently support asyncio "await" while "getting" a result
 # Copied from https://github.com/celery/celery/issues/6603
-def _task_to_async(task):
+def _task_to_async(task, connection):
     async def wrapper(*args, **kwargs):
         total_delay = 0
         delay = 0.1
-        async_result = await sync_to_async(task.apply_async)(*args, **kwargs)
+        # Since apply_async is used instead of delay so that we can pass the connection as an argument,
+        # the args and kwargs need to be passed as named arguments.
+        async_result = await sync_to_async(task.apply_async)(
+            args=args, kwargs=kwargs, connection=connection
+        )
         while not async_result.ready():
             total_delay += delay
             if total_delay > CELERY_TASKS_TIMEOUT:

@@ -67,7 +67,7 @@ class _INode(ABC):
 
     @abstractmethod
     def create_remote_table(
-        self, table_name: str, table_schema: TableSchema, native_node: "_INode"
+        self, table_name: str, table_schema: TableSchema, native_node: "_Node"
     ):
         pass
 
@@ -95,13 +95,14 @@ class _INode(ABC):
 class _Node(_INode, ABC):
     def __init__(
         self,
+        request_id: str,
         context_id: str,
         node_tasks_handler: INodeTasksHandler,
         initial_view_tables_params: Dict[str, Any] = None,
     ):
         self._node_tasks_handler = node_tasks_handler
         self.node_id = self._node_tasks_handler.node_id
-
+        self.request_id = request_id
         self.context_id = context_id
 
         self._initial_view_tables = None
@@ -160,22 +161,27 @@ class _Node(_INode, ABC):
         tables = [
             NodeTable(table_name)
             for table_name in self._node_tasks_handler.get_tables(
-                context_id=self.context_id
+                request_id=self.request_id,
+                context_id=self.context_id,
             )
         ]
         return tables
 
     def get_table_schema(self, table_name: NodeTable) -> TableSchema:
         return self._node_tasks_handler.get_table_schema(
-            table_name=table_name.full_table_name
+            request_id=self.request_id, table_name=table_name.full_table_name
         )
 
     def get_table_data(self, table_name: NodeTable) -> TableData:
-        return self._node_tasks_handler.get_table_data(table_name.full_table_name)
+        return self._node_tasks_handler.get_table_data(
+            request_id=self.request_id,
+            table_name=table_name.full_table_name,
+        )
 
     def create_table(self, command_id: str, schema: TableSchema) -> NodeTable:
         return NodeTable(
             self._node_tasks_handler.create_table(
+                request_id=self.request_id,
                 context_id=self.context_id,
                 command_id=command_id,
                 schema=schema,
@@ -184,7 +190,9 @@ class _Node(_INode, ABC):
 
     # VIEWS functionality
     def get_views(self) -> List[NodeTable]:
-        result = self._node_tasks_handler.get_views(context_id=self.context_id)
+        result = self._node_tasks_handler.get_views(
+            request_id=self.request_id, context_id=self.context_id
+        )
         return [NodeTable(table_name) for table_name in result]
 
     # TODO: this is very specific to mip, very inconsistent with the rest, has to
@@ -196,8 +204,8 @@ class _Node(_INode, ABC):
         columns: List[str],
         filters: List[str],
     ) -> NodeTable:
-
         result = self._node_tasks_handler.create_pathology_view(
+            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             pathology=pathology,
@@ -208,11 +216,14 @@ class _Node(_INode, ABC):
 
     # MERGE TABLES functionality
     def get_merge_tables(self) -> List[NodeTable]:
-        result = self._node_tasks_handler.get_merge_tables(context_id=self.context_id)
+        result = self._node_tasks_handler.get_merge_tables(
+            request_id=self.request_id, context_id=self.context_id
+        )
         return [NodeTable(table_name) for table_name in result]
 
     def create_merge_table(self, command_id: str, table_names: List[str]) -> NodeTable:
         result = self._node_tasks_handler.create_merge_table(
+            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             table_names=table_names,
@@ -221,14 +232,19 @@ class _Node(_INode, ABC):
 
     # REMOTE TABLES functionality
     def get_remote_tables(self) -> List[str]:
-        return self._node_tasks_handler.get_remote_tables(context_id=self.context_id)
+        return self._node_tasks_handler.get_remote_tables(
+            request_id=self.request_id, context_id=self.context_id
+        )
 
     def create_remote_table(
-        self, table_name: str, table_schema: TableSchema, native_node: "_Node"
+        self,
+        table_name: str,
+        table_schema: TableSchema,
+        native_node: "_Node",
     ):
-
         monetdb_socket_addr = native_node.node_address
         self._node_tasks_handler.create_remote_table(
+            request_id=self.request_id,
             table_name=table_name,
             table_schema=table_schema,
             original_db_url=monetdb_socket_addr,
@@ -244,6 +260,7 @@ class _Node(_INode, ABC):
         use_smpc: bool = False,
     ) -> IQueuedUDFAsyncResult:
         return self._node_tasks_handler.queue_run_udf(
+            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
@@ -259,12 +276,15 @@ class _Node(_INode, ABC):
         raise NotImplementedError
 
     def get_udfs(self, algorithm_name) -> List[str]:
-        return self._node_tasks_handler.get_udfs(algorithm_name)
+        return self._node_tasks_handler.get_udfs(
+            request_id=self.request_id, algorithm_name=algorithm_name
+        )
 
     def get_run_udf_query(
         self, command_id: str, func_name: str, positional_args: List[NodeUDFDTO]
     ) -> Tuple[str, str]:
         return self._node_tasks_handler.get_run_udf_query(
+            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
@@ -272,7 +292,9 @@ class _Node(_INode, ABC):
         )
 
     def clean_up(self):
-        self._node_tasks_handler.clean_up(context_id=self.context_id)
+        self._node_tasks_handler.clean_up(
+            request_id=self.request_id, context_id=self.context_id
+        )
 
 
 class LocalNode(_Node):

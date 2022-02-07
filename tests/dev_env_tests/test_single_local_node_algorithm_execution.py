@@ -1,4 +1,3 @@
-import os
 from unittest.mock import patch
 
 import pytest
@@ -127,6 +126,7 @@ def get_parametrization_list_success_cases():
 
     # ~~~~~~~~~~success case 1~~~~~~~~~~
     algo_execution_dto = AlgorithmExecutionDTO(
+        request_id="123",
         context_id="123",
         algorithm_name="logistic_regression",
         algorithm_request_dto=AlgorithmRequestDTO(
@@ -181,6 +181,7 @@ def get_parametrization_list_success_cases():
 
     # ~~~~~~~~~~success case 2~~~~~~~~~~
     algo_execution_dto = AlgorithmExecutionDTO(
+        request_id="1234",
         context_id="1234",
         algorithm_name="smpc_standard_deviation",
         algorithm_request_dto=AlgorithmRequestDTO(
