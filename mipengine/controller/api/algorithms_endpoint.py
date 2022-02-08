@@ -53,12 +53,17 @@ async def post_algorithm(algorithm_name: str) -> str:
         )
         raise BadRequest(error_msg)
 
+    request_id = controller.initialize_request_id(
+        algorithm_request_dto=algorithm_request_dto
+    )
     controller.validate_algorithm_execution_request(
         algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
     )
 
     algorithm_result = await controller.exec_algorithm(
-        algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
+        request_id=request_id,
+        algorithm_name=algorithm_name,
+        algorithm_request_dto=algorithm_request_dto,
     )
 
     return algorithm_result
