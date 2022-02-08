@@ -85,7 +85,7 @@ def run_udf(
     keyword_args = UDFKeyArguments.parse_raw(keyword_args_json)
 
     udf_statements, udf_results = _generate_udf_statements(
-        request_id=context_id,  # TODO change to request_id after merge with master
+        request_id=request_id,
         command_id=command_id,
         context_id=context_id,
         func_name=func_name,
@@ -141,7 +141,7 @@ def get_run_udf_query(
     keyword_args = UDFKeyArguments.parse_raw(keyword_args_json)
 
     udf_statements, _ = _generate_udf_statements(
-        request_id=context_id,  # TODO change to request_id after merge with master
+        request_id=request_id,
         command_id=command_id,
         context_id=context_id,
         func_name=func_name,
