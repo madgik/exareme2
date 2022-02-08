@@ -1,0 +1,21 @@
+{
+    "name": "smpc_standard_deviation",
+    "desc": "Standard Deviation of a column, using SMPC",
+    "label": "SMPC Standard Deviation",
+    "enabled": true,
+    "inputdata": {
+        "x": {
+            "label": "column",
+            "desc": "Column",
+            "types": [
+                "real",
+                "int"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": false
+        }
+    }
+}

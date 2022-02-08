@@ -1,12 +1,14 @@
 from abc import ABC
 from abc import abstractmethod
+from builtins import str
 from typing import Any
 from typing import List
-from typing import Tuple
 from typing import Optional
+from typing import Tuple
 
 from pydantic import BaseModel
 
+from mipengine.node_tasks_DTOs import NodeUDFDTO
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFKeyArguments
@@ -25,10 +27,12 @@ class IAsyncResult(BaseModel, ABC):
 class IQueuedUDFAsyncResult(IAsyncResult, ABC):
     node_id: str
     command_id: str
+    request_id: str
     context_id: str
     func_name: str
     positional_args: Optional[UDFPosArguments] = None
     keyword_args: Optional[UDFKeyArguments] = None
+    use_smpc: bool = False
 
 
 class INodeTasksHandler(ABC):
@@ -48,26 +52,26 @@ class INodeTasksHandler(ABC):
 
     # TABLES functionality
     @abstractmethod
-    def get_tables(self, context_id: str) -> List[str]:
+    def get_tables(self, request_id: str, context_id: str) -> List[str]:
         pass
 
     @abstractmethod
-    def get_table_schema(self, table_name: str):
+    def get_table_schema(self, request_id: str, table_name: str):
         pass
 
     @abstractmethod
-    def get_table_data(self, table_name: str) -> TableData:
+    def get_table_data(self, request_id: str, table_name: str) -> TableData:
         pass
 
     @abstractmethod
     def create_table(
-        self, context_id: str, command_id: str, schema: TableSchema
+        self, request_id: str, context_id: str, command_id: str, schema: TableSchema
     ) -> str:
         pass
 
     # VIEWS functionality
     @abstractmethod
-    def get_views(self, context_id: str) -> List[str]:
+    def get_views(self, request_id: str, context_id: str) -> List[str]:
         pass
 
     # TODO: this is very specific to mip, very inconsistent with the rest, has to be
@@ -75,6 +79,7 @@ class INodeTasksHandler(ABC):
     @abstractmethod
     def create_pathology_view(
         self,
+        request_id: str,
         context_id: str,
         command_id: str,
         pathology: str,
@@ -85,35 +90,41 @@ class INodeTasksHandler(ABC):
 
     # MERGE TABLES functionality
     @abstractmethod
-    def get_merge_tables(self, context_id: str) -> List[str]:
+    def get_merge_tables(self, request_id: str, context_id: str) -> List[str]:
         pass
 
     @abstractmethod
     def create_merge_table(
-        self, context_id: str, command_id: str, table_names: List[str]
+        self, request_id: str, context_id: str, command_id: str, table_names: List[str]
     ):
         pass
 
     # REMOTE TABLES functionality
     @abstractmethod
-    def get_remote_tables(self, context_id: str) -> List[str]:
+    def get_remote_tables(self, request_id: str, context_id: str) -> List[str]:
         pass
 
     @abstractmethod
     def create_remote_table(
-        self, table_name: str, table_schema: TableSchema, original_db_url: str
-    ) -> str:  # TODO create
+        self,
+        request_id: str,
+        table_name: str,
+        table_schema: TableSchema,
+        original_db_url: str,
+    ) -> str:
         pass
 
     # UDFs functionality
     @abstractmethod
     def queue_run_udf(
         self,
+        request_id: str,
         context_id: str,
         command_id: str,
         func_name: str,
         positional_args: Optional[UDFPosArguments] = None,
         keyword_args: Optional[UDFKeyArguments] = None,
+        use_smpc: bool = False,
     ) -> IQueuedUDFAsyncResult:
         pass
 
@@ -122,21 +133,46 @@ class INodeTasksHandler(ABC):
         pass
 
     @abstractmethod
-    def get_udfs(self, algorithm_name) -> List[str]:
+    def get_udfs(self, request_id: str, algorithm_name) -> List[str]:
         pass
 
     # return the generated monetdb python udf
     @abstractmethod
     def get_run_udf_query(
         self,
+        request_id: str,
         context_id: str,
         command_id: str,
         func_name: str,
-        positional_args: List[str],
+        positional_args: List[NodeUDFDTO],
     ) -> Tuple[str, str]:
         pass
 
     # CLEANUP functionality
     @abstractmethod
-    def clean_up(self, context_id: str):
+    def clean_up(self, request_id: str, context_id: str):
+        pass
+
+    # ------------- SMPC functionality ---------------
+    @abstractmethod
+    def validate_smpc_templates_match(
+        self,
+        context_id: str,
+        table_name: str,
+    ):
+        pass
+
+    @abstractmethod
+    def load_data_to_smpc_client(
+        self, context_id: str, table_name: str, jobid: str
+    ) -> int:
+        pass
+
+    @abstractmethod
+    def get_smpc_result(
+        self,
+        context_id: str,
+        command_id: str,
+        jobid: str,
+    ) -> str:
         pass

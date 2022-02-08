@@ -13,10 +13,12 @@ from mipengine.node_tasks_DTOs import TableType
 
 @shared_task
 @initialise_logger
-def get_merge_tables(context_id: str) -> List[str]:
+def get_merge_tables(request_id: str, context_id: str) -> List[str]:
     """
     Parameters
     ----------
+    request_id : str
+        The identifier for the logging
     context_id : str
         The id of the experiment
 
@@ -30,10 +32,14 @@ def get_merge_tables(context_id: str) -> List[str]:
 
 @shared_task
 @initialise_logger
-def create_merge_table(context_id: str, command_id: str, table_names: List[str]) -> str:
+def create_merge_table(
+    request_id: str, context_id: str, command_id: str, table_names: List[str]
+) -> str:
     """
     Parameters
     ----------
+    request_id : str
+        The identifier for the logging
     context_id : str
         The id of the experiment
     command_id : str

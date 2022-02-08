@@ -25,16 +25,23 @@ global_node_cleanup = get_celery_task_signature(global_node, "clean_up")
 
 
 @pytest.fixture(autouse=True)
-def context_id():
+def request_id():
+    return "test_remote_tables_" + uuid.uuid4().hex + "_request"
+
+
+@pytest.fixture(autouse=True)
+def context_id(request_id):
     context_id = "test_remote_tables_" + uuid.uuid4().hex
 
     yield context_id
 
-    local_node_cleanup.delay(context_id=context_id.lower()).get()
-    global_node_cleanup.delay(context_id=context_id.lower()).get()
+    local_node_cleanup.delay(request_id=request_id, context_id=context_id.lower()).get()
+    global_node_cleanup.delay(
+        request_id=request_id, context_id=context_id.lower()
+    ).get()
 
 
-def test_create_and_get_remote_table(context_id):
+def test_create_and_get_remote_table(request_id, context_id):
     node_config = get_node_config_by_id(local_node_id)
 
     local_node_monetdb_sock_address = (
@@ -50,15 +57,19 @@ def test_create_and_get_remote_table(context_id):
     )
 
     table_name = local_node_create_table.delay(
+        request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     ).get()
 
     global_node_create_remote_table.delay(
+        request_id=request_id,
         table_name=table_name,
         table_schema_json=table_schema.json(),
         monetdb_socket_address=local_node_monetdb_sock_address,
     ).get()
-    remote_tables = global_node_get_remote_tables.delay(context_id=context_id).get()
+    remote_tables = global_node_get_remote_tables.delay(
+        request_id=request_id, context_id=context_id
+    ).get()
     assert table_name in remote_tables

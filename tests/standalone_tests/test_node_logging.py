@@ -27,14 +27,14 @@ def mock_node_config():
 
 
 @initialise_logger
-def pass_ctx_id(context_id):
+def pass_rqst_id(request_id):
     logger = node_logger.get_logger()
     logger.info("Yolo!")
     return logger
 
 
 def test_get_ctx_id_from_args(capsys):
-    test_ctx_id = pass_ctx_id("1234abcd")
+    test_ctx_id = pass_rqst_id("1234abcd")
     captured = capsys.readouterr()
 
     # regex to check timestamp

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Dict, List
+from typing import List
 
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
@@ -7,6 +7,7 @@ from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 
 # One of the two expected data object for the AlgorithmExecutor layer.
 class AlgorithmExecutionDTO(BaseModel):
+    request_id: str
     context_id: str
     algorithm_name: str
     algorithm_request_dto: AlgorithmRequestDTO
