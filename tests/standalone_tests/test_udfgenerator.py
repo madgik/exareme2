@@ -59,6 +59,9 @@ from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
 from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
 
 
+REQUEST_ID = "test_udfgenerator"
+
+
 @pytest.fixture(autouse=True)
 def clear_udf_registry():
     yield
@@ -1234,7 +1237,12 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
         keywordargs = {"z": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
             _, _ = get_udf_templates_using_udfregistry(
-                funcname, posargs, keywordargs, udfregistry, False
+                request_id=REQUEST_ID,
+                funcname=funcname,
+                posargs=posargs,
+                keywordargs=keywordargs,
+                udfregistry=udfregistry,
+                smpc_used=False,
             )
         assert "UDF argument names do not match UDF parameter names" in str(exc)
 
@@ -1256,9 +1264,16 @@ class TestUDFGen_LoggerArgument_provided_in_pos_args(TestUDFGenBase):
         posargs = [TensorArg("table_name", dtype=int, ndims=1), LiteralArg(1)]
         with pytest.raises(UDFBadCall) as exc:
             _, _ = get_udf_templates_using_udfregistry(
-                funcname, posargs, None, udfregistry, False
+                request_id=REQUEST_ID,
+                funcname=funcname,
+                posargs=posargs,
+                keywordargs={},
+                udfregistry=udfregistry,
+                smpc_used=False,
             )
-        assert "'udf_logger' parameter should have NO argument provided." in str(exc)
+        assert "No argument should be provided for 'UDFLoggerType' parameter" in str(
+            exc
+        )
 
 
 class TestUDFGen_LoggerArgument_provided_in_kw_args(TestUDFGenBase):
@@ -1279,9 +1294,16 @@ class TestUDFGen_LoggerArgument_provided_in_kw_args(TestUDFGenBase):
         keywordargs = {"logger": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
             _, _ = get_udf_templates_using_udfregistry(
-                funcname, posargs, keywordargs, udfregistry, False
+                request_id=REQUEST_ID,
+                funcname=funcname,
+                posargs=posargs,
+                keywordargs=keywordargs,
+                udfregistry=udfregistry,
+                smpc_used=False,
             )
-        assert "'udf_logger' parameter should have NO argument provided." in str(exc)
+        assert "No argument should be provided for 'UDFLoggerType' parameter" in str(
+            exc
+        )
 
 
 class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
@@ -1320,7 +1342,13 @@ class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry, False)
+            _, _ = generate_udf_queries(
+                request_id=REQUEST_ID,
+                func_name=funcname,
+                positional_args=posargs,
+                keyword_args={},
+                smpc_used=False,
+            )
         assert "should be of type" in str(exc)
 
 
@@ -1364,6 +1392,7 @@ class TestUDFGen_InvalidUDFArgs_TensorTableInTransferArgument(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1410,6 +1439,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1445,6 +1475,7 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
         ]
         try:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1455,6 +1486,7 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
 
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1501,6 +1533,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1532,6 +1565,7 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         keywordargs = {}
         with pytest.raises(ValueError) as e:
             _, _ = get_udf_templates_using_udfregistry(
+                request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
                 keywordargs=keywordargs,
@@ -1548,7 +1582,13 @@ class TestUDFGen_KW_args_on_tensor_operation:
         posargs = []
         keywordargs = {"Μ": 5, "v": 7}
         with pytest.raises(UDFBadCall) as e:
-            _ = generate_udf_queries(funcname, posargs, keywordargs, False)
+            _ = generate_udf_queries(
+                request_id=REQUEST_ID,
+                func_name=funcname,
+                positional_args=posargs,
+                keyword_args=keywordargs,
+                smpc_used=False,
+            )
         err_msg, *_ = e.value.args
         assert "Keyword args are not supported for tensor operations." in err_msg
 
@@ -5100,7 +5140,7 @@ LANGUAGE PYTHON
     import udfio
     import json
     t = 5
-    logger = udfio.get_logger('f', 'test_udfgenerator')
+    logger = udfio.get_logger('f_gb47', 'test_udfgenerator')
     logger.info('Log inside monetdb udf.')
     result = {'num': t}
     return json.dumps(result)
