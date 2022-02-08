@@ -3,13 +3,13 @@ from abc import ABC
 
 class NodeData(ABC):
     """
-    NodeData are located into one specific Node.
+    NodeData is an object representing data located into one specific Node.
     """
 
     pass
 
 
-class NodeTable(NodeData):
+class TableName(NodeData):
     def __init__(self, table_name):
         self._full_name = table_name
         full_name_split = self._full_name.split("_")
@@ -58,12 +58,12 @@ class NodeTable(NodeData):
         return self.full_table_name
 
 
-class NodeSMPCTables(NodeData):
-    template: NodeTable
-    sum_op: NodeTable
-    min_op: NodeTable
-    max_op: NodeTable
-    union_op: NodeTable
+class SMPCTableNames(NodeData):
+    template: TableName
+    sum_op: TableName
+    min_op: TableName
+    max_op: TableName
+    union_op: TableName
 
     def __init__(self, template, sum_op, min_op, max_op, union_op):
         self.template = template

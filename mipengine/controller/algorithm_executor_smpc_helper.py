@@ -2,12 +2,13 @@ from typing import List
 from typing import Tuple
 
 from mipengine.controller import config as ctrl_config
-from mipengine.controller.algorithm_executor_data_objects import GlobalNodeTable
-from mipengine.controller.algorithm_executor_data_objects import (
+from mipengine.controller.algorithm_executor_node_data_objects import SMPCTableNames
+from mipengine.controller.algorithm_flow_data_objects import GlobalNodeTable
+from mipengine.controller.algorithm_flow_data_objects import (
     LocalNodesSMPCTables,
 )
-from mipengine.controller.algorithm_executor_data_objects import LocalNodesTable
-from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
+from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
+from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.smpc_DTOs import SMPCRequestType
 from mipengine.smpc_cluster_comm_helpers import trigger_smpc_computation
@@ -111,7 +112,7 @@ def get_smpc_results(
     min_op: bool,
     max_op: bool,
     union_op: bool,
-) -> Tuple[GlobalNodeTable, GlobalNodeTable, GlobalNodeTable, GlobalNodeTable]:
+) -> Tuple[TableName, TableName, TableName, TableName]:
     sum_op_result_table = (
         node.get_smpc_result(
             jobid=get_smpc_job_id(
@@ -165,19 +166,9 @@ def get_smpc_results(
         else None
     )
 
-    result = (
-        GlobalNodeTable(node=node, table=NodeTable(table_name=sum_op_result_table))
-        if sum_op_result_table
-        else None,
-        GlobalNodeTable(node=node, table=NodeTable(table_name=min_op_result_table))
-        if min_op_result_table
-        else None,
-        GlobalNodeTable(node=node, table=NodeTable(table_name=max_op_result_table))
-        if max_op_result_table
-        else None,
-        GlobalNodeTable(node=node, table=NodeTable(table_name=union_op_result_table))
-        if union_op_result_table
-        else None,
+    return (
+        TableName(sum_op_result_table),
+        TableName(min_op_result_table),
+        TableName(max_op_result_table),
+        TableName(union_op_result_table),
     )
-
-    return result

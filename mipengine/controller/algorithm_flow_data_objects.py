@@ -4,8 +4,8 @@ from typing import Dict
 from typing import List
 from typing import Union
 
-from mipengine.controller.algorithm_executor_node_data_objects import NodeSMPCTables
-from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
+from mipengine.controller.algorithm_executor_node_data_objects import SMPCTableNames
+from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.controller.algorithm_executor_nodes import LocalNode
 from mipengine.node_tasks_DTOs import NodeLiteralDTO
@@ -18,21 +18,31 @@ from mipengine.node_tasks_DTOs import UDFKeyArguments
 from mipengine.node_tasks_DTOs import UDFPosArguments
 
 
-class AlgoExecData(ABC):
+class AlgoFlowData(ABC):
     """
-    AlgoExecData are representing one data object but could be located into
-    more than one node. For example the LocalNodesTable is treated as one table
-    from the algorithm executor but is located in multiple local nodes.
+    AlgoFlowData are representing data objects in the algorithm flow.
+    These objects are the result of running udfs and are used as input
+    as well in the udfs.
     """
 
     pass
 
 
-class LocalNodesData(AlgoExecData, ABC):
+class LocalNodesData(AlgoFlowData, ABC):
+    """
+    LocalNodesData are representing data objects in the algorithm flow
+    that are located in many (or one) local nodes.
+    """
+
     pass
 
 
-class GlobalNodeData(AlgoExecData, ABC):
+class GlobalNodeData(AlgoFlowData, ABC):
+    """
+    GlobalNodeData are representing data objects in the algorithm flow
+    that are located in the global node.
+    """
+
     pass
 
 
@@ -50,12 +60,14 @@ class GlobalNodeData(AlgoExecData, ABC):
 # complexity from the algorithm flow and exposing a single 'local node table' object that
 # stores in the background pointers to several tables in several local nodes.
 class LocalNodesTable(LocalNodesData):
-    def __init__(self, nodes_tables: Dict[LocalNode, NodeTable]):
+    _nodes_tables: Dict[LocalNode, TableName]
+
+    def __init__(self, nodes_tables: Dict[LocalNode, TableName]):
         self._nodes_tables = nodes_tables
         self._validate_matching_table_names(list(self._nodes_tables.values()))
 
     @property
-    def nodes_tables(self) -> Dict[LocalNode, NodeTable]:
+    def nodes_tables(self) -> Dict[LocalNode, TableName]:
         return self._nodes_tables
 
     # TODO this is redundant, either remove it or overload all node methods here?
@@ -83,23 +95,20 @@ class LocalNodesTable(LocalNodesData):
             r += f"\t{node=} {table_name=}\n"
         return r
 
-    def _validate_matching_table_names(self, table_names: List[NodeTable]):
+    def _validate_matching_table_names(self, table_names: List[TableName]):
         table_name_without_node_id = table_names[0].without_node_id()
         for table_name in table_names:
             if table_name.without_node_id() != table_name_without_node_id:
-                raise self.MismatchingTableNamesException(
+                raise MismatchingTableNamesException(
                     [table_name.full_table_name for table_name in table_names]
                 )
 
-    class MismatchingTableNamesException(Exception):
-        def __init__(self, table_names: List[str]):
-            message = f"Mismatched table names ->{table_names}"
-            super().__init__(message)
-            self.message = message
-
 
 class GlobalNodeTable(GlobalNodeData):
-    def __init__(self, node: GlobalNode, table: NodeTable):
+    _node: GlobalNode
+    _table: TableName
+
+    def __init__(self, node: GlobalNode, table: TableName):
         self._node = node
         self._table = table
 
@@ -108,7 +117,7 @@ class GlobalNodeTable(GlobalNodeData):
         return self._node
 
     @property
-    def table(self) -> NodeTable:
+    def table(self) -> TableName:
         return self._table
 
     # TODO this is redundant, either remove it or overload all node methods here?
@@ -127,46 +136,37 @@ class GlobalNodeTable(GlobalNodeData):
 
 
 class LocalNodesSMPCTables(LocalNodesData):
-    template: LocalNodesTable
-    sum_op: LocalNodesTable
-    min_op: LocalNodesTable
-    max_op: LocalNodesTable
-    union_op: LocalNodesTable
+    _nodes_smpc_tables: Dict[LocalNode, SMPCTableNames]
 
-    def __init__(self, nodes_smpc_tables: Dict[LocalNode, NodeSMPCTables]):
-        template_nodes_tables = {}
-        sum_op_nodes_tables = {}
-        min_op_nodes_tables = {}
-        max_op_nodes_tables = {}
-        union_op_nodes_tables = {}
-        for node, node_smpc_tables in nodes_smpc_tables.items():
-            template_nodes_tables[node] = node_smpc_tables.template
-            sum_op_nodes_tables[node] = node_smpc_tables.sum_op
-            min_op_nodes_tables[node] = node_smpc_tables.min_op
-            max_op_nodes_tables[node] = node_smpc_tables.max_op
-            union_op_nodes_tables[node] = node_smpc_tables.union_op
-        self.template = LocalNodesTable(template_nodes_tables)
-        self.sum_op = create_local_nodes_table_from_nodes_tables(sum_op_nodes_tables)
-        self.min_op = create_local_nodes_table_from_nodes_tables(min_op_nodes_tables)
-        self.max_op = create_local_nodes_table_from_nodes_tables(max_op_nodes_tables)
-        self.union_op = create_local_nodes_table_from_nodes_tables(
-            union_op_nodes_tables
+    def __init__(self, nodes_smpc_tables: Dict[LocalNode, SMPCTableNames]):
+        self._nodes_smpc_tables = nodes_smpc_tables
+
+    @property
+    def nodes_smpc_tables(self) -> Dict[LocalNode, SMPCTableNames]:
+        return self._nodes_smpc_tables
+
+    @property
+    def template_local_nodes_table(self) -> LocalNodesTable:
+        return LocalNodesTable(
+            {node: tables.template for node, tables in self.nodes_smpc_tables.items()}
         )
 
 
 class GlobalNodeSMPCTables(GlobalNodeData):
-    template: GlobalNodeTable
-    sum_op: GlobalNodeTable
-    min_op: GlobalNodeTable
-    max_op: GlobalNodeTable
-    union_op: GlobalNodeTable
+    _node: GlobalNode
+    _smpc_tables: SMPCTableNames
 
-    def __init__(self, template, sum_op, min_op, max_op, union_op):
-        self.template = template
-        self.sum_op = sum_op
-        self.min_op = min_op
-        self.max_op = max_op
-        self.union_op = union_op
+    def __init__(self, node: GlobalNode, smpc_tables: SMPCTableNames):
+        self._node = node
+        self._smpc_tables = smpc_tables
+
+    @property
+    def node(self) -> GlobalNode:
+        return self._node
+
+    @property
+    def smpc_tables(self) -> SMPCTableNames:
+        return self._smpc_tables
 
 
 def algoexec_udf_kwargs_to_node_udf_kwargs(
@@ -197,7 +197,7 @@ def algoexec_udf_posargs_to_node_udf_posargs(
 
 
 def _algoexec_udf_arg_to_node_udf_arg(
-    algoexec_arg: AlgoExecData, local_node: LocalNode = None
+    algoexec_arg: AlgoFlowData, local_node: LocalNode = None
 ) -> NodeUDFDTO:
     """
     Converts the algorithm executor run_udf input arguments, coming from the algorithm flow
@@ -222,40 +222,26 @@ def _algoexec_udf_arg_to_node_udf_arg(
     elif isinstance(algoexec_arg, GlobalNodeTable):
         return NodeTableDTO(value=algoexec_arg.table.full_table_name)
     elif isinstance(algoexec_arg, LocalNodesSMPCTables):
-        return NodeSMPCDTO(
-            value=NodeSMPCValueDTO(
-                template=algoexec_arg.template.nodes_tables[local_node].full_table_name,
-                sum_op_values=algoexec_arg.sum_op.nodes_tables[
-                    local_node
-                ].full_table_name,
-                min_op_values=algoexec_arg.min_op.nodes_tables[
-                    local_node
-                ].full_table_name,
-                max_op_values=algoexec_arg.max_op.nodes_tables[
-                    local_node
-                ].full_table_name,
-                union_op_values=algoexec_arg.union_op.nodes_tables[
-                    local_node
-                ].full_table_name,
-            )
+        raise ValueError(
+            "'LocalNodesSMPCTables' cannot be used as argument. It must be shared."
         )
     elif isinstance(algoexec_arg, GlobalNodeSMPCTables):
         return NodeSMPCDTO(
             value=NodeSMPCValueDTO(
                 template=NodeTableDTO(
-                    value=algoexec_arg.template.table.full_table_name
+                    value=algoexec_arg.smpc_tables.template.full_table_name
                 ),
                 sum_op_values=create_node_table_dto_from_global_node_table(
-                    algoexec_arg.sum_op
+                    algoexec_arg.smpc_tables.sum_op
                 ),
                 min_op_values=create_node_table_dto_from_global_node_table(
-                    algoexec_arg.min_op
+                    algoexec_arg.smpc_tables.min_op
                 ),
                 max_op_values=create_node_table_dto_from_global_node_table(
-                    algoexec_arg.max_op
+                    algoexec_arg.smpc_tables.max_op
                 ),
                 union_op_values=create_node_table_dto_from_global_node_table(
-                    algoexec_arg.union_op
+                    algoexec_arg.smpc_tables.union_op
                 ),
             )
         )
@@ -263,18 +249,25 @@ def _algoexec_udf_arg_to_node_udf_arg(
         return NodeLiteralDTO(value=algoexec_arg)
 
 
-def create_node_table_dto_from_global_node_table(node_table: GlobalNodeTable):
-    if not node_table:
+def create_node_table_dto_from_global_node_table(table: TableName):
+    if not table:
         return None
 
-    return NodeTableDTO(value=node_table.table.full_table_name)
+    return NodeTableDTO(value=table.full_table_name)
 
 
 def create_local_nodes_table_from_nodes_tables(
-    nodes_tables: Dict[LocalNode, Union[NodeTable, None]]
+    nodes_tables: Dict[LocalNode, Union[TableName, None]]
 ):
     for table in nodes_tables.values():
         if not table:
             return None
 
     return LocalNodesTable(nodes_tables)
+
+
+class MismatchingTableNamesException(Exception):
+    def __init__(self, table_names: List[str]):
+        message = f"Mismatched table names ->{table_names}"
+        super().__init__(message)
+        self.message = message
