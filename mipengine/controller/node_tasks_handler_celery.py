@@ -200,6 +200,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         context_id: str,
         command_id: str,
         pathology: str,
+        version: str,
         columns: List[str],
         filters: List[str],
     ) -> str:
@@ -212,6 +213,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             context_id=context_id,
             command_id=command_id,
             pathology=pathology,
+            version=version,
             columns=columns,
             filters=filters,
         ).get(self._tasks_timeout)

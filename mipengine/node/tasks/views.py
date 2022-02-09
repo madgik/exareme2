@@ -37,6 +37,7 @@ def create_pathology_view(
     context_id: str,
     command_id: str,
     pathology: str,
+    version: str,
     columns: List[str],
     filters: dict = None,
 ) -> str:
@@ -53,6 +54,8 @@ def create_pathology_view(
         The id of the command that the view
     pathology : str
         The pathology data table on which the view will be created
+    version : str
+        The version of the pathology(data_model)
     columns : List[str]
         A list of column names
     filters : dict
@@ -74,7 +77,7 @@ def create_pathology_view(
     # TODO Now the data_models require a version to access the proper table with data.
     views.create_view(
         view_name=view_name,
-        table_name=f'"{pathology}:0.1"."primary_data"',
+        table_name=f'"{pathology}:{version}"."primary_data"',
         columns=columns,
         filters=filters,
         enable_min_rows_threshold=True,

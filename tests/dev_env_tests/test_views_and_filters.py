@@ -177,11 +177,13 @@ def test_pathology_view_without_filters(request_id, context_id):
         "pupil_reactivity_right_eye_result",
     ]
     pathology = "tbi"
+    version = "0.1"
     view_name = local_node_create_pathology_view.delay(
         request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         pathology=pathology,
+        version=version,
         columns=columns,
         filters=None,
     ).get()
@@ -227,6 +229,7 @@ def test_pathology_view_with_filters(request_id, context_id):
         "pupil_reactivity_right_eye_result",
     ]
     pathology = "tbi"
+    version = "0.1"
     rules = {
         "condition": "AND",
         "rules": [
@@ -251,6 +254,7 @@ def test_pathology_view_with_filters(request_id, context_id):
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         pathology=pathology,
+        version=version,
         columns=columns,
         filters=rules,
     ).get()
@@ -320,6 +324,7 @@ def test_pathology_view_with_privacy_error(request_id, context_id):
         "pupil_reactivity_right_eye_result",
     ]
     pathology = "tbi"
+    version = "0.1"
 
     # Adding a filter that cannot be matched
     rules = {
@@ -347,6 +352,7 @@ def test_pathology_view_with_privacy_error(request_id, context_id):
             context_id=context_id,
             command_id=uuid.uuid4().hex,
             pathology=pathology,
+            version=version,
             columns=columns,
             filters=rules,
         ).get()

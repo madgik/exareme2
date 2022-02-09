@@ -42,6 +42,7 @@ class NodeMock(_INode):
         self,
         command_id: str,
         pathology: str,
+        version: str,
         columns: List[str],
         filters: List[str],
     ) -> NodeTable:

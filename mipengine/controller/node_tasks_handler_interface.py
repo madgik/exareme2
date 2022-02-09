@@ -83,6 +83,7 @@ class INodeTasksHandler(ABC):
         context_id: str,
         command_id: str,
         pathology: str,
+        version: str,
         columns: List[str],
         filters: List[str],
     ) -> str:

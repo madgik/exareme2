@@ -48,6 +48,7 @@ class _INode(ABC):
         self,
         command_id: str,
         pathology: str,
+        version: str,
         columns: List[str],
         filters: List[str],
     ) -> NodeTable:
@@ -132,6 +133,7 @@ class _Node(_INode, ABC):
             view_name = self.create_pathology_view(
                 command_id=command_id,
                 pathology=initial_view_tables_params["pathology"],
+                version=initial_view_tables_params["version"],
                 columns=initial_view_tables_params[variable],
                 filters=initial_view_tables_params["filters"],
             )
@@ -144,6 +146,7 @@ class _Node(_INode, ABC):
             view_name = self.create_pathology_view(
                 command_id=command_id,
                 pathology=initial_view_tables_params["pathology"],
+                version=initial_view_tables_params["version"],
                 columns=initial_view_tables_params[variable],
                 filters=initial_view_tables_params["filters"],
             )
@@ -201,6 +204,7 @@ class _Node(_INode, ABC):
         self,
         command_id: str,
         pathology: str,
+        version: str,
         columns: List[str],
         filters: List[str],
     ) -> NodeTable:
@@ -209,6 +213,7 @@ class _Node(_INode, ABC):
             context_id=self.context_id,
             command_id=command_id,
             pathology=pathology,
+            version=version,
             columns=columns,
             filters=filters,
         )
