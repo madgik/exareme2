@@ -8,8 +8,8 @@ USE_SMPC_FLAG = "smpc"
 
 
 class AlgorithmInputDataDTO(BaseModel):
-    pathology: str
-    version: str
+    data_model: str
+    data_model_version: str
     datasets: List[str]
     filters: dict = None
     x: Optional[List[str]] = None
@@ -32,7 +32,7 @@ class AlgorithmRequestDTO(BaseModel):
 # @dataclass
 # class AlgorithmRequest:
 #     #algorithm_name: str
-#     pathology: str
+#     data_model: str
 #     datasets: List[str]
 #     columns: List[VariablesSet]
 #     filter: Optional[Any] = None

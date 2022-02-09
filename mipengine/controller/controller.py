@@ -34,7 +34,7 @@ class Controller:
         logger = ctrl_logger.get_request_logger(request_id=request_id)
 
         all_nodes_tasks_handlers = self._create_nodes_tasks_handlers(
-            pathology=algorithm_request_dto.inputdata.pathology,
+            data_model=algorithm_request_dto.inputdata.data_model,
             datasets=algorithm_request_dto.inputdata.datasets,
         )
 
@@ -95,26 +95,26 @@ class Controller:
     def get_all_datasets_per_node(self):
         datasets = {}
         for node in node_registry.get_all_local_nodes():
-            datasets[node.id] = node.datasets_per_schema
+            datasets[node.id] = node.datasets_per_data_model
         return datasets
 
     def get_all_available_schemas(self):
-        return node_registry.get_all_available_schemas()
+        return node_registry.get_all_available_data_models()
 
     def get_all_available_datasets_per_schema(self):
-        return node_registry.get_all_available_datasets_per_schema()
+        return node_registry.get_all_available_datasets_per_data_model()
 
     def get_all_local_nodes(self):
         return node_registry.get_all_local_nodes()
 
     def _create_nodes_tasks_handlers(
-        self, pathology: str, datasets: List[str]
+        self, data_model: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
 
         # Get only the relevant nodes from the node registry
         global_node = node_registry.get_all_global_nodes()[0]
         local_nodes = node_registry.get_nodes_with_any_of_datasets(
-            schema=pathology,
+            data_model=data_model,
             datasets=datasets,
         )
 

@@ -139,11 +139,11 @@ def test_get_node_info_datasets(node_id, expected_datasets_per_schema):
     task_response = get_node_info_signature.delay(request_id=request_id).get()
     node_info = NodeInfo.parse_raw(task_response)
 
-    assert set(node_info.datasets_per_schema.keys()) == set(
+    assert set(node_info.datasets_per_data_model.keys()) == set(
         expected_datasets_per_schema.keys()
     )
     for schema in expected_datasets_per_schema.keys():
-        assert set(node_info.datasets_per_schema[schema]) == set(
+        assert set(node_info.datasets_per_data_model[schema]) == set(
             expected_datasets_per_schema[schema]
         )
 

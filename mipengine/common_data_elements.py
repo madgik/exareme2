@@ -9,7 +9,7 @@ from typing import Set
 
 from dataclasses_json import dataclass_json
 
-PATHOLOGY_METADATA_FILENAME = "CDEsMetadata.json"
+data_model_METADATA_FILENAME = "CDEsMetadata.json"
 
 
 @dataclass_json
@@ -42,7 +42,7 @@ class MetadataVariable:
 @dataclass
 class MetadataGroup:
     """
-    MetadataGroup is used to map the pathology metadata .json to an object.
+    MetadataGroup is used to map the data_model metadata .json to an object.
     """
 
     code: str
@@ -88,33 +88,33 @@ class CommonDataElements:
 
         cdes_metadata_path = Path(cdes_metadata_path)
 
-        cdes_pathology_metadata_folders = [
-            pathology_folder
-            for pathology_folder in cdes_metadata_path.iterdir()
-            if pathology_folder.is_dir()
+        cdes_data_model_metadata_folders = [
+            data_model_folder
+            for data_model_folder in cdes_metadata_path.iterdir()
+            if data_model_folder.is_dir()
         ]
 
-        for pathology_metadata_folder in cdes_pathology_metadata_folders:
-            pathology_metadata_filepath = (
-                pathology_metadata_folder / PATHOLOGY_METADATA_FILENAME
+        for data_model_metadata_folder in cdes_data_model_metadata_folders:
+            data_model_metadata_filepath = (
+                data_model_metadata_folder / data_model_METADATA_FILENAME
             )
             try:
-                with open(pathology_metadata_filepath) as file:
+                with open(data_model_metadata_filepath) as file:
                     contents = file.read()
-                    pathology_metadata = MetadataGroup.from_json(contents)
-                self.pathologies[pathology_metadata.code] = {
+                    data_model_metadata = MetadataGroup.from_json(contents)
+                self.pathologies[data_model_metadata.code] = {
                     variable.code: CommonDataElement(variable)
-                    for group in pathology_metadata
+                    for group in data_model_metadata
                     for variable in group.variables
                 }
             except Exception as e:
                 logging.error(
-                    f"Error parsing metadata file: {pathology_metadata_filepath}"
+                    f"Error parsing metadata file: {data_model_metadata_filepath}"
                 )
                 raise e
 
             # Adding the subject code cde that doesn't exist in the metadata
-            self.pathologies[pathology_metadata.code][
+            self.pathologies[data_model_metadata.code][
                 "subjectcode"
             ] = CommonDataElement(
                 MetadataVariable(

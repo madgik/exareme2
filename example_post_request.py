@@ -10,8 +10,8 @@ from devtools import debug
 def do_post_request():
     url = "http://127.0.0.1:5000/algorithms" + "/logistic_regression"
 
-    pathology = "dementia"
-    version = "0.1"
+    data_model = "dementia"
+    data_model_version = "0.1"
     datasets = ["edsd"]
     x = [
         "lefthippocampus",
@@ -48,8 +48,8 @@ def do_post_request():
     classes = ["AD", "CN"]
 
     algorithm_input_data = AlgorithmInputDataDTO(
-        pathology=pathology,
-        version=version,
+        data_model=data_model,
+        data_model_version=data_model_version,
         datasets=datasets,
         filters=filters,
         x=x,

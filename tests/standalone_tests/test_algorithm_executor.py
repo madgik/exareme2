@@ -38,11 +38,11 @@ class NodeMock(_INode):
     def get_views(self) -> List[NodeTable]:
         pass
 
-    def create_pathology_view(
+    def create_data_model_view(
         self,
         command_id: str,
-        pathology: str,
-        version: str,
+        data_model: str,
+        data_model_version: str,
         columns: List[str],
         filters: List[str],
     ) -> NodeTable:

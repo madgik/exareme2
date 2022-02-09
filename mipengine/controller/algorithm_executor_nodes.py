@@ -44,11 +44,11 @@ class _INode(ABC):
         pass
 
     @abstractmethod
-    def create_pathology_view(
+    def create_data_model_view(
         self,
         command_id: str,
-        pathology: str,
-        version: str,
+        data_model: str,
+        data_model_version: str,
         columns: List[str],
         filters: List[str],
     ) -> NodeTable:
@@ -122,7 +122,7 @@ class _Node(_INode, ABC):
     def _create_initial_view_tables(
         self, initial_view_tables_params
     ) -> Dict[str, NodeTable]:
-        # will contain the views created from the pathology, datasets. Its keys are
+        # will contain the views created from the data_model, datasets. Its keys are
         # the variable sets x, y etc
         initial_view_tables = {}
 
@@ -130,10 +130,10 @@ class _Node(_INode, ABC):
         variable = "x"
         if initial_view_tables_params[variable]:
             command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_pathology_view(
+            view_name = self.create_data_model_view(
                 command_id=command_id,
-                pathology=initial_view_tables_params["pathology"],
-                version=initial_view_tables_params["version"],
+                data_model=initial_view_tables_params["data_model"],
+                data_model_version=initial_view_tables_params["data_model_version"],
                 columns=initial_view_tables_params[variable],
                 filters=initial_view_tables_params["filters"],
             )
@@ -143,10 +143,10 @@ class _Node(_INode, ABC):
         variable = "y"
         if initial_view_tables_params[variable]:
             command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_pathology_view(
+            view_name = self.create_data_model_view(
                 command_id=command_id,
-                pathology=initial_view_tables_params["pathology"],
-                version=initial_view_tables_params["version"],
+                data_model=initial_view_tables_params["data_model"],
+                data_model_version=initial_view_tables_params["data_model_version"],
                 columns=initial_view_tables_params[variable],
                 filters=initial_view_tables_params["filters"],
             )
@@ -200,20 +200,20 @@ class _Node(_INode, ABC):
 
     # TODO: this is very specific to mip, very inconsistent with the rest, has to
     # be abstracted somehow
-    def create_pathology_view(
+    def create_data_model_view(
         self,
         command_id: str,
-        pathology: str,
-        version: str,
+        data_model: str,
+        data_model_version: str,
         columns: List[str],
         filters: List[str],
     ) -> NodeTable:
-        result = self._node_tasks_handler.create_pathology_view(
+        result = self._node_tasks_handler.create_data_model_view(
             request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
-            pathology=pathology,
-            version=version,
+            data_model=data_model,
+            data_model_version=data_model_version,
             columns=columns,
             filters=filters,
         )

@@ -19,8 +19,8 @@ local_node_create_table = get_celery_task_signature(local_node, "create_table")
 local_node_insert_data_to_table = get_celery_task_signature(
     local_node, "insert_data_to_table"
 )
-local_node_create_pathology_view = get_celery_task_signature(
-    local_node, "create_pathology_view"
+local_node_create_data_model_view = get_celery_task_signature(
+    local_node, "create_data_model_view"
 )
 local_node_create_view = get_celery_task_signature(local_node, "create_view")
 local_node_get_views = get_celery_task_signature(local_node, "get_views")
@@ -169,21 +169,21 @@ def test_view_with_filters(request_id, context_id):
     assert view_data.name == view_name
 
 
-def test_pathology_view_without_filters(request_id, context_id):
+def test_data_model_view_without_filters(request_id, context_id):
     columns = [
         "dataset",
         "age_value",
         "gcs_motor_response_scale",
         "pupil_reactivity_right_eye_result",
     ]
-    pathology = "tbi"
-    version = "0.1"
-    view_name = local_node_create_pathology_view.delay(
+    data_model = "tbi"
+    data_model_version = "0.1"
+    view_name = local_node_create_data_model_view.delay(
         request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
-        pathology=pathology,
-        version=version,
+        data_model=data_model,
+        data_model_version=data_model_version,
         columns=columns,
         filters=None,
     ).get()
@@ -221,15 +221,15 @@ def test_pathology_view_without_filters(request_id, context_id):
     assert view_schema == schema
 
 
-def test_pathology_view_with_filters(request_id, context_id):
+def test_data_model_view_with_filters(request_id, context_id):
     columns = [
         "dataset",
         "age_value",
         "gcs_motor_response_scale",
         "pupil_reactivity_right_eye_result",
     ]
-    pathology = "tbi"
-    version = "0.1"
+    data_model = "tbi"
+    data_model_version = "0.1"
     rules = {
         "condition": "AND",
         "rules": [
@@ -249,12 +249,12 @@ def test_pathology_view_with_filters(request_id, context_id):
         ],
         "valid": True,
     }
-    view_name = local_node_create_pathology_view.delay(
+    view_name = local_node_create_data_model_view.delay(
         request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
-        pathology=pathology,
-        version=version,
+        data_model=data_model,
+        data_model_version=data_model_version,
         columns=columns,
         filters=rules,
     ).get()
@@ -295,7 +295,8 @@ def test_bad_filters_exception():
     algorithm_name = "standard_deviation"
     request_params = {
         "inputdata": {
-            "pathology": "dementia",
+            "data_model": "dementia",
+            "data_model_version": "0.1",
             "datasets": ["edsd"],
             "x": [
                 "lefthippocampus",
@@ -316,15 +317,15 @@ def test_bad_filters_exception():
     assert response.status_code == 400
 
 
-def test_pathology_view_with_privacy_error(request_id, context_id):
+def test_data_model_view_with_privacy_error(request_id, context_id):
     columns = [
         "dataset",
         "age_value",
         "gcs_motor_response_scale",
         "pupil_reactivity_right_eye_result",
     ]
-    pathology = "tbi"
-    version = "0.1"
+    data_model = "tbi"
+    data_model_version = "0.1"
 
     # Adding a filter that cannot be matched
     rules = {
@@ -347,12 +348,12 @@ def test_pathology_view_with_privacy_error(request_id, context_id):
         "valid": True,
     }
     with pytest.raises(InsufficientDataError):
-        local_node_create_pathology_view.delay(
+        local_node_create_data_model_view.delay(
             request_id=request_id,
             context_id=context_id,
             command_id=uuid.uuid4().hex,
-            pathology=pathology,
-            version=version,
+            data_model=data_model,
+            data_model_version=data_model_version,
             columns=columns,
             filters=rules,
         ).get()

@@ -12,8 +12,8 @@ from mipengine.controller.api.algorithm_request_dto import (
 def do_post_request():
     url = "http://127.0.0.1:5000/algorithms" + "/pca"
 
-    pathology = "dementia"
-    version = "0.1"
+    data_model = "dementia"
+    data_model_version = "0.1"
     datasets = ["edsd"]
     x = [
         "lefthippocampus",
@@ -48,8 +48,8 @@ def do_post_request():
     }
 
     algorithm_input_data = AlgorithmInputDataDTO(
-        pathology=pathology,
-        version=version,
+        data_model=data_model,
+        data_model_version=data_model_version,
         datasets=datasets,
         filters=filters,
         x=x,

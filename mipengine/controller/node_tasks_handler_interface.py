@@ -77,13 +77,13 @@ class INodeTasksHandler(ABC):
     # TODO: this is very specific to mip, very inconsistent with the rest, has to be
     # abstracted somehow
     @abstractmethod
-    def create_pathology_view(
+    def create_data_model_view(
         self,
         request_id: str,
         context_id: str,
         command_id: str,
-        pathology: str,
-        version: str,
+        data_model: str,
+        data_model_version: str,
         columns: List[str],
         filters: List[str],
     ) -> str:

@@ -65,7 +65,7 @@ def mock_cdes():
             "alzheimerbroadcategory": CommonDataElement(
                 MetadataVariable(
                     code="alzheimerbroadcategory",
-                    label="There will be two broad categories taken into account. Alzheimer s disease (AD) in which the diagnostic is 100% certain and <Other> comprising the rest of Alzheimer s related categories. The <Other> category refers to Alzheime s related diagnosis which origin can be traced to other pathology eg. vascular. In this category MCI diagnosis can also be found. In summary  all Alzheimer s related diagnosis that are not pure.",
+                    label="There will be two broad categories taken into account. Alzheimer s disease (AD) in which the diagnostic is 100% certain and <Other> comprising the rest of Alzheimer s related categories. The <Other> category refers to Alzheime s related diagnosis which origin can be traced to other data_model eg. vascular. In this category MCI diagnosis can also be found. In summary  all Alzheimer s related diagnosis that are not pure.",
                     sql_type="text",
                     isCategorical=True,
                     enumerations=[
@@ -131,9 +131,9 @@ def get_parametrization_list_success_cases():
         algorithm_name="logistic_regression",
         algorithm_request_dto=AlgorithmRequestDTO(
             inputdata=AlgorithmInputDataDTO(
-                pathology="dementia",
+                data_model="dementia",
+                data_model_version="0.1",
                 datasets=["edsd"],
-                version="0.1",
                 filters={
                     "condition": "AND",
                     "rules": [
@@ -187,9 +187,9 @@ def get_parametrization_list_success_cases():
         algorithm_name="smpc_standard_deviation",
         algorithm_request_dto=AlgorithmRequestDTO(
             inputdata=AlgorithmInputDataDTO(
-                pathology="dementia",
+                data_model="dementia",
                 datasets=["edsd"],
-                version="0.1",
+                data_model_version="0.1",
                 filters={
                     "condition": "AND",
                     "rules": [

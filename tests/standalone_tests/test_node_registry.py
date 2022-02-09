@@ -142,7 +142,7 @@ test_cases_schema_exists = [
     test_cases_schema_exists,
 )
 def test_schema_exists(schema, exists, mocked_node_registry):
-    assert mocked_node_registry.schema_exists(schema) == exists
+    assert mocked_node_registry.data_model_exists(schema) == exists
 
 
 test_cases_dataset_exists = [
@@ -196,7 +196,7 @@ def test_get_all_available_schemas(mocked_node_registry):
     expected_available_schemas = ["schema1", "schema2"]
     expected_available_schemas.sort()
 
-    available_schemas = mocked_node_registry.get_all_available_schemas()
+    available_schemas = mocked_node_registry.get_all_available_data_models()
     available_schemas.sort()
 
     assert available_schemas == expected_available_schemas
@@ -208,6 +208,6 @@ def test_get_all_available_datasets_per_schema(mocked_node_registry):
         "schema2": ["dataset6", "dataset7", "dataset8", "dataset9", "dataset10"],
     }
 
-    datasets_per_schema = mocked_node_registry.get_all_available_datasets_per_schema()
+    datasets_per_schema = mocked_node_registry.get_all_available_datasets_per_data_model()
 
     assert datasets_per_schema == expected_datasets_per_schema

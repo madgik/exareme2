@@ -12,8 +12,9 @@ from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
 
 TESTING_DATAMODEL = "dementia"
-DATA_TABLENAME = f""""{TESTING_DATAMODEL}:0.1".primary_data"""
-METADATA_TABLENAME = f""""{TESTING_DATAMODEL}:0.1".variables_metadata"""
+TESTING_DATAMODEL_VERSION = "0.1"
+DATA_TABLENAME = f""""{TESTING_DATAMODEL}:{TESTING_DATAMODEL_VERSION}".primary_data"""
+METADATA_TABLENAME = f""""{TESTING_DATAMODEL}:{TESTING_DATAMODEL_VERSION}".variables_metadata"""
 
 MAX_TABLE_SIZE = 60
 MIN_TABLE_SIZE = 1
@@ -243,7 +244,8 @@ class InputGenerator:
                 diff = set(inputdata["y"]) & set(inputdata["x"])
                 inputdata["x"] = tuple(set(inputdata["x"]) - diff)
 
-            inputdata["pathology"] = TESTING_DATAMODEL
+            inputdata["data_model"] = TESTING_DATAMODEL
+            inputdata["data_model"] = TESTING_DATAMODEL
             inputdata["datasets"] = self.datasets_gen.draw()
             inputdata["filters"] = self.filters_gen.draw()
             parameters = {
