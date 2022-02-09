@@ -212,12 +212,13 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
 
 
 @task(iterable=["node"])
-def create_monetdb(c, node, monetdb_image=None):
+def create_monetdb(c, node, image=None, log_level=None):
     """
     (Re)Create MonetDB container(s) for given node(s). If the container exists, it will remove it and create it again.
 
     :param node: A list of nodes for which it will create the monetdb containers.
-    :param monetdb_image: The image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param image: The image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param log_level: If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
 
     If an image is not provided it will use the 'monetdb_image' field from
     the 'DEPLOYMENT_CONFIG_FILE' ex. monetdb_image = "madgik/mipenginedb:dev1.2"
@@ -228,10 +229,13 @@ def create_monetdb(c, node, monetdb_image=None):
         message("Please specify a node using --node <node>", Level.WARNING)
         sys.exit(1)
 
-    if not monetdb_image:
-        monetdb_image = get_deployment_config("monetdb_image")
+    if not image:
+        image = get_deployment_config("monetdb_image")
 
-    get_docker_image(c, monetdb_image)
+    if not log_level:
+        log_level = get_deployment_config("log_level")
+
+    get_docker_image(c, image)
 
     node_ids = node
     for node_id in node_ids:
@@ -246,13 +250,24 @@ def create_monetdb(c, node, monetdb_image=None):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} --name {container_name} {monetdb_image}"""
+        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} --name {container_name} {image}"""
         run(c, cmd)
+
+
+@task(iterable=["port"])
+def init_monetdb(c, port):
+    """
+    Initialize MonetDB container(s) with mipdb.
+
+    :param port: A list of container ports that will be initialized.
+    """
+    ports = port
+    for port in ports:
         message(
-            f"Initializing the {container_name}...",
+            f"Initializing MonetDB with mipdb in port: {port}...",
             Level.HEADER,
         )
-        cmd = f"""poetry run mipdb init --ip 172.17.0.1 --port {node_config['monetdb']['port']}"""
+        cmd = f"""poetry run mipdb init --ip 172.17.0.1 --port {port}"""
         run(c, cmd)
 
 
@@ -497,6 +512,7 @@ def deploy(
     start_all=True,
     start_controller_=False,
     start_nodes=False,
+    log_level=None,
     framework_log_level=None,
     monetdb_image=None,
     algorithm_folders=None,
@@ -508,10 +524,14 @@ def deploy(
     :param start_all: Start all node/controller services flag.
     :param start_controller_: Start controller services flag.
     :param start_nodes: Start all nodes flag.
+    :param log_level: Used for the dev logs. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param framework_log_level: Used for the engine services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_image: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param algorithm_folders: Used from the services.
     """
+
+    if not log_level:
+        log_level = get_deployment_config("log_level")
 
     if not framework_log_level:
         framework_log_level = get_deployment_config("framework_log_level")
@@ -532,13 +552,16 @@ def deploy(
         sys.exit(1)
 
     node_ids = []
+    monetdb_ports = []
     for node_config_file in config_files:
         with open(node_config_file) as fp:
             node_config = toml.load(fp)
         node_ids.append(node_config["identifier"])
+        monetdb_ports.append(node_config["monetdb"]["port"])
 
-    create_monetdb(c, node=node_ids, monetdb_image=monetdb_image)
+    create_monetdb(c, node=node_ids, image=monetdb_image, log_level=log_level)
     create_rabbitmq(c, node=node_ids)
+    init_monetdb(c, port=monetdb_ports)
 
     if start_nodes or start_all:
         start_node(
