@@ -13,7 +13,7 @@ from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCeler
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/mipengine_rabbitmq:latest"
-TESTING_MONETDB_CONT_IMAGE = "madgik/mipenginedb:latest"
+TESTING_MONETDB_CONT_IMAGE = "kostas/mipenginedb:latest1"
 
 this_mod_path = os.path.dirname(os.path.abspath(__file__))
 TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")

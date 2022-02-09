@@ -129,6 +129,7 @@ class AlgorithmExecutor:
         initial_view_tables_params = {
             "commandId": get_next_command_id(),
             "pathology": self._algorithm_execution_dto.algorithm_request_dto.inputdata.pathology,
+            "version": self._algorithm_execution_dto.algorithm_request_dto.inputdata.version,
             "datasets": self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
             "x": self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
             "y": self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,

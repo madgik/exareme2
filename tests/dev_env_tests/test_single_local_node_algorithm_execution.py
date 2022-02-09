@@ -133,6 +133,7 @@ def get_parametrization_list_success_cases():
             inputdata=AlgorithmInputDataDTO(
                 pathology="dementia",
                 datasets=["edsd"],
+                version="0.1",
                 filters={
                     "condition": "AND",
                     "rules": [
@@ -188,6 +189,7 @@ def get_parametrization_list_success_cases():
             inputdata=AlgorithmInputDataDTO(
                 pathology="dementia",
                 datasets=["edsd"],
+                version="0.1",
                 filters={
                     "condition": "AND",
                     "rules": [

@@ -40,7 +40,7 @@ def build_filter_clause(rules):
     if "condition" in rules:
         _check_condition(rules["condition"])
         cond = rules["condition"]
-        rules = rules["rules"]
+        rules = rules["rules"], inputdata.version
         return f" {cond} ".join([build_filter_clause(rule) for rule in rules])
 
     if "id" in rules:

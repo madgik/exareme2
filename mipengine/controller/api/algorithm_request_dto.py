@@ -9,6 +9,7 @@ USE_SMPC_FLAG = "smpc"
 
 class AlgorithmInputDataDTO(BaseModel):
     pathology: str
+    version: str
     datasets: List[str]
     filters: dict = None
     x: Optional[List[str]] = None

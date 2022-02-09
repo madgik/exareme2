@@ -276,6 +276,7 @@ def get_parametrization_list_success_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1", "test_dataset2"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -288,6 +289,7 @@ def get_parametrization_list_success_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema2",
+                    version="0.1",
                     datasets=["test_dataset2", "test_dataset3"],
                     x=["test_cde1"],
                     y=["test_cde3"],
@@ -300,6 +302,7 @@ def get_parametrization_list_success_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema2",
+                    version="0.1",
                     datasets=["test_dataset2", "test_dataset3"],
                     y=["test_cde1"],
                 ),
@@ -310,6 +313,7 @@ def get_parametrization_list_success_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema2",
+                    version="0.1",
                     datasets=["test_dataset2", "test_dataset3"],
                     x=["test_cde1"],
                 ),
@@ -339,6 +343,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["demo_data"],
                     x=["lefthippocampus", "righthippocampus"],
                     y=["alzheimerbroadcategory_bin"],
@@ -351,6 +356,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["demo_data"],
                     x=["lefthippocampus", "righthippocampus"],
                     y=["alzheimerbroadcategory_bin"],
@@ -366,6 +372,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="non_existing",
+                    version="0.1",
                     datasets=["demo_data"],
                     x=["lefthippocampus", "righthippocampus"],
                     y=["alzheimerbroadcategory_bin"],
@@ -378,6 +385,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["non_existing", "non_existing2"],
                     x=["lefthippocampus", "righthippocampus"],
                     y=["alzheimerbroadcategory_bin"],
@@ -393,6 +401,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3", "test_cde2"],
@@ -405,6 +414,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["non_existing"],
@@ -417,6 +427,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde1"],
@@ -429,6 +440,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde4"],
@@ -441,6 +453,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde5", "test_cde2"],
                     y=["test_cde3"],
@@ -453,6 +466,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde6"],
@@ -465,6 +479,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -477,6 +492,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -490,6 +506,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -503,6 +520,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -516,6 +534,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -529,6 +548,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -542,6 +562,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -555,6 +576,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -568,6 +590,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     pathology="test_schema1",
+                    version="0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
