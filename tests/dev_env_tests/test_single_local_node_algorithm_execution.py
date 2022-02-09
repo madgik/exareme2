@@ -185,6 +185,7 @@ def get_parametrization_list_success_cases():
         context_id="1234",
         algorithm_name="smpc_standard_deviation",
         algorithm_request_dto=AlgorithmRequestDTO(
+            request_id="1234",
             inputdata=AlgorithmInputDataDTO(
                 pathology="dementia",
                 datasets=["edsd"],
