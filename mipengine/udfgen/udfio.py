@@ -1,13 +1,34 @@
-from functools import partial, reduce
+import logging
+import os
 import re
+from functools import partial
+from functools import reduce
+from typing import List
+from typing import Tuple
+from typing import Union
 
 import numpy as np
 import pandas as pd
-from typing import Union
 
-from typing import Tuple
+LOG_LEVEL_ENV_VARIABLE = "LOG_LEVEL"
+LOG_LEVEL_DEFAULT_VALUE = "INFO"
 
-from typing import List
+
+def get_logger(udf_name: str, request_id: str):
+    logger = logging.getLogger("monetdb_udf")
+    for handler in logger.handlers:
+        logger.removeHandler(handler)
+
+    log_level = os.getenv(LOG_LEVEL_ENV_VARIABLE, LOG_LEVEL_DEFAULT_VALUE)
+    formatter = logging.Formatter(
+        f"%(asctime)s - %(levelname)s - MONETDB - PYTHONUDF - {udf_name}(%(lineno)d) - {request_id} - %(message)s"
+    )
+    # StreamHandler
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    logger.addHandler(sh)
+    logger.setLevel(log_level)
+    return logger
 
 
 def as_tensor_table(array: np.ndarray):
