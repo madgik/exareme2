@@ -208,6 +208,8 @@ def test_get_all_available_datasets_per_schema(mocked_node_registry):
         "schema2": ["dataset6", "dataset7", "dataset8", "dataset9", "dataset10"],
     }
 
-    datasets_per_schema = mocked_node_registry.get_all_available_datasets_per_data_model()
+    datasets_per_schema = (
+        mocked_node_registry.get_all_available_datasets_per_data_model()
+    )
 
     assert datasets_per_schema == expected_datasets_per_schema

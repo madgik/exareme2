@@ -14,7 +14,9 @@ from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 TESTING_DATAMODEL = "dementia"
 TESTING_DATAMODEL_VERSION = "0.1"
 DATA_TABLENAME = f""""{TESTING_DATAMODEL}:{TESTING_DATAMODEL_VERSION}".primary_data"""
-METADATA_TABLENAME = f""""{TESTING_DATAMODEL}:{TESTING_DATAMODEL_VERSION}".variables_metadata"""
+METADATA_TABLENAME = (
+    f""""{TESTING_DATAMODEL}:{TESTING_DATAMODEL_VERSION}".variables_metadata"""
+)
 
 MAX_TABLE_SIZE = 60
 MIN_TABLE_SIZE = 1
