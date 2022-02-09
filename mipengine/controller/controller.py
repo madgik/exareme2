@@ -86,13 +86,6 @@ class Controller:
             available_datasets_per_schema=available_datasets_per_schema,
         )
 
-    def initialize_request_id(self, algorithm_request_dto: AlgorithmRequestDTO):
-        return (
-            algorithm_request_dto.request_id
-            if algorithm_request_dto.request_id
-            else get_a_uniqueid()
-        )
-
     async def start_node_registry(self):
         asyncio.create_task(node_registry.update())
 
