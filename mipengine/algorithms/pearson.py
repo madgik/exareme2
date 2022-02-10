@@ -8,7 +8,6 @@ from mipengine.udfgen.udfgenerator import (
     udf,
     transfer,
     relation,
-    make_unique_func_name,
     merge_transfer,
     literal,
 )
@@ -47,13 +46,13 @@ def run(algo_interface):
     ]
 
     local_transfers = local_run(
-        func_name=make_unique_func_name(local1),
+        func=local1,
         keyword_args=dict(y=Y_relation, x=X_relation),
         share_to_global=[True],
     )
 
     result = global_run(
-        func_name=make_unique_func_name(global1),
+        func=global1,
         keyword_args=dict(local_transfers=local_transfers, alpha=alpha),
     )
 
