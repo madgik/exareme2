@@ -52,10 +52,14 @@ from mipengine.udfgen.udfgenerator import (
     transfer,
     udf,
     verify_declared_typeparams_match_passed_type,
+    udf_logger,
 )
 from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
 from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
 from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
+
+
+REQUEST_ID = "test_udfgenerator"
 
 
 @pytest.fixture(autouse=True)
@@ -398,6 +402,47 @@ class TestUDFValidation:
             return y
 
         assert udf.registry != {}
+
+    def test_validate_func_as_valid_udf_with_logger_input(self):
+        @udf(
+            y=transfer(),
+            logger=udf_logger(),
+            return_type=transfer(),
+        )
+        def f(y, logger):
+            y = {"num": 1}
+            return y
+
+        assert udf.registry != {}
+
+    def test_validate_func_as_invalid_if_logger_is_not_the_last_input_parameter(self):
+        with pytest.raises(UDFBadDefinition) as exc:
+
+            @udf(
+                logger=udf_logger(),
+                y=transfer(),
+                return_type=transfer(),
+            )
+            def f(logger, y):
+                y = {"num": 1}
+                return y
+
+        assert "'udf_logger' must be the last input parameter" in str(exc)
+
+    def test_validate_func_as_invalid_if_logger_exists_more_than_once(self):
+        with pytest.raises(UDFBadDefinition) as exc:
+
+            @udf(
+                y=transfer(),
+                logger1=udf_logger(),
+                logger2=udf_logger(),
+                return_type=transfer(),
+            )
+            def f(y, logger1, logger2):
+                y = {"num": 1}
+                return y
+
+        assert "Only one 'udf_logger' parameter can exist" in str(exc)
 
 
 class TestMappingsCoincide:
@@ -1034,16 +1079,10 @@ class TestUDFGenBase:
     @pytest.fixture(scope="class")
     def concrete_udf_sel(self, expected_udf_outputs, expected_udfsel):
         """
-                The udf definition could contain more than one tablename placeholders.
-        <<<<<<< HEAD
-                The expected_udf_outputs is used to replace all the necessary fields.
-                Just like in the `concrete_udf_outputs` it replaces the tablename_placeholder
-                in the Templates using the same tablename.
-        =======
-                The expected_udf_output_tables is used to replace all the necessary
-                fields. Just like in the `concrete_udf_output_tables` it replaces the
-                tablename_placeholder in the Templates using the same tablename.
-        >>>>>>> 151afb5134690258046d3cf907d057a6b68371eb
+        The udf definition could contain more than one tablename placeholders.
+        The expected_udf_outputs are used to replace all the necessary fields.
+        Just like in the `concrete_udf_outputs` it replaces the tablename_placeholder
+        in the Templates using the same tablename.
         """
         template_mapping = {
             "udf_name": "udf_test",
@@ -1217,9 +1256,73 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
         keywordargs = {"z": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
             _, _ = get_udf_templates_using_udfregistry(
-                funcname, posargs, keywordargs, udfregistry, False
+                request_id=REQUEST_ID,
+                funcname=funcname,
+                posargs=posargs,
+                keywordargs=keywordargs,
+                udfregistry=udfregistry,
+                smpc_used=False,
             )
         assert "UDF argument names do not match UDF parameter names" in str(exc)
+
+
+class TestUDFGen_LoggerArgument_provided_in_pos_args(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            x=tensor(dtype=int, ndims=1),
+            logger=udf_logger(),
+            return_type=scalar(int),
+        )
+        def f(x, logger):
+            return x
+
+        return udf.registry
+
+    def test_get_udf_templates(self, udfregistry, funcname):
+        posargs = [TensorArg("table_name", dtype=int, ndims=1), LiteralArg(1)]
+        with pytest.raises(UDFBadCall) as exc:
+            _, _ = get_udf_templates_using_udfregistry(
+                request_id=REQUEST_ID,
+                funcname=funcname,
+                posargs=posargs,
+                keywordargs={},
+                udfregistry=udfregistry,
+                smpc_used=False,
+            )
+        assert "No argument should be provided for 'UDFLoggerType' parameter" in str(
+            exc
+        )
+
+
+class TestUDFGen_LoggerArgument_provided_in_kw_args(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            x=tensor(dtype=int, ndims=1),
+            logger=udf_logger(),
+            return_type=scalar(int),
+        )
+        def f(x, logger):
+            return x
+
+        return udf.registry
+
+    def test_get_udf_templates(self, udfregistry, funcname):
+        posargs = [TensorArg("table_name", dtype=int, ndims=1)]
+        keywordargs = {"logger": LiteralArg(1)}
+        with pytest.raises(UDFBadCall) as exc:
+            _, _ = get_udf_templates_using_udfregistry(
+                request_id=REQUEST_ID,
+                funcname=funcname,
+                posargs=posargs,
+                keywordargs=keywordargs,
+                udfregistry=udfregistry,
+                smpc_used=False,
+            )
+        assert "No argument should be provided for 'UDFLoggerType' parameter" in str(
+            exc
+        )
 
 
 class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
@@ -1258,7 +1361,13 @@ class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry, False)
+            _, _ = generate_udf_queries(
+                request_id=REQUEST_ID,
+                func_name=funcname,
+                positional_args=posargs,
+                keyword_args={},
+                smpc_used=False,
+            )
         assert "should be of type" in str(exc)
 
 
@@ -1302,6 +1411,7 @@ class TestUDFGen_InvalidUDFArgs_TensorTableInTransferArgument(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1348,6 +1458,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1383,6 +1494,7 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
         ]
         try:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1393,6 +1505,7 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
 
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1439,6 +1552,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1470,6 +1584,7 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         keywordargs = {}
         with pytest.raises(ValueError) as e:
             _, _ = get_udf_templates_using_udfregistry(
+                request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
                 keywordargs=keywordargs,
@@ -1486,7 +1601,13 @@ class TestUDFGen_KW_args_on_tensor_operation:
         posargs = []
         keywordargs = {"Μ": 5, "v": 7}
         with pytest.raises(UDFBadCall) as e:
-            _ = generate_udf_queries(funcname, posargs, keywordargs, False)
+            _ = generate_udf_queries(
+                request_id=REQUEST_ID,
+                func_name=funcname,
+                positional_args=posargs,
+                keyword_args=keywordargs,
+                smpc_used=False,
+            )
         err_msg, *_ = e.value.args
         assert "Keyword args are not supported for tensor operations." in err_msg
 
@@ -1525,6 +1646,10 @@ class _TestGenerateUDFQueries:
     def use_smpc(self):
         return False
 
+    @pytest.fixture(scope="class")
+    def request_id(self):
+        return "test_udfgenerator_base"
+
     def test_generate_udf_queries(
         self,
         funcname,
@@ -1534,8 +1659,10 @@ class _TestGenerateUDFQueries:
         expected_udf_outputs,
         traceback,
         use_smpc,
+        request_id,
     ):
         udf_execution_queries = generate_udf_queries(
+            request_id=request_id,
             func_name=funcname,
             positional_args=positional_args,
             keyword_args={},
@@ -5088,6 +5215,89 @@ FROM
         ).fetchone()
         result = json.loads(transfer)
         assert result == {"sum": [100, 200, 300], "max": 58}
+
+
+class TestUDFGen_LoggerArgument(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            t=literal(),
+            logger=udf_logger(),
+            return_type=transfer(),
+        )
+        def f(t, logger):
+            logger.info("Log inside monetdb udf.")
+            result = {"num": t}
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [5]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("transfer" CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import json
+    t = 5
+    logger = udfio.get_logger('f_gb47', 'test_udfgenerator')
+    logger.info('Log inside monetdb udf.')
+    result = {'num': t}
+    return json.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                ),
+            )
+        ]
+
+    @pytest.fixture(scope="class")
+    def request_id(self):
+        return "test_udfgenerator"
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures("use_globalnode_database")
+    def test_udf_with_db(
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
+    ):
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        _, transfer = globalnode_db_cursor.execute(
+            "SELECT * FROM main_output_table_name"
+        ).fetchone()
+        result = json.loads(transfer)
+        assert result == {"num": 5}
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~ Test SQL Generator ~~~~~~~~~~~~~~~~~~ #

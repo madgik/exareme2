@@ -285,24 +285,26 @@ from textwrap import indent
 from typing import Dict
 from typing import List
 from typing import NamedTuple
+from typing import Optional
+from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
 import astor
 import numpy
-from typing import Tuple
 
 from mipengine import DType as dt
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType as DBTableType
 from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
 from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
-from mipengine.udfgen.udfgen_DTOs import UDFGenExecutionQueries
 from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
+from mipengine.udfgen.udfgen_DTOs import UDFGenExecutionQueries
 from mipengine.udfgen.udfgen_DTOs import UDFGenResult
 
 __all__ = [
     "udf",
+    "udf_logger",
     "tensor",
     "relation",
     "merge_tensor",
@@ -772,6 +774,14 @@ class LoopbackOutputType(OutputType):
     pass
 
 
+class UDFLoggerType(InputType):
+    pass
+
+
+def udf_logger():
+    return UDFLoggerType()
+
+
 class TableType(ABC):
     @property
     @abstractmethod
@@ -941,6 +951,16 @@ def literal():
 class UDFArgument:
     __repr__ = recursive_repr
     type: InputType
+
+
+class UDFLoggerArg(UDFArgument):
+    type = UDFLoggerType()
+    request_id: str
+    udf_name: str
+
+    def __init__(self, request_id, udf_name):
+        self.request_id = request_id
+        self.udf_name = udf_name
 
 
 class TableArg(UDFArgument, ABC):
@@ -1274,6 +1294,17 @@ class LiteralAssignments(ASTNode):
         return LN.join(f"{name} = {arg.value}" for name, arg in self.literals.items())
 
 
+class LoggerAssignment(ASTNode):
+    def __init__(self, logger: Optional[Tuple[str, UDFLoggerArg]]):
+        self.logger = logger
+
+    def compile(self) -> str:
+        if not self.logger:
+            return ""
+        name, logger_arg = self.logger
+        return f"{name} = udfio.get_logger('{logger_arg.udf_name}', '{logger_arg.request_id}')"
+
+
 class UDFBodyStatements(ASTNode):
     def __init__(self, statements):
         self.returnless_stmts = [
@@ -1292,6 +1323,7 @@ class UDFBody(ASTNode):
         table_args: Dict[str, TableArg],
         smpc_args: Dict[str, SMPCSecureTransferArg],
         literal_args: Dict[str, LiteralArg],
+        logger_arg: Optional[Tuple[str, UDFLoggerArg]],
         statements: list,
         main_return_name: str,
         main_return_type: OutputType,
@@ -1311,6 +1343,7 @@ class UDFBody(ASTNode):
         self.table_builds = TableBuilds(table_args)
         self.smpc_builds = SMPCBuilds(smpc_args)
         self.literals = LiteralAssignments(literal_args)
+        self.logger = LoggerAssignment(logger_arg)
         all_types = (
             [arg.type for arg in table_args.values()]
             + [main_return_type]
@@ -1334,6 +1367,7 @@ class UDFBody(ASTNode):
                     self.table_builds.compile(),
                     self.smpc_builds.compile(),
                     self.literals.compile(),
+                    self.logger.compile(),
                     self.returnless_stmts.compile(),
                     self.loopback_return_stmts.compile(),
                     self.return_stmt.compile(),
@@ -1387,6 +1421,7 @@ class UDFDefinition(ASTNode):
         table_args: Dict[str, TableArg],
         smpc_args: Dict[str, SMPCSecureTransferArg],
         literal_args: Dict[str, LiteralArg],
+        logger_arg: Optional[Tuple[str, UDFLoggerArg]],
         main_output_type: OutputType,
         sec_output_types: List[OutputType],
         smpc_used: bool,
@@ -1401,6 +1436,7 @@ class UDFDefinition(ASTNode):
             table_args=table_args,
             smpc_args=smpc_args,
             literal_args=literal_args,
+            logger_arg=logger_arg,
             statements=funcparts.body_statements,
             main_return_name=funcparts.main_return_name,
             main_return_type=main_output_type,
@@ -1718,6 +1754,7 @@ class FunctionParts(NamedTuple):
     sec_return_names: List[str]
     table_input_types: Dict[str, TableType]
     literal_input_types: Dict[str, LiteralType]
+    logger_param_name: Optional[str]
     main_output_type: OutputType
     sec_output_types: List[OutputType]
     sig: Signature
@@ -1728,10 +1765,12 @@ def validate_decorator_parameter_names(parameter_names, decorator_kwargs):
     Validates:
      1) that decorator parameter names and func kwargs names match.
      2) that "return_type" exists as a decorator parameter.
+     3) the udf_logger
     """
+    validate_udf_logger(parameter_names, decorator_kwargs)
+
     if "return_type" not in decorator_kwargs:
         raise UDFBadDefinition("No return_type defined.")
-
     parameter_names = set(parameter_names)
     decorator_parameter_names = set(decorator_kwargs.keys())
     decorator_parameter_names.remove("return_type")  # not a parameter
@@ -1749,6 +1788,28 @@ def validate_decorator_parameter_names(parameter_names, decorator_kwargs):
         raise UDFBadDefinition(
             f"The parameters: {','.join(parameters_not_defined_in_dec)} were not defined in the decorator."
         )
+
+
+def validate_udf_logger(parameter_names, decorator_kwargs):
+    """
+    udf_logger is a special case of a parameter.
+    It won't be provided by the user but from the udfgenerator.
+    1) Only one input of this type can exist.
+    2) It must be the final parameter, so it won't create problems with the positional arguments.
+    """
+    udf_logger_param_name = None
+    for param_name, param_type in decorator_kwargs.items():
+        if isinstance(param_type, UDFLoggerType):
+            if udf_logger_param_name:
+                raise UDFBadDefinition("Only one 'udf_logger' parameter can exist.")
+            udf_logger_param_name = param_name
+
+    if not udf_logger_param_name:
+        return
+
+    all_parameter_names_but_the_last = parameter_names[:-1]
+    if udf_logger_param_name in all_parameter_names_but_the_last:
+        raise UDFBadDefinition("'udf_logger' must be the last input parameter.")
 
 
 def make_udf_signature(parameter_names, decorator_kwargs):
@@ -1828,6 +1889,13 @@ def breakup_function(func, funcsig) -> FunctionParts:
         for name, input_type in funcsig.parameters.items()
         if isinstance(input_type, LiteralType)
     }
+
+    logger_param_name = None
+    for name, input_type in funcsig.parameters.items():
+        if isinstance(input_type, UDFLoggerType):
+            logger_param_name = name
+            break  # Only one logger is allowed
+
     main_output_type = funcsig.main_return_annotation
     sec_output_types = funcsig.sec_return_annotations
     return FunctionParts(
@@ -1837,6 +1905,7 @@ def breakup_function(func, funcsig) -> FunctionParts:
         sec_return_names=sec_return_names,
         table_input_types=table_input_types,
         literal_input_types=literal_input_types,
+        logger_param_name=logger_param_name,
         main_output_type=main_output_type,
         sec_output_types=sec_output_types,
         sig=funcsig,
@@ -1863,6 +1932,7 @@ class UDFBadCall(Exception):
 
 
 def generate_udf_queries(
+    request_id: str,
     func_name: str,
     positional_args: List[UDFGenArgument],
     keyword_args: Dict[str, UDFGenArgument],
@@ -1872,6 +1942,7 @@ def generate_udf_queries(
     """
     Parameters
     ----------
+    request_id: An identifier for logging purposes
     func_name: The name of the udf to run
     positional_args: Positional arguments
     keyword_args: Keyword arguments
@@ -1902,6 +1973,7 @@ def generate_udf_queries(
         )
 
     return get_udf_templates_using_udfregistry(
+        request_id=request_id,
         funcname=func_name,
         posargs=udf_posargs,
         keywordargs=udf_kwargs,
@@ -2018,6 +2090,7 @@ def convert_table_schema_to_relation_schema(table_schema):
 
 
 def get_udf_templates_using_udfregistry(
+    request_id: str,
     funcname: str,
     posargs: List[UDFArgument],
     keywordargs: Dict[str, UDFArgument],
@@ -2026,7 +2099,7 @@ def get_udf_templates_using_udfregistry(
     traceback=False,
 ) -> UDFGenExecutionQueries:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
-    udf_args = get_udf_args(funcparts, posargs, keywordargs)
+    udf_args = get_udf_args(request_id, funcparts, posargs, keywordargs)
     udf_args = resolve_merge_table_args(
         udf_args=udf_args,
         expected_table_types=funcparts.table_input_types,
@@ -2084,12 +2157,23 @@ def get_output_type_for_sql_tensor_operation(funcname, posargs):
     return output_type
 
 
-def get_udf_args(funcparts, posargs, keywordargs) -> Dict[str, UDFArgument]:
+def get_udf_args(request_id, funcparts, posargs, keywordargs) -> Dict[str, UDFArgument]:
     udf_args = merge_args_and_kwargs(
         param_names=funcparts.sig.parameters.keys(),
         args=posargs,
         kwargs=keywordargs,
     )
+
+    # Check logger_param_name argument is not given and if not, create it.
+    if funcparts.logger_param_name:
+        if funcparts.logger_param_name in udf_args.keys():
+            raise UDFBadCall(
+                f"No argument should be provided for 'UDFLoggerType' parameter: '{funcparts.logger_param_name}'"
+            )
+        udf_args[funcparts.logger_param_name] = UDFLoggerArg(
+            request_id=request_id,
+            udf_name=funcparts.qualname,
+        )
     return udf_args
 
 
@@ -2191,6 +2275,10 @@ def get_udf_definition_template(
     literal_args: Dict[str, LiteralArg] = get_items_of_type(
         LiteralArg, mapping=input_args
     )
+    logger_arg: Optional[str, UDFLoggerArg] = None
+    logger_param = funcparts.logger_param_name
+    if logger_param:
+        logger_arg = (logger_param, input_args[logger_param])
 
     verify_declared_and_passed_param_types_match(
         funcparts.table_input_types, table_args
@@ -2200,6 +2288,7 @@ def get_udf_definition_template(
         table_args=table_args,
         smpc_args=smpc_args,
         literal_args=literal_args,
+        logger_arg=logger_arg,
         main_output_type=main_output_type,
         sec_output_types=sec_output_types,
         smpc_used=smpc_used,

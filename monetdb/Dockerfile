@@ -23,7 +23,7 @@ RUN apt update && apt install -y python3.8-dev
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
 
-RUN apt update && apt install -y libssl-dev libpcre3 libpcre3-dev pkg-config uuid-dev libxml2 libxml2-dev unixodbc-dev build-essential
+RUN apt update && apt install -y libssl-dev libpcre3 libpcre3-dev pkg-config uuid-dev libxml2 libxml2-dev unixodbc-dev build-essential logrotate
 
 RUN apt update && apt install -y python3-pip
 RUN pip3 install numpy
@@ -66,6 +66,12 @@ COPY monetdb/bootstrap.sh /home/bootstrap.sh
 RUN chmod 775 /home/bootstrap.sh
 
 #######################################################
+# Setup logrotate file
+#######################################################
+COPY monetdb/logrotate.conf /etc/logrotate.d/monetdb
+RUN chmod 444 /etc/logrotate.d/monetdb
+
+#######################################################
 # Install python libraries
 #######################################################
 RUN pip3 install scipy
@@ -78,6 +84,7 @@ RUN pip3 install scikit-learn
 #######################################################
 COPY mipengine/udfgen/udfio.py /home/udflib/
 ENV PYTHONPATH "/home/udflib/"
+ENV LOG_LEVEL "INFO"
 
 #######################################################
 # DEV ONLY add username/password

@@ -30,6 +30,9 @@ spec:
       - name: monetdb
         image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
+        env:
+        - name: LOG_LEVEL
+          value: {{ .Values.log_level }}
         ports:
           - containerPort: 50000
         volumeMounts:

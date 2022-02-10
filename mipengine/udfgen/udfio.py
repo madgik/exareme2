@@ -1,3 +1,5 @@
+import logging
+import os
 import re
 from functools import partial
 from functools import reduce
@@ -8,6 +10,26 @@ from typing import Type
 
 import numpy as np
 import pandas as pd
+
+LOG_LEVEL_ENV_VARIABLE = "LOG_LEVEL"
+LOG_LEVEL_DEFAULT_VALUE = "INFO"
+
+
+def get_logger(udf_name: str, request_id: str):
+    logger = logging.getLogger("monetdb_udf")
+    for handler in logger.handlers:
+        logger.removeHandler(handler)
+
+    log_level = os.getenv(LOG_LEVEL_ENV_VARIABLE, LOG_LEVEL_DEFAULT_VALUE)
+    formatter = logging.Formatter(
+        f"%(asctime)s - %(levelname)s - MONETDB - PYTHONUDF - {udf_name}(%(lineno)d) - {request_id} - %(message)s"
+    )
+    # StreamHandler
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    logger.addHandler(sh)
+    logger.setLevel(log_level)
+    return logger
 
 
 def as_tensor_table(array: np.ndarray):
@@ -132,7 +154,8 @@ def _operation_on_secure_transfer_key_data(key, transfers: List[dict], operation
             )
         if transfer[key]["operation"] != operation:
             raise ValueError(
-                f"All secure transfer keys should have the same 'operation' value. '{operation}' != {transfer[key]['operation']}"
+                f"All secure transfer keys should have the same 'operation' value. "
+                f"'{operation}' != {transfer[key]['operation']}"
             )
         result = _calc_values(result, transfer[key]["data"], operation)
     return result
@@ -158,7 +181,8 @@ def _validate_calc_values(value1, value2):
     for value in [value1, value2]:
         if type(value) not in allowed_types:
             raise TypeError(
-                f"Secure transfer data must have one of the following types: {allowed_types}. Type provided: {type(value)}"
+                f"Secure transfer data must have one of the following types: "
+                f"{allowed_types}. Type provided: {type(value)}"
             )
     if (isinstance(value1, list) or isinstance(value2, list)) and (
         type(value1) != type(value2)

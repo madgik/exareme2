@@ -25,11 +25,11 @@ class Controller:
         pass
 
     async def exec_algorithm(
-        self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
+        self,
+        request_id: str,
+        algorithm_name: str,
+        algorithm_request_dto: AlgorithmRequestDTO,
     ):
-        # TODO The request id should optionally be given, in case it is not given then we generate a new one.
-        # For now to complete the node part of the task we will generate every time a new unique request_id
-        request_id = get_a_uniqueid()
         context_id = get_a_uniqueid()
         logger = ctrl_logger.get_request_logger(request_id=request_id)
 
