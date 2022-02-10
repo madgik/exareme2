@@ -32,13 +32,13 @@ from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 def validate_algorithm_request(
     algorithm_name: str,
     algorithm_request_dto: AlgorithmRequestDTO,
-    available_datasets_per_schema: Dict[str, List[str]],
+    available_datasets_per_data_model: Dict[str, List[str]],
 ):
     algorithm_specs = _get_algorithm_specs(algorithm_name)
     _validate_algorithm_request_body(
         algorithm_request_dto=algorithm_request_dto,
         algorithm_specs=algorithm_specs,
-        available_datasets_per_schema=available_datasets_per_schema,
+        available_datasets_per_data_model=available_datasets_per_data_model,
     )
 
 
@@ -51,12 +51,12 @@ def _get_algorithm_specs(algorithm_name):
 def _validate_algorithm_request_body(
     algorithm_request_dto: AlgorithmRequestDTO,
     algorithm_specs: AlgorithmSpecifications,
-    available_datasets_per_schema: Dict[str, List[str]],
+    available_datasets_per_data_model: Dict[str, List[str]],
 ):
     _validate_inputdata(
         inputdata=algorithm_request_dto.inputdata,
         inputdata_specs=algorithm_specs.inputdata,
-        available_datasets_per_schema=available_datasets_per_schema,
+        available_datasets_per_data_model=available_datasets_per_data_model,
     )
 
     _validate_parameters(
@@ -70,12 +70,12 @@ def _validate_algorithm_request_body(
 def _validate_inputdata(
     inputdata: AlgorithmInputDataDTO,
     inputdata_specs: InputDataSpecifications,
-    available_datasets_per_schema: Dict[str, List[str]],
+    available_datasets_per_data_model: Dict[str, List[str]],
 ):
     _validate_inputdata_data_model_and_dataset(
         requested_data_model=inputdata.data_model,
         requested_datasets=inputdata.datasets,
-        available_datasets_per_schema=available_datasets_per_schema,
+        available_datasets_per_data_model=available_datasets_per_data_model,
     )
 
     _validate_inputdata_filter(inputdata.data_model, inputdata.filters)
@@ -86,20 +86,20 @@ def _validate_inputdata(
 def _validate_inputdata_data_model_and_dataset(
     requested_data_model: str,
     requested_datasets: List[str],
-    available_datasets_per_schema: Dict[str, List[str]],
+    available_datasets_per_data_model: Dict[str, List[str]],
 ):
     """
     Validates that the data_model, dataset values exist and
     that the datasets belong in the data_model.
     """
 
-    if not requested_data_model in available_datasets_per_schema.keys():
+    if not requested_data_model in available_datasets_per_data_model.keys():
         raise BadUserInput(f"data_model '{requested_data_model}' does not exist.")
 
     non_existing_datasets = [
         dataset
         for dataset in requested_datasets
-        if dataset not in available_datasets_per_schema[requested_data_model]
+        if dataset not in available_datasets_per_data_model[requested_data_model]
     ]
     if non_existing_datasets:
         raise BadUserInput(
