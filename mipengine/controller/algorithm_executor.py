@@ -15,26 +15,26 @@ from mipengine.controller import config as ctrl_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
-from mipengine.controller.algorithm_executor_node_data_objects import AlgoExecData
-from mipengine.controller.algorithm_executor_node_data_objects import GlobalNodeData
-from mipengine.controller.algorithm_executor_node_data_objects import (
+from mipengine.controller.algorithm_flow_data_objects import AlgoFlowData
+from mipengine.controller.algorithm_flow_data_objects import GlobalNodeData
+from mipengine.controller.algorithm_flow_data_objects import (
     GlobalNodeSMPCTables,
 )
-from mipengine.controller.algorithm_executor_node_data_objects import GlobalNodeTable
-from mipengine.controller.algorithm_executor_node_data_objects import LocalNodesData
-from mipengine.controller.algorithm_executor_node_data_objects import (
+from mipengine.controller.algorithm_flow_data_objects import GlobalNodeTable
+from mipengine.controller.algorithm_flow_data_objects import LocalNodesData
+from mipengine.controller.algorithm_flow_data_objects import (
     LocalNodesSMPCTables,
 )
-from mipengine.controller.algorithm_executor_node_data_objects import LocalNodesTable
-from mipengine.controller.algorithm_executor_node_data_objects import NodeData
-from mipengine.controller.algorithm_executor_node_data_objects import NodeSMPCTables
-from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
-from mipengine.controller.algorithm_executor_node_data_objects import (
+from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
+from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_kwargs_to_node_udf_kwargs,
 )
-from mipengine.controller.algorithm_executor_node_data_objects import (
+from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
+from mipengine.controller.algorithm_executor_node_data_objects import NodeData
+from mipengine.controller.algorithm_executor_node_data_objects import SMPCTableNames
+from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.controller.algorithm_executor_nodes import LocalNode
 from mipengine.controller.algorithm_executor_smpc_helper import get_smpc_results
@@ -71,13 +71,13 @@ class NodeDownAlgorithmExecutionException(Exception):
 
 
 class InconsistentTableSchemasException(Exception):
-    def __init__(self, tables_schemas: Dict[NodeTable, TableSchema]):
+    def __init__(self, tables_schemas: Dict[TableName, TableSchema]):
         message = f"Tables: {tables_schemas} do not have a common schema"
         super().__init__(message)
 
 
 class InconsistentUDFResultSizeException(Exception):
-    def __init__(self, result_tables: Dict[int, List[Tuple[LocalNode, NodeTable]]]):
+    def __init__(self, result_tables: Dict[int, List[Tuple[LocalNode, TableName]]]):
         message = (
             f"The following udf execution results on multiple nodes should have "
             f"the same number of results.\nResults:{result_tables}"
@@ -321,7 +321,7 @@ class _AlgorithmExecutionInterface:
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_global: Union[None, bool, List[bool]] = None,
-    ) -> Union[AlgoExecData, List[AlgoExecData]]:
+    ) -> Union[AlgoFlowData, List[AlgoFlowData]]:
         # 1. check positional_args and keyword_args tables do not contain _GlobalNodeTable(s)
         # 2. queues run_udf task on all local nodes
         # 3. waits for all nodes to complete the tasks execution
@@ -394,9 +394,9 @@ class _AlgorithmExecutionInterface:
         for nodes_result in all_nodes_results:
             # All nodes' results have the same type so only the first_result is needed to define the type
             first_result = nodes_result[0][1]
-            if isinstance(first_result, NodeTable):
+            if isinstance(first_result, TableName):
                 results.append(LocalNodesTable(dict(nodes_result)))
-            elif isinstance(first_result, NodeSMPCTables):
+            elif isinstance(first_result, SMPCTableNames):
                 results.append(LocalNodesSMPCTables(dict(nodes_result)))
             else:
                 raise NotImplementedError
@@ -409,7 +409,7 @@ class _AlgorithmExecutionInterface:
     ) -> GlobalNodeData:
         if isinstance(local_nodes_data, LocalNodesTable):
             return self._share_local_table_to_global(
-                local_node_table=local_nodes_data,
+                local_nodes_table=local_nodes_data,
                 command_id=command_id,
             )
         elif isinstance(local_nodes_data, LocalNodesSMPCTables):
@@ -419,10 +419,10 @@ class _AlgorithmExecutionInterface:
 
     def _share_local_table_to_global(
         self,
-        local_node_table: LocalNodesTable,
+        local_nodes_table: LocalNodesTable,
         command_id: int,
     ) -> GlobalNodeTable:
-        nodes_tables = local_node_table.nodes_tables
+        nodes_tables = local_nodes_table.nodes_tables
 
         # check the tables have the same schema
         common_schema = self._validate_same_schema_tables(nodes_tables)
@@ -444,26 +444,29 @@ class _AlgorithmExecutionInterface:
 
     def _share_local_smpc_tables_to_global(
         self,
-        nodes_smpc_tables: LocalNodesSMPCTables,
+        local_nodes_smpc_tables: LocalNodesSMPCTables,
         command_id: int,
     ) -> GlobalNodeSMPCTables:
         global_template_table = self._share_local_table_to_global(
-            local_node_table=nodes_smpc_tables.template, command_id=command_id
+            local_nodes_table=local_nodes_smpc_tables.template_local_nodes_table,
+            command_id=command_id,
         )
         self._global_node.validate_smpc_templates_match(
             global_template_table.table.full_table_name
         )
 
-        smpc_clients_per_op = load_data_to_smpc_clients(command_id, nodes_smpc_tables)
+        smpc_clients_per_op = load_data_to_smpc_clients(
+            command_id, local_nodes_smpc_tables
+        )
 
-        (add_op, min_op, max_op, union_op,) = trigger_smpc_computations(
+        (sum_op, min_op, max_op, union_op,) = trigger_smpc_computations(
             context_id=self._global_node.context_id,
             command_id=command_id,
             smpc_clients_per_op=smpc_clients_per_op,
         )
 
         (
-            add_op_result_table,
+            sum_op_result_table,
             min_op_result_table,
             max_op_result_table,
             union_op_result_table,
@@ -471,18 +474,21 @@ class _AlgorithmExecutionInterface:
             node=self._global_node,
             context_id=self._global_node.context_id,
             command_id=command_id,
-            add_op=add_op,
+            sum_op=sum_op,
             min_op=min_op,
             max_op=max_op,
             union_op=union_op,
         )
 
         return GlobalNodeSMPCTables(
-            template=global_template_table,
-            add_op=add_op_result_table,
-            min_op=min_op_result_table,
-            max_op=max_op_result_table,
-            union_op=union_op_result_table,
+            node=self._global_node,
+            smpc_tables=SMPCTableNames(
+                template=global_template_table.table,
+                sum_op=sum_op_result_table,
+                min_op=min_op_result_table,
+                max_op=max_op_result_table,
+                union_op=union_op_result_table,
+            ),
         )
 
     def run_udf_on_global_node(
@@ -491,7 +497,7 @@ class _AlgorithmExecutionInterface:
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_locals: Union[None, bool, List[bool]] = None,
-    ) -> Union[AlgoExecData, List[AlgoExecData]]:
+    ) -> Union[AlgoFlowData, List[AlgoFlowData]]:
         # 1. check positional_args and keyword_args tables do not contain _LocalNodeTable(s)
         # 2. queue run_udf on the global node
         # 3. wait for it to complete
@@ -547,7 +553,7 @@ class _AlgorithmExecutionInterface:
 
     def _convert_global_udf_results_to_global_node_data(
         self,
-        node_tables: List[NodeTable],
+        node_tables: List[TableName],
     ) -> List[GlobalNodeTable]:
         global_tables = [
             GlobalNodeTable(
@@ -660,7 +666,7 @@ class _AlgorithmExecutionInterface:
             raise InconsistentShareTablesValueException(share_to, number_of_results)
 
     def _validate_same_schema_tables(
-        self, tables: Dict[LocalNode, NodeTable]
+        self, tables: Dict[LocalNode, TableName]
     ) -> TableSchema:
         """
         Returns : TableSchema the common TableSchema, if all tables have the same schema
@@ -697,25 +703,17 @@ class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
             )
         elif isinstance(local_nodes_data, LocalNodesSMPCTables):
             return GlobalNodeSMPCTables(
-                template=GlobalNodeTable(
-                    node=self._global_node,
-                    table=local_nodes_data.template.nodes_tables[self._local_nodes[0]],
-                ),
-                add_op=GlobalNodeTable(
-                    node=self._global_node,
-                    table=local_nodes_data.add_op.nodes_tables[self._local_nodes[0]],
-                ),
-                min_op=GlobalNodeTable(
-                    node=self._global_node,
-                    table=local_nodes_data.min_op.nodes_tables[self._local_nodes[0]],
-                ),
-                max_op=GlobalNodeTable(
-                    node=self._global_node,
-                    table=local_nodes_data.max_op.nodes_tables[self._local_nodes[0]],
-                ),
-                union_op=GlobalNodeTable(
-                    node=self._global_node,
-                    table=local_nodes_data.union_op.nodes_tables[self._local_nodes[0]],
+                node=self._global_node,
+                smpc_tables=SMPCTableNames(
+                    template=local_nodes_data.nodes_smpc_tables[
+                        self._global_node
+                    ].template,
+                    sum_op=local_nodes_data.nodes_smpc_tables[self._global_node].sum_op,
+                    min_op=local_nodes_data.nodes_smpc_tables[self._global_node].min_op,
+                    max_op=local_nodes_data.nodes_smpc_tables[self._global_node].max_op,
+                    union_op=local_nodes_data.nodes_smpc_tables[
+                        self._global_node
+                    ].union_op,
                 ),
             )
 

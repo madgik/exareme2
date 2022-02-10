@@ -384,7 +384,7 @@ class TestUDFValidation:
     def test_validate_func_as_valid_udf_with_secure_transfer_output(self):
         @udf(
             y=state(),
-            return_type=secure_transfer(add_op=True),
+            return_type=secure_transfer(sum_op=True),
         )
         def f(y):
             y = {"num": 1}
@@ -394,7 +394,7 @@ class TestUDFValidation:
 
     def test_validate_func_as_valid_udf_with_secure_transfer_input(self):
         @udf(
-            y=secure_transfer(add_op=True),
+            y=secure_transfer(sum_op=True),
             return_type=transfer(),
         )
         def f(y):
@@ -1035,9 +1035,9 @@ class TestUDFGenBase:
             elif isinstance(udf_output, SMPCUDFGenResult):
                 tablename_placeholder = udf_output.template.tablename_placeholder
                 template_mapping[tablename_placeholder] = tablename_placeholder
-                if udf_output.add_op_values:
+                if udf_output.sum_op_values:
                     tablename_placeholder = (
-                        udf_output.add_op_values.tablename_placeholder
+                        udf_output.sum_op_values.tablename_placeholder
                     )
                     template_mapping[tablename_placeholder] = tablename_placeholder
                 if udf_output.min_op_values:
@@ -1112,9 +1112,9 @@ class TestUDFGenBase:
                 queries.extend(self._concrete_table_udf_outputs(udf_output))
             elif isinstance(udf_output, SMPCUDFGenResult):
                 queries.extend(self._concrete_table_udf_outputs(udf_output.template))
-                if udf_output.add_op_values:
+                if udf_output.sum_op_values:
                     queries.extend(
-                        self._concrete_table_udf_outputs(udf_output.add_op_values)
+                        self._concrete_table_udf_outputs(udf_output.sum_op_values)
                     )
                 if udf_output.min_op_values:
                     queries.extend(
@@ -1173,31 +1173,50 @@ class TestUDFGenBase:
             "CREATE TABLE test_secure_transfer_table(node_id VARCHAR(500), secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": 1, "type": "int", "operation": "addition"}}\')'
+            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": 1, "operation": "sum"}}\')'
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(2, \'{"sum": {"data": 10, "type": "int", "operation": "addition"}}\')'
+            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(2, \'{"sum": {"data": 10, "operation": "sum"}}\')'
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(3, \'{"sum": {"data": 100, "type": "int", "operation": "addition"}}\')'
+            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(3, \'{"sum": {"data": 100, "operation": "sum"}}\')'
         )
 
     @pytest.fixture(scope="function")
-    def create_smpc_template_table(self, globalnode_db_cursor):
+    def create_smpc_template_table_with_sum(self, globalnode_db_cursor):
         globalnode_db_cursor.execute(
             "CREATE TABLE test_smpc_template_table(node_id VARCHAR(500), secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "type": "int", "operation": "addition"}}\')'
+            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "operation": "sum"}}\')'
         )
 
     @pytest.fixture(scope="function")
-    def create_smpc_add_op_values_table(self, globalnode_db_cursor):
+    def create_smpc_sum_op_values_table(self, globalnode_db_cursor):
         globalnode_db_cursor.execute(
-            "CREATE TABLE test_smpc_add_op_values_table(node_id VARCHAR(500), secure_transfer CLOB)"
+            "CREATE TABLE test_smpc_sum_op_values_table(node_id VARCHAR(500), secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            "INSERT INTO test_smpc_add_op_values_table(node_id, secure_transfer) VALUES(1, '[100,200,300]')"
+            "INSERT INTO test_smpc_sum_op_values_table(node_id, secure_transfer) VALUES(1, '[100,200,300]')"
+        )
+
+    @pytest.fixture(scope="function")
+    def create_smpc_template_table_with_sum_and_max(self, globalnode_db_cursor):
+        globalnode_db_cursor.execute(
+            "CREATE TABLE test_smpc_template_table(node_id VARCHAR(500), secure_transfer CLOB)"
+        )
+        globalnode_db_cursor.execute(
+            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "operation": "sum"}, '
+            '"max": {"data": 0, "operation": "max"}}\')'
+        )
+
+    @pytest.fixture(scope="function")
+    def create_smpc_max_op_values_table(self, globalnode_db_cursor):
+        globalnode_db_cursor.execute(
+            "CREATE TABLE test_smpc_max_op_values_table(node_id VARCHAR(500), secure_transfer CLOB)"
+        )
+        globalnode_db_cursor.execute(
+            "INSERT INTO test_smpc_max_op_values_table(node_id, secure_transfer) VALUES(1, '[58]')"
         )
 
     # TODO Should become more dynamic in the future.
@@ -1426,8 +1445,8 @@ class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
                     ),
                     type_=TableType.NORMAL,
                 ),
-                add_op_values=TableInfo(
-                    name="test_smpc_add_op_values_table",
+                sum_op_values=TableInfo(
+                    name="test_smpc_sum_op_values_table",
                     schema_=TableSchema(
                         columns=[
                             ColumnInfo(name="secure_transfer", dtype=DType.JSON),
@@ -1452,7 +1471,7 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
-            transfer=secure_transfer(add_op=True),
+            transfer=secure_transfer(sum_op=True),
             return_type=transfer(),
         )
         def f(transfer):
@@ -1499,7 +1518,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
-            transfer=secure_transfer(add_op=True),
+            transfer=secure_transfer(sum_op=True),
             return_type=transfer(),
         )
         def f(transfer):
@@ -1520,8 +1539,8 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
                     ),
                     type_=TableType.NORMAL,
                 ),
-                add_op_values=TableInfo(
-                    name="test_smpc_add_op_values_table",
+                sum_op_values=TableInfo(
+                    name="test_smpc_sum_op_values_table",
                     schema_=TableSchema(
                         columns=[
                             ColumnInfo(name="secure_transfer", dtype=DType.JSON),
@@ -4469,11 +4488,13 @@ class TestUDFGen_SecureTransferOutput_with_SMPC_off(
     def udfregistry(self):
         @udf(
             state=state(),
-            return_type=secure_transfer(add_op=True),
+            return_type=secure_transfer(sum_op=True, min_op=True, max_op=True),
         )
         def f(state):
             result = {
-                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+                "sum": {"data": state["num"], "operation": "sum"},
+                "min": {"data": state["num"], "operation": "min"},
+                "max": {"data": state["num"], "operation": "max"},
             }
             return result
 
@@ -4508,8 +4529,9 @@ LANGUAGE PYTHON
     import json
     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
     state = pickle.loads(__state_str)
-    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
-        }
+    result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'min': {'data':
+        state['num'], 'operation': 'min'}, 'max': {'data': state['num'],
+        'operation': 'max'}}
     return json.dumps(result)
 }"""
 
@@ -4554,7 +4576,11 @@ FROM
             "SELECT secure_transfer FROM main_output_table_name"
         ).fetchone()
         result = json.loads(secure_transfer_)
-        assert result == {"sum": {"data": 5, "type": "int", "operation": "addition"}}
+        assert result == {
+            "sum": {"data": 5, "operation": "sum"},
+            "min": {"data": 5, "operation": "min"},
+            "max": {"data": 5, "operation": "max"},
+        }
 
 
 class TestUDFGen_SecureTransferOutput_with_SMPC_on(
@@ -4564,11 +4590,12 @@ class TestUDFGen_SecureTransferOutput_with_SMPC_on(
     def udfregistry(self):
         @udf(
             state=state(),
-            return_type=secure_transfer(add_op=True),
+            return_type=secure_transfer(sum_op=True, max_op=True),
         )
         def f(state):
             result = {
-                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+                "sum": {"data": state["num"], "operation": "sum"},
+                "max": {"data": state["num"], "operation": "max"},
             }
             return result
 
@@ -4603,10 +4630,11 @@ LANGUAGE PYTHON
     import json
     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
     state = pickle.loads(__state_str)
-    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
-        }
-    template, add_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
-    _conn.execute(f"INSERT INTO $main_output_table_name_add_op VALUES ('$node_id', '{json.dumps(add_op)}');")
+    result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'max': {'data':
+        state['num'], 'operation': 'max'}}
+    template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
+    _conn.execute(f"INSERT INTO $main_output_table_name_sum_op VALUES ('$node_id', '{json.dumps(sum_op)}');")
+    _conn.execute(f"INSERT INTO $main_output_table_name_max_op VALUES ('$node_id', '{json.dumps(max_op)}');")
     return json.dumps(template)
 }"""
 
@@ -4633,13 +4661,22 @@ FROM
                         'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"secure_transfer" CLOB);'
                     ),
                 ),
-                add_op_values=TableUDFGenResult(
-                    tablename_placeholder="main_output_table_name_add_op",
+                sum_op_values=TableUDFGenResult(
+                    tablename_placeholder="main_output_table_name_sum_op",
                     drop_query=Template(
-                        "DROP TABLE IF EXISTS $main_output_table_name_add_op;"
+                        "DROP TABLE IF EXISTS $main_output_table_name_sum_op;"
                     ),
                     create_query=Template(
-                        'CREATE TABLE $main_output_table_name_add_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                        'CREATE TABLE $main_output_table_name_sum_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                    ),
+                ),
+                max_op_values=TableUDFGenResult(
+                    tablename_placeholder="main_output_table_name_max_op",
+                    drop_query=Template(
+                        "DROP TABLE IF EXISTS $main_output_table_name_max_op;"
+                    ),
+                    create_query=Template(
+                        'CREATE TABLE $main_output_table_name_max_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
                     ),
                 ),
             )
@@ -4668,13 +4705,22 @@ FROM
             "SELECT secure_transfer FROM main_output_table_name"
         ).fetchone()
         template = json.loads(template_str)
-        assert template == {"sum": {"data": 0, "type": "int", "operation": "addition"}}
+        assert template == {
+            "max": {"data": 0, "operation": "max"},
+            "sum": {"data": 0, "operation": "sum"},
+        }
 
-        add_op_values_str, *_ = globalnode_db_cursor.execute(
-            "SELECT secure_transfer FROM main_output_table_name_add_op"
+        sum_op_values_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM main_output_table_name_sum_op"
         ).fetchone()
-        add_op_values = json.loads(add_op_values_str)
-        assert add_op_values == [5]
+        sum_op_values = json.loads(sum_op_values_str)
+        assert sum_op_values == [5]
+
+        max_op_values_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM main_output_table_name_max_op"
+        ).fetchone()
+        max_op_values = json.loads(max_op_values_str)
+        assert max_op_values == [5]
 
 
 class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_off(
@@ -4684,11 +4730,16 @@ class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_off(
     def udfregistry(self):
         @udf(
             state=state(),
-            return_type=[state(), secure_transfer(add_op=True)],
+            return_type=[
+                state(),
+                secure_transfer(sum_op=True, min_op=True, max_op=True),
+            ],
         )
         def f(state):
             result = {
-                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+                "sum": {"data": state["num"], "operation": "sum"},
+                "min": {"data": state["num"], "operation": "min"},
+                "max": {"data": state["num"], "operation": "max"},
             }
             return state, result
 
@@ -4723,8 +4774,9 @@ LANGUAGE PYTHON
     import json
     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
     state = pickle.loads(__state_str)
-    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
-        }
+    result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'min': {'data':
+        state['num'], 'operation': 'min'}, 'max': {'data': state['num'],
+        'operation': 'max'}}
     _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(result)}');")
     return pickle.dumps(state)
 }"""
@@ -4778,7 +4830,11 @@ FROM
             "SELECT secure_transfer FROM loopback_table_name_0"
         ).fetchone()
         result = json.loads(secure_transfer_)
-        assert result == {"sum": {"data": 5, "type": "int", "operation": "addition"}}
+        assert result == {
+            "sum": {"data": 5, "operation": "sum"},
+            "min": {"data": 5, "operation": "min"},
+            "max": {"data": 5, "operation": "max"},
+        }
 
 
 class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_on(
@@ -4788,11 +4844,16 @@ class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_on(
     def udfregistry(self):
         @udf(
             state=state(),
-            return_type=[state(), secure_transfer(add_op=True)],
+            return_type=[
+                state(),
+                secure_transfer(sum_op=True, min_op=True, max_op=True),
+            ],
         )
         def f(state):
             result = {
-                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+                "sum": {"data": state["num"], "operation": "sum"},
+                "min": {"data": state["num"], "operation": "min"},
+                "max": {"data": state["num"], "operation": "max"},
             }
             return state, result
 
@@ -4827,11 +4888,14 @@ LANGUAGE PYTHON
     import json
     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
     state = pickle.loads(__state_str)
-    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
-        }
-    template, add_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
+    result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'min': {'data':
+        state['num'], 'operation': 'min'}, 'max': {'data': state['num'],
+        'operation': 'max'}}
+    template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
     _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(template)}');")
-    _conn.execute(f"INSERT INTO $loopback_table_name_0_add_op VALUES ('$node_id', '{json.dumps(add_op)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0_sum_op VALUES ('$node_id', '{json.dumps(sum_op)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0_min_op VALUES ('$node_id', '{json.dumps(min_op)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0_max_op VALUES ('$node_id', '{json.dumps(max_op)}');")
     return pickle.dumps(state)
 }"""
 
@@ -4863,13 +4927,31 @@ FROM
                         'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"secure_transfer" CLOB);'
                     ),
                 ),
-                add_op_values=TableUDFGenResult(
-                    tablename_placeholder="loopback_table_name_0_add_op",
+                sum_op_values=TableUDFGenResult(
+                    tablename_placeholder="loopback_table_name_0_sum_op",
                     drop_query=Template(
-                        "DROP TABLE IF EXISTS $loopback_table_name_0_add_op;"
+                        "DROP TABLE IF EXISTS $loopback_table_name_0_sum_op;"
                     ),
                     create_query=Template(
-                        'CREATE TABLE $loopback_table_name_0_add_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                        'CREATE TABLE $loopback_table_name_0_sum_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                    ),
+                ),
+                min_op_values=TableUDFGenResult(
+                    tablename_placeholder="loopback_table_name_0_min_op",
+                    drop_query=Template(
+                        "DROP TABLE IF EXISTS $loopback_table_name_0_min_op;"
+                    ),
+                    create_query=Template(
+                        'CREATE TABLE $loopback_table_name_0_min_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                    ),
+                ),
+                max_op_values=TableUDFGenResult(
+                    tablename_placeholder="loopback_table_name_0_max_op",
+                    drop_query=Template(
+                        "DROP TABLE IF EXISTS $loopback_table_name_0_max_op;"
+                    ),
+                    create_query=Template(
+                        'CREATE TABLE $loopback_table_name_0_max_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
                     ),
                 ),
             ),
@@ -4898,13 +4980,29 @@ FROM
             "SELECT secure_transfer FROM loopback_table_name_0"
         ).fetchone()
         template = json.loads(template_str)
-        assert template == {"sum": {"data": 0, "type": "int", "operation": "addition"}}
+        assert template == {
+            "sum": {"data": 0, "operation": "sum"},
+            "min": {"data": 0, "operation": "min"},
+            "max": {"data": 0, "operation": "max"},
+        }
 
-        add_op_values_str, *_ = globalnode_db_cursor.execute(
-            "SELECT secure_transfer FROM loopback_table_name_0_add_op"
+        sum_op_values_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM loopback_table_name_0_sum_op"
         ).fetchone()
-        add_op_values = json.loads(add_op_values_str)
-        assert add_op_values == [5]
+        sum_op_values = json.loads(sum_op_values_str)
+        assert sum_op_values == [5]
+
+        min_op_values_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM loopback_table_name_0_min_op"
+        ).fetchone()
+        min_op_values = json.loads(min_op_values_str)
+        assert min_op_values == [5]
+
+        max_op_values_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM loopback_table_name_0_max_op"
+        ).fetchone()
+        max_op_values = json.loads(max_op_values_str)
+        assert max_op_values == [5]
 
 
 class TestUDFGen_SecureTransferInput_with_SMPC_off(
@@ -4913,7 +5011,7 @@ class TestUDFGen_SecureTransferInput_with_SMPC_off(
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
-            transfer=secure_transfer(add_op=True),
+            transfer=secure_transfer(sum_op=True),
             return_type=transfer(),
         )
         def f(transfer):
@@ -5003,7 +5101,7 @@ class TestUDFGen_SecureTransferInput_with_SMPC_on(
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
-            transfer=secure_transfer(add_op=True),
+            transfer=secure_transfer(sum_op=True, max_op=True),
             return_type=transfer(),
         )
         def f(transfer):
@@ -5024,8 +5122,17 @@ class TestUDFGen_SecureTransferInput_with_SMPC_on(
                     ),
                     type_=TableType.NORMAL,
                 ),
-                add_op_values=TableInfo(
-                    name="test_smpc_add_op_values_table",
+                sum_op_values=TableInfo(
+                    name="test_smpc_sum_op_values_table",
+                    schema_=TableSchema(
+                        columns=[
+                            ColumnInfo(name="secure_transfer", dtype=DType.JSON),
+                        ]
+                    ),
+                    type_=TableType.NORMAL,
+                ),
+                max_op_values=TableInfo(
+                    name="test_smpc_max_op_values_table",
                     schema_=TableSchema(
                         columns=[
                             ColumnInfo(name="secure_transfer", dtype=DType.JSON),
@@ -5050,12 +5157,13 @@ LANGUAGE PYTHON
     import json
     __template_str = _conn.execute("SELECT secure_transfer from test_smpc_template_table;")["secure_transfer"][0]
     __template = json.loads(__template_str)
-    __add_op_values_str = _conn.execute("SELECT secure_transfer from test_smpc_add_op_values_table;")["secure_transfer"][0]
-    __add_op_values = json.loads(__add_op_values_str)
+    __sum_op_values_str = _conn.execute("SELECT secure_transfer from test_smpc_sum_op_values_table;")["secure_transfer"][0]
+    __sum_op_values = json.loads(__sum_op_values_str)
     __min_op_values = None
-    __max_op_values = None
+    __max_op_values_str = _conn.execute("SELECT secure_transfer from test_smpc_max_op_values_table;")["secure_transfer"][0]
+    __max_op_values = json.loads(__max_op_values_str)
     __union_op_values = None
-    transfer = udfio.construct_secure_transfer_dict(__template,__add_op_values,__min_op_values,__max_op_values,__union_op_values)
+    transfer = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values,__union_op_values)
     return json.dumps(transfer)
 }"""
 
@@ -5088,8 +5196,9 @@ FROM
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
-        "create_smpc_template_table",
-        "create_smpc_add_op_values_table",
+        "create_smpc_template_table_with_sum_and_max",
+        "create_smpc_sum_op_values_table",
+        "create_smpc_max_op_values_table",
     )
     def test_udf_with_db(
         self,
@@ -5105,7 +5214,7 @@ FROM
             "SELECT transfer FROM main_output_table_name"
         ).fetchone()
         result = json.loads(transfer)
-        assert result == {"sum": [100, 200, 300]}
+        assert result == {"sum": [100, 200, 300], "max": 58}
 
 
 class TestUDFGen_LoggerArgument(TestUDFGenBase, _TestGenerateUDFQueries):
