@@ -8,6 +8,7 @@ from billiard.exceptions import TimeLimitExceeded
 from celery.exceptions import TimeoutError
 from celery.result import AsyncResult
 from kombu.exceptions import OperationalError
+from typing import Optional
 
 from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
@@ -390,16 +391,18 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     @broker_connection_closed_handler
     def get_smpc_result(
         self,
+        jobid: str,
         context_id: str,
         command_id: str,
-        jobid: str,
+        command_subid: Optional[str] = "0",
     ) -> str:
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_smpc_result"])
         return self._apply_async(
             task_signature=task_signature,
+            jobid=jobid,
             context_id=context_id,
             command_id=command_id,
-            jobid=jobid,
+            command_subid=command_subid,
         ).get(self._tasks_timeout)
 
     # CLEANUP functionality

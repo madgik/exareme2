@@ -4,6 +4,8 @@ from typing import List
 
 from celery import shared_task
 
+from typing import Optional
+
 from mipengine import DType
 from mipengine import smpc_cluster_comm_helpers as smpc_cluster
 from mipengine.node import config as node_config
@@ -91,9 +93,10 @@ def load_data_to_smpc_client(request_id: str, table_name: str, jobid: str) -> in
 @initialise_logger
 def get_smpc_result(
     request_id: str,
+    jobid: str,
     context_id: str,
     command_id: str,
-    jobid: str,
+    command_subid: Optional[str] = "0",
 ) -> str:
     """
     Fetches the results from an SMPC and writes them into a table.
@@ -101,8 +104,10 @@ def get_smpc_result(
     Parameters
     ----------
     request_id: The identifier for the logging
+    jobid: The identifier for the smpc job.
     context_id: An identifier of the action.
     command_id: An identifier for the command, used for naming the result table.
+    command_subid: An identifier for the command, used for naming the result table.
     jobid: The jobid of the SMPC.
 
     Returns
@@ -140,13 +145,16 @@ def get_smpc_result(
         request_id=request_id,
         context_id=context_id,
         command_id=command_id,
+        command_subid=command_subid,
         smpc_op_result_data=smpc_response_with_output.computationOutput,
     )
 
     return results_table_name
 
 
-def _create_smpc_results_table(request_id, context_id, command_id, smpc_op_result_data):
+def _create_smpc_results_table(
+    request_id, context_id, command_id, command_subid, smpc_op_result_data
+):
     """
     Create a table with the SMPC specific schema
     and insert the results of the SMPC to it.
@@ -157,6 +165,7 @@ def _create_smpc_results_table(request_id, context_id, command_id, smpc_op_resul
         node_config.identifier,
         context_id,
         command_id,
+        command_subid,
     )
     table_schema = TableSchema(
         columns=[
@@ -181,7 +190,7 @@ def _create_smpc_results_table(request_id, context_id, command_id, smpc_op_resul
 def _get_smpc_values_from_table_data(table_data: List[ColumnData], op: SMPCRequestType):
     if op == SMPCRequestType.SUM:
         node_id_column, values_column = table_data
-        add_op_values = values_column.data
+        sum_op_values = values_column.data
     else:
         raise NotImplementedError
-    return add_op_values
+    return sum_op_values

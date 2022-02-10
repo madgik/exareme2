@@ -2,12 +2,13 @@ from typing import List
 from typing import Tuple
 
 from mipengine.controller import config as ctrl_config
-from mipengine.controller.algorithm_executor_node_data_objects import GlobalNodeTable
-from mipengine.controller.algorithm_executor_node_data_objects import (
+from mipengine.controller.algorithm_executor_node_data_objects import SMPCTableNames
+from mipengine.controller.algorithm_flow_data_objects import GlobalNodeTable
+from mipengine.controller.algorithm_flow_data_objects import (
     LocalNodesSMPCTables,
 )
-from mipengine.controller.algorithm_executor_node_data_objects import LocalNodesTable
-from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
+from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
+from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.smpc_DTOs import SMPCRequestType
 from mipengine.smpc_cluster_comm_helpers import trigger_smpc_computation
@@ -37,8 +38,8 @@ def load_operation_data_to_smpc_clients(
 def load_data_to_smpc_clients(
     command_id: int, smpc_tables: LocalNodesSMPCTables
 ) -> Tuple[List[int], List[int], List[int], List[int]]:
-    add_op_smpc_clients = load_operation_data_to_smpc_clients(
-        command_id, smpc_tables.add_op, SMPCRequestType.SUM
+    sum_op_smpc_clients = load_operation_data_to_smpc_clients(
+        command_id, smpc_tables.sum_op, SMPCRequestType.SUM
     )
     min_op_smpc_clients = load_operation_data_to_smpc_clients(
         command_id, smpc_tables.min_op, SMPCRequestType.MIN
@@ -50,7 +51,7 @@ def load_data_to_smpc_clients(
         command_id, smpc_tables.union_op, SMPCRequestType.UNION
     )
     return (
-        add_op_smpc_clients,
+        sum_op_smpc_clients,
         min_op_smpc_clients,
         max_op_smpc_clients,
         union_op_smpc_clients,
@@ -83,13 +84,13 @@ def trigger_smpc_computations(
     smpc_clients_per_op: Tuple[List[int], List[int], List[int], List[int]],
 ) -> Tuple[bool, bool, bool, bool]:
     (
-        add_op_smpc_clients,
+        sum_op_smpc_clients,
         min_op_smpc_clients,
         max_op_smpc_clients,
         union_op_smpc_clients,
     ) = smpc_clients_per_op
-    add_op = trigger_smpc_operation_computation(
-        context_id, command_id, SMPCRequestType.SUM, add_op_smpc_clients
+    sum_op = trigger_smpc_operation_computation(
+        context_id, command_id, SMPCRequestType.SUM, sum_op_smpc_clients
     )
     min_op = trigger_smpc_operation_computation(
         context_id, command_id, SMPCRequestType.MIN, min_op_smpc_clients
@@ -100,80 +101,74 @@ def trigger_smpc_computations(
     union_op = trigger_smpc_operation_computation(
         context_id, command_id, SMPCRequestType.UNION, union_op_smpc_clients
     )
-    return add_op, min_op, max_op, union_op
+    return sum_op, min_op, max_op, union_op
 
 
 def get_smpc_results(
     node: GlobalNode,
     context_id: str,
     command_id: int,
-    add_op: bool,
+    sum_op: bool,
     min_op: bool,
     max_op: bool,
     union_op: bool,
-) -> Tuple[GlobalNodeTable, GlobalNodeTable, GlobalNodeTable, GlobalNodeTable]:
-    add_op_result_table = (
+) -> Tuple[TableName, TableName, TableName, TableName]:
+    sum_op_result_table = (
         node.get_smpc_result(
-            command_id=command_id,
             jobid=get_smpc_job_id(
                 context_id=context_id,
                 command_id=command_id,
                 operation=SMPCRequestType.SUM,
             ),
+            command_id=str(command_id),
+            command_subid="0",
         )
-        if add_op
+        if sum_op
         else None
     )
     min_op_result_table = (
         node.get_smpc_result(
-            command_id=command_id,
             jobid=get_smpc_job_id(
                 context_id=context_id,
                 command_id=command_id,
                 operation=SMPCRequestType.MIN,
             ),
+            command_id=str(command_id),
+            command_subid="1",
         )
         if min_op
         else None
     )
     max_op_result_table = (
         node.get_smpc_result(
-            command_id=command_id,
             jobid=get_smpc_job_id(
                 context_id=context_id,
                 command_id=command_id,
                 operation=SMPCRequestType.MAX,
             ),
+            command_id=str(command_id),
+            command_subid="2",
         )
         if max_op
         else None
     )
     union_op_result_table = (
         node.get_smpc_result(
-            command_id=command_id,
             jobid=get_smpc_job_id(
                 context_id=context_id,
                 command_id=command_id,
                 operation=SMPCRequestType.UNION,
             ),
+            command_id=str(command_id),
+            command_subid="3",
         )
         if union_op
         else None
     )
 
-    result = (
-        GlobalNodeTable(node=node, table=NodeTable(table_name=add_op_result_table))
-        if add_op_result_table
-        else None,
-        GlobalNodeTable(node=node, table=NodeTable(table_name=min_op_result_table))
-        if min_op_result_table
-        else None,
-        GlobalNodeTable(node=node, table=NodeTable(table_name=max_op_result_table))
-        if max_op_result_table
-        else None,
-        GlobalNodeTable(node=node, table=NodeTable(table_name=union_op_result_table))
-        if union_op_result_table
-        else None,
+    return (
+        TableName(sum_op_result_table),
+        TableName(min_op_result_table),
+        TableName(max_op_result_table),
+        TableName(union_op_result_table),
     )
-
-    return result

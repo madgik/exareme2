@@ -17,6 +17,7 @@ class AlgorithmInputDataDTO(BaseModel):
 
 
 class AlgorithmRequestDTO(BaseModel):
+    request_id: Optional[str] = None
     inputdata: AlgorithmInputDataDTO
     parameters: Optional[Dict[str, Any]] = None
     flags: Optional[Dict[str, Any]] = None

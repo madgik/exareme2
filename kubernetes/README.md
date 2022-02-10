@@ -144,6 +144,12 @@ firewall-cmd --zone=public --permanent --add-rich-rule='rule protocol value="ipi
 
 These rules allow for kubectl to only be run on the **master** node.
 
+## Log Rotation Configuration
+
+In order to avoid docker logs taking up too much space in the **master**/**worker** nodes, the docker engine should be configured appropriately in every node.
+
+[Docker-Engine Log Rotation Guide](https://docs.docker.com/config/containers/logging/configure/#configure-the-default-logging-driver)
+
 ## Backup of Node Data
 
 The global/local Node data are stored in the `monetdb_storage` path defined in the [helm chart values](values.yaml). This is the same for all the nodes.

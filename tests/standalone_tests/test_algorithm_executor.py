@@ -4,7 +4,7 @@ from typing import List
 
 import pytest
 
-from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
+from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.controller.algorithm_executor_nodes import _INode
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import ColumnInfo
@@ -20,22 +20,22 @@ class NodeMock(_INode):
     def __init__(self):
         self.tables: Dict[str, TableSchema] = {}
 
-    def get_tables(self) -> List[NodeTable]:
+    def get_tables(self) -> List[TableName]:
         pass
 
-    def get_table_schema(self, table_name: NodeTable):
+    def get_table_schema(self, table_name: TableName):
         return self.tables[table_name]
 
-    def get_table_data(self, table_name: NodeTable) -> TableData:
+    def get_table_data(self, table_name: TableName) -> TableData:
         pass
 
-    def create_table(self, command_id: str, schema: TableSchema) -> NodeTable:
+    def create_table(self, command_id: str, schema: TableSchema) -> TableName:
         table_name = f"normal_testnode_cntxtid1_cmdid{randint(0,999)}_cmdsubid1"
-        table_name = NodeTable(table_name)
+        table_name = TableName(table_name)
         self.tables[table_name] = schema
         return table_name
 
-    def get_views(self) -> List[NodeTable]:
+    def get_views(self) -> List[TableName]:
         pass
 
     def create_data_model_view(
@@ -45,13 +45,13 @@ class NodeMock(_INode):
         data_model_version: str,
         columns: List[str],
         filters: List[str],
-    ) -> NodeTable:
+    ) -> TableName:
         pass
 
-    def get_merge_tables(self) -> List[NodeTable]:
+    def get_merge_tables(self) -> List[TableName]:
         pass
 
-    def create_merge_table(self, command_id: str, table_names: List[NodeTable]):
+    def create_merge_table(self, command_id: str, table_names: List[TableName]):
         pass
 
     def get_remote_tables(self) -> List[str]:
@@ -69,7 +69,7 @@ class NodeMock(_INode):
 
     def get_queued_udf_result(
         self, async_result: IQueuedUDFAsyncResult
-    ) -> List[NodeTable]:
+    ) -> List[TableName]:
         pass
 
     def get_udfs(self, algorithm_name) -> List[str]:
