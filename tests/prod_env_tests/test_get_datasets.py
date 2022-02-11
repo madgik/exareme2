@@ -1,39 +1,33 @@
 import json
 
+import pytest
 import requests
 
 from tests.prod_env_tests import datasets_url
 
-expected_node_schemas = {
-    "localnode1": {
-        "dementia": [
+
+@pytest.fixture
+def expected_datasets_per_pathology():
+    return {
+        "dementia": {
             "edsd",
             "ppmi",
             "desd-synthdata",
-        ],
-        "tbi": ["dummy_tbi"],
-    },
-    "localnode2": {
-        "dementia": [
-            "edsd",
-            "ppmi",
-            "desd-synthdata",
-        ],
-        "tbi": ["dummy_tbi"],
-    },
-}
+        },
+        "tbi": {"dummy_tbi"},
+    }
 
 
-def test_get_datasets():
+def test_get_datasets(expected_datasets_per_pathology):
     request = requests.get(datasets_url)
     node_schemas = json.loads(request.text)
-    assert len(node_schemas) == len(expected_node_schemas)
-    assert set(node_schemas.keys()) == set(expected_node_schemas.keys())
-    for node_id in node_schemas.keys():
-        assert set(node_schemas[node_id].keys()) == set(
-            expected_node_schemas[node_id].keys()
-        )
-        for schema in node_schemas[node_id].keys():
-            assert set(node_schemas[node_id][schema]) == set(
-                expected_node_schemas[node_id][schema]
-            )
+
+    datasets_per_pathology = {}
+    for node_schema in node_schemas.values():
+        for pathology, datasets in node_schema.items():
+            if pathology not in datasets_per_pathology.keys():
+                datasets_per_pathology[pathology] = set(datasets)
+            else:
+                datasets_per_pathology[pathology].update(datasets)
+
+    assert datasets_per_pathology == expected_datasets_per_pathology
