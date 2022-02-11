@@ -119,8 +119,8 @@ def run(algo_interface):
             func_name=make_unique_func_name(logistic_loss),
             keyword_args={"v1": y, "v2": s},
         )
-
-        newlogloss = sum(newlogloss.get_table_data())
+        # TODO local_run results should not be fetched https://team-1617704806227.atlassian.net/browse/MIP-534
+        newlogloss = sum(newlogloss.get_table_data()[1])
 
         # ~~~~~~~~ Global part ~~~~~~~~ #
         hessian_global = global_run(
@@ -236,7 +236,7 @@ def diag(vec):
     return result
 
 
-@udf(v1=tensor(T, N), v2=tensor(T, N), return_type=scalar(float))
+@udf(v1=tensor(T, N), v2=tensor(T, N), return_type=relation(schema=[("scalar", float)]))
 def logistic_loss(v1, v2):
     from scipy import special
 
@@ -244,7 +244,7 @@ def logistic_loss(v1, v2):
     return ll
 
 
-@udf(t1=tensor(T, N), t2=tensor(T, N), return_type=scalar(float))
+@udf(t1=tensor(T, N), t2=tensor(T, N), return_type=relation(schema=[("scalar", float)]))
 def tensor_max_abs_diff(t1, t2):
     result = numpy.max(numpy.abs(t1 - t2))
     return result
