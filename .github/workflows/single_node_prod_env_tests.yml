@@ -1,4 +1,4 @@
-name: Two Nodes Production Env Tests
+name: Single Node Production Env Tests
 
 on:
   push:
@@ -136,7 +136,7 @@ jobs:
         run: poetry run mipdb init --ip 172.17.0.1 --port 50000
 
       - name: Load data into MONETDB container
-        run: poetry run mipdb load-folder ./tests/demo_data/  --ip 172.17.0.1 --port 50000
+        run: poetry run mipdb load-folder ./tests/single_node_demo_data/  --ip 172.17.0.1 --port 50000
 
       - name: Backup MONETDB data
         run: |
@@ -146,7 +146,6 @@ jobs:
       - name: Copy MONETDB demo data folders
         run: |
           sudo cp -r /opt/monetdb/. /opt/monetdb1
-          sudo cp -r /opt/monetdb/. /opt/monetdb2
 
       - name: Stop MONETDB container
         run: docker stop monetdb && docker rm monetdb
@@ -155,7 +154,7 @@ jobs:
         uses: helm/kind-action@v1.2.0
         with:
           cluster_name: kind
-          config: tests/prod_env_tests/two_nodes_deployment_configs/kind_configuration/kind_cluster.yaml
+          config: tests/prod_env_tests/single_node_deployment_configs/kind_configuration/kind_cluster.yaml
 
       - name: Install Helm
         uses: azure/setup-helm@v1
@@ -168,7 +167,6 @@ jobs:
           kubectl taint nodes master node-role.kubernetes.io/master-
           kubectl label node master nodeType=master
           kubectl label node localnode1 nodeType=worker
-          kubectl label node localnode2 nodeType=worker
 
       - name: Load docker images to kind
         run: |
@@ -178,7 +176,7 @@ jobs:
           kind load docker-image madgik/mipengine_rabbitmq:latest
 
       - name: Copy prod_env_tests values.yaml
-        run: cp -r tests/prod_env_tests/two_nodes_deployment_configs/kubernetes_values.yaml kubernetes/values.yaml
+        run: cp -r tests/prod_env_tests/single_node_deployment_configs/kubernetes_values.yaml kubernetes/values.yaml
 
       - name: Deploy Helm
         run: helm install mipengine kubernetes/
