@@ -1,17 +1,15 @@
 import json
-import numpy
-
 from typing import TypeVar
 
+import numpy
 from pydantic import BaseModel
-from mipengine.udfgen.udfgenerator import (
-    udf,
-    transfer,
-    relation,
-    make_unique_func_name,
-    merge_transfer,
-    literal,
-)
+
+from mipengine.udfgen import literal
+from mipengine.udfgen import make_unique_func_name
+from mipengine.udfgen import relation
+from mipengine.udfgen import secure_transfer
+from mipengine.udfgen import transfer
+from mipengine.udfgen import udf
 
 
 class PearsonResult(BaseModel):
@@ -103,7 +101,11 @@ def create_dicts(global_result, row_names, column_names):
 S = TypeVar("S")
 
 
-@udf(y=relation(schema=S), x=relation(schema=S), return_type=[transfer()])
+@udf(
+    y=relation(schema=S),
+    x=relation(schema=S),
+    return_type=[secure_transfer(sum_op=True)],
+)
 def local1(y, x):
     n_obs = y.shape[0]
     Y = y.to_numpy()
@@ -116,27 +118,31 @@ def local1(y, x):
     syy = (Y ** 2).sum(axis=0)
 
     transfer_ = {}
-    transfer_["n_obs"] = n_obs
-    transfer_["sx"] = sx.tolist()
-    transfer_["sxx"] = sxx.tolist()
-    transfer_["sxy"] = sxy.tolist()
-    transfer_["sy"] = sy.tolist()
-    transfer_["syy"] = syy.tolist()
+    transfer_["n_obs"] = {"data": n_obs, "operation": "sum"}
+    transfer_["sx"] = {"data": sx.tolist(), "operation": "sum"}
+    transfer_["sxx"] = {"data": sxx.tolist(), "operation": "sum"}
+    transfer_["sxy"] = {"data": sxy.tolist(), "operation": "sum"}
+    transfer_["sy"] = {"data": sy.tolist(), "operation": "sum"}
+    transfer_["syy"] = {"data": syy.tolist(), "operation": "sum"}
 
     return transfer_
 
 
-@udf(local_transfers=merge_transfer(), alpha=literal(), return_type=[transfer()])
+@udf(
+    local_transfers=secure_transfer(sum_op=True),
+    alpha=literal(),
+    return_type=[transfer()],
+)
 def global1(local_transfers, alpha):
     import scipy.special as special
     import scipy.stats as st
 
-    n_obs = sum(t["n_obs"] for t in local_transfers)
-    sx = sum(numpy.array(t["sx"]) for t in local_transfers)
-    sy = sum(numpy.array(t["sy"]) for t in local_transfers)
-    sxx = sum(numpy.array(t["sxx"]) for t in local_transfers)
-    sxy = sum(numpy.array(t["sxy"]) for t in local_transfers)
-    syy = sum(numpy.array(t["syy"]) for t in local_transfers)
+    n_obs = local_transfers["n_obs"]
+    sx = numpy.array(local_transfers["sx"])
+    sy = numpy.array(local_transfers["sy"])
+    sxx = numpy.array(local_transfers["sxx"])
+    sxy = numpy.array(local_transfers["sxy"])
+    syy = numpy.array(local_transfers["syy"])
 
     df = n_obs - 2
     d = (
