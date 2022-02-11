@@ -1,6 +1,6 @@
+import sqlalchemy
 import toml
 from celery import Celery
-import sqlalchemy
 
 from mipengine import AttrDict
 from tasks import NODES_CONFIG_DIR

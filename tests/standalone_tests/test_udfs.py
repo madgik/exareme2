@@ -1,16 +1,16 @@
 import json
 import pickle
 import uuid
+from typing import Tuple
 
 import pytest
 from billiard.exceptions import TimeLimitExceeded
-from typing import Tuple
 
 from mipengine import DType
 from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import UDFKeyArguments
 from mipengine.node_tasks_DTOs import UDFPosArguments
 from mipengine.node_tasks_DTOs import UDFResults
@@ -22,7 +22,6 @@ from tests.standalone_tests.conftest import LOCALNODE_1_CONFIG_FILE
 from tests.standalone_tests.nodes_communication_helper import get_celery_app
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.nodes_communication_helper import get_node_config_by_id
-
 
 command_id = "command123"
 request_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10] + "_request"

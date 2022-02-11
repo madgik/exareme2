@@ -1,10 +1,9 @@
 import json
 from time import sleep
 from typing import List
+from typing import Optional
 
 from celery import shared_task
-
-from typing import Optional
 
 from mipengine import DType
 from mipengine import smpc_cluster_comm_helpers as smpc_cluster
@@ -18,11 +17,11 @@ from mipengine.node_info_DTOs import NodeRole
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
+from mipengine.smpc_cluster_comm_helpers import SMPCComputationError
 from mipengine.smpc_DTOs import SMPCRequestType
 from mipengine.smpc_DTOs import SMPCResponse
 from mipengine.smpc_DTOs import SMPCResponseStatus
 from mipengine.smpc_DTOs import SMPCResponseWithOutput
-from mipengine.smpc_cluster_comm_helpers import SMPCComputationError
 from mipengine.table_data_DTOs import ColumnData
 
 

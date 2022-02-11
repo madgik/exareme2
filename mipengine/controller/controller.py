@@ -1,22 +1,22 @@
 import asyncio
 import concurrent.futures
-
 import datetime
 import random
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
 
-from typing import Dict, List, Tuple, Optional, Any
-
-from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
+from mipengine.controller import config as controller_config
+from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
+from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.algorithm_execution_DTOs import (
-    AlgorithmExecutionDTO,
-    NodesTasksHandlersDTO,
-)
-from mipengine.controller.node_registry import node_registry
-from mipengine.controller import config as controller_config
 from mipengine.controller.api.validator import validate_algorithm_request
-from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller.node_registry import node_registry
+from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 
 
 class Controller:

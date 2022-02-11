@@ -2,13 +2,13 @@ import uuid
 
 import pytest
 
+from mipengine.datatypes import DType
 from mipengine.node_exceptions import IncompatibleSchemasMergeException
 from mipengine.node_exceptions import TablesNotFound
 from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableSchema
-from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 from tests.dev_env_tests.nodes_communication import get_celery_app
+from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 
 local_node_id = "localnode1"
 local_node = get_celery_app(local_node_id)

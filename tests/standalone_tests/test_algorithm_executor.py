@@ -12,7 +12,6 @@ from mipengine.node_tasks_DTOs import DType
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 
-
 # TODO does not contain any test, just a placeholder..
 
 

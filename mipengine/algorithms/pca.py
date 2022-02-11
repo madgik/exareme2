@@ -5,9 +5,9 @@ from typing import TypeVar
 import numpy
 from pydantic import BaseModel
 
-from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import make_unique_func_name
 from mipengine.udfgen import relation
+from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import state
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf

@@ -1,15 +1,16 @@
-from abc import ABC, abstractmethod
-import random
 import json
-from functools import partial, cached_property
+import random
 import re
+from abc import ABC
+from abc import abstractmethod
+from functools import cached_property
+from functools import partial
 
-from tqdm import tqdm
 import pandas as pd
 import pymonetdb
+from tqdm import tqdm
 
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
-
 
 TESTING_DATAMODEL = "dementia"
 DATA_TABLENAME = f""""{TESTING_DATAMODEL}:0.1".primary_data"""

@@ -4,21 +4,18 @@ from typing import TypeVar
 import numpy
 import pandas as pd
 
+from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.udfgen import (
-    TensorBinaryOp,
-    TensorUnaryOp,
-    literal,
-    make_unique_func_name,
-    merge_tensor,
-    relation,
-    scalar,
-    tensor,
-    udf,
-)
-from mipengine.algorithm_result_DTOs import TabularDataResult
-
+from mipengine.udfgen import TensorBinaryOp
+from mipengine.udfgen import TensorUnaryOp
+from mipengine.udfgen import literal
+from mipengine.udfgen import make_unique_func_name
+from mipengine.udfgen import merge_tensor
+from mipengine.udfgen import relation
+from mipengine.udfgen import scalar
+from mipengine.udfgen import tensor
+from mipengine.udfgen import udf
 
 PREC = 1e-6
 

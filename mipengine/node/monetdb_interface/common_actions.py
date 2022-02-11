@@ -1,20 +1,19 @@
 from typing import List
 
 from mipengine import DType
+from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 from mipengine.node_exceptions import TablesNotFound
+
+# TODO We need to add the PRIVATE/OPEN table logic
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import TableType
+from mipengine.table_data_DTOs import ColumnData
 from mipengine.table_data_DTOs import ColumnDataBinary
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataInt
 from mipengine.table_data_DTOs import ColumnDataJSON
 from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
-
-
-# TODO We need to add the PRIVATE/OPEN table logic
-from mipengine.node_tasks_DTOs import TableType
-from mipengine.table_data_DTOs import ColumnData
 
 
 def create_table_name(

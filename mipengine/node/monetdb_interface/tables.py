@@ -1,4 +1,5 @@
-from typing import List, Union
+from typing import List
+from typing import Union
 
 from mipengine.node.monetdb_interface import common_actions
 from mipengine.node.monetdb_interface.common_actions import (
