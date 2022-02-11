@@ -82,7 +82,7 @@ class INodeTasksHandler(ABC):
         request_id: str,
         context_id: str,
         command_id: str,
-        data_model: str,
+        data_model_code: str,
         data_model_version: str,
         columns: List[str],
         filters: List[str],

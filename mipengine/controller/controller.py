@@ -34,7 +34,7 @@ class Controller:
         logger = ctrl_logger.get_request_logger(request_id=request_id)
 
         all_nodes_tasks_handlers = self._create_nodes_tasks_handlers(
-            data_model=algorithm_request_dto.inputdata.data_model,
+            data_model_code=algorithm_request_dto.inputdata.data_model_code,
             datasets=algorithm_request_dto.inputdata.datasets,
         )
 
@@ -79,11 +79,13 @@ class Controller:
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
     ):
-        available_datasets_per_data_model = self.get_all_available_datasets_per_schema()
+        available_datasets_per_data_model_code = (
+            self.get_all_available_datasets_per_data_model_code()
+        )
         validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
-            available_datasets_per_data_model=available_datasets_per_data_model,
+            available_datasets_per_data_model_code=available_datasets_per_data_model_code,
         )
 
     async def start_node_registry(self):
@@ -95,26 +97,26 @@ class Controller:
     def get_all_datasets_per_node(self):
         datasets = {}
         for node in node_registry.get_all_local_nodes():
-            datasets[node.id] = node.datasets_per_data_model
+            datasets[node.id] = node.datasets_per_data_model_code
         return datasets
 
     def get_all_available_schemas(self):
         return node_registry.get_all_available_data_models()
 
-    def get_all_available_datasets_per_schema(self):
-        return node_registry.get_all_available_datasets_per_data_model()
+    def get_all_available_datasets_per_data_model_code(self):
+        return node_registry.get_all_available_datasets_per_data_model_code()
 
     def get_all_local_nodes(self):
         return node_registry.get_all_local_nodes()
 
     def _create_nodes_tasks_handlers(
-        self, data_model: str, datasets: List[str]
+        self, data_model_code: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
 
         # Get only the relevant nodes from the node registry
         global_node = node_registry.get_all_global_nodes()[0]
         local_nodes = node_registry.get_nodes_with_any_of_datasets(
-            data_model=data_model,
+            data_model_code=data_model_code,
             datasets=datasets,
         )
 

@@ -78,10 +78,10 @@ class CommonDataElement:
 
 
 class CommonDataElements:
-    pathologies: Dict[str, Dict[str, CommonDataElement]]
+    data_models: Dict[str, Dict[str, CommonDataElement]]
 
     def __init__(self, cdes_metadata_path: str = None):
-        self.pathologies = {}
+        self.data_models = {}
 
         if not cdes_metadata_path:
             return
@@ -102,7 +102,7 @@ class CommonDataElements:
                 with open(data_model_metadata_filepath) as file:
                     contents = file.read()
                     data_model_metadata = MetadataGroup.from_json(contents)
-                self.pathologies[data_model_metadata.code] = {
+                self.data_models[data_model_metadata.code] = {
                     variable.code: CommonDataElement(variable)
                     for group in data_model_metadata
                     for variable in group.variables
@@ -114,7 +114,7 @@ class CommonDataElements:
                 raise e
 
             # Adding the subject code cde that doesn't exist in the metadata
-            self.pathologies[data_model_metadata.code][
+            self.data_models[data_model_metadata.code][
                 "subjectcode"
             ] = CommonDataElement(
                 MetadataVariable(

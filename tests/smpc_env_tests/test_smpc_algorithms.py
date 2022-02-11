@@ -16,7 +16,7 @@ def get_parametrization_list_success_cases():
     algorithm_name = "smpc_standard_deviation"
     request_dict = {
         "inputdata": {
-            "data_model": "dementia",
+            "data_model_code": "dementia",
             "data_model_version": "0.1",
             "datasets": ["edsd"],
             "x": [
@@ -66,7 +66,7 @@ def get_parametrization_list_success_cases():
     algorithm_name = "smpc_standard_deviation"
     request_dict = {
         "inputdata": {
-            "data_model": "dementia",
+            "data_model_code": "dementia",
             "data_model_version": "0.1",
             "datasets": ["edsd"],
             "x": [
@@ -142,7 +142,7 @@ def get_parametrization_list_exception_cases():
     algorithm_name = "smpc_standard_deviation"
     request_dict = {
         "inputdata": {
-            "data_model": "dementia",
+            "data_model_code": "dementia",
             "data_model_version": "0.1",
             "datasets": ["edsd"],
             "x": [

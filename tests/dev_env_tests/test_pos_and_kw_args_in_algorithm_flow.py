@@ -10,7 +10,7 @@ def get_parametrization_list_success_cases():
     algorithm_name = "standard_deviation_pos_and_kw_args"
     request_dict = {
         "inputdata": {
-            "data_model": "dementia",
+            "data_model_code": "dementia",
             "data_model_version": "0.1",
             "datasets": ["edsd"],
             "x": [

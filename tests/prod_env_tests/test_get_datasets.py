@@ -33,7 +33,7 @@ def test_get_datasets():
         assert set(node_data_models[node_id].keys()) == set(
             expected_node_data_models[node_id].keys()
         )
-        for data_model in node_data_models[node_id].keys():
-            assert set(node_data_models[node_id][data_model]) == set(
-                expected_node_data_models[node_id][data_model]
+        for data_model_code in node_data_models[node_id].keys():
+            assert set(node_data_models[node_id][data_model_code]) == set(
+                expected_node_data_models[node_id][data_model_code]
             )

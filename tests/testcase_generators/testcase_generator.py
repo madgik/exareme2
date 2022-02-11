@@ -246,8 +246,8 @@ class InputGenerator:
                 diff = set(inputdata["y"]) & set(inputdata["x"])
                 inputdata["x"] = tuple(set(inputdata["x"]) - diff)
 
-            inputdata["data_model"] = TESTING_DATAMODEL
-            inputdata["data_model"] = TESTING_DATAMODEL
+            inputdata["data_model_code"] = TESTING_DATAMODEL
+            inputdata["data_model_version"] = TESTING_DATAMODEL_VERSION
             inputdata["datasets"] = self.datasets_gen.draw()
             inputdata["filters"] = self.filters_gen.draw()
             parameters = {

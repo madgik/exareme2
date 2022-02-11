@@ -10,7 +10,7 @@
                         "rightputamen",
                         "leftsmgsupramarginalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "data_model_version": "0.1",
                     "datasets": [
@@ -96,7 +96,7 @@
                         "leftcalccalcarinecortex",
                         "rightsogsuperioroccipitalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "data_model_version": "0.1",
                     "datasets": [
@@ -739,7 +739,7 @@
                         "leftopifgopercularpartoftheinferiorfrontalgyrus",
                         "leftcerebellumexterior"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "data_model_version": "0.1",
                     "datasets": [
@@ -1318,7 +1318,7 @@
                         "rightstgsuperiortemporalgyrus",
                         "leftthalamusproper"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "data_model_version": "0.1",
                     "datasets": [
@@ -1383,7 +1383,7 @@
                         "rightmtgmiddletemporalgyrus",
                         "leftgregyrusrectus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -1615,7 +1615,7 @@
                         "rightocpoccipitalpole",
                         "rightacgganteriorcingulategyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -2533,7 +2533,7 @@
                         "rightaccumbensarea",
                         "leftsplsuperiorparietallobule"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -3320,7 +3320,7 @@
                         "leftinflatvent",
                         "leftprgprecentralgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -3491,7 +3491,7 @@
                         "rightmorgmedialorbitalgyrus",
                         "leftinflatvent"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd"
@@ -3861,7 +3861,7 @@
                         "rightpogpostcentralgyrus",
                         "leftppplanumpolare"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi"
@@ -3977,7 +3977,7 @@
                         "leftaorganteriororbitalgyrus",
                         "rightsfgsuperiorfrontalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -4081,7 +4081,7 @@
                         "rightpcuprecuneus",
                         "opticchiasm"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata"
@@ -4858,7 +4858,7 @@
                     "y": [
                         "leftliglingualgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -4891,7 +4891,7 @@
                         "leftcerebellumwhitematter",
                         "leftmfcmedialfrontalcortex"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -4957,7 +4957,7 @@
                         "rightainsanteriorinsula",
                         "leftopifgopercularpartoftheinferiorfrontalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -5043,7 +5043,7 @@
                         "rightacgganteriorcingulategyrus",
                         "righttmptemporalpole"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -8041,7 +8041,7 @@
                         "leftscasubcallosalarea",
                         "leftorifgorbitalpartoftheinferiorfrontalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -8123,7 +8123,7 @@
                         "rightphgparahippocampalgyrus",
                         "leftgregyrusrectus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata"
@@ -8195,7 +8195,7 @@
                         "rightorifgorbitalpartoftheinferiorfrontalgyrus",
                         "leftcerebellumwhitematter"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -8778,7 +8778,7 @@
                         "leftventraldc",
                         "rightthalamusproper"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -8936,7 +8936,7 @@
                         "rightcalccalcarinecortex",
                         "leftliglingualgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd"
@@ -9003,7 +9003,7 @@
                         "leftcerebellumwhitematter",
                         "leftcaudate"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -9393,7 +9393,7 @@
                         "leftthalamusproper",
                         "rightthalamusproper"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -10187,7 +10187,7 @@
                         "rightententorhinalarea",
                         "rightputamen"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -10529,7 +10529,7 @@
                         "rightinflatvent",
                         "lefthippocampus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata"
@@ -10837,7 +10837,7 @@
                         "rightaccumbensarea",
                         "leftmfcmedialfrontalcortex"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -11187,7 +11187,7 @@
                         "rightsplsuperiorparietallobule",
                         "leftainsanteriorinsula"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -11813,7 +11813,7 @@
                         "rightsmcsupplementarymotorcortex",
                         "rightputamen"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi"
@@ -11897,7 +11897,7 @@
                         "leftioginferioroccipitalgyrus",
                         "rightptplanumtemporale"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -13197,7 +13197,7 @@
                         "rightphgparahippocampalgyrus",
                         "leftmtgmiddletemporalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -13604,7 +13604,7 @@
                         "rightmtgmiddletemporalgyrus",
                         "rightfrpfrontalpole"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -13693,7 +13693,7 @@
                         "leftamygdala",
                         "leftpallidum"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -14473,7 +14473,7 @@
                         "leftaorganteriororbitalgyrus",
                         "rightaorganteriororbitalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -14520,7 +14520,7 @@
                         "leftmprgprecentralgyrusmedialsegment",
                         "rightmcggmiddlecingulategyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -14765,7 +14765,7 @@
                         "rightpogpostcentralgyrus",
                         "leftaccumbensarea"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata"
@@ -15038,7 +15038,7 @@
                         "rightsplsuperiorparietallobule",
                         "leftangangulargyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -15276,7 +15276,7 @@
                         "rightsplsuperiorparietallobule",
                         "csfglobal"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -15366,7 +15366,7 @@
                         "rightmcggmiddlecingulategyrus",
                         "leftsmcsupplementarymotorcortex"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -15588,7 +15588,7 @@
                         "leftacgganteriorcingulategyrus",
                         "minimentalstate"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd"
@@ -16007,7 +16007,7 @@
                         "rightcerebellumexterior",
                         "cerebellarvermallobulesiv"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -16463,7 +16463,7 @@
                         "rightpinsposteriorinsula",
                         "leftbasalforebrain"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -16745,7 +16745,7 @@
                         "leftptplanumtemporale",
                         "brainstem"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -17231,7 +17231,7 @@
                         "rightfofrontaloperculum",
                         "rightmogmiddleoccipitalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -17283,7 +17283,7 @@
                         "minimentalstate",
                         "leftpogpostcentralgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -17699,7 +17699,7 @@
                         "rightofugoccipitalfusiformgyrus",
                         "brainstem"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -17969,7 +17969,7 @@
                         "leftpinsposteriorinsula",
                         "leftmfgmiddlefrontalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd"
@@ -18093,7 +18093,7 @@
                         "rightporgposteriororbitalgyrus",
                         "leftsplsuperiorparietallobule"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata"
@@ -18361,7 +18361,7 @@
                         "rightcerebellumexterior",
                         "leftpallidum"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -18481,7 +18481,7 @@
                         "leftlateralventricle",
                         "leftcuncuneus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -18630,7 +18630,7 @@
                         "leftfrpfrontalpole",
                         "leftcerebellumwhitematter"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi"
@@ -19039,7 +19039,7 @@
                         "leftcaudate",
                         "rightocpoccipitalpole"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi"
@@ -19173,7 +19173,7 @@
                         "righthippocampus",
                         "rightcocentraloperculum"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -19232,7 +19232,7 @@
                         "leftputamen",
                         "rightprgprecentralgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -19351,7 +19351,7 @@
                         "leftcuncuneus",
                         "rightstgsuperiortemporalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd"
@@ -19462,7 +19462,7 @@
                         "leftorifgorbitalpartoftheinferiorfrontalgyrus",
                         "rightfofrontaloperculum"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -19922,7 +19922,7 @@
                         "leftliglingualgyrus",
                         "leftsplsuperiorparietallobule"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -20369,7 +20369,7 @@
                         "leftententorhinalarea",
                         "rightioginferioroccipitalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi"
@@ -20438,7 +20438,7 @@
                         "rightscasubcallosalarea",
                         "rightitginferiortemporalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd"
@@ -20543,7 +20543,7 @@
                         "minimentalstate",
                         "leftocpoccipitalpole"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -20786,7 +20786,7 @@
                         "leftcaudate",
                         "rightofugoccipitalfusiformgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -20981,7 +20981,7 @@
                         "leftpinsposteriorinsula",
                         "rightinflatvent"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -21351,7 +21351,7 @@
                         "rightpoparietaloperculum",
                         "leftitginferiortemporalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -21436,7 +21436,7 @@
                         "rightpogpostcentralgyrus",
                         "rightofugoccipitalfusiformgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata"
@@ -21556,7 +21556,7 @@
                         "rightcerebellumexterior",
                         "leftcocentraloperculum"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -21727,7 +21727,7 @@
                         "leftppplanumpolare",
                         "leftthalamusproper"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd"
@@ -22095,7 +22095,7 @@
                         "opticchiasm",
                         "leftpoparietaloperculum"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi"
@@ -22179,7 +22179,7 @@
                         "leftsfgsuperiorfrontalgyrus",
                         "rightofugoccipitalfusiformgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -22322,7 +22322,7 @@
                         "subjectageyears",
                         "leftaorganteriororbitalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -23471,7 +23471,7 @@
                         "subjectageyears",
                         "rightputamen"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -23552,7 +23552,7 @@
                         "rightpallidum",
                         "cerebellarvermallobulesvivii"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -23928,7 +23928,7 @@
                         "rightmpogpostcentralgyrusmedialsegment",
                         "leftsmgsupramarginalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -24169,7 +24169,7 @@
                         "lefthippocampus",
                         "leftptplanumtemporale"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd"
@@ -24330,7 +24330,7 @@
                         "leftmsfgsuperiorfrontalgyrusmedialsegment",
                         "leftamygdala"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -24471,7 +24471,7 @@
                         "leftinflatvent",
                         "leftsogsuperioroccipitalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi"
@@ -24607,7 +24607,7 @@
                         "lefttmptemporalpole",
                         "csfglobal"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -24696,7 +24696,7 @@
                         "lefttmptemporalpole",
                         "leftaorganteriororbitalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -24906,7 +24906,7 @@
                         "rightofugoccipitalfusiformgyrus",
                         "rightttgtransversetemporalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -26058,7 +26058,7 @@
                         "rightmcggmiddlecingulategyrus",
                         "_3rdventricle"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -26175,7 +26175,7 @@
                         "leftsmcsupplementarymotorcortex",
                         "leftlorglateralorbitalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -26242,7 +26242,7 @@
                         "leftsfgsuperiorfrontalgyrus",
                         "leftprgprecentralgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -26306,7 +26306,7 @@
                         "rightinflatvent",
                         "rightgregyrusrectus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -26935,7 +26935,7 @@
                         "leftphgparahippocampalgyrus",
                         "leftliglingualgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -27031,7 +27031,7 @@
                         "leftamygdala",
                         "rightttgtransversetemporalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -27081,7 +27081,7 @@
                         "leftbasalforebrain",
                         "leftcerebellumexterior"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata"
@@ -27238,7 +27238,7 @@
                         "rightcaudate",
                         "leftstgsuperiortemporalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi"
@@ -28085,7 +28085,7 @@
                         "subjectageyears",
                         "rightbasalforebrain"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata"
@@ -28384,7 +28384,7 @@
                         "rightmogmiddleoccipitalgyrus",
                         "csfglobal"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -28504,7 +28504,7 @@
                         "rightfofrontaloperculum",
                         "leftaorganteriororbitalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -29341,7 +29341,7 @@
                         "rightcuncuneus",
                         "rightpcggposteriorcingulategyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -29438,7 +29438,7 @@
                         "leftamygdala",
                         "leftprgprecentralgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -31629,7 +31629,7 @@
                         "leftputamen",
                         "leftpcuprecuneus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi"
@@ -31729,7 +31729,7 @@
                         "rightcerebralwhitematter",
                         "leftcaudate"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -31849,7 +31849,7 @@
                         "leftbasalforebrain",
                         "rightttgtransversetemporalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -32014,7 +32014,7 @@
                         "rightsfgsuperiorfrontalgyrus",
                         "leftppplanumpolare"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -33332,7 +33332,7 @@
                         "leftcalccalcarinecortex",
                         "rightaorganteriororbitalgyrus"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "desd-synthdata",
@@ -34772,7 +34772,7 @@
                         "rightsmcsupplementarymotorcortex",
                         "leftpallidum"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",
@@ -34999,7 +34999,7 @@
                         "rightcocentraloperculum",
                         "leftthalamusproper"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -35633,7 +35633,7 @@
                         "rightocpoccipitalpole",
                         "rightcaudate"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -35880,7 +35880,7 @@
                         "leftmfcmedialfrontalcortex",
                         "leftscasubcallosalarea"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "ppmi",
@@ -36182,7 +36182,7 @@
                         "leftgregyrusrectus",
                         "leftinflatvent"
                     ],
-                    "data_model": "dementia",
+                    "data_model_code": "dementia",
                     "data_model_version": "0.1",
                     "datasets": [
                         "edsd",

@@ -53,7 +53,7 @@ def build_filter_clause(rules):
 
 
 def validate_filter(
-    common_data_elements: CommonDataElements, data_model_name: str, rules: dict
+    common_data_elements: CommonDataElements, data_model_code: str, rules: dict
 ):
     """
     Validates a given filter in jQuery format.
@@ -73,13 +73,13 @@ def validate_filter(
         _check_condition(rules["condition"])
         rules = rules["rules"]
         for rule in rules:
-            validate_filter(common_data_elements, data_model_name, rule)
+            validate_filter(common_data_elements, data_model_code, rule)
     elif "id" in rules:
         column_name = rules["id"]
         val = rules["value"]
         _check_operator(rules["operator"])
-        _check_column_exists(common_data_elements, data_model_name, column_name)
-        _check_value_type(common_data_elements, data_model_name, column_name, val)
+        _check_column_exists(common_data_elements, data_model_code, column_name)
+        _check_value_type(common_data_elements, data_model_code, column_name, val)
     else:
         raise FilterError(
             f"Invalid filters format. Filters did not contain the keys: 'condition' or 'id'."
@@ -107,26 +107,26 @@ def _check_operator(operator: str):
         raise FilterError(f"Operator: {operator} is not acceptable.")
 
 
-def _check_column_exists(common_data_elements, data_model_name: str, column: str):
-    data_model_common_data_elements = common_data_elements.pathologies[data_model_name]
+def _check_column_exists(common_data_elements, data_model_code: str, column: str):
+    data_model_common_data_elements = common_data_elements.data_models[data_model_code]
     if column not in data_model_common_data_elements.keys():
         raise FilterError(
-            f"Column {column} does not exist in the metadata of the {data_model_name}!"
+            f"Column {column} does not exist in the metadata of the {data_model_code}!"
         )
 
 
-def _check_value_type(common_data_elements, data_model_name: str, column: str, value):
+def _check_value_type(common_data_elements, data_model_code: str, column: str, value):
     if value is None:
         return
 
     if isinstance(value, list):
         [
-            _check_value_type(common_data_elements, data_model_name, column, item)
+            _check_value_type(common_data_elements, data_model_code, column, item)
             for item in value
         ]
     elif isinstance(value, (int, str, float)):
         _check_value_column_same_type(
-            common_data_elements, data_model_name, column, value
+            common_data_elements, data_model_code, column, value
         )
     else:
         raise FilterError(
@@ -134,8 +134,8 @@ def _check_value_type(common_data_elements, data_model_name: str, column: str, v
         )
 
 
-def _check_value_column_same_type(common_data_elements, data_model_name, column, value):
-    data_model_common_data_elements = common_data_elements.pathologies[data_model_name]
+def _check_value_column_same_type(common_data_elements, data_model_code, column, value):
+    data_model_common_data_elements = common_data_elements.data_models[data_model_code]
     column_sql_type = data_model_common_data_elements[column].sql_type
     dtype = DType.from_cde(column_sql_type)
     if type(value) is not dtype.to_py():

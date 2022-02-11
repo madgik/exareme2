@@ -128,7 +128,7 @@ class AlgorithmExecutor:
         # tables
         initial_view_tables_params = {
             "commandId": get_next_command_id(),
-            "data_model": self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model,
+            "data_model_code": self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model_code,
             "data_model_version": self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model_version,
             "datasets": self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
             "x": self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
@@ -174,7 +174,7 @@ class AlgorithmExecutor:
             algorithm_parameters=self._algorithm_execution_dto.algorithm_request_dto.parameters,
             x_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
             y_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
-            data_model=self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model,
+            data_model_code=self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model_code,
             datasets=self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
             use_smpc=self._get_use_smpc_flag(),
         )
@@ -242,7 +242,7 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     algorithm_parameters: Optional[Dict[str, Any]] = None
     x_variables: Optional[List[str]] = None
     y_variables: Optional[List[str]] = None
-    data_model: str
+    data_model_code: str
     datasets: List[str]
     use_smpc: bool
 
@@ -258,10 +258,10 @@ class _AlgorithmExecutionInterface:
         self._algorithm_parameters = algo_execution_interface_dto.algorithm_parameters
         self._x_variables = algo_execution_interface_dto.x_variables
         self._y_variables = algo_execution_interface_dto.y_variables
-        data_model = algo_execution_interface_dto.data_model
+        data_model_code = algo_execution_interface_dto.data_model_code
         self._datasets = algo_execution_interface_dto.datasets
         self._use_smpc = algo_execution_interface_dto.use_smpc
-        cdes = controller_common_data_elements.pathologies[data_model]
+        cdes = controller_common_data_elements.data_models[data_model_code]
         varnames = (self._x_variables or []) + (self._y_variables or [])
         self._metadata = {
             varname: cde.__dict__

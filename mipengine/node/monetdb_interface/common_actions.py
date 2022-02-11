@@ -230,7 +230,7 @@ def get_initial_data_models() -> List[str]:
     return data_model_table_names
 
 
-def get_data_model_datasets(data_model_name) -> List[str]:
+def get_data_model_datasets(data_model_code) -> List[str]:
     """
     Retrieves the datasets with the specific data_model.
 
@@ -248,7 +248,7 @@ def get_data_model_datasets(data_model_name) -> List[str]:
         (
             SELECT data_model_id
             FROM "mipdb_metadata"."data_models"
-            WHERE code = '{data_model_name}'
+            WHERE code = '{data_model_code}'
         )
         """
     )

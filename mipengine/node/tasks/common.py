@@ -22,9 +22,11 @@ def get_node_info(request_id: str):
     str(NodeInfo)
         A NodeInfo object in a jsonified format
     """
-    datasets_per_data_model = {}
-    for data_model in get_initial_data_models():
-        datasets_per_data_model[data_model] = get_data_model_datasets(data_model)
+    datasets_per_data_model_code = {}
+    for data_model_code in get_initial_data_models():
+        datasets_per_data_model_code[data_model_code] = get_data_model_datasets(
+            data_model_code
+        )
 
     node_info = NodeInfo(
         id=node_config.identifier,
@@ -33,7 +35,7 @@ def get_node_info(request_id: str):
         port=node_config.rabbitmq.port,
         db_ip=node_config.monetdb.ip,
         db_port=node_config.monetdb.port,
-        datasets_per_data_model=datasets_per_data_model,
+        datasets_per_data_model_code=datasets_per_data_model_code,
     )
 
     return node_info.json()

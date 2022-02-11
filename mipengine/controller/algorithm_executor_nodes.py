@@ -45,7 +45,7 @@ class _INode(ABC):
     def create_data_model_view(
         self,
         command_id: str,
-        data_model: str,
+        data_model_code: str,
         data_model_version: str,
         columns: List[str],
         filters: List[str],
@@ -130,7 +130,7 @@ class _Node(_INode, ABC):
             command_id = str(initial_view_tables_params["commandId"]) + variable
             view_name = self.create_data_model_view(
                 command_id=command_id,
-                data_model=initial_view_tables_params["data_model"],
+                data_model_code=initial_view_tables_params["data_model_code"],
                 data_model_version=initial_view_tables_params["data_model_version"],
                 columns=initial_view_tables_params[variable],
                 filters=initial_view_tables_params["filters"],
@@ -143,7 +143,7 @@ class _Node(_INode, ABC):
             command_id = str(initial_view_tables_params["commandId"]) + variable
             view_name = self.create_data_model_view(
                 command_id=command_id,
-                data_model=initial_view_tables_params["data_model"],
+                data_model_code=initial_view_tables_params["data_model_code"],
                 data_model_version=initial_view_tables_params["data_model_version"],
                 columns=initial_view_tables_params[variable],
                 filters=initial_view_tables_params["filters"],
@@ -201,7 +201,7 @@ class _Node(_INode, ABC):
     def create_data_model_view(
         self,
         command_id: str,
-        data_model: str,
+        data_model_code: str,
         data_model_version: str,
         columns: List[str],
         filters: List[str],
@@ -210,7 +210,7 @@ class _Node(_INode, ABC):
             request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
-            data_model=data_model,
+            data_model_code=data_model_code,
             data_model_version=data_model_version,
             columns=columns,
             filters=filters,

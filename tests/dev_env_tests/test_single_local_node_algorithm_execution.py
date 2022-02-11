@@ -20,7 +20,7 @@ from tests.dev_env_tests.nodes_communication import get_node_config_by_id
 @pytest.fixture(scope="function")
 def mock_cdes():
     common_data_elements = CommonDataElements()
-    common_data_elements.pathologies = {
+    common_data_elements.data_models = {
         "dementia": {
             "lefthippocampus": CommonDataElement(
                 MetadataVariable(
@@ -133,7 +133,7 @@ def get_parametrization_list_success_cases():
         algorithm_name="logistic_regression",
         algorithm_request_dto=AlgorithmRequestDTO(
             inputdata=AlgorithmInputDataDTO(
-                data_model="dementia",
+                data_model_code="dementia",
                 data_model_version="0.1",
                 datasets=["edsd"],
                 filters={
@@ -190,7 +190,7 @@ def get_parametrization_list_success_cases():
         algorithm_request_dto=AlgorithmRequestDTO(
             request_id="1234",
             inputdata=AlgorithmInputDataDTO(
-                data_model="dementia",
+                data_model_code="dementia",
                 datasets=["edsd"],
                 data_model_version="0.1",
                 filters={

@@ -41,7 +41,7 @@ class NodeMock(_INode):
     def create_data_model_view(
         self,
         command_id: str,
-        data_model: str,
+        data_model_code: str,
         data_model_version: str,
         columns: List[str],
         filters: List[str],

@@ -15,7 +15,7 @@ def get_parametrization_list_success_cases():
     algorithm_name = "logistic_regression"
     request_dict = {
         "inputdata": {
-            "data_model": "dementia",
+            "data_model_code": "dementia",
             "data_model_version": "0.1",
             "datasets": ["edsd"],
             "x": [
@@ -128,7 +128,7 @@ def get_parametrization_list_exception_cases():
     algorithm_name = "logistic_regression"
     request_dict = {
         "wrong_name": {
-            "data_model": "dementia",
+            "data_model_code": "dementia",
             "data_model_version": "0.1",
             "datasets": ["test_dataset1", "test_dataset2"],
             "x": ["test_cde1", "test_cde2"],
@@ -142,7 +142,7 @@ def get_parametrization_list_exception_cases():
     algorithm_name = "logistic_regression"
     request_dict = {
         "inputdata": {
-            "data_model": "non_existing",
+            "data_model_code": "non_existing",
             "data_model_version": "0.1",
             "datasets": ["test_dataset1", "test_dataset2"],
             "x": ["test_cde1", "test_cde2"],
@@ -157,7 +157,7 @@ def get_parametrization_list_exception_cases():
     algorithm_name = "logistic_regression"
     request_dict = {
         "inputdata": {
-            "data_model": "dementia",
+            "data_model_code": "dementia",
             "data_model_version": "0.1",
             "datasets": ["edsd"],
             "x": ["lefthippocampus"],
