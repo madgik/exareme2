@@ -51,7 +51,9 @@ def get_mocked_node_info() -> List[NodeInfo]:
             port=mocked_node_addresses[0].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50000,
-            datasets_per_data_model=get_nodes_datasets_per_data_model()["globalnode"],
+            datasets_per_data_model_code=get_nodes_datasets_per_data_model()[
+                "globalnode"
+            ],
         ),
         NodeInfo(
             id="localnode1",
@@ -60,7 +62,9 @@ def get_mocked_node_info() -> List[NodeInfo]:
             port=mocked_node_addresses[1].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50000,
-            datasets_per_data_model=get_nodes_datasets_per_data_model()["localnode1"],
+            datasets_per_data_model_code=get_nodes_datasets_per_data_model()[
+                "localnode1"
+            ],
         ),
         NodeInfo(
             id="localnode2",
@@ -69,7 +73,9 @@ def get_mocked_node_info() -> List[NodeInfo]:
             port=mocked_node_addresses[2].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50000,
-            datasets_per_data_model=get_nodes_datasets_per_data_model()["localnode2"],
+            datasets_per_data_model_code=get_nodes_datasets_per_data_model()[
+                "localnode2"
+            ],
         ),
         NodeInfo(
             id="localnode3",
@@ -78,7 +84,9 @@ def get_mocked_node_info() -> List[NodeInfo]:
             port=mocked_node_addresses[2].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50000,
-            datasets_per_data_model=get_nodes_datasets_per_data_model()["localnode3"],
+            datasets_per_data_model_code=get_nodes_datasets_per_data_model()[
+                "localnode3"
+            ],
         ),
     ]
 
@@ -144,6 +152,7 @@ test_cases_data_model_exists = [
     test_cases_data_model_exists,
 )
 def test_data_model_exists(data_model_code, exists, mocked_node_registry):
+    print(mocked_node_registry.data_model_exists(data_model_code))
     assert mocked_node_registry.data_model_exists(data_model_code) == exists
 
 
