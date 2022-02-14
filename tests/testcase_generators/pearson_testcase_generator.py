@@ -1,8 +1,8 @@
-from pathlib import Path
 import warnings
+from pathlib import Path
 
-from scipy import stats
 import numpy as np
+from scipy import stats
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 

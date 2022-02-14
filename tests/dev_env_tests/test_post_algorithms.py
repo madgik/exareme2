@@ -2,7 +2,6 @@ import json
 import re
 
 import numpy as np
-
 import pytest
 import requests
 

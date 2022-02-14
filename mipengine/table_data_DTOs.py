@@ -1,10 +1,10 @@
 from abc import ABC
+from typing import Any
 from typing import List
 from typing import Union
 
 from pydantic import BaseModel
 from pydantic import validator
-from typing import Any
 
 from mipengine import DType
 

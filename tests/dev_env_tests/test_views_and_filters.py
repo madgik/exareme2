@@ -4,14 +4,14 @@ import uuid
 import pytest
 import requests
 
-from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.datatypes import DType
+from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import InsufficientDataError
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.dev_env_tests import algorithms_url
-from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 from tests.dev_env_tests.nodes_communication import get_celery_app
+from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 
 local_node_id = "localnode1"
 local_node = get_celery_app(local_node_id)

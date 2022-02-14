@@ -7,7 +7,8 @@ from mipengine.common_data_elements import CommonDataElements
 from mipengine.common_data_elements import MetadataEnumeration
 from mipengine.common_data_elements import MetadataVariable
 from mipengine.filters import FilterError
-from mipengine.filters import build_filter_clause, validate_filter
+from mipengine.filters import build_filter_clause
+from mipengine.filters import validate_filter
 
 PATHOLOGY = "test_pathology1"
 

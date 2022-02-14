@@ -6,8 +6,8 @@ from typing import Optional
 from dataclasses_json import dataclass_json
 
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
-from mipengine.controller.algorithms_specifications import ParameterSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecifications
+from mipengine.controller.algorithms_specifications import ParameterSpecification
 from mipengine.controller.algorithms_specifications import algorithms_specifications
 
 

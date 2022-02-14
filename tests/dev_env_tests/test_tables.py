@@ -1,13 +1,14 @@
-import pytest
 import uuid as uuid
 
+import pytest
+
+from mipengine.datatypes import DType
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataInt
 from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.datatypes import DType
-from mipengine.node_tasks_DTOs import TableData
-from mipengine.node_tasks_DTOs import TableSchema
 from tests.dev_env_tests.nodes_communication import get_celery_app
 from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 

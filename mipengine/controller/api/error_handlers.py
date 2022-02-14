@@ -2,9 +2,7 @@ import enum
 
 from quart import Blueprint
 
-from mipengine.controller.algorithm_executor import (
-    NodeDownAlgorithmExecutionException,
-)
+from mipengine.controller.algorithm_executor import NodeDownAlgorithmExecutionException
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.filters import FilterError
