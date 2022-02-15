@@ -9,7 +9,7 @@ from mipengine.filters import FilterError
 from mipengine.node_tasks_DTOs import InsufficientDataError
 from mipengine.controller.algorithm_executor import (
     AlgorithmExecutionException,
-    NodeDownAlgorithmExecutionException,
+    NodeUnresponsiveAlgorithmExecutionException
 )
 from mipengine.controller import controller_logger as ctrl_logger
 
@@ -26,7 +26,7 @@ class HTTPStatusCode(enum.IntEnum):
     BAD_REQUEST = 400
     BAD_USER_INPUT = 460
     INSUFFICIENT_DATA_ERROR = 461
-    NODE_DOWN_ALGORITHM_EXECUTION_ERROR = 512
+    NODE_UNRESPONSIVE_ALGORITHM_EXECUTION_ERROR = 512
     UNEXPECTED_ERROR = 500
 
 
@@ -54,14 +54,14 @@ def handle_privacy_error(error: InsufficientDataError):
     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
 
 
-@error_handlers.app_errorhandler(NodeDownAlgorithmExecutionException)
+@error_handlers.app_errorhandler(NodeUnresponsiveAlgorithmExecutionException)
 def handle_node_down_algorithm_excecution_exception(
-    error: NodeDownAlgorithmExecutionException,
+    error: NodeUnresponsiveAlgorithmExecutionException,
 ):
     print(f"(error_handlers::handle_algorithm_excecution_exception) {error=}")
     return (
         error.message,
-        HTTPStatusCode.NODE_DOWN_ALGORITHM_EXECUTION_ERROR,
+        HTTPStatusCode.NODE_UNRESPONSIVE_ALGORITHM_EXECUTION_ERROR,
     )
 
 

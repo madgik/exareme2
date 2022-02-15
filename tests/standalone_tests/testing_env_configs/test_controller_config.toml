@@ -1,0 +1,20 @@
+log_level="DEBUG"
+framework_log_level="INFO"
+cdes_metadata_path="./tests/demo_data"
+deployment_type="LOCAL"
+node_registry_update_interval= 5
+
+[localnodes]
+config_file="$NODES_ADDRESSES_FILE"
+dns=""
+port=""
+
+[rabbitmq]
+user="user"
+password="password"
+vhost="user_vhost" 
+celery_tasks_timeout= 60
+celery_tasks_max_retries=3
+celery_tasks_interval_start= 0
+celery_tasks_interval_step=0.2
+celery_tasks_interval_max=0.5

@@ -242,6 +242,7 @@ def create_monetdb(c, node, monetdb_image=None):
             Level.HEADER,
         )
         cmd = f"""poetry run mipdb init --ip 172.17.0.1 --port {node_config['monetdb']['port']}"""
+        sleep(20)
         run(c, cmd)
 
 
@@ -252,7 +253,6 @@ def load_data(c, port=None):
 
     :param port: A list of ports, in which it will load the data. If not set, it will use the `NODES_CONFIG_DIR` files.
     """
-
     local_node_ports = port
     if not local_node_ports:
         config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]

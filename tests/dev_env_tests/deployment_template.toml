@@ -8,8 +8,8 @@ cdes_metadata_path = "./tests/demo_data"
 
 algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 
-node_registry_update_interval = 20
-celery_tasks_timeout = 10
+node_registry_update_interval = 30
+celery_tasks_timeout = 60
 
 [[nodes]]
 id = "globalnode"
