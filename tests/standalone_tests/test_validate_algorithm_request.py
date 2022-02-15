@@ -25,7 +25,7 @@ from mipengine.controller.api.algorithm_request_dto import (
 def mock_cdes():
     common_data_elements = CommonDataElements()
     common_data_elements.data_models = {
-        "test_data_model1": {
+        "test_data_model1:0.1": {
             "test_cde1": CommonDataElement(
                 MetadataVariable(
                     code="test_cde1",
@@ -102,7 +102,7 @@ def mock_cdes():
                 )
             ),
         },
-        "test_data_model2": {
+        "test_data_model2:0.1": {
             "test_cde1": CommonDataElement(
                 MetadataVariable(
                     code="test_cde1",
@@ -152,8 +152,8 @@ def mock_cdes():
 @pytest.fixture()
 def available_datasets_per_data_model():
     d = {
-        "test_data_model1": ["test_dataset1", "test_dataset2"],
-        "test_data_model2": ["test_dataset2", "test_dataset3"],
+        "test_data_model1:0.1": ["test_dataset1", "test_dataset2"],
+        "test_data_model2:0.1": ["test_dataset2", "test_dataset3"],
     }
     return d
 
@@ -275,8 +275,7 @@ def get_parametrization_list_success_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1", "test_dataset2"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -288,8 +287,7 @@ def get_parametrization_list_success_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model2",
-                    data_model_version="0.1",
+                    data_model="test_data_model2:0.1",
                     datasets=["test_dataset2", "test_dataset3"],
                     x=["test_cde1"],
                     y=["test_cde3"],
@@ -301,8 +299,7 @@ def get_parametrization_list_success_cases():
             "algorithm_without_x",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model2",
-                    data_model_version="0.1",
+                    data_model="test_data_model2:0.1",
                     datasets=["test_dataset2", "test_dataset3"],
                     y=["test_cde1"],
                 ),
@@ -312,8 +309,7 @@ def get_parametrization_list_success_cases():
             "algorithm_without_y",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model2",
-                    data_model_version="0.1",
+                    data_model="test_data_model2:0.1",
                     datasets=["test_dataset2", "test_dataset3"],
                     x=["test_cde1"],
                 ),
@@ -332,7 +328,7 @@ def test_validate_algorithm_success(
     validate_algorithm_request(
         algorithm_name=algorithm_name,
         algorithm_request_dto=request_dto,
-        available_datasets_per_data_model_code=available_datasets_per_data_model,
+        available_datasets_per_data_model=available_datasets_per_data_model,
     )
 
 
@@ -342,8 +338,7 @@ def get_parametrization_list_exception_cases():
             "non_existing_algorithm",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["demo_data"],
                     x=["lefthippocampus", "righthippocampus"],
                     y=["alzheimerbroadcategory_bin"],
@@ -355,8 +350,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["demo_data"],
                     x=["lefthippocampus", "righthippocampus"],
                     y=["alzheimerbroadcategory_bin"],
@@ -371,8 +365,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="non_existing",
-                    data_model_version="0.1",
+                    data_model="non_existing",
                     datasets=["demo_data"],
                     x=["lefthippocampus", "righthippocampus"],
                     y=["alzheimerbroadcategory_bin"],
@@ -384,8 +377,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["non_existing", "non_existing2"],
                     x=["lefthippocampus", "righthippocampus"],
                     y=["alzheimerbroadcategory_bin"],
@@ -400,8 +392,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3", "test_cde2"],
@@ -413,8 +404,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["non_existing"],
@@ -426,8 +416,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde1"],
@@ -439,8 +428,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde4"],
@@ -452,8 +440,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde5", "test_cde2"],
                     y=["test_cde3"],
@@ -465,8 +452,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde6"],
@@ -478,8 +464,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -491,8 +476,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -505,8 +489,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -519,8 +502,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -533,8 +515,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -547,8 +528,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -561,8 +541,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -575,8 +554,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -589,8 +567,7 @@ def get_parametrization_list_exception_cases():
             "test_algorithm1",
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
-                    data_model_code="test_data_model1",
-                    data_model_version="0.1",
+                    data_model="test_data_model1:0.1",
                     datasets=["test_dataset1"],
                     x=["test_cde1", "test_cde2"],
                     y=["test_cde3"],
@@ -614,5 +591,5 @@ def test_validate_algorithm_exceptions(
         validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=request_dto,
-            available_datasets_per_data_model_code=available_datasets_per_data_model,
+            available_datasets_per_data_model=available_datasets_per_data_model,
         )

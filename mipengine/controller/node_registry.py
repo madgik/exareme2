@@ -143,17 +143,17 @@ class NodeRegistry:
         ]
 
     def get_nodes_with_any_of_datasets(
-        self, data_model_code: str, datasets: List[str]
+        self, data_model: str, datasets: List[str]
     ) -> List[NodeInfo]:
         all_local_nodes = self.get_all_local_nodes()
         local_nodes_with_datasets = []
         for node_info in all_local_nodes:
-            if not node_info.datasets_per_data_model_code:
+            if not node_info.datasets_per_data_model:
                 continue
-            if data_model_code not in node_info.datasets_per_data_model_code:
+            if data_model not in node_info.datasets_per_data_model:
                 continue
             if not _have_common_elements(
-                node_info.datasets_per_data_model_code[data_model_code], datasets
+                node_info.datasets_per_data_model[data_model], datasets
             ):
                 continue
             local_nodes_with_datasets.append(node_info)
@@ -164,18 +164,15 @@ class NodeRegistry:
     # without duplicates
     def get_all_available_data_models(self) -> List[str]:
         all_local_nodes = self.get_all_local_nodes()
-        tmp = [
-            local_node.datasets_per_data_model_code for local_node in all_local_nodes
-        ]
+        tmp = [local_node.datasets_per_data_model for local_node in all_local_nodes]
         all_existing_data_model = set().union(*tmp)
         return list(all_existing_data_model)
 
     # returns a dictionary with all the currently availiable data_models on the
     # system as keys and lists of datasets as values. Without duplicates
-    def get_all_available_datasets_per_data_model_code(self) -> Dict[str, List[str]]:
+    def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         all_local_nodes = self.get_all_local_nodes()
-        tmp = [node_info.datasets_per_data_model_code for node_info in all_local_nodes]
-
+        tmp = [node_info.datasets_per_data_model for node_info in all_local_nodes]
         from collections import defaultdict
         from itertools import chain
         from operator import methodcaller
@@ -184,24 +181,25 @@ class NodeRegistry:
         dict_items = map(methodcaller("items"), tmp)
         for k, v in chain.from_iterable(dict_items):
             dd[k].extend(v)
+
         return dict(dd)
 
-    def data_model_exists(self, data_model_code: str):
+    def data_model_exists(self, data_model: str):
         for node_info in self.get_all_local_nodes():
-            if not node_info.datasets_per_data_model_code:
+            if not node_info.datasets_per_data_model:
                 continue
-            if data_model_code in node_info.datasets_per_data_model_code.keys():
+            if data_model in node_info.datasets_per_data_model.keys():
                 return True
         return False
 
-    def dataset_exists(self, data_model_code: str, dataset: str):
+    def dataset_exists(self, data_model: str, dataset: str):
         for node_info in self.get_all_local_nodes():
-            if not node_info.datasets_per_data_model_code:
+            if not node_info.datasets_per_data_model:
                 continue
-            if data_model_code not in node_info.datasets_per_data_model_code:
+            if data_model not in node_info.datasets_per_data_model:
                 continue
             if not _have_common_elements(
-                node_info.datasets_per_data_model_code[data_model_code], [dataset]
+                node_info.datasets_per_data_model[data_model], [dataset]
             ):
                 continue
             return True

@@ -8,8 +8,7 @@ USE_SMPC_FLAG = "smpc"
 
 
 class AlgorithmInputDataDTO(BaseModel):
-    data_model_code: str
-    data_model_version: str
+    data_model: str
     datasets: List[str]
     filters: dict = None
     x: Optional[List[str]] = None

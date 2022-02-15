@@ -34,8 +34,7 @@ def test_view_params():
     request_id = TASKS_REQUEST_ID
     context_id = TASKS_CONTEXT_ID
     command_id = "0x"
-    data_model_code = "dementia"
-    data_model_version = "0.1"
+    data_model = "dementia:0.1"
     columns = [
         "lefthippocampus",
         "righthippocampus",
@@ -47,8 +46,7 @@ def test_view_params():
         "request_id": request_id,
         "context_id": context_id,
         "command_id": command_id,
-        "data_model_code": data_model_code,
-        "data_model_version": data_model_version,
+        "data_model": data_model,
         "columns": columns,
     }
 

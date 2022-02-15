@@ -25,7 +25,7 @@ test_cases_get_node_info = [
             port=5670,
             db_ip="172.17.0.1",
             db_port=50000,
-            datasets_per_data_model_code={},
+            datasets_per_data_model={},
         ),
     ),
     (
@@ -37,7 +37,7 @@ test_cases_get_node_info = [
             port=5671,
             db_ip="172.17.0.1",
             db_port=50001,
-            datasets_per_data_model_code={},
+            datasets_per_data_model={},
         ),
     ),
 ]
@@ -60,17 +60,17 @@ def test_get_node_info(node_id, expected_node_info):
     assert node_info.role == expected_node_info.role
 
 
-def setup_data_table_in_db(node_id, datasets_per_data_model_code):
+def setup_data_table_in_db(node_id, datasets_per_data_model):
     data_model_id = 0
     dataset_id = 0
-    for data_model_code in datasets_per_data_model_code.keys():
+    for data_model in datasets_per_data_model.keys():
         data_model_id += 1
         dataset_id += 1
-
-        sql_query = f"""INSERT INTO "mipdb_metadata"."data_models" VALUES ({data_model_id}, '{data_model_code}', '0.1', '{data_model_code}', 'ENABLED', null);"""
+        data_model_code, data_model_version = data_model.split(":")
+        sql_query = f"""INSERT INTO "mipdb_metadata"."data_models" VALUES ({data_model_id}, '{data_model_code}', '{data_model_version}', '{data_model}', 'ENABLED', null);"""
         cmd = f'docker exec -i monetdb-{node_id} mclient db -s "{sql_query}"'
         subprocess.call(cmd, shell=True)
-        for dataset_name in datasets_per_data_model_code[data_model_code]:
+        for dataset_name in datasets_per_data_model[data_model]:
             dataset_id += 1
             sql_query = f"""INSERT INTO "mipdb_metadata"."datasets" VALUES ({dataset_id}, {data_model_id}, '{dataset_name}', '{dataset_name}', 'ENABLED', null);"""
             cmd = f'docker exec -i monetdb-{node_id} mclient db -s "{sql_query}"'
@@ -88,28 +88,31 @@ def teardown_data_tables_in_db(node_id):
     subprocess.call(cmd, shell=True)
 
 
+data_model1 = f"data_model1:0.1"
+data_model2 = f"data_model2:0.1"
+data_model3 = f"data_model3:0.1"
 test_cases_get_node_info_datasets = [
     (
         "globalnode",
         {
-            "data_model1": [
+            data_model1: [
                 "dataset1",
                 "dataset2",
                 "dataset5",
                 "dataset7",
                 "dataset15",
             ],
-            "data_model2": ["dataset3"],
-            "data_model3": ["dataset4"],
+            data_model2: ["dataset3"],
+            data_model3: ["dataset4"],
         },
     ),
     (
         "globalnode",
         {
-            "data_model1": [
+            data_model1: [
                 "dataset123",
             ],
-            "data_model2": [
+            data_model2: [
                 "dataset123",
             ],
         },
@@ -117,7 +120,7 @@ test_cases_get_node_info_datasets = [
     (
         "globalnode",
         {
-            "data_model1": [],
+            data_model1: [],
         },
     ),
     (
@@ -128,23 +131,23 @@ test_cases_get_node_info_datasets = [
 
 
 @pytest.mark.parametrize(
-    "node_id, expected_datasets_per_data_model_code",
+    "node_id, expected_datasets_per_data_model",
     test_cases_get_node_info_datasets,
 )
-def test_get_node_info_datasets(node_id, expected_datasets_per_data_model_code):
+def test_get_node_info_datasets(node_id, expected_datasets_per_data_model):
     request_id = "test_node_info_" + uuid.uuid4().hex + "_request"
-    setup_data_table_in_db(node_id, expected_datasets_per_data_model_code)
+    setup_data_table_in_db(node_id, expected_datasets_per_data_model)
     node_app = get_celery_app(node_id)
     get_node_info_signature = get_celery_task_signature(node_app, "get_node_info")
     task_response = get_node_info_signature.delay(request_id=request_id).get()
     node_info = NodeInfo.parse_raw(task_response)
 
-    assert set(node_info.datasets_per_data_model_code.keys()) == set(
-        expected_datasets_per_data_model_code.keys()
+    assert set(node_info.datasets_per_data_model.keys()) == set(
+        expected_datasets_per_data_model.keys()
     )
-    for data_model_code in expected_datasets_per_data_model_code.keys():
-        assert set(node_info.datasets_per_data_model_code[data_model_code]) == set(
-            expected_datasets_per_data_model_code[data_model_code]
+    for data_model in expected_datasets_per_data_model.keys():
+        assert set(node_info.datasets_per_data_model[data_model]) == set(
+            expected_datasets_per_data_model[data_model]
         )
 
     teardown_data_tables_in_db(node_id)

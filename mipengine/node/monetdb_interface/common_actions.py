@@ -216,21 +216,14 @@ def get_initial_data_models() -> List[str]:
         The dataset data_models in the database.
     """
 
-    data_model_table_names = MonetDB().execute_and_fetchall(
-        f'SELECT code FROM "mipdb_metadata"."data_models"'
+    data_models = MonetDB().execute_and_fetchall(
+        f'SELECT code, version FROM "mipdb_metadata"."data_models"'
     )
 
-    # Flatten the list
-    data_model_table_names = [
-        data_model_table_name
-        for data_model_table in data_model_table_names
-        for data_model_table_name in data_model_table
-    ]
-
-    return data_model_table_names
+    return data_models
 
 
-def get_data_model_datasets(data_model_code) -> List[str]:
+def get_data_model_datasets(data_model, version) -> List[str]:
     """
     Retrieves the datasets with the specific data_model.
 
@@ -248,7 +241,8 @@ def get_data_model_datasets(data_model_code) -> List[str]:
         (
             SELECT data_model_id
             FROM "mipdb_metadata"."data_models"
-            WHERE code = '{data_model_code}'
+            WHERE code = '{data_model}'
+            AND version = '{version}'
         )
         """
     )

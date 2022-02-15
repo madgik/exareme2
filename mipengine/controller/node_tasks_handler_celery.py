@@ -200,8 +200,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         request_id: str,
         context_id: str,
         command_id: str,
-        data_model_code: str,
-        data_model_version: str,
+        data_model: str,
         columns: List[str],
         filters: List[str],
     ) -> str:
@@ -213,8 +212,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             request_id=request_id,
             context_id=context_id,
             command_id=command_id,
-            data_model_code=data_model_code,
-            data_model_version=data_model_version,
+            data_model=data_model,
             columns=columns,
             filters=filters,
         ).get(self._tasks_timeout)

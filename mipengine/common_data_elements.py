@@ -9,6 +9,7 @@ from typing import Set
 
 from dataclasses_json import dataclass_json
 
+
 data_model_METADATA_FILENAME = "CDEsMetadata.json"
 
 
@@ -47,6 +48,7 @@ class MetadataGroup:
 
     code: str
     label: str
+    version: Optional[str] = None
     variables: Optional[List[MetadataVariable]] = field(default_factory=list)
     groups: Optional[List["MetadataGroup"]] = field(default_factory=list)
 
@@ -93,7 +95,6 @@ class CommonDataElements:
             for data_model_folder in cdes_metadata_path.iterdir()
             if data_model_folder.is_dir()
         ]
-
         for data_model_metadata_folder in cdes_data_model_metadata_folders:
             data_model_metadata_filepath = (
                 data_model_metadata_folder / data_model_METADATA_FILENAME
@@ -102,7 +103,9 @@ class CommonDataElements:
                 with open(data_model_metadata_filepath) as file:
                     contents = file.read()
                     data_model_metadata = MetadataGroup.from_json(contents)
-                self.data_models[data_model_metadata.code] = {
+                self.data_models[
+                    f"{data_model_metadata.code}:{data_model_metadata.version}"
+                ] = {
                     variable.code: CommonDataElement(variable)
                     for group in data_model_metadata
                     for variable in group.variables
@@ -113,17 +116,18 @@ class CommonDataElements:
                 )
                 raise e
 
-            # Adding the subject code cde that doesn't exist in the metadata
-            self.data_models[data_model_metadata.code][
-                "subjectcode"
-            ] = CommonDataElement(
-                MetadataVariable(
-                    code="subjectcode",
-                    label="The unique identifier of the record",
-                    sql_type="text",
-                    isCategorical=False,
-                    enumerations=None,
-                    min=None,
-                    max=None,
-                )
-            )
+            # TODO: Is it ok to add the column? Current datasets all have subject code
+            # # Adding the subject code cde that doesn't exist in the metadata
+            # self.data_models[data_model_metadata.code][
+            #     "subjectcode"
+            # ] = CommonDataElement(
+            #     MetadataVariable(
+            #         code="subjectcode",
+            #         label="The unique identifier of the record",
+            #         sql_type="text",
+            #         isCategorical=False,
+            #         enumerations=None,
+            #         min=None,
+            #         max=None,
+            #     )
+            # )

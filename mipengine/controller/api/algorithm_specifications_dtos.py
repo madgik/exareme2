@@ -37,8 +37,7 @@ class InputDataSpecificationsDTO:
     containing data_model, dataset and filter.
     """
 
-    data_model_code: InputDataSpecificationDTO
-    data_model_version: InputDataSpecificationDTO
+    data_model: InputDataSpecificationDTO
     datasets: InputDataSpecificationDTO
     filter: InputDataSpecificationDTO
     x: Optional[InputDataSpecificationDTO] = None
@@ -65,7 +64,7 @@ class InputDataSpecificationsDTO:
                 stattypes=input_data_spec.y.stattypes,
                 enumslen=input_data_spec.y.enumslen,
             )
-        self.data_model_code = InputDataSpecificationDTO(
+        self.data_model = InputDataSpecificationDTO(
             label="data_model of the data.",
             desc="The data_model that the algorithm will run on.",
             types=["text"],

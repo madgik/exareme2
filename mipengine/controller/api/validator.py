@@ -19,9 +19,7 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.controller_common_data_elements import (
-    controller_common_data_elements,
-)
+from mipengine.controller.controller_common_data_elements import get_cdes
 from mipengine.filters import validate_filter
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 
@@ -32,13 +30,13 @@ from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 def validate_algorithm_request(
     algorithm_name: str,
     algorithm_request_dto: AlgorithmRequestDTO,
-    available_datasets_per_data_model_code: Dict[str, List[str]],
+    available_datasets_per_data_model: Dict[str, List[str]],
 ):
     algorithm_specs = _get_algorithm_specs(algorithm_name)
     _validate_algorithm_request_body(
         algorithm_request_dto=algorithm_request_dto,
         algorithm_specs=algorithm_specs,
-        available_datasets_per_data_model_code=available_datasets_per_data_model_code,
+        available_datasets_per_data_model=available_datasets_per_data_model,
     )
 
 
@@ -51,12 +49,12 @@ def _get_algorithm_specs(algorithm_name):
 def _validate_algorithm_request_body(
     algorithm_request_dto: AlgorithmRequestDTO,
     algorithm_specs: AlgorithmSpecifications,
-    available_datasets_per_data_model_code: Dict[str, List[str]],
+    available_datasets_per_data_model: Dict[str, List[str]],
 ):
     _validate_inputdata(
         inputdata=algorithm_request_dto.inputdata,
         inputdata_specs=algorithm_specs.inputdata,
-        available_datasets_per_data_model=available_datasets_per_data_model_code,
+        available_datasets_per_data_model=available_datasets_per_data_model,
     )
 
     _validate_parameters(
@@ -73,13 +71,12 @@ def _validate_inputdata(
     available_datasets_per_data_model: Dict[str, List[str]],
 ):
     _validate_inputdata_data_model_and_dataset(
-        requested_data_model=inputdata.data_model_code,
+        requested_data_model=inputdata.data_model,
         requested_datasets=inputdata.datasets,
         available_datasets_per_data_model=available_datasets_per_data_model,
     )
 
-    _validate_inputdata_filter(inputdata.data_model_code, inputdata.filters)
-
+    _validate_inputdata_filter(inputdata.data_model, inputdata.filters)
     _validate_algorithm_inputdatas(inputdata, inputdata_specs)
 
 
@@ -107,31 +104,28 @@ def _validate_inputdata_data_model_and_dataset(
         )
 
 
-def _validate_inputdata_filter(data_model_code, filter):
+def _validate_inputdata_filter(data_model, filter):
     """
     Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
     """
     common_data_elements = CommonDataElements(ctrl_config.cdes_metadata_path)
-    validate_filter(common_data_elements, data_model_code, filter)
+    validate_filter(common_data_elements, data_model, filter)
 
 
 # TODO This will be removed with the dynamic inputdata logic.
 def _validate_algorithm_inputdatas(
     inputdata: AlgorithmInputDataDTO, inputdata_specs: InputDataSpecifications
 ):
-    _validate_algorithm_inputdata(
-        inputdata.x, inputdata_specs.x, inputdata.data_model_code
-    )
-    _validate_algorithm_inputdata(
-        inputdata.y, inputdata_specs.y, inputdata.data_model_code
-    )
+
+    _validate_algorithm_inputdata(inputdata.x, inputdata_specs.x, inputdata.data_model)
+    _validate_algorithm_inputdata(inputdata.y, inputdata_specs.y, inputdata.data_model)
 
 
 def _validate_algorithm_inputdata(
     inputdata_values: Optional[List[str]],
     inputdata_spec: InputDataSpecification,
-    data_model_code: str,
+    data_model: str,
 ):
     if not inputdata_values and not inputdata_spec:
         return
@@ -147,7 +141,7 @@ def _validate_algorithm_inputdata(
     _validate_inputdata_values_quantity(inputdata_values, inputdata_spec)
 
     for inputdata_value in inputdata_values:
-        _validate_inputdata_value(inputdata_value, inputdata_spec, data_model_code)
+        _validate_inputdata_value(inputdata_value, inputdata_spec, data_model)
 
 
 def _validate_inputdata_values_quantity(
@@ -163,9 +157,9 @@ def _validate_inputdata_values_quantity(
 
 
 def _validate_inputdata_value(
-    inputdata_value: str, inputdata_specs: InputDataSpecification, data_model_code: str
+    inputdata_value: str, inputdata_specs: InputDataSpecification, data_model: str
 ):
-    inputdata_value_metadata = _get_cde_metadata(inputdata_value, data_model_code)
+    inputdata_value_metadata = _get_cde_metadata(inputdata_value, data_model)
     _validate_inputdata_types(
         inputdata_value, inputdata_specs, inputdata_value_metadata
     )
@@ -177,13 +171,11 @@ def _validate_inputdata_value(
     )
 
 
-def _get_cde_metadata(cde, data_model_code):
-    data_model_cdes: Dict[
-        str, CommonDataElement
-    ] = controller_common_data_elements.data_models[data_model_code]
+def _get_cde_metadata(cde, data_model):
+    data_model_cdes: Dict[str, CommonDataElement] = get_cdes()[data_model]
     if cde not in data_model_cdes.keys():
         raise BadUserInput(
-            f"The CDE '{cde}' does not exist in data_model '{data_model_code}'."
+            f"The CDE '{cde}' does not exist in data_model '{data_model}'."
         )
     return data_model_cdes[cde]
 

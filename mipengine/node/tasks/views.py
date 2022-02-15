@@ -36,8 +36,7 @@ def create_data_model_view(
     request_id: str,
     context_id: str,
     command_id: str,
-    data_model_code: str,
-    data_model_version: str,
+    data_model: str,
     columns: List[str],
     filters: dict = None,
 ) -> str:
@@ -52,10 +51,8 @@ def create_data_model_view(
         The id of the experiment
     command_id : str
         The id of the command that the view
-    data_model_code : str
+    data_model : str
         The data_model data table on which the view will be created
-    data_model_version : str
-        The version of the data_model
     columns : List[str]
         A list of column names
     filters : dict
@@ -77,7 +74,7 @@ def create_data_model_view(
     # TODO Now the data_models require a version to access the proper table with data.
     views.create_view(
         view_name=view_name,
-        table_name=f'"{data_model_code}:{data_model_version}"."primary_data"',
+        table_name=f'"{data_model}"."primary_data"',
         columns=columns,
         filters=filters,
         enable_min_rows_threshold=True,
