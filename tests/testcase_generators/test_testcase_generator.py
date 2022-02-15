@@ -97,7 +97,7 @@ def test_get_input_data(specs_file_y_numerical):
     input_ = {
         "inputdata": {
             "y": ("lefthippocampus", "righthippocampus"),
-            "pathology": "dementia",
+            "data_model": "dementia:0.1",
             "datasets": ("desd-synthdata",),
             "filters": "",
         },

@@ -18,6 +18,7 @@
     }
   ],
   "code": "tbi",
+  "version": "0.1",
   "groups": [
     {
       "variables": [

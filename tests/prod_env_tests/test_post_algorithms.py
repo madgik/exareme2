@@ -14,7 +14,7 @@ def get_parametrization_list_success_cases():
     algorithm_name = "logistic_regression"
     request_dict = {
         "inputdata": {
-            "pathology": "dementia",
+            "data_model": "dementia:0.1",
             "datasets": ["edsd"],
             "x": [
                 "lefthippocampus",
@@ -126,7 +126,7 @@ def get_parametrization_list_exception_cases():
     algorithm_name = "logistic_regression"
     request_dict = {
         "wrong_name": {
-            "pathology": "dementia",
+            "data_model": "dementia:0.1",
             "datasets": ["test_dataset1", "test_dataset2"],
             "x": ["test_cde1", "test_cde2"],
             "y": ["test_cde3"],
@@ -139,21 +139,21 @@ def get_parametrization_list_exception_cases():
     algorithm_name = "logistic_regression"
     request_dict = {
         "inputdata": {
-            "pathology": "non_existing",
+            "data_model": "non_existing",
             "datasets": ["test_dataset1", "test_dataset2"],
             "x": ["test_cde1", "test_cde2"],
             "y": ["test_cde3"],
         },
     }
 
-    expected_response = (460, "Pathology .* does not exist.*")
+    expected_response = (460, "data_model .* does not exist.*")
     parametrization_list.append((algorithm_name, request_dict, expected_response))
 
     # ~~~~~~~~~~exception case 3~~~~~~~~~~
     algorithm_name = "logistic_regression"
     request_dict = {
         "inputdata": {
-            "pathology": "dementia",
+            "data_model": "dementia:0.1",
             "datasets": ["edsd"],
             "x": ["lefthippocampus"],
             "y": ["alzheimerbroadcategory"],

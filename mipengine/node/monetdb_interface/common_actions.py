@@ -205,39 +205,35 @@ def get_table_data(table_name: str) -> List[ColumnData]:
     return columns_data
 
 
-def get_initial_data_schemas() -> List[str]:
+def get_initial_data_models() -> List[str]:
     """
-    Retrieves all the different schemas that the initial datasets have.
+    Retrieves all the different data_models that the initial datasets have.
 
     Returns
     ------
     List[str]
-        The dataset schemas in the database.
+        The dataset data_models in the database.
     """
 
-    schema_table_names = MonetDB().execute_and_fetchall(
-        f'SELECT code FROM "mipdb_metadata"."data_models"'
+    data_models_code_and_version = MonetDB().execute_and_fetchall(
+        f'SELECT code, version FROM "mipdb_metadata"."data_models"'
     )
-
-    # Flatten the list
-    schema_table_names = [
-        schema_table_name
-        for schema_table in schema_table_names
-        for schema_table_name in schema_table
+    data_models = [
+        code + ":" + version for code, version in data_models_code_and_version
     ]
+    return data_models
 
-    return schema_table_names
 
-
-def get_schema_datasets(schema_name) -> List[str]:
+def get_data_model_datasets(data_model) -> List[str]:
     """
-    Retrieves the datasets with the specific schema.
+    Retrieves the datasets with the specific data_model.
 
     Returns
     ------
     List[str]
-        The datasets of the schema.
+        The datasets of the data_model.
     """
+    data_model_code, data_model_version = data_model.split(":")
 
     datasets_rows = MonetDB().execute_and_fetchall(
         f"""
@@ -247,7 +243,8 @@ def get_schema_datasets(schema_name) -> List[str]:
         (
             SELECT data_model_id
             FROM "mipdb_metadata"."data_models"
-            WHERE code = '{schema_name}'
+            WHERE code = '{data_model_code}'
+            AND version = '{data_model_version}'
         )
         """
     )

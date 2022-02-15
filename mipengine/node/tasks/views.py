@@ -31,16 +31,16 @@ def get_views(request_id: str, context_id: str) -> List[str]:
 
 @shared_task
 @initialise_logger
-def create_pathology_view(
+def create_data_model_view(
     request_id: str,
     context_id: str,
     command_id: str,
-    pathology: str,
+    data_model: str,
     columns: List[str],
     filters: dict = None,
 ) -> str:
     """
-    Creates a MIP specific view of a pathology with specific columns, filters and datasets to the DB.
+    Creates a MIP specific view of a data_model with specific columns, filters and datasets to the DB.
 
     Parameters
     ----------
@@ -50,8 +50,8 @@ def create_pathology_view(
         The id of the experiment
     command_id : str
         The id of the command that the view
-    pathology : str
-        The pathology data table on which the view will be created
+    data_model : str
+        The data_model data table on which the view will be created
     columns : List[str]
         A list of column names
     filters : dict
@@ -70,10 +70,9 @@ def create_pathology_view(
     )
     columns.insert(0, DATA_TABLE_PRIMARY_KEY)
 
-    # TODO Now the data_models require a version to access the proper table with data.
     views.create_view(
         view_name=view_name,
-        table_name=f'"{pathology}:0.1"."primary_data"',
+        table_name=f'"{data_model}"."primary_data"',
         columns=columns,
         filters=filters,
         enable_min_rows_threshold=True,
