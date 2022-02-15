@@ -23,10 +23,8 @@ def get_node_info(request_id: str):
         A NodeInfo object in a jsonified format
     """
     datasets_per_data_model = {}
-    for code, version in get_initial_data_models():
-        datasets_per_data_model[f"{code}:{version}"] = get_data_model_datasets(
-            code, version
-        )
+    for data_model in get_initial_data_models():
+        datasets_per_data_model[data_model] = get_data_model_datasets(data_model)
 
     node_info = NodeInfo(
         id=node_config.identifier,

@@ -9,7 +9,7 @@ from typing import Set
 
 from dataclasses_json import dataclass_json
 
-data_model_METADATA_FILENAME = "CDEsMetadata.json"
+DATA_MODEL_METADATA_FILENAME = "CDEsMetadata.json"
 
 
 @dataclass_json
@@ -96,7 +96,7 @@ class CommonDataElements:
         ]
         for data_model_metadata_folder in cdes_data_model_metadata_folders:
             data_model_metadata_filepath = (
-                data_model_metadata_folder / data_model_METADATA_FILENAME
+                data_model_metadata_folder / DATA_MODEL_METADATA_FILENAME
             )
             try:
                 with open(data_model_metadata_filepath) as file:
@@ -114,19 +114,3 @@ class CommonDataElements:
                     f"Error parsing metadata file: {data_model_metadata_filepath}"
                 )
                 raise e
-
-            # TODO: Is it ok to add the column? Current datasets all have subject code
-            # # Adding the subject code cde that doesn't exist in the metadata
-            # self.data_models[data_model_metadata.code][
-            #     "subjectcode"
-            # ] = CommonDataElement(
-            #     MetadataVariable(
-            #         code="subjectcode",
-            #         label="The unique identifier of the record",
-            #         sql_type="text",
-            #         isCategorical=False,
-            #         enumerations=None,
-            #         min=None,
-            #         max=None,
-            #     )
-            # )

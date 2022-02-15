@@ -10,7 +10,7 @@ from mipengine.filters import FilterError
 from mipengine.filters import build_filter_clause
 from mipengine.filters import validate_filter
 
-data_model = "test_data_model1:0.1"
+DATA_MODEL = "test_data_model1:0.1"
 
 
 @pytest.fixture()
@@ -387,7 +387,7 @@ def test_build_filter_clause(test_input, expected):
 
 @pytest.mark.parametrize("test_input,expected", all_success_cases)
 def test_validate_filter(test_input, expected, common_data_elements):
-    validate_filter(common_data_elements, data_model, test_input)
+    validate_filter(common_data_elements, DATA_MODEL, test_input)
 
 
 all_build_filter_clause_fail_cases = [
@@ -500,4 +500,4 @@ all_validate_filter_fail_cases = [
 @pytest.mark.parametrize("test_input", all_validate_filter_fail_cases)
 def test_validate_filter_fail_cases_bad_filter(test_input, common_data_elements):
     with pytest.raises(FilterError):
-        validate_filter(common_data_elements, data_model, test_input)
+        validate_filter(common_data_elements, DATA_MODEL, test_input)

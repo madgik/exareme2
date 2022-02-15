@@ -65,8 +65,8 @@ class InputDataSpecificationsDTO:
                 enumslen=input_data_spec.y.enumslen,
             )
         self.data_model = InputDataSpecificationDTO(
-            label="data_model of the data.",
-            desc="The data_model that the algorithm will run on.",
+            label="Data model of the data.",
+            desc="The data model that the algorithm will run on.",
             types=["text"],
             notblank=True,
             multiple=False,

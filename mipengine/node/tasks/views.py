@@ -70,7 +70,6 @@ def create_data_model_view(
     )
     columns.insert(0, DATA_TABLE_PRIMARY_KEY)
 
-    # TODO Now the data_models require a version to access the proper table with data.
     views.create_view(
         view_name=view_name,
         table_name=f'"{data_model}"."primary_data"',
