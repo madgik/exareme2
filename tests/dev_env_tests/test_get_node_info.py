@@ -88,9 +88,9 @@ def teardown_data_tables_in_db(node_id):
     subprocess.call(cmd, shell=True)
 
 
-data_model1 = f"data_model1:0.1"
-data_model2 = f"data_model2:0.1"
-data_model3 = f"data_model3:0.1"
+data_model1 = "data_model1:0.1"
+data_model2 = "data_model2:0.1"
+data_model3 = "data_model3:0.1"
 test_cases_get_node_info_datasets = [
     (
         "globalnode",
