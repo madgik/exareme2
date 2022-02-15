@@ -41,7 +41,9 @@ from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
-from mipengine.controller.controller_common_data_elements import get_cdes
+from mipengine.controller.controller_common_data_elements import (
+    controller_common_data_elements,
+)
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import TableData
@@ -253,7 +255,9 @@ class _AlgorithmExecutionInterface:
         self._y_variables = algo_execution_interface_dto.y_variables
         self._datasets = algo_execution_interface_dto.datasets
         self._use_smpc = algo_execution_interface_dto.use_smpc
-        cdes = get_cdes()[algo_execution_interface_dto.data_model]
+        cdes = controller_common_data_elements.data_models[
+            algo_execution_interface_dto.data_model
+        ]
         varnames = (self._x_variables or []) + (self._y_variables or [])
         self._metadata = {
             varname: cde.__dict__

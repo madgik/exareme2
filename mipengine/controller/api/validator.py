@@ -19,7 +19,9 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.controller_common_data_elements import get_cdes
+from mipengine.controller.controller_common_data_elements import (
+    controller_common_data_elements,
+)
 from mipengine.filters import validate_filter
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 
@@ -171,7 +173,9 @@ def _validate_inputdata_value(
 
 
 def _get_cde_metadata(cde, data_model):
-    data_model_cdes: Dict[str, CommonDataElement] = get_cdes()[data_model]
+    data_model_cdes: Dict[
+        str, CommonDataElement
+    ] = controller_common_data_elements.data_models[data_model]
     if cde not in data_model_cdes.keys():
         raise BadUserInput(
             f"The CDE '{cde}' does not exist in data_model '{data_model}'."

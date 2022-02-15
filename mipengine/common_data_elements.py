@@ -9,7 +9,6 @@ from typing import Set
 
 from dataclasses_json import dataclass_json
 
-
 data_model_METADATA_FILENAME = "CDEsMetadata.json"
 
 
