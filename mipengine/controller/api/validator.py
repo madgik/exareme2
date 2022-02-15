@@ -14,15 +14,14 @@ from mipengine.controller.algorithms_specifications import InputDataStatType
 from mipengine.controller.algorithms_specifications import InputDataType
 from mipengine.controller.algorithms_specifications import ParameterSpecification
 from mipengine.controller.algorithms_specifications import algorithms_specifications
+from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.controller_common_data_elements import get_cdes
 from mipengine.filters import validate_filter
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
-
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-90
 

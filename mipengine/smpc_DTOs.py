@@ -1,7 +1,7 @@
 import enum
+from typing import List
 
 from pydantic import BaseModel
-from typing import List
 
 
 class SMPCRequestType(enum.Enum):

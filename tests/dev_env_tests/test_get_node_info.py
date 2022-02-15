@@ -1,8 +1,8 @@
+import subprocess
 import uuid
 
 import fasteners
 import pytest
-import subprocess
 
 from mipengine.node_info_DTOs import NodeInfo
 from tests.dev_env_tests.nodes_communication import get_celery_app

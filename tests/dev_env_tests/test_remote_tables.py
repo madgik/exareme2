@@ -2,11 +2,11 @@ import uuid
 
 import pytest
 
-from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.datatypes import DType
+from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
-from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 from tests.dev_env_tests.nodes_communication import get_celery_app
+from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 from tests.dev_env_tests.nodes_communication import get_node_config_by_id
 
 global_node_id = "globalnode"

@@ -10,7 +10,6 @@ from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.common_actions import get_table_type
 from mipengine.node.node_logger import initialise_logger
-from mipengine.smpc_cluster_comm_helpers import SMPCUsageError
 from mipengine.node_tasks_DTOs import NodeLiteralDTO
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
 from mipengine.node_tasks_DTOs import NodeSMPCValueDTO
@@ -22,6 +21,7 @@ from mipengine.node_tasks_DTOs import UDFKeyArguments
 from mipengine.node_tasks_DTOs import UDFPosArguments
 from mipengine.node_tasks_DTOs import UDFResults
 from mipengine.node_tasks_DTOs import _NodeUDFDTOType
+from mipengine.smpc_cluster_comm_helpers import SMPCUsageError
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 from mipengine.udfgen import generate_udf_queries
 from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo

@@ -60,11 +60,17 @@ def from_tensor_table(table: dict):
     return np.array(array)
 
 
-def as_relational_table(array: np.ndarray, name: str):
-    assert len(array.shape) in (1, 2)
-    names = (f"{name}_{i}" for i in range(array.shape[1]))
-    out = {n: c for n, c in zip(names, array)}
-    return out
+def as_relational_table(array: np.ndarray):
+    """
+    TODO Output of relational tables needs to be refactored
+    What objects can we return? Do we need a name parameter?
+    https://team-1617704806227.atlassian.net/browse/MIP-536
+
+    """
+    # assert len(array.shape) in (1, 2)
+    # names = (f"{name}_{i}" for i in range(array.shape[1]))
+    # out = {n: c for n, c in zip(names, array)}
+    return array
 
 
 def reduce_tensor_pair(op, a: pd.DataFrame, b: pd.DataFrame):

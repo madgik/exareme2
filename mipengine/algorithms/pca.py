@@ -1,17 +1,16 @@
 import json
-from typing import TypeVar, List
+from typing import List
+from typing import TypeVar
 
 import numpy
 from pydantic import BaseModel
 
-from mipengine.udfgen.udfgenerator import (
-    udf,
-    transfer,
-    state,
-    relation,
-    make_unique_func_name,
-    merge_transfer,
-)
+from mipengine.udfgen import make_unique_func_name
+from mipengine.udfgen import relation
+from mipengine.udfgen import secure_transfer
+from mipengine.udfgen import state
+from mipengine.udfgen import transfer
+from mipengine.udfgen import udf
 
 
 class PCAResult(BaseModel):
@@ -63,24 +62,24 @@ def run(algo_interface):
 S = TypeVar("S")
 
 
-@udf(x=relation(schema=S), return_type=[transfer()])
+@udf(x=relation(schema=S), return_type=[secure_transfer(sum_op=True)])
 def local1(x):
     n_obs = len(x)
     sx = x.sum(axis=0)
     sxx = (x ** 2).sum(axis=0)
 
     transfer_ = {}
-    transfer_["n_obs"] = n_obs
-    transfer_["sx"] = sx.tolist()
-    transfer_["sxx"] = sxx.tolist()
+    transfer_["n_obs"] = {"data": n_obs, "operation": "sum"}
+    transfer_["sx"] = {"data": sx.tolist(), "operation": "sum"}
+    transfer_["sxx"] = {"data": sxx.tolist(), "operation": "sum"}
     return transfer_
 
 
-@udf(local_transfers=merge_transfer(), return_type=[state(), transfer()])
+@udf(local_transfers=secure_transfer(sum_op=True), return_type=[state(), transfer()])
 def global1(local_transfers):
-    n_obs = sum(t["n_obs"] for t in local_transfers)
-    sx = sum(numpy.array(t["sx"]) for t in local_transfers)
-    sxx = sum(numpy.array(t["sxx"]) for t in local_transfers)
+    n_obs = local_transfers["n_obs"]
+    sx = numpy.array(local_transfers["sx"])
+    sxx = numpy.array(local_transfers["sxx"])
 
     means = sx / n_obs
     sigmas = ((sxx - n_obs * means ** 2) / (n_obs - 1)) ** 0.5
@@ -90,7 +89,11 @@ def global1(local_transfers):
     return state_, transfer_
 
 
-@udf(x=relation(schema=S), global_transfer=transfer(), return_type=[transfer()])
+@udf(
+    x=relation(schema=S),
+    global_transfer=transfer(),
+    return_type=[secure_transfer(sum_op=True)],
+)
 def local2(x, global_transfer):
     means = numpy.array(global_transfer["means"])
     sigmas = numpy.array(global_transfer["sigmas"])
@@ -99,13 +102,17 @@ def local2(x, global_transfer):
     x /= sigmas
     gramian = x.T @ x
 
-    transfer_ = dict(gramian=gramian.values.tolist())
+    transfer_ = {"gramian": {"data": gramian.values.tolist(), "operation": "sum"}}
     return transfer_
 
 
-@udf(local_transfers=merge_transfer(), prev_state=state(), return_type=[transfer()])
+@udf(
+    local_transfers=secure_transfer(sum_op=True),
+    prev_state=state(),
+    return_type=[transfer()],
+)
 def global2(local_transfers, prev_state):
-    gramian = sum(numpy.array(t["gramian"]) for t in local_transfers)
+    gramian = numpy.array(local_transfers["gramian"])
     n_obs = prev_state["n_obs"]
     covariance = gramian / (n_obs - 1)
 

@@ -846,11 +846,20 @@ def relation(schema):
 
 
 class ScalarType(OutputType, ParametrizedType):
+    """
+    @deprecated
+    Use 'RelationType(schema=[("scalar", dtype)])' instead.
+    """
+
     def __init__(self, dtype):
         self.dtype = dt.from_py(dtype) if isinstance(dtype, type) else dtype
 
 
 def scalar(dtype):
+    """
+    @deprecated
+    Use 'relation(schema=[("scalar", dtype)])' instead.
+    """
     return ScalarType(dtype)
 
 

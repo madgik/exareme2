@@ -3,15 +3,13 @@ from typing import Tuple
 
 from mipengine.controller import config as ctrl_config
 from mipengine.controller.algorithm_executor_node_data_objects import SMPCTableNames
-from mipengine.controller.algorithm_flow_data_objects import GlobalNodeTable
-from mipengine.controller.algorithm_flow_data_objects import (
-    LocalNodesSMPCTables,
-)
-from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
-from mipengine.smpc_DTOs import SMPCRequestType
+from mipengine.controller.algorithm_flow_data_objects import GlobalNodeTable
+from mipengine.controller.algorithm_flow_data_objects import LocalNodesSMPCTables
+from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 from mipengine.smpc_cluster_comm_helpers import trigger_smpc_computation
+from mipengine.smpc_DTOs import SMPCRequestType
 
 
 def get_smpc_job_id(

@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 from mipengine.udfgen.udfio import construct_secure_transfer_dict
 from mipengine.udfgen.udfio import merge_tensor_to_list
