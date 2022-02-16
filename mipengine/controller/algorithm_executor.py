@@ -9,6 +9,7 @@ from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
 from celery.exceptions import TimeoutError
 from pydantic import BaseModel
+import traceback
 
 from mipengine import algorithm_modules
 from mipengine.controller import config as ctrl_config
@@ -56,7 +57,7 @@ class AlgorithmExecutionException(Exception):
         self.message = message
 
 
-class NodeDownAlgorithmExecutionException(Exception):
+class NodeUnresponsiveAlgorithmExecutionException(Exception):
     def __init__(self):
         message = (
             "One of the nodes participating in the algorithm execution "
@@ -204,30 +205,11 @@ class AlgorithmExecutor:
             TimeoutError,
             ClosedBrokerConnectionError,
         ) as err:
-            self._logger.error(f"{err=}")
-
-            raise NodeDownAlgorithmExecutionException()
+            raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
-            import traceback
 
             self._logger.error(f"{traceback.format_exc()}")
             raise exc
-        finally:
-            self.clean_up()
-
-    def clean_up(self):
-        self._logger.info("cleaning up global_node")
-        try:
-            self._global_node.clean_up()
-        except Exception as exc:
-            self._logger.error(f"cleaning up global_node FAILED {exc=}")
-        self._logger.info(f"cleaning up local nodes:{self._local_nodes}")
-        for node in self._local_nodes:
-            self._logger.info(f"\tcleaning up {node=}")
-            try:
-                node.clean_up()
-            except Exception as exc:
-                self._logger.error(f"cleaning up {node=} FAILED {exc=}")
 
 
 class _AlgorithmExecutionInterfaceDTO(BaseModel):

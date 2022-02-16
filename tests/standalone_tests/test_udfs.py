@@ -18,7 +18,7 @@ from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import get_column_rows
 from tests.algorithms.orphan_udfs import local_step
 from tests.algorithms.orphan_udfs import very_slow_udf
-from tests.standalone_tests.conftest import LOCALNODE_1_CONFIG_FILE
+from tests.standalone_tests.conftest import LOCALNODE1_CONFIG_FILE
 from tests.standalone_tests.nodes_communication_helper import get_celery_app
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.nodes_communication_helper import get_node_config_by_id
@@ -30,7 +30,7 @@ context_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10]
 
 @pytest.fixture(scope="session")
 def localnode_1_celery_app():
-    localnode1_config = get_node_config_by_id(LOCALNODE_1_CONFIG_FILE)
+    localnode1_config = get_node_config_by_id(LOCALNODE1_CONFIG_FILE)
     yield get_celery_app(localnode1_config)
 
 
@@ -59,7 +59,7 @@ def create_table_with_one_column_and_ten_rows(celery_app) -> Tuple[str, int]:
     return table_name, 55
 
 
-def test_get_udf(localnode_1_node_service, localnode_1_celery_app):
+def test_get_udf(localnode1_node_service, localnode_1_celery_app):
     get_udf_task = get_celery_task_signature(localnode_1_celery_app, "get_udf")
 
     fetched_udf = get_udf_task.delay(
@@ -70,7 +70,7 @@ def test_get_udf(localnode_1_node_service, localnode_1_celery_app):
 
 
 def test_run_udf_relation_to_scalar(
-    localnode_1_node_service, use_localnode_1_database, localnode_1_celery_app
+    localnode1_node_service, use_localnode1_database, localnode_1_celery_app
 ):
     run_udf_task = get_celery_task_signature(localnode_1_celery_app, "run_udf")
     local_node_get_table_data = get_celery_task_signature(

@@ -9,51 +9,71 @@ import pytest
 import sqlalchemy as sql
 import toml
 
+# In order to override the "default" mipengine/controller/config.toml the environment
+# variables MIPENGINE_CONTROLLER_CONFIG_FILE and NODES_ADDRESSES_FILE are
+# set here. These must be set before any other mipengine module is imported
+this_mod_path = os.path.dirname(os.path.abspath(__file__))
+TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
+
+CONTROLLER_CONFIG_FILE = "test_controller_config.toml"
+controller_config_file = path.join(TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE)
+os.environ["MIPENGINE_CONTROLLER_CONFIG_FILE"] = controller_config_file
+
+NODES_ADDRESSES_FILE = "test_localnodes_addresses.json"
+nodes_addresses_file = path.join(TEST_ENV_CONFIG_FOLDER, NODES_ADDRESSES_FILE)
+os.environ["NODES_ADDRESSES_FILE"] = nodes_addresses_file
+# ############
+
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/mipengine_rabbitmq:latest"
 TESTING_MONETDB_CONT_IMAGE = "madgik/mipenginedb:latest"
 
-this_mod_path = os.path.dirname(os.path.abspath(__file__))
-TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
+
+TEST_DATA_FOLDER = Path(this_mod_path).parent / "demo_data"
 
 OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
-RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_lobalnode"
-RABBITMQ_LOCALNODE_1_NAME = "rabbitmq_test_localnode1"
-RABBITMQ_LOCALNODE_2_NAME = "rabbitmq_test_localnode2"
-RABBITMQ_TMP_LOCALNODE_NAME = "rabbitmq_test_tmp_localnode"
+COMMON_IP = "172.17.0.1"
+RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
+RABBITMQ_LOCALNODE1_NAME = "rabbitmq_test_localnode1"
+RABBITMQ_LOCALNODE2_NAME = "rabbitmq_test_localnode2"
+
+RABBITMQ_LOCALNODETMP_NAME = "rabbitmq_test_localnodetmp"
 RABBITMQ_SMPC_GLOBALNODE_NAME = "rabbitmq_test_smpc_globalnode"
 RABBITMQ_SMPC_LOCALNODE1_NAME = "rabbitmq_test_smpc_localnode1"
 RABBITMQ_SMPC_LOCALNODE2_NAME = "rabbitmq_test_smpc_localnode2"
+
 RABBITMQ_GLOBALNODE_PORT = 60000
-RABBITMQ_LOCALNODE_1_PORT = 60001
-RABBITMQ_LOCALNODE_2_PORT = 60002
-RABBITMQ_TMP_LOCALNODE_PORT = 60003
+RABBITMQ_LOCALNODE1_PORT = 60001
+RABBITMQ_LOCALNODE2_PORT = 60002
+RABBITMQ_LOCALNODETMP_PORT = 60003
 RABBITMQ_SMPC_GLOBALNODE_PORT = 60004
 RABBITMQ_SMPC_LOCALNODE1_PORT = 60005
 RABBITMQ_SMPC_LOCALNODE2_PORT = 60006
+
 MONETDB_GLOBALNODE_NAME = "monetdb_test_globalnode"
-MONETDB_LOCALNODE_1_NAME = "monetdb_test_localnode1"
-MONETDB_LOCALNODE_2_NAME = "monetdb_test_localnode2"
-MONETDB_TMP_LOCALNODE_NAME = "monetdb_test_tmp_localnode"
+MONETDB_LOCALNODE1_NAME = "monetdb_test_localnode1"
+MONETDB_LOCALNODE2_NAME = "monetdb_test_localnode2"
+MONETDB_LOCALNODETMP_NAME = "monetdb_test_localnodetmp"
 MONETDB_SMPC_GLOBALNODE_NAME = "monetdb_test_smpc_globalnode"
 MONETDB_SMPC_LOCALNODE1_NAME = "monetdb_test_smpc_localnode1"
 MONETDB_SMPC_LOCALNODE2_NAME = "monetdb_test_smpc_localnode2"
 MONETDB_GLOBALNODE_PORT = 61000
-MONETDB_LOCALNODE_1_PORT = 61001
-MONETDB_LOCALNODE_2_PORT = 61002
-MONETDB_TMP_LOCALNODE_PORT = 61003
+MONETDB_LOCALNODE1_PORT = 61001
+MONETDB_LOCALNODE2_PORT = 61002
+MONETDB_LOCALNODETMP_PORT = 61003
 MONETDB_SMPC_GLOBALNODE_PORT = 61004
 MONETDB_SMPC_LOCALNODE1_PORT = 61005
 MONETDB_SMPC_LOCALNODE2_PORT = 61006
-GLOBALNODE_CONFIG_FILE = "globalnode.toml"
-LOCALNODE_1_CONFIG_FILE = "localnode1.toml"
-LOCALNODE_2_CONFIG_FILE = "localnode2.toml"
-LOCALNODE_TMP_CONFIG_FILE = "tmp_localnode.toml"
+
+GLOBALNODE_CONFIG_FILE = "testglobalnode.toml"
+LOCALNODE1_CONFIG_FILE = "testlocalnode1.toml"
+LOCALNODE2_CONFIG_FILE = "testlocalnode2.toml"
+LOCALNODETMP_CONFIG_FILE = "testlocalnodetmp.toml"
 GLOBALNODE_SMPC_CONFIG_FILE = "smpc_globalnode.toml"
 LOCALNODE1_SMPC_CONFIG_FILE = "smpc_localnode1.toml"
 LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
@@ -111,9 +131,9 @@ def monetdb_globalnode():
 
 
 @pytest.fixture(scope="session")
-def monetdb_localnode_1():
-    cont_name = MONETDB_LOCALNODE_1_NAME
-    cont_port = MONETDB_LOCALNODE_1_PORT
+def monetdb_localnode1():
+    cont_name = MONETDB_LOCALNODE1_NAME
+    cont_port = MONETDB_LOCALNODE1_PORT
     _create_monetdb_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -121,9 +141,9 @@ def monetdb_localnode_1():
 
 
 @pytest.fixture(scope="session")
-def monetdb_localnode_2():
-    cont_name = MONETDB_LOCALNODE_2_NAME
-    cont_port = MONETDB_LOCALNODE_2_PORT
+def monetdb_localnode2():
+    cont_name = MONETDB_LOCALNODE2_NAME
+    cont_port = MONETDB_LOCALNODE2_PORT
     _create_monetdb_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -161,12 +181,51 @@ def monetdb_smpc_localnode2():
 
 
 @pytest.fixture(scope="function")
-def monetdb_tmp_localnode():
-    cont_name = MONETDB_TMP_LOCALNODE_NAME
-    cont_port = MONETDB_TMP_LOCALNODE_PORT
+def monetdb_localnodetmp():
+    cont_name = MONETDB_LOCALNODETMP_NAME
+    cont_port = MONETDB_LOCALNODETMP_PORT
     _create_monetdb_container(cont_name, cont_port)
     yield
     _remove_monetdb_container(cont_name)
+
+
+def _init_database_monetdb_container(db_ip, db_port):
+    # init the db
+    cmd = f"mipdb init --ip {db_ip} --port {db_port} "
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+
+
+def _load_data_monetdb_container(db_ip, db_port):
+    # load the data
+    cmd = f"mipdb load-folder {TEST_DATA_FOLDER}  --ip {db_ip} --port {db_port} "
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+
+
+@pytest.fixture(scope="session")
+def init_data_globalnode(monetdb_globalnode):
+    _init_database_monetdb_container(COMMON_IP, MONETDB_GLOBALNODE_PORT)
+    yield
+
+
+@pytest.fixture(scope="session")
+def load_data_localnode1(monetdb_localnode1):
+    _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODE1_PORT)
+    _load_data_monetdb_container(COMMON_IP, MONETDB_LOCALNODE1_PORT)
+    yield
+
+
+@pytest.fixture(scope="session")
+def load_data_localnode2(monetdb_localnode2):
+    _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODE2_PORT)
+    _load_data_monetdb_container(COMMON_IP, MONETDB_LOCALNODE2_PORT)
+    yield
+
+
+@pytest.fixture(scope="function")
+def load_data_localnodetmp(monetdb_localnodetmp):
+    _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODETMP_PORT)
+    _load_data_monetdb_container(COMMON_IP, MONETDB_LOCALNODETMP_PORT)
+    yield
 
 
 def _create_db_cursor(db_port):
@@ -194,13 +253,13 @@ def globalnode_db_cursor():
 
 
 @pytest.fixture(scope="session")
-def localnode_1_db_cursor():
-    return _create_db_cursor(MONETDB_LOCALNODE_1_PORT)
+def localnode1_db_cursor():
+    return _create_db_cursor(MONETDB_LOCALNODE1_PORT)
 
 
 @pytest.fixture(scope="session")
-def localnode_2_db_cursor():
-    return _create_db_cursor(MONETDB_LOCALNODE_2_PORT)
+def localnode2_db_cursor():
+    return _create_db_cursor(MONETDB_LOCALNODE2_PORT)
 
 
 @pytest.fixture(scope="session")
@@ -219,8 +278,8 @@ def localnode2_smpc_db_cursor():
 
 
 @pytest.fixture(scope="function")
-def localnode_tmp_db_cursor():
-    return _create_db_cursor(MONETDB_TMP_LOCALNODE_PORT)
+def localnodetmp_db_cursor():
+    return _create_db_cursor(MONETDB_LOCALNODETMP_PORT)
 
 
 def _clean_db(cursor):
@@ -237,9 +296,9 @@ def clean_globalnode_db(globalnode_db_cursor):
 
 
 @pytest.fixture(scope="function")
-def clean_localnode_1_db(localnode_1_db_cursor):
+def clean_localnode1_db(localnode1_db_cursor):
     yield
-    _clean_db(localnode_1_db_cursor)
+    _clean_db(localnode1_db_cursor)
 
 
 @pytest.fixture(scope="function")
@@ -261,9 +320,9 @@ def clean_smpc_localnode2_db(localnode2_smpc_db_cursor):
 
 
 @pytest.fixture(scope="function")
-def clean_localnode_2_db(localnode_2_db_cursor):
+def clean_localnode2_db(localnode2_db_cursor):
     yield
-    _clean_db(localnode_2_db_cursor)
+    _clean_db(localnode2_db_cursor)
 
 
 @pytest.fixture(scope="function")
@@ -272,12 +331,12 @@ def use_globalnode_database(monetdb_globalnode, clean_globalnode_db):
 
 
 @pytest.fixture(scope="function")
-def use_localnode_1_database(monetdb_localnode_1, clean_localnode_1_db):
+def use_localnode1_database(monetdb_localnode1, clean_localnode1_db):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_localnode_2_database(monetdb_localnode_2, clean_localnode_2_db):
+def use_localnode2_database(monetdb_localnode2, clean_localnode2_db):
     pass
 
 
@@ -336,9 +395,9 @@ def rabbitmq_globalnode():
 
 
 @pytest.fixture(scope="session")
-def rabbitmq_localnode_1():
-    cont_name = RABBITMQ_LOCALNODE_1_NAME
-    cont_port = RABBITMQ_LOCALNODE_1_PORT
+def rabbitmq_localnode1():
+    cont_name = RABBITMQ_LOCALNODE1_NAME
+    cont_port = RABBITMQ_LOCALNODE1_PORT
     _create_rabbitmq_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -346,9 +405,9 @@ def rabbitmq_localnode_1():
 
 
 @pytest.fixture(scope="session")
-def rabbitmq_localnode_2():
-    cont_name = RABBITMQ_LOCALNODE_2_NAME
-    cont_port = RABBITMQ_LOCALNODE_2_PORT
+def rabbitmq_localnode2():
+    cont_name = RABBITMQ_LOCALNODE2_NAME
+    cont_port = RABBITMQ_LOCALNODE2_PORT
     _create_rabbitmq_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -386,16 +445,16 @@ def rabbitmq_smpc_localnode2():
 
 
 @pytest.fixture(scope="function")
-def rabbitmq_tmp_localnode():
-    cont_name = RABBITMQ_TMP_LOCALNODE_NAME
-    cont_port = RABBITMQ_TMP_LOCALNODE_PORT
+def rabbitmq_localnodetmp():
+    cont_name = RABBITMQ_LOCALNODETMP_NAME
+    cont_port = RABBITMQ_LOCALNODETMP_PORT
     _create_rabbitmq_container(cont_name, cont_port)
     yield
     _remove_rabbitmq_container(cont_name)
 
 
-def remove_tmp_localnode_rabbitmq():
-    cont_name = RABBITMQ_TMP_LOCALNODE_NAME
+def remove_localnodetmp_rabbitmq():
+    cont_name = RABBITMQ_LOCALNODETMP_NAME
     _remove_rabbitmq_container(cont_name)
 
 
@@ -444,8 +503,8 @@ def globalnode_node_service(rabbitmq_globalnode, monetdb_globalnode):
 
 
 @pytest.fixture(scope="session")
-def localnode_1_node_service(rabbitmq_localnode_1, monetdb_localnode_1):
-    node_config_file = LOCALNODE_1_CONFIG_FILE
+def localnode1_node_service(rabbitmq_localnode1, monetdb_localnode1):
+    node_config_file = LOCALNODE1_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
@@ -454,8 +513,8 @@ def localnode_1_node_service(rabbitmq_localnode_1, monetdb_localnode_1):
 
 
 @pytest.fixture(scope="session")
-def localnode_2_node_service(rabbitmq_localnode_2, monetdb_localnode_2):
-    node_config_file = LOCALNODE_2_CONFIG_FILE
+def localnode2_node_service(rabbitmq_localnode2, monetdb_localnode2):
+    node_config_file = LOCALNODE2_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
@@ -494,7 +553,7 @@ def smpc_localnode2_node_service(rabbitmq_smpc_localnode2, monetdb_smpc_localnod
 
 
 @pytest.fixture(scope="function")
-def tmp_localnode_node_service(rabbitmq_tmp_localnode, monetdb_tmp_localnode):
+def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     """
     ATTENTION!
     This node service fixture is the only one returning the process so it can be killed.
@@ -502,7 +561,7 @@ def tmp_localnode_node_service(rabbitmq_tmp_localnode, monetdb_tmp_localnode):
     The rabbitmq and monetdb containers have also function scope so this is VERY slow.
     This should be used only when the service should be killed etc for testing.
     """
-    node_config_file = LOCALNODE_TMP_CONFIG_FILE
+    node_config_file = LOCALNODETMP_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
@@ -510,7 +569,7 @@ def tmp_localnode_node_service(rabbitmq_tmp_localnode, monetdb_tmp_localnode):
     kill_node_service(proc)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def globalnode_tasks_handler_celery(globalnode_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
 
@@ -532,9 +591,31 @@ def globalnode_tasks_handler_celery(globalnode_node_service):
     )
 
 
+@pytest.fixture(scope="session")
+def localnode1_tasks_handler_celery(localnode1_node_service):
+    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
+
+    with open(node_config_filepath) as fp:
+        tmp = toml.load(fp)
+        node_id = tmp["identifier"]
+        queue_domain = tmp["rabbitmq"]["ip"]
+        queue_port = tmp["rabbitmq"]["port"]
+        db_domain = tmp["monetdb"]["ip"]
+        db_port = tmp["monetdb"]["port"]
+    queue_address = ":".join([str(queue_domain), str(queue_port)])
+    db_address = ":".join([str(db_domain), str(db_port)])
+
+    return NodeTasksHandlerCelery(
+        node_id=node_id,
+        node_queue_addr=queue_address,
+        node_db_addr=db_address,
+        tasks_timeout=TASKS_TIMEOUT,
+    )
+
+
 @pytest.fixture(scope="function")
-def tmp_localnode_tasks_handler_celery(tmp_localnode_node_service):
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE_TMP_CONFIG_FILE)
+def localnodetmp_tasks_handler_celery(localnodetmp_node_service):
+    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
 
     with open(node_config_filepath) as fp:
         tmp = toml.load(fp)
