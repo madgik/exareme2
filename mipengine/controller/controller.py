@@ -80,9 +80,7 @@ class Controller:
 
         return algorithm_result
 
-    def _append_context_id_for_cleanup(
-        self, context_id: str, node_ids: List[str]
-    ):
+    def _append_context_id_for_cleanup(self, context_id: str, node_ids: List[str]):
         if context_id not in self._nodes_for_cleanup.keys():
             self._nodes_for_cleanup[context_id] = node_ids
         else:
