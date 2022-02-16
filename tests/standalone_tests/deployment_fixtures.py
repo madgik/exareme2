@@ -1,16 +1,17 @@
+import os
+import subprocess
+import time
+from os import path
 from pathlib import Path
 
-import pytest
 import docker
-import time
-import subprocess
-import os
-from os import path
-import toml
+import pytest
 import sqlalchemy as sql
+import toml
 
-from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 import tests
+from mipengine.controller.node_tasks_handler_celery import \
+    NodeTasksHandlerCelery
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/mipengine_rabbitmq:latest"

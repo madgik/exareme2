@@ -51,15 +51,13 @@ import shutil
 import sys
 from enum import Enum
 from itertools import cycle
-from os import listdir
-from os import path
+from os import listdir, path
 from pathlib import Path
 from textwrap import indent
 from time import sleep
 
 import toml
-from invoke import UnexpectedExit
-from invoke import task
+from invoke import UnexpectedExit, task
 from termcolor import colored
 
 import tests

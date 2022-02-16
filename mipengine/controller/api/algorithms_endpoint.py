@@ -1,17 +1,11 @@
 import pydantic
-from quart import Blueprint
-from quart import request
+from quart import Blueprint, request
 
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.algorithm_specifications_dtos import (
-    AlgorithmSpecificationDTO,
-)
-from mipengine.controller.api.algorithm_specifications_dtos import (
-    algorithm_specificationsDTOs,
-)
+    AlgorithmSpecificationDTO, algorithm_specificationsDTOs)
 from mipengine.controller.api.exceptions import BadRequest
-from mipengine.controller.controller import Controller
-from mipengine.controller.controller import get_a_uniqueid
+from mipengine.controller.controller import Controller, get_a_uniqueid
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 controller = Controller()

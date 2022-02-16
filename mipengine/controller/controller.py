@@ -1,10 +1,8 @@
 import asyncio
 import concurrent.futures
-import logging
-
 import datetime
+import logging
 import random
-
 # from typing import Any
 # from typing import Dict
 from typing import List
@@ -15,17 +13,14 @@ from pydantic import BaseModel
 
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
-from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
-
-
-from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
+from mipengine.controller.algorithm_execution_DTOs import (
+    AlgorithmExecutionDTO, NodesTasksHandlersDTO)
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.node_registry import node_registry
-from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
-
+from mipengine.controller.node_tasks_handler_celery import \
+    NodeTasksHandlerCelery
 
 CLEANUP_INTERVAL = 10
 
