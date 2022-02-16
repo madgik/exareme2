@@ -24,8 +24,7 @@ nodes_addresses_file = path.join(TEST_ENV_CONFIG_FOLDER, NODES_ADDRESSES_FILE)
 os.environ["NODES_ADDRESSES_FILE"] = nodes_addresses_file
 # ############
 
-from mipengine.controller.node_tasks_handler_celery import \
-    NodeTasksHandlerCelery
+from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/mipengine_rabbitmq:latest"

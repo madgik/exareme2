@@ -3,7 +3,9 @@ from quart import Blueprint, request
 
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.algorithm_specifications_dtos import (
-    AlgorithmSpecificationDTO, algorithm_specificationsDTOs)
+    AlgorithmSpecificationDTO,
+    algorithm_specificationsDTOs,
+)
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.controller import Controller, get_a_uniqueid
 

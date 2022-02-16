@@ -6,23 +6,36 @@ import pytest
 import requests
 
 from mipengine import DType
-from mipengine.node_tasks_DTOs import (ColumnInfo, NodeSMPCDTO,
-                                       NodeSMPCValueDTO, NodeTableDTO,
-                                       TableData, TableSchema, UDFKeyArguments,
-                                       UDFPosArguments, UDFResults)
-from mipengine.smpc_cluster_comm_helpers import (ADD_DATASET_ENDPOINT,
-                                                 TRIGGER_COMPUTATION_ENDPOINT)
+from mipengine.node_tasks_DTOs import (
+    ColumnInfo,
+    NodeSMPCDTO,
+    NodeSMPCValueDTO,
+    NodeTableDTO,
+    TableData,
+    TableSchema,
+    UDFKeyArguments,
+    UDFPosArguments,
+    UDFResults,
+)
+from mipengine.smpc_cluster_comm_helpers import (
+    ADD_DATASET_ENDPOINT,
+    TRIGGER_COMPUTATION_ENDPOINT,
+)
 from mipengine.smpc_DTOs import SMPCRequestData, SMPCRequestType
 from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import smpc_global_step, smpc_local_step
-from tests.standalone_tests.conftest import (GLOBALNODE_SMPC_CONFIG_FILE,
-                                             LOCALNODE1_CONFIG_FILE,
-                                             LOCALNODE1_SMPC_CONFIG_FILE,
-                                             LOCALNODE2_SMPC_CONFIG_FILE)
+from tests.standalone_tests.conftest import (
+    GLOBALNODE_SMPC_CONFIG_FILE,
+    LOCALNODE1_CONFIG_FILE,
+    LOCALNODE1_SMPC_CONFIG_FILE,
+    LOCALNODE2_SMPC_CONFIG_FILE,
+)
 from tests.standalone_tests.nodes_communication_helper import (
-    get_celery_app, get_celery_task_signature, get_node_config_by_id)
-from tests.standalone_tests.test_udfs import \
-    create_table_with_one_column_and_ten_rows
+    get_celery_app,
+    get_celery_task_signature,
+    get_node_config_by_id,
+)
+from tests.standalone_tests.test_udfs import create_table_with_one_column_and_ten_rows
 
 request_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10] + "_request"
 context_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10]

@@ -4,9 +4,14 @@ from typing import Any, List, Optional, Tuple
 
 from pydantic import BaseModel
 
-from mipengine.node_tasks_DTOs import (NodeUDFDTO, TableData, TableSchema,
-                                       UDFKeyArguments, UDFPosArguments,
-                                       UDFResults)
+from mipengine.node_tasks_DTOs import (
+    NodeUDFDTO,
+    TableData,
+    TableSchema,
+    UDFKeyArguments,
+    UDFPosArguments,
+    UDFResults,
+)
 
 
 class IAsyncResult(BaseModel, ABC):

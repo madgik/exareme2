@@ -7,15 +7,23 @@ import pytest
 from billiard.exceptions import TimeLimitExceeded
 
 from mipengine import DType
-from mipengine.node_tasks_DTOs import (ColumnInfo, NodeTableDTO, TableData,
-                                       TableSchema, UDFKeyArguments,
-                                       UDFPosArguments, UDFResults)
+from mipengine.node_tasks_DTOs import (
+    ColumnInfo,
+    NodeTableDTO,
+    TableData,
+    TableSchema,
+    UDFKeyArguments,
+    UDFPosArguments,
+    UDFResults,
+)
 from mipengine.udfgen import make_unique_func_name
-from tests.algorithms.orphan_udfs import (get_column_rows, local_step,
-                                          very_slow_udf)
+from tests.algorithms.orphan_udfs import get_column_rows, local_step, very_slow_udf
 from tests.standalone_tests.conftest import LOCALNODE1_CONFIG_FILE
 from tests.standalone_tests.nodes_communication_helper import (
-    get_celery_app, get_celery_task_signature, get_node_config_by_id)
+    get_celery_app,
+    get_celery_task_signature,
+    get_node_config_by_id,
+)
 
 command_id = "command123"
 request_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10] + "_request"

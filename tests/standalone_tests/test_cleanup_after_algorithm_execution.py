@@ -9,27 +9,37 @@ import pytest
 import toml
 
 # for cdes...
-from mipengine.common_data_elements import (CommonDataElement,
-                                            CommonDataElements,
-                                            MetadataEnumeration,
-                                            MetadataVariable)
+from mipengine.common_data_elements import (
+    CommonDataElement,
+    CommonDataElements,
+    MetadataEnumeration,
+    MetadataVariable,
+)
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import (
-    AlgorithmExecutionDTO, NodesTasksHandlersDTO)
-from mipengine.controller.algorithm_executor import \
-    NodeUnresponsiveAlgorithmExecutionException
+    AlgorithmExecutionDTO,
+    NodesTasksHandlersDTO,
+)
+from mipengine.controller.algorithm_executor import (
+    NodeUnresponsiveAlgorithmExecutionException,
+)
 from mipengine.controller.api.algorithm_request_dto import (
-    AlgorithmInputDataDTO, AlgorithmRequestDTO)
-from mipengine.controller.controller import (CLEANUP_INTERVAL, Controller,
-                                             get_a_uniqueid)
-from mipengine.controller.node_tasks_handler_celery import \
-    NodeTasksHandlerCelery
+    AlgorithmInputDataDTO,
+    AlgorithmRequestDTO,
+)
+from mipengine.controller.controller import CLEANUP_INTERVAL, Controller, get_a_uniqueid
+from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from tests.dev_env_tests.nodes_communication import get_node_config_by_id
 from tests.standalone_tests.conftest import (
-    ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE, LOCALNODETMP_CONFIG_FILE,
-    RABBITMQ_LOCALNODETMP_NAME, RABBITMQ_LOCALNODETMP_PORT,
-    TEST_ENV_CONFIG_FOLDER, _create_node_service, _create_rabbitmq_container,
-    remove_localnodetmp_rabbitmq)
+    ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE,
+    LOCALNODETMP_CONFIG_FILE,
+    RABBITMQ_LOCALNODETMP_NAME,
+    RABBITMQ_LOCALNODETMP_PORT,
+    TEST_ENV_CONFIG_FOLDER,
+    _create_node_service,
+    _create_rabbitmq_container,
+    remove_localnodetmp_rabbitmq,
+)
 
 WAIT_CLEANUP_TIME_LIMIT = 20
 WAIT_BEFORE_BRING_TMPNODE_DOWN = 15

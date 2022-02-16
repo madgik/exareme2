@@ -10,8 +10,7 @@ import sqlalchemy as sql
 import toml
 
 import tests
-from mipengine.controller.node_tasks_handler_celery import \
-    NodeTasksHandlerCelery
+from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/mipengine_rabbitmq:latest"
