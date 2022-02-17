@@ -92,7 +92,7 @@ def _validate_inputdata_data_model_and_dataset(
     """
 
     if requested_data_model not in available_datasets_per_data_model.keys():
-        raise BadUserInput(f"data_model '{requested_data_model}' does not exist.")
+        raise BadUserInput(f"Data model '{requested_data_model}' does not exist.")
 
     non_existing_datasets = [
         dataset
