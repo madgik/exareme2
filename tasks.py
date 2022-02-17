@@ -278,6 +278,7 @@ def load_data(c, port=None):
 
     :param port: A list of ports, in which it will load the data. If not set, it will use the `NODES_CONFIG_DIR` files.
     """
+
     local_node_ports = port
     if not local_node_ports:
         config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
