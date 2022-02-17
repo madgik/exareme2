@@ -3,7 +3,6 @@ import concurrent.futures
 import datetime
 import logging
 import random
-
 from typing import List
 
 from pydantic import BaseModel
