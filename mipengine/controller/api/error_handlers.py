@@ -6,7 +6,7 @@ from mipengine.controller.algorithm_executor import NodeDownAlgorithmExecutionEx
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.filters import FilterError
-from mipengine.node_tasks_DTOs import InsufficientDataError
+from mipengine.node_exceptions import InsufficientDataError, DataModelUnavailable, DatasetUnavailable
 from mipengine.smpc_cluster_comm_helpers import SMPCUsageError
 
 error_handlers = Blueprint("error_handlers", __name__)
@@ -38,6 +38,16 @@ def handle_bad_request(error: FilterError):
 
 @error_handlers.app_errorhandler(BadUserInput)
 def handle_bad_user_input(error: BadUserInput):
+    return error.message, HTTPStatusCode.BAD_USER_INPUT
+
+
+@error_handlers.app_errorhandler(DataModelUnavailable)
+def handle_bad_user_input(error: DataModelUnavailable):
+    return error.message, HTTPStatusCode.BAD_USER_INPUT
+
+
+@error_handlers.app_errorhandler(DatasetUnavailable)
+def handle_bad_user_input(error: DatasetUnavailable):
     return error.message, HTTPStatusCode.BAD_USER_INPUT
 
 

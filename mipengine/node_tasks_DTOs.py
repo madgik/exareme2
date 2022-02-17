@@ -142,12 +142,3 @@ class UDFKeyArguments(ImmutableBaseModel):
 
 class UDFResults(ImmutableBaseModel):
     results: List[Union[NodeTableDTO, NodeSMPCDTO]]
-
-
-# ~~~~~~~~~~~~~~~~~~~ Exceptions ~~~~~~~~~~~~~~~~~~~~~~ #
-
-
-class InsufficientDataError(Exception):
-    def __init__(self, message):
-        super().__init__(message)
-        self.message = message
