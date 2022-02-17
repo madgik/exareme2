@@ -1,3 +1,4 @@
+import traceback
 from typing import Any
 from typing import Dict
 from typing import List
@@ -9,7 +10,6 @@ from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
 from celery.exceptions import TimeoutError
 from pydantic import BaseModel
-import traceback
 
 from mipengine import algorithm_modules
 from mipengine.controller import config as ctrl_config

@@ -1,7 +1,9 @@
 import asyncio
 import json
 import sys
-from typing import Any, Dict, List
+from typing import Any
+from typing import Dict
+from typing import List
 
 import dns.resolver
 from asgiref.sync import sync_to_async
@@ -10,7 +12,8 @@ from mipengine.controller import DeploymentType
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.celery_app import get_node_celery_app
-from mipengine.node_info_DTOs import NodeInfo, NodeRole
+from mipengine.node_info_DTOs import NodeInfo
+from mipengine.node_info_DTOs import NodeRole
 
 NODE_REGISTRY_REQUEST_ID = "NODE_REGISTRY"
 

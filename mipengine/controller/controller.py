@@ -14,10 +14,8 @@ from pydantic import BaseModel
 
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_execution_DTOs import (
-    AlgorithmExecutionDTO,
-    NodesTasksHandlersDTO,
-)
+from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
+from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request

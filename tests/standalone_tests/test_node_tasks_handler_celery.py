@@ -7,17 +7,13 @@ from celery.exceptions import TimeoutError
 from mipengine import DType
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
-from mipengine.node_tasks_DTOs import (
-    ColumnInfo,
-    NodeTableDTO,
-    TableSchema,
-    UDFPosArguments,
-)
-from tests.standalone_tests.conftest import (
-    RABBITMQ_LOCALNODETMP_NAME,
-    _remove_rabbitmq_container,
-    kill_node_service,
-)
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import NodeTableDTO
+from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import UDFPosArguments
+from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_NAME
+from tests.standalone_tests.conftest import _remove_rabbitmq_container
+from tests.standalone_tests.conftest import kill_node_service
 
 COMMON_TASKS_REQUEST_ID = "rqst1"
 

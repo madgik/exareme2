@@ -1,17 +1,19 @@
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 from builtins import str
-from typing import Any, List, Optional, Tuple
+from typing import Any
+from typing import List
+from typing import Optional
+from typing import Tuple
 
 from pydantic import BaseModel
 
-from mipengine.node_tasks_DTOs import (
-    NodeUDFDTO,
-    TableData,
-    TableSchema,
-    UDFKeyArguments,
-    UDFPosArguments,
-    UDFResults,
-)
+from mipengine.node_tasks_DTOs import NodeUDFDTO
+from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import UDFKeyArguments
+from mipengine.node_tasks_DTOs import UDFPosArguments
+from mipengine.node_tasks_DTOs import UDFResults
 
 
 class IAsyncResult(BaseModel, ABC):
