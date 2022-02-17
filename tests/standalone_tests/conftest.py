@@ -9,9 +9,15 @@ import pytest
 import sqlalchemy as sql
 import toml
 
-# In order to override the "default" mipengine/controller/config.toml the environment
-# variables MIPENGINE_CONTROLLER_CONFIG_FILE and NODES_ADDRESSES_FILE are
-# set here. These must be set before any other mipengine module is imported
+############################################
+# Configuration settings concerning the deployement of the nodes in the system (along
+# with other settings) are set in a .toml file which is read by the
+# "mipengine/controller/__init__.py" module. Inside this __init__.py module, the .toml
+# file that will be read is "decided" based on the environment variable
+# "MIPENGINE_CONTROLLER_CONFIG_FILE". So, in order to override the "default"
+# mipengine/controller/config.toml the environment variable
+# MIPENGINE_CONTROLLER_CONFIG_FILE and NODES_ADDRESSES_FILE must be set before any other
+# mipengine module is imported
 this_mod_path = os.path.dirname(os.path.abspath(__file__))
 TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
 
@@ -19,10 +25,13 @@ CONTROLLER_CONFIG_FILE = "test_controller_config.toml"
 controller_config_file = path.join(TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE)
 os.environ["MIPENGINE_CONTROLLER_CONFIG_FILE"] = controller_config_file
 
+# The environment variable NODES_ADDRESSES_FILE, used inside the .toml file, must also
+# be set before loading any other mipengine module and defines the socket addresses of
+# the all the nodes' rabbitmq queues
 NODES_ADDRESSES_FILE = "test_localnodes_addresses.json"
 nodes_addresses_file = path.join(TEST_ENV_CONFIG_FOLDER, NODES_ADDRESSES_FILE)
 os.environ["NODES_ADDRESSES_FILE"] = nodes_addresses_file
-# ############
+###########################################
 
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 

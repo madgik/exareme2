@@ -44,7 +44,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         await asyncio.sleep(1)
 
     # Start the cleanup loop
-    cleanup_task = await controller.start_cleanup_loop()
+    await controller.start_cleanup_loop()
 
     # get all participating node tasks handlers
     nodes_tasks_handlers_dto = controller._get_nodes_tasks_handlers(
@@ -194,7 +194,7 @@ async def test_cleanup_node_down_algorithm_execution(
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
     # start executing the algorithm but do not wait for it
-    task = asyncio.create_task(
+    asyncio.create_task(
         controller._exec_algorithm_with_task_handlers(
             request_id=request_id,
             context_id=context_id,
@@ -223,7 +223,7 @@ async def test_cleanup_node_down_algorithm_execution(
     remove_localnodetmp_rabbitmq()
 
     # Start the cleanup loop
-    cleanup_task = await controller.start_cleanup_loop()
+    await controller.start_cleanup_loop()
 
     controller._append_context_id_for_cleanup(
         context_id=context_id,
@@ -315,7 +315,7 @@ def start_localnodetmp_node_service():
     node_config_file = LOCALNODETMP_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
-    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    _create_node_service(algo_folders_env_variable_val, node_config_filepath)
 
 
 algorithm_request_dto = AlgorithmRequestDTO(
