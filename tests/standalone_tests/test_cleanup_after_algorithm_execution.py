@@ -1,31 +1,15 @@
 import asyncio
-import json
-import os
 import time
 from os import path
-from unittest.mock import patch
 
 import pytest
 import toml
 
-# for cdes...
-from mipengine.common_data_elements import CommonDataElement
-from mipengine.common_data_elements import CommonDataElements
-from mipengine.common_data_elements import MetadataEnumeration
-from mipengine.common_data_elements import MetadataVariable
 from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
-from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
-from mipengine.controller.algorithm_executor import (
-    NodeUnresponsiveAlgorithmExecutionException,
-)
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.controller import CLEANUP_INTERVAL
 from mipengine.controller.controller import Controller
 from mipengine.controller.controller import get_a_uniqueid
-from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
-from tests.dev_env_tests.nodes_communication import get_node_config_by_id
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
 from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_NAME

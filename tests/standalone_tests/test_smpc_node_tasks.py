@@ -207,7 +207,7 @@ def test_secure_transfer_output_with_smpc_off(
 
 
 def test_secure_transfer_input_with_smpc_off(
-    localnode_1_node_service, use_localnode_1_database, localnode_1_celery_app
+    localnode1_node_service, use_localnode1_database, localnode_1_celery_app
 ):
     run_udf_task = get_celery_task_signature(localnode_1_celery_app, "run_udf")
     get_table_data_task = get_celery_task_signature(
