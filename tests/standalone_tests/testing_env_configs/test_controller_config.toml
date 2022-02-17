@@ -5,7 +5,7 @@ deployment_type="LOCAL"
 node_registry_update_interval= 5
 
 [localnodes]
-config_file="$NODES_ADDRESSES_FILE"
+config_file="./tests/standalone_tests/testing_env_configs/test_localnodes_addresses.json"
 dns=""
 port=""
 

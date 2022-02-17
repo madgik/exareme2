@@ -24,13 +24,6 @@ TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
 CONTROLLER_CONFIG_FILE = "test_controller_config.toml"
 controller_config_file = path.join(TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE)
 os.environ["MIPENGINE_CONTROLLER_CONFIG_FILE"] = controller_config_file
-
-# The environment variable NODES_ADDRESSES_FILE, used inside the .toml file, must also
-# be set before loading any other mipengine module and defines the socket addresses of
-# the all the nodes' rabbitmq queues
-NODES_ADDRESSES_FILE = "test_localnodes_addresses.json"
-nodes_addresses_file = path.join(TEST_ENV_CONFIG_FOLDER, NODES_ADDRESSES_FILE)
-os.environ["NODES_ADDRESSES_FILE"] = nodes_addresses_file
 ###########################################
 
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
