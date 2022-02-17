@@ -68,14 +68,12 @@ async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
         )
         for app, task in nodes_task_signature.items()
     ]
-
     results = await asyncio.gather(*tasks_coroutines, return_exceptions=True)
     nodes_info = [
         NodeInfo.parse_raw(result)
         for result in results
         if not isinstance(result, Exception)
     ]
-
     return nodes_info
 
 
@@ -116,7 +114,6 @@ class NodeRegistry:
     async def update(self):
         while self.keep_updating:
             nodes_addresses = _get_nodes_addresses()
-
             self.nodes: List[NodeInfo] = await _get_nodes_info(nodes_addresses)
 
             logger.debug(f"Nodes:{[node.id for node in self.nodes]}")
