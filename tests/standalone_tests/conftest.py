@@ -283,7 +283,10 @@ def localnodetmp_db_cursor():
 
 
 def _clean_db(cursor):
-    select_user_tables = "SELECT name FROM sys.tables WHERE system=FALSE"
+    # schema_id=2000 is the default schema id
+    select_user_tables = (
+        "SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000"
+    )
     user_tables = cursor.execute(select_user_tables).fetchall()
     for table_name, *_ in user_tables:
         cursor.execute(f"DROP TABLE {table_name} CASCADE")
