@@ -4,20 +4,16 @@ from typing import TypeVar
 import numpy
 import pandas as pd
 
+from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.udfgen import (
-    TensorBinaryOp,
-    TensorUnaryOp,
-    literal,
-    merge_tensor,
-    relation,
-    scalar,
-    tensor,
-    udf,
-)
-from mipengine.algorithm_result_DTOs import TabularDataResult
-
+from mipengine.udfgen import TensorBinaryOp
+from mipengine.udfgen import TensorUnaryOp
+from mipengine.udfgen import literal
+from mipengine.udfgen import merge_tensor
+from mipengine.udfgen import relation
+from mipengine.udfgen import tensor
+from mipengine.udfgen import udf
 
 PREC = 1e-6
 
@@ -118,8 +114,8 @@ def run(algo_interface):
             func=logistic_loss,
             keyword_args={"v1": y, "v2": s},
         )
-
-        newlogloss = sum(newlogloss.get_table_data())
+        # TODO local_run results should not be fetched https://team-1617704806227.atlassian.net/browse/MIP-534
+        newlogloss = sum(newlogloss.get_table_data()[1])
 
         # ~~~~~~~~ Global part ~~~~~~~~ #
         hessian_global = global_run(
@@ -235,7 +231,7 @@ def diag(vec):
     return result
 
 
-@udf(v1=tensor(T, N), v2=tensor(T, N), return_type=scalar(float))
+@udf(v1=tensor(T, N), v2=tensor(T, N), return_type=relation(schema=[("scalar", float)]))
 def logistic_loss(v1, v2):
     from scipy import special
 
@@ -243,7 +239,7 @@ def logistic_loss(v1, v2):
     return ll
 
 
-@udf(t1=tensor(T, N), t2=tensor(T, N), return_type=scalar(float))
+@udf(t1=tensor(T, N), t2=tensor(T, N), return_type=relation(schema=[("scalar", float)]))
 def tensor_max_abs_diff(t1, t2):
     result = numpy.max(numpy.abs(t1 - t2))
     return result

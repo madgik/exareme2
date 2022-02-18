@@ -1,0 +1,199 @@
+name: Single Node Production Env Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Set up python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Load MONETDB cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/monetdb
+          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-monetdb-
+
+      - name: Build MONETDB docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: monetdb/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipenginedb:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/monetdb
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
+
+      - name: Load RABBITMQ cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/rabbitmq
+          key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-rabbitmq-
+
+      - name: Build RABBITMQ docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: rabbitmq/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipengine_rabbitmq:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
+
+      - name: Load NODE service cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/node
+          key: ${{ runner.os }}-buildx-node-${{hashFiles('mipengine/**')}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-node-
+
+      - name: Build NODE service docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: mipengine/node/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipengine_node:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/node
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/node
+
+      - name: Load CONTROLLER service cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/controller
+          key: ${{ runner.os }}-buildx-controller-${{hashFiles('mipengine/**')}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-controller-
+
+      - name: Build CONTROLLER service docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: mipengine/controller/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipengine_controller:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/controller
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/controller
+
+        # Temp fix
+        # https://github.com/docker/build-push-action/issues/252
+        # https://github.com/moby/buildkit/issues/1896
+      - name: Move Docker images cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Start MONETDB container
+        run: docker run -d --name monetdb -p 50000:50000 -v /opt/monetdb:/home/monetdb madgik/mipenginedb:latest
+
+      - name: Wait for MONETDB container to start
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '10s'
+
+      - name: Initialize MONETDB with mipdb initial metadata tables
+        run: poetry run mipdb init --ip 172.17.0.1 --port 50000
+
+      - name: Load data into MONETDB container
+        run: poetry run mipdb load-folder ./tests/single_node_demo_data/  --ip 172.17.0.1 --port 50000
+
+      - name: Backup MONETDB data
+        run: |
+          docker exec -i monetdb monetdb lock db
+          docker exec -i monetdb monetdb stop db
+
+      - name: Copy MONETDB demo data folders
+        run: |
+          sudo cp -r /opt/monetdb/. /opt/monetdb1
+
+      - name: Stop MONETDB container
+        run: docker stop monetdb && docker rm monetdb
+
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1.2.0
+        with:
+          cluster_name: kind
+          config: tests/prod_env_tests/single_node_deployment_configs/kind_configuration/kind_cluster.yaml
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: 3.6.3
+        id: install
+
+      - name: Taint Nodes
+        run: |
+          kubectl taint nodes master node-role.kubernetes.io/master-
+          kubectl label node master nodeType=master
+          kubectl label node localnode1 nodeType=worker
+
+      - name: Load docker images to kind
+        run: |
+          kind load docker-image madgik/mipengine_node:latest
+          kind load docker-image madgik/mipengine_controller:latest --nodes kind-control-plane
+          kind load docker-image madgik/mipenginedb:latest
+          kind load docker-image madgik/mipengine_rabbitmq:latest
+
+      - name: Copy prod_env_tests values.yaml
+        run: cp -r tests/prod_env_tests/single_node_deployment_configs/kubernetes_values.yaml kubernetes/values.yaml
+
+      - name: Deploy Helm
+        run: helm install mipengine kubernetes/
+
+      - name: Wait for MIPENGINE services to start
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '120s' #https://team-1617704806227.atlassian.net/browse/MIP-248
+
+      - name: Controller logs
+        run: kubectl logs deployment/mipengine-controller-deployment
+
+      - name: Globalnode logs
+        run: kubectl logs deployment/mipengine-globalnode-deployment -c node
+
+      - name: Localnode logs
+        run: kubectl logs deployment/mipengine-localnode-deployment -c node
+
+      - name: Run production env tests
+        run: poetry run pytest tests/prod_env_tests --verbosity=2

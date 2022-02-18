@@ -1,8 +1,8 @@
 import inspect
 import logging
 import time
-
 from functools import wraps
+
 from mipengine.node import config as node_config
 from mipengine.node_exceptions import RequestIDNotFound
 

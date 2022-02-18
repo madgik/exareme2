@@ -1,6 +1,6 @@
+import sqlalchemy
 import toml
 from celery import Celery
-import sqlalchemy
 
 from mipengine import AttrDict
 from tasks import NODES_CONFIG_DIR
@@ -51,8 +51,8 @@ def get_celery_task_signature(celery_app, task):
             "mipengine.node.tasks.tables.insert_data_to_table"
         ),
         "create_view": celery_app.signature("mipengine.node.tasks.views.create_view"),
-        "create_pathology_view": celery_app.signature(
-            "mipengine.node.tasks.views.create_pathology_view"
+        "create_data_model_view": celery_app.signature(
+            "mipengine.node.tasks.views.create_data_model_view"
         ),
         "get_views": celery_app.signature("mipengine.node.tasks.views.get_views"),
         "create_merge_table": celery_app.signature(

@@ -1,9 +1,11 @@
+from enum import Enum
+from enum import unique
 from ipaddress import IPv4Address
 from typing import Dict
-from typing import Optional, List
-from pydantic import BaseModel
+from typing import List
+from typing import Optional
 
-from enum import Enum, unique
+from pydantic import BaseModel
 
 
 @unique
@@ -19,4 +21,4 @@ class NodeInfo(BaseModel):
     port: int
     db_ip: IPv4Address
     db_port: int
-    datasets_per_schema: Optional[Dict[str, List[str]]] = None
+    datasets_per_data_model: Optional[Dict[str, List[str]]] = None

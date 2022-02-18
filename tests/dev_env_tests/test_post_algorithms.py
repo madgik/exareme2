@@ -2,7 +2,6 @@ import json
 import re
 
 import numpy as np
-
 import pytest
 import requests
 
@@ -15,7 +14,7 @@ def get_parametrization_list_success_cases():
     algorithm_name = "smpc_standard_deviation"
     request_dict = {
         "inputdata": {
-            "pathology": "dementia",
+            "data_model": "dementia:0.1",
             "datasets": ["edsd"],
             "x": [
                 "lefthippocampus",

@@ -1,3 +1,4 @@
+import warnings
 from abc import ABC
 from typing import Any
 from typing import Dict
@@ -77,17 +78,25 @@ class LocalNodesTable(LocalNodesData):
         return node.get_table_schema(table)
 
     def get_table_data(self) -> List[Union[int, float, str]]:
+        """
+        Should be used ONLY for debugging.
+        """
+        warnings.warn(
+            "'get_table_data' of 'LocalNodesTable' should not be used in production."
+        )
+
         tables_data = []
         for node, table_name in self.nodes_tables.items():
-            tables_data.append(node.get_table_data(table_name))
-        tables_data_flat = [table_data.columns for table_data in tables_data]
-        tables_data_flat = [
-            elem
-            for table in tables_data_flat
-            for column in table
-            for elem in column.data
-        ]
-        return tables_data_flat
+            tables_data.append(node.get_table_data(table_name).columns)
+
+        merged_table_data = []
+        for table in tables_data:
+            for index, column in enumerate(table):
+                if len(merged_table_data) <= index:
+                    merged_table_data.append(column.data)
+                else:
+                    merged_table_data[index].extend(column.data)
+        return merged_table_data
 
     def __repr__(self):
         r = f"\n\tLocalNodeTable: {self.get_table_schema()}\n"

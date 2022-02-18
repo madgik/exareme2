@@ -12,7 +12,6 @@ from mipengine.node_tasks_DTOs import DType
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 
-
 # TODO does not contain any test, just a placeholder..
 
 
@@ -38,10 +37,10 @@ class NodeMock(_INode):
     def get_views(self) -> List[TableName]:
         pass
 
-    def create_pathology_view(
+    def create_data_model_view(
         self,
         command_id: str,
-        pathology: str,
+        data_model: str,
         columns: List[str],
         filters: List[str],
     ) -> TableName:

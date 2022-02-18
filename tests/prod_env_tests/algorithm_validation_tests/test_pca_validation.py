@@ -1,8 +1,9 @@
+import json
+from pathlib import Path
+
+import numpy as np
 import pytest
 import requests
-import json
-import numpy as np
-from pathlib import Path
 
 expected_file = Path(__file__).parent / "expected" / "pca_expected.json"
 

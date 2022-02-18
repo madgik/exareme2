@@ -2,9 +2,7 @@ import pydantic
 from quart import Blueprint
 from quart import request
 
-from mipengine.controller.api.algorithm_request_dto import (
-    AlgorithmRequestDTO,
-)
+from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.algorithm_specifications_dtos import (
     AlgorithmSpecificationDTO,
 )

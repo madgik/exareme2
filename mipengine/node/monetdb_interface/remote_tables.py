@@ -1,10 +1,10 @@
 from typing import List
 
 from mipengine.node import config as node_config
-from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.common_actions import (
     convert_schema_to_sql_query_format,
 )
+from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 from mipengine.node_tasks_DTOs import TableType
 

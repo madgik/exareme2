@@ -1,16 +1,15 @@
 import pytest
-
-from mipengine.node_tasks_DTOs import NodeTableDTO
-from mipengine.node_tasks_DTOs import UDFPosArguments
-from .conftest import kill_node_service
-from mipengine.node_tasks_DTOs import TableSchema, ColumnInfo
-from mipengine import DType
-from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
-
-from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
-
 from celery.exceptions import TimeoutError
 
+from mipengine import DType
+from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
+from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import NodeTableDTO
+from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import UDFPosArguments
+
+from .conftest import kill_node_service
 from .conftest import remove_tmp_localnode_rabbitmq
 
 TASKS_CONTEXT_ID = "cntxt1"
@@ -34,7 +33,7 @@ def test_view_params():
     request_id = TASKS_REQUEST_ID
     context_id = TASKS_CONTEXT_ID
     command_id = "0x"
-    pathology = "dementia"
+    data_model = "dementia:0.1"
     columns = [
         "lefthippocampus",
         "righthippocampus",
@@ -46,7 +45,7 @@ def test_view_params():
         "request_id": request_id,
         "context_id": context_id,
         "command_id": command_id,
-        "pathology": pathology,
+        "data_model": data_model,
         "columns": columns,
     }
 

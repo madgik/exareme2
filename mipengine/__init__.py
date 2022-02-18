@@ -1,15 +1,14 @@
 import glob
 import importlib
-from importlib import util
 import os
+from importlib import util
 from os.path import basename
 from os.path import isfile
 from types import ModuleType
-
 from typing import Dict
 
-from .datatypes import DType
 from .attrdict import AttrDict
+from .datatypes import DType
 
 __all__ = [
     "DType",

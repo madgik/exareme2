@@ -4,7 +4,6 @@ import os
 import pytest
 
 import mipengine
-
 from tests import TEST_ALGORITHMS_FOLDER
 
 

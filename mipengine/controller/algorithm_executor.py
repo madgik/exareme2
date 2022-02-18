@@ -1,4 +1,5 @@
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -9,30 +10,12 @@ from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
 from celery.exceptions import TimeoutError
 from pydantic import BaseModel
-from typing import Callable
 
 from mipengine import algorithm_modules
 from mipengine.controller import config as ctrl_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
-from mipengine.controller.algorithm_flow_data_objects import AlgoFlowData
-from mipengine.controller.algorithm_flow_data_objects import GlobalNodeData
-from mipengine.controller.algorithm_flow_data_objects import (
-    GlobalNodeSMPCTables,
-)
-from mipengine.controller.algorithm_flow_data_objects import GlobalNodeTable
-from mipengine.controller.algorithm_flow_data_objects import LocalNodesData
-from mipengine.controller.algorithm_flow_data_objects import (
-    LocalNodesSMPCTables,
-)
-from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
-from mipengine.controller.algorithm_flow_data_objects import (
-    algoexec_udf_kwargs_to_node_udf_kwargs,
-)
-from mipengine.controller.algorithm_flow_data_objects import (
-    algoexec_udf_posargs_to_node_udf_posargs,
-)
 from mipengine.controller.algorithm_executor_node_data_objects import NodeData
 from mipengine.controller.algorithm_executor_node_data_objects import SMPCTableNames
 from mipengine.controller.algorithm_executor_node_data_objects import TableName
@@ -44,6 +27,19 @@ from mipengine.controller.algorithm_executor_smpc_helper import (
 )
 from mipengine.controller.algorithm_executor_smpc_helper import (
     trigger_smpc_computations,
+)
+from mipengine.controller.algorithm_flow_data_objects import AlgoFlowData
+from mipengine.controller.algorithm_flow_data_objects import GlobalNodeData
+from mipengine.controller.algorithm_flow_data_objects import GlobalNodeSMPCTables
+from mipengine.controller.algorithm_flow_data_objects import GlobalNodeTable
+from mipengine.controller.algorithm_flow_data_objects import LocalNodesData
+from mipengine.controller.algorithm_flow_data_objects import LocalNodesSMPCTables
+from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
+from mipengine.controller.algorithm_flow_data_objects import (
+    algoexec_udf_kwargs_to_node_udf_kwargs,
+)
+from mipengine.controller.algorithm_flow_data_objects import (
+    algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.controller_common_data_elements import (
@@ -131,7 +127,7 @@ class AlgorithmExecutor:
         # tables
         initial_view_tables_params = {
             "commandId": get_next_command_id(),
-            "pathology": self._algorithm_execution_dto.algorithm_request_dto.inputdata.pathology,
+            "data_model": self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model,
             "datasets": self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
             "x": self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
             "y": self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
@@ -176,7 +172,7 @@ class AlgorithmExecutor:
             algorithm_parameters=self._algorithm_execution_dto.algorithm_request_dto.parameters,
             x_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
             y_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
-            pathology=self._algorithm_execution_dto.algorithm_request_dto.inputdata.pathology,
+            data_model=self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model,
             datasets=self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
             use_smpc=self._get_use_smpc_flag(),
         )
@@ -244,7 +240,7 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     algorithm_parameters: Optional[Dict[str, Any]] = None
     x_variables: Optional[List[str]] = None
     y_variables: Optional[List[str]] = None
-    pathology: str
+    data_model: str
     datasets: List[str]
     use_smpc: bool
 
@@ -260,10 +256,11 @@ class _AlgorithmExecutionInterface:
         self._algorithm_parameters = algo_execution_interface_dto.algorithm_parameters
         self._x_variables = algo_execution_interface_dto.x_variables
         self._y_variables = algo_execution_interface_dto.y_variables
-        pathology = algo_execution_interface_dto.pathology
         self._datasets = algo_execution_interface_dto.datasets
         self._use_smpc = algo_execution_interface_dto.use_smpc
-        cdes = controller_common_data_elements.pathologies[pathology]
+        cdes = controller_common_data_elements.data_models[
+            algo_execution_interface_dto.data_model
+        ]
         varnames = (self._x_variables or []) + (self._y_variables or [])
         self._metadata = {
             varname: cde.__dict__

@@ -1,18 +1,16 @@
 import json
-import requests
 
+import requests
 from devtools import debug
 
-from mipengine.controller.api.algorithm_request_dto import (
-    AlgorithmInputDataDTO,
-    AlgorithmRequestDTO,
-)
+from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
+from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 
 
 def do_post_request():
     url = "http://127.0.0.1:5000/algorithms" + "/pca"
 
-    pathology = "dementia"
+    data_model = "dementia:0.1"
     datasets = ["edsd"]
     x = [
         "lefthippocampus",
@@ -47,7 +45,7 @@ def do_post_request():
     }
 
     algorithm_input_data = AlgorithmInputDataDTO(
-        pathology=pathology,
+        data_model=data_model,
         datasets=datasets,
         filters=filters,
         x=x,

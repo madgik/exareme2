@@ -6,8 +6,8 @@ from typing import Optional
 from dataclasses_json import dataclass_json
 
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
-from mipengine.controller.algorithms_specifications import ParameterSpecification
 from mipengine.controller.algorithms_specifications import InputDataSpecifications
+from mipengine.controller.algorithms_specifications import ParameterSpecification
 from mipengine.controller.algorithms_specifications import algorithms_specifications
 
 
@@ -17,7 +17,7 @@ class InputDataSpecificationDTO:
     """
     InputDataSpecificationDTO is different from the InputDataSpecification
     on the stattypes field.
-    It is optional on the DTOs, due to the datasets and pathology parameters.
+    It is optional on the DTOs, due to the datasets and data_model parameters.
     """
 
     label: str
@@ -34,10 +34,10 @@ class InputDataSpecificationDTO:
 class InputDataSpecificationsDTO:
     """
     InputDataSpecificationsDTO is a superset of InputDataSpecifications
-    containing pathology, dataset and filter.
+    containing data_model, dataset and filter.
     """
 
-    pathology: InputDataSpecificationDTO
+    data_model: InputDataSpecificationDTO
     datasets: InputDataSpecificationDTO
     filter: InputDataSpecificationDTO
     x: Optional[InputDataSpecificationDTO] = None
@@ -64,9 +64,9 @@ class InputDataSpecificationsDTO:
                 stattypes=input_data_spec.y.stattypes,
                 enumslen=input_data_spec.y.enumslen,
             )
-        self.pathology = InputDataSpecificationDTO(
-            label="Pathology of the data.",
-            desc="The pathology that the algorithm will run on.",
+        self.data_model = InputDataSpecificationDTO(
+            label="Data model of the data.",
+            desc="The data model that the algorithm will run on.",
             types=["text"],
             notblank=True,
             multiple=False,

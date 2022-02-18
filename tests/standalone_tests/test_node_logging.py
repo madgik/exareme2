@@ -1,10 +1,11 @@
 import re
+from unittest.mock import patch
+
 import pytest
 
-from mipengine.node.node_logger import initialise_logger
-from unittest.mock import patch
 from mipengine import AttrDict
 from mipengine.node import node_logger
+from mipengine.node.node_logger import initialise_logger
 
 
 @pytest.fixture(scope="module", autouse=True)

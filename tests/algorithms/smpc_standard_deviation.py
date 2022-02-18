@@ -1,17 +1,15 @@
 import json
 from typing import TypeVar
 
+from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.udfgen import (
-    relation,
-    tensor,
-    udf,
-)
-from mipengine.algorithm_result_DTOs import TabularDataResult
+from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import state
+from mipengine.udfgen import tensor
 from mipengine.udfgen import transfer
+from mipengine.udfgen import udf
 
 
 def run(algo_interface):
