@@ -5,7 +5,6 @@ import numpy
 from pydantic import BaseModel
 
 from mipengine.udfgen import literal
-from mipengine.udfgen import make_unique_func_name
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
@@ -45,13 +44,13 @@ def run(algo_interface):
     ]
 
     local_transfers = local_run(
-        func_name=make_unique_func_name(local1),
+        func=local1,
         keyword_args=dict(y=Y_relation, x=X_relation),
         share_to_global=[True],
     )
 
     result = global_run(
-        func_name=make_unique_func_name(global1),
+        func=global1,
         keyword_args=dict(local_transfers=local_transfers, alpha=alpha),
     )
 
