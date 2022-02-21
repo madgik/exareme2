@@ -410,4 +410,4 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         task_signature = self._celery_app.signature(TASK_SIGNATURES["clean_up"])
         self._apply_async(
             task_signature=task_signature, request_id=request_id, context_id=context_id
-        )
+        ).get(self._tasks_timeout)
