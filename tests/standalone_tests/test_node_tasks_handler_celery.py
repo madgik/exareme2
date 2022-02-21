@@ -124,7 +124,6 @@ def test_broker_connection_closed_exception_queue_udf(
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
     table_name = localnodetmp_tasks_handler_celery.create_table(
-        # <<<<<<< HEAD
         request_id=COMMON_TASKS_REQUEST_ID,
         context_id=context_id,
         command_id=command_id,
