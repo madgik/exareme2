@@ -175,9 +175,6 @@ def test_time_limit_exceeded_exception(
             request_id=COMMON_TASKS_REQUEST_ID, table_name=table_name
         )
 
-        # will take some time for the task to raise the exception
-        time.sleep(10)
-
 
 def get_a_random_context_id() -> str:
     return str(random.randint(1, 99999))

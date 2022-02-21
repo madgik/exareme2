@@ -495,6 +495,8 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
 
 def kill_node_service(proc):
     proc.kill()
+    # might take some time for the celery service to be killed
+    time.sleep(10)
 
 
 @pytest.fixture(scope="session")
