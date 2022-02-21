@@ -17,7 +17,7 @@ from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.node_registry import node_registry
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 
-CLEANUP_INTERVAL = 10
+CLEANUP_INTERVAL = controller_config.nodes_cleanup_interval
 
 CONTROLLER_REQUEST_ID = "CONTROLLER"
 
