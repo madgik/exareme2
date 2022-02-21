@@ -122,7 +122,6 @@ class NodeRegistry:
             # debug(self.nodes)
             # DEBUG end
 
-            sys.stdout.flush()  # TODO what is this for??
             await asyncio.sleep(NODE_REGISTRY_UPDATE_INTERVAL)
 
     def get_all_global_nodes(self) -> List[NodeInfo]:
