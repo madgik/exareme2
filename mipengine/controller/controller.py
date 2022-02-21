@@ -19,7 +19,7 @@ from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCeler
 
 CLEANUP_INTERVAL = controller_config.nodes_cleanup_interval
 
-CONTROLLER_REQUEST_ID = "CONTROLLER"
+CONTROLLER_CLEANUP_REQUEST_ID = "CONTROLLER_CLEANUP"
 
 
 class Controller:
@@ -104,7 +104,8 @@ class Controller:
                         node_info = _get_node_info_by_id(node_id)
                         task_handler = _create_node_task_handler(node_info)
                         task_handler.clean_up(
-                            request_id=CONTROLLER_REQUEST_ID, context_id=context_id
+                            request_id=CONTROLLER_CLEANUP_REQUEST_ID,
+                            context_id=context_id,
                         )
 
                         self._controller_logger.debug(
