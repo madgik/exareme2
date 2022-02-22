@@ -11,7 +11,6 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.controller import Controller
 from mipengine.controller.controller import get_a_uniqueid
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-from tests.standalone_tests.conftest import CONTROLLER_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_NAME
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_PORT
@@ -23,15 +22,6 @@ from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 WAIT_CLEANUP_TIME_LIMIT = 20
 WAIT_BEFORE_BRING_TMPNODE_DOWN = 15
 WAIT_BACKGROUND_TASKS_TO_FINISH = 20
-
-
-@pytest.fixture
-def node_registry_update_interval():
-    controller_config_file = path.join(TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE)
-    with open(controller_config_file) as fp:
-        tmp = toml.load(fp)
-        interval = tmp["node_registry_update_interval"]
-        return interval
 
 
 @pytest.mark.asyncio
@@ -159,7 +149,6 @@ async def test_cleanup_node_down_algorithm_execution(
     globalnode_node_service,
     localnode1_node_service,
     localnodetmp_node_service,
-    node_registry_update_interval,
 ):
 
     # get tmp localnode node_id from config file
@@ -230,9 +219,15 @@ async def test_cleanup_node_down_algorithm_execution(
 
     remove_localnodetmp_rabbitmq()
 
-    # wait for node registry to re-read the available nodes, so "localnodetmp"
-    # is removed from node registry
-    await asyncio.sleep(node_registry_update_interval)
+    # wait for "localnodetmp" to be removed from node registry
+    localnodetmp_still_in_node_registry = True
+    while localnodetmp_still_in_node_registry:
+        localnodetmp_still_in_node_registry = False
+        all_local_nodes = controller._node_registry.get_all_local_nodes()
+        for local_node in all_local_nodes:
+            if local_node.id == localnodetmp_node_id:
+                localnodetmp_still_in_node_registry = True
+        await asyncio.sleep(1)
 
     # Start the cleanup loop
     await controller.start_cleanup_loop()
@@ -376,26 +371,3 @@ algorithm_request_dto = AlgorithmRequestDTO(
     ),
     parameters={"classes": ["AD", "CN"]},
 )
-
-
-# @pytest.fixture(autouse=True, scope="session")
-# def mock_controller_config():
-#     import envtoml
-#     from mipengine import AttrDict
-
-#     this_mod_path = os.path.dirname(os.path.abspath(__file__))
-#     TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
-
-#     CONTROLLER_CONFIG_FILE = "test_controller_config.toml"
-#     controller_config_file = path.join(TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE)
-
-#     NODES_ADDRESSES_FILE = "test_localnodes_addresses.json"
-#     nodes_addresses_file = path.join(TEST_ENV_CONFIG_FOLDER, NODES_ADDRESSES_FILE)
-
-#     with open(controller_config_file) as fp:
-#         controller_config = AttrDict(envtoml.load(fp))
-#         with patch(
-#             "mipengine.controller.config",
-#             controller_config,
-#         ):
-#             yield
