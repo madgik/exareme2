@@ -22,8 +22,19 @@ CLEANUP_INTERVAL = controller_config.nodes_cleanup_interval
 CONTROLLER_CLEANUP_REQUEST_ID = "CONTROLLER_CLEANUP"
 
 
+class _NodeInfoDTO(BaseModel):
+    node_id: str
+    queue_address: str
+    db_address: str
+    tasks_timeout: int
+
+    class Config:
+        allow_mutation = False
+
+
 class Controller:
     def __init__(self):
+        self._node_registry = node_registry
         self._nodes_for_cleanup = {}
         self._keep_cleaning_up = True
         self._controller_logger = ctrl_logger.get_background_service_logger()
@@ -59,9 +70,6 @@ class Controller:
                 tasks_handlers=node_tasks_handlers,
                 logger=algo_execution_logger,
             )
-        except Exception as exc:
-            raise exc
-
         finally:
             self._append_context_id_for_cleanup(
                 context_id=context_id,
@@ -101,7 +109,7 @@ class Controller:
                 cleaned_up_nodes[context_id] = []
                 for node_id in node_ids:
                     try:
-                        node_info = _get_node_info_by_id(node_id)
+                        node_info = self._get_node_info_by_id(node_id)
                         task_handler = _create_node_task_handler(node_info)
                         task_handler.clean_up(
                             request_id=CONTROLLER_CLEANUP_REQUEST_ID,
@@ -109,7 +117,7 @@ class Controller:
                         )
 
                         self._controller_logger.debug(
-                            f"clean_up task succeeded for {node_id=}  for {context_id=}"
+                            f"clean_up task succeeded for {node_id=} for {context_id=}"
                         )
                         cleaned_up_nodes[context_id].append(node_id)
                     except Exception as exc:
@@ -189,33 +197,33 @@ class Controller:
 
     async def start_node_registry(self):
         self._controller_logger.info("starting node registry")
-        node_registry.keep_updating = True
-        asyncio.create_task(node_registry.update())
+        self._node_registry.keep_updating = True
+        asyncio.create_task(self._node_registry.update())
         self._controller_logger.info("started node registry")
 
     async def stop_node_registry(self):
-        node_registry.keep_updating = False
+        self._node_registry.keep_updating = False
 
     def get_all_datasets_per_node(self):
         datasets = {}
-        for node in node_registry.get_all_local_nodes():
+        for node in self._node_registry.get_all_local_nodes():
             datasets[node.id] = node.datasets_per_data_model
         return datasets
 
     def get_all_available_schemas(self):
-        return node_registry.get_all_available_data_models()
+        return self._node_registry.get_all_available_data_models()
 
     def get_all_available_datasets_per_data_model(self):
-        return node_registry.get_all_available_datasets_per_data_model()
+        return self._node_registry.get_all_available_datasets_per_data_model()
 
     def get_all_local_nodes(self):
-        return node_registry.get_all_local_nodes()
+        return self._node_registry.get_all_local_nodes()
 
     def _get_nodes_tasks_handlers(
         self, data_model: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
 
-        global_node = node_registry.get_all_global_nodes()[0]
+        global_node = self._node_registry.get_all_global_nodes()[0]
         global_node_tasks_handler = _create_node_task_handler(
             _NodeInfoDTO(
                 node_id=global_node.id,
@@ -226,7 +234,7 @@ class Controller:
         )
 
         # Get only the relevant nodes from the node registry
-        local_nodes_info = _get_nodes_info_by_dataset(
+        local_nodes_info = self._get_nodes_info_by_dataset(
             data_model=data_model, datasets=datasets
         )
         local_nodes_tasks_handlers = [
@@ -238,50 +246,40 @@ class Controller:
             local_nodes_tasks_handlers=local_nodes_tasks_handlers,
         )
 
+    def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
+        global_nodes = self._node_registry.get_all_global_nodes()
+        local_nodes = self._node_registry.get_all_local_nodes()
 
-class _NodeInfoDTO(BaseModel):
-    node_id: str
-    queue_address: str
-    db_address: str
-    tasks_timeout: int
+        for node in global_nodes + local_nodes:
+            if node.id == node_id:
+                return _NodeInfoDTO(
+                    node_id=node.id,
+                    queue_address=":".join([str(node.ip), str(node.port)]),
+                    db_address=":".join([str(node.db_ip), str(node.db_port)]),
+                    tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+                )
 
-    class Config:
-        allow_mutation = False
-
-
-def _get_node_info_by_id(node_id: str) -> _NodeInfoDTO:
-    global_nodes = node_registry.get_all_global_nodes()
-    local_nodes = node_registry.get_all_local_nodes()
-
-    for node in global_nodes + local_nodes:
-        if node.id == node_id:
-            return _NodeInfoDTO(
-                node_id=node.id,
-                queue_address=":".join([str(node.ip), str(node.port)]),
-                db_address=":".join([str(node.db_ip), str(node.db_port)]),
-                tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-            )
-
-
-def _get_nodes_info_by_dataset(
-    data_model: str, datasets: List[str]
-) -> List[_NodeInfoDTO]:
-    local_nodes = node_registry.get_nodes_with_any_of_datasets(
-        data_model=data_model,
-        datasets=datasets,
-    )
-    nodes_info = []
-    for local_node in local_nodes:
-        nodes_info.append(
-            _NodeInfoDTO(
-                node_id=local_node.id,
-                queue_address=":".join([str(local_node.ip), str(local_node.port)]),
-                db_address=":".join([str(local_node.db_ip), str(local_node.db_port)]),
-                tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-            )
+    def _get_nodes_info_by_dataset(
+        self, data_model: str, datasets: List[str]
+    ) -> List[_NodeInfoDTO]:
+        local_nodes = self._node_registry.get_nodes_with_any_of_datasets(
+            data_model=data_model,
+            datasets=datasets,
         )
+        nodes_info = []
+        for local_node in local_nodes:
+            nodes_info.append(
+                _NodeInfoDTO(
+                    node_id=local_node.id,
+                    queue_address=":".join([str(local_node.ip), str(local_node.port)]),
+                    db_address=":".join(
+                        [str(local_node.db_ip), str(local_node.db_port)]
+                    ),
+                    tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+                )
+            )
 
-    return nodes_info
+        return nodes_info
 
 
 def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery:
