@@ -43,6 +43,9 @@ def get_celery_task_signature(celery_app, task):
         "get_node_info": celery_app.signature(
             "mipengine.node.tasks.common.get_node_info"
         ),
+        "get_data_model_cdes": celery_app.signature(
+            "mipengine.node.tasks.common.get_data_model_cdes"
+        ),
         "create_table": celery_app.signature(
             "mipengine.node.tasks.tables.create_table"
         ),

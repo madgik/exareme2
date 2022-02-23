@@ -1,3 +1,4 @@
+from typing import Dict
 from typing import List
 
 from mipengine import DType
@@ -256,6 +257,27 @@ def get_data_model_datasets(data_model) -> List[str]:
         dataset_name for dataset_row in datasets_rows for dataset_name in dataset_row
     ]
     return datasets
+
+
+def get_data_model_cdes(data_model) -> Dict[str, str]:
+    """
+    Retrieves the cdes of the specific data_model.
+
+    Returns
+    ------
+    Dict[str, str(CommonDataElement)]
+        A dict of cde codes to the metadata object in str format.
+    """
+
+    cdes_rows = MonetDB().execute_and_fetchall(
+        f"""
+        SELECT code, metadata FROM "{data_model}"."variables_metadata"
+        """
+    )
+
+    cdes = {code: metadata for code, metadata in cdes_rows}
+
+    return cdes
 
 
 def drop_db_artifacts_by_context_id(context_id: str):
