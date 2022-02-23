@@ -125,6 +125,7 @@ class AlgorithmExecutor:
         # Parameters for the creation of the view tables in the db. Each of the LOCAL
         # nodes will have access only to these view tables and not on the primary data
         # tables
+        # TODO Convert to object instead of dict?
         initial_view_tables_params = {
             "commandId": get_next_command_id(),
             "data_model": self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model,
