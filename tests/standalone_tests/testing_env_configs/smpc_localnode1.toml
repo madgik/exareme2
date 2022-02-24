@@ -1,4 +1,4 @@
-identifier = "test_smpc_localnode1"
+identifier = "testsmpclocalnode1"
 log_level = "DEBUG"
 framework_log_level = "INFO"
 
