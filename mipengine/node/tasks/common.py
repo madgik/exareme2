@@ -1,3 +1,5 @@
+from typing import Dict
+
 from celery import shared_task
 
 from mipengine.node import config as node_config
@@ -37,6 +39,25 @@ def get_node_info(request_id: str):
     )
 
     return node_info.json()
+
+
+@shared_task
+@initialise_logger
+def get_data_model_cdes(request_id: str, data_model: str) -> Dict[str, str]:
+    """
+    Parameters
+    ----------
+    request_id: str
+        The identifier for the logging
+    data_model: str
+        The data model to retrieve it's cdes.
+
+    Returns
+    ------
+    Dict[str, str(CommonDataElement)]
+        A dict of code to cde metadata.
+    """
+    return common_actions.get_data_model_cdes(data_model)
 
 
 @shared_task
