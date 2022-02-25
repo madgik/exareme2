@@ -1,5 +1,6 @@
 import traceback
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -49,6 +50,8 @@ from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectio
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.udfgen import TensorBinaryOp
+from mipengine.udfgen import make_unique_func_name
 
 
 class AlgorithmExecutionException(Exception):
@@ -123,6 +126,7 @@ class AlgorithmExecutor:
         # Parameters for the creation of the view tables in the db. Each of the LOCAL
         # nodes will have access only to these view tables and not on the primary data
         # tables
+        # TODO Convert to object instead of dict?
         initial_view_tables_params = {
             "commandId": get_next_command_id(),
             "data_model": self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model,
@@ -297,7 +301,8 @@ class _AlgorithmExecutionInterface:
     # UDFs functionality
     def run_udf_on_local_nodes(
         self,
-        func_name: str,
+        func: Optional[Callable] = None,
+        tensor_op: Optional[TensorBinaryOp] = None,
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_global: Union[None, bool, List[bool]] = None,
@@ -309,6 +314,7 @@ class _AlgorithmExecutionInterface:
         # 5. create remote tables on global for each of the generated tables
         # 6. create merge table on global node to merge the remote tables
 
+        func_name = get_func_name(func, tensor_op)
         command_id = get_next_command_id()
 
         self._validate_local_run_udf_args(
@@ -473,7 +479,8 @@ class _AlgorithmExecutionInterface:
 
     def run_udf_on_global_node(
         self,
-        func_name: str,
+        func: Optional[Callable] = None,
+        tensor_op: Optional[TensorBinaryOp] = None,
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_locals: Union[None, bool, List[bool]] = None,
@@ -484,6 +491,7 @@ class _AlgorithmExecutionInterface:
         # 4. a(or multiple) new table(s) was generated on global node
         # 5. queue create_remote_table on each of the local nodes to share the generated table
 
+        func_name = get_func_name(func, tensor_op)
         command_id = get_next_command_id()
 
         self._validate_global_run_udf_args(
@@ -713,3 +721,16 @@ def get_next_command_id() -> int:
     else:
         get_next_command_id.index = 0
     return get_next_command_id.index
+
+
+def get_func_name(
+    func: Optional[Callable] = None,
+    tensor_op: Optional[TensorBinaryOp] = None,
+) -> str:
+    if func and tensor_op:
+        raise ValueError("'func' and 'tensor_op' cannot be used at the same time.")
+
+    if tensor_op:
+        return tensor_op.name
+
+    return make_unique_func_name(func)

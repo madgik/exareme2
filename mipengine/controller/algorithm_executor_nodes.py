@@ -46,6 +46,7 @@ class _INode(ABC):
         self,
         command_id: str,
         data_model: str,
+        datasets: List[str],
         columns: List[str],
         filters: List[str],
     ) -> TableName:
@@ -130,6 +131,7 @@ class _Node(_INode, ABC):
             view_name = self.create_data_model_view(
                 command_id=command_id,
                 data_model=initial_view_tables_params["data_model"],
+                datasets=initial_view_tables_params["datasets"],
                 columns=initial_view_tables_params[variable],
                 filters=initial_view_tables_params["filters"],
             )
@@ -142,6 +144,7 @@ class _Node(_INode, ABC):
             view_name = self.create_data_model_view(
                 command_id=command_id,
                 data_model=initial_view_tables_params["data_model"],
+                datasets=initial_view_tables_params["datasets"],
                 columns=initial_view_tables_params[variable],
                 filters=initial_view_tables_params["filters"],
             )
@@ -199,6 +202,7 @@ class _Node(_INode, ABC):
         self,
         command_id: str,
         data_model: str,
+        datasets: List[str],
         columns: List[str],
         filters: List[str],
     ) -> TableName:
@@ -207,6 +211,7 @@ class _Node(_INode, ABC):
             context_id=self.context_id,
             command_id=command_id,
             data_model=data_model,
+            datasets=datasets,
             columns=columns,
             filters=filters,
         )
