@@ -17,8 +17,6 @@ from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.node_registry import node_registry
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 
-CLEANUP_INTERVAL = controller_config.nodes_cleanup_interval
-
 CONTROLLER_CLEANUP_REQUEST_ID = "CONTROLLER_CLEANUP"
 
 
@@ -35,6 +33,9 @@ class _NodeInfoDTO(BaseModel):
 class Controller:
     def __init__(self):
         self._node_registry = node_registry
+
+        self._clean_up_interval = controller_config.nodes_cleanup_interval
+
         self._nodes_for_cleanup = {}
         self._keep_cleaning_up = True
         self._controller_logger = ctrl_logger.get_background_service_logger()
@@ -133,7 +134,7 @@ class Controller:
                 if not self._nodes_for_cleanup[context_id]:
                     self._nodes_for_cleanup.pop(context_id)
 
-            await asyncio.sleep(CLEANUP_INTERVAL)
+            await asyncio.sleep(self._clean_up_interval)
 
     async def _exec_algorithm_with_task_handlers(
         self,
@@ -222,7 +223,6 @@ class Controller:
     def _get_nodes_tasks_handlers(
         self, data_model: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
-
         global_node = self._node_registry.get_all_global_nodes()[0]
         global_node_tasks_handler = _create_node_task_handler(
             _NodeInfoDTO(

@@ -1,10 +1,13 @@
 import asyncio
 import time
 from os import path
+from unittest.mock import patch
 
 import pytest
 import toml
 
+from mipengine import AttrDict
+from mipengine.common_data_elements import CommonDataElements
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
@@ -22,6 +25,90 @@ from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 WAIT_CLEANUP_TIME_LIMIT = 20
 WAIT_BEFORE_BRING_TMPNODE_DOWN = 15
 WAIT_BACKGROUND_TASKS_TO_FINISH = 20
+
+
+@pytest.fixture(scope="session")
+def controller_config_mock():
+    controller_config = AttrDict(
+        {
+            "log_level": "DEBUG",
+            "framework_log_level": "INFO",
+            "cdes_metadata_path": "./tests/demo_data",
+            "deployment_type": "LOCAL",
+            "node_registry_update_interval": 2,  # 5,
+            "nodes_cleanup_interval": 2,
+            "localnodes": {
+                "config_file": "./tests/standalone_tests/testing_env_configs/test_localnodes_addresses.json",
+                "dns": "",
+                "port": "",
+            },
+            "rabbitmq": {
+                "user": "user",
+                "password": "password",
+                "vhost": "user_vhost",
+                "celery_tasks_timeout": 20,  # 60,
+                "celery_tasks_max_retries": 3,
+                "celery_tasks_interval_start": 0,
+                "celery_tasks_interval_step": 0.2,
+                "celery_tasks_interval_max": 0.5,
+            },
+            "smpc": {
+                "enabled": False,
+                "optional": False,
+                "coordinator_address": "$SMPC_COORDINATOR_ADDRESS",
+            },
+        }
+    )
+    return controller_config
+
+
+@pytest.fixture(scope="session")
+def cdes_mock():
+    common_data_elements = CommonDataElements()
+    common_data_elements.data_models = {"dementia:0.1": {}}
+    return common_data_elements
+
+
+@pytest.fixture(autouse=True, scope="session")
+def patch_controller(controller_config_mock):
+    with patch(
+        "mipengine.controller.controller.controller_config",
+        controller_config_mock,
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True, scope="session")
+def patch_node_registry(controller_config_mock):
+    with patch(
+        "mipengine.controller.node_registry.controller_config", controller_config_mock
+    ), patch(
+        "mipengine.controller.node_registry.NODE_REGISTRY_UPDATE_INTERVAL",
+        controller_config_mock.node_registry_update_interval,
+    ), patch(
+        "mipengine.controller.node_registry.CELERY_TASKS_TIMEOUT",
+        controller_config_mock.rabbitmq.celery_tasks_timeout,
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True, scope="session")
+def patch_celery_app(controller_config_mock):
+    with patch(
+        "mipengine.controller.celery_app.controller_config", controller_config_mock
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True, scope="session")
+def patch_algorithm_executor(controller_config_mock, cdes_mock):
+    with patch(
+        "mipengine.controller.algorithm_executor.ctrl_config", controller_config_mock
+    ), patch(
+        "mipengine.controller.algorithm_executor.controller_common_data_elements",
+        cdes_mock,
+    ):
+        yield
 
 
 @pytest.mark.asyncio
@@ -62,7 +149,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
     try:
-        result = await controller._exec_algorithm_with_task_handlers(
+        await controller._exec_algorithm_with_task_handlers(
             request_id=request_id,
             context_id=context_id,
             algorithm_name=algorithm_name,
@@ -124,7 +211,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
 
     await controller.stop_node_registry()
     await controller.stop_cleanup_loop()
-    # give some time for node registry and cleanup background tasks to finish gracefully
+    # give some time for node registry and cleanup background tasks to stop gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
 
     if (
@@ -140,7 +227,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         assert False
 
 
-# @pytest.mark.skip(reason="just skip it")
 @pytest.mark.asyncio
 async def test_cleanup_node_down_algorithm_execution(
     init_data_globalnode,
@@ -153,7 +239,6 @@ async def test_cleanup_node_down_algorithm_execution(
 
     # get tmp localnode node_id from config file
     localnodetmp_node_id = get_localnodetmp_node_id()
-
     controller = Controller()
 
     # start node registry
@@ -227,7 +312,7 @@ async def test_cleanup_node_down_algorithm_execution(
         for local_node in all_local_nodes:
             if local_node.id == localnodetmp_node_id:
                 localnodetmp_still_in_node_registry = True
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
 
     # Start the cleanup loop
     await controller.start_cleanup_loop()
