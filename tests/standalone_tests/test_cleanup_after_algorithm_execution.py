@@ -35,7 +35,7 @@ def controller_config_mock():
             "framework_log_level": "INFO",
             "cdes_metadata_path": "./tests/demo_data",
             "deployment_type": "LOCAL",
-            "node_registry_update_interval": 2,  # 5,
+            "node_registry_update_interval": 2,
             "nodes_cleanup_interval": 2,
             "localnodes": {
                 "config_file": "./tests/standalone_tests/testing_env_configs/test_localnodes_addresses.json",
@@ -46,7 +46,7 @@ def controller_config_mock():
                 "user": "user",
                 "password": "password",
                 "vhost": "user_vhost",
-                "celery_tasks_timeout": 20,  # 60,
+                "celery_tasks_timeout": 60,
                 "celery_tasks_max_retries": 3,
                 "celery_tasks_interval_start": 0,
                 "celery_tasks_interval_step": 0.2,
