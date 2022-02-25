@@ -504,7 +504,7 @@ python-versions = ">=3.6.1"
 
 [[package]]
 name = "identify"
-version = "2.4.10"
+version = "2.4.11"
 description = "File identification library for Python"
 category = "dev"
 optional = false
@@ -718,7 +718,7 @@ python-versions = "*"
 
 [[package]]
 name = "mipdb"
-version = "0.1.2"
+version = "0.2.2"
 description = ""
 category = "dev"
 optional = false
@@ -1474,7 +1474,7 @@ h11 = ">=0.9.0,<1"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "856330d2eaa43c6ff2ec9165c673b497656920e187d1c88fcc7cfa12d49da728"
+content-hash = "fe5478d5f71f9acda144378b2db66a4ac87090eba6d94d1505ed5fb3b382eeca"
 
 [metadata.files]
 aiofiles = [
@@ -1693,8 +1693,8 @@ hyperframe = [
     {file = "hyperframe-6.0.1.tar.gz", hash = "sha256:ae510046231dc8e9ecb1a6586f63d2347bf4c8905914aa84ba585ae85f28a914"},
 ]
 identify = [
-    {file = "identify-2.4.10-py2.py3-none-any.whl", hash = "sha256:7d10baf6ba6f1912a0a49f4c1c2c49fa1718765c3a37d72d13b07779567c5b85"},
-    {file = "identify-2.4.10.tar.gz", hash = "sha256:e12b2aea3cf108de73ae055c2260783bde6601de09718f6768cf8e9f6f6322a6"},
+    {file = "identify-2.4.11-py2.py3-none-any.whl", hash = "sha256:fd906823ed1db23c7a48f9b176a1d71cb8abede1e21ebe614bac7bdd688d9213"},
+    {file = "identify-2.4.11.tar.gz", hash = "sha256:2986942d3974c8f2e5019a190523b0b0e2a07cb8e89bf236727fb4b26f27f8fd"},
 ]
 idna = [
     {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},
@@ -1835,8 +1835,8 @@ mccabe = [
     {file = "mccabe-0.6.1.tar.gz", hash = "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"},
 ]
 mipdb = [
-    {file = "mipdb-0.1.2-py3-none-any.whl", hash = "sha256:8061b839dc0db06e9eceb19d192a46debe2d8bd684aa4f4feaa2a459a50d03bd"},
-    {file = "mipdb-0.1.2.tar.gz", hash = "sha256:f4f408954ba35356ccd3233bdbeb49ec587ffb0fbabeaf85140ea0f7b02af368"},
+    {file = "mipdb-0.2.2-py3-none-any.whl", hash = "sha256:0fb6b5569470a257681c6c3546867473237ba1ef1febb27483900854b3be01ad"},
+    {file = "mipdb-0.2.2.tar.gz", hash = "sha256:d6e640d9433e0158bc13d30b28eab1cacb73cba0047df2b9829de40856afed8b"},
 ]
 mypy-extensions = [
     {file = "mypy_extensions-0.4.3-py2.py3-none-any.whl", hash = "sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d"},

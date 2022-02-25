@@ -3,6 +3,7 @@ from abc import ABC
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Union
 
 from pydantic import BaseModel
@@ -144,10 +145,13 @@ class UDFResults(ImmutableBaseModel):
     results: List[Union[NodeTableDTO, NodeSMPCDTO]]
 
 
-# ~~~~~~~~~~~~~~~~~~~ Exceptions ~~~~~~~~~~~~~~~~~~~~~~ #
-
-
-class InsufficientDataError(Exception):
-    def __init__(self, message):
-        super().__init__(message)
-        self.message = message
+class CommonDataElement(ImmutableBaseModel):
+    code: str
+    label: str
+    sql_type: str
+    is_categorical: bool
+    enumerations: Dict[
+        str, str
+    ] = None  # dict key is the enumeration code and dict value is the label
+    min: Optional[float] = None
+    max: Optional[float] = None

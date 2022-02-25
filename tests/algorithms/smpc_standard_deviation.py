@@ -4,7 +4,6 @@ from typing import TypeVar
 from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.udfgen import make_unique_func_name
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import state
@@ -20,30 +19,30 @@ def run(algo_interface):
     X_relation = algo_interface.initial_view_tables["x"]
 
     X = local_run(
-        func_name=make_unique_func_name(relation_to_matrix),
+        func=relation_to_matrix,
         positional_args=[X_relation],
     )
 
     local_state, local_result = local_run(
-        func_name=make_unique_func_name(smpc_local_step_1),
+        func=smpc_local_step_1,
         positional_args=[X],
         share_to_global=[False, True],
     )
 
     global_state, global_result = global_run(
-        func_name=make_unique_func_name(smpc_global_step_1),
+        func=smpc_global_step_1,
         positional_args=[local_result],
         share_to_locals=[False, True],
     )
 
     local_result = local_run(
-        func_name=make_unique_func_name(smpc_local_step_2),
+        func=smpc_local_step_2,
         positional_args=[local_state, global_result],
         share_to_global=True,
     )
 
     global_result = global_run(
-        func_name=make_unique_func_name(smpc_global_step_2),
+        func=smpc_global_step_2,
         positional_args=[global_state, local_result],
     )
 

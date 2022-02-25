@@ -1,10 +1,9 @@
+from typing import Dict
 from typing import List
 
 from mipengine import DType
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 from mipengine.node_exceptions import TablesNotFound
-
-# TODO We need to add the PRIVATE/OPEN table logic
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
@@ -205,18 +204,21 @@ def get_table_data(table_name: str) -> List[ColumnData]:
     return columns_data
 
 
-def get_initial_data_models() -> List[str]:
+def get_data_models() -> List[str]:
     """
-    Retrieves all the different data_models that the initial datasets have.
+    Retrieves the enabled data_models from the database.
 
     Returns
     ------
     List[str]
-        The dataset data_models in the database.
+        The data_models.
     """
 
     data_models_code_and_version = MonetDB().execute_and_fetchall(
-        f'SELECT code, version FROM "mipdb_metadata"."data_models"'
+        f"""SELECT code, version
+            FROM "mipdb_metadata"."data_models"
+            WHERE status = 'ENABLED'
+        """
     )
     data_models = [
         code + ":" + version for code, version in data_models_code_and_version
@@ -226,12 +228,12 @@ def get_initial_data_models() -> List[str]:
 
 def get_data_model_datasets(data_model) -> List[str]:
     """
-    Retrieves the datasets with the specific data_model.
+    Retrieves the enabled datasets of the specific data_model.
 
     Returns
     ------
     List[str]
-        The datasets of the data_model.
+        The datasets.
     """
     data_model_code, data_model_version = data_model.split(":")
 
@@ -246,6 +248,7 @@ def get_data_model_datasets(data_model) -> List[str]:
             WHERE code = '{data_model_code}'
             AND version = '{data_model_version}'
         )
+        AND status = 'ENABLED'
         """
     )
 
@@ -254,6 +257,27 @@ def get_data_model_datasets(data_model) -> List[str]:
         dataset_name for dataset_row in datasets_rows for dataset_name in dataset_row
     ]
     return datasets
+
+
+def get_data_model_cdes(data_model) -> Dict[str, str]:
+    """
+    Retrieves the cdes of the specific data_model.
+
+    Returns
+    ------
+    Dict[str, str(CommonDataElement)]
+        A dict of cde codes to the metadata object in str format.
+    """
+
+    cdes_rows = MonetDB().execute_and_fetchall(
+        f"""
+        SELECT code, metadata FROM "{data_model}"."variables_metadata"
+        """
+    )
+
+    cdes = {code: metadata for code, metadata in cdes_rows}
+
+    return cdes
 
 
 def drop_db_artifacts_by_context_id(context_id: str):

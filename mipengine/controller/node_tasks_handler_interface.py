@@ -83,6 +83,7 @@ class INodeTasksHandler(ABC):
         context_id: str,
         command_id: str,
         data_model: str,
+        datasets: List[str],
         columns: List[str],
         filters: List[str],
     ) -> str:

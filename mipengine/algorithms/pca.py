@@ -5,7 +5,6 @@ from typing import TypeVar
 import numpy
 from pydantic import BaseModel
 
-from mipengine.udfgen import make_unique_func_name
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import state
@@ -27,22 +26,22 @@ def run(algo_interface):
     X_relation = algo_interface.initial_view_tables["y"]
 
     local_transfers = local_run(
-        func_name=make_unique_func_name(local1),
+        func=local1,
         keyword_args={"x": X_relation},
         share_to_global=[True],
     )
     global_state, global_transfer = global_run(
-        func_name=make_unique_func_name(global1),
+        func=global1,
         keyword_args=dict(local_transfers=local_transfers),
         share_to_locals=[False, True],
     )
     local_transfers = local_run(
-        func_name=make_unique_func_name(local2),
+        func=local2,
         keyword_args=dict(x=X_relation, global_transfer=global_transfer),
         share_to_global=[True],
     )
     result = global_run(
-        func_name=make_unique_func_name(global2),
+        func=global2,
         keyword_args=dict(local_transfers=local_transfers, prev_state=global_state),
     )
     result = json.loads(result.get_table_data()[1][0])

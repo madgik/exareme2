@@ -201,6 +201,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         context_id: str,
         command_id: str,
         data_model: str,
+        datasets: List[str],
         columns: List[str],
         filters: List[str],
     ) -> str:
@@ -213,6 +214,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             context_id=context_id,
             command_id=command_id,
             data_model=data_model,
+            datasets=datasets,
             columns=columns,
             filters=filters,
         ).get(self._tasks_timeout)
