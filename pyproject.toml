@@ -6,6 +6,7 @@ authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
 python = "~3.8"
+hypercorn = "^0.13.2"
 Quart = "^0.15.1"
 celery = "5.0.5"
 asgiref = "^3.4.1"
