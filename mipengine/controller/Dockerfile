@@ -42,8 +42,8 @@ COPY mipengine/ ./mipengine/
 RUN rm -rf mipengine/node
 
 #######################################################
-# Define QUART neeeded env variables and start quart
+# Define Hypercorn neeeded env variables and start hypercorn
 #######################################################
-ENV QUART_APP="$CODE_PATH/mipengine/controller/api/app:app"
+ENV FRAMEWORK_LOG_LEVEL="INFO"
 ENV PYTHONPATH=$CODE_PATH
-CMD ["quart", "run", "--host=0.0.0.0"]
+CMD ["sh", "-c", "hypercorn -b 0.0.0.0:5000 -w 1 --log-level $FRAMEWORK_LOG_LEVEL mipengine/controller/api/app:app"]
