@@ -23,9 +23,9 @@ from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import smpc_global_step
 from tests.algorithms.orphan_udfs import smpc_local_step
 from tests.standalone_tests.conftest import GLOBALNODE_SMPC_CONFIG_FILE
+from tests.standalone_tests.conftest import LOCALNODE1_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE1_SMPC_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE2_SMPC_CONFIG_FILE
-from tests.standalone_tests.conftest import LOCALNODE_1_CONFIG_FILE
 from tests.standalone_tests.nodes_communication_helper import get_celery_app
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.nodes_communication_helper import get_node_config_by_id
@@ -41,7 +41,7 @@ SMPC_COORDINATOR_ADDRESS = "http://dl056.madgik.di.uoa.gr:12314"
 
 @pytest.fixture(scope="session")
 def localnode_1_celery_app():
-    config = get_node_config_by_id(LOCALNODE_1_CONFIG_FILE)
+    config = get_node_config_by_id(LOCALNODE1_CONFIG_FILE)
     yield get_celery_app(config)
 
 
@@ -170,7 +170,7 @@ def validate_dict_table_data_match_expected(
 
 
 def test_secure_transfer_output_with_smpc_off(
-    localnode_1_node_service, use_localnode_1_database, localnode_1_celery_app
+    localnode1_node_service, use_localnode1_database, localnode_1_celery_app
 ):
     run_udf_task = get_celery_task_signature(localnode_1_celery_app, "run_udf")
     get_table_data_task = get_celery_task_signature(
@@ -207,7 +207,7 @@ def test_secure_transfer_output_with_smpc_off(
 
 
 def test_secure_transfer_input_with_smpc_off(
-    localnode_1_node_service, use_localnode_1_database, localnode_1_celery_app
+    localnode1_node_service, use_localnode1_database, localnode_1_celery_app
 ):
     run_udf_task = get_celery_task_signature(localnode_1_celery_app, "run_udf")
     get_table_data_task = get_celery_task_signature(
