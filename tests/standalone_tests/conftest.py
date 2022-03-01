@@ -592,6 +592,7 @@ def localnode1_tasks_handler_celery(localnode1_node_service):
         db_domain = tmp["monetdb"]["ip"]
         db_port = tmp["monetdb"]["port"]
         tasks_timeout = tmp["celery"]["task_time_limit"]
+
     queue_address = ":".join([str(queue_domain), str(queue_port)])
     db_address = ":".join([str(db_domain), str(db_port)])
 
@@ -603,7 +604,6 @@ def localnode1_tasks_handler_celery(localnode1_node_service):
     )
 
 
-@pytest.fixture(scope="function")
 def localnodetmp_tasks_handler_celery(localnodetmp_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
     with open(node_config_filepath) as fp:
