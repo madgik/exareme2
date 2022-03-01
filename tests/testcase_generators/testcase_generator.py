@@ -40,12 +40,12 @@ class DB(MonetDB):
 
     def get_numerical_variables(self):
         query = f"""select code from {METADATA_TABLENAME} """
-        query += """ where metadata LIKE '%"isCategorical": false%' AND (metadata LIKE '%"sql_type": "real"%' OR metadata LIKE '%"sql_type": "int"%'); """
+        query += """ where metadata LIKE '%"is_categorical": false%' AND (metadata LIKE '%"sql_type": "real"%' OR metadata LIKE '%"sql_type": "int"%'); """
         variables = pd.read_sql(query, self._connection)
         return variables["code"].tolist()
 
     def get_nominal_variables(self):
-        query = f"""select code from {METADATA_TABLENAME} where metadata LIKE '%"isCategorical": true%'; """
+        query = f"""select code from {METADATA_TABLENAME} where metadata LIKE '%"is_categorical": true%' AND code <> 'dataset' AND code <> 'alzheimerbroadcategory' AND code <> 'neurodegenerativescategories'; """
         variables = pd.read_sql(query, self._connection)
         return variables["code"].tolist()
 
@@ -120,8 +120,12 @@ class NumericalInputDataVariables(InputDataVariable):
         return numerical_vars
 
 
-class NominalInputDataVariables:
-    pass
+class NominalInputDataVariables(InputDataVariable):
+    @cached_property
+    def all_variables(self):
+        """Gets the names of all numerical variables available."""
+        numerical_vars = self.db.get_nominal_variables()
+        return numerical_vars
 
 
 class MixedInputDataVariables:
@@ -135,7 +139,10 @@ def make_input_data_variables(properties):
             properties["multiple"],
         )
     elif properties["stattypes"] == ["nominal"]:
-        raise NotImplementedError
+        return NominalInputDataVariables(
+            properties["notblank"],
+            properties["multiple"],
+        )
     elif set(properties["stattypes"]) == {"numerical", "nominal"}:
         raise NotImplementedError
 
@@ -196,7 +203,7 @@ def make_parameters(properties, y=None, x=None):
     if properties["type"] == "enum_from_cde":
         return make_enum_from_cde_parameter(properties, y, x)
     else:
-        raise TypeError(f"Unknown paremeter type: {properties['type']}.")
+        raise TypeError(f"Unknown parameter type: {properties['type']}.")
 
 
 def make_enum_from_cde_parameter(properties, y=None, x=None):
@@ -217,6 +224,7 @@ def make_enum_from_cde_parameter(properties, y=None, x=None):
 class InputGenerator:
     def __init__(self, specs_file):
         specs = json.load(specs_file)
+
         self.inputdata_gens = {
             name: make_input_data_variables(properties)
             for name, properties in specs["inputdata"].items()
@@ -332,9 +340,15 @@ class TestCaseGenerator(ABC):
         x = list(x) if x else []
 
         variables = list(set(y + x))
+        # if "dataset" in variables:
+        #     full_data = self.all_data[variables]
+        #     full_data = full_data[full_data.dataset.isin(datasets)]
+        # else:
+        #
         full_data = self.all_data[variables + ["dataset"]]
         full_data = full_data[full_data.dataset.isin(datasets)]
         del full_data["dataset"]
+
         full_data = full_data.dropna()
         if len(full_data) == 0:
             return None
