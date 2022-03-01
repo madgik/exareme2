@@ -38,12 +38,12 @@ class IQueuedUDFAsyncResult(IAsyncResult, ABC):
 class INodeTasksHandler(ABC):
     @property
     @abstractmethod
-    def node_id(self):
+    def node_id(self) -> str:
         pass
 
     @property
     @abstractmethod
-    def node_data_address(self):
+    def node_data_address(self) -> str:
         pass
 
     # @abstractmethod

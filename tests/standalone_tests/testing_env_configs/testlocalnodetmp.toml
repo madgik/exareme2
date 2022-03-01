@@ -1,4 +1,4 @@
-identifier = "testtmplocalnode"
+identifier = "testlocalnodetmp"
 log_level = "DEBUG"
 framework_log_level = "INFO"
 

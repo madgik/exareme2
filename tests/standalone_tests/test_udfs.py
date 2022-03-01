@@ -18,7 +18,7 @@ from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import get_column_rows
 from tests.algorithms.orphan_udfs import local_step
 from tests.algorithms.orphan_udfs import very_slow_udf
-from tests.standalone_tests.conftest import LOCALNODE_1_CONFIG_FILE
+from tests.standalone_tests.conftest import LOCALNODE1_CONFIG_FILE
 from tests.standalone_tests.nodes_communication_helper import get_celery_app
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.nodes_communication_helper import get_node_config_by_id
@@ -29,8 +29,8 @@ context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 
 
 @pytest.fixture(scope="session")
-def localnode_1_celery_app():
-    localnode1_config = get_node_config_by_id(LOCALNODE_1_CONFIG_FILE)
+def localnode1_celery_app():
+    localnode1_config = get_node_config_by_id(LOCALNODE1_CONFIG_FILE)
     yield get_celery_app(localnode1_config)
 
 
@@ -59,8 +59,8 @@ def create_table_with_one_column_and_ten_rows(celery_app) -> Tuple[str, int]:
     return table_name, 55
 
 
-def test_get_udf(localnode_1_node_service, localnode_1_celery_app):
-    get_udf_task = get_celery_task_signature(localnode_1_celery_app, "get_udf")
+def test_get_udf(localnode1_node_service, localnode1_celery_app):
+    get_udf_task = get_celery_task_signature(localnode1_celery_app, "get_udf")
 
     fetched_udf = get_udf_task.delay(
         request_id=request_id, func_name=make_unique_func_name(get_column_rows)
@@ -70,14 +70,14 @@ def test_get_udf(localnode_1_node_service, localnode_1_celery_app):
 
 
 def test_run_udf_relation_to_scalar(
-    localnode_1_node_service, use_localnode_1_database, localnode_1_celery_app
+    localnode1_node_service, use_localnode1_database, localnode1_celery_app
 ):
-    run_udf_task = get_celery_task_signature(localnode_1_celery_app, "run_udf")
+    run_udf_task = get_celery_task_signature(localnode1_celery_app, "run_udf")
     local_node_get_table_data = get_celery_task_signature(
-        localnode_1_celery_app, "get_table_data"
+        localnode1_celery_app, "get_table_data"
     )
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode_1_celery_app
+        localnode1_celery_app
     )
     kw_args_str = UDFKeyArguments(
         args={"table": NodeTableDTO(value=input_table_name)}
@@ -108,17 +108,17 @@ def test_run_udf_relation_to_scalar(
 
 
 def test_run_udf_state_and_transfer_output(
-    localnode_1_node_service,
-    use_localnode_1_database,
-    localnode_1_db_cursor,
-    localnode_1_celery_app,
+    localnode1_node_service,
+    use_localnode1_database,
+    localnode1_db_cursor,
+    localnode1_celery_app,
 ):
-    run_udf_task = get_celery_task_signature(localnode_1_celery_app, "run_udf")
+    run_udf_task = get_celery_task_signature(localnode1_celery_app, "run_udf")
     local_node_get_table_data = get_celery_task_signature(
-        localnode_1_celery_app, "get_table_data"
+        localnode1_celery_app, "get_table_data"
     )
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode_1_celery_app
+        localnode1_celery_app
     )
 
     kw_args_str = UDFKeyArguments(
@@ -154,7 +154,7 @@ def test_run_udf_state_and_transfer_output(
     assert "sum" in transfer_result.keys()
     assert transfer_result["sum"] == input_table_name_sum
 
-    _, state_result_str = localnode_1_db_cursor.execute(
+    _, state_result_str = localnode1_db_cursor.execute(
         f"SELECT * FROM {state_result.value};"
     ).fetchone()
     state_result = pickle.loads(state_result_str)
@@ -167,11 +167,11 @@ def test_run_udf_state_and_transfer_output(
 @pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-473")
 @pytest.mark.slow
 def test_slow_udf_exception(
-    localnode_1_node_service, use_localnode_1_database, localnode_1_celery_app
+    localnode1_node_service, use_localnode1_database, localnode1_celery_app
 ):
-    run_udf_task = get_celery_task_signature(localnode_1_celery_app, "run_udf")
+    run_udf_task = get_celery_task_signature(localnode1_celery_app, "run_udf")
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode_1_celery_app
+        localnode1_celery_app
     )
 
     kw_args_str = UDFKeyArguments(
