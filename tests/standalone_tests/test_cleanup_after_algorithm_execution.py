@@ -315,7 +315,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     )
 
     remove_localnodetmp_rabbitmq()
-    # kill_node_service(localnodetmp_node_service)
+    kill_node_service(localnodetmp_node_service)
 
     # wait for "localnodetmp" to be removed from node registry
     localnodetmp_still_in_node_registry = True
@@ -337,7 +337,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     # restart tmplocalnode rabbitmq container
     _create_rabbitmq_container(RABBITMQ_LOCALNODETMP_NAME, RABBITMQ_LOCALNODETMP_PORT)
-    # localnodetmp_node_service_proc = start_localnodetmp_node_service()
+    localnodetmp_node_service_proc = start_localnodetmp_node_service()
 
     is_tmplocalnode_up = False
     while not is_tmplocalnode_up:
@@ -394,6 +394,11 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     # give some time for node registry and cleanup background tasks to finish gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
+
+    # the node cervice was started in here so it must manually killed, otherwise it is
+    # alive through the whole pytest session and is erroneously accessed by other tests
+    # where teh node service is supposedly down
+    kill_node_service(localnodetmp_node_service_proc)
 
     if (
         globalnode_tables_before_cleanup
