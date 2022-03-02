@@ -400,17 +400,31 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # where teh node service is supposedly down
     kill_node_service(localnodetmp_node_service_proc)
 
-    if (
-        globalnode_tables_before_cleanup
-        and not globalnode_tables_after_cleanup
-        and localnode1_tables_before_cleanup
-        and not localnode1_tables_after_cleanup
-        and localnodetmp_tables_before_cleanup
-        and not localnodetmp_tables_after_cleanup
-    ):
-        assert True
-    else:
+    # if (
+    #     globalnode_tables_before_cleanup
+    #     and not globalnode_tables_after_cleanup
+    #     and localnode1_tables_before_cleanup
+    #     and not localnode1_tables_after_cleanup
+    #     and localnodetmp_tables_before_cleanup
+    #     and not localnodetmp_tables_after_cleanup
+    # ):
+    #     assert True
+    # else:
+    #     assert False
+    if not globalnode_tables_before_cleanup:
         assert False
+    elif globalnode_tables_after_cleanup:
+        assert False
+    elif not localnode1_tables_before_cleanup:
+        assert False
+    elif localnode1_tables_after_cleanup:
+        assert False
+    elif not localnodetmp_tables_before_cleanup:
+        assert False
+    elif localnodetmp_tables_after_cleanup:
+        assert False
+    else:
+        assert True
 
 
 @pytest.mark.slow
