@@ -604,6 +604,7 @@ def localnode1_tasks_handler_celery(localnode1_node_service):
     )
 
 
+@pytest.fixture(scope="function")
 def localnodetmp_tasks_handler_celery(localnodetmp_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
     with open(node_config_filepath) as fp:
