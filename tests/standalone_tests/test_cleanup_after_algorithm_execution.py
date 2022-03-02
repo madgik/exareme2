@@ -315,7 +315,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     )
 
     remove_localnodetmp_rabbitmq()
-    kill_node_service(localnodetmp_node_service)
+    # kill_node_service(localnodetmp_node_service)
 
     # wait for "localnodetmp" to be removed from node registry
     localnodetmp_still_in_node_registry = True
@@ -337,7 +337,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     # restart tmplocalnode rabbitmq container
     _create_rabbitmq_container(RABBITMQ_LOCALNODETMP_NAME, RABBITMQ_LOCALNODETMP_PORT)
-    localnodetmp_node_service_proc = start_localnodetmp_node_service()
+    # localnodetmp_node_service_proc = start_localnodetmp_node_service()
 
     is_tmplocalnode_up = False
     while not is_tmplocalnode_up:
@@ -600,10 +600,6 @@ def start_localnodetmp_node_service():
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     return proc
-
-
-def kill_localnodetmp_node_service(proc):
-    kill_node_service(proc)
 
 
 algorithm_request_dto = AlgorithmRequestDTO(
