@@ -120,6 +120,7 @@ def patch_algorithm_executor(controller_config_mock, cdes_mock):
     ):
         yield
 
+
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(
