@@ -235,7 +235,11 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     ):
         assert True
     else:
-        assert False
+        pytest.fail(
+            f"{globalnode_tables_before_cleanup=}\n{globalnode_tables_after_cleanup=}\n"
+            f"{localnode1_tables_before_cleanup=}\n{localnode1_tables_after_cleanup=}\n"
+            f"{localnode2_tables_before_cleanup=}\n{localnode2_tables_before_cleanup=}"
+        )
 
 
 @pytest.mark.slow
@@ -410,7 +414,11 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     ):
         assert True
     else:
-        assert False
+        pytest.fail(
+            f"{globalnode_tables_before_cleanup=}\n{globalnode_tables_after_cleanup=}\n"
+            f"{localnode1_tables_before_cleanup=}\n{localnode1_tables_after_cleanup=}\n"
+            f"{localnodetmp_tables_before_cleanup=}\n{localnodetmp_tables_after_cleanup=}"
+        )
 
 
 @pytest.mark.slow
@@ -583,7 +591,11 @@ async def test_cleanup_node_service_down_algorithm_execution(
     ):
         assert True
     else:
-        assert False
+        pytest.fail(
+            f"{globalnode_tables_before_cleanup=}\n{globalnode_tables_after_cleanup=}\n"
+            f"{localnode1_tables_before_cleanup=}\n{localnode1_tables_after_cleanup=}\n"
+            f"{localnodetmp_tables_before_cleanup=}\n{localnodetmp_tables_after_cleanup=}"
+        )
 
 
 def get_localnodetmp_node_id():
