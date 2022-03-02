@@ -385,8 +385,8 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
             request_id=request_id, context_id=context_id
         )
 
-        end = time.time()
-        if end - start < WAIT_CLEANUP_TIME_LIMIT:
+        now = time.time()
+        if now - start > WAIT_CLEANUP_TIME_LIMIT:
             assert False
 
         await asyncio.sleep(2)
@@ -558,13 +558,11 @@ async def test_cleanup_node_service_down_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
-    now = time.time()
-    end = now
+    start = time.time()
     while (
         globalnode_tables_after_cleanup
         and localnode1_tables_after_cleanup
         and localnodetmp_tables_after_cleanup
-        and end - now < WAIT_CLEANUP_TIME_LIMIT
     ):
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
@@ -575,7 +573,9 @@ async def test_cleanup_node_service_down_algorithm_execution(
         localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
-        end = time.time()
+        now = time.time()
+        if now - start > WAIT_CLEANUP_TIME_LIMIT:
+            assert False
         await asyncio.sleep(2)
 
     await controller.stop_node_registry()
