@@ -23,7 +23,7 @@ from tests.standalone_tests.conftest import _create_rabbitmq_container
 from tests.standalone_tests.conftest import kill_node_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
-WAIT_CLEANUP_TIME_LIMIT = 20
+WAIT_CLEANUP_TIME_LIMIT = 200
 WAIT_BEFORE_BRING_TMPNODE_DOWN = 15
 WAIT_BACKGROUND_TASKS_TO_FINISH = 20
 
