@@ -372,8 +372,8 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     start = time.time()
     while (
         globalnode_tables_after_cleanup
-        and localnode1_tables_after_cleanup
-        and localnodetmp_tables_after_cleanup
+        or localnode1_tables_after_cleanup
+        or localnodetmp_tables_after_cleanup
     ):
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
