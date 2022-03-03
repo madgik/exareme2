@@ -1,18 +1,17 @@
 import json
 import re
 
-import numpy as np
 import pytest
 import requests
 
-from tests.prod_env_tests import algorithms_url
+algorithms_url = "http://127.0.0.1:4999/algorithms"
 
 
 def get_parametrization_list_success_cases():
     parametrization_list = []
 
     # ~~~~~~~~~~success case 1~~~~~~~~~~
-    algorithm_name = "smpc_standard_deviation"
+    algorithm_name = "smpc_standard_deviation_int_only"
     request_dict = {
         "inputdata": {
             "data_model": "dementia:0.1",
@@ -52,16 +51,16 @@ def get_parametrization_list_success_cases():
         "title": "Standard Deviation",
         "columns": [
             {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.3634506955662605], "type": "FLOAT"},
-            {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
-            {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
+            {"name": "std_deviation", "data": [0.3611575592573076], "type": "FLOAT"},
+            {"name": "min_value", "data": [1.0], "type": "FLOAT"},
+            {"name": "max_value", "data": [4.0], "type": "FLOAT"},
         ],
     }
     parametrization_list.append((algorithm_name, request_dict, expected_response))
     # END ~~~~~~~~~~success case 1~~~~~~~~~~
 
     # ~~~~~~~~~~success case 2~~~~~~~~~~
-    algorithm_name = "smpc_standard_deviation"
+    algorithm_name = "smpc_standard_deviation_int_only"
     request_dict = {
         "inputdata": {
             "data_model": "dementia:0.1",
@@ -104,13 +103,114 @@ def get_parametrization_list_success_cases():
         "title": "Standard Deviation",
         "columns": [
             {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.3634506955662605], "type": "FLOAT"},
-            {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
-            {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
+            {"name": "std_deviation", "data": [0.3611575592573076], "type": "FLOAT"},
+            {"name": "min_value", "data": [1.0], "type": "FLOAT"},
+            {"name": "max_value", "data": [4.0], "type": "FLOAT"},
         ],
     }
     parametrization_list.append((algorithm_name, request_dict, expected_response))
     # END ~~~~~~~~~~success case 2~~~~~~~~~~
+    #
+    # # ~~~~~~~~~~success case 3~~~~~~~~~~
+    # algorithm_name = "smpc_standard_deviation"
+    # request_dict = {
+    #     "inputdata": {
+    #         "data_model": "dementia:0.1",
+    #         "datasets": ["edsd"],
+    #         "x": [
+    #             "lefthippocampus",
+    #         ],
+    #         "filters": {
+    #             "condition": "AND",
+    #             "rules": [
+    #                 {
+    #                     "id": "dataset",
+    #                     "type": "string",
+    #                     "value": ["edsd"],
+    #                     "operator": "in",
+    #                 },
+    #                 {
+    #                     "condition": "AND",
+    #                     "rules": [
+    #                         {
+    #                             "id": variable,
+    #                             "type": "string",
+    #                             "operator": "is_not_null",
+    #                             "value": None,
+    #                         }
+    #                         for variable in [
+    #                             "lefthippocampus",
+    #                         ]
+    #                     ],
+    #                 },
+    #             ],
+    #             "valid": True,
+    #         },
+    #     },
+    # }
+    # expected_response = {
+    #     "title": "Standard Deviation",
+    #     "columns": [
+    #         {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
+    #         {"name": "std_deviation", "data": [0.3634506955662605], "type": "FLOAT"},
+    #         {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
+    #         {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
+    #     ],
+    # }
+    # parametrization_list.append((algorithm_name, request_dict, expected_response))
+    # # END ~~~~~~~~~~success case 3~~~~~~~~~~
+    #
+    # # ~~~~~~~~~~success case 4~~~~~~~~~~
+    # algorithm_name = "smpc_standard_deviation"
+    # request_dict = {
+    #     "inputdata": {
+    #         "data_model": "dementia:0.1",
+    #         "datasets": ["edsd"],
+    #         "x": [
+    #             "lefthippocampus",
+    #         ],
+    #         "filters": {
+    #             "condition": "AND",
+    #             "rules": [
+    #                 {
+    #                     "id": "dataset",
+    #                     "type": "string",
+    #                     "value": ["edsd"],
+    #                     "operator": "in",
+    #                 },
+    #                 {
+    #                     "condition": "AND",
+    #                     "rules": [
+    #                         {
+    #                             "id": variable,
+    #                             "type": "string",
+    #                             "operator": "is_not_null",
+    #                             "value": None,
+    #                         }
+    #                         for variable in [
+    #                             "lefthippocampus",
+    #                         ]
+    #                     ],
+    #                 },
+    #             ],
+    #             "valid": True,
+    #         },
+    #     },
+    #     "flags": {
+    #         "smpc": True,
+    #     },
+    # }
+    # expected_response = {
+    #     "title": "Standard Deviation",
+    #     "columns": [
+    #         {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
+    #         {"name": "std_deviation", "data": [0.3634506955662605], "type": "FLOAT"},
+    #         {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
+    #         {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
+    #     ],
+    # }
+    # parametrization_list.append((algorithm_name, request_dict, expected_response))
+    # # END ~~~~~~~~~~success case 4~~~~~~~~~~
     return parametrization_list
 
 

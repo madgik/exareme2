@@ -71,3 +71,6 @@ class SMPCTableNames(NodeData):
         self.min_op = min_op
         self.max_op = max_op
         self.union_op = union_op
+
+    def __repr__(self):
+        return self.full_table_name

@@ -1,4 +1,4 @@
-import json
+from logging import Logger
 from typing import List
 
 import requests
@@ -39,7 +39,8 @@ def get_smpc_result(coordinator_address: str, jobid: str) -> str:
     return response.text
 
 
-def trigger_smpc_computation(
+def trigger_smpc(
+    logger: Logger,
     coordinator_address: str,
     jobid: str,
     computation_type: SMPCRequestType,
@@ -47,9 +48,13 @@ def trigger_smpc_computation(
 ):
     request_url = coordinator_address + TRIGGER_COMPUTATION_ENDPOINT + jobid
     request_headers = {"Content-type": "application/json", "Accept": "text/plain"}
+    data = SMPCRequestData(computationType=computation_type, clients=clients).json()
+    logger.info(f"Starting SMPC with {jobid=}...")
+    logger.debug(f"{request_url=}")
+    logger.debug(f"{data=}")
     response = requests.post(
         url=request_url,
-        data=SMPCRequestData(computationType=computation_type, clients=clients).json(),
+        data=data,
         headers=request_headers,
     )
     if response.status_code != 200:

@@ -1,4 +1,5 @@
 import traceback
+from logging import Logger
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -26,9 +27,7 @@ from mipengine.controller.algorithm_executor_smpc_helper import get_smpc_results
 from mipengine.controller.algorithm_executor_smpc_helper import (
     load_data_to_smpc_clients,
 )
-from mipengine.controller.algorithm_executor_smpc_helper import (
-    trigger_smpc_computations,
-)
+from mipengine.controller.algorithm_executor_smpc_helper import trigger_smpc_operations
 from mipengine.controller.algorithm_flow_data_objects import AlgoFlowData
 from mipengine.controller.algorithm_flow_data_objects import GlobalNodeData
 from mipengine.controller.algorithm_flow_data_objects import GlobalNodeSMPCTables
@@ -177,6 +176,7 @@ class AlgorithmExecutor:
             data_model=self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model,
             datasets=self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
             use_smpc=self._get_use_smpc_flag(),
+            logger=self._logger,
         )
         if len(self._local_nodes) > 1:
             self._execution_interface = _AlgorithmExecutionInterface(
@@ -212,7 +212,6 @@ class AlgorithmExecutor:
             self._logger.error(f"{err}")
             raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
-
             self._logger.error(f"{traceback.format_exc()}")
             raise exc
 
@@ -227,6 +226,7 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     data_model: str
     datasets: List[str]
     use_smpc: bool
+    logger: Logger
 
     class Config:
         arbitrary_types_allowed = True
@@ -269,6 +269,7 @@ class _AlgorithmExecutionInterface:
             variable_name: LocalNodesTable(node_table)
             for (variable_name, node_table) in tmp_variable_node_table.items()
         }
+        self._logger = algo_execution_interface_dto.logger
 
     @property
     def initial_view_tables(self) -> Dict[str, LocalNodesTable]:
@@ -445,7 +446,8 @@ class _AlgorithmExecutionInterface:
             command_id, local_nodes_smpc_tables
         )
 
-        (sum_op, min_op, max_op, union_op,) = trigger_smpc_computations(
+        (sum_op, min_op, max_op, union_op,) = trigger_smpc_operations(
+            logger=self._logger,
             context_id=self._global_node.context_id,
             command_id=command_id,
             smpc_clients_per_op=smpc_clients_per_op,

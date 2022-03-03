@@ -21,7 +21,7 @@ spec:
         image: {{ .Values.mipengine_images.repository }}/mipengine_controller:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
         ports:
-          - containerPort: 5000
+          - containerPort: 4999
         volumeMounts:
         - mountPath: /opt/data
           name: metadata
@@ -62,8 +62,8 @@ spec:
     app: mipengine-controller
   ports:
     - protocol: TCP
-      port: 5000
-      targetPort: 5000
+      port: 4999
+      targetPort: 4999
       nodePort: 30000
 
 ---
