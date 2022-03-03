@@ -200,14 +200,16 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
-    now = time.time()
-    end = now
+    start = time.time()
     while (
         globalnode_tables_after_cleanup
         and localnode1_tables_after_cleanup
         and localnode2_tables_after_cleanup
-        and end - now < WAIT_CLEANUP_TIME_LIMIT
     ):
+        print(
+            "----> (test_cleanup_after_uninterrupted_algorithm_execution) in while, "
+            "getting tables after cleanup"
+        )
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
@@ -217,7 +219,10 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         localnode2_tables_after_cleanup = localnode2_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
-        end = time.time()
+        now = time.time()
+        if now - start > WAIT_CLEANUP_TIME_LIMIT:
+            assert False
+
         await asyncio.sleep(2)
 
     await controller.stop_node_registry()
@@ -263,6 +268,11 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # get all participating node tasks handlers
     is_localnodetmp_up = False
     while not is_localnodetmp_up:
+        print(
+            "----> (test_cleanup_rabbitmq_down_algorithm_execution) in while, waiting "
+            "for localnodetmp to be up"
+        )
+
         nodes_tasks_handlers_dto = controller._get_nodes_tasks_handlers(
             data_model=algorithm_request_dto.inputdata.data_model,
             datasets=algorithm_request_dto.inputdata.datasets,
@@ -320,6 +330,10 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # wait for "localnodetmp" to be removed from node registry
     localnodetmp_still_in_node_registry = True
     while localnodetmp_still_in_node_registry:
+        print(
+            "----> (test_cleanup_rabbitmq_down_algorithm_execution) in while, waiting "
+            "for localnodetmp to be removed from node registry"
+        )
         localnodetmp_still_in_node_registry = False
         all_local_nodes = controller._node_registry.get_all_local_nodes()
         for local_node in all_local_nodes:
@@ -341,6 +355,10 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     is_tmplocalnode_up = False
     while not is_tmplocalnode_up:
+        print(
+            "----> (test_cleanup_rabbitmq_down_algorithm_execution) in while, waiting "
+            "for localnodetmp to be up, again"
+        )
         nodes_tasks_handlers_dto = controller._get_nodes_tasks_handlers(
             data_model=algorithm_request_dto.inputdata.data_model,
             datasets=algorithm_request_dto.inputdata.datasets,
@@ -375,6 +393,10 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         or localnode1_tables_after_cleanup
         or localnodetmp_tables_after_cleanup
     ):
+        print(
+            "----> (test_cleanup_rabbitmq_down_algorithm_execution) in while, "
+            "getting tables after cleanup"
+        )
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
@@ -413,6 +435,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     #     assert True
     # else:
     #     assert False
+
     if not globalnode_tables_before_cleanup:
         assert False
     elif globalnode_tables_after_cleanup:
@@ -454,6 +477,10 @@ async def test_cleanup_node_service_down_algorithm_execution(
     # get all participating node tasks handlers
     is_localnodetmp_up = False
     while not is_localnodetmp_up:
+        print(
+            "----> (test_cleanup_node_service_down_algorithm_execution) in while, waiting "
+            "for localnodetmp to be up"
+        )
         nodes_tasks_handlers_dto = controller._get_nodes_tasks_handlers(
             data_model=algorithm_request_dto.inputdata.data_model,
             datasets=algorithm_request_dto.inputdata.datasets,
@@ -510,6 +537,10 @@ async def test_cleanup_node_service_down_algorithm_execution(
     # wait for "localnodetmp" to be removed from node registry
     localnodetmp_still_in_node_registry = True
     while localnodetmp_still_in_node_registry:
+        print(
+            "----> (test_cleanup_node_service_down_algorithm_execution) in while, waiting "
+            "for localnodetmp to be removed from node registry"
+        )
         localnodetmp_still_in_node_registry = False
         all_local_nodes = controller._node_registry.get_all_local_nodes()
         for local_node in all_local_nodes:
@@ -530,6 +561,10 @@ async def test_cleanup_node_service_down_algorithm_execution(
 
     is_tmplocalnode_up = False
     while not is_tmplocalnode_up:
+        print(
+            "----> (test_cleanup_node_service_down_algorithm_execution) in while, waiting "
+            "for localnodetmp to be up, again"
+        )
         nodes_tasks_handlers_dto = controller._get_nodes_tasks_handlers(
             data_model=algorithm_request_dto.inputdata.data_model,
             datasets=algorithm_request_dto.inputdata.datasets,
@@ -564,6 +599,10 @@ async def test_cleanup_node_service_down_algorithm_execution(
         and localnode1_tables_after_cleanup
         and localnodetmp_tables_after_cleanup
     ):
+        print(
+            "----> (test_cleanup_node_service_down_algorithm_execution) in while, "
+            "getting tables after cleanup"
+        )
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )

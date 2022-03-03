@@ -89,7 +89,8 @@ jobs:
       - name: Run standalone tests
         run: |
           source .venv/bin/activate
-          poetry run pytest --cov=mipengine --cov-report=xml tests/standalone_tests --verbosity=2
+          # poetry run pytest --cov=mipengine --cov-report=xml tests/standalone_tests --verbosity=2
+          poetry run pytest --cov=mipengine --cov-report=xml tests/standalone_tests --capture=tee-sys
 
       - name: Publish coverage on codeclimate
         uses: paambaati/codeclimate-action@v2.7.5
