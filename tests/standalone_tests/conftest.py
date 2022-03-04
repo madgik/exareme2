@@ -10,6 +10,7 @@ import sqlalchemy as sql
 import toml
 
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
+from mipengine.udfgen import udfio
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/mipengine_rabbitmq:latest"
@@ -80,10 +81,14 @@ def _create_monetdb_container(cont_name, cont_port):
     try:
         container = client.containers.get(cont_name)
     except docker.errors.NotFound:
+        udfio_full_path = path.abspath(udfio.__file__)
+        # A volume is used to pass the udfio inside the monetdb container.
+        # This is done so that we don't need to rebuild every time the udfio.py file is changed.
         container = client.containers.run(
             TESTING_MONETDB_CONT_IMAGE,
             detach=True,
             ports={"50000/tcp": cont_port},
+            volumes=[f"{udfio_full_path}:/home/udflib/udfio.py"],
             name=cont_name,
             publish_all_ports=True,
         )
