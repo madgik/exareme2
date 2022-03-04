@@ -23,7 +23,7 @@ from tests.standalone_tests.conftest import _create_rabbitmq_container
 from tests.standalone_tests.conftest import kill_node_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
-WAIT_CLEANUP_TIME_LIMIT = 20
+WAIT_CLEANUP_TIME_LIMIT = 200
 WAIT_BEFORE_BRING_TMPNODE_DOWN = 15
 WAIT_BACKGROUND_TASKS_TO_FINISH = 20
 
@@ -121,6 +121,7 @@ def patch_algorithm_executor(controller_config_mock, cdes_mock):
         yield
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(
     init_data_globalnode,
@@ -137,7 +138,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     await controller.start_node_registry()
 
     # wait until node registry gets the nodes info
-    while not controller.get_all_local_nodes():
+    while not controller.get_all_local_nodes() or not controller.get_global_node():
         await asyncio.sleep(1)
 
     # Start the cleanup loop
@@ -199,13 +200,11 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
-    now = time.time()
-    end = now
+    start = time.time()
     while (
         globalnode_tables_after_cleanup
         and localnode1_tables_after_cleanup
         and localnode2_tables_after_cleanup
-        and end - now < WAIT_CLEANUP_TIME_LIMIT
     ):
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
@@ -216,7 +215,10 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         localnode2_tables_after_cleanup = localnode2_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
-        end = time.time()
+        now = time.time()
+        if now - start > WAIT_CLEANUP_TIME_LIMIT:
+            assert False
+
         await asyncio.sleep(2)
 
     await controller.stop_node_registry()
@@ -237,6 +239,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         assert False
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_rabbitmq_down_algorithm_execution(
     init_data_globalnode,
@@ -255,7 +258,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     await controller.start_node_registry()
 
     # wait until node registry gets the nodes info
-    while not controller.get_all_local_nodes():
+    while not controller.get_all_local_nodes() or not controller.get_global_node():
         await asyncio.sleep(1)
 
     # get all participating node tasks handlers
@@ -313,6 +316,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     )
 
     remove_localnodetmp_rabbitmq()
+    kill_node_service(localnodetmp_node_service)
 
     # wait for "localnodetmp" to be removed from node registry
     localnodetmp_still_in_node_registry = True
@@ -334,7 +338,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     # restart tmplocalnode rabbitmq container
     _create_rabbitmq_container(RABBITMQ_LOCALNODETMP_NAME, RABBITMQ_LOCALNODETMP_PORT)
-    start_localnodetmp_node_service()
+    localnodetmp_node_service_proc = start_localnodetmp_node_service()
 
     is_tmplocalnode_up = False
     while not is_tmplocalnode_up:
@@ -366,13 +370,11 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
-    now = time.time()
-    end = now
+    start = time.time()
     while (
         globalnode_tables_after_cleanup
-        and localnode1_tables_after_cleanup
-        and localnodetmp_tables_after_cleanup
-        and end - now < WAIT_CLEANUP_TIME_LIMIT
+        or localnode1_tables_after_cleanup
+        or localnodetmp_tables_after_cleanup
     ):
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
@@ -383,7 +385,11 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
-        end = time.time()
+
+        now = time.time()
+        if now - start > WAIT_CLEANUP_TIME_LIMIT:
+            assert False
+
         await asyncio.sleep(2)
 
     await controller.stop_node_registry()
@@ -391,6 +397,11 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     # give some time for node registry and cleanup background tasks to finish gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
+
+    # the node cervice was started in here so it must manually killed, otherwise it is
+    # alive through the whole pytest session and is erroneously accessed by other tests
+    # where teh node service is supposedly down
+    kill_node_service(localnodetmp_node_service_proc)
 
     if (
         globalnode_tables_before_cleanup
@@ -405,6 +416,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         assert False
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_node_service_down_algorithm_execution(
     init_data_globalnode,
@@ -423,7 +435,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     await controller.start_node_registry()
 
     # wait until node registry gets the nodes info
-    while not controller.get_all_local_nodes():
+    while not controller.get_all_local_nodes() or not controller.get_global_node():
         await asyncio.sleep(1)
 
     # get all participating node tasks handlers
@@ -480,7 +492,6 @@ async def test_cleanup_node_service_down_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
-    # remove_localnodetmp_rabbitmq()
     kill_node_service(localnodetmp_node_service)
 
     # wait for "localnodetmp" to be removed from node registry
@@ -501,9 +512,8 @@ async def test_cleanup_node_service_down_algorithm_execution(
         node_ids=[globalnode_node_id, localnode1_node_id, localnodetmp_node_id],
     )
 
-    # restart tmplocalnode rabbitmq container
-    # _create_rabbitmq_container(RABBITMQ_LOCALNODETMP_NAME, RABBITMQ_LOCALNODETMP_PORT)
-    start_localnodetmp_node_service()
+    # restart tmplocalnode node service (the celery app)
+    localnodetmp_node_service_proc = start_localnodetmp_node_service()
 
     is_tmplocalnode_up = False
     while not is_tmplocalnode_up:
@@ -535,13 +545,11 @@ async def test_cleanup_node_service_down_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
-    now = time.time()
-    end = now
+    start = time.time()
     while (
         globalnode_tables_after_cleanup
         and localnode1_tables_after_cleanup
         and localnodetmp_tables_after_cleanup
-        and end - now < WAIT_CLEANUP_TIME_LIMIT
     ):
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
@@ -552,7 +560,9 @@ async def test_cleanup_node_service_down_algorithm_execution(
         localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
-        end = time.time()
+        now = time.time()
+        if now - start > WAIT_CLEANUP_TIME_LIMIT:
+            assert False
         await asyncio.sleep(2)
 
     await controller.stop_node_registry()
@@ -560,6 +570,11 @@ async def test_cleanup_node_service_down_algorithm_execution(
 
     # give some time for node registry and cleanup background tasks to finish gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
+
+    # the node cervice was started in here so it must manually killed, otherwise it is
+    # alive through the whole pytest session and is erroneously accessed by other tests
+    # where teh node service is supposedly down
+    kill_node_service(localnodetmp_node_service_proc)
 
     if (
         globalnode_tables_before_cleanup
@@ -586,7 +601,8 @@ def start_localnodetmp_node_service():
     node_config_file = LOCALNODETMP_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
-    _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    return proc
 
 
 algorithm_request_dto = AlgorithmRequestDTO(

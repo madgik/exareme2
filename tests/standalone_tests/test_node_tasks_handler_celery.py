@@ -174,6 +174,7 @@ def test_time_limit_exceeded_exception(
         localnodetmp_tasks_handler_celery.get_table_schema(
             request_id=COMMON_TASKS_REQUEST_ID, table_name=table_name
         )
+        time.sleep(localnodetmp_tasks_handler_celery.tasks_timeout)
 
 
 def get_a_random_context_id() -> str:

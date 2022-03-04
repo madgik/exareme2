@@ -46,6 +46,11 @@ class INodeTasksHandler(ABC):
     def node_data_address(self) -> str:
         pass
 
+    @property
+    @abstractmethod
+    def tasks_timeout(self) -> int:
+        pass
+
     # @abstractmethod
     # def get_node_role(self):#TODO does that make sense???
     #     pass

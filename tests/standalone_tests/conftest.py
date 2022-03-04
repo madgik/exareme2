@@ -64,8 +64,6 @@ GLOBALNODE_SMPC_CONFIG_FILE = "smpc_globalnode.toml"
 LOCALNODE1_SMPC_CONFIG_FILE = "smpc_localnode1.toml"
 LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
 
-TASKS_TIMEOUT = 10
-
 
 # TODO Instead of the fixtures having scope session, it could be function,
 # but when the fixture start, it should check if it already exists, thus
@@ -571,6 +569,7 @@ def globalnode_tasks_handler_celery(globalnode_node_service):
         queue_port = tmp["rabbitmq"]["port"]
         db_domain = tmp["monetdb"]["ip"]
         db_port = tmp["monetdb"]["port"]
+        tasks_timeout = tmp["celery"]["task_time_limit"]
     queue_address = ":".join([str(queue_domain), str(queue_port)])
     db_address = ":".join([str(db_domain), str(db_port)])
 
@@ -578,14 +577,13 @@ def globalnode_tasks_handler_celery(globalnode_node_service):
         node_id=node_id,
         node_queue_addr=queue_address,
         node_db_addr=db_address,
-        tasks_timeout=TASKS_TIMEOUT,
+        tasks_timeout=tasks_timeout,
     )
 
 
 @pytest.fixture(scope="session")
 def localnode1_tasks_handler_celery(localnode1_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
-
     with open(node_config_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]
@@ -593,6 +591,8 @@ def localnode1_tasks_handler_celery(localnode1_node_service):
         queue_port = tmp["rabbitmq"]["port"]
         db_domain = tmp["monetdb"]["ip"]
         db_port = tmp["monetdb"]["port"]
+        tasks_timeout = tmp["celery"]["task_time_limit"]
+
     queue_address = ":".join([str(queue_domain), str(queue_port)])
     db_address = ":".join([str(db_domain), str(db_port)])
 
@@ -600,14 +600,13 @@ def localnode1_tasks_handler_celery(localnode1_node_service):
         node_id=node_id,
         node_queue_addr=queue_address,
         node_db_addr=db_address,
-        tasks_timeout=TASKS_TIMEOUT,
+        tasks_timeout=tasks_timeout,
     )
 
 
 @pytest.fixture(scope="function")
 def localnodetmp_tasks_handler_celery(localnodetmp_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
-
     with open(node_config_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]
@@ -615,6 +614,7 @@ def localnodetmp_tasks_handler_celery(localnodetmp_node_service):
         queue_port = tmp["rabbitmq"]["port"]
         db_domain = tmp["monetdb"]["ip"]
         db_port = tmp["monetdb"]["port"]
+        tasks_timeout = tmp["celery"]["task_time_limit"]
     queue_address = ":".join([str(queue_domain), str(queue_port)])
     db_address = ":".join([str(db_domain), str(db_port)])
 
@@ -622,5 +622,5 @@ def localnodetmp_tasks_handler_celery(localnodetmp_node_service):
         node_id=node_id,
         node_queue_addr=queue_address,
         node_db_addr=db_address,
-        tasks_timeout=TASKS_TIMEOUT,
+        tasks_timeout=tasks_timeout,
     )
