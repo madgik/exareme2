@@ -49,13 +49,13 @@ clean_up_global = get_celery_task_signature(global_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def request_id():
-    request_id = "test_flow_" + uuid.uuid4().hex + "_request"
+    request_id = "testflow" + uuid.uuid4().hex + "request"
     return request_id
 
 
 @pytest.fixture(autouse=True)
 def context_id(request_id):
-    context_id = "test_flow_" + uuid.uuid4().hex
+    context_id = "testflow" + uuid.uuid4().hex
 
     yield context_id
 

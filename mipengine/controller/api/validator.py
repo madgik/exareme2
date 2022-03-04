@@ -92,7 +92,7 @@ def _validate_inputdata_data_model_and_dataset(
     """
 
     if requested_data_model not in available_datasets_per_data_model.keys():
-        raise BadUserInput(f"data_model '{requested_data_model}' does not exist.")
+        raise BadUserInput(f"Data model '{requested_data_model}' does not exist.")
 
     non_existing_datasets = [
         dataset
@@ -178,7 +178,7 @@ def _get_cde_metadata(cde, data_model):
     ] = controller_common_data_elements.data_models[data_model]
     if cde not in data_model_cdes.keys():
         raise BadUserInput(
-            f"The CDE '{cde}' does not exist in data_model '{data_model}'."
+            f"The CDE '{cde}' does not exist in data model '{data_model}'."
         )
     return data_model_cdes[cde]
 

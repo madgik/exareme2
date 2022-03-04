@@ -1,3 +1,4 @@
+import traceback
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -59,7 +60,7 @@ class AlgorithmExecutionException(Exception):
         self.message = message
 
 
-class NodeDownAlgorithmExecutionException(Exception):
+class NodeUnresponsiveAlgorithmExecutionException(Exception):
     def __init__(self):
         message = (
             "One of the nodes participating in the algorithm execution "
@@ -125,6 +126,7 @@ class AlgorithmExecutor:
         # Parameters for the creation of the view tables in the db. Each of the LOCAL
         # nodes will have access only to these view tables and not on the primary data
         # tables
+        # TODO Convert to object instead of dict?
         initial_view_tables_params = {
             "commandId": get_next_command_id(),
             "data_model": self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model,
@@ -207,30 +209,12 @@ class AlgorithmExecutor:
             TimeoutError,
             ClosedBrokerConnectionError,
         ) as err:
-            self._logger.error(f"{err=}")
-
-            raise NodeDownAlgorithmExecutionException()
+            self._logger.error(f"{err}")
+            raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
-            import traceback
 
             self._logger.error(f"{traceback.format_exc()}")
             raise exc
-        finally:
-            self.clean_up()
-
-    def clean_up(self):
-        self._logger.info("cleaning up global_node")
-        try:
-            self._global_node.clean_up()
-        except Exception as exc:
-            self._logger.error(f"cleaning up global_node FAILED {exc=}")
-        self._logger.info(f"cleaning up local nodes:{self._local_nodes}")
-        for node in self._local_nodes:
-            self._logger.info(f"\tcleaning up {node=}")
-            try:
-                node.clean_up()
-            except Exception as exc:
-                self._logger.error(f"cleaning up {node=} FAILED {exc=}")
 
 
 class _AlgorithmExecutionInterfaceDTO(BaseModel):
