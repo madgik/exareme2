@@ -220,6 +220,11 @@ class Controller:
     def get_all_local_nodes(self):
         return self._node_registry.get_all_local_nodes()
 
+    def get_global_node(self):
+        global_nodes = self._node_registry.get_all_global_nodes()
+        if global_nodes:
+            return global_nodes[0]
+
     def _get_nodes_tasks_handlers(
         self, data_model: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:

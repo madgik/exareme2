@@ -123,6 +123,10 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     def node_data_address(self) -> str:
         return self._db_address
 
+    @property
+    def tasks_timeout(self) -> int:
+        return self._tasks_timeout
+
     def _apply_async(self, task_signature, **kwargs) -> AsyncResult:
         # The existing connection to the broker is passed in apply_async because the
         # default behaviour (not passing a
