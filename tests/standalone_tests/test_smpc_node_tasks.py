@@ -31,8 +31,8 @@ from tests.standalone_tests.nodes_communication_helper import get_celery_task_si
 from tests.standalone_tests.nodes_communication_helper import get_node_config_by_id
 from tests.standalone_tests.test_udfs import create_table_with_one_column_and_ten_rows
 
-request_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10] + "_request"
-context_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10]
+request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
+context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 command_id = "command123"
 smpc_job_id = "testKey123"
 SMPC_GET_DATASET_ENDPOINT = "/api/update-dataset/"

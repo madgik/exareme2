@@ -25,7 +25,20 @@ def create_table_name(
     """
     Creates and returns in lower case a table name with the format
     <nodeId>_<contextId>_<tableType>_<commandId>_<command_subid>
+
+    Underscores are not allowed in any parameter provided.
     """
+    if not node_id.isalnum():
+        raise ValueError(f"'node_id' is not alphanumeric. Value: '{node_id}'")
+    if not context_id.isalnum():
+        raise ValueError(f"'context_id' is not alphanumeric. Value: '{context_id}'")
+    if not command_id.isalnum():
+        raise ValueError(f"'command_id' is not alphanumeric. Value: '{command_id}'")
+    if not command_subid.isalnum():
+        raise ValueError(
+            f"'command_subid' is not alphanumeric. Value: '{command_subid}'"
+        )
+
     if table_type not in {TableType.NORMAL, TableType.VIEW, TableType.MERGE}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
 

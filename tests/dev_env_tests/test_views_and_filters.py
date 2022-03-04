@@ -33,12 +33,12 @@ local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def request_id():
-    return "test_views_" + uuid.uuid4().hex + "_request"
+    return "testviews" + uuid.uuid4().hex + "request"
 
 
 @pytest.fixture(autouse=True)
 def context_id(request_id):
-    context_id = "test_views_" + uuid.uuid4().hex
+    context_id = "testviews" + uuid.uuid4().hex
 
     yield context_id
 

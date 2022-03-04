@@ -24,8 +24,8 @@ from tests.standalone_tests.nodes_communication_helper import get_celery_task_si
 from tests.standalone_tests.nodes_communication_helper import get_node_config_by_id
 
 command_id = "command123"
-request_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10] + "_request"
-context_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10]
+request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
+context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 
 
 @pytest.fixture(scope="session")
