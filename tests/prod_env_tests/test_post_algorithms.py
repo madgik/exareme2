@@ -146,7 +146,7 @@ def get_parametrization_list_exception_cases():
         },
     }
 
-    expected_response = (460, "data_model .* does not exist.*")
+    expected_response = (460, "Data model .* does not exist.*")
     parametrization_list.append((algorithm_name, request_dict, expected_response))
 
     # ~~~~~~~~~~exception case 3~~~~~~~~~~

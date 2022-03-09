@@ -41,6 +41,7 @@ class NodeMock(_INode):
         self,
         command_id: str,
         data_model: str,
+        datasets: List[str],
         columns: List[str],
         filters: List[str],
     ) -> TableName:

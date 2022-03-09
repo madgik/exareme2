@@ -1,7 +1,6 @@
-identifier = "test_tmp_localnode"
+identifier = "testlocalnode2"
 log_level = "DEBUG"
 framework_log_level = "INFO"
-
 role = "LOCALNODE"
 cdes_metadata_path = "./tests/test_data"
 
@@ -17,14 +16,14 @@ run_udf_time_limit = 60
 
 [rabbitmq]
 ip = "172.17.0.1"
-port = 60003
+port = 60002
 user = "user"
 password = "password"
 vhost = "user_vhost"
 
 [monetdb]
 ip = "172.17.0.1"
-port = 61003
+port = 61002
 database = "db"
 username = "monetdb"
 password = "monetdb"

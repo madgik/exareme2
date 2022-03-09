@@ -368,7 +368,7 @@ def get_parametrization_list_exception_cases():
                     y=["alzheimerbroadcategory_bin"],
                 )
             ),
-            (BadUserInput, "data_model .* does not exist."),
+            (BadUserInput, "Data model .* does not exist."),
         ),
         (
             "test_algorithm1",
@@ -407,7 +407,7 @@ def get_parametrization_list_exception_cases():
                     y=["non_existing"],
                 )
             ),
-            (BadUserInput, "The CDE .* does not exist in data_model .*"),
+            (BadUserInput, "The CDE .* does not exist in data model .*"),
         ),
         (
             "test_algorithm1",

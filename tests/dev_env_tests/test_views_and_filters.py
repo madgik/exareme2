@@ -5,8 +5,10 @@ import pytest
 import requests
 
 from mipengine.datatypes import DType
+from mipengine.node_exceptions import DataModelUnavailable
+from mipengine.node_exceptions import DatasetUnavailable
+from mipengine.node_exceptions import InsufficientDataError
 from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import InsufficientDataError
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.dev_env_tests import algorithms_url
@@ -31,12 +33,12 @@ local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def request_id():
-    return "test_views_" + uuid.uuid4().hex + "_request"
+    return "testviews" + uuid.uuid4().hex + "request"
 
 
 @pytest.fixture(autouse=True)
 def context_id(request_id):
-    context_id = "test_views_" + uuid.uuid4().hex
+    context_id = "testviews" + uuid.uuid4().hex
 
     yield context_id
 
@@ -182,6 +184,7 @@ def test_data_model_view_without_filters(request_id, context_id):
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         data_model=data_model,
+        datasets=[],
         columns=columns,
         filters=None,
     ).get()
@@ -251,6 +254,7 @@ def test_data_model_view_with_filters(request_id, context_id):
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         data_model=data_model,
+        datasets=[],
         columns=columns,
         filters=rules,
     ).get()
@@ -347,6 +351,51 @@ def test_data_model_view_with_privacy_error(request_id, context_id):
             context_id=context_id,
             command_id=uuid.uuid4().hex,
             data_model=data_model,
+            datasets=[],
             columns=columns,
             filters=rules,
         ).get()
+
+
+def test_data_model_view_with_data_model_unavailable_exception(request_id, context_id):
+    columns = [
+        "dataset",
+    ]
+    data_model = "non_existing"
+    with pytest.raises(DataModelUnavailable) as exc:
+        local_node_create_data_model_view.delay(
+            request_id=request_id,
+            context_id=context_id,
+            command_id=uuid.uuid4().hex,
+            data_model=data_model,
+            datasets=[],
+            columns=columns,
+            filters={},
+        ).get()
+
+    assert (
+        "Data model 'non_existing' is not available in node: 'localnode1'"
+        in exc.value.message
+    )
+
+
+def test_data_model_view_with_dataset_unavailable_exception(request_id, context_id):
+    columns = [
+        "dataset",
+    ]
+    data_model = "tbi:0.1"
+    with pytest.raises(DatasetUnavailable) as exc:
+        local_node_create_data_model_view.delay(
+            request_id=request_id,
+            context_id=context_id,
+            command_id=uuid.uuid4().hex,
+            data_model=data_model,
+            datasets=["non_existing"],
+            columns=columns,
+            filters={},
+        ).get()
+
+    assert (
+        "Dataset 'non_existing' is not available in node: 'localnode1'"
+        in exc.value.message
+    )
