@@ -47,7 +47,7 @@
    monetdb_image = "madgik/mipenginedb:latest"
    rabbitmq_image = "madgik/mipengine_rabbitmq:latest"
 
-   cdes_metadata_path = "./tests/demo_data"
+   cdes_metadata_path = "./tests/test_data"
 
    algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 

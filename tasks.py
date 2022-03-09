@@ -79,7 +79,7 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
-DEMO_DATA_FOLDER = Path(tests.__file__).parent / "demo_data"
+TEST_DATA_FOLDER = Path(tests.__file__).parent / "test_data"
 
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
 MIPENGINE_NODE_CONFIG_FILE = "MIPENGINE_NODE_CONFIG_FILE"
@@ -274,7 +274,7 @@ def init_monetdb(c, port):
 @task(iterable=["port"])
 def load_data(c, port=None):
     """
-    Load data into the specified DB from the 'DEMO_DATA_FOLDER'.
+    Load data into the specified DB from the 'TEST_DATA_FOLDER'.
 
     :param port: A list of ports, in which it will load the data. If not set, it will use the `NODES_CONFIG_DIR` files.
     """
@@ -300,7 +300,7 @@ def load_data(c, port=None):
         template_node_config = toml.load(fp)
     for port in local_node_ports:
         message(f"Loading data on MonetDB at port {port}...", Level.HEADER)
-        cmd = f"poetry run mipdb load-folder {DEMO_DATA_FOLDER}  --ip 172.17.0.1 --port {port} "
+        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER}  --ip 172.17.0.1 --port {port} "
         run(c, cmd)
 
 

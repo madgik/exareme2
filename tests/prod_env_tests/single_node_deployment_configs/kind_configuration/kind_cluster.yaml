@@ -8,7 +8,7 @@ nodes:
   extraMounts:
   - hostPath: ./tests/prod_env_tests/single_node_deployment_configs//kind_configuration/hostname_master
     containerPath: /etc/hostname
-  - hostPath: ./tests/demo_data
+  - hostPath: ./tests/test_data
     containerPath: /opt/data
   - hostPath: /opt/monetdb
     containerPath: /opt/monetdb

@@ -4,7 +4,7 @@ framework_log_level ="INFO"
 monetdb_image = "madgik/mipenginedb:testing"
 rabbitmq_image = "madgik/mipengine_rabbitmq:testing"
 
-cdes_metadata_path = "./tests/demo_data"
+cdes_metadata_path = "./tests/test_data"
 
 algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 
