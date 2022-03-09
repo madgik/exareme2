@@ -303,11 +303,12 @@ def load_data(c, port=None):
             if node_config["role"] == "LOCALNODE":
                 local_node_ports.append(node_config["monetdb"]["port"])
 
+    local_node_ports = sorted(local_node_ports)
+
     # Load the test data folder into the dbs
     data_model_folders = [
         TEST_DATA_FOLDER / folder for folder in listdir(TEST_DATA_FOLDER)
     ]
-    local_node_ports_cycle = itertools.cycle(local_node_ports)
     for data_model_folder in data_model_folders:
 
         # Load all data models in each db
@@ -324,15 +325,36 @@ def load_data(c, port=None):
             cmd = f"poetry run mipdb add-data-model {cdes_file} --port {port} "
             run(c, cmd)
 
-        # Load the data model's csvs in the nodes with round-robin fashion
-        csvs = sorted(
+        # Load only the 1st csv of each dataset "with 0 suffix" in the 1st node
+        first_node_csvs = sorted(
             [
                 data_model_folder / file
                 for file in listdir(data_model_folder)
-                if file.endswith(".csv")
+                if file.endswith("0.csv")
             ]
         )
-        for csv in csvs:
+        for csv in first_node_csvs:
+            port = local_node_ports[0]
+            message(
+                f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                Level.HEADER,
+            )
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --port {port} "
+            run(c, cmd)
+
+        # Load the data model's remaining csvs in the rest of the nodes with round-robin fashion
+        remaining_csvs = sorted(
+            [
+                data_model_folder / file
+                for file in listdir(data_model_folder)
+                if file.endswith(".csv") and not file.endswith("0.csv")
+            ]
+        )
+        if len(local_node_ports) > 1:
+            local_node_ports_cycle = itertools.cycle(local_node_ports[1:])
+        else:
+            local_node_ports_cycle = itertools.cycle(local_node_ports)
+        for csv in remaining_csvs:
             port = next(local_node_ports_cycle)
             message(
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
