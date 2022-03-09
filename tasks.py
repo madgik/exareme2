@@ -46,7 +46,9 @@ the node service will be called 'localnode1' and should be referenced using that
 Paths are subject to change so in the following documentation the global variables will be used.
 
 """
+import itertools
 import json
+import pathlib
 import shutil
 import sys
 from enum import Enum
@@ -298,15 +300,46 @@ def load_data(c, port=None):
         for node_config_file in config_files:
             with open(node_config_file) as fp:
                 node_config = toml.load(fp)
-            if "local" in node_config["identifier"]:
+            if node_config["role"] == "LOCALNODE":
                 local_node_ports.append(node_config["monetdb"]["port"])
 
-    with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
-        template_node_config = toml.load(fp)
-    for port in local_node_ports:
-        message(f"Loading data on MonetDB at port {port}...", Level.HEADER)
-        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER}  --ip 172.17.0.1 --port {port} "
-        run(c, cmd)
+    # Load the test data folder into the dbs
+    data_model_folders = [
+        TEST_DATA_FOLDER / folder for folder in listdir(TEST_DATA_FOLDER)
+    ]
+    local_node_ports_cycle = itertools.cycle(local_node_ports)
+    for data_model_folder in data_model_folders:
+
+        # Load all data models in each db
+        with open(data_model_folder / "CDEsMetadata.json") as data_model_metadata_file:
+            data_model_metadata = json.load(data_model_metadata_file)
+            data_model_code = data_model_metadata["code"]
+            data_model_version = data_model_metadata["version"]
+        cdes_file = data_model_folder / "CDEsMetadata.json"
+        for port in local_node_ports:
+            message(
+                f"Loading data model '{data_model_code}:{data_model_version}' metadata in MonetDB at port {port}...",
+                Level.HEADER,
+            )
+            cmd = f"poetry run mipdb add-data-model {cdes_file} --port {port} "
+            run(c, cmd)
+
+        # Load the data model's csvs in the nodes with round-robin fashion
+        csvs = sorted(
+            [
+                data_model_folder / file
+                for file in listdir(data_model_folder)
+                if file.endswith(".csv")
+            ]
+        )
+        for csv in csvs:
+            port = next(local_node_ports_cycle)
+            message(
+                f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                Level.HEADER,
+            )
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --port {port} "
+            run(c, cmd)
 
 
 @task(iterable=["node"])
@@ -704,7 +737,7 @@ def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok
         return
 
     if not wait:
-        # TODO disown=True will make c.run(..) return immediatelly
+        # TODO disown=True will make c.run(..) return immediately
         c.run(cmd, disown=True)
         # TODO wait is False to get in here
         # nevertheless, it will wait (sleep) for 4 seconds here, why??

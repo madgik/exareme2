@@ -7,8 +7,44 @@
       "description": "",
       "enumerations": [
         {
-          "code": "dummy_tbi",
-          "label": "Dummy TBI"
+          "code": "dummy_tbi0",
+          "label": "Dummy TBI_0"
+        },
+        {
+          "code": "dummy_tbi1",
+          "label": "Dummy TBI_1"
+        },
+        {
+          "code": "dummy_tbi2",
+          "label": "Dummy TBI_2"
+        },
+        {
+          "code": "dummy_tbi3",
+          "label": "Dummy TBI_3"
+        },
+        {
+          "code": "dummy_tbi4",
+          "label": "Dummy TBI_4"
+        },
+        {
+          "code": "dummy_tbi5",
+          "label": "Dummy TBI_5"
+        },
+        {
+          "code": "dummy_tbi6",
+          "label": "Dummy TBI_6"
+        },
+        {
+          "code": "dummy_tbi7",
+          "label": "Dummy TBI_7"
+        },
+        {
+          "code": "dummy_tbi8",
+          "label": "Dummy TBI_8"
+        },
+        {
+          "code": "dummy_tbi9",
+          "label": "Dummy TBI_9"
         }
       ],
       "label": "Dataset",

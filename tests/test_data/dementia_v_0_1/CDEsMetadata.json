@@ -7,16 +7,124 @@
       "description": "Variable used to differentiate datasets",
       "enumerations": [
         {
-          "code": "ppmi",
-          "label": "PPMI"
+          "code": "ppmi0",
+          "label": "PPMI_0"
         },
         {
-          "code": "edsd",
-          "label": "EDSD"
+          "code": "ppmi1",
+          "label": "PPMI_1"
         },
         {
-          "code": "desd-synthdata",
-          "label": "DESD-synthdata"
+          "code": "ppmi2",
+          "label": "PPMI_2"
+        },
+        {
+          "code": "ppmi3",
+          "label": "PPMI_3"
+        },
+        {
+          "code": "ppmi4",
+          "label": "PPMI_4"
+        },
+        {
+          "code": "ppmi5",
+          "label": "PPMI_5"
+        },
+        {
+          "code": "ppmi6",
+          "label": "PPMI_6"
+        },
+        {
+          "code": "ppmi7",
+          "label": "PPMI_7"
+        },
+        {
+          "code": "ppmi8",
+          "label": "PPMI_8"
+        },
+        {
+          "code": "ppmi9",
+          "label": "PPMI_9"
+        },
+        {
+          "code": "edsd0",
+          "label": "EDSD_0"
+        },
+        {
+          "code": "edsd1",
+          "label": "EDSD_1"
+        },
+        {
+          "code": "edsd2",
+          "label": "EDSD_2"
+        },
+        {
+          "code": "edsd3",
+          "label": "EDSD_3"
+        },
+        {
+          "code": "edsd4",
+          "label": "EDSD_4"
+        },
+        {
+          "code": "edsd5",
+          "label": "EDSD_5"
+        },
+        {
+          "code": "edsd6",
+          "label": "EDSD_6"
+        },
+        {
+          "code": "edsd7",
+          "label": "EDSD_7"
+        },
+        {
+          "code": "edsd8",
+          "label": "EDSD_8"
+        },
+        {
+          "code": "edsd9",
+          "label": "EDSD_9"
+        },
+        {
+          "code": "desd-synthdata0",
+          "label": "DESD-synthdata_0"
+        },
+        {
+          "code": "desd-synthdata1",
+          "label": "DESD-synthdata_1"
+        },
+        {
+          "code": "desd-synthdata2",
+          "label": "DESD-synthdata_2"
+        },
+        {
+          "code": "desd-synthdata3",
+          "label": "DESD-synthdata_3"
+        },
+        {
+          "code": "desd-synthdata4",
+          "label": "DESD-synthdata_4"
+        },
+        {
+          "code": "desd-synthdata5",
+          "label": "DESD-synthdata_5"
+        },
+        {
+          "code": "desd-synthdata6",
+          "label": "DESD-synthdata_6"
+        },
+        {
+          "code": "desd-synthdata7",
+          "label": "DESD-synthdata_7"
+        },
+        {
+          "code": "desd-synthdata8",
+          "label": "DESD-synthdata_8"
+        },
+        {
+          "code": "desd-synthdata9",
+          "label": "DESD-synthdata_9"
         }
       ],
       "label": "Dataset",
