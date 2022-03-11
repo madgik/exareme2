@@ -533,7 +533,7 @@ def start_controller(c, detached=False, algorithm_folders=None):
             with c.prefix("export QUART_APP=mipengine/controller/api/app:app"):
                 outpath = OUTDIR / "controller.out"
                 if detached:
-                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0 --port 4999>> {outpath} 2>&1"
+                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0 --port 4999 >> {outpath} 2>&1"
                     run(c, cmd, wait=False)
                 else:
                     cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0 --port 4999"

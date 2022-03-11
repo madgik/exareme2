@@ -32,8 +32,8 @@ password = "monetdb"
 [smpc]
 enabled = true
 optional = false
-client_id = 2
-client_address = "http://dl058.madgik.di.uoa.gr:9002"
-coordinator_address = "http://dl056.madgik.di.uoa.gr:12314"
-get_result_interval = 0.5
+client_id = 1
+client_address = "http://172.17.0.1:9001"
+coordinator_address = "http://172.17.0.1:12314"
+get_result_interval = 1
 get_result_max_retries = 120

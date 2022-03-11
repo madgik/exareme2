@@ -36,7 +36,7 @@ context_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10]
 command_id = "command123"
 smpc_job_id = "testKey123"
 SMPC_GET_DATASET_ENDPOINT = "/api/update-dataset/"
-SMPC_COORDINATOR_ADDRESS = "http://dl056.madgik.di.uoa.gr:12314"
+SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
 
 
 @pytest.fixture(scope="session")
@@ -390,13 +390,12 @@ def test_load_data_to_smpc_client_from_globalnode_fails(
     assert "load_data_to_smpc_client is allowed only for a LOCALNODE." in str(exc)
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
+@pytest.mark.smpc
 def test_load_data_to_smpc_client(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
     smpc_localnode1_celery_app,
+    smpc_cluster,
 ):
     table_name, sum_op_values_str = create_table_with_smpc_sum_op_values(
         smpc_localnode1_celery_app
@@ -408,9 +407,8 @@ def test_load_data_to_smpc_client(
 
     load_data_to_smpc_client_task.delay(
         request_id=request_id,
-        context_id=context_id,
         table_name=table_name,
-        jobid="testKey123",
+        jobid=smpc_job_id,
     ).get()
 
     node_config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
@@ -451,13 +449,12 @@ def test_get_smpc_result_from_localnode_fails(
     assert "get_smpc_result is allowed only for a GLOBALNODE." in str(exc)
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
+@pytest.mark.smpc
 def test_get_smpc_result(
     smpc_globalnode_node_service,
     use_smpc_globalnode_database,
     smpc_globalnode_celery_app,
+    smpc_cluster,
 ):
     get_smpc_result_task = get_celery_task_signature(
         smpc_globalnode_celery_app, "get_smpc_result"
@@ -504,9 +501,7 @@ def test_get_smpc_result(
     )
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
+@pytest.mark.smpc
 def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_node_service,
     smpc_localnode1_node_service,
@@ -517,6 +512,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_celery_app,
     smpc_localnode1_celery_app,
     smpc_localnode2_celery_app,
+    smpc_cluster,
 ):
     run_udf_task_globalnode = get_celery_task_signature(
         smpc_globalnode_celery_app, "run_udf"
@@ -639,13 +635,11 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     # --------- LOAD LOCALNODE ADD OP DATA TO SMPC CLIENTS -----------------
     smpc_client_1 = load_data_to_smpc_client_task_localnode1.delay(
         request_id=request_id,
-        context_id=context_id,
         table_name=local_1_smpc_result.value.sum_op_values.value,
         jobid=smpc_job_id,
     ).get()
     smpc_client_2 = load_data_to_smpc_client_task_localnode2.delay(
         request_id=request_id,
-        context_id=context_id,
         table_name=local_2_smpc_result.value.sum_op_values.value,
         jobid=smpc_job_id,
     ).get()

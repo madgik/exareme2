@@ -66,6 +66,39 @@ LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
 
 TASKS_TIMEOUT = 10
 
+########### SMPC Cluster ############
+SMPC_CLUSTER_IMAGE = "gpikra/coordinator:latest"
+SMPC_COORD_DB_IMAGE = "mongo:5.0.6"
+SMPC_COORD_QUEUE_IMAGE = "redis:alpine3.15"
+
+SMPC_COORD_CONT_NAME = "smpc_test_coordinator"
+SMPC_COORD_DB_CONT_NAME = "smpc_test_coordinator_db"
+SMPC_COORD_QUEUE_CONT_NAME = "smpc_test_coordinator_queue"
+SMPC_PLAYER1_CONT_NAME = "smpc_test_player1"
+SMPC_PLAYER2_CONT_NAME = "smpc_test_player2"
+SMPC_PLAYER3_CONT_NAME = "smpc_test_player3"
+SMPC_CLIENT1_CONT_NAME = "smpc_test_client1"
+SMPC_CLIENT2_CONT_NAME = "smpc_test_client2"
+
+SMPC_COORD_PORT = 12314
+SMPC_COORD_DB_PORT = 27017
+SMPC_COORD_QUEUE_PORT = 6379
+SMPC_PLAYER1_PORT1 = 5000
+SMPC_PLAYER1_PORT2 = 7000
+SMPC_PLAYER1_PORT3 = 14000
+SMPC_PLAYER2_PORT1 = 5001
+SMPC_PLAYER2_PORT2 = 7001
+SMPC_PLAYER2_PORT3 = 14001
+SMPC_PLAYER3_PORT1 = 5002
+SMPC_PLAYER3_PORT2 = 7002
+SMPC_PLAYER3_PORT3 = 14002
+SMPC_CLIENT1_PORT = 9000
+SMPC_CLIENT2_PORT = 9001
+
+SMPC_CLIENT1_ID = 0
+SMPC_CLIENT2_ID = 1
+#####################################
+
 
 # TODO Instead of the fixtures having scope session, it could be function,
 # but when the fixture start, it should check if it already exists, thus
@@ -547,10 +580,10 @@ def smpc_localnode2_node_service(rabbitmq_smpc_localnode2, monetdb_smpc_localnod
 def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     """
     ATTENTION!
-    This node service fixture is the only one returning the process so it can be killed.
-    The scope of the fixture is function so it won't break tests if the node service is killed.
-    The rabbitmq and monetdb containers have also function scope so this is VERY slow.
-    This should be used only when the service should be killed etc for testing.
+    This node service fixture is the only one returning the process, so it can be killed.
+    The scope of the fixture is function, so it won't break tests if the node service is killed.
+    The rabbitmq and monetdb containers have also 'function' scope so this is VERY slow.
+    This should be used only when the service should be killed e.g. for testing.
     """
     node_config_file = LOCALNODETMP_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
@@ -624,3 +657,249 @@ def localnodetmp_tasks_handler_celery(localnodetmp_node_service):
         node_db_addr=db_address,
         tasks_timeout=TASKS_TIMEOUT,
     )
+
+
+@pytest.fixture(scope="session")
+def smpc_coordinator():
+    docker_cli = docker.from_env()
+
+    # Start coordinator db
+    try:
+        container = docker_cli.containers.get(SMPC_COORD_DB_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_COORD_DB_IMAGE,
+            name=SMPC_COORD_DB_CONT_NAME,
+            detach=True,
+            ports={27017: SMPC_COORD_DB_PORT},
+            environment={
+                "MONGO_INITDB_DATABASE": "agoradb",
+                "MONGO_INITDB_ROOT_USERNAME": "sysadmin",
+                "MONGO_INITDB_ROOT_PASSWORD": "123qwe",
+            },
+        )
+
+    # Start coordinator queue
+    try:
+        container = docker_cli.containers.get(SMPC_COORD_QUEUE_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_COORD_QUEUE_IMAGE,
+            name=SMPC_COORD_QUEUE_CONT_NAME,
+            detach=True,
+            ports={6379: SMPC_COORD_QUEUE_PORT},
+            environment={
+                "REDIS_REPLICATION_MODE": "master",
+            },
+            command="redis-server --requirepass agora",
+        )
+
+    # Start coordinator
+    try:
+        container = docker_cli.containers.get(SMPC_COORD_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_CLUSTER_IMAGE,
+            name=SMPC_COORD_CONT_NAME,
+            detach=True,
+            ports={12314: SMPC_COORD_PORT},
+            environment={
+                "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
+                "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
+                "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
+                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
+                "REDIS_HOST": f"{COMMON_IP}",
+                "REDIS_PORT": f"{SMPC_COORD_QUEUE_PORT}",
+                "REDIS_PSWD": "agora",
+            },
+            command="python coordinator.py",
+        )
+
+    time.sleep(10)  # TODO SMPC Remove
+
+    yield
+
+    # TODO Very slow development if containers are always removed afterwards
+    # db_cont = docker_cli.containers.get(SMPC_COORD_DB_CONT_NAME)
+    # db_cont.remove(v=True, force=True)
+    # queue_cont = docker_cli.containers.get(SMPC_COORD_QUEUE_CONT_NAME)
+    # queue_cont.remove(v=True, force=True)
+    # coord_cont = docker_cli.containers.get(SMPC_COORD_CONT_NAME)
+    # coord_cont.remove(v=True, force=True)
+
+
+@pytest.fixture(scope="session")
+def smpc_players(
+    smpc_coordinator,  # TODO SMPC Remove
+):
+    docker_cli = docker.from_env()
+
+    # Start player 1
+    try:
+        container = docker_cli.containers.get(SMPC_PLAYER1_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_CLUSTER_IMAGE,
+            name=SMPC_PLAYER1_CONT_NAME,
+            detach=True,
+            ports={
+                5000: SMPC_PLAYER1_PORT1,
+                7100: SMPC_PLAYER1_PORT2,
+                14000: SMPC_PLAYER1_PORT3,
+            },
+            environment={
+                "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
+                "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
+                "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
+                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
+                "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+            },
+            volumes={
+                "/home/thanasis/smpc/NetworkData.txt": {
+                    "bind": "/SCALE-MAMBA/Data/NetworkData.txt",
+                    "mode": "ro",
+                }
+            },  # TODO SMPC Remove
+            command="python player.py 0",
+        )
+
+    # Start player 2
+    try:
+        container = docker_cli.containers.get(SMPC_PLAYER2_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_CLUSTER_IMAGE,
+            name=SMPC_PLAYER2_CONT_NAME,
+            detach=True,
+            ports={
+                5001: SMPC_PLAYER2_PORT1,
+                7101: SMPC_PLAYER2_PORT2,
+                14001: SMPC_PLAYER2_PORT3,
+            },
+            environment={
+                "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
+                "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
+                "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
+                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
+                "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+            },
+            volumes={
+                "/home/thanasis/smpc/NetworkData.txt": {
+                    "bind": "/SCALE-MAMBA/Data/NetworkData.txt",
+                    "mode": "ro",
+                }
+            },  # TODO SMPC Remove
+            command="python player.py 1",
+        )
+
+    # Start player 3
+    try:
+        container = docker_cli.containers.get(SMPC_PLAYER3_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_CLUSTER_IMAGE,
+            name=SMPC_PLAYER3_CONT_NAME,
+            detach=True,
+            ports={
+                5002: SMPC_PLAYER3_PORT1,
+                7102: SMPC_PLAYER3_PORT2,
+                14002: SMPC_PLAYER3_PORT3,
+            },
+            environment={
+                "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
+                "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
+                "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
+                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
+                "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+            },
+            volumes={
+                "/home/thanasis/smpc/NetworkData.txt": {
+                    "bind": "/SCALE-MAMBA/Data/NetworkData.txt",
+                    "mode": "ro",
+                }
+            },  # TODO SMPC Remove
+            command="python player.py 2",
+        )
+
+    time.sleep(10)  # TODO SMPC Remove
+
+    yield
+
+    # TODO Very slow development if containers are always removed afterwards
+    # player1_cont = docker_cli.containers.get(SMPC_PLAYER1_CONT_NAME)
+    # player1_cont.remove(v=True, force=True)
+    # player2_cont = docker_cli.containers.get(SMPC_PLAYER2_CONT_NAME)
+    # player2_cont.remove(v=True, force=True)
+    # player3_cont = docker_cli.containers.get(SMPC_PLAYER3_CONT_NAME)
+    # player3_cont.remove(v=True, force=True)
+
+
+@pytest.fixture(scope="session")
+def smpc_clients(
+    smpc_coordinator,  # TODO SMPC Remove
+    smpc_players,  # TODO SMPC Remove
+):
+    docker_cli = docker.from_env()
+
+    # Start client 1
+    try:
+        container = docker_cli.containers.get(SMPC_CLIENT1_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_CLUSTER_IMAGE,
+            name=SMPC_CLIENT1_CONT_NAME,
+            detach=True,
+            ports={
+                9000: SMPC_CLIENT1_PORT,
+            },
+            environment={
+                "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
+                "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
+                "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
+                "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+            },
+            volumes={
+                "/home/thanasis/smpc/NetworkData.txt": {
+                    "bind": "/SCALE-MAMBA/Data/NetworkData.txt",
+                    "mode": "ro",
+                }
+            },  # TODO SMPC Remove
+            command=f"python client.py {SMPC_CLIENT1_ID}",
+        )
+
+    # Start client 2
+    try:
+        container = docker_cli.containers.get(SMPC_CLIENT2_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_CLUSTER_IMAGE,
+            name=SMPC_CLIENT2_CONT_NAME,
+            detach=True,
+            ports={
+                9001: SMPC_CLIENT2_PORT,
+            },
+            environment={
+                "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
+                "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
+                "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
+                "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+            },
+            volumes={
+                "/home/thanasis/smpc/NetworkData.txt": {
+                    "bind": "/SCALE-MAMBA/Data/NetworkData.txt",
+                    "mode": "ro",
+                }
+            },  # TODO SMPC Remove
+            command=f"python client.py {SMPC_CLIENT2_ID}",
+        )
+
+    # TODO Very slow development if containers are always removed afterwards
+    # client1_cont = docker_cli.containers.get(SMPC_CLIENT1_CONT_NAME)
+    # client1_cont.remove(v=True, force=True)
+    # client2_cont = docker_cli.containers.get(SMPC_CLIENT2_CONT_NAME)
+    # client2_cont.remove(v=True, force=True)
+
+
+@pytest.fixture(scope="session")
+def smpc_cluster(smpc_coordinator, smpc_players, smpc_clients):
+    yield
