@@ -46,6 +46,7 @@ the node service will be called 'localnode1' and should be referenced using that
 Paths are subject to change so in the following documentation the global variables will be used.
 
 """
+import copy
 import json
 import shutil
 import sys
@@ -84,6 +85,19 @@ DEMO_DATA_FOLDER = Path(tests.__file__).parent / "demo_data"
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
 MIPENGINE_NODE_CONFIG_FILE = "MIPENGINE_NODE_CONFIG_FILE"
 
+SMPC_BASE_ADDRESS = "http://127.0.0.1"
+SMPC_COORDINATOR_PORT = 12314
+SMPC_COORDINATOR_DB_PORT = 27017
+SMPC_COORDINATOR_QUEUE_PORT = 6379
+SMPC_PLAYER_BASE_PORT = 7000
+SMPC_CLIENT_BASE_PORT = 9000
+SMPC_COORDINATOR_NAME = "smpc_coordinator"
+SMPC_COORDINATOR_DB_NAME = "smpc_coordinator_db"
+SMPC_COORDINATOR_QUEUE_NAME = "smpc_coordinator_queue"
+SMPC_PLAYER_BASE_NAME = "smpc_player"
+SMPC_CLIENT_BASE_NAME = "smpc_client"
+
+
 # TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
 # Right now if we call a task from another task, the "pre"-task is not executed
 
@@ -109,7 +123,7 @@ def create_configs(c):
         template_node_config = toml.load(fp)
 
     for node in deployment_config["nodes"]:
-        node_config = template_node_config.copy()
+        node_config = copy.deepcopy(template_node_config)
 
         node_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
 
@@ -126,6 +140,23 @@ def create_configs(c):
 
         node_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
         node_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
+        if node["role"] == "GLOBALNODE":
+            node_config["smpc"][
+                "coordinator_address"
+            ] = f"{SMPC_BASE_ADDRESS}:{SMPC_COORDINATOR_PORT}"
+            node_config["smpc"]["get_result_interval"] = deployment_config["smpc"][
+                "get_result_interval"
+            ]
+            node_config["smpc"]["get_result_max_retries"] = deployment_config["smpc"][
+                "get_result_max_retries"
+            ]
+        else:
+            node_config["smpc"]["client_id"] = str(
+                int(node["id"][-1]) - 1
+            )  # TODO SMPC Simple node["id"]
+            node_config["smpc"][
+                "client_address"
+            ] = f"{SMPC_BASE_ADDRESS}:{node['smpc_client_port']}"
 
         node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
         with open(node_config_file, "w+") as fp:
@@ -134,7 +165,7 @@ def create_configs(c):
     # Create the controller config file
     with open(CONTROLLER_CONFIG_TEMPLATE_FILE) as fp:
         template_controller_config = toml.load(fp)
-    controller_config = template_controller_config.copy()
+    controller_config = copy.deepcopy(template_controller_config)
     controller_config["log_level"] = deployment_config["log_level"]
     controller_config["framework_log_level"] = deployment_config["framework_log_level"]
 
@@ -155,6 +186,9 @@ def create_configs(c):
 
     controller_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
     controller_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
+    controller_config["smpc"][
+        "coordinator_address"
+    ] = f"{SMPC_BASE_ADDRESS}:{SMPC_COORDINATOR_PORT}"
 
     CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
@@ -179,13 +213,14 @@ def install_dependencies(c):
 
 
 @task
-def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
+def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False, smpc=False):
     """
     Remove the specified docker containers, either by container or relative name.
 
     :param container_name: If set, removes the container with the specified name.
     :param monetdb: If True, it will remove all monetdb containers.
     :param rabbitmq: If True, it will remove all rabbitmq containers.
+    :param smpc: If True, it will remove all smpc related containers.
 
     If nothing is set, nothing is removed.
     """
@@ -194,6 +229,8 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
         names.append("monetdb")
     if rabbitmq:
         names.append("rabbitmq")
+    if smpc:
+        names.append("smpc")
     if container_name:
         names.append(container_name)
     if not names:
@@ -204,11 +241,11 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
     for name in names:
         container_ids = run(c, f"docker ps -qa --filter name={name}", show_ok=False)
         if container_ids.stdout:
-            message(f"Removing {name} container...", Level.HEADER)
+            message(f"Removing {name} container(s)...", Level.HEADER)
             cmd = f"docker rm -vf $(docker ps -qa --filter name={name})"
             run(c, cmd)
         else:
-            message(f"No {name} container to remove", level=Level.HEADER)
+            message(f"No {name} container to remove.", level=Level.HEADER)
 
 
 @task(iterable=["node"])
@@ -267,7 +304,7 @@ def init_monetdb(c, port):
             f"Initializing MonetDB with mipdb in port: {port}...",
             Level.HEADER,
         )
-        cmd = f"""poetry run mipdb init --ip 172.17.0.1 --port {port}"""
+        cmd = f"""poetry run mipdb init --ip 127.0.0.1 --port {port}"""
         run(c, cmd)
 
 
@@ -300,7 +337,7 @@ def load_data(c, port=None):
         template_node_config = toml.load(fp)
     for port in local_node_ports:
         message(f"Loading data on MonetDB at port {port}...", Level.HEADER)
-        cmd = f"poetry run mipdb load-folder {DEMO_DATA_FOLDER}  --ip 172.17.0.1 --port {port} "
+        cmd = f"poetry run mipdb load-folder {DEMO_DATA_FOLDER}  --ip 127.0.0.1 --port {port} "
         run(c, cmd)
 
 
@@ -514,6 +551,7 @@ def deploy(
     framework_log_level=None,
     monetdb_image=None,
     algorithm_folders=None,
+    smpc=None,
 ):
     """
     Install dependencies, (re)create all the containers and (re)start all the services.
@@ -525,8 +563,11 @@ def deploy(
     :param log_level: Used for the dev logs. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param framework_log_level: Used for the engine services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_image: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
-    :param algorithm_folders: Used from the services.
+    :param algorithm_folders: Used from the services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc: Deploy the SMPC cluster as well. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     """
+
+    cleanup(c)
 
     if not log_level:
         log_level = get_deployment_config("log_level")
@@ -537,10 +578,16 @@ def deploy(
     if not monetdb_image:
         monetdb_image = get_deployment_config("monetdb_image")
 
+    if not algorithm_folders:
+        algorithm_folders = get_deployment_config("algorithm_folders")
+
+    if smpc is None:
+        smpc = get_deployment_config("smpc", subconfig="enabled")
+
     if install_dep:
         install_dependencies(c)
 
-    # start NODE services
+    # Start NODE services
     config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
     if not config_files:
         message(
@@ -570,9 +617,12 @@ def deploy(
             algorithm_folders=algorithm_folders,
         )
 
-    # start CONTROLLER service
+    # Start CONTROLLER service
     if start_controller_ or start_all:
         start_controller(c, detached=True, algorithm_folders=algorithm_folders)
+
+    if smpc:
+        deploy_smpc(c)
 
 
 @task
@@ -601,7 +651,7 @@ def cleanup(c):
     """Kill all node/controller services and remove all monetdb/rabbitmq containers."""
     kill_controller(c)
     kill_node(c, all_=True)
-    rm_containers(c, monetdb=True, rabbitmq=True)
+    rm_containers(c, monetdb=True, rabbitmq=True, smpc=True)
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
         for outpath in OUTDIR.glob("*.out"):
@@ -661,6 +711,202 @@ def kill_all_flowers(c):
         message("Flower has withered away", Level.HEADER)
     else:
         message(f"No flower container to remove", level=Level.HEADER)
+
+
+def start_smpc_coordinator_db(c, image):
+    container_ports = f"{SMPC_COORDINATOR_DB_PORT}:27017"
+    message(
+        f"Starting container {SMPC_COORDINATOR_DB_NAME} on ports {container_ports}...",
+        Level.HEADER,
+    )
+    env_variables = (
+        "-e MONGO_INITDB_DATABASE=agoradb "
+        "-e MONGO_INITDB_ROOT_USERNAME=sysadmin "
+        "-e MONGO_INITDB_ROOT_PASSWORD=123qwe "
+    )
+    cmd = f"docker run -d -p {container_ports} {env_variables} --name {SMPC_COORDINATOR_DB_NAME} {image}"
+    run(c, cmd)
+
+
+def start_smpc_coordinator_queue(c, image):
+    container_ports = f"{SMPC_COORDINATOR_QUEUE_PORT}:6379"
+    message(
+        f"Starting container {SMPC_COORDINATOR_QUEUE_NAME} on ports {container_ports}...",
+        Level.HEADER,
+    )
+    container_cmd = "redis-server --requirepass agora"
+    cmd = f"""docker run -d -p {container_ports} -e REDIS_REPLICATION_MODE=master --name {SMPC_COORDINATOR_QUEUE_NAME} {image} {container_cmd}"""
+    run(c, cmd)
+
+
+def start_smpc_coordinator_container(c, ip, image):
+    container_ports = f"{SMPC_COORDINATOR_PORT}:12314"
+    message(
+        f"Starting container {SMPC_COORDINATOR_NAME} on ports {container_ports}...",
+        Level.HEADER,
+    )
+    container_cmd = "python coordinator.py"
+    env_variables = (
+        f"-e PLAYER_REPO_0=http://{ip}:7000 "
+        f"-e PLAYER_REPO_1=http://{ip}:7001 "
+        f"-e PLAYER_REPO_2=http://{ip}:7002 "
+        f"-e DB_URL={ip}:{SMPC_COORDINATOR_DB_PORT} "
+        f"-e REDIS_HOST={ip} "
+        f"-e REDIS_PORT={SMPC_COORDINATOR_QUEUE_PORT} "
+        "-e REDIS_PSWD=agora "
+    )
+    cmd = f"""docker run -d -p {container_ports} {env_variables} --name {SMPC_COORDINATOR_NAME} {image} {container_cmd}"""
+    run(c, cmd)
+
+
+@task
+def start_smpc_coordinator(
+    c, ip=None, smpc_image=None, smpc_db_image=None, smpc_queue_image=None
+):
+    """
+    (Re)Creates all needed SMPC coordinator containers. If the containers exist, it will remove them and create them again.
+
+    :param ip: The ip to use for container communication. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc_image: The coordinator image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc_db_image: The db image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc_queue_image: The queue image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    """
+
+    if not ip:
+        ip = get_deployment_config("ip")
+    if not smpc_image:
+        smpc_image = get_deployment_config("smpc", subconfig="smpc_image")
+    if not smpc_db_image:
+        smpc_db_image = get_deployment_config("smpc", subconfig="db_image")
+    if not smpc_queue_image:
+        smpc_queue_image = get_deployment_config("smpc", subconfig="queue_image")
+
+    get_docker_image(c, smpc_image)
+    get_docker_image(c, smpc_db_image)
+    get_docker_image(c, smpc_queue_image)
+
+    rm_containers(c, container_name="smpc_coordinator")
+
+    start_smpc_coordinator_db(c, smpc_db_image)
+    start_smpc_coordinator_queue(c, smpc_queue_image)
+    start_smpc_coordinator_container(c, ip, smpc_image)
+
+
+def start_smpc_player(c, ip, id, order, image):
+    name = f"{SMPC_PLAYER_BASE_NAME}_{order}"
+    message(
+        f"Starting container {name} ...",
+        Level.HEADER,
+    )
+    container_cmd = f"python player.py {order}"  # TODO SMPC id instead of order
+    env_variables = (
+        f"-e PLAYER_REPO_0=http://{ip}:7000 "
+        f"-e PLAYER_REPO_1=http://{ip}:7001 "
+        f"-e PLAYER_REPO_2=http://{ip}:7002 "
+        f"-e DB_URL={ip}:{SMPC_COORDINATOR_DB_PORT} "
+        f"-e COORDINATOR_URL=http://{ip}:{SMPC_COORDINATOR_PORT} "
+    )
+    container_ports = (
+        f"-p {5000 + order}:{5000 + order} "
+        f"-p {SMPC_PLAYER_BASE_PORT + order}:{7100 + order} "
+        f"-p {14000 + order}:{14000 + order} "
+    )  # TODO SMPC Internal port should not change
+    volumes = f"-v /home/thanasis/smpc/NetworkData.txt:/SCALE-MAMBA/Data/NetworkData.txt"  # TODO SMPC Remove
+    cmd = f"""docker run -d {container_ports} {volumes} {env_variables} --name {name} {image} {container_cmd}"""
+    run(c, cmd)
+
+
+@task
+def start_smpc_players(c, ip=None, image=None):
+    """
+    (Re)Creates 3 SMPC player containers. If the containers exist, it will remove them and create them again.
+
+    :param ip: The ip to use for container communication. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param image: The smpc player image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    """
+
+    if not ip:
+        ip = get_deployment_config("ip")
+    if not image:
+        image = get_deployment_config("smpc", subconfig="smpc_image")
+
+    get_docker_image(c, image)
+
+    rm_containers(c, container_name="smpc_player")
+
+    for i in range(3):
+        cont_id = f"player{i}"
+        start_smpc_player(c, ip, cont_id, i, image)
+
+
+def start_smpc_client(c, node_id, ip, image):
+    node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
+    with open(node_config_file) as fp:
+        node_config = toml.load(fp)
+
+    client_id = node_config["smpc"]["client_id"]
+    client_port = node_config["smpc"]["client_address"].split(":")[
+        2
+    ]  # Get the port from the address e.g. 'http://127.0.0.1:9000'
+
+    name = f"{SMPC_CLIENT_BASE_NAME}_{client_id}"
+    message(
+        f"Starting container {name} ...",
+        Level.HEADER,
+    )
+    container_cmd = f"python client.py {client_id[-1]}"  # TODO SMPC Remove [-1]
+    env_variables = (
+        f"-e PLAYER_REPO_0=http://{ip}:7000 "
+        f"-e PLAYER_REPO_1=http://{ip}:7001 "
+        f"-e PLAYER_REPO_2=http://{ip}:7002 "
+        f"-e COORDINATOR_URL=http://{ip}:{SMPC_COORDINATOR_PORT} "
+    )
+    container_ports = (
+        f"-p {client_port}:{client_port} "  # TODO SMPC Internal port should not change
+    )
+    volumes = f"-v /home/thanasis/smpc/NetworkData.txt:/SCALE-MAMBA/Data/NetworkData.txt"  # TODO SMPC Remove
+    cmd = f"""docker run -d {container_ports} {volumes} {env_variables} --name {name} {image} {container_cmd}"""
+    run(c, cmd)
+
+
+@task
+def start_smpc_clients(c, ip=None, image=None):
+    """
+    (Re)Creates 3 SMPC player containers. If the containers exist, it will remove them and create them again.
+
+    :param ip: The ip to use for container communication. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param image: The smpc player image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    """
+
+    if not ip:
+        ip = get_deployment_config("ip")
+    if not image:
+        image = get_deployment_config("smpc", subconfig="smpc_image")
+
+    get_docker_image(c, image)
+
+    rm_containers(c, container_name="smpc_client")
+
+    for node_id in get_localnode_ids():
+        start_smpc_client(c, node_id, ip, image)
+
+
+@task
+def deploy_smpc(c, ip=None, smpc_image=None, smpc_db_image=None, smpc_queue_image=None):
+    """
+    (Re)Creates all needed SMPC containers. If the containers exist, it will remove them and create them again.
+
+    :param ip: The ip to use for container communication. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc_image: The coordinator image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc_db_image: The db image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc_queue_image: The queue image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    """
+    rm_containers(c, smpc=True)
+    start_smpc_coordinator(c, ip, smpc_image, smpc_db_image, smpc_queue_image)
+    sleep(10)  # TODO SMPC Remove
+    start_smpc_players(c, ip, smpc_image)
+    sleep(10)  # TODO SMPC Remove
+    start_smpc_clients(c, ip, smpc_image)
 
 
 def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok=True):
@@ -736,13 +982,14 @@ def spin_wheel(promise=None, time=None):
                 break
 
 
-def get_deployment_config(config):
+def get_deployment_config(config, subconfig=None):
     if not Path(DEPLOYMENT_CONFIG_FILE).is_file():
         raise FileNotFoundError(
             f"Please provide a --{config} parameter or create a deployment config file '{DEPLOYMENT_CONFIG_FILE}'"
         )
-
     with open(DEPLOYMENT_CONFIG_FILE) as fp:
+        if subconfig:
+            return toml.load(fp)[config][subconfig]
         return toml.load(fp)[config]
 
 
@@ -767,6 +1014,18 @@ def get_node_ids(all_=False, node=None):
         sys.exit(1)
 
     return node_ids
+
+
+def get_localnode_ids():
+    all_node_ids = get_node_ids(all_=True)
+    local_node_ids = []
+    for node_id in all_node_ids:
+        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
+        with open(node_config_file) as fp:
+            node_config = toml.load(fp)
+        if node_config["role"] == "LOCALNODE":
+            local_node_ids.append(node_id)
+    return local_node_ids
 
 
 def get_docker_image(c, image, always_pull=False):

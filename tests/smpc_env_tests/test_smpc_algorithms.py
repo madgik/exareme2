@@ -214,9 +214,6 @@ def get_parametrization_list_success_cases():
     return parametrization_list
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_success_cases(),
@@ -230,7 +227,7 @@ def test_post_smpc_algorithm(algorithm_name, request_dict, expected_response):
         data=json.dumps(request_dict),
         headers=headers,
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Response message: {response.text}"
     assert json.loads(response.text) == expected_response
 
 
@@ -286,9 +283,6 @@ def get_parametrization_list_exception_cases():
     return parametrization_list
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_exception_cases(),
@@ -303,5 +297,7 @@ def test_post_smpc_algorithm_exception(algorithm_name, request_dict, expected_re
         headers=headers,
     )
     exp_response_status, exp_response_message = expected_response
-    assert response.status_code == exp_response_status
+    assert (
+        response.status_code == exp_response_status
+    ), f"Response message: {response.text}"
     assert re.search(exp_response_message, response.text)
