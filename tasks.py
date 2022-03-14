@@ -274,7 +274,7 @@ def init_monetdb(c, port):
             f"Initializing MonetDB with mipdb in port: {port}...",
             Level.HEADER,
         )
-        cmd = f"""poetry run mipdb init --ip 172.17.0.1 --port {port}"""
+        cmd = f"""poetry run mipdb init --ip 127.0.0.1 --port {port}"""
         run(c, cmd)
 
 
