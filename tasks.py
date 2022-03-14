@@ -63,6 +63,7 @@ from invoke import task
 from termcolor import colored
 
 import tests
+from mipengine.udfgen import udfio
 
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
@@ -139,8 +140,8 @@ def create_configs(c):
     controller_config["framework_log_level"] = deployment_config["framework_log_level"]
 
     controller_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
-    controller_config["node_registry_update_interval"] = deployment_config[
-        "node_registry_update_interval"
+    controller_config["node_landscape_aggregator_update_interval"] = deployment_config[
+        "node_landscape_aggregator_update_interval"
     ]
     controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
         "celery_tasks_timeout"
@@ -236,6 +237,8 @@ def create_monetdb(c, node, image=None, log_level=None):
         log_level = get_deployment_config("log_level")
 
     get_docker_image(c, image)
+
+    udfio_full_path = path.abspath(udfio.__file__)
 
     node_ids = node
     for node_id in node_ids:
@@ -663,6 +666,34 @@ def kill_all_flowers(c):
         message("Flower has withered away", Level.HEADER)
     else:
         message(f"No flower container to remove", level=Level.HEADER)
+
+
+@task(iterable=["db"])
+def reload_udfio(c, db):
+    """
+    Used for reloading the udfio module inside the monetdb containers.
+
+    :param db: The names of the monetdb containers.
+    """
+    dbs = db
+    for db in dbs:
+        sql_reload_query = """
+CREATE OR REPLACE FUNCTION
+reload_udfio()
+RETURNS
+INT
+LANGUAGE PYTHON
+{
+    import udfio
+    import importlib
+    importlib.reload(udfio)
+    return 0
+};
+
+SELECT reload_udfio();
+        """
+        command = f'docker exec -t {db} mclient db --statement "{sql_reload_query}"'
+        run(c, command)
 
 
 def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok=True):

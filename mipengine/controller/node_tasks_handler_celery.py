@@ -123,6 +123,10 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     def node_data_address(self) -> str:
         return self._db_address
 
+    @property
+    def tasks_timeout(self) -> int:
+        return self._tasks_timeout
+
     def _apply_async(self, task_signature, **kwargs) -> AsyncResult:
         # The existing connection to the broker is passed in apply_async because the
         # default behaviour (not passing a
@@ -412,4 +416,4 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         task_signature = self._celery_app.signature(TASK_SIGNATURES["clean_up"])
         self._apply_async(
             task_signature=task_signature, request_id=request_id, context_id=context_id
-        )
+        ).get(self._tasks_timeout)
