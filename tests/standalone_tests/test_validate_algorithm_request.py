@@ -2,10 +2,6 @@ from unittest.mock import patch
 
 import pytest
 
-from mipengine.common_data_elements import CommonDataElement
-from mipengine.common_data_elements import CommonDataElements
-from mipengine.common_data_elements import MetadataEnumeration
-from mipengine.common_data_elements import MetadataVariable
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
 from mipengine.controller.algorithms_specifications import AlgorithmsSpecifications
 from mipengine.controller.algorithms_specifications import InputDataSpecification
@@ -16,132 +12,106 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.api.validator import validate_algorithm_request
+from mipengine.controller.common_data_elements import CommonDataElement
+from mipengine.controller.data_model_registry import DataModelRegistry
 
 
 @pytest.fixture(scope="module", autouse=True)
 def mock_cdes():
-    common_data_elements = CommonDataElements()
-    common_data_elements.data_models = {
+    data_model_registry = DataModelRegistry()
+    data_model_registry.common_data_models = {
         "test_data_model1:0.1": {
             "test_cde1": CommonDataElement(
-                MetadataVariable(
-                    code="test_cde1",
-                    label="test cde1",
-                    sql_type="int",
-                    isCategorical=False,
-                    enumerations=None,
-                    min=None,
-                    max=None,
-                )
+                code="test_cde1",
+                label="test cde1",
+                sql_type="int",
+                is_categorical=False,
+                enumerations=None,
+                min=None,
+                max=None,
             ),
             "test_cde2": CommonDataElement(
-                MetadataVariable(
-                    code="test_cde2",
-                    label="test cde2",
-                    sql_type="real",
-                    isCategorical=False,
-                    enumerations=None,
-                    min=None,
-                    max=None,
-                )
+                code="test_cde2",
+                label="test cde2",
+                sql_type="real",
+                is_categorical=False,
+                enumerations=None,
+                min=None,
+                max=None,
             ),
             "test_cde3": CommonDataElement(
-                MetadataVariable(
-                    code="test_cde3",
-                    label="test cde3",
-                    sql_type="text",
-                    isCategorical=True,
-                    enumerations=[
-                        MetadataEnumeration(code="male", label="male"),
-                        MetadataEnumeration(code="female", label="female"),
-                    ],
-                    min=None,
-                    max=None,
-                )
+                code="test_cde3",
+                label="test cde3",
+                sql_type="text",
+                is_categorical=True,
+                enumerations={"male": "male", "female": "female"},
+                min=None,
+                max=None,
             ),
             "test_cde4": CommonDataElement(
-                MetadataVariable(
-                    code="test_cde4",
-                    label="test cde4",
-                    sql_type="text",
-                    isCategorical=False,
-                    min=None,
-                    max=None,
-                )
+                code="test_cde4",
+                label="test cde4",
+                sql_type="text",
+                is_categorical=False,
+                min=None,
+                max=None,
             ),
             "test_cde5": CommonDataElement(
-                MetadataVariable(
-                    code="test_cde5",
-                    label="test cde5",
-                    sql_type="int",
-                    isCategorical=True,
-                    enumerations=[
-                        MetadataEnumeration(code="1", label="1"),
-                        MetadataEnumeration(code="2", label="2"),
-                    ],
-                    min=None,
-                    max=None,
-                )
+                code="test_cde5",
+                label="test cde5",
+                sql_type="int",
+                is_categorical=True,
+                enumerations={
+                    "1": "1",
+                    "2": "2",
+                },
+                min=None,
+                max=None,
             ),
             "test_cde6": CommonDataElement(
-                MetadataVariable(
-                    code="test_cde6",
-                    label="test cde6",
-                    sql_type="text",
-                    isCategorical=True,
-                    enumerations=[
-                        MetadataEnumeration(code="male", label="male"),
-                        MetadataEnumeration(code="female", label="female"),
-                        MetadataEnumeration(code="Other", label="Other"),
-                    ],
-                    min=None,
-                    max=None,
-                )
+                code="test_cde6",
+                label="test cde6",
+                sql_type="text",
+                is_categorical=True,
+                enumerations={"male": "male", "female": "female", "Other": "Other"},
+                min=None,
+                max=None,
             ),
         },
         "test_data_model2:0.1": {
             "test_cde1": CommonDataElement(
-                MetadataVariable(
-                    code="test_cde1",
-                    label="test cde1",
-                    sql_type="int",
-                    isCategorical=False,
-                    enumerations=None,
-                    min=None,
-                    max=None,
-                )
+                code="test_cde1",
+                label="test cde1",
+                sql_type="int",
+                is_categorical=False,
+                enumerations=None,
+                min=None,
+                max=None,
             ),
             "test_cde2": CommonDataElement(
-                MetadataVariable(
-                    code="test_cde2",
-                    label="test cde2",
-                    sql_type="real",
-                    isCategorical=False,
-                    enumerations=None,
-                    min=None,
-                    max=None,
-                )
+                code="test_cde2",
+                label="test cde2",
+                sql_type="real",
+                is_categorical=False,
+                enumerations=None,
+                min=None,
+                max=None,
             ),
             "test_cde3": CommonDataElement(
-                MetadataVariable(
-                    code="test_cde3",
-                    label="test cde3",
-                    sql_type="text",
-                    isCategorical=True,
-                    enumerations=[
-                        MetadataEnumeration(code="male", label="male"),
-                        MetadataEnumeration(code="female", label="female"),
-                    ],
-                    min=None,
-                    max=None,
-                )
+                code="test_cde3",
+                label="test cde3",
+                sql_type="text",
+                is_categorical=True,
+                enumerations={"male": "male", "female": "female"},
+                min=None,
+                max=None,
             ),
         },
     }
 
     with patch(
-        "mipengine.controller.api.validator.controller_common_data_elements",
-        common_data_elements,
+        "mipengine.controller.api.validator.data_model_registry",
+        data_model_registry,
     ):
         yield
 

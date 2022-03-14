@@ -87,6 +87,29 @@ class TableData(ImmutableBaseModel):
     ]
 
 
+class CommonDataElement(ImmutableBaseModel):
+    code: str
+    label: str
+    sql_type: str
+    is_categorical: bool
+    enumerations: Optional[Dict[str, str]] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
+
+    def __eq__(self, other):
+        if isinstance(other, CommonDataElement):
+            return (
+                self.code == other.code
+                and self.label == other.label
+                and self.sql_type == other.sql_type
+                and self.is_categorical == other.is_categorical
+                and self.enumerations == other.enumerations
+                and self.max == other.max
+                and self.min == other.min
+            )
+        return False
+
+
 # ~~~~~~~~~~~~~~~~~~~ UDFs IO ~~~~~~~~~~~~~~~~~~~~~~ #
 
 
@@ -143,15 +166,3 @@ class UDFKeyArguments(ImmutableBaseModel):
 
 class UDFResults(ImmutableBaseModel):
     results: List[Union[NodeTableDTO, NodeSMPCDTO]]
-
-
-class CommonDataElement(ImmutableBaseModel):
-    code: str
-    label: str
-    sql_type: str
-    is_categorical: bool
-    enumerations: Dict[
-        str, str
-    ] = None  # dict key is the enumeration code and dict value is the label
-    min: Optional[float] = None
-    max: Optional[float] = None

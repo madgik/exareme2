@@ -1,4 +1,5 @@
 from typing import Dict
+from typing import List
 
 from celery import shared_task
 
@@ -24,9 +25,6 @@ def get_node_info(request_id: str):
     str(NodeInfo)
         A NodeInfo object in a jsonified format
     """
-    datasets_per_data_model = {}
-    for data_model in get_data_models():
-        datasets_per_data_model[data_model] = get_data_model_datasets(data_model)
 
     node_info = NodeInfo(
         id=node_config.identifier,
@@ -35,10 +33,28 @@ def get_node_info(request_id: str):
         port=node_config.rabbitmq.port,
         db_ip=node_config.monetdb.ip,
         db_port=node_config.monetdb.port,
-        datasets_per_data_model=datasets_per_data_model,
     )
 
     return node_info.json()
+
+
+@shared_task
+@initialise_logger
+def get_node_datasets_per_data_model(request_id: str) -> Dict[str, Dict[str, str]]:
+    """
+    Parameters
+    ----------
+    request_id : str
+        The identifier for the logging
+    Returns
+    ------
+    Dict[str, Dict[str, str]]
+        A dictionary with key data model and value a list of pairs (dataset code and dataset label)
+    """
+    return {
+        data_model: get_data_model_datasets(data_model)
+        for data_model in get_data_models()
+    }
 
 
 @shared_task

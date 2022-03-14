@@ -1,5 +1,7 @@
+import logging
 from typing import Dict
 from typing import List
+from typing import Tuple
 
 from mipengine import DType
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
@@ -226,7 +228,7 @@ def get_data_models() -> List[str]:
     return data_models
 
 
-def get_data_model_datasets(data_model) -> List[str]:
+def get_data_model_datasets(data_model) -> Dict[str, str]:
     """
     Retrieves the enabled datasets of the specific data_model.
 
@@ -239,7 +241,7 @@ def get_data_model_datasets(data_model) -> List[str]:
 
     datasets_rows = MonetDB().execute_and_fetchall(
         f"""
-        SELECT code
+        SELECT code, label
         FROM "mipdb_metadata"."datasets"
         WHERE data_model_id =
         (
@@ -251,11 +253,7 @@ def get_data_model_datasets(data_model) -> List[str]:
         AND status = 'ENABLED'
         """
     )
-
-    # Flatten the list
-    datasets = [
-        dataset_name for dataset_row in datasets_rows for dataset_name in dataset_row
-    ]
+    datasets = {code: label for code, label in datasets_rows}
     return datasets
 
 

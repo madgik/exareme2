@@ -552,16 +552,16 @@ def deploy(
         sys.exit(1)
 
     node_ids = []
-    monetdb_ports = []
+    local_nodes_monetdb_ports = []
     for node_config_file in config_files:
         with open(node_config_file) as fp:
             node_config = toml.load(fp)
         node_ids.append(node_config["identifier"])
-        monetdb_ports.append(node_config["monetdb"]["port"])
-
+        if node_config["role"] == "LOCALNODE":
+            local_nodes_monetdb_ports.append(node_config["monetdb"]["port"])
     create_monetdb(c, node=node_ids, image=monetdb_image, log_level=log_level)
     create_rabbitmq(c, node=node_ids)
-    init_monetdb(c, port=monetdb_ports)
+    init_monetdb(c, port=local_nodes_monetdb_ports)
 
     if start_nodes or start_all:
         start_node(

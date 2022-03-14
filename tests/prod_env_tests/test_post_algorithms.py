@@ -199,5 +199,7 @@ def test_post_algorithm_error(algorithm_name, request_dict, expected_response):
     request_json = json.dumps(request_dict)
     response = requests.post(algorithm_url, data=request_json, headers=headers)
     exp_response_status, exp_response_message = expected_response
-    assert response.status_code == exp_response_status
+    assert (
+        response.status_code == exp_response_status
+    ), f"Response message: {response.text}"
     assert re.search(exp_response_message, response.text)

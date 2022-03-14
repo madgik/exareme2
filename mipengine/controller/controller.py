@@ -15,6 +15,8 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
+from mipengine.controller.data_model_registry import data_model_registry
+from mipengine.controller.node_landscape_aggregator import node_landscape_aggregator
 from mipengine.controller.node_registry import node_registry
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 
@@ -88,23 +90,20 @@ class Controller:
             available_datasets_per_data_model=available_datasets_per_data_model,
         )
 
-    async def start_node_registry(self):
-        asyncio.create_task(node_registry.update())
+    async def start_node_landscape_aggregator(self):
+        asyncio.create_task(node_landscape_aggregator.update())
 
-    async def stop_node_registry(self):
-        node_registry.keep_updating = False
+    async def stop_node_landscape_aggregator(self):
+        node_landscape_aggregator.keep_updating = False
 
-    def get_all_datasets_per_node(self):
-        datasets = {}
-        for node in node_registry.get_all_local_nodes():
-            datasets[node.id] = node.datasets_per_data_model
-        return datasets
+    def get_datasets_location(self):
+        return data_model_registry.datasets_location
 
-    def get_all_available_schemas(self):
-        return node_registry.get_all_available_data_models()
+    def get_all_available_data_models(self):
+        return data_model_registry.get_all_available_data_models()
 
     def get_all_available_datasets_per_data_model(self):
-        return node_registry.get_all_available_datasets_per_data_model()
+        return data_model_registry.get_all_available_datasets_per_data_model()
 
     def get_all_local_nodes(self):
         return node_registry.get_all_local_nodes()
@@ -115,10 +114,11 @@ class Controller:
 
         # Get only the relevant nodes from the node registry
         global_node = node_registry.get_all_global_nodes()[0]
-        local_nodes = node_registry.get_nodes_with_any_of_datasets(
+        local_node_ids = data_model_registry.get_nodes_with_any_of_datasets(
             data_model=data_model,
             datasets=datasets,
         )
+        local_nodes = node_registry.get_nodes_by_ids(local_node_ids)
 
         queue_address = ":".join([str(global_node.ip), str(global_node.port)])
         db_address = ":".join([str(global_node.db_ip), str(global_node.db_port)])

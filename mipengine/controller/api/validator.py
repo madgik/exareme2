@@ -4,8 +4,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.common_data_elements import CommonDataElement
-from mipengine.common_data_elements import CommonDataElements
 from mipengine.controller import config as ctrl_config
 from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
 from mipengine.controller.algorithms_specifications import InputDataSpecification
@@ -19,10 +17,9 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.controller_common_data_elements import (
-    controller_common_data_elements,
-)
+from mipengine.controller.data_model_registry import data_model_registry
 from mipengine.filters import validate_filter
+from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 
 # TODO This validator will be refactored heavily with https://team-1617704806227.atlassian.net/browse/MIP-90
@@ -90,8 +87,7 @@ def _validate_inputdata_data_model_and_dataset(
     Validates that the data_model, dataset values exist and
     that the datasets belong in the data_model.
     """
-
-    if requested_data_model not in available_datasets_per_data_model.keys():
+    if requested_data_model not in list(available_datasets_per_data_model.keys()):
         raise BadUserInput(f"Data model '{requested_data_model}' does not exist.")
 
     non_existing_datasets = [
@@ -110,8 +106,7 @@ def _validate_inputdata_filter(data_model, filter):
     Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
     """
-    common_data_elements = CommonDataElements(ctrl_config.cdes_metadata_path)
-    validate_filter(common_data_elements, data_model, filter)
+    validate_filter(data_model, filter)
 
 
 # TODO This will be removed with the dynamic inputdata logic.
@@ -173,9 +168,7 @@ def _validate_inputdata_value(
 
 
 def _get_cde_metadata(cde, data_model):
-    data_model_cdes: Dict[
-        str, CommonDataElement
-    ] = controller_common_data_elements.data_models[data_model]
+    data_model_cdes = data_model_registry.common_data_models[data_model].cdes
     if cde not in data_model_cdes.keys():
         raise BadUserInput(
             f"The CDE '{cde}' does not exist in data model '{data_model}'."

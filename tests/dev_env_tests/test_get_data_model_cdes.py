@@ -2,6 +2,7 @@ import uuid
 
 import pytest
 
+from mipengine.controller.common_data_elements import CommonDataElements
 from mipengine.node_tasks_DTOs import CommonDataElement
 from tests.dev_env_tests.nodes_communication import get_celery_app
 from tests.dev_env_tests.nodes_communication import get_celery_task_signature
@@ -87,14 +88,13 @@ def get_test_cases_get_data_model_cdes():
 def test_get_data_model_cdes(
     data_model, expected_data_model_cdes_length, expected_data_model_cdes
 ):
-    node_info_signature = get_celery_task_signature(
+    get_data_model_cdes_signature = get_celery_task_signature(
         get_celery_app("localnode1"), "get_data_model_cdes"
     )
     request_id = "test_node_info_" + uuid.uuid4().hex + "_request"
-    data_model_cdes = node_info_signature.delay(
+    data_model_cdes = get_data_model_cdes_signature.delay(
         request_id=request_id, data_model=data_model
     ).get()
-
     assert len(data_model_cdes) == expected_data_model_cdes_length
     for exp_cde_code, exp_cde_metadata in expected_data_model_cdes.items():
         assert exp_cde_code in data_model_cdes.keys()
