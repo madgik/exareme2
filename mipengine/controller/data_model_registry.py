@@ -47,9 +47,10 @@ class DataModelRegistry:
             return []
 
         local_nodes_with_datasets = [
-            self.datasets_location[data_model][dataset]
+            node
             for dataset in self.datasets_location[data_model]
             if dataset in datasets
+            for node in self.datasets_location[data_model][dataset]
         ]
         return list(set(local_nodes_with_datasets))
 
