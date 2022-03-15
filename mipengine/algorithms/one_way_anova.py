@@ -2,17 +2,14 @@ import itertools
 import json
 from typing import TypeVar
 
-import numpy as np
 import pandas as pd
 from pydantic import BaseModel
-from statsmodels.stats.libqsturng import psturng
 
 from mipengine.udfgen.udfgenerator import literal
 from mipengine.udfgen.udfgenerator import merge_transfer
 from mipengine.udfgen.udfgenerator import relation
 from mipengine.udfgen.udfgenerator import transfer
 from mipengine.udfgen.udfgenerator import udf
-from mipengine.udfgen.udfgenerator import udf_logger
 
 
 class AnovaResult(BaseModel):
@@ -84,18 +81,12 @@ S = TypeVar("S")
     x=relation(schema=S),
     covar_enums=literal(),
     return_type=[transfer()],
-    logger=udf_logger(),
 )
-def local1(y, x, covar_enums, logger):
-    import numpy as np
+def local1(y, x, covar_enums):
     import pandas as pd
 
-    y_names = y.columns[0]
-    x_names = x.columns[0]
     variable = y.reset_index(drop=True).to_numpy().squeeze()
-    # variable = y[y_names]
     covariable = x.reset_index(drop=True).to_numpy().squeeze()
-    covar_list = covar_enums
     var_label = y.columns.values.tolist()[0]
     covar_label = x.columns.values.tolist()[0]
     dataset = pd.DataFrame()
@@ -108,7 +99,6 @@ def local1(y, x, covar_enums, logger):
     # get overall stats
     overall_stats = dataset[var_label].agg(["count", "sum"])
     overall_ssq = dataset[var_sq].sum()
-    # overall_stats["overall_ssq"] = overall_ssq
     overall_stats = overall_stats.append(pd.Series(data=overall_ssq, index=["sum_sq"]))
 
     # get group stats
@@ -119,11 +109,6 @@ def local1(y, x, covar_enums, logger):
     group_ssq = dataset[[var_sq, covar_label]].groupby(covar_label).sum()
     group_ssq.columns = ["sum_sq"]
     group_stats_df = pd.DataFrame(group_stats)
-    # if set(covar_enums) != set(group_stats_df.index):
-    #     group_stats_df = group_stats_df.set_index(covar_enums)
-    #     raise ValueError("Enums don't match")
-
-    # group_stats_df["group_stats"] = group_stats
     group_stats_df["group_ssq"] = group_ssq
 
     transfer_ = {
@@ -146,8 +131,8 @@ def local1(y, x, covar_enums, logger):
     return transfer_
 
 
-@udf(local_transfers=merge_transfer(), logger=udf_logger(), return_type=[transfer()])
-def global1(local_transfers, logger):
+@udf(local_transfers=merge_transfer(), return_type=[transfer()])
+def global1(local_transfers):
     import itertools
 
     import numpy as np
