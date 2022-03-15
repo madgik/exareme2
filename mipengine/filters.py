@@ -1,5 +1,7 @@
+from typing import Dict
+
 from mipengine import DType
-from mipengine.controller.data_model_registry import data_model_registry
+from mipengine.node_tasks_DTOs import CommonDataElement
 
 FILTER_OPERATORS = {
     "equal": lambda column, value: f"{column} = {value}",
@@ -27,7 +29,7 @@ class FilterError(Exception):
 
 def build_filter_clause(rules):
     """
-    Converts and returns a given filter in jQuery format to an sql clause.
+    Converts and returns a given filter in jQuery format to a sql clause.
     This function will not check the validity of the
     filters (the only exception is the SQL Injection which will be handled by pydantic)
     """
@@ -52,7 +54,7 @@ def build_filter_clause(rules):
     raise FilterError(f"Filters did not contain the keys: 'condition' or 'id'.")
 
 
-def validate_filter(data_model: str, rules: dict):
+def validate_filter(data_model: str, rules: dict, cdes: Dict[str, CommonDataElement]):
     """
     Validates a given filter in jQuery format.
     This function will check the validity of:
@@ -71,13 +73,13 @@ def validate_filter(data_model: str, rules: dict):
         _check_condition(rules["condition"])
         rules = rules["rules"]
         for rule in rules:
-            validate_filter(data_model, rule)
+            validate_filter(data_model, rule, cdes)
     elif "id" in rules:
         column_name = rules["id"]
         val = rules["value"]
         _check_operator(rules["operator"])
-        _check_column_exists(data_model, column_name)
-        _check_value_type(data_model, column_name, val)
+        _check_column_exists(data_model, column_name, cdes)
+        _check_value_type(column_name, val, cdes)
     else:
         raise FilterError(
             f"Invalid filters format. Filters did not contain the keys: 'condition' or 'id'."
@@ -105,35 +107,29 @@ def _check_operator(operator: str):
         raise FilterError(f"Operator: {operator} is not acceptable.")
 
 
-def _check_column_exists(data_model: str, column: str):
-    data_model_common_data_elements = data_model_registry.common_data_models[
-        data_model
-    ].cdes
-    if column not in data_model_common_data_elements:
+def _check_column_exists(data_model: str, column: str, cdes):
+    if column not in cdes:
         raise FilterError(
             f"Column {column} does not exist in the metadata of the {data_model}!"
         )
 
 
-def _check_value_type(data_model: str, column: str, value):
+def _check_value_type(column: str, value, cdes):
     if value is None:
         return
 
     if isinstance(value, list):
-        [_check_value_type(data_model, column, item) for item in value]
+        [_check_value_type(column, item, cdes) for item in value]
     elif isinstance(value, (int, str, float)):
-        _check_value_column_same_type(data_model, column, value)
+        _check_value_column_same_type(column, value, cdes)
     else:
         raise FilterError(
             f"Value {value} should be of type int, str, float but was {type(value)}"
         )
 
 
-def _check_value_column_same_type(data_model, column, value):
-    data_model_common_data_elements = data_model_registry.common_data_models[
-        data_model
-    ].cdes
-    column_sql_type = data_model_common_data_elements[column].sql_type
+def _check_value_column_same_type(column, value, cdes):
+    column_sql_type = cdes[column].sql_type
     dtype = DType.from_cde(column_sql_type)
     if type(value) is not dtype.to_py():
         raise FilterError(

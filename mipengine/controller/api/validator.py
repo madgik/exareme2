@@ -106,7 +106,9 @@ def _validate_inputdata_filter(data_model, filter):
     Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
     """
-    validate_filter(data_model, filter)
+    validate_filter(
+        data_model, filter, data_model_registry.common_data_models[data_model].cdes
+    )
 
 
 # TODO This will be removed with the dynamic inputdata logic.
