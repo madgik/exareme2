@@ -103,6 +103,8 @@ def test_dataset_exists(mocked_data_model_registry):
 
 
 def test_get_nodes_with_any_of_datasets(mocked_data_model_registry):
-    assert mocked_data_model_registry.get_nodes_with_any_of_datasets(
-        "tbi:0.1", ["dummy_tbi"]
-    ) == ["localnode1", "localnode2"]
+    assert set(
+        mocked_data_model_registry.get_nodes_with_any_of_datasets(
+            "tbi:0.1", ["dummy_tbi"]
+        )
+    ) == {"localnode1", "localnode2"}

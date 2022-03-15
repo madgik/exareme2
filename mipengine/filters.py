@@ -18,7 +18,7 @@ FILTER_OPERATORS = {
     "not_in": lambda column, values: f"{column} NOT IN ({','.join(str(value) for value in values)})",
 }
 
-__all__ = ["build_filter_clause", "validate_filter"]
+__all__ = ["build_filter_clause", "validate_filter", "FilterError"]
 
 
 class FilterError(Exception):

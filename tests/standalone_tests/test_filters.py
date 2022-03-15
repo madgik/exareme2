@@ -1,10 +1,7 @@
-from unittest.mock import patch
-
 import pytest
 
 from mipengine.controller.common_data_elements import CommonDataElement
 from mipengine.controller.common_data_elements import CommonDataElements
-from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.filters import FilterError
 from mipengine.filters import build_filter_clause
 from mipengine.filters import validate_filter
@@ -12,109 +9,100 @@ from mipengine.filters import validate_filter
 DATA_MODEL = "test_data_model1:0.1"
 
 
-@pytest.fixture(scope="module", autouse=True)
-def mock_data_model_registry():
-    data_model_registry = DataModelRegistry()
-    data_model_registry.common_data_models = {
-        "test_data_model1:0.1": CommonDataElements(
-            cdes={
-                "test_age_value": CommonDataElement(
-                    code="test_age_value",
-                    label="test test_age_value",
-                    sql_type="int",
-                    is_categorical=False,
-                    enumerations=None,
-                    min=0,
-                    max=130,
-                ),
-                "test_pupil_reactivity_right_eye_result": CommonDataElement(
-                    code="test_pupil_reactivity_right_eye_result",
-                    label="test test_pupil_reactivity_right_eye_result",
-                    sql_type="text",
-                    is_categorical=True,
-                    enumerations={
-                        "Sluggish": "Sluggish",
-                        "Nonreactive": "Nonreactive",
-                        "Brisk": "Brisk",
-                        "Untestable": "Untestable",
-                        "Unknown": "Unknown",
-                    },
-                    min=None,
-                    max=None,
-                ),
-                "test_mortality_core": CommonDataElement(
-                    code="test_mortality_core",
-                    label="test_mortality_core",
-                    sql_type="real",
-                    is_categorical=False,
-                    enumerations=None,
-                    min=None,
-                    max=None,
-                ),
-                "test_gose_score": CommonDataElement(
-                    code="test_gose_score",
-                    label="test_gose_score",
-                    sql_type="text",
-                    is_categorical=True,
-                    enumerations={
-                        "1": "Dead",
-                        "2": "Vegetative State",
-                        "3": "Lower Severe Disability",
-                        "4": "Upper Severe Disability",
-                        "5": "Lower Moderate Disability",
-                        "6": "Upper Moderate Disability",
-                        "7": "Lower Good Recovery",
-                        "8": "Upper Good Recovery",
-                    },
-                    min=None,
-                    max=None,
-                ),
-                "test_gcs_total_score": CommonDataElement(
-                    code="test_gcs_total_score",
-                    label="test_gcs_total_score",
-                    sql_type="text",
-                    is_categorical=True,
-                    enumerations={
-                        "3": "3",
-                        "4": "4",
-                        "5": "5",
-                        "6": "6",
-                        "7": "7",
-                        "8": "8",
-                        "9": "9",
-                        "10": "10",
-                        "11": "11",
-                        "12": "12",
-                        "13": "13",
-                        "14": "14",
-                        "15": "15",
-                        "untestable": "untestable",
-                        "unknown": "unknown",
-                    },
-                    min=None,
-                    max=None,
-                ),
-                "test_gender_type": CommonDataElement(
-                    code="test_gender_type",
-                    label="test_gender_type",
-                    sql_type="text",
-                    is_categorical=True,
-                    enumerations={
-                        "M": "Male",
-                        "F": "Female",
-                    },
-                    min=None,
-                    max=None,
-                ),
-            }
-        ),
+@pytest.fixture
+def common_data_models():
+    return {
+        "test_data_model1:0.1": {
+            "test_age_value": CommonDataElement(
+                code="test_age_value",
+                label="test test_age_value",
+                sql_type="int",
+                is_categorical=False,
+                enumerations=None,
+                min=0,
+                max=130,
+            ),
+            "test_pupil_reactivity_right_eye_result": CommonDataElement(
+                code="test_pupil_reactivity_right_eye_result",
+                label="test test_pupil_reactivity_right_eye_result",
+                sql_type="text",
+                is_categorical=True,
+                enumerations={
+                    "Sluggish": "Sluggish",
+                    "Nonreactive": "Nonreactive",
+                    "Brisk": "Brisk",
+                    "Untestable": "Untestable",
+                    "Unknown": "Unknown",
+                },
+                min=None,
+                max=None,
+            ),
+            "test_mortality_core": CommonDataElement(
+                code="test_mortality_core",
+                label="test_mortality_core",
+                sql_type="real",
+                is_categorical=False,
+                enumerations=None,
+                min=None,
+                max=None,
+            ),
+            "test_gose_score": CommonDataElement(
+                code="test_gose_score",
+                label="test_gose_score",
+                sql_type="text",
+                is_categorical=True,
+                enumerations={
+                    "1": "Dead",
+                    "2": "Vegetative State",
+                    "3": "Lower Severe Disability",
+                    "4": "Upper Severe Disability",
+                    "5": "Lower Moderate Disability",
+                    "6": "Upper Moderate Disability",
+                    "7": "Lower Good Recovery",
+                    "8": "Upper Good Recovery",
+                },
+                min=None,
+                max=None,
+            ),
+            "test_gcs_total_score": CommonDataElement(
+                code="test_gcs_total_score",
+                label="test_gcs_total_score",
+                sql_type="text",
+                is_categorical=True,
+                enumerations={
+                    "3": "3",
+                    "4": "4",
+                    "5": "5",
+                    "6": "6",
+                    "7": "7",
+                    "8": "8",
+                    "9": "9",
+                    "10": "10",
+                    "11": "11",
+                    "12": "12",
+                    "13": "13",
+                    "14": "14",
+                    "15": "15",
+                    "untestable": "untestable",
+                    "unknown": "unknown",
+                },
+                min=None,
+                max=None,
+            ),
+            "test_gender_type": CommonDataElement(
+                code="test_gender_type",
+                label="test_gender_type",
+                sql_type="text",
+                is_categorical=True,
+                enumerations={
+                    "M": "Male",
+                    "F": "Female",
+                },
+                min=None,
+                max=None,
+            ),
+        },
     }
-
-    with patch(
-        "mipengine.filters.data_model_registry",
-        data_model_registry,
-    ):
-        yield
 
 
 all_success_cases = [
@@ -375,8 +363,8 @@ def test_build_filter_clause(test_input, expected):
 
 
 @pytest.mark.parametrize("test_input,expected", all_success_cases)
-def test_validate_filter(test_input, expected):
-    validate_filter(DATA_MODEL, test_input)
+def test_validate_filter(test_input, expected, common_data_models):
+    validate_filter(DATA_MODEL, test_input, common_data_models[DATA_MODEL])
 
 
 all_build_filter_clause_fail_cases = [
@@ -487,6 +475,6 @@ all_validate_filter_fail_cases = [
 
 
 @pytest.mark.parametrize("test_input", all_validate_filter_fail_cases)
-def test_validate_filter_fail_cases_bad_filter(test_input):
+def test_validate_filter_fail_cases_bad_filter(test_input, common_data_models):
     with pytest.raises(FilterError):
-        validate_filter(DATA_MODEL, test_input)
+        validate_filter(DATA_MODEL, test_input, common_data_models)
