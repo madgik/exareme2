@@ -45,7 +45,7 @@ class DB(MonetDB):
         return variables["code"].tolist()
 
     def get_nominal_variables(self):
-        query = f"""select code from {METADATA_TABLENAME} where metadata LIKE '%"is_categorical": true%' AND code <> 'dataset' AND code <> 'alzheimerbroadcategory' AND code <> 'neurodegenerativescategories'; """
+        query = f"""select code from {METADATA_TABLENAME} where metadata LIKE '%"is_categorical": true%'; """
         variables = pd.read_sql(query, self._connection)
         return variables["code"].tolist()
 
@@ -334,20 +334,18 @@ class TestCaseGenerator(ABC):
     def get_input_data(self, input_):
         inputdata = input_["inputdata"]
         datasets = list(inputdata["datasets"])
-
         y = list(inputdata["y"])
         x = inputdata.get("x", None)
         x = list(x) if x else []
 
         variables = list(set(y + x))
-        # if "dataset" in variables:
-        #     full_data = self.all_data[variables]
-        #     full_data = full_data[full_data.dataset.isin(datasets)]
-        # else:
-        #
-        full_data = self.all_data[variables + ["dataset"]]
-        full_data = full_data[full_data.dataset.isin(datasets)]
-        del full_data["dataset"]
+        if "dataset" in variables:
+            full_data = self.all_data[variables]
+            full_data = full_data[full_data.dataset.isin(datasets)]
+        else:
+            full_data = self.all_data[variables + ["dataset"]]
+            full_data = full_data[full_data.dataset.isin(datasets)]
+            del full_data["dataset"]
 
         full_data = full_data.dropna()
         if len(full_data) == 0:
@@ -367,12 +365,27 @@ class TestCaseGenerator(ABC):
             raise ValueError(
                 "Cannot find inputdata values resulting in non-empty data."
             )
+
         parameters = input_["parameters"]
-        output = self.compute_expected_output(input_data, parameters)
+        try:
+            output = self.compute_expected_output(input_data, parameters)
+        except Exception as err:
+            raise Exception(
+                f"\033[1m\033[91mAn error occurred:\033[0m\033[0m {err}, datasets: \033[1m {input_['inputdata']['datasets']} \033[0m"
+            )
+
         return {"input": input_, "output": output}
 
     def generate_test_cases(self, num_test_cases=100):
-        test_cases = [self.generate_test_case() for _ in tqdm(range(num_test_cases))]
+        test_cases = []
+        while len(test_cases) < num_test_cases:
+            print(f"Generating test case #{len(test_cases) + 1}.")
+            try:
+                item = self.generate_test_case()
+                test_cases.append(item)
+            except Exception as err:
+                print(err)
+
         return {"test_cases": test_cases}
 
     def write_test_cases(self, file, num_test_cases=100):

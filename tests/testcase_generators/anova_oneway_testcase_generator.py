@@ -26,8 +26,13 @@ class ANOVAOneWayTestCaseGenerator(TestCaseGenerator):
         n_obs = len(Y)
         y_names = Y.columns[0]
         x_names = X.columns[0]
-        data = pd.DataFrame.join(Y, X)
+        dict_to_df = {y_names: Y[y_names].tolist(), x_names: X[x_names].tolist()}
+        data = pd.DataFrame(dict_to_df)
         n_groups = len(set(data[x_names]))
+        if n_groups < 2:
+            raise ValueError(
+                f"Not enough enums to create test case. Variable:\033[1m '{x_names}'\033[0m"
+            )
         # Anova
         formula = "{y} ~ {x}".format(y=y_names, x=x_names)
         lm = ols(formula, data=data).fit()
