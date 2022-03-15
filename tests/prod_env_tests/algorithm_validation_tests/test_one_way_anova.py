@@ -54,7 +54,7 @@ def get_test_params(file, slc=None):
 
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
-def test_anova_algorithm_local(test_input, expected):
+def test_anova_algorithm(test_input, expected):
     result = json.loads(anova_one_way_request(test_input).content)
     aov = result["anova_table"]
     tukey = result["tukey_test"]
