@@ -151,14 +151,15 @@ def global1(local_transfers):
     group_ssq = sum(np.array(t["group_stats_ssq"]) for t in local_transfers)
     group_stats_index_all = [t["group_stats_df_index"] for t in local_transfers]
 
-    group_stats_index = []
-    for x, y in itertools.combinations(
-        group_stats_index_all, len(group_stats_index_all)
-    ):
-        group_stats_index = x
-        diff = list(set(x) - set(y))
-        if diff != []:
-            group_stats_index.append(diff)
+    group_stats_index = group_stats_index_all[0]
+    if len(group_stats_index_all) > 1:
+        for x, y in itertools.combinations(
+            group_stats_index_all, len(group_stats_index_all)
+        ):
+            group_stats_index = x
+            diff = list(set(x) - set(y))
+            if diff != []:
+                group_stats_index.append(diff)
 
     categories = local_transfers[0]["covar_enums"]
     if len(categories) < 2:
