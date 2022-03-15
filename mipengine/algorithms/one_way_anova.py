@@ -34,7 +34,6 @@ def run(algo_interface):
     covar_enums = list(algo_interface.metadata[x_var_name]["enumerations"])
 
     Y_relation = algo_interface.initial_view_tables["y"]
-
     local_transfers = local_run(
         func=local1,
         keyword_args=dict(y=Y_relation, x=X_relation, covar_enums=covar_enums),
@@ -60,14 +59,14 @@ def run(algo_interface):
     }
 
     tukey_result = {
-        "thsd_A": result["thsd A"],
-        "thsd_B": result["thsd B"],
-        "thsd_mean_A": result["thsd mean(A)"],
-        "thsd_mean_B": result["thsd mean(B)"],
-        "thsd_diff": result["thsd diff"],
-        "thsd_Std_Err": result["thsd Std.Err."],
-        "thsd_t_value": result["thsd t value"],
-        "thsd_Pr_t": result["thsd Pr(>|t|)"],
+        "groupA": result["thsd A"],
+        "groupB": result["thsd B"],
+        "meanA": result["thsd mean(A)"],
+        "meanB": result["thsd mean(B)"],
+        "diff": result["thsd diff"],
+        "se": result["thsd Std.Err."],
+        "t_stat": result["thsd t value"],
+        "p_tukey": result["thsd Pr(>|t|)"],
     }
     df_tukey_result = pd.DataFrame(tukey_result)
     tukey_test = df_tukey_result.to_dict(orient="records")
@@ -85,17 +84,20 @@ S = TypeVar("S")
     x=relation(schema=S),
     covar_enums=literal(),
     return_type=[transfer()],
+    logger=udf_logger(),
 )
-def local1(y, x, covar_enums):
+def local1(y, x, covar_enums, logger):
     import numpy as np
     import pandas as pd
 
+    y_names = y.columns[0]
+    x_names = x.columns[0]
     variable = y.reset_index(drop=True).to_numpy().squeeze()
+    # variable = y[y_names]
     covariable = x.reset_index(drop=True).to_numpy().squeeze()
     covar_list = covar_enums
     var_label = y.columns.values.tolist()[0]
     covar_label = x.columns.values.tolist()[0]
-
     dataset = pd.DataFrame()
     dataset[var_label] = variable
     dataset[covar_label] = covariable
@@ -117,28 +119,29 @@ def local1(y, x, covar_enums):
     group_ssq = dataset[[var_sq, covar_label]].groupby(covar_label).sum()
     group_ssq.columns = ["sum_sq"]
     group_stats_df = pd.DataFrame(group_stats)
-    if set(covar_enums) != set(group_stats_df.index):
-        group_stats_df = group_stats_df.set_index(covar_enums)
-        raise ValueError("Enums don't match")
+    # if set(covar_enums) != set(group_stats_df.index):
+    #     group_stats_df = group_stats_df.set_index(covar_enums)
+    #     raise ValueError("Enums don't match")
 
     # group_stats_df["group_stats"] = group_stats
     group_stats_df["group_ssq"] = group_ssq
 
-    transfer_ = {}
-    transfer_["n_obs"] = n_obs
-    transfer_["var_label"] = var_label
-    transfer_["covar_label"] = covar_label
-    transfer_[var_label] = dataset[var_label].tolist()
-    transfer_[covar_label] = dataset[covar_label].tolist()
-    transfer_["covar_enums"] = covar_enums
-    transfer_["overall_stats_sum"] = overall_stats["sum"].tolist()
-    transfer_["overall_stats_count"] = overall_stats["count"].tolist()
-    transfer_["overall_ssq"] = overall_ssq
-    transfer_["overall_stats_index"] = overall_stats.index.tolist()
-    transfer_["group_stats_sum"] = group_stats_df["sum"].tolist()
-    transfer_["group_stats_count"] = group_stats_df["count"].tolist()
-    transfer_["group_stats_ssq"] = group_stats_df["group_ssq"].tolist()
-    transfer_["group_stats_df_index"] = group_stats_df.index.tolist()
+    transfer_ = {
+        "n_obs": n_obs,
+        "var_label": var_label,
+        "covar_label": covar_label,
+        var_label: dataset[var_label].tolist(),
+        covar_label: dataset[covar_label].tolist(),
+        "covar_enums": covar_enums,
+        "overall_stats_sum": overall_stats["sum"].tolist(),
+        "overall_stats_count": overall_stats["count"].tolist(),
+        "overall_ssq": overall_ssq.item(),
+        "overall_stats_index": overall_stats.index.tolist(),
+        "group_stats_sum": group_stats_df["sum"].tolist(),
+        "group_stats_count": group_stats_df["count"].tolist(),
+        "group_stats_ssq": group_stats_df["group_ssq"].tolist(),
+        "group_stats_df_index": group_stats_df.index.tolist(),
+    }
 
     return transfer_
 
@@ -163,6 +166,7 @@ def global1(local_transfers, logger):
     group_stats_count = sum(np.array(t["group_stats_count"]) for t in local_transfers)
     group_ssq = sum(np.array(t["group_stats_ssq"]) for t in local_transfers)
     group_stats_index_all = [t["group_stats_df_index"] for t in local_transfers]
+
     group_stats_index = []
     for x, y in itertools.combinations(
         group_stats_index_all, len(group_stats_index_all)
@@ -173,19 +177,18 @@ def global1(local_transfers, logger):
             group_stats_index.append(diff)
 
     categories = local_transfers[0]["covar_enums"]
-    # if len(model.group_stats) < 2:
-    #     raise ExaremeError("Cannot perform Anova when there is only one level")
+    if len(categories) < 2:
+        raise ValueError("Cannot perform Anova when there is only one level")
 
-    df_explained = len(categories) - 1
-    df_residual = n_obs - len(categories)
+    df_explained = len(group_stats_index) - 1
+    df_residual = n_obs - len(group_stats_index)
     ss_residual = overall_ssq - sum(group_stats_sum ** 2 / group_stats_count)
     overall_mean = overall_stats_sum / overall_stats_count
     ss_total = overall_ssq - overall_stats_sum ** 2 / overall_stats_count
-    ss_explained = sum(
-        (overall_mean - group_stats_sum ** 2 / group_stats_count) ** 2
-        * group_stats_count
-    )
 
+    ss_explained = sum(
+        (overall_mean - group_stats_sum / group_stats_count) ** 2 * group_stats_count
+    )
     ms_explained = ss_explained / df_explained
     ms_residual = ss_residual / df_residual
     f_stat = ms_explained / ms_residual
@@ -241,8 +244,8 @@ def global1(local_transfers, logger):
     # tukey data
     # pairwise tukey (model, covar_enums)
 
-    # categories = np.array(aov.group_stats.index)
-    n_groups = len(categories)
+    g_cat = np.array(group_stats_index)
+    n_groups = len(g_cat)
     gnobs = group_stats_count
     gmeans = group_stats_sum / group_stats_count
 
@@ -267,8 +270,8 @@ def global1(local_transfers, logger):
         ],
         index=range(n_groups * (n_groups - 1) // 2),
     )
-    thsd["A"] = np.array(categories)[g1.astype(int)]
-    thsd["B"] = np.array(categories)[g2.astype(int)]
+    thsd["A"] = np.array(g_cat)[g1.astype(int)]
+    thsd["B"] = np.array(g_cat)[g2.astype(int)]
     thsd["mean(A)"] = gmeans[g1]
     thsd["mean(B)"] = gmeans[g2]
     thsd["diff"] = mn

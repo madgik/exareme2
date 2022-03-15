@@ -77,6 +77,7 @@ RUN chmod 444 /etc/logrotate.d/monetdb
 RUN pip3 install scipy
 RUN pip3 install pandas
 RUN pip3 install scikit-learn
+RUN pip3 install statsmodels
 
 #######################################################
 # Add /home/udflib to python path and copy

@@ -44,8 +44,8 @@ def anova_one_way_request(input):
     return response
 
 
-def get_test_params(expected_file, slc=None):
-    with expected_file.open() as f:
+def get_test_params(file, slc=None):
+    with file.open() as f:
         params = json.load(f)["test_cases"]
     if not slc:
         slc = slice(len(params))
@@ -53,29 +53,8 @@ def get_test_params(expected_file, slc=None):
     return params
 
 
-@pytest.mark.parametrize(
-    "test_input, expected", get_test_params(expected_file, slice(80))
-)
+@pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_anova_algorithm_local(test_input, expected):
-    result = json.loads(anova_one_way_request(test_input).content)
-    aov = result["anova_table"]
-    tukey = result["tukey_test"]
-    e_aov = {k: v for k, v in expected.items() if k != "tukey_test"}
-    e_tukey = expected["tukey_test"]
-    assert set(e_aov) == set(aov.keys())
-    for key, e_val in e_aov.items():
-        r_val = aov[key]
-        assert np.isclose(e_val, r_val)
-    for et, rt in zip(e_tukey, tukey):
-        for key, e_val in et.items():
-            r_val = rt[key]
-            assert e_val == r_val or np.isclose(e_val, r_val)
-
-
-@pytest.mark.parametrize(
-    "test_input, expected", get_test_params(expected_file, slice(80, 95))
-)
-def test_anova_algorithm_federated(test_input, expected):
     result = json.loads(anova_one_way_request(test_input).content)
     aov = result["anova_table"]
     tukey = result["tukey_test"]
