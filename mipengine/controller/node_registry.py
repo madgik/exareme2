@@ -1,6 +1,5 @@
 import asyncio
 import json
-import sys
 from typing import Any
 from typing import Dict
 from typing import List
@@ -16,8 +15,6 @@ from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 
 NODE_REGISTRY_REQUEST_ID = "NODE_REGISTRY"
-# TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
-# so the module can be easily unit tested
 
 logger = ctrl_logger.get_background_service_logger()
 
@@ -124,7 +121,6 @@ class NodeRegistry:
             # debug(self.nodes)
             # DEBUG end
 
-            sys.stdout.flush()
             await asyncio.sleep(NODE_REGISTRY_UPDATE_INTERVAL)
 
     def get_all_global_nodes(self) -> List[NodeInfo]:

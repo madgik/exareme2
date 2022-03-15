@@ -18,6 +18,12 @@ helm
 
 To configure kubernetes to use docker you should also follow this [guide](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#docker "guide") .
 
+### Hostname configuration
+
+Currently, each node is distinguished from another one using their hostnames and they <b>MUST</b> be alphanumeric.
+<br>If the node's hostname does not comply with that convention it has to be configured
+from the kubelet following this [guide](https://kubernetes.io/docs/reference/labels-annotations-taints/#kubernetesiohostname).
+
 ## Cluster Management
 
 ### Initialize the cluster

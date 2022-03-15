@@ -63,6 +63,7 @@ from invoke import task
 from termcolor import colored
 
 import tests
+from mipengine.udfgen import udfio
 
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
@@ -237,6 +238,8 @@ def create_monetdb(c, node, image=None, log_level=None):
 
     get_docker_image(c, image)
 
+    udfio_full_path = path.abspath(udfio.__file__)
+
     node_ids = node
     for node_id in node_ids:
         container_name = f"monetdb-{node_id}"
@@ -250,7 +253,9 @@ def create_monetdb(c, node, image=None, log_level=None):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} --name {container_name} {image}"""
+        # A volume is used to pass the udfio inside the monetdb container.
+        # This is done so that we don't need to rebuild every time the udfio.py file is changed.
+        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} {image}"""
         run(c, cmd)
 
 
@@ -663,6 +668,34 @@ def kill_all_flowers(c):
         message("Flower has withered away", Level.HEADER)
     else:
         message(f"No flower container to remove", level=Level.HEADER)
+
+
+@task(iterable=["db"])
+def reload_udfio(c, db):
+    """
+    Used for reloading the udfio module inside the monetdb containers.
+
+    :param db: The names of the monetdb containers.
+    """
+    dbs = db
+    for db in dbs:
+        sql_reload_query = """
+CREATE OR REPLACE FUNCTION
+reload_udfio()
+RETURNS
+INT
+LANGUAGE PYTHON
+{
+    import udfio
+    import importlib
+    importlib.reload(udfio)
+    return 0
+};
+
+SELECT reload_udfio();
+        """
+        command = f'docker exec -t {db} mclient db --statement "{sql_reload_query}"'
+        run(c, command)
 
 
 def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok=True):

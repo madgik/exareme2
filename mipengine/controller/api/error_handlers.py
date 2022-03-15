@@ -2,7 +2,10 @@ import enum
 
 from quart import Blueprint
 
-from mipengine.controller.algorithm_executor import NodeDownAlgorithmExecutionException
+from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller.algorithm_executor import (
+    NodeUnresponsiveAlgorithmExecutionException,
+)
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.filters import FilterError
@@ -24,7 +27,7 @@ class HTTPStatusCode(enum.IntEnum):
     BAD_USER_INPUT = 460
     INSUFFICIENT_DATA_ERROR = 461
     SMPC_USAGE_ERROR = 462
-    NODE_DOWN_ALGORITHM_EXECUTION_ERROR = 512
+    NODE_UNRESPONSIVE_ALGORITHM_EXECUTION_ERROR = 512
     UNEXPECTED_ERROR = 500
 
 
@@ -67,14 +70,14 @@ def handle_privacy_error(error: SMPCUsageError):
     return error.message, HTTPStatusCode.SMPC_USAGE_ERROR
 
 
-@error_handlers.app_errorhandler(NodeDownAlgorithmExecutionException)
-def handle_node_down_algorithm_excecution_exception(
-    error: NodeDownAlgorithmExecutionException,
+@error_handlers.app_errorhandler(NodeUnresponsiveAlgorithmExecutionException)
+def handle_node_unresponsive_algorithm_excecution_exception(
+    error: NodeUnresponsiveAlgorithmExecutionException,
 ):
     print(f"(error_handlers::handle_algorithm_excecution_exception) {error=}")
     return (
         error.message,
-        HTTPStatusCode.NODE_DOWN_ALGORITHM_EXECUTION_ERROR,
+        HTTPStatusCode.NODE_UNRESPONSIVE_ALGORITHM_EXECUTION_ERROR,
     )
 
 
