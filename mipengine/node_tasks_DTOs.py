@@ -98,15 +98,21 @@ class CommonDataElement(ImmutableBaseModel):
 
     def __eq__(self, other):
         if isinstance(other, CommonDataElement):
-            return (
-                self.code == other.code
-                and self.label == other.label
-                and self.sql_type == other.sql_type
-                and self.is_categorical == other.is_categorical
-                and self.enumerations == other.enumerations
-                and self.max == other.max
-                and self.min == other.min
-            )
+            if self.code != other.code:
+                return False
+            if self.label != other.label:
+                return False
+            if self.sql_type != other.sql_type:
+                return False
+            if self.is_categorical != other.is_categorical:
+                return False
+            if self.enumerations != other.enumerations:
+                return False
+            if self.max != other.max:
+                return False
+            if self.min != other.min:
+                return False
+            return True
         return False
 
 

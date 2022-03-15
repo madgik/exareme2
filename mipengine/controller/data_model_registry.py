@@ -43,18 +43,15 @@ class DataModelRegistry:
     def get_nodes_with_any_of_datasets(
         self, data_model: str, datasets: List[str]
     ) -> List[str]:
-        local_nodes_with_datasets = []
-        if data_model not in self.datasets_location:
+        if not self.data_model_exists(data_model):
             return []
 
-        for dataset in self.datasets_location[data_model]:
-            if dataset not in datasets:
-                continue
-            for node in self.datasets_location[data_model][dataset]:
-                if node in local_nodes_with_datasets:
-                    continue
-                local_nodes_with_datasets.append(node)
-        return local_nodes_with_datasets
+        local_nodes_with_datasets = [
+            self.datasets_location[data_model][dataset]
+            for dataset in self.datasets_location[data_model]
+            if dataset in datasets
+        ]
+        return list(set(local_nodes_with_datasets))
 
 
 data_model_registry = DataModelRegistry()
