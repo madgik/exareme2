@@ -1,8 +1,8 @@
 import asyncio
 import concurrent.futures
-import datetime
 import logging
 import random
+from datetime import datetime
 from typing import List
 
 from pydantic import BaseModel
@@ -14,10 +14,9 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
+from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.node_registry import node_registry
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
-
-CONTROLLER_CLEANUP_REQUEST_ID = "CONTROLLER_CLEANUP"
 
 
 class _NodeInfoDTO(BaseModel):
@@ -33,12 +32,18 @@ class _NodeInfoDTO(BaseModel):
 class Controller:
     def __init__(self):
         self._node_registry = node_registry
-
-        self._clean_up_interval = controller_config.nodes_cleanup_interval
-
-        self._nodes_for_cleanup = {}
-        self._keep_cleaning_up = True
         self._controller_logger = ctrl_logger.get_background_service_logger()
+        self._cleaner = Cleaner(node_registry=self._node_registry)
+
+    async def start_cleanup_loop(self):
+        self._controller_logger.info("starting cleanup_loop")
+        self._cleaner.keep_cleaning_up = True
+        task = asyncio.create_task(self._cleaner.cleanup_loop())
+        self._controller_logger.info("started clean_up loop")
+        return task
+
+    async def stop_cleanup_loop(self):
+        self._cleaner.keep_cleaning_up = False
 
     async def exec_algorithm(
         self,
@@ -62,6 +67,8 @@ class Controller:
         for local_node_task_handler in node_tasks_handlers.local_nodes_tasks_handlers:
             algo_execution_node_ids.append(local_node_task_handler.node_id)
 
+        self._cleaner._add_contextid_for_cleanup(context_id, algo_execution_node_ids)
+
         try:
             algorithm_result = await self._exec_algorithm_with_task_handlers(
                 request_id=request_id,
@@ -72,69 +79,9 @@ class Controller:
                 logger=algo_execution_logger,
             )
         finally:
-            self._append_context_id_for_cleanup(
-                context_id=context_id,
-                node_ids=algo_execution_node_ids,
-            )
+            self._cleaner._release_contextid_for_cleanup(context_id=context_id)
 
         return algorithm_result
-
-    def _append_context_id_for_cleanup(self, context_id: str, node_ids: List[str]):
-        if context_id not in self._nodes_for_cleanup.keys():
-            self._nodes_for_cleanup[context_id] = node_ids
-        else:
-            # getting in here would mean that an algorithm with the same context_id has
-            # finished and is currently in the cleanup process, this indicates context_id
-            # collision.
-            self._controller_logger.warning(
-                f"An algorithm with the same {context_id=} was previously executed and"
-                f"it is still in the cleanup process. This should not happen..."
-            )
-            for node_id in node_ids:
-                self._nodes_for_cleanup[context_id].append(node_id)
-
-    async def start_cleanup_loop(self):
-        self._controller_logger.info("starting cleanup_loop")
-        self._keep_cleaning_up = True
-        task = asyncio.create_task(self.cleanup_loop())
-        self._controller_logger.info("started clean_up loop")
-        return task
-
-    async def stop_cleanup_loop(self):
-        self._keep_cleaning_up = False
-
-    async def cleanup_loop(self):
-        while self._keep_cleaning_up:
-            cleaned_up_nodes = {}
-            for context_id, node_ids in self._nodes_for_cleanup.items():
-                cleaned_up_nodes[context_id] = []
-                for node_id in node_ids:
-                    try:
-                        node_info = self._get_node_info_by_id(node_id)
-                        task_handler = _create_node_task_handler(node_info)
-                        task_handler.clean_up(
-                            request_id=CONTROLLER_CLEANUP_REQUEST_ID,
-                            context_id=context_id,
-                        )
-
-                        self._controller_logger.debug(
-                            f"clean_up task succeeded for {node_id=} for {context_id=}"
-                        )
-                        cleaned_up_nodes[context_id].append(node_id)
-                    except Exception as exc:
-                        self._controller_logger.debug(
-                            f"clean_up task FAILED for {node_id=} "
-                            f"for {context_id=}. Will retry in a while... fail "
-                            f"reason: {type(exc)}:{exc}"
-                        )
-
-            for context_id, node_ids in cleaned_up_nodes.items():
-                for node_id in node_ids:
-                    self._nodes_for_cleanup[context_id].remove(node_id)
-                if not self._nodes_for_cleanup[context_id]:
-                    self._nodes_for_cleanup.pop(context_id)
-
-            await asyncio.sleep(self._clean_up_interval)
 
     async def _exec_algorithm_with_task_handlers(
         self,
@@ -251,19 +198,6 @@ class Controller:
             local_nodes_tasks_handlers=local_nodes_tasks_handlers,
         )
 
-    def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
-        global_nodes = self._node_registry.get_all_global_nodes()
-        local_nodes = self._node_registry.get_all_local_nodes()
-
-        for node in global_nodes + local_nodes:
-            if node.id == node_id:
-                return _NodeInfoDTO(
-                    node_id=node.id,
-                    queue_address=":".join([str(node.ip), str(node.port)]),
-                    db_address=":".join([str(node.db_ip), str(node.db_port)]),
-                    tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-                )
-
     def _get_nodes_info_by_dataset(
         self, data_model: str, datasets: List[str]
     ) -> List[_NodeInfoDTO]:
@@ -297,5 +231,5 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery
 
 
 def get_a_uniqueid() -> str:
-    uid = datetime.datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
+    uid = datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
     return f"{uid}"
