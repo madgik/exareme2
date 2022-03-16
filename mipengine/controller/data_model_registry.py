@@ -2,6 +2,8 @@ from typing import Any
 from typing import Dict
 from typing import List
 
+from mipengine.controller.common_data_elements import CommonDataElements
+
 
 def _have_common_elements(a: List[Any], b: List[Any]):
     return bool(set(a) & set(b))
@@ -12,16 +14,13 @@ class DataModelRegistry:
         self.common_data_models = {}
         self.datasets_location = {}
 
-    def set_common_data_models(self, cdes_per_data_model):
+    def set_common_data_models(
+        self, cdes_per_data_model: Dict[str, CommonDataElements]
+    ):
         self.common_data_models = cdes_per_data_model
 
-    def set_datasets_location(self, datasets_location):
+    def set_datasets_location(self, datasets_location: Dict[str, Dict[str, str]]):
         self.datasets_location = datasets_location
-
-    # returns a list of all the currently available data_models on the system
-    # without duplicates
-    def get_all_available_data_models(self) -> List[str]:
-        return list(self.common_data_models.keys())
 
     # returns a dictionary with all the currently available data_models on the
     # system as keys and lists of datasets as values. Without duplicates
@@ -31,10 +30,10 @@ class DataModelRegistry:
             for data_model in self.common_data_models
         }
 
-    def data_model_exists(self, data_model: str):
+    def data_model_exists(self, data_model: str) -> bool:
         return data_model in self.datasets_location
 
-    def dataset_exists(self, data_model: str, dataset: str):
+    def dataset_exists(self, data_model: str, dataset: str) -> bool:
         return (
             data_model in self.datasets_location
             and dataset in self.datasets_location[data_model]

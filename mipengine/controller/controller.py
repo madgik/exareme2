@@ -213,7 +213,7 @@ class Controller:
         return data_model_registry.datasets_location
 
     def get_all_available_data_models(self):
-        return data_model_registry.get_all_available_data_models()
+        return list(data_model_registry.common_data_models.keys())
 
     def get_all_available_datasets_per_data_model(self):
         return data_model_registry.get_all_available_datasets_per_data_model()

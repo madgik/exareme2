@@ -107,24 +107,6 @@ class DataModelUnavailable(Exception):
         self.message = f"Data model '{self.data_model}' is not available in node: '{self.node_id}'."
 
 
-class IncompatibleCDEs(Exception):
-    """
-    Exception raised when nodes have the same data model but with different CDEs.
-
-    Attributes:
-        cdes1 -- incompatible common data elements
-        cdes2 -- incompatible common data elements
-        message -- explanation of the error
-    """
-
-    def __init__(
-        self, cdes1: Dict[str, CommonDataElement], cdes2: Dict[str, CommonDataElement]
-    ):
-        self.cdes1 = cdes1
-        self.cdes2 = cdes2
-        self.message = f"Incompatibility on the following cdes: {cdes1} and {cdes2}"
-
-
 class DatasetUnavailable(Exception):
     """
     Exception raised when a dataset is not available in the NODE db.

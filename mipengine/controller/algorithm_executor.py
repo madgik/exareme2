@@ -242,7 +242,7 @@ class _AlgorithmExecutionInterface:
         self._use_smpc = algo_execution_interface_dto.use_smpc
         cdes = data_model_registry.common_data_models[
             algo_execution_interface_dto.data_model
-        ].cdes
+        ].values
         varnames = (self._x_variables or []) + (self._y_variables or [])
         self._metadata = {
             varname: cde.__dict__

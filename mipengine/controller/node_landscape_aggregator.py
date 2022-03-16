@@ -16,7 +16,6 @@ from mipengine.controller.common_data_elements import CommonDataElement
 from mipengine.controller.common_data_elements import CommonDataElements
 from mipengine.controller.data_model_registry import data_model_registry
 from mipengine.controller.node_registry import node_registry
-from mipengine.node_exceptions import IncompatibleCDEs
 from mipengine.node_info_DTOs import NodeInfo
 
 NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
@@ -59,7 +58,7 @@ def _get_nodes_addresses() -> List[str]:
         return []
 
 
-async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
+async def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
     celery_apps = [
         get_node_celery_app(socket_addr) for socket_addr in nodes_socket_addr
     ]
@@ -90,7 +89,7 @@ async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
 
 
 async def _get_node_datasets_per_data_model(
-    node_socket_addr,
+    node_socket_addr: str,
 ) -> Dict[str, Dict[str, str]]:
     celery_app = get_node_celery_app(node_socket_addr)
     task_signature = celery_app.signature(GET_NODE_DATASETS_PER_DATA_MODEL_SIGNATURE)
@@ -113,7 +112,7 @@ async def _get_node_datasets_per_data_model(
     return datasets_per_data_model
 
 
-async def _get_node_cdes(node_socket_addr, data_model) -> CommonDataElements:
+async def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements:
     celery_app = get_node_celery_app(node_socket_addr)
     task_signature = celery_app.signature(GET_DATA_MODEL_CDES_SIGNATURE)
 
@@ -133,7 +132,7 @@ async def _get_node_cdes(node_socket_addr, data_model) -> CommonDataElements:
             code: CommonDataElement.parse_raw(metadata)
             for code, metadata in result.items()
         }
-    cdes = CommonDataElements(cdes=cdes_per_data_model)
+    cdes = CommonDataElements(values=cdes_per_data_model)
     return cdes
 
 
@@ -171,9 +170,21 @@ class NodeLandscapeAggregator:
         self.keep_updating = True
 
     async def update(self):
+        """
+        Node Landscape Aggregator(NLA) is a module that handles the aggregation of necessary information,
+        to keep up-to-date and in sync the Node Registry and Data Model Registry.
+        Node Registry contains information about the node such as id, ip, port etc.
+        Data Model Registry contains two types of information, common_data_models and datasets_location.
+        common_data_models contains information about the common data models and their corresponding cdes.
+        datasets_location contains information about datasets and their locations(nodes).
+        NLA periodically will send requests (get_node_info, get_node_datasets_per_data_model, get_data_model_cdes),
+        to the nodes to retrieve the current information that they have.
+        NLA will also validate and remove any data model that is incompatible across nodes.
+        Once all the information is aggregated and validated the NLA will provide the information to Node Registry and Data Model Registry.
+        """
         while self.keep_updating:
             nodes_addresses = _get_nodes_addresses()
-            nodes: List[NodeInfo] = await _get_nodes_info(nodes_addresses)
+            nodes = await _get_nodes_info(nodes_addresses)
             local_nodes = [node for node in nodes if node.role == "LOCALNODE"]
             datasets_locations = await _get_datasets_locations(local_nodes)
             datasets_labels = await _get_datasets_labels(local_nodes)
@@ -201,7 +212,7 @@ class NodeLandscapeAggregator:
             await asyncio.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
 
 
-async def _get_datasets_locations(nodes):
+async def _get_datasets_locations(nodes: List[NodeInfo]) -> Dict[str, Dict[str, str]]:
     datasets_locations = {}
     for node_info in nodes:
         node_socket_addr = _get_node_socket_addr(node_info)
@@ -216,7 +227,7 @@ async def _get_datasets_locations(nodes):
     return datasets_locations
 
 
-async def _get_datasets_labels(nodes):
+async def _get_datasets_labels(nodes: List[NodeInfo]) -> Dict[str, Dict[str, str]]:
     datasets_labels = {}
     for node_info in nodes:
         node_socket_addr = _get_node_socket_addr(node_info)
@@ -230,7 +241,9 @@ async def _get_datasets_labels(nodes):
     return datasets_labels
 
 
-async def _get_cdes_across_nodes(nodes):
+async def _get_cdes_across_nodes(
+    nodes: List[NodeInfo],
+) -> Dict[str, List[Tuple[str, CommonDataElements]]]:
     nodes_cdes = {}
     for node_info in nodes:
         node_socket_addr = _get_node_socket_addr(node_info)
@@ -252,11 +265,9 @@ def _get_common_data_models(
     for data_model, cdes_from_all_nodes in nodes_cdes.items():
         first_node, first_cdes = cdes_from_all_nodes[0]
         for node, cdes in cdes_from_all_nodes[1:]:
-            try:
-                first_cdes == cdes
-            except IncompatibleCDEs as exc:
+            if not first_cdes == cdes:
                 logger.info(
-                    f"Node '{first_node}' and node '{node}' on data model '{data_model}' threw: {exc.message}"
+                    f"Node '{first_node}' and node '{node}' on data model '{data_model}' have incompatibility on the following cdes: {first_cdes} and {cdes}"
                 )
                 break
         else:
@@ -267,10 +278,10 @@ def _get_common_data_models(
 
 def _get_common_data_models_with_valid_datasets(
     common_data_models: Dict[str, CommonDataElements],
-    datasets_per_data_model_across_nodes,
-):
+    datasets_per_data_model_across_nodes: Dict[str, Dict[str, str]],
+) -> Dict[str, CommonDataElements]:
     for data_model in common_data_models:
-        dataset_cde = common_data_models[data_model].cdes["dataset"]
+        dataset_cde = common_data_models[data_model].values["dataset"]
         new_dataset_cde = CommonDataElement(
             code=dataset_cde.code,
             label=dataset_cde.label,
@@ -280,7 +291,7 @@ def _get_common_data_models_with_valid_datasets(
             min=dataset_cde.min,
             max=dataset_cde.max,
         )
-        common_data_models[data_model].cdes["dataset"] = new_dataset_cde
+        common_data_models[data_model].values["dataset"] = new_dataset_cde
     return common_data_models
 
 

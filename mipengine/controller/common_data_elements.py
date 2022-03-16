@@ -2,7 +2,6 @@ from typing import Dict
 
 from pydantic import BaseModel
 
-from mipengine.node_exceptions import IncompatibleCDEs
 from mipengine.node_tasks_DTOs import CommonDataElement
 
 
@@ -23,14 +22,19 @@ def _are_equal_dataset_cdes(cde1: CommonDataElement, cde2: CommonDataElement) ->
 
 
 class CommonDataElements(BaseModel):
-    cdes: Dict[str, CommonDataElement]
+    values: Dict[str, CommonDataElement]
 
     def __eq__(self, other):
-        if set(self.cdes.keys()) != set(other.cdes.keys()):
-            raise IncompatibleCDEs(self.cdes, other.cdes)
-        for cde_code in self.cdes.keys():
-            cde1 = self.cdes[cde_code]
-            cde2 = other.cdes[cde_code]
-            if cde1 != cde2 and not _are_equal_dataset_cdes(cde1, cde2):
-                raise IncompatibleCDEs(self.cdes, other.cdes)
+        """
+        We are overriding the equals function to check that the two cdes have identical fields except one edge case.
+        The edge case is that the two comparing cdes can only contain a difference in the field of enumerations in
+        the cde with code 'dataset' and still be considered compatible.
+        """
+        if set(self.values.keys()) != set(other.values.keys()):
+            return False
+        for cde_code in self.values.keys():
+            cde1 = self.values[cde_code]
+            cde2 = other.values[cde_code]
+            if not cde1 == cde2 and not _are_equal_dataset_cdes(cde1, cde2):
+                return False
         return True

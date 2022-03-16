@@ -1,8 +1,3 @@
-import asyncio
-import json
-import sys
-from typing import Any
-from typing import Dict
 from typing import List
 
 from mipengine.node_info_DTOs import NodeInfo
@@ -30,7 +25,7 @@ class NodeRegistry:
             if node_info.role == NodeRole.LOCALNODE
         ]
 
-    def get_nodes_by_ids(self, ids):
+    def get_nodes_by_ids(self, ids: List[str]) -> List[NodeInfo]:
         return [node for node in self.nodes if node.id in ids]
 
 

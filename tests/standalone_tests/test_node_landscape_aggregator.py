@@ -13,7 +13,7 @@ def get_parametrization_success_cases():
             (
                 "localnode1",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -43,7 +43,7 @@ def get_parametrization_success_cases():
             (
                 "localnode2",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -75,7 +75,7 @@ def get_parametrization_success_cases():
             (
                 "localnode1",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -97,7 +97,7 @@ def get_parametrization_success_cases():
             (
                 "localnode2",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -121,7 +121,7 @@ def get_parametrization_success_cases():
 
     expected_with_identical_cdes = {
         "dementia:0.1": CommonDataElements(
-            cdes={
+            values={
                 "dataset": CommonDataElement(
                     code="dataset",
                     label="Dataset",
@@ -148,7 +148,7 @@ def get_parametrization_success_cases():
             }
         ),
         "tbi:0.1": CommonDataElements(
-            cdes={
+            values={
                 "dataset": CommonDataElement(
                     code="dataset",
                     label="Dataset",
@@ -176,7 +176,7 @@ def get_parametrization_success_cases():
             (
                 "localnode1",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -206,7 +206,7 @@ def get_parametrization_success_cases():
             (
                 "localnode2",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -237,7 +237,7 @@ def get_parametrization_success_cases():
             (
                 "localnode1",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -259,7 +259,7 @@ def get_parametrization_success_cases():
             (
                 "localnode2",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -286,7 +286,7 @@ def get_parametrization_success_cases():
 
     expected_with_different_dataset_enum = {
         "dementia:0.1": CommonDataElements(
-            cdes={
+            values={
                 "dataset": CommonDataElement(
                     code="dataset",
                     label="Dataset",
@@ -313,7 +313,7 @@ def get_parametrization_success_cases():
             }
         ),
         "tbi:0.1": CommonDataElements(
-            cdes={
+            values={
                 "dataset": CommonDataElement(
                     code="dataset",
                     label="Dataset",
@@ -350,7 +350,7 @@ def get_parametrization_fail_cases():
     parametrization_list = []
     expected_result = {
         "tbi:0.1": CommonDataElements(
-            cdes={
+            values={
                 "dataset": CommonDataElement(
                     code="dataset",
                     label="Dataset",
@@ -376,7 +376,7 @@ def get_parametrization_fail_cases():
             (
                 "localnode1",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -406,7 +406,7 @@ def get_parametrization_fail_cases():
             (
                 "localnode2",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -438,7 +438,7 @@ def get_parametrization_fail_cases():
             (
                 "localnode1",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -460,7 +460,7 @@ def get_parametrization_fail_cases():
             (
                 "localnode2",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -492,7 +492,7 @@ def get_parametrization_fail_cases():
             (
                 "localnode1",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -522,7 +522,7 @@ def get_parametrization_fail_cases():
             (
                 "localnode2",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -554,7 +554,7 @@ def get_parametrization_fail_cases():
             (
                 "localnode1",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -576,7 +576,7 @@ def get_parametrization_fail_cases():
             (
                 "localnode2",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -608,7 +608,7 @@ def get_parametrization_fail_cases():
             (
                 "localnode1",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -638,7 +638,7 @@ def get_parametrization_fail_cases():
             (
                 "localnode2",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Incompatible label",
@@ -670,7 +670,7 @@ def get_parametrization_fail_cases():
             (
                 "localnode1",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",
@@ -692,7 +692,7 @@ def get_parametrization_fail_cases():
             (
                 "localnode2",
                 CommonDataElements(
-                    cdes={
+                    values={
                         "dataset": CommonDataElement(
                             code="dataset",
                             label="Dataset",

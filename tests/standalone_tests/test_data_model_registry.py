@@ -83,11 +83,6 @@ def mocked_data_model_registry():
     return data_model_registry
 
 
-def test_get_all_available_data_models(mocked_data_model_registry):
-    assert "dementia:0.1" in mocked_data_model_registry.common_data_models
-    assert "tbi:0.1" in mocked_data_model_registry.common_data_models
-
-
 def test_get_all_available_datasets_per_data_model(mocked_data_model_registry):
     assert mocked_data_model_registry.get_all_available_datasets_per_data_model()
 

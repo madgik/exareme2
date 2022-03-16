@@ -22,7 +22,7 @@ def mock_cdes():
     data_model_registry = DataModelRegistry()
     data_model_registry.common_data_models = {
         "test_data_model1:0.1": CommonDataElements(
-            cdes={
+            values={
                 "test_cde1": CommonDataElement(
                     code="test_cde1",
                     label="test cde1",
@@ -82,7 +82,7 @@ def mock_cdes():
             }
         ),
         "test_data_model2:0.1": CommonDataElements(
-            cdes={
+            values={
                 "test_cde1": CommonDataElement(
                     code="test_cde1",
                     label="test cde1",

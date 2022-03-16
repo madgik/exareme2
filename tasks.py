@@ -253,7 +253,7 @@ def create_monetdb(c, node, image=None, log_level=None):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} --name {container_name} {image}"""
+        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} {image}"""
         run(c, cmd)
 
 
