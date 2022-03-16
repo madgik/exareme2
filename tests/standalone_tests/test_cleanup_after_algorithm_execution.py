@@ -121,6 +121,7 @@ def patch_algorithm_executor(controller_config_mock, cdes_mock):
         yield
 
 
+@pytest.mark.skip
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(
@@ -239,6 +240,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         assert False
 
 
+@pytest.mark.skip
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_rabbitmq_down_algorithm_execution(
@@ -416,6 +418,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         assert False
 
 
+@pytest.mark.skip
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_node_service_down_algorithm_execution(

@@ -1,3 +1,4 @@
+from typing import Dict
 from typing import List
 
 from pydantic import BaseModel
@@ -12,6 +13,7 @@ class AlgorithmExecutionDTO(BaseModel):
     context_id: str
     algorithm_name: str
     algorithm_request_dto: AlgorithmRequestDTO
+    datasets_per_local_node: Dict[str, List[str]]
 
     class Config:
         arbitrary_types_allowed = True
