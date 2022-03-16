@@ -1,3 +1,4 @@
+from typing import Dict
 from typing import List
 
 from mipengine.node_info_DTOs import NodeInfo
@@ -6,27 +7,27 @@ from mipengine.node_info_DTOs import NodeRole
 
 class NodeRegistry:
     def __init__(self):
-        self.nodes = []
+        self.nodes: Dict[str, NodeInfo] = {}
 
-    def set_nodes(self, nodes):
+    def set_nodes(self, nodes: Dict[str, NodeInfo]):
         self.nodes = nodes
 
     def get_all_global_nodes(self) -> List[NodeInfo]:
         return [
             node_info
-            for node_info in self.nodes
+            for _, node_info in self.nodes.items()
             if node_info.role == NodeRole.GLOBALNODE
         ]
 
     def get_all_local_nodes(self) -> List[NodeInfo]:
         return [
             node_info
-            for node_info in self.nodes
+            for _, node_info in self.nodes.items()
             if node_info.role == NodeRole.LOCALNODE
         ]
 
-    def get_nodes_by_ids(self, ids: List[str]) -> List[NodeInfo]:
-        return [node for node in self.nodes if node.id in ids]
+    def get_node_info(self, node_id: str) -> NodeInfo:
+        return self.nodes[node_id]
 
 
 node_registry = NodeRegistry()

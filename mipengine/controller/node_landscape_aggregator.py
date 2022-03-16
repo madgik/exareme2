@@ -1,22 +1,21 @@
 import asyncio
-import json
 import sys
 from typing import Dict
 from typing import List
 from typing import Tuple
 
-import dns.resolver
 from asgiref.sync import sync_to_async
 
-from mipengine.controller import DeploymentType
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.common_data_elements import CommonDataElement
 from mipengine.controller.common_data_elements import CommonDataElements
 from mipengine.controller.data_model_registry import data_model_registry
+from mipengine.controller.node_address import _get_nodes_addresses
 from mipengine.controller.node_registry import node_registry
 from mipengine.node_info_DTOs import NodeInfo
+from mipengine.node_info_DTOs import NodeRole
 
 NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
@@ -36,28 +35,6 @@ NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL = (
 CELERY_TASKS_TIMEOUT = controller_config.rabbitmq.celery_tasks_timeout
 
 
-def _get_nodes_addresses_from_file() -> List[str]:
-    with open(controller_config.localnodes.config_file) as fp:
-        return json.load(fp)
-
-
-def _get_nodes_addresses_from_dns() -> List[str]:
-    localnodes_ips = dns.resolver.query(controller_config.localnodes.dns, "A")
-    localnodes_addresses = [
-        f"{ip}:{controller_config.localnodes.port}" for ip in localnodes_ips
-    ]
-    return localnodes_addresses
-
-
-def _get_nodes_addresses() -> List[str]:
-    if controller_config.deployment_type == DeploymentType.LOCAL:
-        return _get_nodes_addresses_from_file()
-    elif controller_config.deployment_type == DeploymentType.KUBERNETES:
-        return _get_nodes_addresses_from_dns()
-    else:
-        return []
-
-
 async def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
     celery_apps = [
         get_node_celery_app(socket_addr) for socket_addr in nodes_socket_addr
@@ -67,12 +44,6 @@ async def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
         for celery_app in celery_apps
     }
 
-    # when broker(rabbitmq) is down, if the existing broker connection is not passed in
-    # apply_async (in _task_to_async::wrapper), celery (or anyway some internal celery
-    # component) will try to create a new connection to the broker until the apply_async
-    # succeeds, which causes the call to apply_async to hang indefinitely until the
-    # broker is back up. This way(passing the existing broker connection to apply_async)
-    # it raises a ConnectionResetError or an OperationalError and it does not hang
     tasks_coroutines = [
         _task_to_async(task, connection=app.broker_connection())(
             request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
@@ -94,12 +65,6 @@ async def _get_node_datasets_per_data_model(
     celery_app = get_node_celery_app(node_socket_addr)
     task_signature = celery_app.signature(GET_NODE_DATASETS_PER_DATA_MODEL_SIGNATURE)
 
-    # when broker(rabbitmq) is down, if the existing broker connection is not passed in
-    # apply_async (in _task_to_async::wrapper), celery (or anyway some internal celery
-    # component) will try to create a new connection to the broker until the apply_async
-    # succeeds, which causes the call to apply_async to hang indefinitely until the
-    # broker is back up. This way(passing the existing broker connection to apply_async)
-    # it raises a ConnectionResetError or an OperationalError and it does not hang
     result = await _task_to_async(
         task_signature, connection=celery_app.broker_connection()
     )(request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID)
@@ -116,12 +81,6 @@ async def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataEl
     celery_app = get_node_celery_app(node_socket_addr)
     task_signature = celery_app.signature(GET_DATA_MODEL_CDES_SIGNATURE)
 
-    # when broker(rabbitmq) is down, if the existing broker connection is not passed in
-    # apply_async (in _task_to_async::wrapper), celery (or anyway some internal celery
-    # component) will try to create a new connection to the broker until the apply_async
-    # succeeds, which causes the call to apply_async to hang indefinitely until the
-    # broker is back up. This way(passing the existing broker connection to apply_async)
-    # it raises a ConnectionResetError or an OperationalError and it does not hang
     result = await _task_to_async(
         task_signature, connection=celery_app.broker_connection()
     )(data_model=data_model, request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID)
@@ -136,10 +95,19 @@ async def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataEl
     return cdes
 
 
-# Converts a Celery task to an async function
-# Celery doesn't currently support asyncio "await" while "getting" a result
-# Copied from https://github.com/celery/celery/issues/6603
 def _task_to_async(task, connection):
+    """
+    Converts a Celery task to an async function
+    Celery doesn't currently support asyncio "await" while "getting" a result
+    Copied from https://github.com/celery/celery/issues/6603
+    when broker(rabbitmq) is down, if the existing broker connection is not passed in
+    apply_async (in _task_to_async::wrapper), celery (or anyway some internal celery
+    component) will try to create a new connection to the broker until the apply_async
+    succeeds, which causes the call to apply_async to hang indefinitely until the
+    broker is back up. This way(passing the existing broker connection to apply_async)
+    it raises a ConnectionResetError or an OperationalError and it does not hang
+    """
+
     async def wrapper(*args, **kwargs):
         total_delay = 0
         delay = 0.1
@@ -173,19 +141,18 @@ class NodeLandscapeAggregator:
         """
         Node Landscape Aggregator(NLA) is a module that handles the aggregation of necessary information,
         to keep up-to-date and in sync the Node Registry and Data Model Registry.
-        Node Registry contains information about the node such as id, ip, port etc.
-        Data Model Registry contains two types of information, common_data_models and datasets_location.
-        common_data_models contains information about the common data models and their corresponding cdes.
-        datasets_location contains information about datasets and their locations(nodes).
         NLA periodically will send requests (get_node_info, get_node_datasets_per_data_model, get_data_model_cdes),
-        to the nodes to retrieve the current information that they have.
-        NLA will also validate and remove any data model that is incompatible across nodes.
+        to the nodes to retrieve the current information that they contain.
+        Once all information about data models and cdes is aggregated,
+        any data model that is incompatible across nodes will be removed.
         Once all the information is aggregated and validated the NLA will provide the information to Node Registry and Data Model Registry.
         """
         while self.keep_updating:
             nodes_addresses = _get_nodes_addresses()
-            nodes = await _get_nodes_info(nodes_addresses)
-            local_nodes = [node for node in nodes if node.role == "LOCALNODE"]
+            nodes_info = await _get_nodes_info(nodes_addresses)
+            local_nodes = [
+                node for node in nodes_info if node.role == NodeRole.LOCALNODE
+            ]
             datasets_locations = await _get_datasets_locations(local_nodes)
             datasets_labels = await _get_datasets_labels(local_nodes)
             node_cdes = await _get_cdes_across_nodes(local_nodes)
@@ -199,7 +166,9 @@ class NodeLandscapeAggregator:
                 for common_data_model in common_data_models
             }
 
-            node_registry.set_nodes(nodes)
+            node_registry.set_nodes(
+                {node_info.id: node_info for node_info in nodes_info}
+            )
             data_model_registry.set_common_data_models(common_data_models)
             data_model_registry.set_datasets_location(datasets_locations)
             logger.debug(f"Nodes:{[node.id for node in node_registry.nodes]}")
@@ -278,7 +247,7 @@ def _get_common_data_models(
 
 def _get_common_data_models_with_valid_datasets(
     common_data_models: Dict[str, CommonDataElements],
-    datasets_per_data_model_across_nodes: Dict[str, Dict[str, str]],
+    datasets_labels: Dict[str, Dict[str, str]],
 ) -> Dict[str, CommonDataElements]:
     for data_model in common_data_models:
         dataset_cde = common_data_models[data_model].values["dataset"]
@@ -287,7 +256,7 @@ def _get_common_data_models_with_valid_datasets(
             label=dataset_cde.label,
             sql_type=dataset_cde.sql_type,
             is_categorical=dataset_cde.is_categorical,
-            enumerations=datasets_per_data_model_across_nodes[data_model],
+            enumerations=datasets_labels[data_model],
             min=dataset_cde.min,
             max=dataset_cde.max,
         )

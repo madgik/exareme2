@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict
 
 import pytest
 
@@ -42,51 +42,47 @@ def get_nodes_datasets_per_data_model():
     }
 
 
-def get_mocked_node_info() -> List[NodeInfo]:
-    return [
-        NodeInfo(
+def get_mocked_node_info() -> Dict[str, NodeInfo]:
+    return {
+        "globalnode": NodeInfo(
             id="globalnode",
             role=NodeRole.GLOBALNODE,
             ip=mocked_node_addresses[0].split(":")[0],
             port=mocked_node_addresses[0].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50000,
-            datasets_per_data_model=get_nodes_datasets_per_data_model()["globalnode"],
         ),
-        NodeInfo(
+        "localnode1": NodeInfo(
             id="localnode1",
             role=NodeRole.LOCALNODE,
             ip=mocked_node_addresses[1].split(":")[0],
             port=mocked_node_addresses[1].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50001,
-            datasets_per_data_model=get_nodes_datasets_per_data_model()["localnode1"],
         ),
-        NodeInfo(
+        "localnode2": NodeInfo(
             id="localnode2",
             role=NodeRole.LOCALNODE,
             ip=mocked_node_addresses[2].split(":")[0],
             port=mocked_node_addresses[2].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50002,
-            datasets_per_data_model=get_nodes_datasets_per_data_model()["localnode2"],
         ),
-        NodeInfo(
+        "localnode3": NodeInfo(
             id="localnode3",
             role=NodeRole.LOCALNODE,
             ip=mocked_node_addresses[2].split(":")[0],
             port=mocked_node_addresses[2].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50003,
-            datasets_per_data_model=get_nodes_datasets_per_data_model()["localnode3"],
         ),
-    ]
+    }
 
 
 @pytest.fixture
 def mocked_node_registry():
     node_registry = NodeRegistry()
-    node_registry.nodes = get_mocked_node_info()
+    node_registry.set_nodes(get_mocked_node_info())
     return node_registry
 
 
@@ -103,7 +99,9 @@ def test_get_all_local_nodes(mocked_node_registry):
         assert node.role == NodeRole.LOCALNODE
 
 
-def test_get_nodes_by_ids(mocked_node_registry):
-    expected_ids = ["localnode1", "localnode3"]
-    nodes = mocked_node_registry.get_nodes_by_ids(expected_ids)
-    assert set([node.id for node in nodes]) == set(expected_ids)
+def test_get_node_info(mocked_node_registry):
+    expected_id = "localnode1"
+    node_info = mocked_node_registry.get_node_info(expected_id)
+    assert node_info.id == expected_id
+    assert node_info.role == NodeRole.LOCALNODE
+    assert node_info.db_port == 50001

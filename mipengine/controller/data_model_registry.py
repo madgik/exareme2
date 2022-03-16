@@ -11,20 +11,20 @@ def _have_common_elements(a: List[Any], b: List[Any]):
 
 class DataModelRegistry:
     def __init__(self):
-        self.common_data_models = {}
-        self.datasets_location = {}
+        self.common_data_models: Dict[str, CommonDataElements] = {}
+        self.datasets_location: Dict[str, Dict[str, str]] = {}
 
-    def set_common_data_models(
-        self, cdes_per_data_model: Dict[str, CommonDataElements]
-    ):
-        self.common_data_models = cdes_per_data_model
+    def set_common_data_models(self, common_data_models: Dict[str, CommonDataElements]):
+        self.common_data_models = common_data_models
 
     def set_datasets_location(self, datasets_location: Dict[str, Dict[str, str]]):
         self.datasets_location = datasets_location
 
-    # returns a dictionary with all the currently available data_models on the
-    # system as keys and lists of datasets as values. Without duplicates
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
+        """
+        Returns a dictionary with all the currently available data_models on the
+        system as keys and lists of datasets as values. Without duplicates
+        """
         return {
             data_model: list(self.datasets_location[data_model].keys())
             for data_model in self.common_data_models
@@ -39,7 +39,7 @@ class DataModelRegistry:
             and dataset in self.datasets_location[data_model]
         )
 
-    def get_nodes_with_any_of_datasets(
+    def get_node_ids_with_any_of_datasets(
         self, data_model: str, datasets: List[str]
     ) -> List[str]:
         if not self.data_model_exists(data_model):

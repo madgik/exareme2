@@ -268,11 +268,13 @@ class Controller:
     def _get_nodes_info_by_dataset(
         self, data_model: str, datasets: List[str]
     ) -> List[_NodeInfoDTO]:
-        local_node_ids = data_model_registry.get_nodes_with_any_of_datasets(
+        local_node_ids = data_model_registry.get_node_ids_with_any_of_datasets(
             data_model=data_model,
             datasets=datasets,
         )
-        local_nodes_info = self._node_registry.get_nodes_by_ids(local_node_ids)
+        local_nodes_info = [
+            self._node_registry.get_node_info(node_id) for node_id in local_node_ids
+        ]
         nodes_info = []
         for local_node in local_nodes_info:
             nodes_info.append(

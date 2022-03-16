@@ -13,9 +13,12 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from mipengine.controller.common_data_elements import CommonDataElements
 from mipengine.controller.controller import Controller
 from mipengine.controller.controller import get_a_uniqueid
+from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
+from mipengine.node_tasks_DTOs import CommonDataElement
 from tests.dev_env_tests.nodes_communication import get_node_config_by_id
 from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
@@ -109,7 +112,7 @@ async def test_single_local_node_algorithm_execution(
     localnodetmp_node_id = get_localnodetmp_node_id()
 
     controller = Controller()
-    # start node registry
+    # start node landscape aggregator
     await controller.start_node_landscape_aggregator()
 
     # wait until node registry gets the nodes info
@@ -221,72 +224,57 @@ algorithm_request_dto = AlgorithmRequestDTO(
 # -------------------------------------------------------------------------------
 @pytest.fixture(scope="function")
 def mock_cdes():
-    common_data_elements = CommonDataElements()
-    common_data_elements.data_models = {
-        "dementia:0.1": {
-            "lefthippocampus": CommonDataElement(
-                MetadataVariable(
+    data_model_registry = DataModelRegistry()
+    common_data_models = {
+        "dementia:0.1": CommonDataElements(
+            values={
+                "lefthippocampus": CommonDataElement(
                     code="lefthippocampus",
                     label="Left Hippocampus",
                     sql_type="real",
                     isCategorical=False,
-                )
-            ),
-            "righthippocampus": CommonDataElement(
-                MetadataVariable(
+                ),
+                "righthippocampus": CommonDataElement(
                     code="righthippocampus",
                     label="Right Hippocampus",
                     sql_type="real",
                     isCategorical=False,
-                )
-            ),
-            "rightppplanumpolare": CommonDataElement(
-                MetadataVariable(
+                ),
+                "rightppplanumpolare": CommonDataElement(
                     code="rightppplanumpolare",
                     label="Right planum polare",
                     sql_type="real",
                     isCategorical=False,
-                )
-            ),
-            "leftamygdala": CommonDataElement(
-                MetadataVariable(
+                ),
+                "leftamygdala": CommonDataElement(
                     code="leftamygdala",
                     label="Left Amygdala",
                     sql_type="real",
                     isCategorical=False,
-                )
-            ),
-            "rightamygdala": CommonDataElement(
-                MetadataVariable(
+                ),
+                "rightamygdala": CommonDataElement(
                     code="rightamygdala",
                     label="Right Amygdala",
                     sql_type="real",
                     isCategorical=False,
-                )
-            ),
-            "alzheimerbroadcategory": CommonDataElement(
-                MetadataVariable(
+                ),
+                "alzheimerbroadcategory": CommonDataElement(
                     code="alzheimerbroadcategory",
                     label="There will be two broad categories taken into account. Alzheimer s disease (AD) in which the diagnostic is 100% certain and <Other> comprising the rest of Alzheimer s related categories. The <Other> category refers to Alzheime s related diagnosis which origin can be traced to other pathology eg. vascular. In this category MCI diagnosis can also be found. In summary  all Alzheimer s related diagnosis that are not pure.",
                     sql_type="text",
                     isCategorical=True,
-                    enumerations=[
-                        MetadataEnumeration(
-                            code="AD",
-                            label="Alzheimer’s disease",
-                        ),
-                        MetadataEnumeration(
-                            code="CN",
-                            label="Cognitively Normal",
-                        ),
-                    ],
-                )
-            ),
-        },
+                    enumerations={
+                        "AD": "Alzheimer’s disease",
+                        "CN": "Cognitively Normal",
+                    },
+                ),
+            }
+        )
     }
+    data_model_registry.set_common_data_models(common_data_models)
     with patch(
-        "mipengine.controller.algorithm_executor.controller_common_data_elements",
-        common_data_elements,
+        "mipengine.controller.algorithm_executor.data_model_registry",
+        data_model_registry,
     ):
         yield
 
