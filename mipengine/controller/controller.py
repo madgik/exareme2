@@ -3,6 +3,7 @@ import concurrent.futures
 import datetime
 import logging
 import random
+from typing import Dict
 from typing import List
 
 from pydantic import BaseModel
@@ -62,6 +63,13 @@ class Controller:
         for local_node_task_handler in node_tasks_handlers.local_nodes_tasks_handlers:
             algo_execution_node_ids.append(local_node_task_handler.node_id)
 
+        datasets_per_local_node: Dict[str, List[str]] = {
+            task_handler.node_id: self._node_registry.get_node_specific_datasets(
+                task_handler.node_id, data_model, datasets
+            )
+            for task_handler in node_tasks_handlers.local_nodes_tasks_handlers
+        }
+
         try:
             algorithm_result = await self._exec_algorithm_with_task_handlers(
                 request_id=request_id,
@@ -69,6 +77,7 @@ class Controller:
                 algorithm_name=algorithm_name,
                 algorithm_request_dto=algorithm_request_dto,
                 tasks_handlers=node_tasks_handlers,
+                datasets_per_local_node=datasets_per_local_node,
                 logger=algo_execution_logger,
             )
         finally:
@@ -143,6 +152,7 @@ class Controller:
         algorithm_name: str,
         algorithm_request_dto: AlgorithmRequestDTO,
         tasks_handlers: NodesTasksHandlersDTO,
+        datasets_per_local_node: Dict[str, List[str]],
         logger: logging.Logger,
     ) -> str:
 
@@ -166,6 +176,7 @@ class Controller:
             context_id=context_id,
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
+            datasets_per_local_node=datasets_per_local_node,
         )
 
         loop = asyncio.get_running_loop()

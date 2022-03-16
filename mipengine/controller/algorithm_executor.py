@@ -116,36 +116,40 @@ class AlgorithmExecutor:
 
     def _instantiate_nodes(self):
 
-        # instantiate the GLOBAL Node object
+        # Instantiate the GLOBAL Node object
         self._global_node = GlobalNode(
             request_id=self._request_id,
             context_id=self._context_id,
             node_tasks_handler=self._nodes_tasks_handlers_dto.global_node_tasks_handler,
         )
 
-        # Parameters for the creation of the view tables in the db. Each of the LOCAL
-        # nodes will have access only to these view tables and not on the primary data
-        # tables
-        # TODO Convert to object instead of dict?
-        initial_view_tables_params = {
-            "commandId": get_next_command_id(),
-            "data_model": self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model,
-            "datasets": self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
-            "x": self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
-            "y": self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
-            "filters": self._algorithm_execution_dto.algorithm_request_dto.inputdata.filters,
-        }
-
-        # instantiate the LOCAL Node objects
-        self._local_nodes = [
-            LocalNode(
-                request_id=self._request_id,
-                context_id=self._context_id,
-                node_tasks_handler=node_tasks_handler,
-                initial_view_tables_params=initial_view_tables_params,
+        # Instantiate the LOCAL Node objects
+        command_id = get_next_command_id()
+        self._local_nodes = []
+        for (
+            node_tasks_handler
+        ) in self._nodes_tasks_handlers_dto.local_nodes_tasks_handlers:
+            # Parameters for the creation of the view tables in the db. Each of the LOCAL
+            # nodes will have access only to these view tables and not on the primary data tables.
+            # TODO Convert to object instead of dict?
+            initial_view_tables_params = {
+                "commandId": command_id,
+                "data_model": self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model,
+                "datasets": self._algorithm_execution_dto.datasets_per_local_node[
+                    node_tasks_handler.node_id
+                ],
+                "x": self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
+                "y": self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
+                "filters": self._algorithm_execution_dto.algorithm_request_dto.inputdata.filters,
+            }
+            self._local_nodes.append(
+                LocalNode(
+                    request_id=self._request_id,
+                    context_id=self._context_id,
+                    node_tasks_handler=node_tasks_handler,
+                    initial_view_tables_params=initial_view_tables_params,
+                )
             )
-            for node_tasks_handler in self._nodes_tasks_handlers_dto.local_nodes_tasks_handlers
-        ]
 
     def _get_use_smpc_flag(self) -> bool:
         """
