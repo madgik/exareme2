@@ -1,9 +1,10 @@
+from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 
 from pydantic import BaseModel
 
-from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 
 
@@ -12,8 +13,13 @@ class AlgorithmExecutionDTO(BaseModel):
     request_id: str
     context_id: str
     algorithm_name: str
-    algorithm_request_dto: AlgorithmRequestDTO
+    data_model: str
     datasets_per_local_node: Dict[str, List[str]]
+    x_vars: Optional[List[str]] = None
+    y_vars: Optional[List[str]] = None
+    var_filters: dict = None
+    algo_parameters: Optional[Dict[str, Any]] = None
+    algo_flags: Optional[Dict[str, Any]] = None
 
     class Config:
         arbitrary_types_allowed = True

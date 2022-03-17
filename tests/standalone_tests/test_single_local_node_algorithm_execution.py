@@ -132,53 +132,48 @@ def get_parametrization_list_success_cases():
         request_id="123",
         context_id="123",
         algorithm_name="logistic_regression",
-        algorithm_request_dto=AlgorithmRequestDTO(
-            inputdata=AlgorithmInputDataDTO(
-                data_model="dementia:0.1",
-                datasets=["edsd"],
-                filters={
+        data_model="dementia:0.1",
+        datasets_per_local_node={"localnode1": ["edsd"]},
+        x_vars=[
+            "lefthippocampus",
+            "righthippocampus",
+            "rightppplanumpolare",
+            "leftamygdala",
+            "rightamygdala",
+        ],
+        y_vars=["alzheimerbroadcategory"],
+        var_filters={
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "dataset",
+                    "type": "string",
+                    "value": ["edsd"],
+                    "operator": "in",
+                },
+                {
                     "condition": "AND",
                     "rules": [
                         {
-                            "id": "dataset",
+                            "id": variable,
                             "type": "string",
-                            "value": ["edsd"],
-                            "operator": "in",
-                        },
-                        {
-                            "condition": "AND",
-                            "rules": [
-                                {
-                                    "id": variable,
-                                    "type": "string",
-                                    "operator": "is_not_null",
-                                    "value": None,
-                                }
-                                for variable in [
-                                    "lefthippocampus",
-                                    "righthippocampus",
-                                    "rightppplanumpolare",
-                                    "leftamygdala",
-                                    "rightamygdala",
-                                    "alzheimerbroadcategory",
-                                ]
-                            ],
-                        },
+                            "operator": "is_not_null",
+                            "value": None,
+                        }
+                        for variable in [
+                            "lefthippocampus",
+                            "righthippocampus",
+                            "rightppplanumpolare",
+                            "leftamygdala",
+                            "rightamygdala",
+                            "alzheimerbroadcategory",
+                        ]
                     ],
-                    "valid": True,
                 },
-                x=[
-                    "lefthippocampus",
-                    "righthippocampus",
-                    "rightppplanumpolare",
-                    "leftamygdala",
-                    "rightamygdala",
-                ],
-                y=["alzheimerbroadcategory"],
-            ),
-            parameters={"classes": ["AD", "CN"]},
-        ),
-        datasets_per_local_node={"localnode1": ["edsd"]},
+            ],
+            "valid": True,
+        },
+        algo_parameters={"classes": ["AD", "CN"]},
     )
     parametrization_list.append(algo_execution_dto)
     # END ~~~~~~~~~~success case 1~~~~~~~~~~
@@ -188,45 +183,39 @@ def get_parametrization_list_success_cases():
         request_id="1234",
         context_id="1234",
         algorithm_name="smpc_standard_deviation",
-        algorithm_request_dto=AlgorithmRequestDTO(
-            request_id="1234",
-            inputdata=AlgorithmInputDataDTO(
-                data_model="dementia:0.1",
-                datasets=["edsd"],
-                filters={
+        data_model="dementia:0.1",
+        datasets_per_local_node={"localnode1": ["edsd"]},
+        x_vars=[
+            "lefthippocampus",
+        ],
+        var_filters={
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "dataset",
+                    "type": "string",
+                    "value": ["edsd"],
+                    "operator": "in",
+                },
+                {
                     "condition": "AND",
                     "rules": [
                         {
-                            "id": "dataset",
+                            "id": variable,
                             "type": "string",
-                            "value": ["edsd"],
-                            "operator": "in",
-                        },
-                        {
-                            "condition": "AND",
-                            "rules": [
-                                {
-                                    "id": variable,
-                                    "type": "string",
-                                    "operator": "is_not_null",
-                                    "value": None,
-                                }
-                                for variable in [
-                                    "lefthippocampus",
-                                ]
-                            ],
-                        },
+                            "operator": "is_not_null",
+                            "value": None,
+                        }
+                        for variable in [
+                            "lefthippocampus",
+                        ]
                     ],
-                    "valid": True,
                 },
-                x=[
-                    "lefthippocampus",
-                ],
-            ),
-            parameters={"classes": ["AD", "CN"]},
-            flags={"smpc": False},
-        ),
-        datasets_per_local_node={"localnode1": ["edsd"]},
+            ],
+            "valid": True,
+        },
+        algo_parameters={"classes": ["AD", "CN"]},
+        algo_flags={"smpc": False},
     )
     parametrization_list.append(algo_execution_dto)
     # END ~~~~~~~~~~success case 2~~~~~~~~~~
