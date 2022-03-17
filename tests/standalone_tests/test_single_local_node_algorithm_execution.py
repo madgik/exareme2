@@ -14,11 +14,8 @@ from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
-from tests.dev_env_tests.nodes_communication import get_node_config_by_id
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
-
-WAIT_BACKGROUND_TASKS_TO_FINISH = 20
 
 
 @pytest.fixture(scope="function")
@@ -246,9 +243,12 @@ def test_single_local_node_algorithm_execution(
     mock_algorithms_modules,
     algo_execution_dto,
     globalnode_node_service,
+    use_globalnode_database,
     localnode1_node_service,
+    use_localnode1_database,
     load_data_localnode1,
 ):
+
     local_node_id = "localnode1"
     local_node_ip = "172.17.0.1"
     local_node_monetdb_port = MONETDB_LOCALNODE1_PORT
