@@ -1,5 +1,4 @@
 from typing import Dict
-from typing import List
 
 from celery import shared_task
 
@@ -59,7 +58,7 @@ def get_node_datasets_per_data_model(request_id: str) -> Dict[str, Dict[str, str
 
 @shared_task
 @initialise_logger
-def get_data_model_cdes(request_id: str, data_model: str) -> Dict[str, str]:
+def get_data_model_cdes(request_id: str, data_model: str) -> str:
     """
     Parameters
     ----------
@@ -70,10 +69,10 @@ def get_data_model_cdes(request_id: str, data_model: str) -> Dict[str, str]:
 
     Returns
     ------
-    Dict[str, str(CommonDataElement)]
-        A dict of code to cde metadata.
+    str
+        A CommonDataElements object in a jsonified format
     """
-    return common_actions.get_data_model_cdes(data_model)
+    return common_actions.get_data_model_cdes(data_model).json()
 
 
 @shared_task

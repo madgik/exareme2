@@ -1,16 +1,15 @@
 import pytest
 
-from mipengine.controller.common_data_elements import CommonDataElement
-from mipengine.controller.common_data_elements import CommonDataElements
 from mipengine.filters import FilterError
 from mipengine.filters import build_filter_clause
 from mipengine.filters import validate_filter
+from mipengine.node_tasks_DTOs import CommonDataElement
 
 DATA_MODEL = "test_data_model1:0.1"
 
 
 @pytest.fixture
-def common_data_models():
+def data_models():
     return {
         "test_data_model1:0.1": {
             "test_age_value": CommonDataElement(
@@ -363,8 +362,8 @@ def test_build_filter_clause(test_input, expected):
 
 
 @pytest.mark.parametrize("test_input,expected", all_success_cases)
-def test_validate_filter(test_input, expected, common_data_models):
-    validate_filter(DATA_MODEL, test_input, common_data_models[DATA_MODEL])
+def test_validate_filter(test_input, expected, data_models):
+    validate_filter(DATA_MODEL, test_input, data_models[DATA_MODEL])
 
 
 all_build_filter_clause_fail_cases = [
@@ -475,6 +474,6 @@ all_validate_filter_fail_cases = [
 
 
 @pytest.mark.parametrize("test_input", all_validate_filter_fail_cases)
-def test_validate_filter_fail_cases_bad_filter(test_input, common_data_models):
+def test_validate_filter_fail_cases_bad_filter(test_input, data_models):
     with pytest.raises(FilterError):
-        validate_filter(DATA_MODEL, test_input, common_data_models)
+        validate_filter(DATA_MODEL, test_input, data_models)

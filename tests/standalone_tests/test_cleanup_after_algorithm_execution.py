@@ -306,9 +306,8 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     while localnodetmp_still_in_node_registry:
         localnodetmp_still_in_node_registry = False
         all_local_nodes = controller._node_registry.get_all_local_nodes()
-        for local_node in all_local_nodes:
-            if local_node.id == localnodetmp_node_id:
-                localnodetmp_still_in_node_registry = True
+        if localnodetmp_node_id in all_local_nodes:
+            localnodetmp_still_in_node_registry = True
         await asyncio.sleep(2)
 
     # Start the cleanup loop
@@ -381,7 +380,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # give some time for node registry and cleanup background tasks to finish gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
 
-    # the node cervice was started in here so it must manually killed, otherwise it is
+    # the node service was started in here, so it must manually be killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
     # where teh node service is supposedly down
     kill_node_service(localnodetmp_node_service_proc)
@@ -483,9 +482,8 @@ async def test_cleanup_node_service_down_algorithm_execution(
     while localnodetmp_still_in_node_registry:
         localnodetmp_still_in_node_registry = False
         all_local_nodes = controller._node_registry.get_all_local_nodes()
-        for local_node in all_local_nodes:
-            if local_node.id == localnodetmp_node_id:
-                localnodetmp_still_in_node_registry = True
+        if localnodetmp_node_id in all_local_nodes:
+            localnodetmp_still_in_node_registry = True
         await asyncio.sleep(2)
 
     # Start the cleanup loop

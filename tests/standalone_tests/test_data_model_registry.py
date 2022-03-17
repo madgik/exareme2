@@ -1,10 +1,11 @@
 import pytest
 
-from mipengine.controller.common_data_elements import CommonDataElement
 from mipengine.controller.data_model_registry import DataModelRegistry
 
-
 # TODO the testing should be better once the datasets are properly distributed and the are no duplicates.
+from mipengine.node_tasks_DTOs import CommonDataElement
+
+
 def get_datasets_location():
     return {
         "tbi:0.1": {"dummy_tbi": ["localnode1", "localnode2"]},
@@ -78,7 +79,7 @@ def get_data_model_cdes():
 @pytest.fixture
 def mocked_data_model_registry():
     data_model_registry = DataModelRegistry()
-    data_model_registry.set_common_data_models(get_data_model_cdes())
+    data_model_registry.set_data_models(get_data_model_cdes())
     data_model_registry.set_datasets_location(get_datasets_location())
     return data_model_registry
 

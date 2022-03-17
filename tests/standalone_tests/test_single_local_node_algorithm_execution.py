@@ -10,16 +10,13 @@ from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
-from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.common_data_elements import CommonDataElements
 from mipengine.controller.controller import Controller
 from mipengine.controller.controller import get_a_uniqueid
 from mipengine.controller.data_model_registry import DataModelRegistry
-from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.node_tasks_DTOs import CommonDataElement
-from tests.dev_env_tests.nodes_communication import get_node_config_by_id
+from mipengine.node_tasks_DTOs import CommonDataElements
 from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 
@@ -101,6 +98,15 @@ def patch_algorithm_executor(controller_config_mock):
         yield
 
 
+@pytest.fixture(autouse=True, scope="session")
+def patch_node_address(controller_config_mock):
+    with patch(
+        "mipengine.controller.node_address.controller_config", controller_config_mock
+    ):
+        yield
+
+
+@pytest.mark.skip
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_single_local_node_algorithm_execution(
@@ -225,7 +231,7 @@ algorithm_request_dto = AlgorithmRequestDTO(
 @pytest.fixture(scope="function")
 def mock_cdes():
     data_model_registry = DataModelRegistry()
-    common_data_models = {
+    data_models = {
         "dementia:0.1": CommonDataElements(
             values={
                 "lefthippocampus": CommonDataElement(
@@ -271,7 +277,7 @@ def mock_cdes():
             }
         )
     }
-    data_model_registry.set_common_data_models(common_data_models)
+    data_model_registry.set_data_models(data_models)
     with patch(
         "mipengine.controller.algorithm_executor.data_model_registry",
         data_model_registry,

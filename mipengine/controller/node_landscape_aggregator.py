@@ -9,13 +9,13 @@ from asgiref.sync import sync_to_async
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.celery_app import get_node_celery_app
-from mipengine.controller.common_data_elements import CommonDataElement
-from mipengine.controller.common_data_elements import CommonDataElements
 from mipengine.controller.data_model_registry import data_model_registry
 from mipengine.controller.node_address import _get_nodes_addresses
 from mipengine.controller.node_registry import node_registry
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
+from mipengine.node_tasks_DTOs import CommonDataElement
+from mipengine.node_tasks_DTOs import CommonDataElements
 
 NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
@@ -29,7 +29,7 @@ GET_NODE_DATASETS_PER_DATA_MODEL_SIGNATURE = (
 )
 GET_DATA_MODEL_CDES_SIGNATURE = "mipengine.node.tasks.common.get_data_model_cdes"
 NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL = (
-    controller_config.node_registry_update_interval
+    controller_config.node_landscape_aggregator_update_interval
 )
 
 CELERY_TASKS_TIMEOUT = controller_config.rabbitmq.celery_tasks_timeout
@@ -85,14 +85,8 @@ async def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataEl
         task_signature, connection=celery_app.broker_connection()
     )(data_model=data_model, request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID)
 
-    cdes_per_data_model = {}
     if not isinstance(result, Exception):
-        cdes_per_data_model = {
-            code: CommonDataElement.parse_raw(metadata)
-            for code, metadata in result.items()
-        }
-    cdes = CommonDataElements(values=cdes_per_data_model)
-    return cdes
+        return CommonDataElements.parse_raw(result)
 
 
 def _task_to_async(task, connection):
@@ -140,12 +134,20 @@ class NodeLandscapeAggregator:
     async def update(self):
         """
         Node Landscape Aggregator(NLA) is a module that handles the aggregation of necessary information,
-        to keep up-to-date and in sync the Node Registry and Data Model Registry.
+        to keep up-to-date and in sync the Node Registry and the Data Model Registry.
+        The Node Registry contains information about the node such as id, ip, port etc.
+        The Data Model Registry contains two types of information, data_models and datasets_location.
+        data_models contains information about the data models and their corresponding cdes.
+        datasets_location contains information about datasets and their locations(nodes).
         NLA periodically will send requests (get_node_info, get_node_datasets_per_data_model, get_data_model_cdes),
         to the nodes to retrieve the current information that they contain.
         Once all information about data models and cdes is aggregated,
         any data model that is incompatible across nodes will be removed.
-        Once all the information is aggregated and validated the NLA will provide the information to Node Registry and Data Model Registry.
+        A data model is incompatible when the cdes across nodes are not identical, except one edge case.
+        The edge case is that the cdes can only contain a difference in the field of 'enumerations' in
+        the cde with code 'dataset' and still be considered compatible.
+        For each data model the 'enumerations' field in the cde with code 'dataset' is updated with all datasets across nodes.
+        Once all the information is aggregated and validated the NLA will provide the information to the Node Registry and to the Data Model Registry.
         """
         while self.keep_updating:
             nodes_addresses = _get_nodes_addresses()
@@ -156,22 +158,22 @@ class NodeLandscapeAggregator:
             datasets_locations = await _get_datasets_locations(local_nodes)
             datasets_labels = await _get_datasets_labels(local_nodes)
             node_cdes = await _get_cdes_across_nodes(local_nodes)
-            common_data_models = _get_common_data_models(node_cdes)
-            common_data_models = _get_common_data_models_with_valid_datasets(
-                common_data_models, datasets_labels
+            compatible_data_models = _get_data_models(node_cdes)
+            data_models = _get_data_models_with_valid_datasets(
+                compatible_data_models, datasets_labels
             )
             # We are keeping only the data models that are common across nodes.
             datasets_locations = {
                 common_data_model: datasets_locations[common_data_model]
-                for common_data_model in common_data_models
+                for common_data_model in data_models
             }
 
             node_registry.set_nodes(
                 {node_info.id: node_info for node_info in nodes_info}
             )
-            data_model_registry.set_common_data_models(common_data_models)
+            data_model_registry.set_data_models(data_models)
             data_model_registry.set_datasets_location(datasets_locations)
-            logger.debug(f"Nodes:{[node.id for node in node_registry.nodes]}")
+            logger.debug(f"Nodes:{[node for node in node_registry.nodes]}")
             # ..to print full nodes info
             # from devtools import debug
             # debug(self.nodes)
@@ -227,10 +229,10 @@ async def _get_cdes_across_nodes(
     return nodes_cdes
 
 
-def _get_common_data_models(
+def _get_data_models(
     nodes_cdes: Dict[str, List[Tuple[str, CommonDataElements]]]
 ) -> Dict[str, CommonDataElements]:
-    common_data_models = {}
+    data_models = {}
     for data_model, cdes_from_all_nodes in nodes_cdes.items():
         first_node, first_cdes = cdes_from_all_nodes[0]
         for node, cdes in cdes_from_all_nodes[1:]:
@@ -240,17 +242,17 @@ def _get_common_data_models(
                 )
                 break
         else:
-            common_data_models[data_model] = first_cdes
+            data_models[data_model] = first_cdes
 
-    return common_data_models
+    return data_models
 
 
-def _get_common_data_models_with_valid_datasets(
-    common_data_models: Dict[str, CommonDataElements],
+def _get_data_models_with_valid_datasets(
+    data_models: Dict[str, CommonDataElements],
     datasets_labels: Dict[str, Dict[str, str]],
 ) -> Dict[str, CommonDataElements]:
-    for data_model in common_data_models:
-        dataset_cde = common_data_models[data_model].values["dataset"]
+    for data_model in data_models:
+        dataset_cde = data_models[data_model].values["dataset"]
         new_dataset_cde = CommonDataElement(
             code=dataset_cde.code,
             label=dataset_cde.label,
@@ -260,8 +262,8 @@ def _get_common_data_models_with_valid_datasets(
             min=dataset_cde.min,
             max=dataset_cde.max,
         )
-        common_data_models[data_model].values["dataset"] = new_dataset_cde
-    return common_data_models
+        data_models[data_model].values["dataset"] = new_dataset_cde
+    return data_models
 
 
 node_landscape_aggregator = NodeLandscapeAggregator()

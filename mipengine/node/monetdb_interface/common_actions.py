@@ -7,6 +7,8 @@ from mipengine import DType
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 from mipengine.node_exceptions import TablesNotFound
 from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import CommonDataElement
+from mipengine.node_tasks_DTOs import CommonDataElements
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.table_data_DTOs import ColumnData
@@ -270,14 +272,14 @@ def get_data_model_datasets(data_model) -> Dict[str, str]:
     return datasets
 
 
-def get_data_model_cdes(data_model) -> Dict[str, str]:
+def get_data_model_cdes(data_model) -> CommonDataElements:
     """
     Retrieves the cdes of the specific data_model.
 
     Returns
     ------
-    Dict[str, str(CommonDataElement)]
-        A dict of cde codes to the metadata object in str format.
+    CommonDataElements
+        A CommonDataElements object
     """
 
     cdes_rows = MonetDB().execute_and_fetchall(
@@ -286,7 +288,11 @@ def get_data_model_cdes(data_model) -> Dict[str, str]:
         """
     )
 
-    cdes = {code: metadata for code, metadata in cdes_rows}
+    cdes = CommonDataElements(
+        values={
+            code: CommonDataElement.parse_raw(metadata) for code, metadata in cdes_rows
+        }
+    )
 
     return cdes
 

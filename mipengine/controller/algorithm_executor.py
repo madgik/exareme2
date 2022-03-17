@@ -240,7 +240,7 @@ class _AlgorithmExecutionInterface:
         self._y_variables = algo_execution_interface_dto.y_variables
         self._datasets = algo_execution_interface_dto.datasets
         self._use_smpc = algo_execution_interface_dto.use_smpc
-        cdes = data_model_registry.common_data_models[
+        cdes = data_model_registry.data_models[
             algo_execution_interface_dto.data_model
         ].values
         varnames = (self._x_variables or []) + (self._y_variables or [])

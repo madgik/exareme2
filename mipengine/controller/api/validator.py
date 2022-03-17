@@ -107,7 +107,7 @@ def _validate_inputdata_filter(data_model, filter):
     following: https://querybuilder.js.org/
     """
     validate_filter(
-        data_model, filter, data_model_registry.common_data_models[data_model].values
+        data_model, filter, data_model_registry.data_models[data_model].values
     )
 
 
@@ -170,7 +170,7 @@ def _validate_inputdata_value(
 
 
 def _get_cde_metadata(cde, data_model):
-    data_model_cdes = data_model_registry.common_data_models[data_model].values
+    data_model_cdes = data_model_registry.data_models[data_model].values
     if cde not in data_model_cdes.keys():
         raise BadUserInput(
             f"The CDE '{cde}' does not exist in data model '{data_model}'."

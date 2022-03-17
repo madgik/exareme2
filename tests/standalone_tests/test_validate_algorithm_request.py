@@ -12,15 +12,15 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.api.validator import validate_algorithm_request
-from mipengine.controller.common_data_elements import CommonDataElement
-from mipengine.controller.common_data_elements import CommonDataElements
 from mipengine.controller.data_model_registry import DataModelRegistry
+from mipengine.node_tasks_DTOs import CommonDataElement
+from mipengine.node_tasks_DTOs import CommonDataElements
 
 
 @pytest.fixture(scope="module", autouse=True)
 def mock_cdes():
     data_model_registry = DataModelRegistry()
-    data_model_registry.common_data_models = {
+    data_model_registry.data_models = {
         "test_data_model1:0.1": CommonDataElements(
             values={
                 "test_cde1": CommonDataElement(

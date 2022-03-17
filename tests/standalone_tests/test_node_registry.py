@@ -14,34 +14,6 @@ mocked_node_addresses = [
 ]
 
 
-def get_nodes_datasets_per_data_model():
-    return {
-        "globalnode": None,
-        "localnode1": {
-            "data_model1:0.1": [
-                "dataset1",
-                "dataset2",
-                "dataset3",
-                "dataset4",
-                "dataset5",
-            ],
-            "data_model2:0.1": ["dataset6"],
-        },
-        "localnode2": {
-            "data_model2:0.1": [
-                "dataset7",
-                "dataset8",
-                "dataset9",
-            ],
-        },
-        "localnode3": {
-            "data_model2:0.1": [
-                "dataset10",
-            ],
-        },
-    }
-
-
 def get_mocked_node_info() -> Dict[str, NodeInfo]:
     return {
         "globalnode": NodeInfo(
@@ -89,14 +61,14 @@ def mocked_node_registry():
 def test_get_all_global_nodes(mocked_node_registry):
     global_nodes = mocked_node_registry.get_all_global_nodes()
     assert len(global_nodes) == 1
-    assert global_nodes[0].role == NodeRole.GLOBALNODE
+    assert global_nodes["globalnode"].role == NodeRole.GLOBALNODE
 
 
 def test_get_all_local_nodes(mocked_node_registry):
     local_nodes = mocked_node_registry.get_all_local_nodes()
     assert len(local_nodes) == 3
-    for node in local_nodes:
-        assert node.role == NodeRole.LOCALNODE
+    for node_info in local_nodes:
+        assert local_nodes[node_info].role == NodeRole.LOCALNODE
 
 
 def test_get_node_info(mocked_node_registry):

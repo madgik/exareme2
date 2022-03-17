@@ -2,7 +2,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 
-from mipengine.controller.common_data_elements import CommonDataElements
+from mipengine.node_tasks_DTOs import CommonDataElements
 
 
 def _have_common_elements(a: List[Any], b: List[Any]):
@@ -11,11 +11,11 @@ def _have_common_elements(a: List[Any], b: List[Any]):
 
 class DataModelRegistry:
     def __init__(self):
-        self.common_data_models: Dict[str, CommonDataElements] = {}
+        self.data_models: Dict[str, CommonDataElements] = {}
         self.datasets_location: Dict[str, Dict[str, str]] = {}
 
-    def set_common_data_models(self, common_data_models: Dict[str, CommonDataElements]):
-        self.common_data_models = common_data_models
+    def set_data_models(self, data_models: Dict[str, CommonDataElements]):
+        self.data_models = data_models
 
     def set_datasets_location(self, datasets_location: Dict[str, Dict[str, str]]):
         self.datasets_location = datasets_location
@@ -27,7 +27,7 @@ class DataModelRegistry:
         """
         return {
             data_model: list(self.datasets_location[data_model].keys())
-            for data_model in self.common_data_models
+            for data_model in self.data_models
         }
 
     def data_model_exists(self, data_model: str) -> bool:
