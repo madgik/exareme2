@@ -16,7 +16,6 @@ from tests.standalone_tests.conftest import _create_node_service
 from tests.standalone_tests.conftest import _create_rabbitmq_container
 from tests.standalone_tests.conftest import _load_data_monetdb_container
 from tests.standalone_tests.conftest import _remove_data_model_from_localnodetmp_monetdb
-from tests.standalone_tests.conftest import _remove_data_model_from_monetdb_container
 from tests.standalone_tests.conftest import kill_node_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 

@@ -12,12 +12,12 @@ def _have_common_elements(a: List[Any], b: List[Any]):
 class DataModelRegistry:
     def __init__(self):
         self.data_models: Dict[str, CommonDataElements] = {}
-        self.datasets_location: Dict[str, Dict[str, str]] = {}
+        self.datasets_location: Dict[str, Dict[str, List[str]]] = {}
 
     def set_data_models(self, data_models: Dict[str, CommonDataElements]):
         self.data_models = data_models
 
-    def set_datasets_location(self, datasets_location: Dict[str, Dict[str, str]]):
+    def set_datasets_location(self, datasets_location: Dict[str, Dict[str, List[str]]]):
         self.datasets_location = datasets_location
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
@@ -52,6 +52,35 @@ class DataModelRegistry:
             for node in self.datasets_location[data_model][dataset]
         ]
         return list(set(local_nodes_with_datasets))
+
+    def get_node_specific_datasets(
+        self, node_id: str, data_model: str, wanted_datasets: List[str]
+    ) -> List[str]:
+        """
+        From the datasets provided, returns only the ones located in the node.
+
+        Parameters
+        ----------
+        node_id: the id of the node
+        data_model: the data model of the datasets
+        wanted_datasets: the datasets to look for
+
+        Returns
+        -------
+        some, all or none of the wanted_datasets that are located in the node
+        """
+        if not self.data_model_exists(data_model):
+            raise ValueError(
+                f"Data model '{data_model}' is not available in the node '{node_id}'."
+            )
+
+        datasets_in_node = [
+            dataset
+            for dataset in self.datasets_location[data_model]
+            if dataset in wanted_datasets
+            if node_id in self.datasets_location[data_model][dataset]
+        ]
+        return datasets_in_node
 
 
 data_model_registry = DataModelRegistry()

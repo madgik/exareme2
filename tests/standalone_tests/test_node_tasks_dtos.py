@@ -310,10 +310,5 @@ def get_udf_results_cases():
 @pytest.mark.parametrize("udf_results", get_udf_results_cases())
 def test_udf_results_correct_resolutions(udf_results):
     udf_results_json = udf_results.json()
-
     udf_results_unpacked = UDFResults.parse_raw(udf_results_json)
-
-    print(udf_results)
-    print(udf_results_unpacked)
-
     assert udf_results == udf_results_unpacked
