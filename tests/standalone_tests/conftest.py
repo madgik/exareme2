@@ -5,6 +5,7 @@ from os import path
 from pathlib import Path
 
 import docker
+import psutil
 import pytest
 import sqlalchemy as sql
 import toml
@@ -492,6 +493,8 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     print(f"Creating node service with id '{node_id}'...")
 
     logpath = OUTDIR / (node_id + ".out")
+    if os.path.isfile(logpath):
+        os.remove(logpath)
 
     env = os.environ.copy()
     env["ALGORITHM_FOLDERS"] = algo_folders_env_variable_val
@@ -509,9 +512,19 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
         env=env,
     )
 
-    # the celery app needs sometime to be ready, we should have some kind of check
-    # for that, for now just a sleep..
-    time.sleep(10)
+    # Check that celery started
+    for _ in range(100):
+        try:
+            with open(logpath) as logfile:
+                if "CELERY - FRAMEWORK - celery@ubuntu ready." in logfile.read():
+                    break
+        except FileNotFoundError:
+            pass
+        time.sleep(0.5)
+    else:
+        raise TimeoutError(
+            f"The node service '{node_id}' didn't manage to start in the designated time."
+        )
 
     print(f"Created node service with id '{node_id}' and process id '{proc.pid}'...")
     return proc
@@ -519,9 +532,16 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
 
 def kill_node_service(proc):
     print(f"Killing node service with process id '{proc.pid}'...")
+    psutil_proc = psutil.Process(proc.pid)
     proc.kill()
-    # might take some time for the celery service to be killed
-    time.sleep(10)
+    for _ in range(100):
+        if psutil_proc.status() == "zombie" or psutil_proc.status() == "sleeping":
+            break
+        time.sleep(0.1)
+    else:
+        raise TimeoutError(
+            f"Node service is still running, status: '{psutil_proc.status()}'."
+        )
     print(f"Killed node service with process id '{proc.pid}'.")
 
 

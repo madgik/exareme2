@@ -144,7 +144,6 @@ test_cases_data_model_exists = [
     test_cases_data_model_exists,
 )
 def test_data_model_exists(data_model, exists, mocked_node_registry):
-    print(mocked_node_registry.data_model_exists(data_model))
     assert mocked_node_registry.data_model_exists(data_model) == exists
 
 
