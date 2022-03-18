@@ -24,7 +24,7 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
-COMMON_IP = "172.17.0.1"
+COMMON_IP = "127.0.0.1"
 RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
 RABBITMQ_LOCALNODE1_NAME = "rabbitmq_test_localnode1"
 RABBITMQ_LOCALNODE2_NAME = "rabbitmq_test_localnode2"
@@ -66,12 +66,6 @@ LOCALNODE1_SMPC_CONFIG_FILE = "smpc_localnode1.toml"
 LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
 
 
-# TODO Instead of the fixtures having scope session, it could be function,
-# but when the fixture start, it should check if it already exists, thus
-# not creating it again (fast). This could solve the problem of some
-# tests destroying some containers to test things.
-
-
 class MonetDBSetupError(Exception):
     """Raised when the MonetDB container is unable to start."""
 
@@ -99,7 +93,7 @@ def _create_monetdb_container(cont_name, cont_port):
             container.start()
 
     # The time needed to start a monetdb container varies considerably. We need
-    # to wait until some phrase appear in the logs to avoid starting the tests
+    # to wait until a phrase appears in the logs to avoid starting the tests
     # too soon. The process is abandoned after 100 tries (50 sec).
     for _ in range(100):
         if b"new database mapi:monetdb" in container.logs():
@@ -188,15 +182,35 @@ def monetdb_localnodetmp():
 
 
 def _init_database_monetdb_container(db_ip, db_port):
-    # init the db
+    # Check if the database is already initialized
+    cmd = f"mipdb list-data-models --ip {db_ip} --port {db_port} "
+    res = subprocess.run(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    if res.returncode == 0:
+        print("Database initialized, continuing... ")
+        return
+
     cmd = f"mipdb init --ip {db_ip} --port {db_port} "
-    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+    subprocess.run(
+        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
 
 
 def _load_data_monetdb_container(db_ip, db_port):
-    # load the data
+    # Check if the database is already loaded
+    cmd = f"mipdb list-datasets --ip {db_ip} --port {db_port} "
+    res = subprocess.run(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    if "There are no datasets" not in str(res.stdout):
+        print("Database already loaded, continuing... ")
+        return
+
     cmd = f"mipdb load-folder {TEST_DATA_FOLDER}  --ip {db_ip} --port {db_port} "
-    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+    subprocess.run(
+        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
 
 
 @pytest.fixture(scope="session")
@@ -233,10 +247,9 @@ def _create_db_cursor(db_port):
         def __init__(self) -> None:
             username = "monetdb"
             password = "monetdb"
-            # ip = "172.17.0.1"
             port = db_port
             dbfarm = "db"
-            url = f"monetdb://{username}:{password}@localhost:{port}/{dbfarm}:"
+            url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}:"
             self._executor = sql.create_engine(url, echo=True)
 
         def execute(self, query, *args, **kwargs) -> list:
@@ -281,13 +294,16 @@ def localnodetmp_db_cursor():
 
 
 def _clean_db(cursor):
-    # schema_id=2000 is the default schema id
-    select_user_tables = (
-        "SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000"
-    )
-    user_tables = cursor.execute(select_user_tables).fetchall()
-    for table_name, *_ in user_tables:
-        cursor.execute(f"DROP TABLE {table_name} CASCADE")
+    table_types = {0, 1, 3, 5}  # 0=table, 1=view, 3=merge_table, 5=remote_table
+
+    for table_type in table_types:
+        select_user_tables = f"SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000 AND type={table_type}"
+        user_tables = cursor.execute(select_user_tables).fetchall()
+        for table_name, *_ in user_tables:
+            if table_type == 1:  # view
+                cursor.execute(f"DROP VIEW {table_name}")
+            else:
+                cursor.execute(f"DROP TABLE {table_name}")
 
 
 @pytest.fixture(scope="function")
@@ -483,8 +499,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
 
     cmd = f"poetry run celery -A mipengine.node.node worker -l DEBUG >> {logpath} --purge 2>&1 "
 
-    # if executed without "exec" it is spawned as a child process of the shell and it is
-    # difficult to kill it
+    # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
     proc = subprocess.Popen(
         "exec " + cmd,
