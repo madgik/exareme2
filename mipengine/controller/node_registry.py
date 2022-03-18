@@ -1,6 +1,5 @@
 import asyncio
 import json
-import sys
 from typing import Any
 from typing import Dict
 from typing import List
@@ -108,13 +107,13 @@ def _have_common_elements(a: List[Any], b: List[Any]):
 
 class NodeRegistry:
     def __init__(self):
-        self.nodes = []
-        self.keep_updating = True
+        self.nodes: List[NodeInfo] = []
+        self.keep_updating: bool = True
 
     async def update(self):
         while self.keep_updating:
             nodes_addresses = _get_nodes_addresses()
-            self.nodes: List[NodeInfo] = await _get_nodes_info(nodes_addresses)
+            self.nodes = await _get_nodes_info(nodes_addresses)
 
             logger.debug(f"Nodes:{[node.id for node in self.nodes]}")
             # ..to print full nodes info
@@ -156,7 +155,39 @@ class NodeRegistry:
 
         return local_nodes_with_datasets
 
-    # returns a list of all the currently availiable data_models on the system
+    def get_node_specific_datasets(
+        self, node_id: str, data_model: str, wanted_datasets: List[str]
+    ) -> List[str]:
+        """
+        From the datasets provided, returns only the ones located in the node.
+
+        Parameters
+        ----------
+        node_id: the id of the node
+        data_model: the data model of the datasets
+        wanted_datasets: the datasets to look for
+
+        Returns
+        -------
+        some, all or none of the wanted_datasets that are located in the node
+        """
+
+        for node in self.nodes:
+            if node.id == node_id:
+                if data_model not in node.datasets_per_data_model.keys():
+                    raise ValueError(
+                        f"Data model '{data_model}' is not available in the node '{node_id}'."
+                    )
+                node_datasets = node.datasets_per_data_model[data_model]
+                break
+        else:
+            raise ValueError(
+                f"Node '{node_id}' could not be found in the node registry."
+            )
+
+        return list(set(node_datasets).intersection(wanted_datasets))
+
+    # returns a list of all the currently available data_models on the system
     # without duplicates
     def get_all_available_data_models(self) -> List[str]:
         all_local_nodes = self.get_all_local_nodes()
@@ -164,7 +195,7 @@ class NodeRegistry:
         all_existing_data_model = set().union(*tmp)
         return list(all_existing_data_model)
 
-    # returns a dictionary with all the currently availiable data_models on the
+    # returns a dictionary with all the currently available data_models on the
     # system as keys and lists of datasets as values. Without duplicates
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         all_local_nodes = self.get_all_local_nodes()

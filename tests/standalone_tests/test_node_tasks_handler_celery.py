@@ -30,7 +30,9 @@ def test_table_params():
     return {"command_id": command_id, "schema": schema}
 
 
-def test_create_table(localnode1_tasks_handler_celery, test_table_params):
+def test_create_table(
+    localnode1_tasks_handler_celery, use_localnode1_database, test_table_params
+):
 
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
@@ -49,7 +51,9 @@ def test_create_table(localnode1_tasks_handler_celery, test_table_params):
     assert table_name_parts[3] == command_id
 
 
-def test_get_tables(localnode1_tasks_handler_celery, test_table_params):
+def test_get_tables(
+    localnode1_tasks_handler_celery, use_localnode1_database, test_table_params
+):
 
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
@@ -67,7 +71,9 @@ def test_get_tables(localnode1_tasks_handler_celery, test_table_params):
     assert table_name in tables
 
 
-def test_get_table_schema(localnode1_tasks_handler_celery, test_table_params):
+def test_get_table_schema(
+    localnode1_tasks_handler_celery, use_localnode1_database, test_table_params
+):
 
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
@@ -105,7 +111,7 @@ def test_broker_connection_closed_exception_get_table_schema(
     # Stop rabbitmq container of this node
     _remove_rabbitmq_container(RABBITMQ_LOCALNODETMP_NAME)
 
-    # Queue a test task quering the schema of the created table which to raise the
+    # Queue a test task querying the schema of the created table which to raise the
     # exception
     with pytest.raises(ClosedBrokerConnectionError):
         localnodetmp_tasks_handler_celery.get_table_schema(
