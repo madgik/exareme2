@@ -77,13 +77,13 @@ class MonetDBSetupError(Exception):
 
 
 def _create_monetdb_container(cont_name, cont_port):
+    print(f"Creating monetdb container '{cont_name}' at port {cont_port}...")
     client = docker.from_env()
-    try:
-        container = client.containers.get(cont_name)
-    except docker.errors.NotFound:
-        udfio_full_path = path.abspath(udfio.__file__)
+    container_names = [container.name for container in client.containers.list(all=True)]
+    if cont_name not in container_names:
         # A volume is used to pass the udfio inside the monetdb container.
         # This is done so that we don't need to rebuild every time the udfio.py file is changed.
+        udfio_full_path = path.abspath(udfio.__file__)
         container = client.containers.run(
             TESTING_MONETDB_CONT_IMAGE,
             detach=True,
@@ -92,6 +92,12 @@ def _create_monetdb_container(cont_name, cont_port):
             name=cont_name,
             publish_all_ports=True,
         )
+    else:
+        container = client.containers.get(cont_name)
+        # After a machine restart the container exists, but it is stopped. (Used only in development)
+        if container.status == "exited":
+            container.start()
+
     # The time needed to start a monetdb container varies considerably. We need
     # to wait until some phrase appear in the logs to avoid starting the tests
     # too soon. The process is abandoned after 100 tries (50 sec).
@@ -101,12 +107,15 @@ def _create_monetdb_container(cont_name, cont_port):
         time.sleep(0.5)
     else:
         raise MonetDBSetupError
+    print(f"Monetdb container '{cont_name}' started.")
 
 
 def _remove_monetdb_container(cont_name):
+    print(f"Removing monetdb container '{cont_name}'.")
     client = docker.from_env()
     container = client.containers.get(cont_name)
     container.remove(v=True, force=True)
+    print(f"Removed monetdb container '{cont_name}'.")
 
 
 @pytest.fixture(scope="session")
@@ -348,16 +357,21 @@ def use_smpc_localnode2_database(monetdb_smpc_localnode2, clean_smpc_localnode2_
 
 
 def _create_rabbitmq_container(cont_name, cont_port):
+    print(f"Creating rabbitmq container '{cont_name}' at port {cont_port}...")
     client = docker.from_env()
-    try:
-        container = client.containers.get(cont_name)
-    except docker.errors.NotFound:
+    container_names = [container.name for container in client.containers.list(all=True)]
+    if cont_name not in container_names:
         container = client.containers.run(
             TESTING_RABBITMQ_CONT_IMAGE,
             detach=True,
             ports={"5672/tcp": cont_port},
             name=cont_name,
         )
+    else:
+        container = client.containers.get(cont_name)
+        # After a machine restart the container exists, but it is stopped. (Used only in development)
+        if container.status == "exited":
+            container.start()
 
     while (
         "Health" not in container.attrs["State"]
@@ -366,14 +380,18 @@ def _create_rabbitmq_container(cont_name, cont_port):
         container.reload()  # attributes are cached, this refreshes them..
         time.sleep(1)
 
+    print(f"Rabbitmq container '{cont_name}' started.")
+
 
 def _remove_rabbitmq_container(cont_name):
+    print(f"Removing rabbitmq container '{cont_name}'.")
     try:
         client = docker.from_env()
         container = client.containers.get(cont_name)
         container.remove(v=True, force=True)
     except docker.errors.NotFound:
-        pass  # container was removed by other means..
+        pass  # container was removed by other means...
+    print(f"Removed rabbitmq container '{cont_name}'.")
 
 
 @pytest.fixture(scope="session")
@@ -454,6 +472,9 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     with open(node_config_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]
+
+    print(f"Creating node service with id '{node_id}'...")
+
     logpath = OUTDIR / (node_id + ".out")
 
     env = os.environ.copy()
@@ -477,13 +498,16 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     # for that, for now just a sleep..
     time.sleep(10)
 
+    print(f"Created node service with id '{node_id}' and process id '{proc.pid}'...")
     return proc
 
 
 def kill_node_service(proc):
+    print(f"Killing node service with process id '{proc.pid}'...")
     proc.kill()
     # might take some time for the celery service to be killed
     time.sleep(10)
+    print(f"Killed node service with process id '{proc.pid}'.")
 
 
 @pytest.fixture(scope="session")
