@@ -190,6 +190,14 @@ def _load_data_monetdb_container(db_ip, db_port):
     subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
 
 
+def _remove_data_model_from_monetdb_container(
+    data_model_code, data_model_version, db_ip, db_port
+):
+    # Remove data_model
+    cmd = f"mipdb delete-data-model {data_model_code} -v {data_model_version} -f  --ip {db_ip} --port {db_port} "
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+
+
 @pytest.fixture(scope="session")
 def init_data_globalnode(monetdb_globalnode):
     _init_database_monetdb_container(COMMON_IP, MONETDB_GLOBALNODE_PORT)

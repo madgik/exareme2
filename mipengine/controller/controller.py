@@ -212,6 +212,9 @@ class Controller:
     def get_datasets_location(self):
         return self._data_model_registry.datasets_location
 
+    def get_cdes_per_data_model(self):
+        return self._data_model_registry.data_models
+
     def get_all_available_data_models(self):
         return list(self._data_model_registry.data_models.keys())
 

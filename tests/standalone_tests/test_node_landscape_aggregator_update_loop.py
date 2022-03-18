@@ -19,6 +19,8 @@ from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_PORT
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 from tests.standalone_tests.conftest import _create_node_service
 from tests.standalone_tests.conftest import _create_rabbitmq_container
+from tests.standalone_tests.conftest import _load_data_monetdb_container
+from tests.standalone_tests.conftest import _remove_data_model_from_monetdb_container
 from tests.standalone_tests.conftest import kill_node_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
@@ -109,7 +111,7 @@ def patch_node_address(controller_config_mock):
 
 @pytest.mark.slow
 @pytest.mark.asyncio
-async def test_node_registry_node_service_down(
+async def test_update_loop_node_service_down(
     load_data_localnodetmp,
     globalnode_node_service,
     localnodetmp_node_service,
@@ -123,19 +125,31 @@ async def test_node_registry_node_service_down(
     await controller.start_node_landscape_aggregator()
 
     for _ in range(MAX_RETRIES):
-        if localnodetmp_node_id in controller.get_all_local_nodes():
+        if (
+            localnodetmp_node_id in controller.get_all_local_nodes()
+            and controller.get_cdes_per_data_model()
+        ):
             break
         await asyncio.sleep(2)
     else:
         pytest.fail(
             "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
         )
+    cdes_per_data_model = controller.get_cdes_per_data_model()
+    assert "tbi:0.1" in cdes_per_data_model and "dementia:0.1" in cdes_per_data_model
+    assert (
+        len(cdes_per_data_model["tbi:0.1"].values) == 21
+        and len(cdes_per_data_model["dementia:0.1"].values) == 186
+    )
 
     kill_node_service(localnodetmp_node_service)
 
     # wait until node registry removes tmplocalnode
     for _ in range(MAX_RETRIES):
-        if localnodetmp_node_id not in controller.get_all_local_nodes():
+        if (
+            localnodetmp_node_id not in controller.get_all_local_nodes()
+            and not controller.get_cdes_per_data_model()
+        ):
             break
         await asyncio.sleep(2)
     else:
@@ -148,7 +162,10 @@ async def test_node_registry_node_service_down(
 
     # wait until node registry re-added tmplocalnode
     for _ in range(MAX_RETRIES):
-        if localnodetmp_node_id in controller.get_all_local_nodes():
+        if (
+            localnodetmp_node_id in controller.get_all_local_nodes()
+            and controller.get_cdes_per_data_model()
+        ):
             break
         await asyncio.sleep(2)
     else:
@@ -162,6 +179,200 @@ async def test_node_registry_node_service_down(
     # alive through the whole pytest session and is erroneously accessed by other tests
     # where the node service is supposedly down
     kill_node_service(localnodetmp_node_service_proc)
+
+
+@pytest.mark.slow
+@pytest.mark.asyncio
+async def test_update_loop_rabbitmq_down(
+    load_data_localnodetmp,
+    globalnode_node_service,
+    localnodetmp_node_service,
+):
+
+    # get tmp localnode node_id from config file
+    localnodetmp_node_id = get_localnodetmp_node_id()
+    controller = Controller()
+
+    # wait until node registry gets the nodes info
+    await controller.start_node_landscape_aggregator()
+
+    # wait until node registry and data model registry is up-to-date
+    for _ in range(MAX_RETRIES):
+        if (
+            localnodetmp_node_id in controller.get_all_local_nodes()
+            and controller.get_cdes_per_data_model()
+        ):
+            cdes_per_data_model = controller.get_cdes_per_data_model()
+            assert (
+                "tbi:0.1" in cdes_per_data_model
+                and "dementia:0.1" in cdes_per_data_model
+            )
+            assert (
+                len(cdes_per_data_model["tbi:0.1"].values) == 21
+                and len(cdes_per_data_model["dementia:0.1"].values) == 186
+            )
+            break
+        await asyncio.sleep(2)
+    else:
+        pytest.fail(
+            "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+        )
+
+    remove_localnodetmp_rabbitmq()
+
+    # wait until node registry no longer contains tmplocalnode
+    for _ in range(MAX_RETRIES):
+        if (
+            localnodetmp_node_id not in controller.get_all_local_nodes()
+            and not controller.get_cdes_per_data_model()
+        ):
+            break
+        await asyncio.sleep(2)
+    else:
+        pytest.fail(
+            "Exceeded max retries while waiting for the node registry to remove the tmplocalnode"
+        )
+
+    # restart tmplocalnode rabbitmq container
+    _create_rabbitmq_container(RABBITMQ_LOCALNODETMP_NAME, RABBITMQ_LOCALNODETMP_PORT)
+
+    # wait until node registry contains tmplocalnode
+    for _ in range(MAX_RETRIES):
+        if (
+            localnodetmp_node_id in controller.get_all_local_nodes()
+            and controller.get_cdes_per_data_model()
+        ):
+            break
+        await asyncio.sleep(2)
+    else:
+        pytest.fail(
+            "Exceeded max retries while waiting for the node registry to re-add the tmplocalnode"
+        )
+
+    await controller.stop_node_landscape_aggregator()
+
+    # the node service was started in here, so it must manually be killed, otherwise it is
+    # alive through the whole pytest session and is erroneously accessed by other tests
+    # where the node service is supposedly down
+    kill_node_service(localnodetmp_node_service)
+
+
+@pytest.mark.slow
+@pytest.mark.asyncio
+async def test_update_loop_data_models_removed(
+    load_data_localnodetmp,
+    globalnode_node_service,
+    localnodetmp_node_service,
+):
+
+    # get tmp localnode node_id from config file
+    localnodetmp_node_id = get_localnodetmp_node_id()
+    controller = Controller()
+
+    # wait until node registry gets the nodes info
+    await controller.start_node_landscape_aggregator()
+
+    # wait until node registry and data model registry is up-to-date
+    for _ in range(MAX_RETRIES):
+        if (
+            localnodetmp_node_id in controller.get_all_local_nodes()
+            and controller.get_cdes_per_data_model()
+        ):
+            cdes_per_data_model = controller.get_cdes_per_data_model()
+            assert (
+                "tbi:0.1" in cdes_per_data_model
+                and "dementia:0.1" in cdes_per_data_model
+            )
+            assert (
+                len(cdes_per_data_model["tbi:0.1"].values) == 21
+                and len(cdes_per_data_model["dementia:0.1"].values) == 186
+            )
+            break
+        await asyncio.sleep(2)
+    else:
+        pytest.fail(
+            "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+        )
+
+    localnodes = controller.get_all_local_nodes()
+
+    _remove_data_model_from_monetdb_container(
+        data_model_code="dementia",
+        data_model_version="0.1",
+        db_ip=localnodes[localnodetmp_node_id].db_ip,
+        db_port=localnodes[localnodetmp_node_id].db_port,
+    )
+
+    # wait until data model registry no longer contains 'dementia:0.1'
+    for _ in range(MAX_RETRIES):
+        if (
+            localnodetmp_node_id in controller.get_all_local_nodes()
+            and controller.get_cdes_per_data_model()
+            and "dementia:0.1" not in controller.get_cdes_per_data_model()
+        ):
+            cdes_per_data_model = controller.get_cdes_per_data_model()
+            assert "tbi:0.1" in cdes_per_data_model
+            assert len(cdes_per_data_model["tbi:0.1"].values) == 21
+            break
+        await asyncio.sleep(2)
+    else:
+        pytest.fail(
+            "Exceeded max retries while waiting for the data model registry to be updated and not contain 'dementia:0.1'"
+        )
+
+    _remove_data_model_from_monetdb_container(
+        data_model_code="tbi",
+        data_model_version="0.1",
+        db_ip=localnodes[localnodetmp_node_id].db_ip,
+        db_port=localnodes[localnodetmp_node_id].db_port,
+    )
+
+    # wait until data model registry no longer contains 'tbi:0.1'
+    for _ in range(MAX_RETRIES):
+        if (
+            localnodetmp_node_id in controller.get_all_local_nodes()
+            and not controller.get_cdes_per_data_model()
+        ):
+            break
+        await asyncio.sleep(2)
+    else:
+        pytest.fail(
+            "Exceeded max retries while waiting for the data model registry to be updated and not contain 'tbi:0.1'"
+        )
+
+    _load_data_monetdb_container(
+        db_ip=localnodes[localnodetmp_node_id].db_ip,
+        db_port=localnodes[localnodetmp_node_id].db_port,
+    )
+
+    # wait until data models are re-loaded in the data model registry
+    for _ in range(MAX_RETRIES):
+        if (
+            localnodetmp_node_id in controller.get_all_local_nodes()
+            and controller.get_cdes_per_data_model()
+        ):
+            cdes_per_data_model = controller.get_cdes_per_data_model()
+            assert (
+                "tbi:0.1" in cdes_per_data_model
+                and "dementia:0.1" in cdes_per_data_model
+            )
+            assert (
+                len(cdes_per_data_model["tbi:0.1"].values) == 21
+                and len(cdes_per_data_model["dementia:0.1"].values) == 186
+            )
+            break
+        await asyncio.sleep(2)
+    else:
+        pytest.fail(
+            "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+        )
+
+    await controller.stop_node_landscape_aggregator()
+
+    # the node service was started in here, so it must manually be killed, otherwise it is
+    # alive through the whole pytest session and is erroneously accessed by other tests
+    # where the node service is supposedly down
+    kill_node_service(localnodetmp_node_service)
 
 
 def get_localnodetmp_node_id():
