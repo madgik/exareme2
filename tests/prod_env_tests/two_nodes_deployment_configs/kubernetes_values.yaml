@@ -11,7 +11,7 @@ cdes_path: /opt/data
 monetdb_storage: /opt/monetdb
 
 controller:
-  node_registry_update_interval: 20
+  node_landscape_aggregator_update_interval: 20
   celery_tasks_timeout: 10
 
 smpc:

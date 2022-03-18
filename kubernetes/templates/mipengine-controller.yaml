@@ -32,8 +32,8 @@ spec:
           value: {{ .Values.framework_log_level }}
         - name: DEPLOYMENT_TYPE
           value: "KUBERNETES"
-        - name: NODE_REGISTRY_UPDATE_INTERVAL
-          value: "{{ .Values.controller.node_registry_update_interval }}"
+        - name: NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL
+          value: "{{ .Values.controller.node_landscape_aggregator_update_interval }}"
         - name: CELERY_TASKS_TIMEOUT
           value: "{{ .Values.controller.celery_tasks_timeout }}"
         - name: LOCALNODES_DNS
