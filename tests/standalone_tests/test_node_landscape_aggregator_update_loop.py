@@ -1,5 +1,4 @@
 import asyncio
-import time
 from os import path
 from unittest.mock import patch
 
@@ -7,11 +6,7 @@ import pytest
 import toml
 
 from mipengine import AttrDict
-from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
-from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.controller import Controller
-from mipengine.controller.controller import get_a_uniqueid
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
 from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_NAME
@@ -20,6 +15,7 @@ from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 from tests.standalone_tests.conftest import _create_node_service
 from tests.standalone_tests.conftest import _create_rabbitmq_container
 from tests.standalone_tests.conftest import _load_data_monetdb_container
+from tests.standalone_tests.conftest import _remove_data_model_from_localnodetmp_monetdb
 from tests.standalone_tests.conftest import _remove_data_model_from_monetdb_container
 from tests.standalone_tests.conftest import kill_node_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
@@ -129,18 +125,21 @@ async def test_update_loop_node_service_down(
             localnodetmp_node_id in controller.get_all_local_nodes()
             and controller.get_cdes_per_data_model()
         ):
+            cdes_per_data_model = controller.get_cdes_per_data_model()
+            assert (
+                "tbi:0.1" in cdes_per_data_model
+                and "dementia:0.1" in cdes_per_data_model
+            )
+            assert (
+                len(cdes_per_data_model["tbi:0.1"].values) == 21
+                and len(cdes_per_data_model["dementia:0.1"].values) == 186
+            )
             break
         await asyncio.sleep(2)
     else:
         pytest.fail(
             "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
         )
-    cdes_per_data_model = controller.get_cdes_per_data_model()
-    assert "tbi:0.1" in cdes_per_data_model and "dementia:0.1" in cdes_per_data_model
-    assert (
-        len(cdes_per_data_model["tbi:0.1"].values) == 21
-        and len(cdes_per_data_model["dementia:0.1"].values) == 186
-    )
 
     kill_node_service(localnodetmp_node_service)
 
@@ -166,6 +165,15 @@ async def test_update_loop_node_service_down(
             localnodetmp_node_id in controller.get_all_local_nodes()
             and controller.get_cdes_per_data_model()
         ):
+            cdes_per_data_model = controller.get_cdes_per_data_model()
+            assert (
+                "tbi:0.1" in cdes_per_data_model
+                and "dementia:0.1" in cdes_per_data_model
+            )
+            assert (
+                len(cdes_per_data_model["tbi:0.1"].values) == 21
+                and len(cdes_per_data_model["dementia:0.1"].values) == 186
+            )
             break
         await asyncio.sleep(2)
     else:
@@ -242,6 +250,15 @@ async def test_update_loop_rabbitmq_down(
             localnodetmp_node_id in controller.get_all_local_nodes()
             and controller.get_cdes_per_data_model()
         ):
+            cdes_per_data_model = controller.get_cdes_per_data_model()
+            assert (
+                "tbi:0.1" in cdes_per_data_model
+                and "dementia:0.1" in cdes_per_data_model
+            )
+            assert (
+                len(cdes_per_data_model["tbi:0.1"].values) == 21
+                and len(cdes_per_data_model["dementia:0.1"].values) == 186
+            )
             break
         await asyncio.sleep(2)
     else:
@@ -294,14 +311,8 @@ async def test_update_loop_data_models_removed(
             "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
         )
 
-    localnodes = controller.get_all_local_nodes()
-
-    _remove_data_model_from_monetdb_container(
-        data_model_code="dementia",
-        data_model_version="0.1",
-        db_ip=localnodes[localnodetmp_node_id].db_ip,
-        db_port=localnodes[localnodetmp_node_id].db_port,
-    )
+    remove_data_model_from_localnodetmp_monetdb("dementia:0.1")
+    remove_data_model_from_localnodetmp_monetdb("dementia:0.1")
 
     # wait until data model registry no longer contains 'dementia:0.1'
     for _ in range(MAX_RETRIES):
@@ -320,12 +331,7 @@ async def test_update_loop_data_models_removed(
             "Exceeded max retries while waiting for the data model registry to be updated and not contain 'dementia:0.1'"
         )
 
-    _remove_data_model_from_monetdb_container(
-        data_model_code="tbi",
-        data_model_version="0.1",
-        db_ip=localnodes[localnodetmp_node_id].db_ip,
-        db_port=localnodes[localnodetmp_node_id].db_port,
-    )
+    remove_data_model_from_localnodetmp_monetdb("tbi:0.1")
 
     # wait until data model registry no longer contains 'tbi:0.1'
     for _ in range(MAX_RETRIES):
@@ -340,9 +346,10 @@ async def test_update_loop_data_models_removed(
             "Exceeded max retries while waiting for the data model registry to be updated and not contain 'tbi:0.1'"
         )
 
+    local_nodes = controller.get_all_local_nodes()
     _load_data_monetdb_container(
-        db_ip=localnodes[localnodetmp_node_id].db_ip,
-        db_port=localnodes[localnodetmp_node_id].db_port,
+        db_ip=local_nodes[localnodetmp_node_id].db_ip,
+        db_port=local_nodes[localnodetmp_node_id].db_port,
     )
 
     # wait until data models are re-loaded in the data model registry
@@ -373,6 +380,14 @@ async def test_update_loop_data_models_removed(
     # alive through the whole pytest session and is erroneously accessed by other tests
     # where the node service is supposedly down
     kill_node_service(localnodetmp_node_service)
+
+
+def remove_data_model_from_localnodetmp_monetdb(data_model):
+    data_model_code, data_model_version = data_model.split(":")
+    _remove_data_model_from_localnodetmp_monetdb(
+        data_model_code=data_model_code,
+        data_model_version=data_model_version,
+    )
 
 
 def get_localnodetmp_node_id():
