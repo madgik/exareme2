@@ -25,6 +25,7 @@ class _NodeInfoDTO(BaseModel):
     queue_address: str
     db_address: str
     tasks_timeout: int
+    smpc_tasks_timeout: int
 
     class Config:
         allow_mutation = False
@@ -230,6 +231,7 @@ class Controller:
                 queue_address=":".join([str(global_node.ip), str(global_node.port)]),
                 db_address=":".join([str(global_node.db_ip), str(global_node.db_port)]),
                 tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+                smpc_tasks_timeout=controller_config.rabbitmq.celery_smpc_tasks_timeout,
             )
         )
 
@@ -257,6 +259,7 @@ class Controller:
                     queue_address=":".join([str(node.ip), str(node.port)]),
                     db_address=":".join([str(node.db_ip), str(node.db_port)]),
                     tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+                    smpc_tasks_timeout=controller_config.rabbitmq.celery_smpc_tasks_timeout,
                 )
 
     def _get_nodes_info_by_dataset(
@@ -276,6 +279,7 @@ class Controller:
                         [str(local_node.db_ip), str(local_node.db_port)]
                     ),
                     tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+                    smpc_tasks_timeout=controller_config.rabbitmq.celery_smpc_tasks_timeout,
                 )
             )
 
@@ -288,6 +292,7 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery
         node_queue_addr=node_info.queue_address,
         node_db_addr=node_info.db_address,
         tasks_timeout=node_info.tasks_timeout,
+        smpc_tasks_timeout=node_info.smpc_tasks_timeout,
     )
 
 

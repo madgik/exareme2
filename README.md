@@ -52,7 +52,8 @@
    algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 
    node_registry_update_interval = 30
-   celery_tasks_timeout = 120
+   celery_tasks_timeout = 20
+   celery_smpc_tasks_timeout = 120
 
    [smpc]
    enabled=true

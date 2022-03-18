@@ -108,12 +108,18 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
     # TODO create custom type and validator for the socket address
     def __init__(
-        self, node_id: str, node_queue_addr: str, node_db_addr: str, tasks_timeout
+        self,
+        node_id: str,
+        node_queue_addr: str,
+        node_db_addr: str,
+        tasks_timeout: int,
+        smpc_tasks_timeout: int,
     ):
         self._node_id = node_id
         self._celery_app = get_node_celery_app(node_queue_addr)
         self._db_address = node_db_addr
         self._tasks_timeout = tasks_timeout
+        self._smpc_tasks_timeout = smpc_tasks_timeout
 
     @property
     def node_id(self) -> str:
@@ -385,7 +391,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             request_id=request_id,
             table_name=table_name,
             jobid=jobid,
-        ).get(self._tasks_timeout)
+        ).get(self._smpc_tasks_timeout)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
@@ -405,7 +411,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             context_id=context_id,
             command_id=command_id,
             command_subid=command_subid,
-        ).get(self._tasks_timeout)
+        ).get(self._smpc_tasks_timeout)
 
     # CLEANUP functionality
     @time_limit_exceeded_handler

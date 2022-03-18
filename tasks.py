@@ -176,6 +176,9 @@ def create_configs(c):
     controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
         "celery_tasks_timeout"
     ]
+    controller_config["rabbitmq"]["celery_smpc_tasks_timeout"] = deployment_config[
+        "celery_smpc_tasks_timeout"
+    ]
     controller_config["deployment_type"] = "LOCAL"
 
     controller_config["localnodes"]["config_file"] = str(

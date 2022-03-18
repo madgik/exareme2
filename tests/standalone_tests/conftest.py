@@ -65,6 +65,7 @@ LOCALNODE1_SMPC_CONFIG_FILE = "smpc_localnode1.toml"
 LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
 
 TASKS_TIMEOUT = 10
+SMPC_TASKS_TIMEOUT = 120
 
 ########### SMPC Cluster ############
 SMPC_CLUSTER_IMAGE = "gpikra/coordinator:latest"
@@ -612,6 +613,7 @@ def globalnode_tasks_handler_celery(globalnode_node_service):
         node_queue_addr=queue_address,
         node_db_addr=db_address,
         tasks_timeout=TASKS_TIMEOUT,
+        smpc_tasks_timeout=SMPC_TASKS_TIMEOUT,
     )
 
 
@@ -634,6 +636,7 @@ def localnode1_tasks_handler_celery(localnode1_node_service):
         node_queue_addr=queue_address,
         node_db_addr=db_address,
         tasks_timeout=TASKS_TIMEOUT,
+        smpc_tasks_timeout=SMPC_TASKS_TIMEOUT,
     )
 
 
@@ -656,6 +659,7 @@ def localnodetmp_tasks_handler_celery(localnodetmp_node_service):
         node_queue_addr=queue_address,
         node_db_addr=db_address,
         tasks_timeout=TASKS_TIMEOUT,
+        smpc_tasks_timeout=SMPC_TASKS_TIMEOUT,
     )
 
 
