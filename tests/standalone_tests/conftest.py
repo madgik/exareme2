@@ -251,10 +251,10 @@ def _create_db_cursor(db_port):
             port = db_port
             dbfarm = "db"
             url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}:"
-            # self._executor = sql.create_engine(url, echo=True)
-            self._executor = sql.create_engine(url, echo=True).execution_options(
-                isolation_level="AUTOCOMMIT"
-            )
+            self._executor = sql.create_engine(url, echo=True)
+            # self._executor = sql.create_engine(url, echo=True).execution_options(
+            #     isolation_level="AUTOCOMMIT"
+            # )
 
         def execute(self, query, *args, **kwargs) -> list:
             return self._executor.execute(query, *args, **kwargs)
