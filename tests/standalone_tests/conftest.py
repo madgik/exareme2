@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import time
 from os import path
@@ -516,15 +517,18 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     for _ in range(100):
         try:
             with open(logpath) as logfile:
-                if "CELERY - FRAMEWORK - celery@ubuntu ready." in logfile.read():
+                if bool(
+                    re.search("CELERY - FRAMEWORK - celery@.* ready.", logfile.read())
+                ):
                     break
         except FileNotFoundError:
             pass
         time.sleep(0.5)
     else:
-        raise TimeoutError(
-            f"The node service '{node_id}' didn't manage to start in the designated time."
-        )
+        with open(logpath) as logfile:
+            raise TimeoutError(
+                f"The node service '{node_id}' didn't manage to start in the designated time. Logs: \n{logfile.read()}"
+            )
 
     print(f"Created node service with id '{node_id}' and process id '{proc.pid}'...")
     return proc
