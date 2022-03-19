@@ -38,6 +38,7 @@ class Cleaner:
 
     async def cleanup_loop(self):
         while self.keep_cleaning_up:
+            print("**** in cleanup_loop")
             contextids_and_status = self._cleanup_file_processor._read_cleanup_file()
             for context_id, status in contextids_and_status.items():
                 if status["nodes"]:
@@ -46,7 +47,7 @@ class Cleaner:
                         or (datetime.now(timezone.utc) - status["timestamp"]).seconds
                         > controller_config.cleanup.contextid_release_timelimit
                     ):
-                        # breakpoint()
+                        print("**** in cleanup_loop in for loop")
                         for node_id in status["nodes"]:
                             try:
                                 node_info = self._get_node_info_by_id(node_id)
@@ -70,7 +71,9 @@ class Cleaner:
                                 )
                 else:
                     self._remove_contextid_from_cleanup(context_id=context_id)
+
             await asyncio.sleep(self._clean_up_interval)
+        print("**** EXITED cleanup_loop while")
 
     def _add_contextid_for_cleanup(
         self, context_id: str, algo_execution_node_ids: List[str]
@@ -122,7 +125,7 @@ class CleanupFileProcessor:
     def _append_to_cleanup_file(self, context_id: str, node_ids: List[str]):
         dirname = os.path.dirname(controller_config.cleanup.contextids_cleanup_file)
         filename = os.path.basename(controller_config.cleanup.contextids_cleanup_file)
-        filename_tmp = "contextids_cleanup_tmp.toml"
+        filename_tmp = Path(filename).stem + "_tmp" + Path(filename).suffix
         with open(controller_config.cleanup.contextids_cleanup_file, "r") as f:
             parsed_toml = toml.load(f)
         if context_id not in parsed_toml:

@@ -5,6 +5,7 @@ from os import path
 from pathlib import Path
 
 import docker
+import psutil
 import pytest
 import sqlalchemy as sql
 import toml
@@ -250,7 +251,10 @@ def _create_db_cursor(db_port):
             port = db_port
             dbfarm = "db"
             url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}:"
-            self._executor = sql.create_engine(url, echo=True)
+            # self._executor = sql.create_engine(url, echo=True)
+            self._executor = sql.create_engine(url, echo=True).execution_options(
+                isolation_level="AUTOCOMMIT"
+            )
 
         def execute(self, query, *args, **kwargs) -> list:
             return self._executor.execute(query, *args, **kwargs)
@@ -492,6 +496,8 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     print(f"Creating node service with id '{node_id}'...")
 
     logpath = OUTDIR / (node_id + ".out")
+    if os.path.isfile(logpath):
+        os.remove(logpath)
 
     env = os.environ.copy()
     env["ALGORITHM_FOLDERS"] = algo_folders_env_variable_val
@@ -509,9 +515,20 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
         env=env,
     )
 
-    # the celery app needs sometime to be ready, we should have some kind of check
-    # for that, for now just a sleep..
-    time.sleep(10)
+    # Check that celery started
+    for _ in range(100):
+        try:
+            with open(logpath) as logfile:
+                # if "CELERY - FRAMEWORK - celery@ubuntu ready." in logfile.read():
+                if "ready." in logfile.read():
+                    break
+        except FileNotFoundError:
+            pass
+        time.sleep(0.5)
+    else:
+        raise TimeoutError(
+            f"The node service '{node_id}' didn't manage to start in the designated time."
+        )
 
     print(f"Created node service with id '{node_id}' and process id '{proc.pid}'...")
     return proc
@@ -519,9 +536,16 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
 
 def kill_node_service(proc):
     print(f"Killing node service with process id '{proc.pid}'...")
+    psutil_proc = psutil.Process(proc.pid)
     proc.kill()
-    # might take some time for the celery service to be killed
-    time.sleep(10)
+    for _ in range(100):
+        if psutil_proc.status() == "zombie" or psutil_proc.status() == "sleeping":
+            break
+        time.sleep(0.1)
+    else:
+        raise TimeoutError(
+            f"Node service is still running, status: '{psutil_proc.status()}'."
+        )
     print(f"Killed node service with process id '{proc.pid}'.")
 
 
@@ -603,7 +627,7 @@ def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
 
 
 @pytest.fixture(scope="session")
-def globalnode_tasks_handler_celery(globalnode_node_service):
+def globalnode_tasks_handler(globalnode_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
 
     with open(node_config_filepath) as fp:
@@ -626,7 +650,7 @@ def globalnode_tasks_handler_celery(globalnode_node_service):
 
 
 @pytest.fixture(scope="session")
-def localnode1_tasks_handler_celery(localnode1_node_service):
+def localnode1_tasks_handler(localnode1_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
     with open(node_config_filepath) as fp:
         tmp = toml.load(fp)
@@ -648,8 +672,35 @@ def localnode1_tasks_handler_celery(localnode1_node_service):
     )
 
 
+@pytest.fixture(scope="session")
+def localnode2_tasks_handler(localnode2_node_service):
+    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE2_CONFIG_FILE)
+    with open(node_config_filepath) as fp:
+        tmp = toml.load(fp)
+        node_id = tmp["identifier"]
+        queue_domain = tmp["rabbitmq"]["ip"]
+        queue_port = tmp["rabbitmq"]["port"]
+        db_domain = tmp["monetdb"]["ip"]
+        db_port = tmp["monetdb"]["port"]
+        tasks_timeout = tmp["celery"]["task_time_limit"]
+
+    queue_address = ":".join([str(queue_domain), str(queue_port)])
+    db_address = ":".join([str(db_domain), str(db_port)])
+
+    return NodeTasksHandlerCelery(
+        node_id=node_id,
+        node_queue_addr=queue_address,
+        node_db_addr=db_address,
+        tasks_timeout=tasks_timeout,
+    )
+
+
 @pytest.fixture(scope="function")
-def localnodetmp_tasks_handler_celery(localnodetmp_node_service):
+def localnodetmp_tasks_handler(localnodetmp_node_service):
+    return create_localnode_tasks_handler()
+
+
+def create_localnode_tasks_handler():
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
     with open(node_config_filepath) as fp:
         tmp = toml.load(fp)

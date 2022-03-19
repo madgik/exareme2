@@ -36,14 +36,14 @@ class Controller:
         self._controller_logger = ctrl_logger.get_background_service_logger()
         self._cleaner = Cleaner(node_registry=self._node_registry)
 
-    async def start_cleanup_loop(self):
+    def start_cleanup_loop(self):
         self._controller_logger.info("starting cleanup_loop")
         self._cleaner.keep_cleaning_up = True
         task = asyncio.create_task(self._cleaner.cleanup_loop())
         self._controller_logger.info("started clean_up loop")
         return task
 
-    async def stop_cleanup_loop(self):
+    def stop_cleanup_loop(self):
         self._cleaner.keep_cleaning_up = False
 
     async def exec_algorithm(
@@ -159,13 +159,13 @@ class Controller:
             available_datasets_per_data_model=available_datasets_per_data_model,
         )
 
-    async def start_node_registry(self):
+    def start_node_registry(self):
         self._controller_logger.info("starting node registry")
         self._node_registry.keep_updating = True
         asyncio.create_task(self._node_registry.update())
         self._controller_logger.info("started node registry")
 
-    async def stop_node_registry(self):
+    def stop_node_registry(self):
         self._node_registry.keep_updating = False
 
     def get_all_datasets_per_node(self):

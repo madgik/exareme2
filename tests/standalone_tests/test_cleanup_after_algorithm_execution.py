@@ -9,6 +9,7 @@ import toml
 from mipengine import AttrDict
 from mipengine.common_data_elements import CommonDataElements
 from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.controller import Controller
@@ -20,12 +21,13 @@ from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_PORT
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 from tests.standalone_tests.conftest import _create_node_service
 from tests.standalone_tests.conftest import _create_rabbitmq_container
+from tests.standalone_tests.conftest import create_localnode_tasks_handler
 from tests.standalone_tests.conftest import kill_node_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
-WAIT_CLEANUP_TIME_LIMIT = 200
+WAIT_CLEANUP_TIME_LIMIT = 40
 WAIT_BEFORE_BRING_TMPNODE_DOWN = 15
-WAIT_BACKGROUND_TASKS_TO_FINISH = 20
+WAIT_BACKGROUND_TASKS_TO_FINISH = 30
 
 
 @pytest.fixture(scope="session")
@@ -37,7 +39,11 @@ def controller_config_mock():
             "cdes_metadata_path": "./tests/demo_data",
             "deployment_type": "LOCAL",
             "node_registry_update_interval": 2,  # 5,
-            "nodes_cleanup_interval": 2,
+            "cleanup": {
+                "contextids_cleanup_file": "/tmp/contextids_cleanup_testing.toml",
+                "nodes_cleanup_interval": 2,
+                "contextid_release_timelimit": 3600,  # 24hours
+            },
             "localnodes": {
                 "config_file": "./tests/standalone_tests/testing_env_configs/test_localnodes_addresses.json",
                 "dns": "",
@@ -74,6 +80,25 @@ def cdes_mock():
 def patch_controller(controller_config_mock):
     with patch(
         "mipengine.controller.controller.controller_config",
+        controller_config_mock,
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True, scope="session")
+def patch_cleaner(controller_config_mock):
+    with patch(
+        "mipengine.controller.cleaner.controller_config",
+        controller_config_mock,
+    ):
+        yield
+
+
+@pytest.fixture(scope="function")
+def patch_cleaner_small_release_timelimit(controller_config_mock):
+    controller_config_mock["cleanup"]["contextid_release_timelimit"] = 5
+    with patch(
+        "mipengine.controller.cleaner.controller_config",
         controller_config_mock,
     ):
         yield
@@ -121,44 +146,38 @@ def patch_algorithm_executor(controller_config_mock, cdes_mock):
         yield
 
 
-@pytest.mark.skip
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(
     init_data_globalnode,
     load_data_localnode1,
     load_data_localnode2,
-    globalnode_node_service,
-    localnode1_node_service,
-    localnode2_node_service,
+    globalnode_tasks_handler,
+    localnode1_tasks_handler,
+    localnode2_tasks_handler,
 ):
 
     controller = Controller()
 
     # start node registry
-    await controller.start_node_registry()
-
-    # wait until node registry gets the nodes info
-    while not controller.get_all_local_nodes() or not controller.get_global_node():
-        await asyncio.sleep(1)
-
+    # node registry has to run on the background because it is used by the Cleaner
+    controller.start_node_registry()
     # Start the cleanup loop
-    await controller.start_cleanup_loop()
-
-    # get all participating node tasks handlers
-    nodes_tasks_handlers_dto = controller._get_nodes_tasks_handlers(
-        data_model=algorithm_request_dto.inputdata.data_model,
-        datasets=algorithm_request_dto.inputdata.datasets,
-    )
-
-    globalnode_tasks_handler = nodes_tasks_handlers_dto.global_node_tasks_handler
-    localnode1_tasks_handler = nodes_tasks_handlers_dto.local_nodes_tasks_handlers[0]
-    localnode2_tasks_handler = nodes_tasks_handlers_dto.local_nodes_tasks_handlers[1]
+    controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
+
+    controller._cleaner._add_contextid_for_cleanup(
+        context_id,
+        [
+            globalnode_tasks_handler.node_id,
+            localnode1_tasks_handler.node_id,
+            localnode2_tasks_handler.node_id,
+        ],
+    )
 
     try:
         await controller._exec_algorithm_with_task_handlers(
@@ -166,7 +185,17 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
             context_id=context_id,
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
-            tasks_handlers=nodes_tasks_handlers_dto,
+            datasets_per_local_node={
+                localnode1_tasks_handler.node_id: ["edsd"],
+                localnode2_tasks_handler.node_id: ["edsd"],
+            },
+            tasks_handlers=NodesTasksHandlersDTO(
+                global_node_tasks_handler=globalnode_tasks_handler,
+                local_nodes_tasks_handlers=[
+                    localnode1_tasks_handler,
+                    localnode2_tasks_handler,
+                ],
+            ),
             logger=algo_execution_logger,
         )
     except:
@@ -182,15 +211,123 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
-    controller._append_context_id_for_cleanup(
-        context_id=context_id,
-        node_ids=[
+    controller._cleaner._release_contextid_for_cleanup(context_id=context_id)
+
+    globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
+        request_id=request_id, context_id=context_id
+    )
+    localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
+        request_id=request_id, context_id=context_id
+    )
+    localnode2_tables_after_cleanup = localnode2_tasks_handler.get_tables(
+        request_id=request_id, context_id=context_id
+    )
+
+    start = time.time()
+    while (
+        globalnode_tables_after_cleanup
+        and localnode1_tables_after_cleanup
+        and localnode2_tables_after_cleanup
+    ):
+        globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
+            request_id=request_id, context_id=context_id
+        )
+        localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
+            request_id=request_id, context_id=context_id
+        )
+        localnode2_tables_after_cleanup = localnode2_tasks_handler.get_tables(
+            request_id=request_id, context_id=context_id
+        )
+
+        now = time.time()
+        if now - start > WAIT_CLEANUP_TIME_LIMIT:
+            assert False
+
+        await asyncio.sleep(2)
+
+    controller.stop_node_registry()
+    controller.stop_cleanup_loop()
+    # give some time for node registry and cleanup background tasks to stop gracefully
+    await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
+
+    if (
+        globalnode_tables_before_cleanup
+        and not globalnode_tables_after_cleanup
+        and localnode1_tables_before_cleanup
+        and not localnode1_tables_after_cleanup
+        and localnode2_tables_before_cleanup
+        and not localnode2_tables_after_cleanup
+    ):
+        assert True
+    else:
+        assert False
+
+
+@pytest.mark.slow
+@pytest.mark.asyncio
+async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing_contextid(
+    init_data_globalnode,
+    load_data_localnode1,
+    load_data_localnode2,
+    globalnode_tasks_handler,
+    localnode1_tasks_handler,
+    localnode2_tasks_handler,
+    patch_cleaner_small_release_timelimit,
+):
+    controller = Controller()
+
+    # start node registry
+    # node registry has to run on the background because it is used by the Cleaner
+    controller.start_node_registry()
+    # Start the cleanup loop
+    controller.start_cleanup_loop()
+
+    request_id = get_a_uniqueid()
+    context_id = get_a_uniqueid()
+    algorithm_name = "logistic_regression"
+    algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
+
+    try:
+        await controller._exec_algorithm_with_task_handlers(
+            request_id=request_id,
+            context_id=context_id,
+            algorithm_name=algorithm_name,
+            algorithm_request_dto=algorithm_request_dto,
+            datasets_per_local_node={
+                localnode1_tasks_handler.node_id: ["edsd"],
+                localnode2_tasks_handler.node_id: ["edsd"],
+            },
+            tasks_handlers=NodesTasksHandlersDTO(
+                global_node_tasks_handler=globalnode_tasks_handler,
+                local_nodes_tasks_handlers=[
+                    localnode1_tasks_handler,
+                    localnode2_tasks_handler,
+                ],
+            ),
+            logger=algo_execution_logger,
+        )
+    except Exception as exc:
+        # breakpoint()
+        assert False
+
+    globalnode_tables_before_cleanup = globalnode_tasks_handler.get_tables(
+        request_id=request_id, context_id=context_id
+    )
+    localnode1_tables_before_cleanup = localnode1_tasks_handler.get_tables(
+        request_id=request_id, context_id=context_id
+    )
+    localnode2_tables_before_cleanup = localnode2_tasks_handler.get_tables(
+        request_id=request_id, context_id=context_id
+    )
+
+    controller._cleaner._add_contextid_for_cleanup(
+        context_id,
+        [
             globalnode_tasks_handler.node_id,
             localnode1_tasks_handler.node_id,
             localnode2_tasks_handler.node_id,
         ],
     )
-
     globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
     )
@@ -222,8 +359,8 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
 
         await asyncio.sleep(2)
 
-    await controller.stop_node_registry()
-    await controller.stop_cleanup_loop()
+    controller.stop_node_registry()
+    controller.stop_cleanup_loop()
     # give some time for node registry and cleanup background tasks to stop gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
 
@@ -240,70 +377,65 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         assert False
 
 
-@pytest.mark.skip
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_rabbitmq_down_algorithm_execution(
     init_data_globalnode,
     load_data_localnode1,
     load_data_localnodetmp,
-    globalnode_node_service,
-    localnode1_node_service,
+    globalnode_tasks_handler,
+    localnode1_tasks_handler,
+    localnodetmp_tasks_handler,
     localnodetmp_node_service,
 ):
 
-    # get tmp localnode node_id from config file
-    localnodetmp_node_id = get_localnodetmp_node_id()
     controller = Controller()
 
     # start node registry
-    await controller.start_node_registry()
-
-    # wait until node registry gets the nodes info
-    while not controller.get_all_local_nodes() or not controller.get_global_node():
-        await asyncio.sleep(1)
-
-    # get all participating node tasks handlers
-    is_localnodetmp_up = False
-    while not is_localnodetmp_up:
-        nodes_tasks_handlers_dto = controller._get_nodes_tasks_handlers(
-            data_model=algorithm_request_dto.inputdata.data_model,
-            datasets=algorithm_request_dto.inputdata.datasets,
-        )
-        for (
-            local_node_tasks_handler
-        ) in nodes_tasks_handlers_dto.local_nodes_tasks_handlers:
-            globalnode_tasks_handler = (
-                nodes_tasks_handlers_dto.global_node_tasks_handler
-            )
-            localnode1_tasks_handler = (
-                nodes_tasks_handlers_dto.local_nodes_tasks_handlers[0]
-            )
-            if local_node_tasks_handler.node_id == localnodetmp_node_id:
-                localnodetmp_tasks_handler = local_node_tasks_handler
-                is_localnodetmp_up = True
-
-        await asyncio.sleep(1)
-
-    globalnode_node_id = globalnode_tasks_handler.node_id
-    localnode1_node_id = localnode1_tasks_handler.node_id
+    # node registry has to run on the background because it is used by the Cleaner
+    controller.start_node_registry()
+    # Start the cleanup loop
+    controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
-    # start executing the algorithm but do not wait for it
-    asyncio.create_task(
-        controller._exec_algorithm_with_task_handlers(
-            request_id=request_id,
-            context_id=context_id,
-            algorithm_name=algorithm_name,
-            algorithm_request_dto=algorithm_request_dto,
-            tasks_handlers=nodes_tasks_handlers_dto,
-            logger=algo_execution_logger,
-        )
+    controller._cleaner._add_contextid_for_cleanup(
+        context_id,
+        [
+            globalnode_tasks_handler.node_id,
+            localnode1_tasks_handler.node_id,
+            localnodetmp_tasks_handler.node_id,
+        ],
     )
+
+    # start executing the algorithm but do not wait for it
+    try:
+        asyncio.create_task(
+            controller._exec_algorithm_with_task_handlers(
+                request_id=request_id,
+                context_id=context_id,
+                algorithm_name=algorithm_name,
+                algorithm_request_dto=algorithm_request_dto,
+                datasets_per_local_node={
+                    localnode1_tasks_handler.node_id: ["edsd"],
+                    localnodetmp_tasks_handler.node_id: ["edsd"],
+                },
+                tasks_handlers=NodesTasksHandlersDTO(
+                    global_node_tasks_handler=globalnode_tasks_handler,
+                    local_nodes_tasks_handlers=[
+                        localnode1_tasks_handler,
+                        localnodetmp_tasks_handler,
+                    ],
+                ),
+                logger=algo_execution_logger,
+            )
+        )
+    except Exception as exc:
+        # breakpoint()
+        pass
 
     await asyncio.sleep(WAIT_BEFORE_BRING_TMPNODE_DOWN)
 
@@ -317,45 +449,16 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
+    # breakpoint()
     remove_localnodetmp_rabbitmq()
     kill_node_service(localnodetmp_node_service)
 
-    # wait for "localnodetmp" to be removed from node registry
-    localnodetmp_still_in_node_registry = True
-    while localnodetmp_still_in_node_registry:
-        localnodetmp_still_in_node_registry = False
-        all_local_nodes = controller._node_registry.get_all_local_nodes()
-        for local_node in all_local_nodes:
-            if local_node.id == localnodetmp_node_id:
-                localnodetmp_still_in_node_registry = True
-        await asyncio.sleep(2)
-
-    # Start the cleanup loop
-    await controller.start_cleanup_loop()
-
-    controller._append_context_id_for_cleanup(
-        context_id=context_id,
-        node_ids=[globalnode_node_id, localnode1_node_id, localnodetmp_node_id],
-    )
+    controller._cleaner._release_contextid_for_cleanup(context_id=context_id)
 
     # restart tmplocalnode rabbitmq container
     _create_rabbitmq_container(RABBITMQ_LOCALNODETMP_NAME, RABBITMQ_LOCALNODETMP_PORT)
     localnodetmp_node_service_proc = start_localnodetmp_node_service()
-
-    is_tmplocalnode_up = False
-    while not is_tmplocalnode_up:
-        nodes_tasks_handlers_dto = controller._get_nodes_tasks_handlers(
-            data_model=algorithm_request_dto.inputdata.data_model,
-            datasets=algorithm_request_dto.inputdata.datasets,
-        )
-        for (
-            local_node_tasks_handler
-        ) in nodes_tasks_handlers_dto.local_nodes_tasks_handlers:
-            if local_node_tasks_handler.node_id == localnodetmp_node_id:
-                localnodetmp_tasks_handler = local_node_tasks_handler
-                is_tmplocalnode_up = True
-
-        await asyncio.sleep(1)
+    localnodetmp_tasks_handler = create_localnode_tasks_handler()
 
     globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
@@ -363,10 +466,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
     )
-    # again... find the localnodetmp potentially among other local nodes
-    for local_node_tasks_handler in nodes_tasks_handlers_dto.local_nodes_tasks_handlers:
-        if local_node_tasks_handler.node_id == get_localnodetmp_node_id():
-            localnodetmp_tasks_handler = local_node_tasks_handler
 
     localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
@@ -378,6 +477,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         or localnode1_tables_after_cleanup
         or localnodetmp_tables_after_cleanup
     ):
+        print("")
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
@@ -394,13 +494,13 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
         await asyncio.sleep(2)
 
-    await controller.stop_node_registry()
-    await controller.stop_cleanup_loop()
+    controller.stop_node_registry()
+    controller.stop_cleanup_loop()
 
     # give some time for node registry and cleanup background tasks to finish gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
 
-    # the node cervice was started in here so it must manually killed, otherwise it is
+    # the node service was started in here so it must manually killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
     # where teh node service is supposedly down
     kill_node_service(localnodetmp_node_service_proc)
@@ -415,61 +515,43 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     ):
         assert True
     else:
+        # breakpoint()
         assert False
 
 
-@pytest.mark.skip
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_node_service_down_algorithm_execution(
     init_data_globalnode,
     load_data_localnode1,
     load_data_localnodetmp,
-    globalnode_node_service,
-    localnode1_node_service,
+    globalnode_tasks_handler,
+    localnode1_tasks_handler,
+    localnodetmp_tasks_handler,
     localnodetmp_node_service,
 ):
 
-    # get tmp localnode node_id from config file
-    localnodetmp_node_id = get_localnodetmp_node_id()
     controller = Controller()
 
     # start node registry
-    await controller.start_node_registry()
-
-    # wait until node registry gets the nodes info
-    while not controller.get_all_local_nodes() or not controller.get_global_node():
-        await asyncio.sleep(1)
-
-    # get all participating node tasks handlers
-    is_localnodetmp_up = False
-    while not is_localnodetmp_up:
-        nodes_tasks_handlers_dto = controller._get_nodes_tasks_handlers(
-            data_model=algorithm_request_dto.inputdata.data_model,
-            datasets=algorithm_request_dto.inputdata.datasets,
-        )
-        for (
-            local_node_tasks_handler
-        ) in nodes_tasks_handlers_dto.local_nodes_tasks_handlers:
-            globalnode_tasks_handler = (
-                nodes_tasks_handlers_dto.global_node_tasks_handler
-            )
-            localnode1_tasks_handler = (
-                nodes_tasks_handlers_dto.local_nodes_tasks_handlers[0]
-            )
-            if local_node_tasks_handler.node_id == localnodetmp_node_id:
-                localnodetmp_tasks_handler = local_node_tasks_handler
-                is_localnodetmp_up = True
-
-        await asyncio.sleep(1)
-
-    globalnode_node_id = globalnode_tasks_handler.node_id
-    localnode1_node_id = localnode1_tasks_handler.node_id
+    # node registry has to run on the background because it is used by the Cleaner
+    controller.start_node_registry()
+    # Start the cleanup loop
+    controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
+
+    controller._cleaner._add_contextid_for_cleanup(
+        context_id,
+        [
+            globalnode_tasks_handler.node_id,
+            localnode1_tasks_handler.node_id,
+            localnodetmp_tasks_handler.node_id,
+        ],
+    )
 
     # start executing the algorithm but do not wait for it
     asyncio.create_task(
@@ -478,7 +560,17 @@ async def test_cleanup_node_service_down_algorithm_execution(
             context_id=context_id,
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
-            tasks_handlers=nodes_tasks_handlers_dto,
+            datasets_per_local_node={
+                localnode1_tasks_handler.node_id: ["edsd"],
+                localnodetmp_tasks_handler.node_id: ["edsd"],
+            },
+            tasks_handlers=NodesTasksHandlersDTO(
+                global_node_tasks_handler=globalnode_tasks_handler,
+                local_nodes_tasks_handlers=[
+                    localnode1_tasks_handler,
+                    localnodetmp_tasks_handler,
+                ],
+            ),
             logger=algo_execution_logger,
         )
     )
@@ -497,41 +589,10 @@ async def test_cleanup_node_service_down_algorithm_execution(
 
     kill_node_service(localnodetmp_node_service)
 
-    # wait for "localnodetmp" to be removed from node registry
-    localnodetmp_still_in_node_registry = True
-    while localnodetmp_still_in_node_registry:
-        localnodetmp_still_in_node_registry = False
-        all_local_nodes = controller._node_registry.get_all_local_nodes()
-        for local_node in all_local_nodes:
-            if local_node.id == localnodetmp_node_id:
-                localnodetmp_still_in_node_registry = True
-        await asyncio.sleep(2)
-
-    # Start the cleanup loop
-    await controller.start_cleanup_loop()
-
-    controller._append_context_id_for_cleanup(
-        context_id=context_id,
-        node_ids=[globalnode_node_id, localnode1_node_id, localnodetmp_node_id],
-    )
+    controller._cleaner._release_contextid_for_cleanup(context_id=context_id)
 
     # restart tmplocalnode node service (the celery app)
     localnodetmp_node_service_proc = start_localnodetmp_node_service()
-
-    is_tmplocalnode_up = False
-    while not is_tmplocalnode_up:
-        nodes_tasks_handlers_dto = controller._get_nodes_tasks_handlers(
-            data_model=algorithm_request_dto.inputdata.data_model,
-            datasets=algorithm_request_dto.inputdata.datasets,
-        )
-        for (
-            local_node_tasks_handler
-        ) in nodes_tasks_handlers_dto.local_nodes_tasks_handlers:
-            if local_node_tasks_handler.node_id == localnodetmp_node_id:
-                localnodetmp_tasks_handler = local_node_tasks_handler
-                is_tmplocalnode_up = True
-
-        await asyncio.sleep(1)
 
     globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
@@ -539,11 +600,6 @@ async def test_cleanup_node_service_down_algorithm_execution(
     localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
     )
-    # again... find the localnodetmp potentially among other local nodes
-    for local_node_tasks_handler in nodes_tasks_handlers_dto.local_nodes_tasks_handlers:
-        if local_node_tasks_handler.node_id == get_localnodetmp_node_id():
-            localnodetmp_tasks_handler = local_node_tasks_handler
-
     localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
     )
@@ -554,6 +610,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
         and localnode1_tables_after_cleanup
         and localnodetmp_tables_after_cleanup
     ):
+        print("** in while waiting for tables after cleanup ")
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
@@ -568,13 +625,15 @@ async def test_cleanup_node_service_down_algorithm_execution(
             assert False
         await asyncio.sleep(2)
 
-    await controller.stop_node_registry()
-    await controller.stop_cleanup_loop()
+    await asyncio.sleep(2)
+
+    controller.stop_node_registry()
+    controller.stop_cleanup_loop()
 
     # give some time for node registry and cleanup background tasks to finish gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
 
-    # the node cervice was started in here so it must manually killed, otherwise it is
+    # the node service was started in here so it must manually killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
     # where teh node service is supposedly down
     kill_node_service(localnodetmp_node_service_proc)
@@ -592,12 +651,136 @@ async def test_cleanup_node_service_down_algorithm_execution(
         assert False
 
 
-def get_localnodetmp_node_id():
-    local_node_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
-    with open(local_node_filepath) as fp:
-        tmp = toml.load(fp)
-        node_id = tmp["identifier"]
-    return node_id
+@pytest.mark.slow
+@pytest.mark.asyncio
+async def test_cleanup_controller_restart(
+    init_data_globalnode,
+    load_data_localnode1,
+    load_data_localnodetmp,
+    globalnode_tasks_handler,
+    localnode1_tasks_handler,
+    localnodetmp_tasks_handler,
+):
+
+    controller = Controller()
+
+    # start node registry
+    # node registry has to run on the background because it is used by the Cleaner
+    controller.start_node_registry()
+    # Start the cleanup loop
+    controller.start_cleanup_loop()
+
+    request_id = get_a_uniqueid()
+    context_id = get_a_uniqueid()
+    algorithm_name = "logistic_regression"
+    algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
+
+    controller._cleaner._add_contextid_for_cleanup(
+        context_id,
+        [
+            globalnode_tasks_handler.node_id,
+            localnode1_tasks_handler.node_id,
+            localnodetmp_tasks_handler.node_id,
+        ],
+    )
+    # start executing the algorithm but do not wait for it
+    asyncio.create_task(
+        controller._exec_algorithm_with_task_handlers(
+            request_id=request_id,
+            context_id=context_id,
+            algorithm_name=algorithm_name,
+            algorithm_request_dto=algorithm_request_dto,
+            datasets_per_local_node={
+                localnode1_tasks_handler.node_id: ["edsd"],
+                localnodetmp_tasks_handler.node_id: ["edsd"],
+            },
+            tasks_handlers=NodesTasksHandlersDTO(
+                global_node_tasks_handler=globalnode_tasks_handler,
+                local_nodes_tasks_handlers=[
+                    localnode1_tasks_handler,
+                    localnodetmp_tasks_handler,
+                ],
+            ),
+            logger=algo_execution_logger,
+        )
+    )
+
+    await asyncio.sleep(WAIT_BEFORE_BRING_TMPNODE_DOWN)
+
+    globalnode_tables_before_cleanup = globalnode_tasks_handler.get_tables(
+        request_id=request_id, context_id=context_id
+    )
+    localnode1_tables_before_cleanup = localnode1_tasks_handler.get_tables(
+        request_id=request_id, context_id=context_id
+    )
+    localnodetmp_tables_before_cleanup = localnodetmp_tasks_handler.get_tables(
+        request_id=request_id, context_id=context_id
+    )
+
+    controller.stop_node_registry()
+    controller.stop_cleanup_loop()
+    # give some time for node registry and cleanup background tasks to stop gracefully
+    await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
+
+    controller._cleaner._release_contextid_for_cleanup(context_id=context_id)
+
+    # instantiate a new Controller
+    controller = Controller()
+    # start node registry
+    controller.start_node_registry()
+    # Start the cleanup loop
+    controller.start_cleanup_loop()
+
+    globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
+        request_id=request_id, context_id=context_id
+    )
+    localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
+        request_id=request_id, context_id=context_id
+    )
+    localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
+        request_id=request_id, context_id=context_id
+    )
+
+    start = time.time()
+    while (
+        globalnode_tables_after_cleanup
+        and localnode1_tables_after_cleanup
+        and localnodetmp_tables_after_cleanup
+    ):
+        print("** in while waiting for tables after cleanup ")
+        globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
+            request_id=request_id, context_id=context_id
+        )
+        localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
+            request_id=request_id, context_id=context_id
+        )
+        localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
+            request_id=request_id, context_id=context_id
+        )
+        now = time.time()
+        if now - start > WAIT_CLEANUP_TIME_LIMIT:
+            assert False
+        await asyncio.sleep(2)
+
+    await asyncio.sleep(2)
+
+    controller.stop_node_registry()
+    controller.stop_cleanup_loop()
+
+    # give some time for node registry and cleanup background tasks to finish gracefully
+    await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
+
+    if (
+        globalnode_tables_before_cleanup
+        and not globalnode_tables_after_cleanup
+        and localnode1_tables_before_cleanup
+        and not localnode1_tables_after_cleanup
+        and localnodetmp_tables_before_cleanup
+        and not localnodetmp_tables_after_cleanup
+    ):
+        assert True
+    else:
+        assert False
 
 
 def start_localnodetmp_node_service():
