@@ -13,7 +13,10 @@ from mipengine.udfgen.udfgenerator import udf
 
 class AnovaResult(BaseModel):
     anova_table: dict
-    tukey_test: list
+    tuckey_test: list
+    min_per_group: list
+    max_per_group: list
+    ci_info: dict
 
 
 def run(algo_interface):
@@ -67,7 +70,16 @@ def run(algo_interface):
     df_tukey_result = pd.DataFrame(tukey_result)
     tukey_test = df_tukey_result.to_dict(orient="records")
 
-    anova_table = AnovaResult(anova_table=anova_result, tukey_test=tukey_test)
+    min_per_group = [result["min_per_group"]]
+    max_per_group = [result["max_per_group"]]
+    ci_info = result["ci_info"]
+    anova_table = AnovaResult(
+        anova_table=anova_result,
+        tuckey_test=tukey_test,
+        min_per_group=min_per_group,
+        max_per_group=max_per_group,
+        ci_info=ci_info,
+    )
 
     return anova_table
 
@@ -82,6 +94,7 @@ S = TypeVar("S")
     return_type=[transfer()],
 )
 def local1(y, x, covar_enums):
+    import numpy as np
     import pandas as pd
 
     variable = y.reset_index(drop=True).to_numpy().squeeze()
@@ -91,9 +104,18 @@ def local1(y, x, covar_enums):
     dataset = pd.DataFrame()
     dataset[var_label] = variable
     dataset[covar_label] = covariable
+
+    # to use for SMPC conversion, maybe
+    # unique_vals_covar = np.unique(covariable)
+    # if unique_vals_covar != covar_enums:
+
+    n_obs = y.shape[0]
+    min_per_group = dataset.groupby([covar_label]).min()
+    max_per_group = dataset.groupby([covar_label]).max()
+    var_min_per_group = min_per_group.T.to_dict(orient="records").pop()
+    var_max_per_group = max_per_group.T.to_dict(orient="records").pop()
     var_sq = var_label + "_sq"
     dataset[var_sq] = variable ** 2
-    n_obs = y.shape[0]
 
     # get overall stats
     overall_stats = dataset[var_label].agg(["count", "sum"])
@@ -114,8 +136,8 @@ def local1(y, x, covar_enums):
         "n_obs": n_obs,
         "var_label": var_label,
         "covar_label": covar_label,
-        var_label: dataset[var_label].tolist(),
-        covar_label: dataset[covar_label].tolist(),
+        "var_min_per_group": var_min_per_group,
+        "var_max_per_group": var_max_per_group,
         "covar_enums": covar_enums,
         "overall_stats_sum": overall_stats["sum"].tolist(),
         "overall_stats_count": overall_stats["count"].tolist(),
@@ -138,9 +160,12 @@ def global1(local_transfers):
     import scipy.stats as st
     from statsmodels.stats.libqsturng import psturng
 
+    n_obs = sum(t["n_obs"] for t in local_transfers)
     var_label = [t["var_label"] for t in local_transfers][0]
     covar_label = [t["covar_label"] for t in local_transfers][0]
-    n_obs = sum(t["n_obs"] for t in local_transfers)
+    var_min_per_group_list = [t["var_min_per_group"] for t in local_transfers]
+    var_max_per_group_list = [t["var_max_per_group"] for t in local_transfers]
+
     overall_stats_sum = sum(np.array(t["overall_stats_sum"]) for t in local_transfers)
     overall_stats_count = sum(
         np.array(t["overall_stats_count"]) for t in local_transfers
@@ -240,8 +265,10 @@ def global1(local_transfers):
     se = np.sqrt(gvar[g1] + gvar[g2])
     tval = mn / se
     df = table.at["Residual", "df"]
+
     # psturng replaced with scipy stats' studentized_range
     pval = psturng(np.sqrt(2) * np.abs(tval), n_groups, df)
+
     thsd = pd.DataFrame(
         columns=[
             "A",
@@ -284,10 +311,6 @@ def global1(local_transfers):
         tukey_row["p_tukey"] = row["Pr(>|t|)"]
         tukey_dict.append(tukey_row)
 
-    # mean_plot = create_mean_plot(
-    #     model.group_stats, var_label, covar_label, covar_enums
-    # )
-
     title = "Means plot: {v} ~ {c}".format(v=var_label, c=covar_label)
     means = group_stats_sum / group_stats_count
     variances = group_ssq / group_stats_count - means ** 2
@@ -295,21 +318,54 @@ def global1(local_transfers):
     sample_stds = np.sqrt(sample_vars)
 
     categories = [c for c in categories if c in group_stats_index]
-    df1dict = {"categories": categories, "means": means, "sample_stds": sample_stds}
-    df1 = pd.DataFrame(df1dict)
-    # means = [means[cat] for cat in df1[categories]]
+    # means1 = [means[cat] for cat in categories]
     # sample_stds = [sample_stds[cat] for cat in categories]
-    data = [(m - s, m, m + s) for m, s in zip(means, sample_stds)]
-    bokeh_table = {
-        "title": title,
-        "data": data,
+    df1_means_stds_dict = {
+        "categories": categories,
+        "sample_stds": list(sample_stds),
+        "means": list(means),
+    }
+    df1_means_stds = pd.DataFrame(df1_means_stds_dict, index=categories).drop(
+        "categories", 1
+    )
+    df1_means_stds["m-s"] = list(
+        df1_means_stds["means"] - df1_means_stds["sample_stds"]
+    )
+    df1_means_stds["m+s"] = list(
+        df1_means_stds["means"] + df1_means_stds["sample_stds"]
+    )
+
+    # bokeh_table = {
+    #     "title": title,
+    #     "minPerCategory": {},
+    #     "maxPerCategory": {},
+    #     "data": data,
+    #     "categories": categories,
+    #     "xname": covar_label,
+    #     "yname": "95% CI: " + var_label,
+    # }
+
+    # Finding min and max per group across nodes
+    keys_min = {k for d in var_min_per_group_list for k in d.keys()}
+    keys_max = {k for d in var_max_per_group_list for k in d.keys()}
+    var_min = {}
+    var_max = {}
+    for k in keys_min:
+        var = [d[k] for d in var_min_per_group_list if k in d.keys()]
+        var_min[k] = min(var)
+
+    for k in keys_max:
+        var = [d[k] for d in var_max_per_group_list if k in d.keys()]
+        var_max[k] = max(var)
+
+    transfer_ = {
+        "n_obs": n_obs,
+        "ci_info": df1_means_stds.to_dict(),
         "categories": categories,
         "xname": covar_label,
         "yname": "95% CI: " + var_label,
-    }
-    transfer_ = {
-        "title": "ANOVA one-way",
-        "n_obs": n_obs,
+        "min_per_group": var_min,
+        "max_per_group": var_max,
         "df_explained": df_explained,
         "df_residual": df_residual,
         "ss_explained": ss_explained,
