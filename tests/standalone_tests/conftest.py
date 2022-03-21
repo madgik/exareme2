@@ -532,7 +532,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
             raise TimeoutError(
                 f"The node service '{node_id}' didn't manage to start in the designated time. Logs: \n{logfile.read()}"
             )
-            
+
     print(f"Created node service with id '{node_id}' and process id '{proc.pid}'...")
     return proc
 
