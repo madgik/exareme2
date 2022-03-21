@@ -41,36 +41,36 @@ class Cleaner:
             print("**** in cleanup_loop")
             contextids_and_status = self._cleanup_file_processor._read_cleanup_file()
             for context_id, status in contextids_and_status.items():
-                if status["nodes"]:
-                    if (
-                        status["released"]
-                        or (datetime.now(timezone.utc) - status["timestamp"]).seconds
-                        > controller_config.cleanup.contextid_release_timelimit
-                    ):
-                        print("**** in cleanup_loop in for loop")
-                        for node_id in status["nodes"]:
-                            try:
-                                node_info = self._get_node_info_by_id(node_id)
-                                task_handler = _create_node_task_handler(node_info)
-                                task_handler.clean_up(
-                                    request_id=CLEANER_REQUEST_ID,
-                                    context_id=context_id,
-                                )
-                                self._remove_nodeid_from_cleanup(
-                                    context_id=context_id, node_id=node_id
-                                )
-                                self._logger.debug(
-                                    f"clean_up task succeeded for {node_id=} for {context_id=}"
-                                )
-
-                            except Exception as exc:
-                                self._logger.debug(
-                                    f"clean_up task FAILED for {node_id=} "
-                                    f"for {context_id=}. Will retry in a while... fail "
-                                    f"reason: {type(exc)}:{exc}"
-                                )
-                else:
+                if not status["nodes"]:
                     self._remove_contextid_from_cleanup(context_id=context_id)
+                    continue
+                if (
+                    status["released"]
+                    or (datetime.now(timezone.utc) - status["timestamp"]).seconds
+                    > controller_config.cleanup.contextid_release_timelimit
+                ):
+                    print("**** in cleanup_loop in for loop")
+                    for node_id in status["nodes"]:
+                        try:
+                            node_info = self._get_node_info_by_id(node_id)
+                            task_handler = _create_node_task_handler(node_info)
+                            task_handler.clean_up(
+                                request_id=CLEANER_REQUEST_ID,
+                                context_id=context_id,
+                            )
+                            self._remove_nodeid_from_cleanup(
+                                context_id=context_id, node_id=node_id
+                            )
+                            self._logger.debug(
+                                f"clean_up task succeeded for {node_id=} for {context_id=}"
+                            )
+
+                        except Exception as exc:
+                            self._logger.debug(
+                                f"clean_up task FAILED for {node_id=} "
+                                f"for {context_id=}. Will retry in a while... fail "
+                                f"reason: {type(exc)}:{exc}"
+                            )
 
             await asyncio.sleep(self._clean_up_interval)
         print("**** EXITED cleanup_loop while")
