@@ -371,7 +371,7 @@ class TestCaseGenerator(ABC):
             output = self.compute_expected_output(input_data, parameters)
         except Exception as err:
             raise Exception(
-                f"\033[1m\033[91mAn error occurred:\033[0m\033[0m {err}, datasets: \033[1m {input_['inputdata']['datasets']} \033[0m"
+                f"{err}, datasets: \033[1m {input_['inputdata']['datasets']} \033[0m"
             )
 
         return {"input": input_, "output": output}
@@ -384,7 +384,7 @@ class TestCaseGenerator(ABC):
                 item = self.generate_test_case()
                 test_cases.append(item)
             except Exception as err:
-                print(err)
+                print(f"\033[1m\033[91mAn error occurred:\033[0m\033[0m {err}")
 
         return {"test_cases": test_cases}
 

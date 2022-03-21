@@ -5,11 +5,13 @@ import numpy as np
 import pytest
 import requests
 
+from tests.prod_env_tests import algorithms_url
+
 expected_file = Path(__file__).parent / "expected" / "one_way_anova_expected.json"
 
 
 def anova_one_way_request(input):
-    url = "http://127.0.0.1:5000/algorithms" + "/one_way_anova"
+    url = algorithms_url + "/one_way_anova"
 
     filters = {
         "condition": "AND",
