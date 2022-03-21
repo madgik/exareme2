@@ -31,14 +31,14 @@ def test_table_params():
 
 
 def test_create_table(
-    localnode1_tasks_handler_celery, use_localnode1_database, test_table_params
+    localnode1_tasks_handler, use_localnode1_database, test_table_params
 ):
 
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
 
-    table_name = localnode1_tasks_handler_celery.create_table(
+    table_name = localnode1_tasks_handler.create_table(
         request_id=COMMON_TASKS_REQUEST_ID,
         context_id=context_id,
         command_id=command_id,
@@ -52,19 +52,19 @@ def test_create_table(
 
 
 def test_get_tables(
-    localnode1_tasks_handler_celery, use_localnode1_database, test_table_params
+    localnode1_tasks_handler, use_localnode1_database, test_table_params
 ):
 
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
-    table_name = localnode1_tasks_handler_celery.create_table(
+    table_name = localnode1_tasks_handler.create_table(
         request_id=COMMON_TASKS_REQUEST_ID,
         context_id=context_id,
         command_id=command_id,
         schema=schema,
     )
-    tables = localnode1_tasks_handler_celery.get_tables(
+    tables = localnode1_tasks_handler.get_tables(
         request_id=COMMON_TASKS_REQUEST_ID, context_id=context_id
     )
 
@@ -72,19 +72,19 @@ def test_get_tables(
 
 
 def test_get_table_schema(
-    localnode1_tasks_handler_celery, use_localnode1_database, test_table_params
+    localnode1_tasks_handler, use_localnode1_database, test_table_params
 ):
 
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
-    table_name = localnode1_tasks_handler_celery.create_table(
+    table_name = localnode1_tasks_handler.create_table(
         request_id=COMMON_TASKS_REQUEST_ID,
         context_id=context_id,
         command_id=command_id,
         schema=schema,
     )
-    schema_result = localnode1_tasks_handler_celery.get_table_schema(
+    schema_result = localnode1_tasks_handler.get_table_schema(
         request_id=COMMON_TASKS_REQUEST_ID, table_name=table_name
     )
 
@@ -93,7 +93,7 @@ def test_get_table_schema(
 
 @pytest.mark.slow
 def test_broker_connection_closed_exception_get_table_schema(
-    localnodetmp_tasks_handler_celery,
+    localnodetmp_tasks_handler,
     test_table_params,
 ):
 
@@ -101,7 +101,7 @@ def test_broker_connection_closed_exception_get_table_schema(
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
-    table_name = localnodetmp_tasks_handler_celery.create_table(
+    table_name = localnodetmp_tasks_handler.create_table(
         request_id=COMMON_TASKS_REQUEST_ID,
         context_id=context_id,
         command_id=command_id,
@@ -114,14 +114,14 @@ def test_broker_connection_closed_exception_get_table_schema(
     # Queue a test task querying the schema of the created table which to raise the
     # exception
     with pytest.raises(ClosedBrokerConnectionError):
-        localnodetmp_tasks_handler_celery.get_table_schema(
+        localnodetmp_tasks_handler.get_table_schema(
             request_id=COMMON_TASKS_REQUEST_ID, table_name=table_name
         )
 
 
 @pytest.mark.slow
 def test_broker_connection_closed_exception_queue_udf(
-    localnodetmp_tasks_handler_celery,
+    localnodetmp_tasks_handler,
     test_table_params,
 ):
 
@@ -129,7 +129,7 @@ def test_broker_connection_closed_exception_queue_udf(
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
-    table_name = localnodetmp_tasks_handler_celery.create_table(
+    table_name = localnodetmp_tasks_handler.create_table(
         request_id=COMMON_TASKS_REQUEST_ID,
         context_id=context_id,
         command_id=command_id,
@@ -144,7 +144,7 @@ def test_broker_connection_closed_exception_queue_udf(
     arg = NodeTableDTO(value=table_name)
     keyword_args = UDFKeyArguments(args={"rel": arg})
     with pytest.raises(ClosedBrokerConnectionError):
-        localnodetmp_tasks_handler_celery.queue_run_udf(
+        localnodetmp_tasks_handler.queue_run_udf(
             request_id=COMMON_TASKS_REQUEST_ID,
             context_id=context_id,
             command_id=1,
@@ -156,7 +156,7 @@ def test_broker_connection_closed_exception_queue_udf(
 
 @pytest.mark.slow
 def test_time_limit_exceeded_exception(
-    localnodetmp_tasks_handler_celery,
+    localnodetmp_tasks_handler,
     localnodetmp_node_service,
     test_table_params,
 ):
@@ -165,7 +165,7 @@ def test_time_limit_exceeded_exception(
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
-    table_name = localnodetmp_tasks_handler_celery.create_table(
+    table_name = localnodetmp_tasks_handler.create_table(
         request_id=COMMON_TASKS_REQUEST_ID,
         context_id=context_id,
         command_id=command_id,
@@ -177,10 +177,10 @@ def test_time_limit_exceeded_exception(
 
     # Queue a task which will raise the exception
     with pytest.raises(TimeoutError):
-        localnodetmp_tasks_handler_celery.get_table_schema(
+        localnodetmp_tasks_handler.get_table_schema(
             request_id=COMMON_TASKS_REQUEST_ID, table_name=table_name
         )
-        time.sleep(localnodetmp_tasks_handler_celery.tasks_timeout)
+        time.sleep(localnodetmp_tasks_handler.tasks_timeout)
 
 
 def get_a_random_context_id() -> str:
