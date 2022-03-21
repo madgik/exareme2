@@ -31,15 +31,15 @@ RUN pip3 install numpy
 #######################################################
 # Download monetdb source files
 #######################################################
-RUN wget --output-document=/home/MonetDB-11.41.11.tar.bz2 --no-check-certificate https://www.monetdb.org/downloads/sources/Jul2021-SP1/MonetDB-11.41.11.tar.bz2
-RUN tar -xf /home/MonetDB-11.41.11.tar.bz2 -C /home/
+RUN wget --output-document=/home/MonetDB-11.43.9.tar.bz2 --no-check-certificate https://www.monetdb.org/downloads/sources/Jan2022-SP1/MonetDB-11.43.9.tar.bz2
+RUN tar -xf /home/MonetDB-11.43.9.tar.bz2 -C /home/
 
 #######################################################
 # Install monetdb
 #######################################################
 RUN mkdir /home/monetdb-build
 WORKDIR /home/monetdb-build
-RUN cmake -DCMAKE_BUILD_TYPE=Release -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb /home/MonetDB-11.41.11
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb /home/MonetDB-11.43.9
 RUN cmake --build .
 RUN cmake --build . --target install
 ENV PATH="/usr/local/bin/monetdb/bin:$PATH"
@@ -49,8 +49,8 @@ EXPOSE 50000
 #######################################################
 # Installation clean up
 #######################################################
-RUN rm /home/MonetDB-11.41.11.tar.bz2
-RUN rm -rf /home/MonetDB-11.41.11/
+RUN rm /home/MonetDB-11.43.9.tar.bz2
+RUN rm -rf /home/MonetDB-11.43.9/
 RUN rm -rf /home/monetdb-build
 
 #######################################################

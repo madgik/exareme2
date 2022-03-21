@@ -1,10 +1,12 @@
 import os
+import re
 import subprocess
 import time
 from os import path
 from pathlib import Path
 
 import docker
+import psutil
 import pytest
 import sqlalchemy as sql
 import toml
@@ -24,7 +26,7 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
-COMMON_IP = "172.17.0.1"
+COMMON_IP = "127.0.0.1"
 RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
 RABBITMQ_LOCALNODE1_NAME = "rabbitmq_test_localnode1"
 RABBITMQ_LOCALNODE2_NAME = "rabbitmq_test_localnode2"
@@ -66,24 +68,18 @@ LOCALNODE1_SMPC_CONFIG_FILE = "smpc_localnode1.toml"
 LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
 
 
-# TODO Instead of the fixtures having scope session, it could be function,
-# but when the fixture start, it should check if it already exists, thus
-# not creating it again (fast). This could solve the problem of some
-# tests destroying some containers to test things.
-
-
 class MonetDBSetupError(Exception):
     """Raised when the MonetDB container is unable to start."""
 
 
 def _create_monetdb_container(cont_name, cont_port):
+    print(f"Creating monetdb container '{cont_name}' at port {cont_port}...")
     client = docker.from_env()
-    try:
-        container = client.containers.get(cont_name)
-    except docker.errors.NotFound:
-        udfio_full_path = path.abspath(udfio.__file__)
+    container_names = [container.name for container in client.containers.list(all=True)]
+    if cont_name not in container_names:
         # A volume is used to pass the udfio inside the monetdb container.
         # This is done so that we don't need to rebuild every time the udfio.py file is changed.
+        udfio_full_path = path.abspath(udfio.__file__)
         container = client.containers.run(
             TESTING_MONETDB_CONT_IMAGE,
             detach=True,
@@ -92,8 +88,14 @@ def _create_monetdb_container(cont_name, cont_port):
             name=cont_name,
             publish_all_ports=True,
         )
+    else:
+        container = client.containers.get(cont_name)
+        # After a machine restart the container exists, but it is stopped. (Used only in development)
+        if container.status == "exited":
+            container.start()
+
     # The time needed to start a monetdb container varies considerably. We need
-    # to wait until some phrase appear in the logs to avoid starting the tests
+    # to wait until a phrase appears in the logs to avoid starting the tests
     # too soon. The process is abandoned after 100 tries (50 sec).
     for _ in range(100):
         if b"new database mapi:monetdb" in container.logs():
@@ -101,12 +103,15 @@ def _create_monetdb_container(cont_name, cont_port):
         time.sleep(0.5)
     else:
         raise MonetDBSetupError
+    print(f"Monetdb container '{cont_name}' started.")
 
 
 def _remove_monetdb_container(cont_name):
+    print(f"Removing monetdb container '{cont_name}'.")
     client = docker.from_env()
     container = client.containers.get(cont_name)
     container.remove(v=True, force=True)
+    print(f"Removed monetdb container '{cont_name}'.")
 
 
 @pytest.fixture(scope="session")
@@ -179,15 +184,35 @@ def monetdb_localnodetmp():
 
 
 def _init_database_monetdb_container(db_ip, db_port):
-    # init the db
+    # Check if the database is already initialized
+    cmd = f"mipdb list-data-models --ip {db_ip} --port {db_port} "
+    res = subprocess.run(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    if res.returncode == 0:
+        print("Database initialized, continuing... ")
+        return
+
     cmd = f"mipdb init --ip {db_ip} --port {db_port} "
-    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+    subprocess.run(
+        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
 
 
 def _load_data_monetdb_container(db_ip, db_port):
-    # load the data
+    # Check if the database is already loaded
+    cmd = f"mipdb list-datasets --ip {db_ip} --port {db_port} "
+    res = subprocess.run(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    if "There are no datasets" not in str(res.stdout):
+        print("Database already loaded, continuing... ")
+        return
+
     cmd = f"mipdb load-folder {TEST_DATA_FOLDER}  --ip {db_ip} --port {db_port} "
-    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+    subprocess.run(
+        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
 
 
 @pytest.fixture(scope="session")
@@ -224,10 +249,9 @@ def _create_db_cursor(db_port):
         def __init__(self) -> None:
             username = "monetdb"
             password = "monetdb"
-            # ip = "172.17.0.1"
             port = db_port
             dbfarm = "db"
-            url = f"monetdb://{username}:{password}@localhost:{port}/{dbfarm}:"
+            url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}:"
             self._executor = sql.create_engine(url, echo=True)
 
         def execute(self, query, *args, **kwargs) -> list:
@@ -272,13 +296,16 @@ def localnodetmp_db_cursor():
 
 
 def _clean_db(cursor):
-    # schema_id=2000 is the default schema id
-    select_user_tables = (
-        "SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000"
-    )
-    user_tables = cursor.execute(select_user_tables).fetchall()
-    for table_name, *_ in user_tables:
-        cursor.execute(f"DROP TABLE {table_name} CASCADE")
+    table_types = {0, 1, 3, 5}  # 0=table, 1=view, 3=merge_table, 5=remote_table
+
+    for table_type in table_types:
+        select_user_tables = f"SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000 AND type={table_type}"
+        user_tables = cursor.execute(select_user_tables).fetchall()
+        for table_name, *_ in user_tables:
+            if table_type == 1:  # view
+                cursor.execute(f"DROP VIEW {table_name}")
+            else:
+                cursor.execute(f"DROP TABLE {table_name}")
 
 
 @pytest.fixture(scope="function")
@@ -348,16 +375,21 @@ def use_smpc_localnode2_database(monetdb_smpc_localnode2, clean_smpc_localnode2_
 
 
 def _create_rabbitmq_container(cont_name, cont_port):
+    print(f"Creating rabbitmq container '{cont_name}' at port {cont_port}...")
     client = docker.from_env()
-    try:
-        container = client.containers.get(cont_name)
-    except docker.errors.NotFound:
+    container_names = [container.name for container in client.containers.list(all=True)]
+    if cont_name not in container_names:
         container = client.containers.run(
             TESTING_RABBITMQ_CONT_IMAGE,
             detach=True,
             ports={"5672/tcp": cont_port},
             name=cont_name,
         )
+    else:
+        container = client.containers.get(cont_name)
+        # After a machine restart the container exists, but it is stopped. (Used only in development)
+        if container.status == "exited":
+            container.start()
 
     while (
         "Health" not in container.attrs["State"]
@@ -366,14 +398,18 @@ def _create_rabbitmq_container(cont_name, cont_port):
         container.reload()  # attributes are cached, this refreshes them..
         time.sleep(1)
 
+    print(f"Rabbitmq container '{cont_name}' started.")
+
 
 def _remove_rabbitmq_container(cont_name):
+    print(f"Removing rabbitmq container '{cont_name}'.")
     try:
         client = docker.from_env()
         container = client.containers.get(cont_name)
         container.remove(v=True, force=True)
     except docker.errors.NotFound:
-        pass  # container was removed by other means..
+        pass  # container was removed by other means...
+    print(f"Removed rabbitmq container '{cont_name}'.")
 
 
 @pytest.fixture(scope="session")
@@ -454,7 +490,12 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     with open(node_config_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]
+
+    print(f"Creating node service with id '{node_id}'...")
+
     logpath = OUTDIR / (node_id + ".out")
+    if os.path.isfile(logpath):
+        os.remove(logpath)
 
     env = os.environ.copy()
     env["ALGORITHM_FOLDERS"] = algo_folders_env_variable_val
@@ -462,8 +503,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
 
     cmd = f"poetry run celery -A mipengine.node.node worker -l DEBUG >> {logpath} --purge 2>&1 "
 
-    # if executed without "exec" it is spawned as a child process of the shell and it is
-    # difficult to kill it
+    # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
     proc = subprocess.Popen(
         "exec " + cmd,
@@ -473,17 +513,40 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
         env=env,
     )
 
-    # the celery app needs sometime to be ready, we should have some kind of check
-    # for that, for now just a sleep..
-    time.sleep(10)
+    # Check that celery started
+    for _ in range(100):
+        try:
+            with open(logpath) as logfile:
+                if bool(
+                    re.search("CELERY - FRAMEWORK - celery@.* ready.", logfile.read())
+                ):
+                    break
+        except FileNotFoundError:
+            pass
+        time.sleep(0.5)
+    else:
+        with open(logpath) as logfile:
+            raise TimeoutError(
+                f"The node service '{node_id}' didn't manage to start in the designated time. Logs: \n{logfile.read()}"
+            )
 
+    print(f"Created node service with id '{node_id}' and process id '{proc.pid}'...")
     return proc
 
 
 def kill_node_service(proc):
+    print(f"Killing node service with process id '{proc.pid}'...")
+    psutil_proc = psutil.Process(proc.pid)
     proc.kill()
-    # might take some time for the celery service to be killed
-    time.sleep(10)
+    for _ in range(100):
+        if psutil_proc.status() == "zombie" or psutil_proc.status() == "sleeping":
+            break
+        time.sleep(0.1)
+    else:
+        raise TimeoutError(
+            f"Node service is still running, status: '{psutil_proc.status()}'."
+        )
+    print(f"Killed node service with process id '{proc.pid}'.")
 
 
 @pytest.fixture(scope="session")
