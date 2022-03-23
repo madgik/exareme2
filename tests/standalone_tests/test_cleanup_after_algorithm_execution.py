@@ -26,46 +26,46 @@ from tests.standalone_tests.conftest import kill_node_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
 WAIT_CLEANUP_TIME_LIMIT = 40
-WAIT_BEFORE_BRING_TMPNODE_DOWN = 15
+WAIT_BEFORE_BRING_TMPNODE_DOWN = 20
 WAIT_BACKGROUND_TASKS_TO_FINISH = 30
 
 
 @pytest.fixture(scope="session")
-def controller_config_mock():
-    controller_config = AttrDict(
-        {
-            "log_level": "DEBUG",
-            "framework_log_level": "INFO",
-            "cdes_metadata_path": "./tests/demo_data",
-            "deployment_type": "LOCAL",
-            "node_registry_update_interval": 2,  # 5,
-            "cleanup": {
-                "contextids_cleanup_file": "/tmp/contextids_cleanup_testing.toml",
-                "nodes_cleanup_interval": 2,
-                "contextid_release_timelimit": 3600,  # 24hours
-            },
-            "localnodes": {
-                "config_file": "./tests/standalone_tests/testing_env_configs/test_localnodes_addresses.json",
-                "dns": "",
-                "port": "",
-            },
-            "rabbitmq": {
-                "user": "user",
-                "password": "password",
-                "vhost": "user_vhost",
-                "celery_tasks_timeout": 30,  # 60,
-                "celery_tasks_max_retries": 3,
-                "celery_tasks_interval_start": 0,
-                "celery_tasks_interval_step": 0.2,
-                "celery_tasks_interval_max": 0.5,
-            },
-            "smpc": {
-                "enabled": False,
-                "optional": False,
-                "coordinator_address": "$SMPC_COORDINATOR_ADDRESS",
-            },
-        }
-    )
+def controller_config_dict_mock():
+    # controller_config = AttrDict(
+    controller_config = {
+        "log_level": "DEBUG",
+        "framework_log_level": "INFO",
+        "cdes_metadata_path": "./tests/demo_data",
+        "deployment_type": "LOCAL",
+        "node_registry_update_interval": 2,  # 5,
+        "cleanup": {
+            "contextids_cleanup_file": "/tmp/contextids_cleanup_testing.toml",
+            "nodes_cleanup_interval": 2,
+            "contextid_release_timelimit": 3600,  # 24hours
+        },
+        "localnodes": {
+            "config_file": "./tests/standalone_tests/testing_env_configs/test_localnodes_addresses.json",
+            "dns": "",
+            "port": "",
+        },
+        "rabbitmq": {
+            "user": "user",
+            "password": "password",
+            "vhost": "user_vhost",
+            "celery_tasks_timeout": 60,  # 30,  # 60,
+            "celery_tasks_max_retries": 3,
+            "celery_tasks_interval_start": 0,
+            "celery_tasks_interval_step": 0.2,
+            "celery_tasks_interval_max": 0.5,
+        },
+        "smpc": {
+            "enabled": False,
+            "optional": False,
+            "coordinator_address": "$SMPC_COORDINATOR_ADDRESS",
+        },
+    }
+
     return controller_config
 
 
@@ -77,68 +77,77 @@ def cdes_mock():
 
 
 @pytest.fixture(autouse=True, scope="session")
-def patch_controller(controller_config_mock):
+def patch_controller(controller_config_dict_mock):
     with patch(
         "mipengine.controller.controller.controller_config",
-        controller_config_mock,
+        AttrDict(controller_config_dict_mock),
     ):
         yield
 
 
-@pytest.fixture(autouse=True, scope="session")
-def patch_cleaner(controller_config_mock):
+@pytest.fixture(scope="function")  # (autouse=True, scope="session")
+def patch_cleaner(controller_config_dict_mock):
     with patch(
         "mipengine.controller.cleaner.controller_config",
-        controller_config_mock,
+        AttrDict(controller_config_dict_mock),
     ):
+        print("(patch_cleaner) in context manager...")
         yield
 
 
 @pytest.fixture(scope="function")
-def patch_cleaner_small_release_timelimit(controller_config_mock):
-    controller_config_mock["cleanup"]["contextid_release_timelimit"] = 5
+def patch_cleaner_small_release_timelimit(controller_config_dict_mock):
+    # controller_config_dict_mock["cleanup"]["contextid_release_timelimit"] = 5
+    controller_config_dict_mock_copy = controller_config_dict_mock.copy()
+
+    controller_config_dict_mock_copy["cleanup"]["contextid_release_timelimit"] = 5
     with patch(
         "mipengine.controller.cleaner.controller_config",
-        controller_config_mock,
+        AttrDict(controller_config_dict_mock_copy),
     ):
+        print("(patch_cleaner_small_release_timelimit) in context manager...")
+
         yield
 
 
 @pytest.fixture(autouse=True, scope="session")
-def patch_node_registry(controller_config_mock):
+def patch_node_registry(controller_config_dict_mock):
     with patch(
-        "mipengine.controller.node_registry.controller_config", controller_config_mock
+        "mipengine.controller.node_registry.controller_config",
+        AttrDict(controller_config_dict_mock),
     ), patch(
         "mipengine.controller.node_registry.NODE_REGISTRY_UPDATE_INTERVAL",
-        controller_config_mock.node_registry_update_interval,
+        AttrDict(controller_config_dict_mock).node_registry_update_interval,
     ), patch(
         "mipengine.controller.node_registry.CELERY_TASKS_TIMEOUT",
-        controller_config_mock.rabbitmq.celery_tasks_timeout,
+        AttrDict(controller_config_dict_mock).rabbitmq.celery_tasks_timeout,
     ):
         yield
 
 
 @pytest.fixture(autouse=True, scope="session")
-def patch_celery_app(controller_config_mock):
+def patch_celery_app(controller_config_dict_mock):
     with patch(
-        "mipengine.controller.celery_app.controller_config", controller_config_mock
+        "mipengine.controller.celery_app.controller_config",
+        AttrDict(controller_config_dict_mock),
     ):
         yield
 
 
 @pytest.fixture(autouse=True, scope="session")
-def patch_common_data_elements(controller_config_mock):
+def patch_common_data_elements(controller_config_dict_mock):
     with patch(
         "mipengine.controller.controller_common_data_elements.controller_config",
-        controller_config_mock,
+        AttrDict(controller_config_dict_mock),
     ):
         yield
 
 
 @pytest.fixture(autouse=True, scope="session")
-def patch_algorithm_executor(controller_config_mock, cdes_mock):
+def patch_algorithm_executor(controller_config_dict_mock, cdes_mock):
     with patch(
-        "mipengine.controller.algorithm_executor.ctrl_config", controller_config_mock
+        "mipengine.controller.algorithm_executor.ctrl_config",
+        AttrDict(controller_config_dict_mock),
     ), patch(
         "mipengine.controller.algorithm_executor.controller_common_data_elements",
         cdes_mock,
@@ -149,6 +158,7 @@ def patch_algorithm_executor(controller_config_mock, cdes_mock):
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(
+    patch_cleaner,
     init_data_globalnode,
     load_data_localnode1,
     load_data_localnode2,
@@ -156,6 +166,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     localnode1_tasks_handler,
     localnode2_tasks_handler,
 ):
+    print("\n_*_*_*_*_*_*_*_*_* test_cleanup_after_uninterrupted_algorithm_execution")
 
     controller = Controller()
 
@@ -263,17 +274,22 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         assert False
 
 
+# @pytest.mark.skip
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing_contextid(
+    patch_cleaner_small_release_timelimit,
     init_data_globalnode,
     load_data_localnode1,
     load_data_localnode2,
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnode2_tasks_handler,
-    patch_cleaner_small_release_timelimit,
 ):
+    print(
+        "\n_*_*_*_*_*_*_*_*_* test_cleanup_after_uninterrupted_algorithm_execution_without_releasing_contextid"
+    )
+
     controller = Controller()
 
     # start node registry
@@ -307,7 +323,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
             logger=algo_execution_logger,
         )
     except Exception as exc:
-        # breakpoint()
         assert False
 
     globalnode_tables_before_cleanup = globalnode_tasks_handler.get_tables(
@@ -380,6 +395,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_rabbitmq_down_algorithm_execution(
+    patch_cleaner,
     init_data_globalnode,
     load_data_localnode1,
     load_data_localnodetmp,
@@ -388,7 +404,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     localnodetmp_tasks_handler,
     localnodetmp_node_service,
 ):
-
+    print("\n_*_*_*_*_*_*_*_*_* test_cleanup_rabbitmq_down_algorithm_execution")
     controller = Controller()
 
     # start node registry
@@ -435,7 +451,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         )
     except Exception as exc:
         # breakpoint()
-        pass
+        print(f"(test_cleanup_rabbitmq_down_algorithm_execution) {exc=}")
 
     await asyncio.sleep(WAIT_BEFORE_BRING_TMPNODE_DOWN)
 
@@ -449,7 +465,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
-    # breakpoint()
     remove_localnodetmp_rabbitmq()
     kill_node_service(localnodetmp_node_service)
 
@@ -477,7 +492,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         or localnode1_tables_after_cleanup
         or localnodetmp_tables_after_cleanup
     ):
-        print("")
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
@@ -515,13 +529,16 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     ):
         assert True
     else:
-        # breakpoint()
+        print(
+            f"(test_cleanup_rabbitmq_down_algorithm_execution) {globalnode_tables_before_cleanup=}\n{globalnode_tables_after_cleanup=}"
+        )
         assert False
 
 
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_node_service_down_algorithm_execution(
+    patch_cleaner,
     init_data_globalnode,
     load_data_localnode1,
     load_data_localnodetmp,
@@ -530,6 +547,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     localnodetmp_tasks_handler,
     localnodetmp_node_service,
 ):
+    print("\n_*_*_*_*_*_*_*_*_* test_cleanup_node_service_down_algorithm_execution")
 
     controller = Controller()
 
@@ -610,7 +628,6 @@ async def test_cleanup_node_service_down_algorithm_execution(
         and localnode1_tables_after_cleanup
         and localnodetmp_tables_after_cleanup
     ):
-        print("** in while waiting for tables after cleanup ")
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
@@ -654,6 +671,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_controller_restart(
+    patch_cleaner,
     init_data_globalnode,
     load_data_localnode1,
     load_data_localnodetmp,
@@ -661,7 +679,7 @@ async def test_cleanup_controller_restart(
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
 ):
-
+    print("\n_*_*_*_*_*_*_*_*_* test_cleanup_controller_restart")
     controller = Controller()
 
     # start node registry
@@ -747,7 +765,6 @@ async def test_cleanup_controller_restart(
         and localnode1_tables_after_cleanup
         and localnodetmp_tables_after_cleanup
     ):
-        print("** in while waiting for tables after cleanup ")
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )

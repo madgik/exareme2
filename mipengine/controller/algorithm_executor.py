@@ -99,6 +99,7 @@ class AlgorithmExecutor:
         algorithm_execution_dto: AlgorithmExecutionDTO,
         nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
     ):
+
         self._logger = ctrl_logger.get_request_logger(
             request_id=algorithm_execution_dto.request_id
         )
@@ -115,7 +116,6 @@ class AlgorithmExecutor:
         self._execution_interface = None
 
     def _instantiate_nodes(self):
-
         # Instantiate the GLOBAL Node object
         self._global_node = GlobalNode(
             request_id=self._request_id,
@@ -191,12 +191,14 @@ class AlgorithmExecutor:
         self._algorithm_flow_module = algorithm_modules[self._algorithm_name]
 
     def run(self):
+
         try:
             self._instantiate_nodes()
             self._logger.info(
                 f"executing algorithm:{self._algorithm_name} on "
                 f"local nodes: {self._local_nodes=}"
             )
+
             self._instantiate_algorithm_execution_interface()
             algorithm_result = self._algorithm_flow_module.run(
                 self._execution_interface
@@ -210,10 +212,12 @@ class AlgorithmExecutor:
             ClosedBrokerConnectionError,
         ) as err:
             self._logger.error(f"{err}")
+            print(f"(AlgorithmExecutor) {err=}")
             raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
-
             self._logger.error(f"{traceback.format_exc()}")
+            print(f"(AlgorithmExecutor) {traceback.format_exc()}")
+
             raise exc
 
 
@@ -238,11 +242,13 @@ class _AlgorithmExecutionInterface:
         self._local_nodes: List[LocalNode] = algo_execution_interface_dto.local_nodes
         self._algorithm_name = algo_execution_interface_dto.algorithm_name
         self._algorithm_parameters = algo_execution_interface_dto.algorithm_parameters
+
         self._x_variables = algo_execution_interface_dto.x_variables
         self._y_variables = algo_execution_interface_dto.y_variables
         self._datasets_per_local_node = (
             algo_execution_interface_dto.datasets_per_local_node
         )
+
         self._use_smpc = algo_execution_interface_dto.use_smpc
         cdes = controller_common_data_elements.data_models[
             algo_execution_interface_dto.data_model

@@ -28,6 +28,10 @@ class _NodeInfoDTO(BaseModel):
 
 class Cleaner:
     def __init__(self, node_registry: NodeRegistry):
+        print(
+            f"(Cleaner) {controller_config['cleanup']['contextid_release_timelimit']=}"
+        )
+
         self._logger = ctrl_logger.get_background_service_logger()
 
         self._node_registry = node_registry
@@ -37,8 +41,9 @@ class Cleaner:
         self.keep_cleaning_up = True
 
     async def cleanup_loop(self):
+        print("(Cleaner::cleanup_loop) starting a new loop")
         while self.keep_cleaning_up:
-            print("**** in cleanup_loop")
+            print("(Cleaner::cleanup_loop) just in while")
             contextids_and_status = self._cleanup_file_processor._read_cleanup_file()
             for context_id, status in contextids_and_status.items():
                 if not status["nodes"]:
@@ -49,7 +54,7 @@ class Cleaner:
                     or (datetime.now(timezone.utc) - status["timestamp"]).seconds
                     > controller_config.cleanup.contextid_release_timelimit
                 ):
-                    print("**** in cleanup_loop in for loop")
+                    print(f"(Cleaner::cleanup_loop) cleaning {context_id=}")
                     for node_id in status["nodes"]:
                         try:
                             node_info = self._get_node_info_by_id(node_id)
@@ -64,6 +69,9 @@ class Cleaner:
                             self._logger.debug(
                                 f"clean_up task succeeded for {node_id=} for {context_id=}"
                             )
+                            print(
+                                f"(Cleaner::cleanup_loop) cleaned {context_id=} {node_id=}"
+                            )
 
                         except Exception as exc:
                             self._logger.debug(
@@ -71,9 +79,13 @@ class Cleaner:
                                 f"for {context_id=}. Will retry in a while... fail "
                                 f"reason: {type(exc)}:{exc}"
                             )
+                            print(
+                                f"(Cleaner::cleanup_loop) FAILED to clean "
+                                f"{context_id=} {node_id=} reason: {type(exc)}:{exc}"
+                            )
 
             await asyncio.sleep(self._clean_up_interval)
-        print("**** EXITED cleanup_loop while")
+        print("(Cleaner::cleanup_loop) just EXITED while")
 
     def _add_contextid_for_cleanup(
         self, context_id: str, algo_execution_node_ids: List[str]
