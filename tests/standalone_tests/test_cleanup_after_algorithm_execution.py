@@ -1,5 +1,6 @@
 import asyncio
 import time
+from copy import deepcopy
 from os import path
 from unittest.mock import patch
 
@@ -98,7 +99,7 @@ def patch_cleaner(controller_config_dict_mock):
 @pytest.fixture(scope="function")
 def patch_cleaner_small_release_timelimit(controller_config_dict_mock):
     # controller_config_dict_mock["cleanup"]["contextid_release_timelimit"] = 5
-    controller_config_dict_mock_copy = controller_config_dict_mock.copy()
+    controller_config_dict_mock_copy = deepcopy(controller_config_dict_mock)
 
     controller_config_dict_mock_copy["cleanup"]["contextid_release_timelimit"] = 5
     with patch(
