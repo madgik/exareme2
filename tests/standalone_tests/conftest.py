@@ -20,7 +20,7 @@ TESTING_MONETDB_CONT_IMAGE = "madgik/mipenginedb:latest"
 
 this_mod_path = os.path.dirname(os.path.abspath(__file__))
 TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
-TEST_DATA_FOLDER = Path(this_mod_path).parent / "demo_data"
+TEST_DATA_FOLDER = Path(this_mod_path).parent / "test_data"
 
 OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
