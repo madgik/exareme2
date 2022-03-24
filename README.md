@@ -54,6 +54,9 @@
    node_registry_update_interval = 30
    celery_tasks_timeout = 10
 
+   [privacy]
+   minimum_row_count = 10
+
    [smpc]
    enabled=false
    optional=false

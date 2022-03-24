@@ -127,6 +127,10 @@ def create_configs(c):
         node_config["rabbitmq"]["ip"] = deployment_config["ip"]
         node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
 
+        node_config["privacy"]["minimum_row_count"] = deployment_config["privacy"][
+            "minimum_row_count"
+        ]
+
         node_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
         node_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
 
@@ -330,7 +334,7 @@ def load_data(c, port=None):
             [
                 data_model_folder / file
                 for file in listdir(data_model_folder)
-                if file.endswith("0.csv")
+                if file.endswith("0.csv")  # BUG this matches data10.csv
             ]
         )
         for csv in first_node_csvs:
