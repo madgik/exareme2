@@ -33,7 +33,6 @@ WAIT_BACKGROUND_TASKS_TO_FINISH = 30
 
 @pytest.fixture(scope="session")
 def controller_config_dict_mock():
-    # controller_config = AttrDict(
     controller_config = {
         "log_level": "DEBUG",
         "framework_log_level": "INFO",
@@ -43,7 +42,7 @@ def controller_config_dict_mock():
         "cleanup": {
             "contextids_cleanup_file": "/tmp/contextids_cleanup_testing.toml",
             "nodes_cleanup_interval": 2,
-            "contextid_release_timelimit": 3600,  # 24hours
+            "contextid_release_timelimit": 3600,  # 1hour
         },
         "localnodes": {
             "config_file": "./tests/standalone_tests/testing_env_configs/test_localnodes_addresses.json",
@@ -86,7 +85,7 @@ def patch_controller(controller_config_dict_mock):
         yield
 
 
-@pytest.fixture(scope="function")  # (autouse=True, scope="session")
+@pytest.fixture(autouse=True, scope="session")  # (scope="function")
 def patch_cleaner(controller_config_dict_mock):
     with patch(
         "mipengine.controller.cleaner.controller_config",
@@ -154,7 +153,6 @@ def patch_algorithm_executor(controller_config_dict_mock, cdes_mock):
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(
-    patch_cleaner,
     init_data_globalnode,
     load_data_localnode1,
     load_data_localnode2,
@@ -313,7 +311,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
             ),
             logger=algo_execution_logger,
         )
-    except Exception as exc:
+    except:
         assert False
 
     globalnode_tables_before_cleanup = globalnode_tasks_handler.get_tables(
@@ -386,7 +384,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_rabbitmq_down_algorithm_execution(
-    patch_cleaner,
     init_data_globalnode,
     load_data_localnode1,
     load_data_localnodetmp,
@@ -521,7 +518,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_node_service_down_algorithm_execution(
-    patch_cleaner,
     init_data_globalnode,
     load_data_localnode1,
     load_data_localnodetmp,
@@ -652,7 +648,6 @@ async def test_cleanup_node_service_down_algorithm_execution(
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_controller_restart(
-    patch_cleaner,
     init_data_globalnode,
     load_data_localnode1,
     load_data_localnodetmp,

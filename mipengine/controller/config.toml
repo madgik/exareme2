@@ -9,7 +9,7 @@ node_registry_update_interval="$NODE_REGISTRY_UPDATE_INTERVAL"
 
 [cleanup]
 contextids_cleanup_file="/tmp/contextids_cleanup.toml"
-nodes_cleanup_interval=2
+nodes_cleanup_interval=10
 contextid_release_timelimit=3600 #an hour
 
 [localnodes]
