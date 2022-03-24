@@ -1,4 +1,4 @@
-name: Single Node Production Env Tests
+name: Production Env Tests
 
 on:
   push:
@@ -124,37 +124,53 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-      - name: Start MONETDB container
-        run: docker run -d --name monetdb -p 50000:50000 -v /opt/monetdb:/home/monetdb madgik/mipenginedb:latest
+      # --------------- Temp fix for mipdb -------------------
+      # Currently there is no way to load data into the monetdb container.
+      # https://team-1617704806227.atlassian.net/browse/MIP-563
 
-      - name: Wait for MONETDB container to start
+      - name: Start MONETDB1 container
+        run: |
+          docker run -d --name monetdb0 -p 50000:50000 -v /opt/monetdb:/home/monetdb madgik/mipenginedb:latest    # TODO Remove when https://github.com/madgik/MIP-Engine/pull/200 is merged
+          docker run -d --name monetdb1 -p 50001:50000 -v /opt/monetdb1:/home/monetdb madgik/mipenginedb:latest
+          docker run -d --name monetdb2 -p 50002:50000 -v /opt/monetdb2:/home/monetdb madgik/mipenginedb:latest
+          docker run -d --name monetdb3 -p 50003:50000 -v /opt/monetdb3:/home/monetdb madgik/mipenginedb:latest
+
+      - name: Wait for MONETDB containers to start
         uses: jakejarvis/wait-action@master
         with:
           time: '10s'
 
-      - name: Initialize MONETDB with mipdb initial metadata tables
-        run: poetry run mipdb init --ip 172.17.0.1 --port 50000
-
-      - name: Load data into MONETDB container
-        run: poetry run mipdb load-folder ./tests/single_node_demo_data/  --ip 172.17.0.1 --port 50000
-
-      - name: Backup MONETDB data
+      - name: Initialize MONETDBs
         run: |
-          docker exec -i monetdb monetdb lock db
-          docker exec -i monetdb monetdb stop db
+          poetry run mipdb init --ip 172.17.0.1 --port 50000    # TODO Remove when https://github.com/madgik/MIP-Engine/pull/200 is merged
+          poetry run mipdb init --ip 172.17.0.1 --port 50001
+          poetry run mipdb init --ip 172.17.0.1 --port 50002
+          poetry run mipdb init --ip 172.17.0.1 --port 50003
 
-      - name: Copy MONETDB demo data folders
+      - name: Load data into MONETDB containers
+        run: poetry run inv load-data --port 50001 --port 50002 --port 50003
+
+      - name: Backup MONETDBs data
         run: |
-          sudo cp -r /opt/monetdb/. /opt/monetdb1
+          docker exec -i monetdb0 monetdb lock db    # TODO Remove when https://github.com/madgik/MIP-Engine/pull/200 is merged
+          docker exec -i monetdb0 monetdb stop db    # TODO Remove when https://github.com/madgik/MIP-Engine/pull/200 is merged
+          docker exec -i monetdb1 monetdb lock db
+          docker exec -i monetdb1 monetdb stop db
+          docker exec -i monetdb2 monetdb lock db
+          docker exec -i monetdb2 monetdb stop db
+          docker exec -i monetdb3 monetdb lock db
+          docker exec -i monetdb3 monetdb stop db
 
-      - name: Stop MONETDB container
-        run: docker stop monetdb && docker rm monetdb
+      - name: Stop MONETDB containers
+        run: docker stop monetdb0 monetdb1 monetdb2 monetdb3 && docker rm monetdb0 monetdb1 monetdb2 monetdb3
+
+      # --------------- Temp fix for mipdb -------------------
 
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.2.0
         with:
           cluster_name: kind
-          config: tests/prod_env_tests/single_node_deployment_configs/kind_configuration/kind_cluster.yaml
+          config: tests/prod_env_tests/deployment_configs/kind_configuration/kind_cluster.yaml
 
       - name: Install Helm
         uses: azure/setup-helm@v1
@@ -167,6 +183,8 @@ jobs:
           kubectl taint nodes master node-role.kubernetes.io/master-
           kubectl label node master nodeType=master
           kubectl label node localnode1 nodeType=worker
+          kubectl label node localnode2 nodeType=worker
+          kubectl label node localnode3 nodeType=worker
 
       - name: Load docker images to kind
         run: |
@@ -176,7 +194,7 @@ jobs:
           kind load docker-image madgik/mipengine_rabbitmq:latest
 
       - name: Copy prod_env_tests values.yaml
-        run: cp -r tests/prod_env_tests/single_node_deployment_configs/kubernetes_values.yaml kubernetes/values.yaml
+        run: cp -r tests/prod_env_tests/deployment_configs/kubernetes_values.yaml kubernetes/values.yaml
 
       - name: Deploy Helm
         run: helm install mipengine kubernetes/
@@ -184,16 +202,37 @@ jobs:
       - name: Wait for MIPENGINE services to start
         uses: jakejarvis/wait-action@master
         with:
-          time: '120s' #https://team-1617704806227.atlassian.net/browse/MIP-248
+          time: '120s' # https://team-1617704806227.atlassian.net/browse/MIP-248
+
+      - name: Get kubectl nodes
+        run: kubectl get nodes
+
+      - name: Get kubectl pods
+        run: kubectl get pods
 
       - name: Controller logs
-        run: kubectl logs deployment/mipengine-controller-deployment
+        run: kubectl logs -l app=mipengine-controller
 
       - name: Globalnode logs
-        run: kubectl logs deployment/mipengine-globalnode-deployment -c node
+        run: kubectl logs -l nodeType=globalnode -c node
 
       - name: Localnode logs
-        run: kubectl logs deployment/mipengine-localnode-deployment -c node
+        run: kubectl logs -l nodeType=localnode -c node
+
+      - name: Controller logs (post run)
+        uses: webiny/action-post-run@2.0.1
+        with:
+          run: kubectl logs -l app=mipengine-controller
+
+      - name: Globalnode logs (post run)
+        uses: webiny/action-post-run@2.0.1
+        with:
+          run: kubectl logs -l nodeType=globalnode -c node
+
+      - name: Localnode logs (post run)
+        uses: webiny/action-post-run@2.0.1
+        with:
+          run: kubectl logs -l nodeType=localnode -c node
 
       - name: Run production env tests
-        run: poetry run pytest tests/prod_env_tests --verbosity=2
+        run: poetry run pytest tests/prod_env_tests --verbosity=4

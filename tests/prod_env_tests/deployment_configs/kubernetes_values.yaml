@@ -1,4 +1,4 @@
-localnodes: 1
+localnodes: 3
 
 mipengine_images:
   repository: madgik
