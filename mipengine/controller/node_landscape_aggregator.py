@@ -161,7 +161,7 @@ class NodeLandscapeAggregator:
             compatible_data_models = _get_compatible_data_models(
                 data_model_cdes_across_nodes
             )
-            data_models = _update_dataset_enumerations_to_contain_datasets_across_nodes(
+            data_models = _update_data_model_dataset_enumerations(
                 compatible_data_models, datasets_labels
             )
             datasets_locations = {
@@ -253,7 +253,7 @@ def _get_compatible_data_models(
     return data_models
 
 
-def _update_dataset_enumerations_to_contain_datasets_across_nodes(
+def _update_data_model_dataset_enumerations(
     data_models: Dict[str, CommonDataElements],
     datasets_labels: Dict[str, Dict[str, str]],
 ) -> Dict[str, CommonDataElements]:
