@@ -32,10 +32,6 @@ class _NodeInfoDTO(BaseModel):
 
 class Controller:
     def __init__(self):
-        print(
-            f"(Controller) {controller_config['cleanup']['contextid_release_timelimit']=}"
-        )
-
         self._node_registry = node_registry
         self._controller_logger = ctrl_logger.get_background_service_logger()
         self._cleaner = Cleaner(node_registry=self._node_registry)
@@ -49,7 +45,6 @@ class Controller:
 
     def stop_cleanup_loop(self):
         self._cleaner.keep_cleaning_up = False
-        print(f"(Controller::stop_cleanup_loop) {self._cleaner.keep_cleaning_up=}")
 
     async def exec_algorithm(
         self,
@@ -139,7 +134,6 @@ class Controller:
         loop = asyncio.get_running_loop()
 
         logger.info(f"starts executing->  {algorithm_name=}")
-        print(f"(Controller) starts executing->  {algorithm_name=}")
 
         algorithm_result = await loop.run_in_executor(
             None,

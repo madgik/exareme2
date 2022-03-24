@@ -107,7 +107,7 @@ def _create_monetdb_container(cont_name, cont_port):
 
 
 def _remove_monetdb_container(cont_name):
-    print(f"/nRemoving monetdb container '{cont_name}'.")
+    print(f"\nRemoving monetdb container '{cont_name}'.")
     client = docker.from_env()
     container = client.containers.get(cont_name)
     container.remove(v=True, force=True)

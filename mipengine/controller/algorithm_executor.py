@@ -212,12 +212,9 @@ class AlgorithmExecutor:
             ClosedBrokerConnectionError,
         ) as err:
             self._logger.error(f"{err}")
-            print(f"(AlgorithmExecutor) {err=}")
             raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
             self._logger.error(f"{traceback.format_exc()}")
-            print(f"(AlgorithmExecutor) {traceback.format_exc()}")
-
             raise exc
 
 

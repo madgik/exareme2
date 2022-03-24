@@ -1,5 +1,6 @@
 import asyncio
 import time
+from copy import deepcopy
 from os import path
 from unittest.mock import patch
 
@@ -91,22 +92,18 @@ def patch_cleaner(controller_config_dict_mock):
         "mipengine.controller.cleaner.controller_config",
         AttrDict(controller_config_dict_mock),
     ):
-        print("(patch_cleaner) in context manager...")
         yield
 
 
 @pytest.fixture(scope="function")
 def patch_cleaner_small_release_timelimit(controller_config_dict_mock):
-    # controller_config_dict_mock["cleanup"]["contextid_release_timelimit"] = 5
-    controller_config_dict_mock_copy = controller_config_dict_mock.copy()
+    controller_config_dict_mock_copy = deepcopy(controller_config_dict_mock)
 
     controller_config_dict_mock_copy["cleanup"]["contextid_release_timelimit"] = 5
     with patch(
         "mipengine.controller.cleaner.controller_config",
         AttrDict(controller_config_dict_mock_copy),
     ):
-        print("(patch_cleaner_small_release_timelimit) in context manager...")
-
         yield
 
 
@@ -166,8 +163,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     localnode1_tasks_handler,
     localnode2_tasks_handler,
 ):
-    print("\n_*_*_*_*_*_*_*_*_* test_cleanup_after_uninterrupted_algorithm_execution")
-
     controller = Controller()
 
     # start node registry
@@ -286,9 +281,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
     localnode1_tasks_handler,
     localnode2_tasks_handler,
 ):
-    print(
-        "\n_*_*_*_*_*_*_*_*_* test_cleanup_after_uninterrupted_algorithm_execution_without_releasing_contextid"
-    )
 
     controller = Controller()
 
@@ -404,7 +396,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     localnodetmp_tasks_handler,
     localnodetmp_node_service,
 ):
-    print("\n_*_*_*_*_*_*_*_*_* test_cleanup_rabbitmq_down_algorithm_execution")
     controller = Controller()
 
     # start node registry
@@ -428,30 +419,26 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     )
 
     # start executing the algorithm but do not wait for it
-    try:
-        asyncio.create_task(
-            controller._exec_algorithm_with_task_handlers(
-                request_id=request_id,
-                context_id=context_id,
-                algorithm_name=algorithm_name,
-                algorithm_request_dto=algorithm_request_dto,
-                datasets_per_local_node={
-                    localnode1_tasks_handler.node_id: ["edsd"],
-                    localnodetmp_tasks_handler.node_id: ["edsd"],
-                },
-                tasks_handlers=NodesTasksHandlersDTO(
-                    global_node_tasks_handler=globalnode_tasks_handler,
-                    local_nodes_tasks_handlers=[
-                        localnode1_tasks_handler,
-                        localnodetmp_tasks_handler,
-                    ],
-                ),
-                logger=algo_execution_logger,
-            )
+    asyncio.create_task(
+        controller._exec_algorithm_with_task_handlers(
+            request_id=request_id,
+            context_id=context_id,
+            algorithm_name=algorithm_name,
+            algorithm_request_dto=algorithm_request_dto,
+            datasets_per_local_node={
+                localnode1_tasks_handler.node_id: ["edsd"],
+                localnodetmp_tasks_handler.node_id: ["edsd"],
+            },
+            tasks_handlers=NodesTasksHandlersDTO(
+                global_node_tasks_handler=globalnode_tasks_handler,
+                local_nodes_tasks_handlers=[
+                    localnode1_tasks_handler,
+                    localnodetmp_tasks_handler,
+                ],
+            ),
+            logger=algo_execution_logger,
         )
-    except Exception as exc:
-        # breakpoint()
-        print(f"(test_cleanup_rabbitmq_down_algorithm_execution) {exc=}")
+    )
 
     await asyncio.sleep(WAIT_BEFORE_BRING_TMPNODE_DOWN)
 
@@ -529,9 +516,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     ):
         assert True
     else:
-        print(
-            f"(test_cleanup_rabbitmq_down_algorithm_execution) {globalnode_tables_before_cleanup=}\n{globalnode_tables_after_cleanup=}"
-        )
         assert False
 
 
@@ -547,8 +531,6 @@ async def test_cleanup_node_service_down_algorithm_execution(
     localnodetmp_tasks_handler,
     localnodetmp_node_service,
 ):
-    print("\n_*_*_*_*_*_*_*_*_* test_cleanup_node_service_down_algorithm_execution")
-
     controller = Controller()
 
     # start node registry
@@ -679,7 +661,6 @@ async def test_cleanup_controller_restart(
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
 ):
-    print("\n_*_*_*_*_*_*_*_*_* test_cleanup_controller_restart")
     controller = Controller()
 
     # start node registry
