@@ -115,6 +115,7 @@ class AlgorithmExecutor:
         self._execution_interface = None
 
     def _instantiate_nodes(self):
+
         # Instantiate the GLOBAL Node object
         self._global_node = GlobalNode(
             request_id=self._request_id,
@@ -211,6 +212,7 @@ class AlgorithmExecutor:
             self._logger.error(f"{err}")
             raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
+
             self._logger.error(f"{traceback.format_exc()}")
             raise exc
 
