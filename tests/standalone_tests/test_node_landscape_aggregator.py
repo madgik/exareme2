@@ -1,6 +1,6 @@
 import pytest
 
-from mipengine.controller.node_landscape_aggregator import _get_data_models
+from mipengine.controller.node_landscape_aggregator import _get_compatible_data_models
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 
@@ -343,7 +343,7 @@ def get_parametrization_success_cases():
     get_parametrization_success_cases(),
 )
 def test_get_data_models_success(nodes_cdes, expected):
-    assert _get_data_models(nodes_cdes) == expected
+    assert _get_compatible_data_models(nodes_cdes) == expected
 
 
 def get_parametrization_fail_cases():
@@ -727,4 +727,4 @@ def get_parametrization_fail_cases():
     get_parametrization_fail_cases(),
 )
 def test_get_data_models_fail(nodes_cdes, expected_result):
-    assert _get_data_models(nodes_cdes) == expected_result
+    assert _get_compatible_data_models(nodes_cdes) == expected_result

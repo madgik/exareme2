@@ -4,8 +4,10 @@ from celery import shared_task
 
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import common_actions
-from mipengine.node.monetdb_interface.common_actions import get_data_model_datasets
 from mipengine.node.monetdb_interface.common_actions import get_data_models
+from mipengine.node.monetdb_interface.common_actions import (
+    get_dataset_code_per_dataset_label,
+)
 from mipengine.node.node_logger import initialise_logger
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import TableData
@@ -51,7 +53,7 @@ def get_node_datasets_per_data_model(request_id: str) -> Dict[str, Dict[str, str
         A dictionary with key data model and value a list of pairs (dataset code and dataset label)
     """
     return {
-        data_model: get_data_model_datasets(data_model)
+        data_model: get_dataset_code_per_dataset_label(data_model)
         for data_model in get_data_models()
     }
 

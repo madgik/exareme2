@@ -19,6 +19,7 @@ from mipengine.controller.data_model_registry import data_model_registry
 from mipengine.controller.node_landscape_aggregator import node_landscape_aggregator
 from mipengine.controller.node_registry import node_registry
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
+from mipengine.node_info_DTOs import NodeRole
 
 CONTROLLER_CLEANUP_REQUEST_ID = "CONTROLLER_CLEANUP"
 
@@ -242,8 +243,8 @@ class Controller:
 
     def get_global_node(self):
         global_nodes = self._node_registry.get_all_global_nodes()
-        if "globalnode" in global_nodes:
-            return global_nodes["globalnode"]
+        if NodeRole.GLOBALNODE in global_nodes:
+            return global_nodes[NodeRole.GLOBALNODE]
 
     def _get_nodes_tasks_handlers(
         self, data_model: str, datasets: List[str]

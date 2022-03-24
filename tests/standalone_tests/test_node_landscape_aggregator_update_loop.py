@@ -32,7 +32,7 @@ def controller_config_mock():
             "node_landscape_aggregator_update_interval": 2,  # 5,
             "nodes_cleanup_interval": 2,
             "localnodes": {
-                "config_file": "./tests/standalone_tests/testing_env_configs/test_localnodes_addresses.json",
+                "config_file": "./tests/standalone_tests/testing_env_configs/test_node_landscape_aggregator.json",
                 "dns": "",
                 "port": "",
             },
@@ -200,7 +200,7 @@ async def test_update_loop_rabbitmq_down(
     localnodetmp_node_id = get_localnodetmp_node_id()
     controller = Controller()
 
-    # wait until node registry gets the nodes info
+    # starting the node landscape aggregator
     await controller.start_node_landscape_aggregator()
 
     # wait until node registry and data model registry is up-to-date

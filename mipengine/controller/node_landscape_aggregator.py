@@ -157,12 +157,13 @@ class NodeLandscapeAggregator:
             ]
             datasets_locations = await _get_datasets_locations(local_nodes)
             datasets_labels = await _get_datasets_labels(local_nodes)
-            node_cdes = await _get_cdes_across_nodes(local_nodes)
-            compatible_data_models = _get_data_models(node_cdes)
-            data_models = _get_data_models_with_valid_datasets(
+            data_model_cdes_across_nodes = await _get_cdes_across_nodes(local_nodes)
+            compatible_data_models = _get_compatible_data_models(
+                data_model_cdes_across_nodes
+            )
+            data_models = _update_dataset_enumerations_to_contain_datasets_across_nodes(
                 compatible_data_models, datasets_labels
             )
-            # We are keeping only the data models that are common across nodes.
             datasets_locations = {
                 common_data_model: datasets_locations[common_data_model]
                 for common_data_model in data_models
@@ -179,7 +180,6 @@ class NodeLandscapeAggregator:
             # debug(self.nodes)
             # DEBUG end
 
-            sys.stdout.flush()
             await asyncio.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
 
 
@@ -229,11 +229,17 @@ async def _get_cdes_across_nodes(
     return nodes_cdes
 
 
-def _get_data_models(
-    nodes_cdes: Dict[str, List[Tuple[str, CommonDataElements]]]
+def _get_compatible_data_models(
+    data_model_cdes_across_nodes: Dict[str, List[Tuple[str, CommonDataElements]]]
 ) -> Dict[str, CommonDataElements]:
+    """
+    This function accepts data_models and a list of  it's cdes across nodes.
+    And returns a dictionary with key data model and value the first cdes in case all the cdes are compatible across nodes.
+    Args:
+        data_model_cdes_across_nodes: data_models and their cdes across nodes
+    """
     data_models = {}
-    for data_model, cdes_from_all_nodes in nodes_cdes.items():
+    for data_model, cdes_from_all_nodes in data_model_cdes_across_nodes.items():
         first_node, first_cdes = cdes_from_all_nodes[0]
         for node, cdes in cdes_from_all_nodes[1:]:
             if not first_cdes == cdes:
@@ -247,7 +253,7 @@ def _get_data_models(
     return data_models
 
 
-def _get_data_models_with_valid_datasets(
+def _update_dataset_enumerations_to_contain_datasets_across_nodes(
     data_models: Dict[str, CommonDataElements],
     datasets_labels: Dict[str, Dict[str, str]],
 ) -> Dict[str, CommonDataElements]:

@@ -243,13 +243,13 @@ def get_data_models() -> List[str]:
     return data_models
 
 
-def get_data_model_datasets(data_model) -> Dict[str, str]:
+def get_dataset_code_per_dataset_label(data_model) -> Dict[str, str]:
     """
-    Retrieves the enabled datasets of the specific data_model.
+    Retrieves the enabled key-value pair of code and label, for a specific data_model.
 
     Returns
     ------
-    List[str]
+    Dict[str, str]
         The datasets.
     """
     data_model_code, data_model_version = data_model.split(":")
