@@ -39,7 +39,7 @@ def controller_config_dict_mock():
         "framework_log_level": "INFO",
         "cdes_metadata_path": "./tests/demo_data",
         "deployment_type": "LOCAL",
-        "node_registry_update_interval": 2,  # 5,
+        "node_registry_update_interval": 2,
         "cleanup": {
             "contextids_cleanup_file": "/tmp/contextids_cleanup_testing.toml",
             "nodes_cleanup_interval": 2,
@@ -54,7 +54,7 @@ def controller_config_dict_mock():
             "user": "user",
             "password": "password",
             "vhost": "user_vhost",
-            "celery_tasks_timeout": 60,  # 30,  # 60,
+            "celery_tasks_timeout": 40,
             "celery_tasks_max_retries": 3,
             "celery_tasks_interval_start": 0,
             "celery_tasks_interval_step": 0.2,
@@ -98,7 +98,6 @@ def patch_cleaner(controller_config_dict_mock):
 @pytest.fixture(scope="function")
 def patch_cleaner_small_release_timelimit(controller_config_dict_mock):
     controller_config_dict_mock_copy = deepcopy(controller_config_dict_mock)
-
     controller_config_dict_mock_copy["cleanup"]["contextid_release_timelimit"] = 5
     with patch(
         "mipengine.controller.cleaner.controller_config",
