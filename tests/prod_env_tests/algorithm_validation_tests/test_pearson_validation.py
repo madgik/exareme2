@@ -60,7 +60,11 @@ def get_test_params(expected_file, slc=None):
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_pearson_algorithm(test_input, expected):
     response = pearson_request(test_input)
-    result = json.loads(response.content)
+    try:
+        result = json.loads(response.content)
+    except json.decoder.JSONDecodeError as exc:
+        print(response)
+        raise exc
     assert response.status_code == 200
     assert int(result["n_obs"]) == int(expected["n_obs"])
     for var in test_input["inputdata"]["y"]:
