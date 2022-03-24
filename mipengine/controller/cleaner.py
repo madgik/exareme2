@@ -202,8 +202,6 @@ class CleanupFileProcessor:
         )
 
     def _read_cleanup_file(self) -> dict:
-        # dirname = os.path.dirname(controller_config.contextids_cleanup_file)
-        # filename = os.path.basename(controller_config.contextids_cleanup_file)
         with open(controller_config.cleanup.contextids_cleanup_file, "r") as f:
             parsed_toml = toml.load(f)
             for context_id in parsed_toml.keys():

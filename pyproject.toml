@@ -47,6 +47,7 @@ mipdb = "0.3.0"
 psutil = "^5.9.0"
 
 
+
 [tool.pytest.ini_options]
 markers = [
     "database: these tests depend on an external dockerized MonetDB service running (deselect with '-m \"not database\"')",

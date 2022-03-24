@@ -257,9 +257,6 @@ def _create_db_cursor(db_port):
             dbfarm = "db"
             url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}:"
             self._executor = sql.create_engine(url, echo=True)
-            # self._executor = sql.create_engine(url, echo=True).execution_options(
-            #     isolation_level="AUTOCOMMIT"
-            # )
 
         def execute(self, query, *args, **kwargs) -> list:
             return self._executor.execute(query, *args, **kwargs)
@@ -633,7 +630,7 @@ def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     kill_node_service(proc)
 
 
-@pytest.fixture(scope="function")  # (scope="session")
+@pytest.fixture(scope="function")
 def globalnode_tasks_handler(globalnode_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
 
@@ -656,7 +653,7 @@ def globalnode_tasks_handler(globalnode_node_service):
     )
 
 
-@pytest.fixture(scope="function")  # (scope="session")
+@pytest.fixture(scope="function")
 def localnode1_tasks_handler(localnode1_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
     with open(node_config_filepath) as fp:
@@ -679,7 +676,7 @@ def localnode1_tasks_handler(localnode1_node_service):
     )
 
 
-@pytest.fixture(scope="function")  # (scope="session")
+@pytest.fixture(scope="function")
 def localnode2_tasks_handler(localnode2_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE2_CONFIG_FILE)
     with open(node_config_filepath) as fp:
