@@ -175,8 +175,13 @@ class Controller:
             request_id=request_id,
             context_id=context_id,
             algorithm_name=algorithm_name,
-            algorithm_request_dto=algorithm_request_dto,
+            data_model=algorithm_request_dto.inputdata.data_model,
             datasets_per_local_node=datasets_per_local_node,
+            x_vars=algorithm_request_dto.inputdata.x,
+            y_vars=algorithm_request_dto.inputdata.y,
+            var_filters=algorithm_request_dto.inputdata.filters,
+            algo_parameters=algorithm_request_dto.parameters,
+            algo_flags=algorithm_request_dto.flags,
         )
 
         loop = asyncio.get_running_loop()

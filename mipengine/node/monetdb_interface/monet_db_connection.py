@@ -56,8 +56,8 @@ class MonetDB(metaclass=Singleton):
         broken_pipe_error = None
         for _ in range(BROKEN_PIPE_MAX_ATTEMPTS):
             try:
-                # We use a single instance of a connection and by committing before a select query we refresh the state of
-                # the connection so that it sees changes from other processes/connections.
+                # We use a single instance of a connection and by committing before a select query we refresh the state
+                # of the connection so that it sees changes from other processes/connections.
                 # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
                 # -on-another-connect.
                 self._connection.commit()
@@ -92,6 +92,7 @@ class MonetDB(metaclass=Singleton):
                 query, parameters
             )
             result = cur.fetchall()
+            self._connection.commit()
             return result
 
     def execute(self, query: str, parameters=None, many=False):
