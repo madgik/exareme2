@@ -173,7 +173,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
-    controller._cleaner._add_contextid_for_cleanup(
+    controller._cleaner.add_contextid_for_cleanup(
         context_id,
         [
             globalnode_tasks_handler.node_id,
@@ -214,7 +214,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
-    controller._cleaner._release_contextid_for_cleanup(context_id=context_id)
+    controller._cleaner.release_contextid_for_cleanup(context_id=context_id)
 
     globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
@@ -324,7 +324,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
         request_id=request_id, context_id=context_id
     )
 
-    controller._cleaner._add_contextid_for_cleanup(
+    controller._cleaner.add_contextid_for_cleanup(
         context_id,
         [
             globalnode_tasks_handler.node_id,
@@ -405,7 +405,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
-    controller._cleaner._add_contextid_for_cleanup(
+    controller._cleaner.add_contextid_for_cleanup(
         context_id,
         [
             globalnode_tasks_handler.node_id,
@@ -451,7 +451,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     remove_localnodetmp_rabbitmq()
     kill_node_service(localnodetmp_node_service)
 
-    controller._cleaner._release_contextid_for_cleanup(context_id=context_id)
+    controller._cleaner.release_contextid_for_cleanup(context_id=context_id)
 
     # restart tmplocalnode rabbitmq container
     _create_rabbitmq_container(RABBITMQ_LOCALNODETMP_NAME, RABBITMQ_LOCALNODETMP_PORT)
@@ -539,7 +539,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
-    controller._cleaner._add_contextid_for_cleanup(
+    controller._cleaner.add_contextid_for_cleanup(
         context_id,
         [
             globalnode_tasks_handler.node_id,
@@ -584,7 +584,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
 
     kill_node_service(localnodetmp_node_service)
 
-    controller._cleaner._release_contextid_for_cleanup(context_id=context_id)
+    controller._cleaner.release_contextid_for_cleanup(context_id=context_id)
 
     # restart tmplocalnode node service (the celery app)
     localnodetmp_node_service_proc = start_localnodetmp_node_service()
@@ -668,7 +668,7 @@ async def test_cleanup_controller_restart(
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
-    controller._cleaner._add_contextid_for_cleanup(
+    controller._cleaner.add_contextid_for_cleanup(
         context_id,
         [
             globalnode_tasks_handler.node_id,
@@ -715,7 +715,7 @@ async def test_cleanup_controller_restart(
     # give some time for node registry and cleanup background tasks to stop gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
 
-    controller._cleaner._release_contextid_for_cleanup(context_id=context_id)
+    controller._cleaner.release_contextid_for_cleanup(context_id=context_id)
 
     # instantiate a new Controller
     controller = Controller()
