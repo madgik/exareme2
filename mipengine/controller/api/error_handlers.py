@@ -74,7 +74,6 @@ def handle_privacy_error(error: SMPCUsageError):
 def handle_node_unresponsive_algorithm_excecution_exception(
     error: NodeUnresponsiveAlgorithmExecutionException,
 ):
-    print(f"(error_handlers::handle_algorithm_excecution_exception) {error=}")
     return (
         error.message,
         HTTPStatusCode.NODE_UNRESPONSIVE_ALGORITHM_EXECUTION_ERROR,

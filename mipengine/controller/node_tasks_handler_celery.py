@@ -81,10 +81,10 @@ def broker_connection_closed_handler(method: Callable):
     def inner(ref, *args, **kwargs):
         try:
             return method(ref, *args, **kwargs)
-        except (OperationalError, ConnectionResetError):
+        except (OperationalError, ConnectionResetError) as error:
             raise ClosedBrokerConnectionError(
-                message=f"Connection to broker closed for node:{ref.node_id} when tried "
-                f"to call {method} with task_kwargs={kwargs}",
+                message=f"Connection to broker closed for node: '{ref.node_id}' when tried "
+                f"to call '{method}' with task_kwargs={kwargs} due to: '{type(error)}:{error}'",
                 node_id=ref.node_id,
             )
 
