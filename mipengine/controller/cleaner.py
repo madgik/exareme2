@@ -38,14 +38,17 @@ class Cleaner:
 
     async def cleanup_loop(self):
         while self.keep_cleaning_up:
-            contextids_and_status = self._cleanup_file_processor._read_cleanup_file()
+            contextids_and_status = self._cleanup_file_processor.read_cleanup_file()
             for context_id, status in contextids_and_status.items():
                 if not status["nodes"]:
                     self._remove_contextid_from_cleanup(context_id=context_id)
                     continue
                 if (
                     status["released"]
-                    or (datetime.now(timezone.utc) - status["timestamp"]).seconds
+                    or (
+                        datetime.now(timezone.utc)
+                        - datetime.fromisoformat(status["timestamp"])
+                    ).seconds
                     > controller_config.cleanup.contextid_release_timelimit
                 ):
                     for node_id in status["nodes"]:
@@ -115,15 +118,25 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery
 class CleanupFileProcessor:
     def __init__(self, logger):
         self._logger = logger
-        if not os.path.isfile(controller_config.cleanup.contextids_cleanup_file):
-            Path(controller_config.cleanup.contextids_cleanup_file).touch()
+
+        self._cleanup_file_path = controller_config.cleanup.contextids_cleanup_file
+        # create file if does not exist
+        if not os.path.isfile(self._cleanup_file_path):
+            Path(self._cleanup_file_path).touch()
+
+        # changes to the file will be first written on a temporary file. Then the temporary
+        # file replaces the cleanup file. The reason for that is that renaming is atomic
+        # (under linux) so the chances of the cleanup file to get corrupted is minimized
+        dirname = os.path.dirname(self._cleanup_file_path)
+        filename_tmp = (
+            Path(self._cleanup_file_path).stem
+            + "_tmp"
+            + Path(self._cleanup_file_path).suffix
+        )
+        self._cleanup_file_tmp_path = os.path.join(dirname, filename_tmp)
 
     def _append_to_cleanup_file(self, context_id: str, node_ids: List[str]):
-        dirname = os.path.dirname(controller_config.cleanup.contextids_cleanup_file)
-        filename = os.path.basename(controller_config.cleanup.contextids_cleanup_file)
-        filename_tmp = Path(filename).stem + "_tmp" + Path(filename).suffix
-        with open(controller_config.cleanup.contextids_cleanup_file, "r") as f:
-            parsed_toml = toml.load(f)
+        parsed_toml = self.read_cleanup_file()
         if context_id not in parsed_toml:
             parsed_toml[context_id] = {"nodes": node_ids}
         else:
@@ -141,42 +154,17 @@ class CleanupFileProcessor:
         parsed_toml[context_id]["timestamp"] = now_timestamp.isoformat()
         parsed_toml[context_id]["released"] = False
 
-        tmp_contextids_cleanup_file = os.path.join(dirname, filename_tmp)
-        with open(tmp_contextids_cleanup_file, "w") as f:
-            toml.dump(parsed_toml, f)
-
-        # renaming is atomic. Of course if more Controllers are spawn the file is very
-        # likely to become corrupted
-        os.rename(
-            tmp_contextids_cleanup_file,
-            controller_config.cleanup.contextids_cleanup_file,
-        )
+        self._write_to_cleanup_file(parsed_toml)
 
     def _set_released_true_to_file(self, context_id: str):
-        dirname = os.path.dirname(controller_config.cleanup.contextids_cleanup_file)
-        filename = os.path.basename(controller_config.cleanup.contextids_cleanup_file)
-        filename_tmp = "contextids_cleanup_tmp.toml"
-        with open(controller_config.cleanup.contextids_cleanup_file, "r") as f:
-            parsed_toml = toml.load(f)
+        parsed_toml = self.read_cleanup_file()
         if context_id in parsed_toml:
             parsed_toml[context_id]["released"] = True
-        tmp_contextids_cleanup_file = os.path.join(dirname, filename_tmp)
-        with open(tmp_contextids_cleanup_file, "w") as f:
-            toml.dump(parsed_toml, f)
 
-        # renaming is atomic. Of course if more Controllers are spawn the file is very
-        # likely to become corrupted
-        os.rename(
-            tmp_contextids_cleanup_file,
-            controller_config.cleanup.contextids_cleanup_file,
-        )
+        self._write_to_cleanup_file(parsed_toml)
 
     def _remove_from_cleanup_file(self, context_id: str, node_id: str = None):
-        dirname = os.path.dirname(controller_config.cleanup.contextids_cleanup_file)
-        filename = os.path.basename(controller_config.cleanup.contextids_cleanup_file)
-        filename_tmp = "contextids_cleanup_tmp.toml"
-        with open(controller_config.cleanup.contextids_cleanup_file, "r") as f:
-            parsed_toml = toml.load(f)
+        parsed_toml = self.read_cleanup_file()
         if context_id in parsed_toml:
             if node_id:
                 try:
@@ -190,22 +178,17 @@ class CleanupFileProcessor:
             # warning if contextid not there
             pass
 
-        tmp_contextids_cleanup_file = os.path.join(dirname, filename_tmp)
-        with open(tmp_contextids_cleanup_file, "w") as f:
-            toml.dump(parsed_toml, f)
+        self._write_to_cleanup_file(parsed_toml)
+
+    def read_cleanup_file(self) -> dict:
+        with open(controller_config.cleanup.contextids_cleanup_file, "r") as f:
+            parsed_toml = toml.load(f)
+        return parsed_toml
+
+    def _write_to_cleanup_file(self, toml_string: str):
+        with open(self._cleanup_file_tmp_path, "w") as f:
+            toml.dump(toml_string, f)
 
         # renaming is atomic. Of course if more Controllers are spawn the file is very
         # likely to become corrupted
-        os.rename(
-            tmp_contextids_cleanup_file,
-            controller_config.cleanup.contextids_cleanup_file,
-        )
-
-    def _read_cleanup_file(self) -> dict:
-        with open(controller_config.cleanup.contextids_cleanup_file, "r") as f:
-            parsed_toml = toml.load(f)
-            for context_id in parsed_toml.keys():
-                parsed_toml[context_id]["timestamp"] = datetime.fromisoformat(
-                    parsed_toml[context_id]["timestamp"]
-                )
-            return parsed_toml
+        os.rename(self._cleanup_file_tmp_path, self._cleanup_file_path)
