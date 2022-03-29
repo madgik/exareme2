@@ -68,7 +68,7 @@ class Controller:
         for local_node_task_handler in node_tasks_handlers.local_nodes_tasks_handlers:
             algo_execution_node_ids.append(local_node_task_handler.node_id)
 
-        self._cleaner._add_contextid_for_cleanup(context_id, algo_execution_node_ids)
+        self._cleaner.add_contextid_for_cleanup(context_id, algo_execution_node_ids)
 
         datasets_per_local_node: Dict[str, List[str]] = {
             task_handler.node_id: self._node_registry.get_node_specific_datasets(
@@ -88,7 +88,7 @@ class Controller:
                 logger=algo_execution_logger,
             )
         finally:
-            self._cleaner._release_contextid_for_cleanup(context_id=context_id)
+            self._cleaner.release_contextid_for_cleanup(context_id=context_id)
 
         return algorithm_result
 

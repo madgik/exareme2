@@ -74,7 +74,7 @@ class Cleaner:
 
             await asyncio.sleep(self._clean_up_interval)
 
-    def _add_contextid_for_cleanup(
+    def add_contextid_for_cleanup(
         self, context_id: str, algo_execution_node_ids: List[str]
     ):
         self._cleanup_file_processor._append_to_cleanup_file(
@@ -89,7 +89,7 @@ class Cleaner:
             context_id=context_id, node_id=node_id
         )
 
-    def _release_contextid_for_cleanup(self, context_id: str):
+    def release_contextid_for_cleanup(self, context_id: str):
         self._cleanup_file_processor._set_released_true_to_file(context_id=context_id)
 
     def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
@@ -183,7 +183,7 @@ class CleanupFileProcessor:
     def read_cleanup_file(self) -> dict:
         if not os.path.isfile(self._cleanup_file_path):
             self._logger.warning(
-                f"{self._cleanup_file_path=} does not exist. This " f"should not happen"
+                f"{self._cleanup_file_path=} does not exist. This should not happen"
             )
             return {}
         with open(controller_config.cleanup.contextids_cleanup_file, "r") as f:
