@@ -394,12 +394,13 @@ def create_rabbitmq(c, node, rabbitmq_image=None):
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
         with open(node_config_file) as fp:
             node_config = toml.load(fp)
-        container_ports = f"{node_config['rabbitmq']['port']}:5672"
+        queue_port = f"{node_config['rabbitmq']['port']}:5672"
+        api_port = f"{node_config['rabbitmq']['port']+10000}:15672"
         message(
-            f"Starting container {container_name} on ports {container_ports}...",
+            f"Starting container {container_name} on ports {queue_port}...",
             Level.HEADER,
         )
-        cmd = f"docker run -d -p {container_ports} --name {container_name} {rabbitmq_image}"
+        cmd = f"docker run -d -p {queue_port} -p {api_port} --name {container_name} {rabbitmq_image}"
         run(c, cmd)
 
     for node_id in node_ids:
@@ -497,6 +498,7 @@ def start_node(
         )
 
     node_ids = get_node_ids(all_, node)
+    node_ids.sort()  # Sorting the ids protects removing a similarly named id, localnode1 would remove localnode10.
 
     for node_id in node_ids:
         kill_node(c, node_id)
@@ -623,6 +625,8 @@ def deploy(
         node_ids.append(node_config["identifier"])
         monetdb_ports.append(node_config["monetdb"]["port"])
 
+    node_ids.sort()  # Sorting the ids protects removing a similarly named id, localnode1 would remove localnode10.
+
     create_monetdb(c, node=node_ids, image=monetdb_image, log_level=log_level)
     create_rabbitmq(c, node=node_ids)
     init_monetdb(c, port=monetdb_ports)
@@ -690,6 +694,7 @@ def start_flower(c, node=None, all_=False):
     FLOWER_PORT = 5550
 
     node_ids = get_node_ids(all_, node)
+    node_ids.sort()
 
     for node_id in node_ids:
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
@@ -698,18 +703,20 @@ def start_flower(c, node=None, all_=False):
 
         ip = node_config["rabbitmq"]["ip"]
         port = node_config["rabbitmq"]["port"]
+        api_port = port + 10000
         user_and_password = (
             node_config["rabbitmq"]["user"] + ":" + node_config["rabbitmq"]["password"]
         )
         vhost = node_config["rabbitmq"]["vhost"]
         flower_url = ip + ":" + str(port)
-        broker_api = f"amqp://{user_and_password}@{flower_url}/{vhost}"
+        broker = f"amqp://{user_and_password}@{flower_url}/{vhost}"
+        broker_api = f"http://{user_and_password}@{ip + ':' + str(api_port)}/api/"
 
         flower_index = node_ids.index(node_id)
         flower_port = FLOWER_PORT + flower_index
 
         message(f"Starting flower container for node {node_id}...", Level.HEADER)
-        command = f"docker run --name flower-{node_id} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker_api} "
+        command = f"docker run --name flower-{node_id} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker} --broker-api={broker_api}"
         run(c, command)
         cmd = "docker ps | grep '[f]lower'"
         run(c, cmd, warn=True, show_ok=False)
