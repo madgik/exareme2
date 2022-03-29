@@ -170,12 +170,19 @@ class CleanupFileProcessor:
                 try:
                     parsed_toml[context_id]["nodes"].remove(node_id)
                 except ValueError:
-                    # warning if nodeid is not there
+                    self._logger.warning(
+                        f"Tried to remove {node_id=} for {context_id=} "
+                        f"but this context_id.node_id is not in the "
+                        f"clean_up file.This whould not happen."
+                    )
                     pass
             else:
                 parsed_toml.pop(context_id)
         else:
-            # warning if contextid not there
+            self._logger.warning(
+                f"Tried to remove {context_id=} but this context_id is "
+                f"not in the clean_up file.This whould not happen."
+            )
             pass
 
         self._write_to_cleanup_file(parsed_toml)
