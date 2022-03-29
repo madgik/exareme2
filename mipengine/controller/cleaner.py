@@ -181,6 +181,11 @@ class CleanupFileProcessor:
         self._write_to_cleanup_file(parsed_toml)
 
     def read_cleanup_file(self) -> dict:
+        if not os.path.isfile(self._cleanup_file_path):
+            self._logger.warning(
+                f"{self._cleanup_file_path=} does not exist. This " f"should not happen"
+            )
+            return {}
         with open(controller_config.cleanup.contextids_cleanup_file, "r") as f:
             parsed_toml = toml.load(f)
         return parsed_toml
