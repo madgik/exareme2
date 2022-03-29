@@ -173,7 +173,7 @@ class CleanupFileProcessor:
                     self._logger.warning(
                         f"Tried to remove {node_id=} for {context_id=} "
                         f"but this context_id.node_id is not in the "
-                        f"clean_up file.This whould not happen."
+                        f"clean_up file.This should not happen."
                     )
                     pass
             else:
@@ -181,7 +181,7 @@ class CleanupFileProcessor:
         else:
             self._logger.warning(
                 f"Tried to remove {context_id=} but this context_id is "
-                f"not in the clean_up file.This whould not happen."
+                f"not in the clean_up file.This should not happen."
             )
             pass
 
