@@ -201,8 +201,8 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
             ),
             logger=algo_execution_logger,
         )
-    except:
-        assert False
+    except Exception as exc:
+        pytest.fail(f"Execution of the algorithm failed with {exc=}")
 
     globalnode_tables_before_cleanup = globalnode_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
@@ -244,8 +244,9 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
 
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:
-            assert False
-
+            pytest.fail(
+                f"Some of the nodes were not cleaned during {WAIT_CLEANUP_TIME_LIMIT=}"
+            )
         await asyncio.sleep(2)
 
     controller.stop_node_registry()
@@ -311,8 +312,8 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
             ),
             logger=algo_execution_logger,
         )
-    except:
-        assert False
+    except Exception as exc:
+        pytest.fail(f"Execution of the algorithm failed with {exc=}")
 
     globalnode_tables_before_cleanup = globalnode_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
@@ -359,8 +360,9 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
         )
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:
-            assert False
-
+            pytest.fail(
+                f"Some of the nodes were not cleaned during {WAIT_CLEANUP_TIME_LIMIT=}"
+            )
         await asyncio.sleep(2)
 
     controller.stop_node_registry()
@@ -487,7 +489,9 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:
-            assert False
+            pytest.fail(
+                f"Some of the nodes were not cleaned during {WAIT_CLEANUP_TIME_LIMIT=}"
+            )
 
         await asyncio.sleep(2)
 
@@ -616,7 +620,9 @@ async def test_cleanup_node_service_down_algorithm_execution(
         )
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:
-            assert False
+            pytest.fail(
+                f"Some of the nodes were not cleaned during {WAIT_CLEANUP_TIME_LIMIT=}"
+            )
         await asyncio.sleep(2)
 
     await asyncio.sleep(2)
@@ -751,7 +757,9 @@ async def test_cleanup_controller_restart(
         )
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:
-            assert False
+            pytest.fail(
+                f"Some of the nodes were not cleaned during {WAIT_CLEANUP_TIME_LIMIT=}"
+            )
         await asyncio.sleep(2)
 
     await asyncio.sleep(2)
