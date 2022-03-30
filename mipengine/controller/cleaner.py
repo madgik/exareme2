@@ -68,7 +68,7 @@ class Cleaner:
                         except Exception as exc:
                             self._logger.debug(
                                 f"clean_up task FAILED for {node_id=} "
-                                f"for {context_id=}. Will retry in a while... fail "
+                                f"for {context_id=}. Will retry in {self._clean_up_interval=} secs. Fail "
                                 f"reason: {type(exc)}:{exc}"
                             )
 
