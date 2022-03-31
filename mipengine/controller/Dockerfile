@@ -40,6 +40,7 @@ RUN poetry install --no-dev
 #######################################################
 COPY mipengine/ ./mipengine/
 RUN rm -rf mipengine/node
+VOLUME /opt/cleanup
 
 #######################################################
 # Define Hypercorn neeeded env variables and start hypercorn
