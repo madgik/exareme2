@@ -40,7 +40,7 @@ def controller_config_dict_mock():
         "deployment_type": "LOCAL",
         "node_registry_update_interval": 2,
         "cleanup": {
-            "contextids_cleanup_file": "/tmp/contextids_cleanup_testing.toml",
+            "contextids_cleanup_folder": "/tmp",
             "nodes_cleanup_interval": 2,
             "contextid_release_timelimit": 3600,  # 1hour
         },

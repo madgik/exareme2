@@ -14,6 +14,7 @@ from mipengine.controller.node_registry import NodeRegistry
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 
 CLEANER_REQUEST_ID = "CLEANER"
+CONTEXT_ID_CLEANUP_FILE = "contextids_cleanup.toml"
 
 
 class _NodeInfoDTO(BaseModel):
@@ -119,8 +120,16 @@ class CleanupFileProcessor:
     def __init__(self, logger):
         self._logger = logger
 
-        self._cleanup_file_path = controller_config.cleanup.contextids_cleanup_file
-        # create file if does not exist
+        # Create all parent folders, if needed.
+        Path(controller_config.cleanup.contextids_cleanup_folder).mkdir(
+            parents=True, exist_ok=True
+        )
+
+        self._cleanup_file_path = Path(
+            controller_config.cleanup.contextids_cleanup_folder
+        ).joinpath(Path(CONTEXT_ID_CLEANUP_FILE))
+
+        # create file if it does not exist
         if not os.path.isfile(self._cleanup_file_path):
             Path(self._cleanup_file_path).touch()
 
@@ -193,7 +202,7 @@ class CleanupFileProcessor:
                 f"{self._cleanup_file_path=} does not exist. This should not happen"
             )
             return {}
-        with open(controller_config.cleanup.contextids_cleanup_file, "r") as f:
+        with open(self._cleanup_file_path, "r") as f:
             parsed_toml = toml.load(f)
         return parsed_toml
 

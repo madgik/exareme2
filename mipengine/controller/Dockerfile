@@ -29,6 +29,13 @@ ENV CDES_METADATA_PATH="/opt/data"
 RUN mkdir $CDES_METADATA_PATH
 
 #######################################################
+# Creating the cleanup file folder
+#######################################################
+ENV CLEANUP_FOLDER="/opt/cleanup"
+RUN mkdir -p $CLEANUP_FOLDER
+VOLUME $CLEANUP_FOLDER
+
+#######################################################
 # Installing poetry and dependencies
 #######################################################
 RUN pip install poetry==$POETRY_VERSION
@@ -40,7 +47,6 @@ RUN poetry install --no-dev
 #######################################################
 COPY mipengine/ ./mipengine/
 RUN rm -rf mipengine/node
-VOLUME /opt/cleanup
 
 #######################################################
 # Define Hypercorn neeeded env variables and start hypercorn
