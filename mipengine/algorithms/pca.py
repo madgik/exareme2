@@ -65,7 +65,7 @@ S = TypeVar("S")
 def local1(x):
     n_obs = len(x)
     sx = x.sum(axis=0)
-    sxx = (x ** 2).sum(axis=0)
+    sxx = (x**2).sum(axis=0)
 
     transfer_ = {}
     transfer_["n_obs"] = {"data": n_obs, "operation": "sum"}
@@ -81,7 +81,7 @@ def global1(local_transfers):
     sxx = numpy.array(local_transfers["sxx"])
 
     means = sx / n_obs
-    sigmas = ((sxx - n_obs * means ** 2) / (n_obs - 1)) ** 0.5
+    sigmas = ((sxx - n_obs * means**2) / (n_obs - 1)) ** 0.5
 
     state_ = dict(n_obs=n_obs)
     transfer_ = dict(means=means.tolist(), sigmas=sigmas.tolist())
