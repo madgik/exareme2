@@ -3,22 +3,36 @@ from typing import Dict
 from typing import List
 
 from mipengine.node_tasks_DTOs import CommonDataElements
+from mipengine.singleton import Singleton
 
 
 def _have_common_elements(a: List[Any], b: List[Any]):
     return bool(set(a) & set(b))
 
 
-class DataModelRegistry:
+class DataModelRegistry(metaclass=Singleton):
     def __init__(self):
         self.data_models: Dict[str, CommonDataElements] = {}
         self.datasets_location: Dict[str, Dict[str, List[str]]] = {}
 
-    def set_data_models(self, data_models: Dict[str, CommonDataElements]):
-        self.data_models = data_models
+    @property
+    def data_models(self):
+        return self._data_models
 
-    def set_datasets_location(self, datasets_location: Dict[str, Dict[str, List[str]]]):
-        self.datasets_location = datasets_location
+    @property
+    def datasets_location(self):
+        return self._datasets_location
+
+    @data_models.setter
+    def data_models(self, value):
+        self._data_models = value
+
+    @datasets_location.setter
+    def datasets_location(self, value):
+        self._datasets_location = value
+
+    def get_cdes(self, data_model):
+        return self.data_models[data_model].values
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         """
@@ -81,6 +95,3 @@ class DataModelRegistry:
             if node_id in self.datasets_location[data_model][dataset]
         ]
         return datasets_in_node
-
-
-data_model_registry = DataModelRegistry()

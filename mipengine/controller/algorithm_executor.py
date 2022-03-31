@@ -43,7 +43,7 @@ from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
-from mipengine.controller.data_model_registry import data_model_registry
+from mipengine.controller.node_landscape_aggregator import node_landscape_aggregator
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import TableData
@@ -242,9 +242,9 @@ class _AlgorithmExecutionInterface:
             algo_execution_interface_dto.datasets_per_local_node
         )
         self._use_smpc = algo_execution_interface_dto.use_smpc
-        cdes = data_model_registry.data_models[
+        cdes = node_landscape_aggregator.get_cdes(
             algo_execution_interface_dto.data_model
-        ].values
+        )
         varnames = (self._x_variables or []) + (self._y_variables or [])
         self._metadata = {
             varname: cde.__dict__

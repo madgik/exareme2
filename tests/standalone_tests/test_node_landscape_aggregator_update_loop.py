@@ -117,21 +117,18 @@ async def test_update_loop_node_service_down(
     controller = Controller()
 
     # wait until node registry gets the nodes info
-    await controller.start_node_landscape_aggregator()
+    controller.start_node_landscape_aggregator()
 
     for _ in range(MAX_RETRIES):
         if (
             localnodetmp_node_id in controller.get_all_local_nodes()
-            and controller.get_cdes_per_data_model()
+            and controller.get_data_models()
         ):
-            cdes_per_data_model = controller.get_cdes_per_data_model()
+            data_models = controller.get_data_models()
+            assert "tbi:0.1" in data_models and "dementia:0.1" in data_models
             assert (
-                "tbi:0.1" in cdes_per_data_model
-                and "dementia:0.1" in cdes_per_data_model
-            )
-            assert (
-                len(cdes_per_data_model["tbi:0.1"].values) == 21
-                and len(cdes_per_data_model["dementia:0.1"].values) == 186
+                len(data_models["tbi:0.1"].values) == 21
+                and len(data_models["dementia:0.1"].values) == 186
             )
             break
         await asyncio.sleep(2)
@@ -146,7 +143,7 @@ async def test_update_loop_node_service_down(
     for _ in range(MAX_RETRIES):
         if (
             localnodetmp_node_id not in controller.get_all_local_nodes()
-            and not controller.get_cdes_per_data_model()
+            and not controller.get_data_models()
         ):
             break
         await asyncio.sleep(2)
@@ -162,16 +159,13 @@ async def test_update_loop_node_service_down(
     for _ in range(MAX_RETRIES):
         if (
             localnodetmp_node_id in controller.get_all_local_nodes()
-            and controller.get_cdes_per_data_model()
+            and controller.get_data_models()
         ):
-            cdes_per_data_model = controller.get_cdes_per_data_model()
+            data_models = controller.get_data_models()
+            assert "tbi:0.1" in data_models and "dementia:0.1" in data_models
             assert (
-                "tbi:0.1" in cdes_per_data_model
-                and "dementia:0.1" in cdes_per_data_model
-            )
-            assert (
-                len(cdes_per_data_model["tbi:0.1"].values) == 21
-                and len(cdes_per_data_model["dementia:0.1"].values) == 186
+                len(data_models["tbi:0.1"].values) == 21
+                and len(data_models["dementia:0.1"].values) == 186
             )
             break
         await asyncio.sleep(2)
@@ -180,7 +174,7 @@ async def test_update_loop_node_service_down(
             "Exceeded max retries while waiting for the node registry to re-add the tmplocalnode"
         )
 
-    await controller.stop_node_landscape_aggregator()
+    controller.stop_node_landscape_aggregator()
 
     # the node service was started in here, so it must manually be killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
@@ -201,22 +195,19 @@ async def test_update_loop_rabbitmq_down(
     controller = Controller()
 
     # starting the node landscape aggregator
-    await controller.start_node_landscape_aggregator()
+    controller.start_node_landscape_aggregator()
 
     # wait until node registry and data model registry is up-to-date
     for _ in range(MAX_RETRIES):
         if (
             localnodetmp_node_id in controller.get_all_local_nodes()
-            and controller.get_cdes_per_data_model()
+            and controller.get_data_models()
         ):
-            cdes_per_data_model = controller.get_cdes_per_data_model()
+            data_models = controller.get_data_models()
+            assert "tbi:0.1" in data_models and "dementia:0.1" in data_models
             assert (
-                "tbi:0.1" in cdes_per_data_model
-                and "dementia:0.1" in cdes_per_data_model
-            )
-            assert (
-                len(cdes_per_data_model["tbi:0.1"].values) == 21
-                and len(cdes_per_data_model["dementia:0.1"].values) == 186
+                len(data_models["tbi:0.1"].values) == 21
+                and len(data_models["dementia:0.1"].values) == 186
             )
             break
         await asyncio.sleep(2)
@@ -231,7 +222,7 @@ async def test_update_loop_rabbitmq_down(
     for _ in range(MAX_RETRIES):
         if (
             localnodetmp_node_id not in controller.get_all_local_nodes()
-            and not controller.get_cdes_per_data_model()
+            and not controller.get_data_models()
         ):
             break
         await asyncio.sleep(2)
@@ -247,16 +238,13 @@ async def test_update_loop_rabbitmq_down(
     for _ in range(MAX_RETRIES):
         if (
             localnodetmp_node_id in controller.get_all_local_nodes()
-            and controller.get_cdes_per_data_model()
+            and controller.get_data_models()
         ):
-            cdes_per_data_model = controller.get_cdes_per_data_model()
+            data_models = controller.get_data_models()
+            assert "tbi:0.1" in data_models and "dementia:0.1" in data_models
             assert (
-                "tbi:0.1" in cdes_per_data_model
-                and "dementia:0.1" in cdes_per_data_model
-            )
-            assert (
-                len(cdes_per_data_model["tbi:0.1"].values) == 21
-                and len(cdes_per_data_model["dementia:0.1"].values) == 186
+                len(data_models["tbi:0.1"].values) == 21
+                and len(data_models["dementia:0.1"].values) == 186
             )
             break
         await asyncio.sleep(2)
@@ -265,7 +253,7 @@ async def test_update_loop_rabbitmq_down(
             "Exceeded max retries while waiting for the node registry to re-add the tmplocalnode"
         )
 
-    await controller.stop_node_landscape_aggregator()
+    controller.stop_node_landscape_aggregator()
 
     # the node service was started in here, so it must manually be killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
@@ -286,22 +274,19 @@ async def test_update_loop_data_models_removed(
     controller = Controller()
 
     # wait until node registry gets the nodes info
-    await controller.start_node_landscape_aggregator()
+    controller.start_node_landscape_aggregator()
 
     # wait until node registry and data model registry is up-to-date
     for _ in range(MAX_RETRIES):
         if (
             localnodetmp_node_id in controller.get_all_local_nodes()
-            and controller.get_cdes_per_data_model()
+            and controller.get_data_models()
         ):
-            cdes_per_data_model = controller.get_cdes_per_data_model()
+            data_models = controller.get_data_models()
+            assert "tbi:0.1" in data_models and "dementia:0.1" in data_models
             assert (
-                "tbi:0.1" in cdes_per_data_model
-                and "dementia:0.1" in cdes_per_data_model
-            )
-            assert (
-                len(cdes_per_data_model["tbi:0.1"].values) == 21
-                and len(cdes_per_data_model["dementia:0.1"].values) == 186
+                len(data_models["tbi:0.1"].values) == 21
+                and len(data_models["dementia:0.1"].values) == 186
             )
             break
         await asyncio.sleep(2)
@@ -317,12 +302,12 @@ async def test_update_loop_data_models_removed(
     for _ in range(MAX_RETRIES):
         if (
             localnodetmp_node_id in controller.get_all_local_nodes()
-            and controller.get_cdes_per_data_model()
-            and "dementia:0.1" not in controller.get_cdes_per_data_model()
+            and controller.get_data_models()
+            and "dementia:0.1" not in controller.get_data_models()
         ):
-            cdes_per_data_model = controller.get_cdes_per_data_model()
-            assert "tbi:0.1" in cdes_per_data_model
-            assert len(cdes_per_data_model["tbi:0.1"].values) == 21
+            data_models = controller.get_data_models()
+            assert "tbi:0.1" in data_models
+            assert len(data_models["tbi:0.1"].values) == 21
             break
         await asyncio.sleep(2)
     else:
@@ -336,7 +321,7 @@ async def test_update_loop_data_models_removed(
     for _ in range(MAX_RETRIES):
         if (
             localnodetmp_node_id in controller.get_all_local_nodes()
-            and not controller.get_cdes_per_data_model()
+            and not controller.get_data_models()
         ):
             break
         await asyncio.sleep(2)
@@ -355,16 +340,13 @@ async def test_update_loop_data_models_removed(
     for _ in range(MAX_RETRIES):
         if (
             localnodetmp_node_id in controller.get_all_local_nodes()
-            and controller.get_cdes_per_data_model()
+            and controller.get_data_models()
         ):
-            cdes_per_data_model = controller.get_cdes_per_data_model()
+            data_models = controller.get_data_models()
+            assert "tbi:0.1" in data_models and "dementia:0.1" in data_models
             assert (
-                "tbi:0.1" in cdes_per_data_model
-                and "dementia:0.1" in cdes_per_data_model
-            )
-            assert (
-                len(cdes_per_data_model["tbi:0.1"].values) == 21
-                and len(cdes_per_data_model["dementia:0.1"].values) == 186
+                len(data_models["tbi:0.1"].values) == 21
+                and len(data_models["dementia:0.1"].values) == 186
             )
             break
         await asyncio.sleep(2)
@@ -373,7 +355,7 @@ async def test_update_loop_data_models_removed(
             "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
         )
 
-    await controller.stop_node_landscape_aggregator()
+    controller.stop_node_landscape_aggregator()
 
     # the node service was started in here, so it must manually be killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests

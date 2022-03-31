@@ -84,8 +84,8 @@ def get_data_model_cdes():
 @pytest.fixture
 def mocked_data_model_registry():
     data_model_registry = DataModelRegistry()
-    data_model_registry.set_data_models(get_data_model_cdes())
-    data_model_registry.set_datasets_location(get_datasets_location())
+    data_model_registry.data_models = get_data_model_cdes()
+    data_model_registry.datasets_location = get_datasets_location()
     return data_model_registry
 
 

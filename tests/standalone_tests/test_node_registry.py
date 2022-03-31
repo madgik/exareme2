@@ -54,7 +54,7 @@ def get_mocked_node_info() -> Dict[str, NodeInfo]:
 @pytest.fixture
 def mocked_node_registry():
     node_registry = NodeRegistry()
-    node_registry.set_nodes(get_mocked_node_info())
+    node_registry.nodes = get_mocked_node_info()
     return node_registry
 
 

@@ -17,7 +17,7 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
-from mipengine.controller.data_model_registry import data_model_registry
+from mipengine.controller.node_landscape_aggregator import node_landscape_aggregator
 from mipengine.filters import validate_filter
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
@@ -106,9 +106,8 @@ def _validate_inputdata_filter(data_model, filter):
     Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
     """
-    validate_filter(
-        data_model, filter, data_model_registry.data_models[data_model].values
-    )
+    cdes = node_landscape_aggregator.get_cdes(data_model)
+    validate_filter(data_model, filter, cdes)
 
 
 # TODO This will be removed with the dynamic inputdata logic.
@@ -170,7 +169,7 @@ def _validate_inputdata_value(
 
 
 def _get_cde_metadata(cde, data_model):
-    data_model_cdes = data_model_registry.data_models[data_model].values
+    data_model_cdes = node_landscape_aggregator.get_cdes(data_model)
     if cde not in data_model_cdes.keys():
         raise BadUserInput(
             f"The CDE '{cde}' does not exist in data model '{data_model}'."

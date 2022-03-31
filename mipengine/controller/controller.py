@@ -15,11 +15,8 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
-from mipengine.controller.data_model_registry import data_model_registry
 from mipengine.controller.node_landscape_aggregator import node_landscape_aggregator
-from mipengine.controller.node_registry import node_registry
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
-from mipengine.node_info_DTOs import NodeRole
 
 CONTROLLER_CLEANUP_REQUEST_ID = "CONTROLLER_CLEANUP"
 
@@ -36,9 +33,7 @@ class _NodeInfoDTO(BaseModel):
 
 class Controller:
     def __init__(self):
-        self._node_registry = node_registry
         self._node_landscape_aggregator = node_landscape_aggregator
-        self._data_model_registry = data_model_registry
 
         self._clean_up_interval = controller_config.nodes_cleanup_interval
 
@@ -69,7 +64,7 @@ class Controller:
             algo_execution_node_ids.append(local_node_task_handler.node_id)
 
         datasets_per_local_node: Dict[str, List[str]] = {
-            task_handler.node_id: self._data_model_registry.get_node_specific_datasets(
+            task_handler.node_id: self._node_landscape_aggregator.get_node_specific_datasets(
                 task_handler.node_id, data_model, datasets
             )
             for task_handler in node_tasks_handlers.local_nodes_tasks_handlers
@@ -107,14 +102,14 @@ class Controller:
             for node_id in node_ids:
                 self._nodes_for_cleanup[context_id].append(node_id)
 
-    async def start_cleanup_loop(self):
+    def start_cleanup_loop(self):
         self._controller_logger.info("starting cleanup_loop")
         self._keep_cleaning_up = True
         task = asyncio.create_task(self.cleanup_loop())
         self._controller_logger.info("started clean_up loop")
         return task
 
-    async def stop_cleanup_loop(self):
+    def stop_cleanup_loop(self):
         self._keep_cleaning_up = False
 
     async def cleanup_loop(self):
@@ -217,39 +212,38 @@ class Controller:
             available_datasets_per_data_model=available_datasets_per_data_model,
         )
 
-    async def start_node_landscape_aggregator(self):
+    def start_node_landscape_aggregator(self):
         self._controller_logger.info("starting node landscape aggregator")
-        self._node_landscape_aggregator.keep_updating = True
-        asyncio.create_task(self._node_landscape_aggregator.update())
+        self._node_landscape_aggregator.start()
         self._controller_logger.info("started node landscape aggregator")
 
-    async def stop_node_landscape_aggregator(self):
-        self._node_landscape_aggregator.keep_updating = False
+    def stop_node_landscape_aggregator(self):
+        self._node_landscape_aggregator.stop()
 
     def get_datasets_location(self):
-        return self._data_model_registry.datasets_location
+        return self._node_landscape_aggregator.datasets_location
 
-    def get_cdes_per_data_model(self):
-        return self._data_model_registry.data_models
+    def get_data_models(self):
+        return self._node_landscape_aggregator.get_data_models()
 
     def get_all_available_data_models(self):
-        return list(self._data_model_registry.data_models.keys())
+        return list(self._node_landscape_aggregator.data_models.keys())
 
     def get_all_available_datasets_per_data_model(self):
-        return self._data_model_registry.get_all_available_datasets_per_data_model()
+        return (
+            self._node_landscape_aggregator.get_all_available_datasets_per_data_model()
+        )
 
     def get_all_local_nodes(self):
-        return self._node_registry.get_all_local_nodes()
+        return self._node_landscape_aggregator.get_all_local_nodes()
 
     def get_global_node(self):
-        global_nodes = self._node_registry.get_all_global_nodes()
-        if NodeRole.GLOBALNODE in global_nodes:
-            return global_nodes[NodeRole.GLOBALNODE]
+        return self._node_landscape_aggregator.get_global_node()
 
     def _get_nodes_tasks_handlers(
         self, data_model: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
-        global_node = self._node_registry.get_all_global_nodes()["globalnode"]
+        global_node = self._node_landscape_aggregator.get_global_node()
         global_node_tasks_handler = _create_node_task_handler(
             _NodeInfoDTO(
                 node_id=global_node.id,
@@ -273,7 +267,7 @@ class Controller:
         )
 
     def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
-        node = self._node_registry.get_node_info(node_id)
+        node = self._node_landscape_aggregator.get_node_info(node_id)
         return _NodeInfoDTO(
             node_id=node.id,
             queue_address=":".join([str(node.ip), str(node.port)]),
@@ -284,12 +278,15 @@ class Controller:
     def _get_nodes_info_by_dataset(
         self, data_model: str, datasets: List[str]
     ) -> List[_NodeInfoDTO]:
-        local_node_ids = self._data_model_registry.get_node_ids_with_any_of_datasets(
-            data_model=data_model,
-            datasets=datasets,
+        local_node_ids = (
+            self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(
+                data_model=data_model,
+                datasets=datasets,
+            )
         )
         local_nodes_info = [
-            self._node_registry.get_node_info(node_id) for node_id in local_node_ids
+            self._node_landscape_aggregator.get_node_info(node_id)
+            for node_id in local_node_ids
         ]
         nodes_info = []
         for local_node in local_nodes_info:

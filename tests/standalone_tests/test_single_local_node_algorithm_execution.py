@@ -7,9 +7,8 @@ from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
-from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
-from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.data_model_registry import DataModelRegistry
+from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
@@ -19,8 +18,8 @@ from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
 
 @pytest.fixture(scope="function")
 def mock_data_model_registry():
-    data_model_registry = DataModelRegistry()
-    data_model_registry.data_models = {
+    node_landscape_aggregator = NodeLandscapeAggregator()
+    data_models = {
         "dementia:0.1": CommonDataElements(
             values={
                 "lefthippocampus": CommonDataElement(
@@ -66,9 +65,10 @@ def mock_data_model_registry():
             }
         ),
     }
+    node_landscape_aggregator.set_data_models(data_models)
     with patch(
-        "mipengine.controller.algorithm_executor.data_model_registry",
-        data_model_registry,
+        "mipengine.controller.algorithm_executor.node_landscape_aggregator",
+        node_landscape_aggregator,
     ):
         yield
 

@@ -1,5 +1,4 @@
 import asyncio
-import sys
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -9,9 +8,9 @@ from asgiref.sync import sync_to_async
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.celery_app import get_node_celery_app
-from mipengine.controller.data_model_registry import data_model_registry
+from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_address import _get_nodes_addresses
-from mipengine.controller.node_registry import node_registry
+from mipengine.controller.node_registry import NodeRegistry
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.node_tasks_DTOs import CommonDataElement
@@ -99,7 +98,7 @@ def _task_to_async(task, connection):
     component) will try to create a new connection to the broker until the apply_async
     succeeds, which causes the call to apply_async to hang indefinitely until the
     broker is back up. This way(passing the existing broker connection to apply_async)
-    it raises a ConnectionResetError or an OperationalError and it does not hang
+    it raises a ConnectionResetError or an OperationalError, and it does not hang
     """
 
     async def wrapper(*args, **kwargs):
@@ -130,6 +129,8 @@ def _get_node_socket_addr(node_info: NodeInfo):
 class NodeLandscapeAggregator:
     def __init__(self):
         self.keep_updating = True
+        self._node_registry = NodeRegistry()
+        self._data_model_registry = DataModelRegistry()
 
     async def update(self):
         """
@@ -161,7 +162,7 @@ class NodeLandscapeAggregator:
             compatible_data_models = _get_compatible_data_models(
                 data_model_cdes_across_nodes
             )
-            data_models = _update_dataset_enumerations_to_contain_datasets_across_nodes(
+            data_models = _update_data_model_dataset_enumerations(
                 compatible_data_models, datasets_labels
             )
             datasets_locations = {
@@ -169,18 +170,79 @@ class NodeLandscapeAggregator:
                 for common_data_model in data_models
             }
 
-            node_registry.set_nodes(
-                {node_info.id: node_info for node_info in nodes_info}
-            )
-            data_model_registry.set_data_models(data_models)
-            data_model_registry.set_datasets_location(datasets_locations)
-            logger.debug(f"Nodes:{[node for node in node_registry.nodes]}")
+            self.set_nodes({node_info.id: node_info for node_info in nodes_info})
+            self.set_data_models(data_models)
+            self.set_datasets_location(datasets_locations)
+            logger.debug(f"Nodes:{[node for node in self._node_registry.nodes]}")
             # ..to print full nodes info
             # from devtools import debug
             # debug(self.nodes)
             # DEBUG end
 
             await asyncio.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
+
+    def start(self):
+        self.keep_updating = True
+        asyncio.create_task(self.update())
+
+    def stop(self):
+        self.keep_updating = False
+
+    def get_nodes(self):
+        return self._node_registry.nodes
+
+    def set_nodes(self, nodes: Dict[str, NodeInfo]):
+        self._node_registry.nodes = nodes
+
+    def get_all_global_nodes(self) -> Dict[str, NodeInfo]:
+        return self._node_registry.get_all_global_nodes()
+
+    def get_global_node(self) -> NodeInfo:
+        return self._node_registry.get_global_node()
+
+    def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
+        return self._node_registry.get_all_local_nodes()
+
+    def get_node_info(self, node_id: str) -> NodeInfo:
+        return self._node_registry.get_node_info(node_id)
+
+    def get_cdes(self, data_model: str):
+        return self._data_model_registry.get_cdes(data_model)
+
+    def get_data_models(self):
+        return self._data_model_registry.data_models
+
+    def get_datasets_location(self):
+        return self._data_model_registry.datasets_location
+
+    def set_data_models(self, data_models: Dict[str, CommonDataElements]):
+        self._data_model_registry.data_models = data_models
+
+    def set_datasets_location(self, datasets_location: Dict[str, Dict[str, List[str]]]):
+        self._data_model_registry.datasets_location = datasets_location
+
+    def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
+        return self._data_model_registry.get_all_available_datasets_per_data_model()
+
+    def data_model_exists(self, data_model: str) -> bool:
+        return self._data_model_registry.data_model_exists(data_model)
+
+    def dataset_exists(self, data_model: str, dataset: str) -> bool:
+        return self._data_model_registry.dataset_exists(data_model, dataset)
+
+    def get_node_ids_with_any_of_datasets(
+        self, data_model: str, datasets: List[str]
+    ) -> List[str]:
+        return self._data_model_registry.get_node_ids_with_any_of_datasets(
+            data_model, datasets
+        )
+
+    def get_node_specific_datasets(
+        self, node_id: str, data_model: str, wanted_datasets: List[str]
+    ) -> List[str]:
+        return self._data_model_registry.get_node_specific_datasets(
+            node_id, data_model, wanted_datasets
+        )
 
 
 async def _get_datasets_locations(nodes: List[NodeInfo]) -> Dict[str, Dict[str, str]]:
@@ -233,10 +295,20 @@ def _get_compatible_data_models(
     data_model_cdes_across_nodes: Dict[str, List[Tuple[str, CommonDataElements]]]
 ) -> Dict[str, CommonDataElements]:
     """
-    This function accepts data_models and a list of  it's cdes across nodes.
-    And returns a dictionary with key data model and value the first cdes in case all the cdes are compatible across nodes.
-    Args:
-        data_model_cdes_across_nodes: data_models and their cdes across nodes
+    Each node has its own data models definition.
+    We need to check for each data model if the definitions across all nodes is the same.
+    If the data model is not the same across all nodes containing it, we log the incompatibility.
+    The data models with similar definitions across all nodes are returned.
+
+    Parameters
+    ----------
+        data_model_cdes_across_nodes: the data_models each node has
+
+    Returns
+    ----------
+        Dict[str, CommonDataElements]
+            the data models with similar definitions across all nodes
+
     """
     data_models = {}
     for data_model, cdes_from_all_nodes in data_model_cdes_across_nodes.items():
@@ -253,7 +325,7 @@ def _get_compatible_data_models(
     return data_models
 
 
-def _update_dataset_enumerations_to_contain_datasets_across_nodes(
+def _update_data_model_dataset_enumerations(
     data_models: Dict[str, CommonDataElements],
     datasets_labels: Dict[str, Dict[str, str]],
 ) -> Dict[str, CommonDataElements]:
