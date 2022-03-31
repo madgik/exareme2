@@ -155,22 +155,6 @@ class Controller:
         datasets_per_local_node: Dict[str, List[str]],
         logger: logging.Logger,
     ) -> str:
-
-        # TODO: AlgorithmExecutor is not yet implemented with asyncio. This is a
-        # temporary solution for not blocking the calling function
-        def run_algorithm_executor_in_threadpool(
-            algorithm_execution_dto: AlgorithmExecutionDTO,
-            all_nodes_tasks_handlers: NodesTasksHandlersDTO,
-        ):
-            algorithm_executor = AlgorithmExecutor(
-                algorithm_execution_dto, all_nodes_tasks_handlers
-            )
-
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(algorithm_executor.run)
-                result = future.result()
-                return result
-
         algorithm_execution_dto = AlgorithmExecutionDTO(
             request_id=request_id,
             context_id=context_id,
@@ -183,18 +167,14 @@ class Controller:
             algo_parameters=algorithm_request_dto.parameters,
             algo_flags=algorithm_request_dto.flags,
         )
+        algorithm_executor = AlgorithmExecutor(algorithm_execution_dto, tasks_handlers)
 
         loop = asyncio.get_running_loop()
 
         logger.info(f"starts executing->  {algorithm_name=}")
-
-        algorithm_result = await loop.run_in_executor(
-            None,
-            run_algorithm_executor_in_threadpool,
-            algorithm_execution_dto,
-            tasks_handlers,
-        )
-
+        # TODO: AlgorithmExecutor is not yet implemented with asyncio. This is a
+        # temporary solution for not blocking the calling function
+        algorithm_result = await loop.run_in_executor(None, algorithm_executor.run)
         logger.info(f"finished execution->  {algorithm_name=}")
         logger.info(f"algorithm result-> {algorithm_result.json()=}")
 
