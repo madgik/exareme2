@@ -57,6 +57,10 @@
    [privacy]
    minimum_row_count = 10
 
+   [cleanup]
+   nodes_cleanup_interval=10
+   contextid_release_timelimit=3600 #an hour
+
    [smpc]
    enabled=false
    optional=false

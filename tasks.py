@@ -160,6 +160,14 @@ def create_configs(c):
     controller_config["localnodes"]["dns"] = ""
     controller_config["localnodes"]["port"] = ""
 
+    controller_config["cleanup"]["contextids_cleanup_folder"] = "/tmp"
+    controller_config["cleanup"]["nodes_cleanup_interval"] = deployment_config[
+        "cleanup"
+    ]["nodes_cleanup_interval"]
+    controller_config["cleanup"]["contextid_release_timelimit"] = deployment_config[
+        "cleanup"
+    ]["contextid_release_timelimit"]
+
     controller_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
     controller_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
 
