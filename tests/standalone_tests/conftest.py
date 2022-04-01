@@ -190,7 +190,7 @@ def _init_database_monetdb_container(db_ip, db_port):
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     if res.returncode == 0:
-        print("Database initialized, continuing... ")
+        print("Database initialized, continuing.")
         return
 
     cmd = f"mipdb init --ip {db_ip} --port {db_port} "
@@ -206,7 +206,7 @@ def _load_data_monetdb_container(db_ip, db_port):
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     if "There are no datasets" not in str(res.stdout):
-        print("Database already loaded, continuing... ")
+        print("Database already loaded, continuing. ")
         return
 
     cmd = f"mipdb load-folder {TEST_DATA_FOLDER}  --ip {db_ip} --port {db_port} "
@@ -530,7 +530,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
                 f"The node service '{node_id}' didn't manage to start in the designated time. Logs: \n{logfile.read()}"
             )
 
-    print(f"Created node service with id '{node_id}' and process id '{proc.pid}'...")
+    print(f"Created node service with id '{node_id}' and process id '{proc.pid}'.")
     return proc
 
 
