@@ -154,6 +154,7 @@ def create_configs(c):
     controller_config["localnodes"]["dns"] = ""
     controller_config["localnodes"]["port"] = ""
 
+    controller_config["cleanup"]["contextids_cleanup_folder"] = "/tmp"
     controller_config["cleanup"]["nodes_cleanup_interval"] = deployment_config[
         "cleanup"
     ]["nodes_cleanup_interval"]
