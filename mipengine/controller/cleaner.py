@@ -194,7 +194,12 @@ class CleanupFileProcessor:
             )
             return {}
         with open(controller_config.cleanup.contextids_cleanup_file, "r") as f:
-            parsed_toml = toml.load(f)
+            try:
+                parsed_toml = toml.load(f)
+            except Exception as exc:
+                self._logger.warning(
+                    f"Trying to read {controller_config.cleanup.contextids_cleanup_file=} raised exception: {exc}"
+                )
         return parsed_toml
 
     def _write_to_cleanup_file(self, toml_string: str):
