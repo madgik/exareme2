@@ -86,6 +86,10 @@ class Controller:
                 node_ids=algo_execution_node_ids,
             )
 
+            node_tasks_handlers.global_node_tasks_handler.close_app()
+            for handler in node_tasks_handlers.local_nodes_tasks_handlers:
+                handler.close_app()
+
         return algorithm_result
 
     def _append_context_id_for_cleanup(self, context_id: str, node_ids: List[str]):
@@ -125,7 +129,7 @@ class Controller:
                             request_id=CONTROLLER_CLEANUP_REQUEST_ID,
                             context_id=context_id,
                         )
-
+                        task_handler.close_app()
                         self._controller_logger.debug(
                             f"clean_up task succeeded for {node_id=} for {context_id=}"
                         )
@@ -239,7 +243,7 @@ class Controller:
             data_model=data_model, datasets=datasets
         )
         local_nodes_tasks_handlers = [
-            _create_node_task_handler(task_handler) for task_handler in local_nodes_info
+            _create_node_task_handler(node_info) for node_info in local_nodes_info
         ]
 
         return NodesTasksHandlersDTO(

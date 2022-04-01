@@ -4,6 +4,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+import kombu
 from billiard.exceptions import SoftTimeLimitExceeded
 from billiard.exceptions import TimeLimitExceeded
 from celery.exceptions import TimeoutError
@@ -104,6 +105,17 @@ class ClosedBrokerConnectionError(Exception):
         super().__init__(message)
 
 
+class NodeTasksHandlerCeleryAsyncResult:
+    def __init__(self, result: AsyncResult, connection: kombu.connection.Connection):
+        self._result = result
+        self._connection = connection
+
+    def get(self, timeout: int):
+        with self._connection:
+            res = self._result.get(timeout)
+        return res
+
+
 class NodeTasksHandlerCelery(INodeTasksHandler):
 
     # TODO create custom type and validator for the socket address
@@ -114,6 +126,9 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         self._celery_app = get_node_celery_app(node_queue_addr)
         self._db_address = node_db_addr
         self._tasks_timeout = tasks_timeout
+
+    def close_app(self):
+        self._celery_app.close()
 
     @property
     def node_id(self) -> str:
@@ -127,20 +142,20 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     def tasks_timeout(self) -> int:
         return self._tasks_timeout
 
-    def _apply_async(self, task_signature, **kwargs) -> AsyncResult:
+    def _apply_async(
+        self, task_signature, **kwargs
+    ) -> NodeTasksHandlerCeleryAsyncResult:
         # The existing connection to the broker is passed in apply_async because the
         # default behaviour (not passing a
         # connection object), when the broker is down, is for the celery app to try to
         # create a new connection to the broker, without raising any exceptions.
-        # Nevertheless while the broker is down the call to apply_async just hangs
+        # Nevertheless, while the broker is down the call to apply_async just hangs
         # waiting for a connection with the broker to be established. Passing the
         # existing connection object to apply_async causes the call to raise an
         # exception if the broker is down
-        async_result = task_signature.apply_async(
-            connection=self._celery_app.broker_connection(), kwargs=kwargs
-        )
-
-        return async_result
+        conn = self._celery_app.broker_connection()
+        async_result = task_signature.apply_async(connection=conn, kwargs=kwargs)
+        return NodeTasksHandlerCeleryAsyncResult(result=async_result, connection=conn)
 
     # TABLES functionality
     @time_limit_exceeded_handler

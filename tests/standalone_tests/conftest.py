@@ -626,10 +626,7 @@ def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     kill_node_service(proc)
 
 
-@pytest.fixture(scope="session")
-def globalnode_tasks_handler_celery(globalnode_node_service):
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
-
+def create_node_tasks_handler_celery(node_config_filepath):
     with open(node_config_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]
@@ -647,48 +644,27 @@ def globalnode_tasks_handler_celery(globalnode_node_service):
         node_db_addr=db_address,
         tasks_timeout=tasks_timeout,
     )
+
+
+@pytest.fixture(scope="session")
+def globalnode_tasks_handler_celery(globalnode_node_service):
+    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
+    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+    yield tasks_handler
+    tasks_handler.close_app()
 
 
 @pytest.fixture(scope="session")
 def localnode1_tasks_handler_celery(localnode1_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
-    with open(node_config_filepath) as fp:
-        tmp = toml.load(fp)
-        node_id = tmp["identifier"]
-        queue_domain = tmp["rabbitmq"]["ip"]
-        queue_port = tmp["rabbitmq"]["port"]
-        db_domain = tmp["monetdb"]["ip"]
-        db_port = tmp["monetdb"]["port"]
-        tasks_timeout = tmp["celery"]["task_time_limit"]
-
-    queue_address = ":".join([str(queue_domain), str(queue_port)])
-    db_address = ":".join([str(db_domain), str(db_port)])
-
-    return NodeTasksHandlerCelery(
-        node_id=node_id,
-        node_queue_addr=queue_address,
-        node_db_addr=db_address,
-        tasks_timeout=tasks_timeout,
-    )
+    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+    yield tasks_handler
+    tasks_handler.close_app()
 
 
 @pytest.fixture(scope="function")
 def localnodetmp_tasks_handler_celery(localnodetmp_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
-    with open(node_config_filepath) as fp:
-        tmp = toml.load(fp)
-        node_id = tmp["identifier"]
-        queue_domain = tmp["rabbitmq"]["ip"]
-        queue_port = tmp["rabbitmq"]["port"]
-        db_domain = tmp["monetdb"]["ip"]
-        db_port = tmp["monetdb"]["port"]
-        tasks_timeout = tmp["celery"]["task_time_limit"]
-    queue_address = ":".join([str(queue_domain), str(queue_port)])
-    db_address = ":".join([str(db_domain), str(db_port)])
-
-    return NodeTasksHandlerCelery(
-        node_id=node_id,
-        node_queue_addr=queue_address,
-        node_db_addr=db_address,
-        tasks_timeout=tasks_timeout,
-    )
+    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+    yield tasks_handler
+    tasks_handler.close_app()

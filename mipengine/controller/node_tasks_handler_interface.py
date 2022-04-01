@@ -36,6 +36,10 @@ class IQueuedUDFAsyncResult(IAsyncResult, ABC):
 
 
 class INodeTasksHandler(ABC):
+    @abstractmethod
+    def close_app(self):
+        pass
+
     @property
     @abstractmethod
     def node_id(self) -> str:
