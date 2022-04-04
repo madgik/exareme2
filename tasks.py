@@ -112,8 +112,6 @@ def create_configs(c):
     for node in deployment_config["nodes"]:
         node_config = template_node_config.copy()
 
-        node_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
-
         node_config["identifier"] = node["id"]
         node_config["role"] = node["role"]
         node_config["log_level"] = deployment_config["log_level"]
@@ -139,7 +137,6 @@ def create_configs(c):
     controller_config["log_level"] = deployment_config["log_level"]
     controller_config["framework_log_level"] = deployment_config["framework_log_level"]
 
-    controller_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
     controller_config["node_landscape_aggregator_update_interval"] = deployment_config[
         "node_landscape_aggregator_update_interval"
     ]
@@ -153,6 +150,14 @@ def create_configs(c):
     )
     controller_config["localnodes"]["dns"] = ""
     controller_config["localnodes"]["port"] = ""
+
+    controller_config["cleanup"]["contextids_cleanup_folder"] = "/tmp"
+    controller_config["cleanup"]["nodes_cleanup_interval"] = deployment_config[
+        "cleanup"
+    ]["nodes_cleanup_interval"]
+    controller_config["cleanup"]["contextid_release_timelimit"] = deployment_config[
+        "cleanup"
+    ]["contextid_release_timelimit"]
 
     controller_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
     controller_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]

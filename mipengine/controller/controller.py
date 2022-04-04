@@ -1,8 +1,7 @@
 import asyncio
-import concurrent.futures
-import datetime
 import logging
 import random
+from datetime import datetime
 from typing import Dict
 from typing import List
 
@@ -15,10 +14,9 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
+from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.node_landscape_aggregator import node_landscape_aggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
-
-CONTROLLER_CLEANUP_REQUEST_ID = "CONTROLLER_CLEANUP"
 
 
 class _NodeInfoDTO(BaseModel):
@@ -34,12 +32,20 @@ class _NodeInfoDTO(BaseModel):
 class Controller:
     def __init__(self):
         self._node_landscape_aggregator = node_landscape_aggregator
-
-        self._clean_up_interval = controller_config.nodes_cleanup_interval
-
-        self._nodes_for_cleanup = {}
-        self._keep_cleaning_up = True
         self._controller_logger = ctrl_logger.get_background_service_logger()
+        self._cleaner = Cleaner(
+            node_landscape_aggregator=self._node_landscape_aggregator
+        )
+
+    def start_cleanup_loop(self):
+        self._controller_logger.info("starting cleanup_loop")
+        self._cleaner.keep_cleaning_up = True
+        task = asyncio.create_task(self._cleaner.cleanup_loop())
+        self._controller_logger.info("started clean_up loop")
+        return task
+
+    def stop_cleanup_loop(self):
+        self._cleaner.keep_cleaning_up = False
 
     async def exec_algorithm(
         self,
@@ -63,6 +69,8 @@ class Controller:
         for local_node_task_handler in node_tasks_handlers.local_nodes_tasks_handlers:
             algo_execution_node_ids.append(local_node_task_handler.node_id)
 
+        self._cleaner.add_contextid_for_cleanup(context_id, algo_execution_node_ids)
+
         datasets_per_local_node: Dict[str, List[str]] = {
             task_handler.node_id: self._node_landscape_aggregator.get_node_specific_datasets(
                 task_handler.node_id, data_model, datasets
@@ -81,10 +89,7 @@ class Controller:
                 logger=algo_execution_logger,
             )
         finally:
-            self._append_context_id_for_cleanup(
-                context_id=context_id,
-                node_ids=algo_execution_node_ids,
-            )
+            self._cleaner.release_contextid_for_cleanup(context_id=context_id)
 
         return algorithm_result
 
@@ -102,49 +107,6 @@ class Controller:
             for node_id in node_ids:
                 self._nodes_for_cleanup[context_id].append(node_id)
 
-    def start_cleanup_loop(self):
-        self._controller_logger.info("starting cleanup_loop")
-        self._keep_cleaning_up = True
-        task = asyncio.create_task(self.cleanup_loop())
-        self._controller_logger.info("started clean_up loop")
-        return task
-
-    def stop_cleanup_loop(self):
-        self._keep_cleaning_up = False
-
-    async def cleanup_loop(self):
-        while self._keep_cleaning_up:
-            cleaned_up_nodes = {}
-            for context_id, node_ids in self._nodes_for_cleanup.items():
-                cleaned_up_nodes[context_id] = []
-                for node_id in node_ids:
-                    try:
-                        node_info = self._get_node_info_by_id(node_id)
-                        task_handler = _create_node_task_handler(node_info)
-                        task_handler.clean_up(
-                            request_id=CONTROLLER_CLEANUP_REQUEST_ID,
-                            context_id=context_id,
-                        )
-
-                        self._controller_logger.debug(
-                            f"clean_up task succeeded for {node_id=} for {context_id=}"
-                        )
-                        cleaned_up_nodes[context_id].append(node_id)
-                    except Exception as exc:
-                        self._controller_logger.debug(
-                            f"clean_up task FAILED for {node_id=} "
-                            f"for {context_id=}. Will retry in a while... fail "
-                            f"reason: {type(exc)}:{exc}"
-                        )
-
-            for context_id, node_ids in cleaned_up_nodes.items():
-                for node_id in node_ids:
-                    self._nodes_for_cleanup[context_id].remove(node_id)
-                if not self._nodes_for_cleanup[context_id]:
-                    self._nodes_for_cleanup.pop(context_id)
-
-            await asyncio.sleep(self._clean_up_interval)
-
     async def _exec_algorithm_with_task_handlers(
         self,
         request_id: str,
@@ -155,22 +117,6 @@ class Controller:
         datasets_per_local_node: Dict[str, List[str]],
         logger: logging.Logger,
     ) -> str:
-
-        # TODO: AlgorithmExecutor is not yet implemented with asyncio. This is a
-        # temporary solution for not blocking the calling function
-        def run_algorithm_executor_in_threadpool(
-            algorithm_execution_dto: AlgorithmExecutionDTO,
-            all_nodes_tasks_handlers: NodesTasksHandlersDTO,
-        ):
-            algorithm_executor = AlgorithmExecutor(
-                algorithm_execution_dto, all_nodes_tasks_handlers
-            )
-
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(algorithm_executor.run)
-                result = future.result()
-                return result
-
         algorithm_execution_dto = AlgorithmExecutionDTO(
             request_id=request_id,
             context_id=context_id,
@@ -183,18 +129,14 @@ class Controller:
             algo_parameters=algorithm_request_dto.parameters,
             algo_flags=algorithm_request_dto.flags,
         )
+        algorithm_executor = AlgorithmExecutor(algorithm_execution_dto, tasks_handlers)
 
         loop = asyncio.get_running_loop()
 
         logger.info(f"starts executing->  {algorithm_name=}")
-
-        algorithm_result = await loop.run_in_executor(
-            None,
-            run_algorithm_executor_in_threadpool,
-            algorithm_execution_dto,
-            tasks_handlers,
-        )
-
+        # TODO: AlgorithmExecutor is not yet implemented with asyncio. This is a
+        # temporary solution for not blocking the calling function
+        algorithm_result = await loop.run_in_executor(None, algorithm_executor.run)
         logger.info(f"finished execution->  {algorithm_name=}")
         logger.info(f"algorithm result-> {algorithm_result.json()=}")
 
@@ -314,5 +256,5 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery
 
 
 def get_a_uniqueid() -> str:
-    uid = datetime.datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
+    uid = datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
     return f"{uid}"

@@ -6,6 +6,11 @@ deployment_type="$DEPLOYMENT_TYPE"
 node_landscape_aggregator_update_interval="$NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL"
 nodes_cleanup_interval=2
 
+[cleanup]
+contextids_cleanup_folder="$CLEANUP_FOLDER"
+nodes_cleanup_interval="$NODES_CLEANUP_INTERVAL"
+contextid_release_timelimit="$NODES_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT"
+
 [localnodes]
 config_file="$LOCALNODES_CONFIG_FILE"
 dns="$LOCALNODES_DNS"

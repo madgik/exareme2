@@ -47,12 +47,14 @@
    monetdb_image = "madgik/mipenginedb:latest"
    rabbitmq_image = "madgik/mipengine_rabbitmq:latest"
 
-   cdes_metadata_path = "./tests/demo_data"
-
    algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 
    node_landscape_aggregator_update_interval = 30
    celery_tasks_timeout = 10
+
+   [cleanup]
+   nodes_cleanup_interval=10
+   contextid_release_timelimit=3600 #an hour
 
    [smpc]
    enabled=false

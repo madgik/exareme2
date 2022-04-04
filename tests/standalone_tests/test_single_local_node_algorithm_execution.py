@@ -17,7 +17,7 @@ from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
 
 
 @pytest.fixture(scope="function")
-def mock_data_model_registry():
+def mock_node_landscape_aggregator():
     node_landscape_aggregator = NodeLandscapeAggregator()
     data_models = {
         "dementia:0.1": CommonDataElements(
@@ -210,7 +210,7 @@ def get_parametrization_list_success_cases():
     get_parametrization_list_success_cases(),
 )
 def test_single_local_node_algorithm_execution(
-    mock_data_model_registry,
+    mock_node_landscape_aggregator,
     mock_ctrl_config,
     mock_algorithms_modules,
     algo_execution_dto,

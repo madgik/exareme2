@@ -30,7 +30,6 @@ def controller_config_mock():
             "framework_log_level": "INFO",
             "deployment_type": "LOCAL",
             "node_landscape_aggregator_update_interval": 2,  # 5,
-            "nodes_cleanup_interval": 2,
             "localnodes": {
                 "config_file": "./tests/standalone_tests/testing_env_configs/test_node_landscape_aggregator.json",
                 "dns": "",
@@ -81,14 +80,6 @@ def patch_node_landscape_aggregator(controller_config_mock):
 
 
 @pytest.fixture(autouse=True, scope="session")
-def patch_celery_app(controller_config_mock):
-    with patch(
-        "mipengine.controller.celery_app.controller_config", controller_config_mock
-    ):
-        yield
-
-
-@pytest.fixture(autouse=True, scope="session")
 def patch_algorithm_executor(controller_config_mock):
     with patch(
         "mipengine.controller.algorithm_executor.ctrl_config", controller_config_mock
@@ -97,9 +88,17 @@ def patch_algorithm_executor(controller_config_mock):
 
 
 @pytest.fixture(autouse=True, scope="session")
-def patch_node_address(controller_config_mock):
+def patch_nodes_addresses(controller_config_mock):
     with patch(
-        "mipengine.controller.node_address.controller_config", controller_config_mock
+        "mipengine.controller.nodes_addresses.controller_config", controller_config_mock
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True, scope="session")
+def patch_celery_app(controller_config_mock):
+    with patch(
+        "mipengine.controller.celery_app.controller_config", controller_config_mock
     ):
         yield
 
@@ -116,9 +115,9 @@ async def test_update_loop_node_service_down(
     localnodetmp_node_id = get_localnodetmp_node_id()
     controller = Controller()
 
-    # wait until node registry gets the nodes info
     controller.start_node_landscape_aggregator()
 
+    # wait until node registry gets the nodes info
     for _ in range(MAX_RETRIES):
         if (
             localnodetmp_node_id in controller.get_all_local_nodes()
@@ -194,7 +193,6 @@ async def test_update_loop_rabbitmq_down(
     localnodetmp_node_id = get_localnodetmp_node_id()
     controller = Controller()
 
-    # starting the node landscape aggregator
     controller.start_node_landscape_aggregator()
 
     # wait until node registry and data model registry is up-to-date
@@ -236,6 +234,7 @@ async def test_update_loop_rabbitmq_down(
 
     # wait until node registry contains tmplocalnode
     for _ in range(MAX_RETRIES):
+        print(controller.get_all_local_nodes())
         if (
             localnodetmp_node_id in controller.get_all_local_nodes()
             and controller.get_data_models()
@@ -273,7 +272,6 @@ async def test_update_loop_data_models_removed(
     localnodetmp_node_id = get_localnodetmp_node_id()
     controller = Controller()
 
-    # wait until node registry gets the nodes info
     controller.start_node_landscape_aggregator()
 
     # wait until node registry and data model registry is up-to-date

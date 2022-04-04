@@ -20,7 +20,7 @@ def _get_nodes_addresses_from_dns() -> List[str]:
     return localnodes_addresses
 
 
-def _get_nodes_addresses() -> List[str]:
+def get_nodes_addresses() -> List[str]:
     if controller_config.deployment_type == DeploymentType.LOCAL:
         return _get_nodes_addresses_from_file()
     elif controller_config.deployment_type == DeploymentType.KUBERNETES:

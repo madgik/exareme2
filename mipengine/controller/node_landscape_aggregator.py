@@ -9,19 +9,19 @@ from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.data_model_registry import DataModelRegistry
-from mipengine.controller.node_address import _get_nodes_addresses
 from mipengine.controller.node_registry import NodeRegistry
+from mipengine.controller.nodes_addresses import get_nodes_addresses
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 
-NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
 # so the module can be easily unit tested
 
 logger = ctrl_logger.get_background_service_logger()
 
+NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
 GET_NODE_INFO_SIGNATURE = "mipengine.node.tasks.common.get_node_info"
 GET_NODE_DATASETS_PER_DATA_MODEL_SIGNATURE = (
     "mipengine.node.tasks.common.get_node_datasets_per_data_model"
@@ -30,7 +30,6 @@ GET_DATA_MODEL_CDES_SIGNATURE = "mipengine.node.tasks.common.get_data_model_cdes
 NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL = (
     controller_config.node_landscape_aggregator_update_interval
 )
-
 CELERY_TASKS_TIMEOUT = controller_config.rabbitmq.celery_tasks_timeout
 
 
@@ -89,7 +88,7 @@ async def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataEl
 
 
 def _task_to_async(task, connection):
-    """
+    """ex
     Converts a Celery task to an async function
     Celery doesn't currently support asyncio "await" while "getting" a result
     Copied from https://github.com/celery/celery/issues/6603
@@ -151,7 +150,7 @@ class NodeLandscapeAggregator:
         Once all the information is aggregated and validated the NLA will provide the information to the Node Registry and to the Data Model Registry.
         """
         while self.keep_updating:
-            nodes_addresses = _get_nodes_addresses()
+            nodes_addresses = get_nodes_addresses()
             nodes_info = await _get_nodes_info(nodes_addresses)
             local_nodes = [
                 node for node in nodes_info if node.role == NodeRole.LOCALNODE
