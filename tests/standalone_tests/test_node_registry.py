@@ -58,10 +58,9 @@ def mocked_node_registry():
     return node_registry
 
 
-def test_get_all_global_nodes(mocked_node_registry):
-    global_nodes = mocked_node_registry.get_all_global_nodes()
-    assert len(global_nodes) == 1
-    assert global_nodes["globalnode"].role == NodeRole.GLOBALNODE
+def test_get_global_node(mocked_node_registry):
+    global_node = mocked_node_registry.get_global_node()
+    assert global_node.role == NodeRole.GLOBALNODE
 
 
 def test_get_all_local_nodes(mocked_node_registry):

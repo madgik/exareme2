@@ -16,7 +16,7 @@ class NodeRegistry:
     def nodes(self, values):
         self._nodes = values
 
-    def get_all_global_nodes(self) -> Dict[str, NodeInfo]:
+    def _get_all_global_nodes(self) -> Dict[str, NodeInfo]:
         return {
             node_id: node_info
             for node_id, node_info in self.nodes.items()
@@ -24,7 +24,7 @@ class NodeRegistry:
         }
 
     def get_global_node(self) -> NodeInfo:
-        return self.nodes["globalnode"]
+        return list(self._get_all_global_nodes().values())[0]
 
     def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
         return {

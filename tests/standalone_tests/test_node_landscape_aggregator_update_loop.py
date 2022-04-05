@@ -8,7 +8,6 @@ import toml
 
 from mipengine import AttrDict
 from mipengine.controller.controller import Controller
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
 from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_NAME
