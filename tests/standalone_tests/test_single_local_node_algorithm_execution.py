@@ -7,7 +7,6 @@ from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
-from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.node_tasks_DTOs import CommonDataElement
@@ -65,7 +64,7 @@ def mock_node_landscape_aggregator():
             }
         ),
     }
-    node_landscape_aggregator.set_data_models(data_models)
+    node_landscape_aggregator._node_registry.nodes = data_models
     with patch(
         "mipengine.controller.algorithm_executor.node_landscape_aggregator",
         node_landscape_aggregator,

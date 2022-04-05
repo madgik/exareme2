@@ -114,7 +114,7 @@ def mock_cdes():
         ),
     }
 
-    node_landscape_aggregator.set_data_models(data_models)
+    node_landscape_aggregator._node_registry.nodes = data_models
 
     with patch(
         "mipengine.controller.api.validator.node_landscape_aggregator",
