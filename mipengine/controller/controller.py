@@ -17,6 +17,8 @@ from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
+from mipengine.node_info_DTOs import NodeInfo
+from mipengine.node_tasks_DTOs import CommonDataElements
 
 
 class _NodeInfoDTO(BaseModel):
@@ -149,24 +151,24 @@ class Controller:
     def stop_node_landscape_aggregator(self):
         self._node_landscape_aggregator.stop()
 
-    def get_datasets_location(self):
+    def get_datasets_location(self) -> Dict[str, Dict[str, List[str]]]:
         return self._node_landscape_aggregator.get_datasets_location()
 
-    def get_data_models(self):
+    def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
         return self._node_landscape_aggregator.get_cdes_per_data_model()
 
-    def get_all_available_data_models(self):
+    def get_all_available_data_models(self) -> List[str]:
         return list(self._node_landscape_aggregator.get_cdes_per_data_model().keys())
 
-    def get_all_available_datasets_per_data_model(self):
+    def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         return (
             self._node_landscape_aggregator.get_all_available_datasets_per_data_model()
         )
 
-    def get_all_local_nodes(self):
+    def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
         return self._node_landscape_aggregator.get_all_local_nodes()
 
-    def get_global_node(self):
+    def get_global_node(self) -> NodeInfo:
         return self._node_landscape_aggregator.get_global_node()
 
     def _get_nodes_tasks_handlers(
