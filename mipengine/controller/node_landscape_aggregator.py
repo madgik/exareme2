@@ -162,7 +162,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             compatible_data_models = _get_compatible_data_models(
                 data_model_cdes_across_nodes
             )
-            data_models = _update_data_model_dataset_enumerations(
+            data_models = get_updated_data_model_with_dataset_enumerations(
                 compatible_data_models, datasets_labels
             )
             datasets_locations = {
@@ -170,9 +170,11 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 for common_data_model in data_models
             }
 
-            self.set_nodes({node_info.id: node_info for node_info in nodes_info})
-            self.set_data_models(data_models)
-            self.set_datasets_location(datasets_locations)
+            self._node_registry._nodes = {
+                node_info.id: node_info for node_info in nodes_info
+            }
+            self._data_model_registry._data_models = data_models
+            self._data_model_registry._datasets_location = datasets_locations
             logger.debug(f"Nodes:{[node for node in self._node_registry.nodes]}")
             # ..to print full nodes info
             # from devtools import debug
@@ -191,12 +193,6 @@ class NodeLandscapeAggregator(metaclass=Singleton):
     def get_nodes(self):
         return self._node_registry.nodes
 
-    def set_nodes(self, nodes: Dict[str, NodeInfo]):
-        self._node_registry.nodes = nodes
-
-    def get_all_global_nodes(self) -> Dict[str, NodeInfo]:
-        return self._node_registry.get_all_global_nodes()
-
     def get_global_node(self) -> NodeInfo:
         return self._node_registry.get_global_node()
 
@@ -214,12 +210,6 @@ class NodeLandscapeAggregator(metaclass=Singleton):
 
     def get_datasets_location(self):
         return self._data_model_registry.datasets_location
-
-    def set_data_models(self, data_models: Dict[str, CommonDataElements]):
-        self._data_model_registry.data_models = data_models
-
-    def set_datasets_location(self, datasets_location: Dict[str, Dict[str, List[str]]]):
-        self._data_model_registry.datasets_location = datasets_location
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         return self._data_model_registry.get_all_available_datasets_per_data_model()
@@ -325,7 +315,7 @@ def _get_compatible_data_models(
     return data_models
 
 
-def _update_data_model_dataset_enumerations(
+def get_updated_data_model_with_dataset_enumerations(
     data_models: Dict[str, CommonDataElements],
     datasets_labels: Dict[str, Dict[str, str]],
 ) -> Dict[str, CommonDataElements]:
