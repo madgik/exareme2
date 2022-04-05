@@ -27,7 +27,7 @@ from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 WAIT_CLEANUP_TIME_LIMIT = 40
 WAIT_BEFORE_BRING_TMPNODE_DOWN = 20
 WAIT_BACKGROUND_TASKS_TO_FINISH = 30
-MAX_RETRIES = 30
+NLA_WAIT_TIME_LIMIT = 60
 
 
 @pytest.fixture(scope="session")
@@ -155,14 +155,13 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     # node landscape aggregator has to run on the background because it is used by the Cleaner
     controller.start_node_landscape_aggregator()
     # wait until node registry gets the nodes info
-    for _ in range(MAX_RETRIES):
-        if controller._node_landscape_aggregator._node_registry._nodes:
-            break
+    start = time.time()
+    while not controller._node_landscape_aggregator._node_registry._nodes:
+        if time.time() - start > NLA_WAIT_TIME_LIMIT:
+            pytest.fail(
+                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+            )
         await asyncio.sleep(2)
-    else:
-        pytest.fail(
-            "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
-        )
 
     # Start the cleanup loop
     controller.start_cleanup_loop()
@@ -284,14 +283,13 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
     # node landscape aggregator has to run on the background because it is used by the Cleaner
     controller.start_node_landscape_aggregator()
     # wait until node registry gets the nodes info
-    for _ in range(MAX_RETRIES):
-        if controller._node_landscape_aggregator._node_registry._nodes:
-            break
+    start = time.time()
+    while not controller._node_landscape_aggregator._node_registry._nodes:
+        if time.time() - start > NLA_WAIT_TIME_LIMIT:
+            pytest.fail(
+                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+            )
         await asyncio.sleep(2)
-    else:
-        pytest.fail(
-            "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
-        )
 
     # Start the cleanup loop
     controller.start_cleanup_loop()
@@ -409,14 +407,13 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # node landscape aggregator has to run on the background because it is used by the Cleaner
     controller.start_node_landscape_aggregator()
     # wait until node registry gets the nodes info
-    for _ in range(MAX_RETRIES):
-        if controller._node_landscape_aggregator._node_registry._nodes:
-            break
+    start = time.time()
+    while not controller._node_landscape_aggregator._node_registry._nodes:
+        if time.time() - start > NLA_WAIT_TIME_LIMIT:
+            pytest.fail(
+                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+            )
         await asyncio.sleep(2)
-    else:
-        pytest.fail(
-            "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
-        )
 
     # Start the cleanup loop
     controller.start_cleanup_loop()
@@ -556,14 +553,13 @@ async def test_cleanup_node_service_down_algorithm_execution(
     # node landscape aggregator has to run on the background because it is used by the Cleaner
     controller.start_node_landscape_aggregator()
     # wait until node registry gets the nodes info
-    for _ in range(MAX_RETRIES):
-        if controller._node_landscape_aggregator._node_registry._nodes:
-            break
+    start = time.time()
+    while not controller._node_landscape_aggregator._node_registry._nodes:
+        if time.time() - start > NLA_WAIT_TIME_LIMIT:
+            pytest.fail(
+                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+            )
         await asyncio.sleep(2)
-    else:
-        pytest.fail(
-            "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
-        )
 
     # Start the cleanup loop
     controller.start_cleanup_loop()
@@ -698,14 +694,13 @@ async def test_cleanup_controller_restart(
     # node landscape aggregator has to run on the background because it is used by the Cleaner
     controller.start_node_landscape_aggregator()
     # wait until node registry gets the nodes info
-    for _ in range(MAX_RETRIES):
-        if controller._node_landscape_aggregator._node_registry._nodes:
-            break
+    start = time.time()
+    while not controller._node_landscape_aggregator._node_registry._nodes:
+        if time.time() - start > NLA_WAIT_TIME_LIMIT:
+            pytest.fail(
+                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+            )
         await asyncio.sleep(2)
-    else:
-        pytest.fail(
-            "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
-        )
 
     # Start the cleanup loop
     controller.start_cleanup_loop()
