@@ -43,7 +43,7 @@ def cli():
 
 @cli.command()
 @click.option("--ip", default="127.0.0.1", help="The ip of the database.")
-@click.option("--port", default=50000, help="The port of the database.")
+@click.option("--port", required=True, type=int, help="The port of the database.")
 def show_node_db_actions(ip, port):
     with db_cursor(ip, port) as cur:
         cur.execute(f"select * from {DB_METADATA_SCHEMA}.{ACTIONS_TABLE};")
@@ -52,19 +52,19 @@ def show_node_db_actions(ip, port):
             action = json.loads(action_str)
             if action["action"] == ADD_DATA_MODEL_ACTION_CODE:
                 print(
-                    f"Data model '{action['label']}' with code '{action['code']}:{action['version']}' ADDED from user '{action['user']}' at '{action['date']}'."
+                    f"Data model '{action['data_model_label']}' with code '{action['data_model_code']}:{action['data_model_version']}' ADDED from user '{action['user']}' at '{action['date']}'."
                 )
             elif action["action"] == DELETE_DATA_MODEL_ACTION_CODE:
                 print(
-                    f"Data model '{action['code']}:{action['version']}' DELETED from user '{action['user']}' at '{action['date']}'."
+                    f"Data model '{action['data_model_label']}' with code '{action['data_model_code']}:{action['data_model_version']}'  DELETED from user '{action['user']}' at '{action['date']}'."
                 )
             elif action["action"] == ADD_DATASET_ACTION_CODE:
                 print(
-                    f"Dataset '{action['label']}' with code '{action['code']}' ADDED from user '{action['user']}' at '{action['date']}'."
+                    f"Dataset '{action['dataset_label']}' with code '{action['dataset_code']}' of data model '{action['data_model_code']}:{action['data_model_version']}' ADDED from user '{action['user']}' at '{action['date']}'."
                 )
             elif action["action"] == DELETE_DATASET_ACTION_CODE:
                 print(
-                    f"Dataset '{action['dataset_id']}' DELETED from user '{action['user']}' at '{action['date']}'."
+                    f"Dataset '{action['dataset_label']}' with code '{action['dataset_code']}' of data model '{action['data_model_code']}:{action['data_model_version']}' DELETED from user '{action['user']}' at '{action['date']}'."
                 )
 
 
