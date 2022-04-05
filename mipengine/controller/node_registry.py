@@ -2,10 +2,9 @@ from typing import Dict
 
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
-from mipengine.singleton import Singleton
 
 
-class NodeRegistry(metaclass=Singleton):
+class NodeRegistry:
     def __init__(self):
         self.nodes: Dict[str, NodeInfo] = {}
 

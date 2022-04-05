@@ -3,14 +3,13 @@ from typing import Dict
 from typing import List
 
 from mipengine.node_tasks_DTOs import CommonDataElements
-from mipengine.singleton import Singleton
 
 
 def _have_common_elements(a: List[Any], b: List[Any]):
     return bool(set(a) & set(b))
 
 
-class DataModelRegistry(metaclass=Singleton):
+class DataModelRegistry:
     def __init__(self):
         self.data_models: Dict[str, CommonDataElements] = {}
         self.datasets_location: Dict[str, Dict[str, List[str]]] = {}

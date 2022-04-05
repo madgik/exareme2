@@ -146,7 +146,9 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnode2_tasks_handler,
+    reset_node_landscape_aggregator,
 ):
+
     controller = Controller()
 
     # start node landscape aggregator
@@ -273,6 +275,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnode2_tasks_handler,
+    reset_node_landscape_aggregator,
 ):
 
     controller = Controller()
@@ -398,6 +401,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
     localnodetmp_node_service,
+    reset_node_landscape_aggregator,
 ):
     controller = Controller()
 
@@ -544,6 +548,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
     localnodetmp_node_service,
+    reset_node_landscape_aggregator,
 ):
     controller = Controller()
 
@@ -685,6 +690,7 @@ async def test_cleanup_controller_restart(
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
+    reset_node_landscape_aggregator,
 ):
     controller = Controller()
 

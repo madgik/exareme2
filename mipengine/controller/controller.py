@@ -15,7 +15,7 @@ from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.cleaner import Cleaner
-from mipengine.controller.node_landscape_aggregator import node_landscape_aggregator
+from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 
 
@@ -31,7 +31,7 @@ class _NodeInfoDTO(BaseModel):
 
 class Controller:
     def __init__(self):
-        self._node_landscape_aggregator = node_landscape_aggregator
+        self._node_landscape_aggregator = NodeLandscapeAggregator()
         self._controller_logger = ctrl_logger.get_background_service_logger()
         self._cleaner = Cleaner(
             node_landscape_aggregator=self._node_landscape_aggregator
@@ -93,20 +93,6 @@ class Controller:
 
         return algorithm_result
 
-    def _append_context_id_for_cleanup(self, context_id: str, node_ids: List[str]):
-        if context_id not in self._nodes_for_cleanup.keys():
-            self._nodes_for_cleanup[context_id] = node_ids
-        else:
-            # getting in here would mean that an algorithm with the same context_id has
-            # finished and is currently in the cleanup process, this indicates context_id
-            # collision.
-            self._controller_logger.warning(
-                f"An algorithm with the same {context_id=} was previously executed and"
-                f"it is still in the cleanup process. This should not happen..."
-            )
-            for node_id in node_ids:
-                self._nodes_for_cleanup[context_id].append(node_id)
-
     async def _exec_algorithm_with_task_handlers(
         self,
         request_id: str,
@@ -148,6 +134,7 @@ class Controller:
         available_datasets_per_data_model = (
             self.get_all_available_datasets_per_data_model()
         )
+
         validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
@@ -163,13 +150,13 @@ class Controller:
         self._node_landscape_aggregator.stop()
 
     def get_datasets_location(self):
-        return self._node_landscape_aggregator.datasets_location
+        return self._node_landscape_aggregator.get_datasets_location()
 
     def get_data_models(self):
-        return self._node_landscape_aggregator.get_data_models()
+        return self._node_landscape_aggregator.get_cdes_per_data_model()
 
     def get_all_available_data_models(self):
-        return list(self._node_landscape_aggregator.data_models.keys())
+        return list(self._node_landscape_aggregator.get_cdes_per_data_model().keys())
 
     def get_all_available_datasets_per_data_model(self):
         return (

@@ -11,6 +11,9 @@ import pytest
 import sqlalchemy as sql
 import toml
 
+from mipengine.controller.data_model_registry import DataModelRegistry
+from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.node_registry import NodeRegistry
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.udfgen import udfio
 
@@ -729,3 +732,12 @@ def create_localnode_tasks_handler():
         node_db_addr=db_address,
         tasks_timeout=tasks_timeout,
     )
+
+
+@pytest.fixture(scope="function")
+def reset_node_landscape_aggregator():
+    nla = NodeLandscapeAggregator()
+    nla.keep_updating = False
+    nla._node_registry = NodeRegistry()
+    nla._data_model_registry = DataModelRegistry()
+    yield

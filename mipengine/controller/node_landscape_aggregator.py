@@ -18,6 +18,7 @@ from mipengine.node_tasks_DTOs import CommonDataElements
 
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
 # so the module can be easily unit tested
+from mipengine.singleton import Singleton
 
 logger = ctrl_logger.get_background_service_logger()
 
@@ -125,7 +126,7 @@ def _get_node_socket_addr(node_info: NodeInfo):
     return f"{node_info.ip}:{node_info.port}"
 
 
-class NodeLandscapeAggregator:
+class NodeLandscapeAggregator(metaclass=Singleton):
     def __init__(self):
         self.keep_updating = True
         self._node_registry = NodeRegistry()
@@ -208,7 +209,7 @@ class NodeLandscapeAggregator:
     def get_cdes(self, data_model: str):
         return self._data_model_registry.get_cdes(data_model)
 
-    def get_data_models(self):
+    def get_cdes_per_data_model(self):
         return self._data_model_registry.data_models
 
     def get_datasets_location(self):
