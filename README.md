@@ -52,6 +52,9 @@
    node_landscape_aggregator_update_interval = 30
    celery_tasks_timeout = 10
 
+   [privacy]
+   minimum_row_count = 10
+
    [cleanup]
    nodes_cleanup_interval=10
    contextid_release_timelimit=3600 #an hour

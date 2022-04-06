@@ -1,0 +1,35 @@
+ip = "172.17.0.1"
+log_level = "INFO"
+framework_log_level ="INFO"
+monetdb_image = "madgik/mipenginedb:testing"
+rabbitmq_image = "madgik/mipengine_rabbitmq:testing"
+
+cdes_metadata_path = "./tests/test_data"
+
+algorithm_folders = "./mipengine/algorithms"
+
+node_registry_update_interval = 30
+celery_tasks_timeout = 60
+
+[privacy]
+minimum_row_count = 0
+
+[cleanup]
+nodes_cleanup_interval=60
+contextid_release_timelimit=3600 #an hour
+
+[smpc]
+enabled=false
+optional=false
+
+[[nodes]]
+id = "globalnode"
+role="GLOBALNODE"
+monetdb_port=50000
+rabbitmq_port=5670
+
+[[nodes]]
+id = "localnode1"
+role="LOCALNODE"
+monetdb_port=50001
+rabbitmq_port=5671

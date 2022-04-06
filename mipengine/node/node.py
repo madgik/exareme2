@@ -15,7 +15,7 @@ node_logger = init_logger("NODE INITIALIZATION")
 node_logger.info("Creating the celery app...")
 celery = Celery(
     "mipengine.node",
-    broker=f"amqp://{rabbitmq_credentials}@{rabbitmq_socket_addr}/{vhost}",
+    broker=f"pyamqp://{rabbitmq_credentials}@{rabbitmq_socket_addr}/{vhost}",
     backend="rpc://",
     include=[
         "mipengine.node.tasks.tables",
@@ -46,8 +46,9 @@ def setup_celery_logging(*args, **kwargs):
 
 
 celery.conf.worker_concurrency = node_config.celery.worker_concurrency
-celery.conf.task_soft_time_limit = node_config.celery.task_soft_time_limit
-celery.conf.task_time_limit = node_config.celery.task_time_limit
+# TODO https://team-1617704806227.atlassian.net/browse/MIP-473
+# celery.conf.task_soft_time_limit = node_config.celery.task_soft_time_limit
+# celery.conf.task_time_limit = node_config.celery.task_time_limit
 
 """
 After the node.py is imported the celery process is launched

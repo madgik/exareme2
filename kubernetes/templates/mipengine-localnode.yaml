@@ -4,6 +4,7 @@ metadata:
   name: mipengine-localnode-deployment
   labels:
     app: mipengine-node
+    nodeType: localnode
 spec:
   replicas: {{ .Values.localnodes }}
   selector:
@@ -13,6 +14,7 @@ spec:
     metadata:
       labels:
         app: mipengine-node
+        nodeType: localnode
     spec:
       nodeSelector:
         nodeType: worker

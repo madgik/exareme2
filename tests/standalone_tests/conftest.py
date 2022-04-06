@@ -23,7 +23,7 @@ TESTING_MONETDB_CONT_IMAGE = "madgik/mipenginedb:latest"
 
 this_mod_path = os.path.dirname(os.path.abspath(__file__))
 TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
-TEST_DATA_FOLDER = Path(this_mod_path).parent / "demo_data"
+TEST_DATA_FOLDER = Path(this_mod_path).parent / "test_data"
 
 OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
@@ -193,7 +193,7 @@ def _init_database_monetdb_container(db_ip, db_port):
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     if res.returncode == 0:
-        print(f"\nDatabase ({db_ip}:{db_port}) already initialized, continuing... ")
+        print(f"\nDatabase ({db_ip}:{db_port}) already initialized, continuing.")
         return
 
     print(f"\nInitializing database ({db_ip}:{db_port})")
@@ -211,7 +211,7 @@ def _load_data_monetdb_container(db_ip, db_port):
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     if "There are no datasets" not in str(res.stdout):
-        print(f"\nDatabase ({db_ip}:{db_port}) already loaded, continuing... ")
+        print(f"\nDatabase ({db_ip}:{db_port}) already loaded, continuing.")
         return
 
     print(f"\nLoading data to database ({db_ip}:{db_port})")
@@ -543,7 +543,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
                 f"The node service '{node_id}' didn't manage to start in the designated time. Logs: \n{logfile.read()}"
             )
 
-    print(f"Created node service with id '{node_id}' and process id '{proc.pid}'...")
+    print(f"Created node service with id '{node_id}' and process id '{proc.pid}'.")
     return proc
 
 
@@ -639,10 +639,7 @@ def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     kill_node_service(proc)
 
 
-@pytest.fixture(scope="function")
-def globalnode_tasks_handler(globalnode_node_service):
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
-
+def create_node_tasks_handler_celery(node_config_filepath):
     with open(node_config_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]
@@ -660,78 +657,38 @@ def globalnode_tasks_handler(globalnode_node_service):
         node_db_addr=db_address,
         tasks_timeout=tasks_timeout,
     )
+
+
+@pytest.fixture(scope="function")
+def globalnode_tasks_handler(globalnode_node_service):
+    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
+    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+    yield tasks_handler
+    tasks_handler.close()
 
 
 @pytest.fixture(scope="function")
 def localnode1_tasks_handler(localnode1_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
-    with open(node_config_filepath) as fp:
-        tmp = toml.load(fp)
-        node_id = tmp["identifier"]
-        queue_domain = tmp["rabbitmq"]["ip"]
-        queue_port = tmp["rabbitmq"]["port"]
-        db_domain = tmp["monetdb"]["ip"]
-        db_port = tmp["monetdb"]["port"]
-        tasks_timeout = tmp["celery"]["task_time_limit"]
-
-    queue_address = ":".join([str(queue_domain), str(queue_port)])
-    db_address = ":".join([str(db_domain), str(db_port)])
-
-    return NodeTasksHandlerCelery(
-        node_id=node_id,
-        node_queue_addr=queue_address,
-        node_db_addr=db_address,
-        tasks_timeout=tasks_timeout,
-    )
+    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+    yield tasks_handler
+    tasks_handler.close()
 
 
 @pytest.fixture(scope="function")
 def localnode2_tasks_handler(localnode2_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE2_CONFIG_FILE)
-    with open(node_config_filepath) as fp:
-        tmp = toml.load(fp)
-        node_id = tmp["identifier"]
-        queue_domain = tmp["rabbitmq"]["ip"]
-        queue_port = tmp["rabbitmq"]["port"]
-        db_domain = tmp["monetdb"]["ip"]
-        db_port = tmp["monetdb"]["port"]
-        tasks_timeout = tmp["celery"]["task_time_limit"]
-
-    queue_address = ":".join([str(queue_domain), str(queue_port)])
-    db_address = ":".join([str(db_domain), str(db_port)])
-
-    return NodeTasksHandlerCelery(
-        node_id=node_id,
-        node_queue_addr=queue_address,
-        node_db_addr=db_address,
-        tasks_timeout=tasks_timeout,
-    )
+    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+    yield tasks_handler
+    tasks_handler.close()
 
 
 @pytest.fixture(scope="function")
 def localnodetmp_tasks_handler(localnodetmp_node_service):
-    return create_localnode_tasks_handler()
-
-
-def create_localnode_tasks_handler():
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
-    with open(node_config_filepath) as fp:
-        tmp = toml.load(fp)
-        node_id = tmp["identifier"]
-        queue_domain = tmp["rabbitmq"]["ip"]
-        queue_port = tmp["rabbitmq"]["port"]
-        db_domain = tmp["monetdb"]["ip"]
-        db_port = tmp["monetdb"]["port"]
-        tasks_timeout = tmp["celery"]["task_time_limit"]
-    queue_address = ":".join([str(queue_domain), str(queue_port)])
-    db_address = ":".join([str(db_domain), str(db_port)])
-
-    return NodeTasksHandlerCelery(
-        node_id=node_id,
-        node_queue_addr=queue_address,
-        node_db_addr=db_address,
-        tasks_timeout=tasks_timeout,
-    )
+    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+    yield tasks_handler
+    tasks_handler.close()
 
 
 @pytest.fixture(scope="function")

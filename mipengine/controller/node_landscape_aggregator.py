@@ -243,10 +243,19 @@ async def _get_datasets_locations(nodes: List[NodeInfo]) -> Dict[str, Dict[str, 
             node_socket_addr
         )
         for data_model, datasets in datasets_per_data_model.items():
-            if data_model not in datasets_locations:
-                datasets_locations[data_model] = {dataset: [] for dataset in datasets}
+            current_datasets = (
+                datasets_locations[data_model]
+                if data_model in datasets_locations
+                else {}
+            )
+
             for dataset in datasets:
-                datasets_locations[data_model][dataset].append(node_info.id)
+                if dataset in current_datasets:
+                    current_datasets[dataset].append(node_info.id)
+                else:
+                    current_datasets[dataset] = [node_info.id]
+            datasets_locations[data_model] = current_datasets
+
     return datasets_locations
 
 

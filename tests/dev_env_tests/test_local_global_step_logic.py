@@ -11,7 +11,7 @@ def get_parametrization_list_success_cases():
     request_dict = {
         "inputdata": {
             "data_model": "dementia:0.1",
-            "datasets": ["edsd"],
+            "datasets": ["edsd0"],
             "x": [
                 "lefthippocampus",
             ],

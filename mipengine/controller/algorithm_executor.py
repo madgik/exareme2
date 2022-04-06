@@ -208,10 +208,9 @@ class AlgorithmExecutor:
             TimeoutError,
             ClosedBrokerConnectionError,
         ) as err:
-            self._logger.error(f"{err}")
+            self._logger.error(f"ErrorType: '{type(err)}' and message: '{err}'")
             raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
-
             self._logger.error(f"{traceback.format_exc()}")
             raise exc
 

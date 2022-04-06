@@ -93,6 +93,10 @@ class Controller:
         finally:
             self._cleaner.release_contextid_for_cleanup(context_id=context_id)
 
+            node_tasks_handlers.global_node_tasks_handler.close()
+            for handler in node_tasks_handlers.local_nodes_tasks_handlers:
+                handler.close()
+
         return algorithm_result
 
     async def _exec_algorithm_with_task_handlers(
@@ -193,7 +197,7 @@ class Controller:
             data_model=data_model, datasets=datasets
         )
         local_nodes_tasks_handlers = [
-            _create_node_task_handler(task_handler) for task_handler in local_nodes_info
+            _create_node_task_handler(node_info) for node_info in local_nodes_info
         ]
 
         return NodesTasksHandlersDTO(

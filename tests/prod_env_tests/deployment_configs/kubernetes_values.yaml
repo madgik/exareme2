@@ -1,0 +1,20 @@
+localnodes: 3
+
+mipengine_images:
+  repository: madgik
+  version: latest
+
+log_level: DEBUG
+framework_log_level: INFO
+
+monetdb_storage: /opt/monetdb
+
+controller:
+  node_landscape_aggregator_update_interval: 20
+  celery_tasks_timeout: 10
+  nodes_cleanup_interval: 60
+  cleanup_file_folder: /opt/cleanup
+
+smpc:
+  enabled: false
+  optional: false
