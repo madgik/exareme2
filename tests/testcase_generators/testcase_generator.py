@@ -21,8 +21,8 @@ MIN_TABLE_SIZE = 1
 TABLE_SIZE_MODE = 10
 
 # XXX Change according to your local setup
-DB_IP = "172.17.0.1"
-DB_PORT = 50001
+DB_IP = "127.0.0.1"
+DB_PORT = 50002
 DB_USER = "monetdb"
 DB_PASS = "monetdb"
 DB_FARM = "db"
@@ -39,13 +39,20 @@ class DB(MonetDB):
         )
 
     def get_numerical_variables(self):
-        query = f"""select code from {METADATA_TABLENAME} """
-        query += """ where metadata LIKE '%"is_categorical": false%' AND (metadata LIKE '%"sql_type": "real"%' OR metadata LIKE '%"sql_type": "int"%'); """
+        query = f"""SELECT code
+                        FROM {METADATA_TABLENAME}
+                        WHERE json.filter(metadata, '$.is_categorical')='[false]'
+                            AND (json.filter(metadata, '$.sql_type')='["real"]'
+                            OR json.filter(metadata, '$.sql_type')='["int"]');"""
         variables = pd.read_sql(query, self._connection)
         return variables["code"].tolist()
 
     def get_nominal_variables(self):
-        query = f"""select code from {METADATA_TABLENAME} where metadata LIKE '%"is_categorical": true%'; """
+
+        query = f"""SELECT code
+                        FROM {METADATA_TABLENAME}
+                        WHERE json.filter(metadata, '$.is_categorical')='[true]';"""
+
         variables = pd.read_sql(query, self._connection)
         return variables["code"].tolist()
 
@@ -248,7 +255,7 @@ class InputGenerator:
                 for name, inputdata_vars in self.inputdata_gens.items()
             }
             # removes vars found in both y and x, from x
-            if inputdata["x"] != None:
+            if inputdata.get("x") != None:
                 diff = set(inputdata["y"]) & set(inputdata["x"])
                 inputdata["x"] = tuple(set(inputdata["x"]) - diff)
 
@@ -320,7 +327,7 @@ class TestCaseGenerator(ABC):
 
     __test__ = False
 
-    def __init__(self, specs_file, replicas=2):
+    def __init__(self, specs_file, replicas=1):
         self.input_gen = InputGenerator(specs_file)
         self.all_data = DB().get_data_table(replicas)
 
