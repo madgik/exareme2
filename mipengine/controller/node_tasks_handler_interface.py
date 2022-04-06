@@ -37,7 +37,7 @@ class IQueuedUDFAsyncResult(IAsyncResult, ABC):
 
 class INodeTasksHandler(ABC):
     @abstractmethod
-    def close_app(self):
+    def close(self):
         pass
 
     @property

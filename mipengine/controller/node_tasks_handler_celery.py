@@ -127,7 +127,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         self._db_address = node_db_addr
         self._tasks_timeout = tasks_timeout
 
-    def close_app(self):
+    def close(self):
         self._celery_app.close()
 
     @property

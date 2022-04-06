@@ -89,9 +89,9 @@ class Controller:
         finally:
             self._cleaner.release_contextid_for_cleanup(context_id=context_id)
 
-            node_tasks_handlers.global_node_tasks_handler.close_app()
+            node_tasks_handlers.global_node_tasks_handler.close()
             for handler in node_tasks_handlers.local_nodes_tasks_handlers:
-                handler.close_app()
+                handler.close()
 
         return algorithm_result
 

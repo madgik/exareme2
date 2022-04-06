@@ -153,7 +153,18 @@ def patch_algorithm_executor(controller_config_dict_mock, cdes_mock):
 algorithm_request_dto = AlgorithmRequestDTO(
     inputdata=AlgorithmInputDataDTO(
         data_model="dementia:0.1",
-        datasets=["edsd"],
+        datasets=[
+            "edsd0",
+            "edsd1",
+            "edsd2",
+            "edsd3",
+            "edsd4",
+            "edsd5",
+            "edsd6",
+            "edsd7",
+            "edsd8",
+            "edsd9",
+        ],
         filters={
             "condition": "AND",
             "rules": [
@@ -624,7 +635,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     controller.stop_node_registry()
     controller.stop_cleanup_loop()
-    localnodetmp_tasks_handler.close_app()
+    localnodetmp_tasks_handler.close()
 
     # give some time for node registry and cleanup background tasks to finish gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
