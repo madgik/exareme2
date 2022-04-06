@@ -39,7 +39,21 @@ spec:
           - containerPort: 50000
         volumeMounts:
         - mountPath: /home/monetdb
-          name: monetdb-data
+          name: db-data
+
+      - name: db-importer
+        image: {{ .Values.mipengine_images.repository }}/mipengine_mipdb:{{ .Values.mipengine_images.version }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DB_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: DB_PORT
+          value: "50000"
+        volumeMounts:
+        - mountPath: /opt/data
+          name: csv-data
 
       - name: rabbitmq
         image: {{ .Values.mipengine_images.repository }}/mipengine_rabbitmq:{{ .Values.mipengine_images.version }}
@@ -88,6 +102,9 @@ spec:
           value: {{ quote .Values.smpc.optional }}
 
       volumes:
-      - name: monetdb-data
+      - name: db-data
         hostPath:
           path: {{ .Values.monetdb_storage }}
+      - name: csv-data
+        hostPath:
+          path: {{ .Values.csvs_datapath }}

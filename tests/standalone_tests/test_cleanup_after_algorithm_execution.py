@@ -5,7 +5,6 @@ from os import path
 from unittest.mock import patch
 
 import pytest
-import toml
 
 from mipengine import AttrDict
 from mipengine.common_data_elements import CommonDataElements
@@ -36,7 +35,7 @@ def controller_config_dict_mock():
     controller_config = {
         "log_level": "DEBUG",
         "framework_log_level": "INFO",
-        "cdes_metadata_path": "./tests/demo_data",
+        "cdes_metadata_path": "./tests/test_data",
         "deployment_type": "LOCAL",
         "node_registry_update_interval": 2,
         "cleanup": {
