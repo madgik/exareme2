@@ -342,7 +342,7 @@ def load_data(c, port=None):
             [
                 data_model_folder / file
                 for file in listdir(data_model_folder)
-                if file.endswith("0.csv")  # BUG this matches data10.csv
+                if file.endswith("0.csv") and not file.endswith("10.csv")
             ]
         )
         for csv in first_node_csvs:
