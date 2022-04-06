@@ -4,6 +4,7 @@ metadata:
   name: mipengine-globalnode-deployment
   labels:
     app: mipengine-node
+    nodeType: globalnode
 spec:
   replicas: 1
   selector:
@@ -13,6 +14,7 @@ spec:
     metadata:
       labels:
         app: mipengine-node
+        nodeType: globalnode
     spec:
       nodeSelector:
         nodeType: master

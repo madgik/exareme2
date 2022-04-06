@@ -62,9 +62,7 @@ async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
     # broker is back up. This way(passing the existing broker connection to apply_async)
     # it raises a ConnectionResetError or an OperationalError and it does not hang
     tasks_coroutines = [
-        _task_to_async(task, connection=app.broker_connection())(
-            request_id=NODE_REGISTRY_REQUEST_ID
-        )
+        _task_to_async(task, app=app)(request_id=NODE_REGISTRY_REQUEST_ID)
         for app, task in nodes_task_signature.items()
     ]
     results = await asyncio.gather(*tasks_coroutines, return_exceptions=True)
@@ -73,30 +71,35 @@ async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
         for result in results
         if not isinstance(result, Exception)
     ]
+
+    for app in celery_apps:
+        app.close()
+
     return nodes_info
 
 
 # Converts a Celery task to an async function
 # Celery doesn't currently support asyncio "await" while "getting" a result
 # Copied from https://github.com/celery/celery/issues/6603
-def _task_to_async(task, connection):
+def _task_to_async(task, app):
     async def wrapper(*args, **kwargs):
         total_delay = 0
         delay = 0.1
-        # Since apply_async is used instead of delay so that we can pass the connection as an argument,
-        # the args and kwargs need to be passed as named arguments.
-        async_result = await sync_to_async(task.apply_async)(
-            args=args, kwargs=kwargs, connection=connection
-        )
-        while not async_result.ready():
-            total_delay += delay
-            if total_delay > CELERY_TASKS_TIMEOUT:
-                raise TimeoutError(
-                    f"Celery task: {task} didn't respond in {CELERY_TASKS_TIMEOUT}s."
-                )
-            await asyncio.sleep(delay)
-            delay = min(delay * 1.5, 2)  # exponential backoff, max 2 seconds
-        return async_result.get(timeout=CELERY_TASKS_TIMEOUT - total_delay)
+        with app.broker_connection() as conn:
+            # Since apply_async is used instead of delay so that we can pass the connection as an argument,
+            # the args and kwargs need to be passed as named arguments.
+            async_result = await sync_to_async(task.apply_async)(
+                args=args, kwargs=kwargs, connection=conn
+            )
+            while not async_result.ready():
+                total_delay += delay
+                if total_delay > CELERY_TASKS_TIMEOUT:
+                    raise TimeoutError(
+                        f"Celery task: {task} didn't respond in {CELERY_TASKS_TIMEOUT}s."
+                    )
+                await asyncio.sleep(delay)
+                delay = min(delay * 1.5, 2)  # exponential backoff, max 2 seconds
+            return async_result.get(timeout=CELERY_TASKS_TIMEOUT - total_delay)
 
     return wrapper
 

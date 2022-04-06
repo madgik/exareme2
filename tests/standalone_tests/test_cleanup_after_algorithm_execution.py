@@ -22,7 +22,7 @@ from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_PORT
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 from tests.standalone_tests.conftest import _create_node_service
 from tests.standalone_tests.conftest import _create_rabbitmq_container
-from tests.standalone_tests.conftest import create_localnode_tasks_handler
+from tests.standalone_tests.conftest import create_node_tasks_handler_celery
 from tests.standalone_tests.conftest import kill_node_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
@@ -150,6 +150,76 @@ def patch_algorithm_executor(controller_config_dict_mock, cdes_mock):
         yield
 
 
+algorithm_request_dto = AlgorithmRequestDTO(
+    inputdata=AlgorithmInputDataDTO(
+        data_model="dementia:0.1",
+        datasets=[
+            "edsd0",
+            "edsd1",
+            "edsd2",
+            "edsd3",
+            "edsd4",
+            "edsd5",
+            "edsd6",
+            "edsd7",
+            "edsd8",
+            "edsd9",
+        ],
+        filters={
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "dataset",
+                    "type": "string",
+                    "value": [
+                        "edsd0",
+                        "edsd1",
+                        "edsd2",
+                        "edsd3",
+                        "edsd4",
+                        "edsd5",
+                        "edsd6",
+                        "edsd7",
+                        "edsd8",
+                        "edsd9",
+                    ],
+                    "operator": "in",
+                },
+                {
+                    "condition": "AND",
+                    "rules": [
+                        {
+                            "id": variable,
+                            "type": "string",
+                            "operator": "is_not_null",
+                            "value": None,
+                        }
+                        for variable in [
+                            "lefthippocampus",
+                            "righthippocampus",
+                            "rightppplanumpolare",
+                            "leftamygdala",
+                            "rightamygdala",
+                            "alzheimerbroadcategory",
+                        ]
+                    ],
+                },
+            ],
+            "valid": True,
+        },
+        x=[
+            "lefthippocampus",
+            "righthippocampus",
+            "rightppplanumpolare",
+            "leftamygdala",
+            "rightamygdala",
+        ],
+        y=["alzheimerbroadcategory"],
+    ),
+    parameters={"classes": ["AD", "CN"]},
+)
+
+
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(
@@ -189,8 +259,30 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: ["edsd"],
-                localnode2_tasks_handler.node_id: ["edsd"],
+                localnode1_tasks_handler.node_id: [
+                    "edsd0",
+                    "edsd1",
+                    "edsd2",
+                    "edsd3",
+                    "edsd4",
+                    "edsd5",
+                    "edsd6",
+                    "edsd7",
+                    "edsd8",
+                    "edsd9",
+                ],
+                localnode2_tasks_handler.node_id: [
+                    "edsd0",
+                    "edsd1",
+                    "edsd2",
+                    "edsd3",
+                    "edsd4",
+                    "edsd5",
+                    "edsd6",
+                    "edsd7",
+                    "edsd8",
+                    "edsd9",
+                ],
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -300,8 +392,30 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: ["edsd"],
-                localnode2_tasks_handler.node_id: ["edsd"],
+                localnode1_tasks_handler.node_id: [
+                    "edsd0",
+                    "edsd1",
+                    "edsd2",
+                    "edsd3",
+                    "edsd4",
+                    "edsd5",
+                    "edsd6",
+                    "edsd7",
+                    "edsd8",
+                    "edsd9",
+                ],
+                localnode2_tasks_handler.node_id: [
+                    "edsd0",
+                    "edsd1",
+                    "edsd2",
+                    "edsd3",
+                    "edsd4",
+                    "edsd5",
+                    "edsd6",
+                    "edsd7",
+                    "edsd8",
+                    "edsd9",
+                ],
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -424,8 +538,30 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: ["edsd"],
-                localnodetmp_tasks_handler.node_id: ["edsd"],
+                localnode1_tasks_handler.node_id: [
+                    "edsd0",
+                    "edsd1",
+                    "edsd2",
+                    "edsd3",
+                    "edsd4",
+                    "edsd5",
+                    "edsd6",
+                    "edsd7",
+                    "edsd8",
+                    "edsd9",
+                ],
+                localnodetmp_tasks_handler.node_id: [
+                    "edsd0",
+                    "edsd1",
+                    "edsd2",
+                    "edsd3",
+                    "edsd4",
+                    "edsd5",
+                    "edsd6",
+                    "edsd7",
+                    "edsd8",
+                    "edsd9",
+                ],
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -458,7 +594,9 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # restart tmplocalnode rabbitmq container
     _create_rabbitmq_container(RABBITMQ_LOCALNODETMP_NAME, RABBITMQ_LOCALNODETMP_PORT)
     localnodetmp_node_service_proc = start_localnodetmp_node_service()
-    localnodetmp_tasks_handler = create_localnode_tasks_handler()
+    localnodetmp_tasks_handler = create_node_tasks_handler_celery(
+        path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
+    )
 
     globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
@@ -497,6 +635,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     controller.stop_node_registry()
     controller.stop_cleanup_loop()
+    localnodetmp_tasks_handler.close()
 
     # give some time for node registry and cleanup background tasks to finish gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
@@ -560,8 +699,30 @@ async def test_cleanup_node_service_down_algorithm_execution(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: ["edsd"],
-                localnodetmp_tasks_handler.node_id: ["edsd"],
+                localnode1_tasks_handler.node_id: [
+                    "edsd0",
+                    "edsd1",
+                    "edsd2",
+                    "edsd3",
+                    "edsd4",
+                    "edsd5",
+                    "edsd6",
+                    "edsd7",
+                    "edsd8",
+                    "edsd9",
+                ],
+                localnodetmp_tasks_handler.node_id: [
+                    "edsd0",
+                    "edsd1",
+                    "edsd2",
+                    "edsd3",
+                    "edsd4",
+                    "edsd5",
+                    "edsd6",
+                    "edsd7",
+                    "edsd8",
+                    "edsd9",
+                ],
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -690,8 +851,30 @@ async def test_cleanup_controller_restart(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: ["edsd"],
-                localnodetmp_tasks_handler.node_id: ["edsd"],
+                localnode1_tasks_handler.node_id: [
+                    "edsd0",
+                    "edsd1",
+                    "edsd2",
+                    "edsd3",
+                    "edsd4",
+                    "edsd5",
+                    "edsd6",
+                    "edsd7",
+                    "edsd8",
+                    "edsd9",
+                ],
+                localnodetmp_tasks_handler.node_id: [
+                    "edsd0",
+                    "edsd1",
+                    "edsd2",
+                    "edsd3",
+                    "edsd4",
+                    "edsd5",
+                    "edsd6",
+                    "edsd7",
+                    "edsd8",
+                    "edsd9",
+                ],
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -789,51 +972,3 @@ def start_localnodetmp_node_service():
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     return proc
-
-
-algorithm_request_dto = AlgorithmRequestDTO(
-    inputdata=AlgorithmInputDataDTO(
-        data_model="dementia:0.1",
-        datasets=["edsd"],
-        filters={
-            "condition": "AND",
-            "rules": [
-                {
-                    "id": "dataset",
-                    "type": "string",
-                    "value": ["edsd"],
-                    "operator": "in",
-                },
-                {
-                    "condition": "AND",
-                    "rules": [
-                        {
-                            "id": variable,
-                            "type": "string",
-                            "operator": "is_not_null",
-                            "value": None,
-                        }
-                        for variable in [
-                            "lefthippocampus",
-                            "righthippocampus",
-                            "rightppplanumpolare",
-                            "leftamygdala",
-                            "rightamygdala",
-                            "alzheimerbroadcategory",
-                        ]
-                    ],
-                },
-            ],
-            "valid": True,
-        },
-        x=[
-            "lefthippocampus",
-            "righthippocampus",
-            "rightppplanumpolare",
-            "leftamygdala",
-            "rightamygdala",
-        ],
-        y=["alzheimerbroadcategory"],
-    ),
-    parameters={"classes": ["AD", "CN"]},
-)
