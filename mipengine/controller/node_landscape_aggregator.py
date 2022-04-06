@@ -190,7 +190,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
     def stop(self):
         self.keep_updating = False
 
-    def get_nodes(self):
+    def get_nodes(self) -> Dict[str, NodeInfo]:
         return self._node_registry.nodes
 
     def get_global_node(self) -> NodeInfo:
@@ -205,10 +205,10 @@ class NodeLandscapeAggregator(metaclass=Singleton):
     def get_cdes(self, data_model: str):
         return self._data_model_registry.get_cdes(data_model)
 
-    def get_cdes_per_data_model(self):
+    def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
         return self._data_model_registry.data_models
 
-    def get_datasets_location(self):
+    def get_datasets_location(self) -> Dict[str, Dict[str, List[str]]]:
         return self._data_model_registry.datasets_location
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
@@ -332,6 +332,3 @@ def get_updated_data_model_with_dataset_enumerations(
         )
         data_models[data_model].values["dataset"] = new_dataset_cde
     return data_models
-
-
-node_landscape_aggregator = NodeLandscapeAggregator()

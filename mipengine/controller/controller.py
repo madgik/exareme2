@@ -117,7 +117,11 @@ class Controller:
             algo_parameters=algorithm_request_dto.parameters,
             algo_flags=algorithm_request_dto.flags,
         )
-        algorithm_executor = AlgorithmExecutor(algorithm_execution_dto, tasks_handlers)
+        algorithm_executor = AlgorithmExecutor(
+            algorithm_execution_dto,
+            tasks_handlers,
+            node_landscape_aggregator=self._node_landscape_aggregator,
+        )
 
         loop = asyncio.get_running_loop()
 

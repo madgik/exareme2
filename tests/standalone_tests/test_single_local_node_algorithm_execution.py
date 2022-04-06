@@ -64,12 +64,8 @@ def mock_node_landscape_aggregator():
             }
         ),
     }
-    node_landscape_aggregator._node_registry.nodes = data_models
-    with patch(
-        "mipengine.controller.algorithm_executor.node_landscape_aggregator",
-        node_landscape_aggregator,
-    ):
-        yield
+    node_landscape_aggregator._data_model_registry.data_models = data_models
+    yield node_landscape_aggregator
 
 
 @pytest.fixture(scope="function")
@@ -240,6 +236,7 @@ def test_single_local_node_algorithm_execution(
     algo_executor = AlgorithmExecutor(
         algorithm_execution_dto=algo_execution_dto,
         nodes_tasks_handlers_dto=single_node_task_handler,
+        node_landscape_aggregator=mock_node_landscape_aggregator,
     )
     result = algo_executor.run()
 
