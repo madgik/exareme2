@@ -186,6 +186,17 @@ jobs:
           kubectl label node localnode2 nodeType=worker
           kubectl label node localnode3 nodeType=worker
 
+      - name: Get container disk space
+        run: df -h
+
+      - name: Free up space, by removing dotnet, android and haskell unused libs.
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+      - name: Get container disk space
+        run: df -h
+
       - name: Load docker images to kind
         run: |
           kind load docker-image madgik/mipengine_node:latest

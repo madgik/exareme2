@@ -31,54 +31,55 @@ class HTTPStatusCode(enum.IntEnum):
     UNEXPECTED_ERROR = 500
 
 
-@error_handlers.app_errorhandler(BadRequest)
-def handle_bad_request(error: BadRequest):
-    return error.message, HTTPStatusCode.BAD_REQUEST
-
-
-@error_handlers.app_errorhandler(FilterError)
-def handle_bad_request(error: FilterError):
-    return error.message, HTTPStatusCode.BAD_REQUEST
-
-
-@error_handlers.app_errorhandler(BadUserInput)
-def handle_bad_user_input(error: BadUserInput):
-    return error.message, HTTPStatusCode.BAD_USER_INPUT
-
-
-@error_handlers.app_errorhandler(DataModelUnavailable)
-def handle_bad_user_input(error: DataModelUnavailable):
-    return error.message, HTTPStatusCode.BAD_USER_INPUT
-
-
-@error_handlers.app_errorhandler(DatasetUnavailable)
-def handle_bad_user_input(error: DatasetUnavailable):
-    return error.message, HTTPStatusCode.BAD_USER_INPUT
-
-
-@error_handlers.app_errorhandler(InsufficientDataError)
-def handle_privacy_error(error: InsufficientDataError):
-    # TODO: Add proper context id. Related JIRA issue: https://team-1617704806227.atlassian.net/browse/MIP-486
-    # ctrl_logger.get_request_logger("demoContextId123").info(
-    #     f"Insufficient Data Error: \n " + error.message
-    # )
-    return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
-
-
-@error_handlers.app_errorhandler(SMPCUsageError)
-def handle_privacy_error(error: SMPCUsageError):
-    return error.message, HTTPStatusCode.SMPC_USAGE_ERROR
-
-
-@error_handlers.app_errorhandler(NodeUnresponsiveAlgorithmExecutionException)
-def handle_node_unresponsive_algorithm_excecution_exception(
-    error: NodeUnresponsiveAlgorithmExecutionException,
-):
-    return (
-        error.message,
-        HTTPStatusCode.NODE_UNRESPONSIVE_ALGORITHM_EXECUTION_ERROR,
-    )
-
+#
+# @error_handlers.app_errorhandler(BadRequest)
+# def handle_bad_request(error: BadRequest):
+#     return error.message, HTTPStatusCode.BAD_REQUEST
+#
+#
+# @error_handlers.app_errorhandler(FilterError)
+# def handle_bad_request(error: FilterError):
+#     return error.message, HTTPStatusCode.BAD_REQUEST
+#
+#
+# @error_handlers.app_errorhandler(BadUserInput)
+# def handle_bad_user_input(error: BadUserInput):
+#     return error.message, HTTPStatusCode.BAD_USER_INPUT
+#
+#
+# @error_handlers.app_errorhandler(DataModelUnavailable)
+# def handle_bad_user_input(error: DataModelUnavailable):
+#     return error.message, HTTPStatusCode.BAD_USER_INPUT
+#
+#
+# @error_handlers.app_errorhandler(DatasetUnavailable)
+# def handle_bad_user_input(error: DatasetUnavailable):
+#     return error.message, HTTPStatusCode.BAD_USER_INPUT
+#
+#
+# @error_handlers.app_errorhandler(InsufficientDataError)
+# def handle_privacy_error(error: InsufficientDataError):
+#     # TODO: Add proper context id. Related JIRA issue: https://team-1617704806227.atlassian.net/browse/MIP-486
+#     # ctrl_logger.get_request_logger("demoContextId123").info(
+#     #     f"Insufficient Data Error: \n " + error.message
+#     # )
+#     return INSUFFICIENT_DATA_ERROR_MESSAGE, HTTPStatusCode.INSUFFICIENT_DATA_ERROR
+#
+#
+# @error_handlers.app_errorhandler(SMPCUsageError)
+# def handle_privacy_error(error: SMPCUsageError):
+#     return error.message, HTTPStatusCode.SMPC_USAGE_ERROR
+#
+#
+# @error_handlers.app_errorhandler(NodeUnresponsiveAlgorithmExecutionException)
+# def handle_node_unresponsive_algorithm_excecution_exception(
+#     error: NodeUnresponsiveAlgorithmExecutionException,
+# ):
+#     return (
+#         error.message,
+#         HTTPStatusCode.NODE_UNRESPONSIVE_ALGORITHM_EXECUTION_ERROR,
+#     )
+#
 
 # TODO BUG https://team-1617704806227.atlassian.net/browse/MIP-476
 #  Default error handler doesn't contain enough error information.
