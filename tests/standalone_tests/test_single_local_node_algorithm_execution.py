@@ -11,8 +11,6 @@ from mipengine.common_data_elements import MetadataVariable
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
-from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
-from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
@@ -133,7 +131,20 @@ def get_parametrization_list_success_cases():
         context_id="123",
         algorithm_name="logistic_regression",
         data_model="dementia:0.1",
-        datasets_per_local_node={"localnode1": ["edsd"]},
+        datasets_per_local_node={
+            "localnode1": [
+                "edsd0",
+                "edsd1",
+                "edsd2",
+                "edsd3",
+                "edsd4",
+                "edsd5",
+                "edsd6",
+                "edsd7",
+                "edsd8",
+                "edsd9",
+            ]
+        },
         x_vars=[
             "lefthippocampus",
             "righthippocampus",
@@ -148,7 +159,18 @@ def get_parametrization_list_success_cases():
                 {
                     "id": "dataset",
                     "type": "string",
-                    "value": ["edsd"],
+                    "value": [
+                        "edsd0",
+                        "edsd1",
+                        "edsd2",
+                        "edsd3",
+                        "edsd4",
+                        "edsd5",
+                        "edsd6",
+                        "edsd7",
+                        "edsd8",
+                        "edsd9",
+                    ],
                     "operator": "in",
                 },
                 {
@@ -171,7 +193,6 @@ def get_parametrization_list_success_cases():
                     ],
                 },
             ],
-            "valid": True,
         },
         algo_parameters={"classes": ["AD", "CN"]},
     )
@@ -184,7 +205,20 @@ def get_parametrization_list_success_cases():
         context_id="1234",
         algorithm_name="smpc_standard_deviation",
         data_model="dementia:0.1",
-        datasets_per_local_node={"localnode1": ["edsd"]},
+        datasets_per_local_node={
+            "localnode1": [
+                "edsd0",
+                "edsd1",
+                "edsd2",
+                "edsd3",
+                "edsd4",
+                "edsd5",
+                "edsd6",
+                "edsd7",
+                "edsd8",
+                "edsd9",
+            ]
+        },
         x_vars=[
             "lefthippocampus",
         ],
@@ -194,7 +228,18 @@ def get_parametrization_list_success_cases():
                 {
                     "id": "dataset",
                     "type": "string",
-                    "value": ["edsd"],
+                    "value": [
+                        "edsd0",
+                        "edsd1",
+                        "edsd2",
+                        "edsd3",
+                        "edsd4",
+                        "edsd5",
+                        "edsd6",
+                        "edsd7",
+                        "edsd8",
+                        "edsd9",
+                    ],
                     "operator": "in",
                 },
                 {
@@ -212,7 +257,6 @@ def get_parametrization_list_success_cases():
                     ],
                 },
             ],
-            "valid": True,
         },
         algo_parameters={"classes": ["AD", "CN"]},
         algo_flags={"smpc": False},
@@ -232,12 +276,9 @@ def test_single_local_node_algorithm_execution(
     mock_algorithms_modules,
     algo_execution_dto,
     globalnode_node_service,
-    use_globalnode_database,
     localnode1_node_service,
-    use_localnode1_database,
     load_data_localnode1,
 ):
-
     local_node_id = "localnode1"
     local_node_ip = "172.17.0.1"
     local_node_monetdb_port = MONETDB_LOCALNODE1_PORT

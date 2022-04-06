@@ -1,10 +1,10 @@
-localnodes: 2
+localnodes: 3
 
 mipengine_images:
   repository: madgik
   version: latest
 
-log_level: INFO
+log_level: DEBUG
 framework_log_level: INFO
 
 cdes_path: /opt/mipengine/data
