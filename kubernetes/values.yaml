@@ -7,8 +7,9 @@ mipengine_images:
 log_level: INFO
 framework_log_level: INFO
 
-cdes_path: /opt/data
-monetdb_storage: /opt/monetdb
+cdes_path: /opt/mipengine/data
+monetdb_storage: /opt/mipengine/db
+csvs_datapath: /opt/mipengine/csvs
 
 controller:
   node_registry_update_interval: 30

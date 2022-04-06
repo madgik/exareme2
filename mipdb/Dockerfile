@@ -28,7 +28,7 @@ WORKDIR $DATA_PATH
 #######################################################
 # Installing dependencies
 #######################################################
-RUN pip install mipdb==0.3.0
+RUN pip install mipdb==0.4.0
 
 #######################################################
 # Keep the container running

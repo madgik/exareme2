@@ -59,6 +59,25 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache/monetdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
 
+      - name: Load MIPDB container cached image
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache/mipdb
+          key: ${{ runner.os }}-buildx-mipdb-${{hashFiles('mipdb/**')}}
+          restore-keys: |
+            ${{ runner.os }}-buildx-mipdb-
+
+      - name: Build MIPDB container docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: mipdb/Dockerfile
+          push: false
+          load: true
+          tags: madgik/mipengine_mipdb:latest
+          cache-from: type=local,src=/tmp/.buildx-cache/mipdb
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/mipdb
+
       - name: Load RABBITMQ cached image
         uses: actions/cache@v2
         with:
@@ -124,33 +143,6 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-      - name: Start MONETDB container
-        run: docker run -d --name monetdb -p 50000:50000 -v /opt/monetdb:/home/monetdb madgik/mipenginedb:latest
-
-      - name: Wait for MONETDB container to start
-        uses: jakejarvis/wait-action@master
-        with:
-          time: '10s'
-
-      - name: Initialize MONETDB with mipdb initial metadata tables
-        run: poetry run mipdb init --ip 172.17.0.1 --port 50000
-
-      - name: Load data into MONETDB container
-        run: poetry run mipdb load-folder ./tests/demo_data/  --ip 172.17.0.1 --port 50000
-
-      - name: Backup MONETDB data
-        run: |
-          docker exec -i monetdb monetdb lock db
-          docker exec -i monetdb monetdb stop db
-
-      - name: Copy MONETDB demo data folders
-        run: |
-          sudo cp -r /opt/monetdb/. /opt/monetdb1
-          sudo cp -r /opt/monetdb/. /opt/monetdb2
-
-      - name: Stop MONETDB container
-        run: docker stop monetdb && docker rm monetdb
-
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.2.0
         with:
@@ -175,6 +167,7 @@ jobs:
           kind load docker-image madgik/mipengine_node:latest
           kind load docker-image madgik/mipengine_controller:latest --nodes kind-control-plane
           kind load docker-image madgik/mipenginedb:latest
+          kind load docker-image madgik/mipengine_mipdb:latest
           kind load docker-image madgik/mipengine_rabbitmq:latest
 
       - name: Copy prod_env_tests values.yaml
@@ -183,10 +176,25 @@ jobs:
       - name: Deploy Helm
         run: helm install mipengine kubernetes/
 
-      - name: Wait for MIPENGINE services to start
+      - name: Wait for MONETDB container to start
         uses: jakejarvis/wait-action@master
         with:
-          time: '120s' #https://team-1617704806227.atlassian.net/browse/MIP-248
+          time: '60s'  #https://team-1617704806227.atlassian.net/browse/MIP-248
+
+      - name: Initialize MONETDB from mipdb container
+        run: |
+          kubectl exec $(kubectl get pods -l=nodeType=localnode -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb init --ip $DB_IP --port $DB_PORT'
+          kubectl exec $(kubectl get pods -l=nodeType=localnode -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb init --ip $DB_IP --port $DB_PORT'
+
+      - name: Load data into MONETDB container
+        run: |
+          kubectl exec $(kubectl get pods -l=nodeType=localnode -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb load-folder /opt/data --ip $DB_IP --port $DB_PORT'
+          kubectl exec $(kubectl get pods -l=nodeType=localnode -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb load-folder /opt/data --ip $DB_IP --port $DB_PORT'
+
+      - name: Wait for all services to start
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '60s'  #https://team-1617704806227.atlassian.net/browse/MIP-248
 
       - name: Controller logs
         run: kubectl logs deployment/mipengine-controller-deployment
