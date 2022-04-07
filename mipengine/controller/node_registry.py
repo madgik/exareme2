@@ -9,7 +9,7 @@ class NodeRegistry:
         self.nodes: Dict[str, NodeInfo] = {}
 
     @property
-    def nodes(self):
+    def nodes(self) -> Dict[str, NodeInfo]:
         return self._nodes
 
     @nodes.setter

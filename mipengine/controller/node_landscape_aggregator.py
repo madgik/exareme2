@@ -151,37 +151,36 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         Once all the information is aggregated and validated the NLA will provide the information to the Node Registry and to the Data Model Registry.
         """
         while self.keep_updating:
-            nodes_addresses = get_nodes_addresses()
-            nodes_info = await _get_nodes_info(nodes_addresses)
-            local_nodes = [
-                node for node in nodes_info if node.role == NodeRole.LOCALNODE
-            ]
-            datasets_locations = await _get_datasets_locations(local_nodes)
-            datasets_labels = await _get_datasets_labels(local_nodes)
-            data_model_cdes_across_nodes = await _get_cdes_across_nodes(local_nodes)
-            compatible_data_models = _get_compatible_data_models(
-                data_model_cdes_across_nodes
-            )
-            data_models = get_updated_data_model_with_dataset_enumerations(
-                compatible_data_models, datasets_labels
-            )
-            datasets_locations = {
-                common_data_model: datasets_locations[common_data_model]
-                for common_data_model in data_models
-            }
+            try:
+                nodes_addresses = get_nodes_addresses()
+                nodes_info = await _get_nodes_info(nodes_addresses)
+                local_nodes = [
+                    node for node in nodes_info if node.role == NodeRole.LOCALNODE
+                ]
+                datasets_locations = await _get_datasets_locations(local_nodes)
+                datasets_labels = await _get_datasets_labels(local_nodes)
+                data_model_cdes_across_nodes = await _get_cdes_across_nodes(local_nodes)
+                compatible_data_models = _get_compatible_data_models(
+                    data_model_cdes_across_nodes
+                )
+                data_models = get_updated_data_model_with_dataset_enumerations(
+                    compatible_data_models, datasets_labels
+                )
+                datasets_locations = {
+                    common_data_model: datasets_locations[common_data_model]
+                    for common_data_model in data_models
+                }
 
-            self._node_registry._nodes = {
-                node_info.id: node_info for node_info in nodes_info
-            }
-            self._data_model_registry._data_models = data_models
-            self._data_model_registry._datasets_location = datasets_locations
-            logger.debug(f"Nodes:{[node for node in self._node_registry.nodes]}")
-            # ..to print full nodes info
-            # from devtools import debug
-            # debug(self.nodes)
-            # DEBUG end
-
-            await asyncio.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
+                self._node_registry._nodes = {
+                    node_info.id: node_info for node_info in nodes_info
+                }
+                self._data_model_registry._data_models = data_models
+                self._data_model_registry._datasets_location = datasets_locations
+                logger.debug(f"Nodes:{[node for node in self._node_registry.nodes]}")
+            except Exception as exc:
+                logger.error(f"Node Landscape Aggregator exception: {type(exc)}:{exc}")
+            finally:
+                await asyncio.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
 
     def start(self):
         self.keep_updating = True
@@ -190,7 +189,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
     def stop(self):
         self.keep_updating = False
 
-    def get_nodes(self):
+    def get_nodes(self) -> Dict[str, NodeInfo]:
         return self._node_registry.nodes
 
     def get_global_node(self) -> NodeInfo:
@@ -205,10 +204,10 @@ class NodeLandscapeAggregator(metaclass=Singleton):
     def get_cdes(self, data_model: str):
         return self._data_model_registry.get_cdes(data_model)
 
-    def get_cdes_per_data_model(self):
+    def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
         return self._data_model_registry.data_models
 
-    def get_datasets_location(self):
+    def get_datasets_location(self) -> Dict[str, Dict[str, List[str]]]:
         return self._data_model_registry.datasets_location
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
@@ -243,10 +242,19 @@ async def _get_datasets_locations(nodes: List[NodeInfo]) -> Dict[str, Dict[str, 
             node_socket_addr
         )
         for data_model, datasets in datasets_per_data_model.items():
-            if data_model not in datasets_locations:
-                datasets_locations[data_model] = {dataset: [] for dataset in datasets}
+            current_datasets = (
+                datasets_locations[data_model]
+                if data_model in datasets_locations
+                else {}
+            )
+
             for dataset in datasets:
-                datasets_locations[data_model][dataset].append(node_info.id)
+                if dataset in current_datasets:
+                    current_datasets[dataset].append(node_info.id)
+                else:
+                    current_datasets[dataset] = [node_info.id]
+            datasets_locations[data_model] = current_datasets
+
     return datasets_locations
 
 
@@ -332,6 +340,3 @@ def get_updated_data_model_with_dataset_enumerations(
         )
         data_models[data_model].values["dataset"] = new_dataset_cde
     return data_models
-
-
-node_landscape_aggregator = NodeLandscapeAggregator()

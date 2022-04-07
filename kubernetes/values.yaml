@@ -1,14 +1,14 @@
-localnodes: 2
+localnodes: 3
 
 mipengine_images:
   repository: madgik
   version: latest
 
-log_level: INFO
+log_level: DEBUG
 framework_log_level: INFO
 
-cdes_path: /opt/data
-monetdb_storage: /opt/monetdb
+monetdb_storage: /opt/mipengine/db
+csvs_datapath: /opt/mipengine/csvs
 
 controller:
   node_landscape_aggregator_update_interval: 30

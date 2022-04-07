@@ -114,7 +114,7 @@ def mock_cdes():
         ),
     }
 
-    node_landscape_aggregator._node_registry.nodes = data_models
+    node_landscape_aggregator._data_model_registry.data_models = data_models
 
     with patch(
         "mipengine.controller.api.validator.node_landscape_aggregator",
@@ -313,7 +313,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     data_model="test_data_model1:0.1",
-                    datasets=["demo_data"],
+                    datasets=["test_data"],
                     x=["lefthippocampus", "righthippocampus"],
                     y=["alzheimerbroadcategory_bin"],
                 )
@@ -325,7 +325,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     data_model="test_data_model1:0.1",
-                    datasets=["demo_data"],
+                    datasets=["test_data"],
                     x=["lefthippocampus", "righthippocampus"],
                     y=["alzheimerbroadcategory_bin"],
                 )
@@ -340,7 +340,7 @@ def get_parametrization_list_exception_cases():
             AlgorithmRequestDTO(
                 inputdata=AlgorithmInputDataDTO(
                     data_model="non_existing",
-                    datasets=["demo_data"],
+                    datasets=["test_data"],
                     x=["lefthippocampus", "righthippocampus"],
                     y=["alzheimerbroadcategory_bin"],
                 )

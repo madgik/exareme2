@@ -23,8 +23,6 @@ spec:
         ports:
           - containerPort: 5000
         volumeMounts:
-        - mountPath: /opt/data
-          name: metadata
         - mountPath: /opt/cleanup
           name: cleanup-file
         env:
@@ -52,9 +50,6 @@ spec:
           value: {{ quote .Values.smpc.optional }}
 
       volumes:
-      - name: metadata
-        hostPath:
-          path: {{ .Values.cdes_path }}
       - name: cleanup-file
         hostPath:
           path: {{ .Values.controller.cleanup_file_folder }}

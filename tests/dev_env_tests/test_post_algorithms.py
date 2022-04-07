@@ -1,5 +1,4 @@
 import json
-import re
 
 import numpy as np
 import pytest
@@ -15,7 +14,18 @@ def get_parametrization_list_success_cases():
     request_dict = {
         "inputdata": {
             "data_model": "dementia:0.1",
-            "datasets": ["edsd"],
+            "datasets": [
+                "edsd0",
+                "edsd1",
+                "edsd2",
+                "edsd3",
+                "edsd4",
+                "edsd5",
+                "edsd6",
+                "edsd7",
+                "edsd8",
+                "edsd9",
+            ],
             "x": [
                 "lefthippocampus",
             ],
@@ -25,7 +35,18 @@ def get_parametrization_list_success_cases():
                     {
                         "id": "dataset",
                         "type": "string",
-                        "value": ["edsd"],
+                        "value": [
+                            "edsd0",
+                            "edsd1",
+                            "edsd2",
+                            "edsd3",
+                            "edsd4",
+                            "edsd5",
+                            "edsd6",
+                            "edsd7",
+                            "edsd8",
+                            "edsd9",
+                        ],
                         "operator": "in",
                     },
                     {
@@ -75,7 +96,7 @@ def test_post_testing_algorithms(algorithm_name, request_dict, expected_response
         data=json.dumps(request_dict),
         headers=headers,
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Response message: {response.text}"
 
     response = response.json()
     columns = response["columns"]

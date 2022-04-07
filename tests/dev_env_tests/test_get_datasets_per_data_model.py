@@ -107,11 +107,11 @@ def test_get_node_datasets_per_data_model(node_id, expected_datasets_per_data_mo
         request_id=request_id
     ).get()
     expected_datasets_per_data_model["dementia:0.1"] = [
-        "ppmi",
-        "edsd",
-        "desd-synthdata",
+        "ppmi0",
+        "edsd0",
+        "desd-synthdata0",
     ]
-    expected_datasets_per_data_model["tbi:0.1"] = ["dummy_tbi"]
+    expected_datasets_per_data_model["tbi:0.1"] = ["dummy_tbi0"]
     print(set(datasets_per_data_model.keys()))
     print(set(expected_datasets_per_data_model.keys()))
     assert set(datasets_per_data_model.keys()) == set(
@@ -122,4 +122,4 @@ def test_get_node_datasets_per_data_model(node_id, expected_datasets_per_data_mo
             expected_datasets_per_data_model[data_model]
         )
 
-    # teardown_data_tables_in_db(node_id)
+    teardown_data_tables_in_db(node_id)
