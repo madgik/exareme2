@@ -1,0 +1,60 @@
+ip = "172.17.0.1"
+log_level = "INFO"
+framework_log_level ="INFO"
+monetdb_image = "madgik/mipenginedb:testing"
+rabbitmq_image = "madgik/mipengine_rabbitmq:testing"
+
+algorithm_folders = "./mipengine/algorithms"
+
+node_landscape_aggregator_update_interval = 30
+celery_tasks_timeout = 120
+
+[privacy]
+minimum_row_count = 0
+
+[cleanup]
+nodes_cleanup_interval=60
+contextid_release_timelimit=3600 #an hour
+
+[smpc]
+enabled=false
+optional=false
+
+[[nodes]]
+id = "globalnode"
+role="GLOBALNODE"
+monetdb_port=50000
+rabbitmq_port=5670
+
+[[nodes]]
+id = "localnode1"
+role="LOCALNODE"
+monetdb_port=50001
+rabbitmq_port=5671
+
+[[nodes]]
+id = "localnode2"
+role="LOCALNODE"
+monetdb_port=50002
+rabbitmq_port=5672
+
+
+[[nodes]]
+id = "localnode3"
+role="LOCALNODE"
+monetdb_port=50003
+rabbitmq_port=5673
+
+
+[[nodes]]
+id = "localnode4"
+role="LOCALNODE"
+monetdb_port=50004
+rabbitmq_port=5674
+
+
+[[nodes]]
+id = "localnode5"
+role="LOCALNODE"
+monetdb_port=50005
+rabbitmq_port=5675

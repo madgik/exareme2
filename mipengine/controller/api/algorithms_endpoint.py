@@ -19,19 +19,19 @@ controller = Controller()
 
 @algorithms.before_app_serving
 async def startup():
-    await controller.start_node_registry()
-    await controller.start_cleanup_loop()
+    controller.start_node_landscape_aggregator()
+    controller.start_cleanup_loop()
 
 
 @algorithms.after_app_serving
 async def shutdown():
-    await controller.stop_node_registry()
-    await controller.stop_cleanup_loop()
+    controller.stop_node_landscape_aggregator()
+    controller.stop_cleanup_loop()
 
 
 @algorithms.route("/datasets", methods=["GET"])
 async def get_datasets() -> dict:
-    return controller.get_all_datasets_per_node()
+    return controller.get_all_available_datasets_per_data_model()
 
 
 @algorithms.route("/algorithms", methods=["GET"])

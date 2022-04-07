@@ -22,11 +22,13 @@ ENV PYTHONUNBUFFERED=1 \
 ENV PATH="$POETRY_HOME/bin:$CODE_PATH:$PATH"
 WORKDIR $CODE_PATH
 
+
 #######################################################
-# Creating the metadata folder
+# Creating the cleanup file folder
 #######################################################
-ENV CDES_METADATA_PATH="/opt/data"
-RUN mkdir $CDES_METADATA_PATH
+ENV CLEANUP_FOLDER="/opt/cleanup"
+RUN mkdir -p $CLEANUP_FOLDER
+VOLUME $CLEANUP_FOLDER
 
 #######################################################
 # Installing poetry and dependencies

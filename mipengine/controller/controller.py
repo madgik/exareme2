@@ -1,8 +1,7 @@
 import asyncio
-import concurrent.futures
-import datetime
 import logging
 import random
+from datetime import datetime
 from typing import Dict
 from typing import List
 
@@ -15,10 +14,11 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
-from mipengine.controller.node_registry import node_registry
+from mipengine.controller.cleaner import Cleaner
+from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
-
-CONTROLLER_CLEANUP_REQUEST_ID = "CONTROLLER_CLEANUP"
+from mipengine.node_info_DTOs import NodeInfo
+from mipengine.node_tasks_DTOs import CommonDataElements
 
 
 class _NodeInfoDTO(BaseModel):
@@ -33,13 +33,21 @@ class _NodeInfoDTO(BaseModel):
 
 class Controller:
     def __init__(self):
-        self._node_registry = node_registry
-
-        self._clean_up_interval = controller_config.nodes_cleanup_interval
-
-        self._nodes_for_cleanup = {}
-        self._keep_cleaning_up = True
+        self._node_landscape_aggregator = NodeLandscapeAggregator()
         self._controller_logger = ctrl_logger.get_background_service_logger()
+        self._cleaner = Cleaner(
+            node_landscape_aggregator=self._node_landscape_aggregator
+        )
+
+    def start_cleanup_loop(self):
+        self._controller_logger.info("starting cleanup_loop")
+        self._cleaner.keep_cleaning_up = True
+        task = asyncio.create_task(self._cleaner.cleanup_loop())
+        self._controller_logger.info("started clean_up loop")
+        return task
+
+    def stop_cleanup_loop(self):
+        self._cleaner.keep_cleaning_up = False
 
     async def exec_algorithm(
         self,
@@ -63,8 +71,10 @@ class Controller:
         for local_node_task_handler in node_tasks_handlers.local_nodes_tasks_handlers:
             algo_execution_node_ids.append(local_node_task_handler.node_id)
 
+        self._cleaner.add_contextid_for_cleanup(context_id, algo_execution_node_ids)
+
         datasets_per_local_node: Dict[str, List[str]] = {
-            task_handler.node_id: self._node_registry.get_node_specific_datasets(
+            task_handler.node_id: self._node_landscape_aggregator.get_node_specific_datasets(
                 task_handler.node_id, data_model, datasets
             )
             for task_handler in node_tasks_handlers.local_nodes_tasks_handlers
@@ -81,69 +91,13 @@ class Controller:
                 logger=algo_execution_logger,
             )
         finally:
-            self._append_context_id_for_cleanup(
-                context_id=context_id,
-                node_ids=algo_execution_node_ids,
-            )
+            self._cleaner.release_contextid_for_cleanup(context_id=context_id)
+
+            node_tasks_handlers.global_node_tasks_handler.close()
+            for handler in node_tasks_handlers.local_nodes_tasks_handlers:
+                handler.close()
 
         return algorithm_result
-
-    def _append_context_id_for_cleanup(self, context_id: str, node_ids: List[str]):
-        if context_id not in self._nodes_for_cleanup.keys():
-            self._nodes_for_cleanup[context_id] = node_ids
-        else:
-            # getting in here would mean that an algorithm with the same context_id has
-            # finished and is currently in the cleanup process, this indicates context_id
-            # collision.
-            self._controller_logger.warning(
-                f"An algorithm with the same {context_id=} was previously executed and"
-                f"it is still in the cleanup process. This should not happen..."
-            )
-            for node_id in node_ids:
-                self._nodes_for_cleanup[context_id].append(node_id)
-
-    async def start_cleanup_loop(self):
-        self._controller_logger.info("starting cleanup_loop")
-        self._keep_cleaning_up = True
-        task = asyncio.create_task(self.cleanup_loop())
-        self._controller_logger.info("started clean_up loop")
-        return task
-
-    async def stop_cleanup_loop(self):
-        self._keep_cleaning_up = False
-
-    async def cleanup_loop(self):
-        while self._keep_cleaning_up:
-            cleaned_up_nodes = {}
-            for context_id, node_ids in self._nodes_for_cleanup.items():
-                cleaned_up_nodes[context_id] = []
-                for node_id in node_ids:
-                    try:
-                        node_info = self._get_node_info_by_id(node_id)
-                        task_handler = _create_node_task_handler(node_info)
-                        task_handler.clean_up(
-                            request_id=CONTROLLER_CLEANUP_REQUEST_ID,
-                            context_id=context_id,
-                        )
-
-                        self._controller_logger.debug(
-                            f"clean_up task succeeded for {node_id=} for {context_id=}"
-                        )
-                        cleaned_up_nodes[context_id].append(node_id)
-                    except Exception as exc:
-                        self._controller_logger.debug(
-                            f"clean_up task FAILED for {node_id=} "
-                            f"for {context_id=}. Will retry in a while... fail "
-                            f"reason: {type(exc)}:{exc}"
-                        )
-
-            for context_id, node_ids in cleaned_up_nodes.items():
-                for node_id in node_ids:
-                    self._nodes_for_cleanup[context_id].remove(node_id)
-                if not self._nodes_for_cleanup[context_id]:
-                    self._nodes_for_cleanup.pop(context_id)
-
-            await asyncio.sleep(self._clean_up_interval)
 
     async def _exec_algorithm_with_task_handlers(
         self,
@@ -155,22 +109,6 @@ class Controller:
         datasets_per_local_node: Dict[str, List[str]],
         logger: logging.Logger,
     ) -> str:
-
-        # TODO: AlgorithmExecutor is not yet implemented with asyncio. This is a
-        # temporary solution for not blocking the calling function
-        def run_algorithm_executor_in_threadpool(
-            algorithm_execution_dto: AlgorithmExecutionDTO,
-            all_nodes_tasks_handlers: NodesTasksHandlersDTO,
-        ):
-            algorithm_executor = AlgorithmExecutor(
-                algorithm_execution_dto, all_nodes_tasks_handlers
-            )
-
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(algorithm_executor.run)
-                result = future.result()
-                return result
-
         algorithm_execution_dto = AlgorithmExecutionDTO(
             request_id=request_id,
             context_id=context_id,
@@ -183,18 +121,18 @@ class Controller:
             algo_parameters=algorithm_request_dto.parameters,
             algo_flags=algorithm_request_dto.flags,
         )
+        algorithm_executor = AlgorithmExecutor(
+            algorithm_execution_dto,
+            tasks_handlers,
+            node_landscape_aggregator=self._node_landscape_aggregator,
+        )
 
         loop = asyncio.get_running_loop()
 
         logger.info(f"starts executing->  {algorithm_name=}")
-
-        algorithm_result = await loop.run_in_executor(
-            None,
-            run_algorithm_executor_in_threadpool,
-            algorithm_execution_dto,
-            tasks_handlers,
-        )
-
+        # TODO: AlgorithmExecutor is not yet implemented with asyncio. This is a
+        # temporary solution for not blocking the calling function
+        algorithm_result = await loop.run_in_executor(None, algorithm_executor.run)
         logger.info(f"finished execution->  {algorithm_name=}")
         logger.info(f"algorithm result-> {algorithm_result.json()=}")
 
@@ -206,45 +144,45 @@ class Controller:
         available_datasets_per_data_model = (
             self.get_all_available_datasets_per_data_model()
         )
+
         validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             available_datasets_per_data_model=available_datasets_per_data_model,
         )
 
-    async def start_node_registry(self):
-        self._controller_logger.info("starting node registry")
-        self._node_registry.keep_updating = True
-        asyncio.create_task(self._node_registry.update())
-        self._controller_logger.info("started node registry")
+    def start_node_landscape_aggregator(self):
+        self._controller_logger.info("starting node landscape aggregator")
+        self._node_landscape_aggregator.start()
+        self._controller_logger.info("started node landscape aggregator")
 
-    async def stop_node_registry(self):
-        self._node_registry.keep_updating = False
+    def stop_node_landscape_aggregator(self):
+        self._node_landscape_aggregator.stop()
 
-    def get_all_datasets_per_node(self):
-        datasets = {}
-        for node in self._node_registry.get_all_local_nodes():
-            datasets[node.id] = node.datasets_per_data_model
-        return datasets
+    def get_datasets_location(self) -> Dict[str, Dict[str, List[str]]]:
+        return self._node_landscape_aggregator.get_datasets_location()
 
-    def get_all_available_schemas(self):
-        return self._node_registry.get_all_available_data_models()
+    def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
+        return self._node_landscape_aggregator.get_cdes_per_data_model()
 
-    def get_all_available_datasets_per_data_model(self):
-        return self._node_registry.get_all_available_datasets_per_data_model()
+    def get_all_available_data_models(self) -> List[str]:
+        return list(self._node_landscape_aggregator.get_cdes_per_data_model().keys())
 
-    def get_all_local_nodes(self):
-        return self._node_registry.get_all_local_nodes()
+    def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
+        return (
+            self._node_landscape_aggregator.get_all_available_datasets_per_data_model()
+        )
 
-    def get_global_node(self):
-        global_nodes = self._node_registry.get_all_global_nodes()
-        if global_nodes:
-            return global_nodes[0]
+    def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
+        return self._node_landscape_aggregator.get_all_local_nodes()
+
+    def get_global_node(self) -> NodeInfo:
+        return self._node_landscape_aggregator.get_global_node()
 
     def _get_nodes_tasks_handlers(
         self, data_model: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
-        global_node = self._node_registry.get_all_global_nodes()[0]
+        global_node = self._node_landscape_aggregator.get_global_node()
         global_node_tasks_handler = _create_node_task_handler(
             _NodeInfoDTO(
                 node_id=global_node.id,
@@ -259,7 +197,7 @@ class Controller:
             data_model=data_model, datasets=datasets
         )
         local_nodes_tasks_handlers = [
-            _create_node_task_handler(task_handler) for task_handler in local_nodes_info
+            _create_node_task_handler(node_info) for node_info in local_nodes_info
         ]
 
         return NodesTasksHandlersDTO(
@@ -268,27 +206,29 @@ class Controller:
         )
 
     def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
-        global_nodes = self._node_registry.get_all_global_nodes()
-        local_nodes = self._node_registry.get_all_local_nodes()
-
-        for node in global_nodes + local_nodes:
-            if node.id == node_id:
-                return _NodeInfoDTO(
-                    node_id=node.id,
-                    queue_address=":".join([str(node.ip), str(node.port)]),
-                    db_address=":".join([str(node.db_ip), str(node.db_port)]),
-                    tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-                )
+        node = self._node_landscape_aggregator.get_node_info(node_id)
+        return _NodeInfoDTO(
+            node_id=node.id,
+            queue_address=":".join([str(node.ip), str(node.port)]),
+            db_address=":".join([str(node.db_ip), str(node.db_port)]),
+            tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        )
 
     def _get_nodes_info_by_dataset(
         self, data_model: str, datasets: List[str]
     ) -> List[_NodeInfoDTO]:
-        local_nodes = self._node_registry.get_nodes_with_any_of_datasets(
-            data_model=data_model,
-            datasets=datasets,
+        local_node_ids = (
+            self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(
+                data_model=data_model,
+                datasets=datasets,
+            )
         )
+        local_nodes_info = [
+            self._node_landscape_aggregator.get_node_info(node_id)
+            for node_id in local_node_ids
+        ]
         nodes_info = []
-        for local_node in local_nodes:
+        for local_node in local_nodes_info:
             nodes_info.append(
                 _NodeInfoDTO(
                     node_id=local_node.id,
@@ -313,5 +253,5 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery
 
 
 def get_a_uniqueid() -> str:
-    uid = datetime.datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
+    uid = datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
     return f"{uid}"

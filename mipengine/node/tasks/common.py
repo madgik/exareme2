@@ -4,8 +4,10 @@ from celery import shared_task
 
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import common_actions
-from mipengine.node.monetdb_interface.common_actions import get_data_model_datasets
 from mipengine.node.monetdb_interface.common_actions import get_data_models
+from mipengine.node.monetdb_interface.common_actions import (
+    get_dataset_code_per_dataset_label,
+)
 from mipengine.node.node_logger import initialise_logger
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import TableData
@@ -24,9 +26,6 @@ def get_node_info(request_id: str):
     str(NodeInfo)
         A NodeInfo object in a jsonified format
     """
-    datasets_per_data_model = {}
-    for data_model in get_data_models():
-        datasets_per_data_model[data_model] = get_data_model_datasets(data_model)
 
     node_info = NodeInfo(
         id=node_config.identifier,
@@ -35,7 +34,6 @@ def get_node_info(request_id: str):
         port=node_config.rabbitmq.port,
         db_ip=node_config.monetdb.ip,
         db_port=node_config.monetdb.port,
-        datasets_per_data_model=datasets_per_data_model,
     )
 
     return node_info.json()
@@ -43,7 +41,26 @@ def get_node_info(request_id: str):
 
 @shared_task
 @initialise_logger
-def get_data_model_cdes(request_id: str, data_model: str) -> Dict[str, str]:
+def get_node_datasets_per_data_model(request_id: str) -> Dict[str, Dict[str, str]]:
+    """
+    Parameters
+    ----------
+    request_id : str
+        The identifier for the logging
+    Returns
+    ------
+    Dict[str, Dict[str, str]]
+        A dictionary with key data model and value a list of pairs (dataset code and dataset label)
+    """
+    return {
+        data_model: get_dataset_code_per_dataset_label(data_model)
+        for data_model in get_data_models()
+    }
+
+
+@shared_task
+@initialise_logger
+def get_data_model_cdes(request_id: str, data_model: str) -> str:
     """
     Parameters
     ----------
@@ -54,10 +71,10 @@ def get_data_model_cdes(request_id: str, data_model: str) -> Dict[str, str]:
 
     Returns
     ------
-    Dict[str, str(CommonDataElement)]
-        A dict of code to cde metadata.
+    str
+        A CommonDataElements object in a jsonified format
     """
-    return common_actions.get_data_model_cdes(data_model)
+    return common_actions.get_data_model_cdes(data_model).json()
 
 
 @shared_task

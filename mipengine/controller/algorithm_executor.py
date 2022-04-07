@@ -43,9 +43,7 @@ from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
-from mipengine.controller.controller_common_data_elements import (
-    controller_common_data_elements,
-)
+from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import TableData
@@ -98,6 +96,7 @@ class AlgorithmExecutor:
         self,
         algorithm_execution_dto: AlgorithmExecutionDTO,
         nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
+        node_landscape_aggregator: NodeLandscapeAggregator,
     ):
         self._logger = ctrl_logger.get_request_logger(
             request_id=algorithm_execution_dto.request_id
@@ -108,7 +107,7 @@ class AlgorithmExecutor:
         self._request_id = algorithm_execution_dto.request_id
         self._context_id = algorithm_execution_dto.context_id
         self._algorithm_name = algorithm_execution_dto.algorithm_name
-
+        self._node_landscape_aggregator = node_landscape_aggregator
         self._global_node: GlobalNode = None
         self._local_nodes: List[LocalNode] = []
         self._algorithm_flow_module = None
@@ -180,11 +179,11 @@ class AlgorithmExecutor:
         )
         if len(self._local_nodes) > 1:
             self._execution_interface = _AlgorithmExecutionInterface(
-                algo_execution_interface_dto
+                algo_execution_interface_dto, self._node_landscape_aggregator
             )
         else:
             self._execution_interface = _SingleLocalNodeAlgorithmExecutionInterface(
-                algo_execution_interface_dto
+                algo_execution_interface_dto, self._node_landscape_aggregator
             )
 
         # Get algorithm module
@@ -209,10 +208,9 @@ class AlgorithmExecutor:
             TimeoutError,
             ClosedBrokerConnectionError,
         ) as err:
-            self._logger.error(f"{err}")
+            self._logger.error(f"ErrorType: '{type(err)}' and message: '{err}'")
             raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
-
             self._logger.error(f"{traceback.format_exc()}")
             raise exc
 
@@ -233,7 +231,11 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
 
 
 class _AlgorithmExecutionInterface:
-    def __init__(self, algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO):
+    def __init__(
+        self,
+        algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO,
+        node_landscape_aggregator: NodeLandscapeAggregator,
+    ):
         self._global_node: GlobalNode = algo_execution_interface_dto.global_node
         self._local_nodes: List[LocalNode] = algo_execution_interface_dto.local_nodes
         self._algorithm_name = algo_execution_interface_dto.algorithm_name
@@ -244,9 +246,9 @@ class _AlgorithmExecutionInterface:
             algo_execution_interface_dto.datasets_per_local_node
         )
         self._use_smpc = algo_execution_interface_dto.use_smpc
-        cdes = controller_common_data_elements.data_models[
+        cdes = node_landscape_aggregator.get_cdes(
             algo_execution_interface_dto.data_model
-        ]
+        )
         varnames = (self._x_variables or []) + (self._y_variables or [])
         self._metadata = {
             varname: cde.__dict__
@@ -677,8 +679,12 @@ class _AlgorithmExecutionInterface:
 
 
 class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
-    def __init__(self, algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO):
-        super().__init__(algo_execution_interface_dto)
+    def __init__(
+        self,
+        algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO,
+        node_landscape_aggregator: NodeLandscapeAggregator,
+    ):
+        super().__init__(algo_execution_interface_dto, node_landscape_aggregator)
         self._global_node = self._local_nodes[0]
 
     def _share_local_node_data(

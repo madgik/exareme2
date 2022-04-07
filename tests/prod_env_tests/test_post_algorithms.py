@@ -15,7 +15,18 @@ def get_parametrization_list_success_cases():
     request_dict = {
         "inputdata": {
             "data_model": "dementia:0.1",
-            "datasets": ["edsd"],
+            "datasets": [
+                "edsd0",
+                "edsd1",
+                "edsd2",
+                "edsd3",
+                "edsd4",
+                "edsd5",
+                "edsd6",
+                "edsd7",
+                "edsd8",
+                "edsd9",
+            ],
             "x": [
                 "lefthippocampus",
                 "righthippocampus",
@@ -30,7 +41,18 @@ def get_parametrization_list_success_cases():
                     {
                         "id": "dataset",
                         "type": "string",
-                        "value": ["edsd"],
+                        "value": [
+                            "edsd0",
+                            "edsd1",
+                            "edsd2",
+                            "edsd3",
+                            "edsd4",
+                            "edsd5",
+                            "edsd6",
+                            "edsd7",
+                            "edsd8",
+                            "edsd9",
+                        ],
                         "operator": "in",
                     },
                     {
@@ -76,11 +98,11 @@ def get_parametrization_list_success_cases():
                 "name": "coefficient",
                 "type": "FLOAT",
                 "data": [
-                    -3.808690138615198,
-                    4.595468450104967,
-                    3.6548996108914924,
-                    -2.46237146733095,
-                    -11.786703468254302,
+                    -2.6061540990015115,
+                    3.6188386684744067,
+                    3.4370357819153647,
+                    -3.374943651722157,
+                    -11.190272547103902,
                 ],
             },
         ],
@@ -104,7 +126,7 @@ def test_post_algorithms(algorithm_name, request_dict, expected_response):
         data=json.dumps(request_dict),
         headers=headers,
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Response message: {response.text}"
 
     response = response.json()
     columns = response["columns"]
@@ -154,7 +176,7 @@ def get_parametrization_list_exception_cases():
     request_dict = {
         "inputdata": {
             "data_model": "dementia:0.1",
-            "datasets": ["edsd"],
+            "datasets": ["edsd0"],
             "x": ["lefthippocampus"],
             "y": ["alzheimerbroadcategory"],
             "filters": {
@@ -199,5 +221,7 @@ def test_post_algorithm_error(algorithm_name, request_dict, expected_response):
     request_json = json.dumps(request_dict)
     response = requests.post(algorithm_url, data=request_json, headers=headers)
     exp_response_status, exp_response_message = expected_response
-    assert response.status_code == exp_response_status
+    assert (
+        response.status_code == exp_response_status
+    ), f"Response message: {response.text}"
     assert re.search(exp_response_message, response.text)
