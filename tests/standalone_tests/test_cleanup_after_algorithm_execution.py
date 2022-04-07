@@ -235,6 +235,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     # node registry has to run on the background because it is used by the Cleaner
     controller.start_node_registry()
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
@@ -377,6 +378,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
     # node registry has to run on the background because it is used by the Cleaner
     controller.start_node_registry()
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
@@ -513,6 +515,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # node registry has to run on the background because it is used by the Cleaner
     controller.start_node_registry()
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
@@ -674,6 +677,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     # node registry has to run on the background because it is used by the Cleaner
     controller.start_node_registry()
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
@@ -827,6 +831,7 @@ async def test_cleanup_controller_restart(
     # node registry has to run on the background because it is used by the Cleaner
     controller.start_node_registry()
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()

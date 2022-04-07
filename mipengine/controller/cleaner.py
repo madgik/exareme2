@@ -107,6 +107,11 @@ class Cleaner:
                     tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
                 )
 
+    # This is only supposed to be called from a test.
+    # In all other circumstances cleanup should not be reset manually
+    def _reset_cleanup(self):
+        self._cleanup_file_processor._delete_cleanup_file()
+
 
 def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery:
     return NodeTasksHandlerCelery(
@@ -220,3 +225,9 @@ class CleanupFileProcessor:
         # renaming is atomic. Of course if more Controllers are spawn the file is very
         # likely to become corrupted
         os.rename(self._cleanup_file_tmp_path, self._cleanup_file_path)
+
+    def _delete_cleanup_file(self):
+        cleanup_file_path = Path(
+            controller_config.cleanup.contextids_cleanup_folder
+        ).joinpath(Path(CONTEXT_ID_CLEANUP_FILE))
+        cleanup_file_path.unlink()
