@@ -23,8 +23,6 @@ spec:
         ports:
           - containerPort: 5000
         volumeMounts:
-        - mountPath: /opt/data
-          name: metadata
         - mountPath: /opt/cleanup
           name: cleanup-file
         env:
@@ -34,8 +32,8 @@ spec:
           value: {{ .Values.framework_log_level }}
         - name: DEPLOYMENT_TYPE
           value: "KUBERNETES"
-        - name: NODE_REGISTRY_UPDATE_INTERVAL
-          value: "{{ .Values.controller.node_registry_update_interval }}"
+        - name: NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL
+          value: "{{ .Values.controller.node_landscape_aggregator_update_interval }}"
         - name: NODES_CLEANUP_INTERVAL
           value: "{{ .Values.controller.nodes_cleanup_interval }}"
         - name: NODES_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT
@@ -52,9 +50,6 @@ spec:
           value: {{ quote .Values.smpc.optional }}
 
       volumes:
-      - name: metadata
-        hostPath:
-          path: {{ .Values.cdes_path }}
       - name: cleanup-file
         hostPath:
           path: {{ .Values.controller.cleanup_file_folder }}
