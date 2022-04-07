@@ -64,15 +64,16 @@ async def _get_node_datasets_per_data_model(
     celery_app = get_node_celery_app(node_socket_addr)
     task_signature = celery_app.signature(GET_NODE_DATASETS_PER_DATA_MODEL_SIGNATURE)
 
-    result = await _task_to_async(
-        task_signature, connection=celery_app.broker_connection()
-    )(request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID)
+    try:
+        datasets_per_data_model = await _task_to_async(
+            task_signature, connection=celery_app.broker_connection()
+        )(request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID)
+    except Exception as exc:
+        logger.error(
+            f"Error at 'get_node_datasets_per_data_model' in node '{node_socket_addr}': {type(exc)}:{exc}"
+        )
+        datasets_per_data_model = {}
 
-    datasets_per_data_model = {}
-    if not isinstance(result, Exception):
-        datasets_per_data_model = {
-            data_model: datasets for data_model, datasets in result.items()
-        }
     return datasets_per_data_model
 
 
