@@ -1,5 +1,3 @@
-import json
-
 import pydantic
 from quart import Blueprint
 from quart import request
@@ -36,13 +34,13 @@ async def get_datasets() -> dict:
     return controller.get_all_available_datasets_per_data_model()
 
 
-@algorithms.route("/dataset_locations", methods=["GET"])
-async def get_dataset_locations() -> dict:
+@algorithms.route("/datasets_location", methods=["GET"])
+async def get_datasets_location() -> dict:
     return controller.get_datasets_location()
 
 
-@algorithms.route("/metadata", methods=["GET"])
-async def get_metadata() -> dict:
+@algorithms.route("/cdes_metadata", methods=["GET"])
+async def get_cdes_metadata() -> dict:
     return {
         data_model: cdes.dict()
         for data_model, cdes in controller.get_cdes_per_data_model().items()
