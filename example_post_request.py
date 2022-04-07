@@ -9,7 +9,18 @@ def do_post_request():
     url = "http://127.0.0.1:5000/algorithms" + "/logistic_regression"
 
     data_model = "dementia:0.1"
-    datasets = ["edsd"]
+    datasets = [
+        "edsd0",
+        "edsd1",
+        "edsd2",
+        "edsd3",
+        "edsd4",
+        "edsd5",
+        "edsd6",
+        "edsd7",
+        "edsd8",
+        "edsd9",
+    ]
     x = [
         "lefthippocampus",
         "righthippocampus",
