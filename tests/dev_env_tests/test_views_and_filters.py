@@ -205,7 +205,6 @@ def test_data_model_view_without_filters(request_id, context_id):
     schema_result_json = local_node_get_view_schema.delay(
         request_id=request_id, table_name=view_name
     ).get()
-    print(TableSchema.parse_raw(schema_result_json))
     assert schema == TableSchema.parse_raw(schema_result_json)
 
     view_data_json = local_node_get_view_data.delay(

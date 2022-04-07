@@ -3,13 +3,23 @@ import json
 import pytest
 import requests
 
-from tests.prod_env_tests import datasets_url
+from tests.prod_env_tests import datasets_location_url
 
 
 @pytest.fixture
 def expected_datasets_per_data_model():
     return {
         "dementia:0.1": {
+            "desd-synthdata0",
+            "desd-synthdata1",
+            "desd-synthdata2",
+            "desd-synthdata3",
+            "desd-synthdata4",
+            "desd-synthdata5",
+            "desd-synthdata6",
+            "desd-synthdata7",
+            "desd-synthdata8",
+            "desd-synthdata9",
             "edsd0",
             "edsd1",
             "edsd2",
@@ -30,16 +40,6 @@ def expected_datasets_per_data_model():
             "ppmi7",
             "ppmi8",
             "ppmi9",
-            "desd-synthdata0",
-            "desd-synthdata1",
-            "desd-synthdata2",
-            "desd-synthdata3",
-            "desd-synthdata4",
-            "desd-synthdata5",
-            "desd-synthdata6",
-            "desd-synthdata7",
-            "desd-synthdata8",
-            "desd-synthdata9",
         },
         "tbi:0.1": {
             "dummy_tbi0",
@@ -56,14 +56,10 @@ def expected_datasets_per_data_model():
     }
 
 
-def test_get_datasets(expected_datasets_per_data_model):
-    request = requests.get(datasets_url)
+def test_get_datasets_location(expected_datasets_per_data_model):
+    request = requests.get(datasets_location_url)
     response = json.loads(request.text)
-    datasets_per_data_model = {}
-    for data_model, datasets in response.items():
-        if data_model not in datasets_per_data_model.keys():
-            datasets_per_data_model[data_model] = set(datasets)
-        else:
-            datasets_per_data_model[data_model].update(datasets)
-
-    assert datasets_per_data_model == expected_datasets_per_data_model
+    for data_model in response:
+        assert data_model in expected_datasets_per_data_model
+        for dataset in response[data_model]:
+            assert dataset in expected_datasets_per_data_model[data_model]

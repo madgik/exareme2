@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.node_registry import NodeRegistry
+from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 
 CLEANER_REQUEST_ID = "CLEANER"
@@ -28,10 +28,10 @@ class _NodeInfoDTO(BaseModel):
 
 
 class Cleaner:
-    def __init__(self, node_registry: NodeRegistry):
+    def __init__(self, node_landscape_aggregator: NodeLandscapeAggregator):
         self._logger = ctrl_logger.get_background_service_logger()
 
-        self._node_registry = node_registry
+        self._node_landscape_aggregator = node_landscape_aggregator
 
         self._cleanup_file_processor = CleanupFileProcessor(self._logger)
         self._clean_up_interval = controller_config.cleanup.nodes_cleanup_interval
@@ -39,73 +39,86 @@ class Cleaner:
 
     async def cleanup_loop(self):
         while self.keep_cleaning_up:
-            contextids_and_status = self._cleanup_file_processor.read_cleanup_file()
-            for context_id, status in contextids_and_status.items():
-                if not status["nodes"]:
-                    self._remove_contextid_from_cleanup(context_id=context_id)
-                    continue
-                if (
-                    status["released"]
-                    or (
-                        datetime.now(timezone.utc)
-                        - datetime.fromisoformat(status["timestamp"])
-                    ).seconds
-                    > controller_config.cleanup.contextid_release_timelimit
-                ):
-                    for node_id in status["nodes"]:
-                        try:
-                            node_info = self._get_node_info_by_id(node_id)
-                            task_handler = _create_node_task_handler(node_info)
-                            task_handler.clean_up(
-                                request_id=CLEANER_REQUEST_ID,
-                                context_id=context_id,
-                            )
-                            task_handler.close()
-                            self._remove_nodeid_from_cleanup(
-                                context_id=context_id, node_id=node_id
-                            )
-                            self._logger.debug(
-                                f"clean_up task succeeded for {node_id=} for {context_id=}"
-                            )
-                        except Exception as exc:
-                            self._logger.debug(
-                                f"clean_up task FAILED for {node_id=} "
-                                f"for {context_id=}. Will retry in {self._clean_up_interval=} secs. Fail "
-                                f"reason: {type(exc)}:{exc}"
-                            )
-
-            await asyncio.sleep(self._clean_up_interval)
+            try:
+                contextids_and_status = self._cleanup_file_processor.read_cleanup_file()
+                for context_id, status in contextids_and_status.items():
+                    if not status["nodes"]:
+                        self._remove_contextid_from_cleanup(context_id=context_id)
+                        continue
+                    if (
+                        status["released"]
+                        or (
+                            datetime.now(timezone.utc)
+                            - datetime.fromisoformat(status["timestamp"])
+                        ).seconds
+                        > controller_config.cleanup.contextid_release_timelimit
+                    ):
+                        for node_id in status["nodes"]:
+                            try:
+                                node_info = self._get_node_info_by_id(node_id)
+                                task_handler = _create_node_task_handler(node_info)
+                                task_handler.clean_up(
+                                    request_id=CLEANER_REQUEST_ID,
+                                    context_id=context_id,
+                                )
+                                task_handler.close()
+                                self._remove_nodeid_from_cleanup(
+                                    context_id=context_id, node_id=node_id
+                                )
+                                self._logger.debug(
+                                    f"clean_up task succeeded for {node_id=} for {context_id=}"
+                                )
+                            except Exception as exc:
+                                self._logger.debug(
+                                    f"clean_up task FAILED for {node_id=} "
+                                    f"for {context_id=}. Will retry in {self._clean_up_interval=} secs. Fail "
+                                    f"reason: {type(exc)}:{exc}"
+                                )
+            except Exception as exc:
+                self._logger.error(f"Cleanup exception: {type(exc)}:{exc}")
+            finally:
+                await asyncio.sleep(self._clean_up_interval)
 
     def add_contextid_for_cleanup(
         self, context_id: str, algo_execution_node_ids: List[str]
     ):
-        self._cleanup_file_processor._append_to_cleanup_file(
+        self._cleanup_file_processor.append_to_cleanup_file(
             context_id=context_id, node_ids=algo_execution_node_ids
         )
 
     def _remove_contextid_from_cleanup(self, context_id: str):
-        self._cleanup_file_processor._remove_from_cleanup_file(context_id=context_id)
+        self._cleanup_file_processor.remove_from_cleanup_file(context_id=context_id)
 
     def _remove_nodeid_from_cleanup(self, context_id: str, node_id: str):
-        self._cleanup_file_processor._remove_from_cleanup_file(
+        self._cleanup_file_processor.remove_from_cleanup_file(
             context_id=context_id, node_id=node_id
         )
 
     def release_contextid_for_cleanup(self, context_id: str):
-        self._cleanup_file_processor._set_released_true_to_file(context_id=context_id)
+        self._cleanup_file_processor.set_released_true_to_file(context_id=context_id)
 
     def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
-        global_nodes = self._node_registry.get_all_global_nodes()
-        local_nodes = self._node_registry.get_all_local_nodes()
+        global_node = self._node_landscape_aggregator.get_global_node()
+        local_nodes = self._node_landscape_aggregator.get_all_local_nodes()
 
-        for node in global_nodes + local_nodes:
-            if node.id == node_id:
-                return _NodeInfoDTO(
-                    node_id=node.id,
-                    queue_address=":".join([str(node.ip), str(node.port)]),
-                    db_address=":".join([str(node.db_ip), str(node.db_port)]),
-                    tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-                )
+        if node_id == global_node.id:
+            return _NodeInfoDTO(
+                node_id=global_node.id,
+                queue_address=":".join([str(global_node.ip), str(global_node.port)]),
+                db_address=":".join([str(global_node.db_ip), str(global_node.db_port)]),
+                tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+            )
+
+        if node_id in local_nodes.keys():
+            local_node = local_nodes[node_id]
+            return _NodeInfoDTO(
+                node_id=local_node.id,
+                queue_address=":".join([str(local_node.ip), str(local_node.port)]),
+                db_address=":".join([str(local_node.db_ip), str(local_node.db_port)]),
+                tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+            )
+
+        raise KeyError(f"Node with id '{node_id}' is not currently available.")
 
     # This is only supposed to be called from a test.
     # In all other circumstances cleanup should not be reset manually
@@ -150,7 +163,7 @@ class CleanupFileProcessor:
         )
         self._cleanup_file_tmp_path = os.path.join(dirname, filename_tmp)
 
-    def _append_to_cleanup_file(self, context_id: str, node_ids: List[str]):
+    def append_to_cleanup_file(self, context_id: str, node_ids: List[str]):
         parsed_toml = self.read_cleanup_file()
         if context_id not in parsed_toml:
             parsed_toml[context_id] = {"nodes": node_ids}
@@ -171,14 +184,14 @@ class CleanupFileProcessor:
 
         self._write_to_cleanup_file(parsed_toml)
 
-    def _set_released_true_to_file(self, context_id: str):
+    def set_released_true_to_file(self, context_id: str):
         parsed_toml = self.read_cleanup_file()
         if context_id in parsed_toml:
             parsed_toml[context_id]["released"] = True
 
         self._write_to_cleanup_file(parsed_toml)
 
-    def _remove_from_cleanup_file(self, context_id: str, node_id: str = None):
+    def remove_from_cleanup_file(self, context_id: str, node_id: str = None):
         parsed_toml = self.read_cleanup_file()
         if context_id in parsed_toml:
             if node_id:

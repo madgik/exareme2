@@ -25,7 +25,6 @@ test_cases_get_node_info = [
             port=5670,
             db_ip="172.17.0.1",
             db_port=50000,
-            datasets_per_data_model={},
         ),
     ),
     (
@@ -37,7 +36,6 @@ test_cases_get_node_info = [
             port=5671,
             db_ip="172.17.0.1",
             db_port=50001,
-            datasets_per_data_model={},
         ),
     ),
 ]
@@ -54,7 +52,5 @@ def test_get_node_info(node_id, expected_node_info):
     task_response = node_info_signature.delay(request_id=request_id).get()
     node_info = NodeInfo.parse_raw(task_response)
 
-    # Compare id and role. IPs and ports are machine dependent and
-    # datasets_per_data_model is tested elsewhere.
     assert node_info.id == expected_node_info.id
     assert node_info.role == expected_node_info.role
