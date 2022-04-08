@@ -7,65 +7,57 @@ from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.node_tasks_DTOs import CommonDataElement
-from mipengine.node_tasks_DTOs import CommonDataElements
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
 
 
 @pytest.fixture(scope="function")
-def mock_node_landscape_aggregator():
-    node_landscape_aggregator = NodeLandscapeAggregator()
-    data_models = {
-        "dementia:0.1": CommonDataElements(
-            values={
-                "lefthippocampus": CommonDataElement(
-                    code="lefthippocampus",
-                    label="Left Hippocampus",
-                    sql_type="real",
-                    is_categorical=False,
-                ),
-                "righthippocampus": CommonDataElement(
-                    code="righthippocampus",
-                    label="Right Hippocampus",
-                    sql_type="real",
-                    is_categorical=False,
-                ),
-                "rightppplanumpolare": CommonDataElement(
-                    code="rightppplanumpolare",
-                    label="Right planum polare",
-                    sql_type="real",
-                    is_categorical=False,
-                ),
-                "leftamygdala": CommonDataElement(
-                    code="leftamygdala",
-                    label="Left Amygdala",
-                    sql_type="real",
-                    is_categorical=False,
-                ),
-                "rightamygdala": CommonDataElement(
-                    code="rightamygdala",
-                    label="Right Amygdala",
-                    sql_type="real",
-                    is_categorical=False,
-                ),
-                "alzheimerbroadcategory": CommonDataElement(
-                    code="alzheimerbroadcategory",
-                    label="There will be two broad categories taken into account. Alzheimer s disease (AD) in which the diagnostic is 100% certain and <Other> comprising the rest of Alzheimer s related categories. The <Other> category refers to Alzheime s related diagnosis which origin can be traced to other pathology eg. vascular. In this category MCI diagnosis can also be found. In summary  all Alzheimer s related diagnosis that are not pure.",
-                    sql_type="text",
-                    is_categorical=True,
-                    enumerations={
-                        "AD": "Alzheimer’s disease",
-                        "CN": "Cognitively Normal",
-                    },
-                ),
-            }
+def mock_common_data_elements():
+    common_data_elements = {
+        "lefthippocampus": CommonDataElement(
+            code="lefthippocampus",
+            label="Left Hippocampus",
+            sql_type="real",
+            is_categorical=False,
+        ),
+        "righthippocampus": CommonDataElement(
+            code="righthippocampus",
+            label="Right Hippocampus",
+            sql_type="real",
+            is_categorical=False,
+        ),
+        "rightppplanumpolare": CommonDataElement(
+            code="rightppplanumpolare",
+            label="Right planum polare",
+            sql_type="real",
+            is_categorical=False,
+        ),
+        "leftamygdala": CommonDataElement(
+            code="leftamygdala",
+            label="Left Amygdala",
+            sql_type="real",
+            is_categorical=False,
+        ),
+        "rightamygdala": CommonDataElement(
+            code="rightamygdala",
+            label="Right Amygdala",
+            sql_type="real",
+            is_categorical=False,
+        ),
+        "alzheimerbroadcategory": CommonDataElement(
+            code="alzheimerbroadcategory",
+            label="There will be two broad categories taken into account. Alzheimer s disease (AD) in which the diagnostic is 100% certain and <Other> comprising the rest of Alzheimer s related categories. The <Other> category refers to Alzheime s related diagnosis which origin can be traced to other pathology eg. vascular. In this category MCI diagnosis can also be found. In summary  all Alzheimer s related diagnosis that are not pure.",
+            sql_type="text",
+            is_categorical=True,
+            enumerations={
+                "AD": "Alzheimer’s disease",
+                "CN": "Cognitively Normal",
+            },
         ),
     }
-    node_landscape_aggregator._data_model_registry.data_models = data_models
-    yield node_landscape_aggregator
+    yield common_data_elements
 
 
 @pytest.fixture(scope="function")
@@ -251,7 +243,7 @@ def get_parametrization_list_success_cases():
     get_parametrization_list_success_cases(),
 )
 def test_single_local_node_algorithm_execution(
-    mock_node_landscape_aggregator,
+    mock_common_data_elements,
     mock_ctrl_config,
     mock_algorithms_modules,
     algo_execution_dto,
@@ -279,7 +271,7 @@ def test_single_local_node_algorithm_execution(
     algo_executor = AlgorithmExecutor(
         algorithm_execution_dto=algo_execution_dto,
         nodes_tasks_handlers_dto=single_node_task_handler,
-        node_landscape_aggregator=mock_node_landscape_aggregator,
+        common_data_elements=mock_common_data_elements,
     )
     result = algo_executor.run()
 

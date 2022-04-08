@@ -212,7 +212,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
     def get_node_info(self, node_id: str) -> NodeInfo:
         return self._node_registry.get_node_info(node_id)
 
-    def get_cdes(self, data_model: str):
+    def get_cdes(self, data_model: str) -> Dict[str, CommonDataElement]:
         return self._data_model_registry.get_cdes(data_model)
 
     def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
@@ -267,7 +267,6 @@ async def _gather_all_dataset_infos(
             node_socket_addr
         )
         for data_model, datasets in datasets_per_data_model.items():
-
             current_labels = (
                 aggregated_datasets[data_model]
                 if data_model in aggregated_datasets
