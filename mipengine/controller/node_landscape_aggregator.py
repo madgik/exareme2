@@ -44,9 +44,7 @@ async def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
     }
 
     tasks_coroutines = [
-        _task_to_async(task, connection=app.broker_connection())(
-            request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
-        )
+        _task_to_async(task, app=app)(request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID)
         for app, task in nodes_task_signature.items()
     ]
     results = await asyncio.gather(*tasks_coroutines, return_exceptions=True)
@@ -55,6 +53,10 @@ async def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
         for result in results
         if not isinstance(result, Exception)
     ]
+
+    for app in celery_apps:
+        app.close()
+
     return nodes_info
 
 
@@ -64,9 +66,9 @@ async def _get_node_datasets_per_data_model(
     celery_app = get_node_celery_app(node_socket_addr)
     task_signature = celery_app.signature(GET_NODE_DATASETS_PER_DATA_MODEL_SIGNATURE)
 
-    result = await _task_to_async(
-        task_signature, connection=celery_app.broker_connection()
-    )(request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID)
+    result = await _task_to_async(task_signature, app=celery_app)(
+        request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+    )
 
     datasets_per_data_model = {}
     if not isinstance(result, Exception):
@@ -80,15 +82,15 @@ async def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataEl
     celery_app = get_node_celery_app(node_socket_addr)
     task_signature = celery_app.signature(GET_DATA_MODEL_CDES_SIGNATURE)
 
-    result = await _task_to_async(
-        task_signature, connection=celery_app.broker_connection()
-    )(data_model=data_model, request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID)
+    result = await _task_to_async(task_signature, app=celery_app)(
+        data_model=data_model, request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+    )
 
     if not isinstance(result, Exception):
         return CommonDataElements.parse_raw(result)
 
 
-def _task_to_async(task, connection):
+def _task_to_async(task, app):
     """ex
     Converts a Celery task to an async function
     Celery doesn't currently support asyncio "await" while "getting" a result
@@ -106,18 +108,19 @@ def _task_to_async(task, connection):
         delay = 0.1
         # Since apply_async is used instead of delay so that we can pass the connection as an argument,
         # the args and kwargs need to be passed as named arguments.
-        async_result = await sync_to_async(task.apply_async)(
-            args=args, kwargs=kwargs, connection=connection
-        )
-        while not async_result.ready():
-            total_delay += delay
-            if total_delay > CELERY_TASKS_TIMEOUT:
-                raise TimeoutError(
-                    f"Celery task: {task} didn't respond in {CELERY_TASKS_TIMEOUT}s."
-                )
-            await asyncio.sleep(delay)
-            delay = min(delay * 1.5, 2)  # exponential backoff, max 2 seconds
-        return async_result.get(timeout=CELERY_TASKS_TIMEOUT - total_delay)
+        with app.broker_connection() as conn:
+            async_result = await sync_to_async(task.apply_async)(
+                args=args, kwargs=kwargs, connection=conn
+            )
+            while not async_result.ready():
+                total_delay += delay
+                if total_delay > CELERY_TASKS_TIMEOUT:
+                    raise TimeoutError(
+                        f"Celery task: {task} didn't respond in {CELERY_TASKS_TIMEOUT}s."
+                    )
+                await asyncio.sleep(delay)
+                delay = min(delay * 1.5, 2)  # exponential backoff, max 2 seconds
+            return async_result.get(timeout=CELERY_TASKS_TIMEOUT - total_delay)
 
     return wrapper
 
