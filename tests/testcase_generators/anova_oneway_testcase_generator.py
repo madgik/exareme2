@@ -12,7 +12,6 @@ from tests.testcase_generators.testcase_generator import TestCaseGenerator
 SPECS_PATH = Path("mipengine", "algorithms", "one_way_anova.json")
 EXPECTED_PATH = Path(
     "tests",
-    "prod_env_tests",
     "algorithm_validation_tests",
     "expected",
     "one_way_anova_expected.json",

@@ -66,6 +66,7 @@ def test_anova_algorithm(test_input, expected):
     res_aov = set(aov.keys())
     res_aov.remove("x_label")
     res_aov.remove("y_label")
+
     assert set(e_aov) == res_aov
     for key, e_val in e_aov.items():
         r_val = aov[key]
