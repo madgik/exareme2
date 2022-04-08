@@ -7,6 +7,9 @@ from asgiref.sync import sync_to_async
 
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
+
+# TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
+# so the module can be easily unit tested
 from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_registry import NodeRegistry
@@ -15,9 +18,6 @@ from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
-
-# TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
-# so the module can be easily unit tested
 from mipengine.singleton import Singleton
 
 logger = ctrl_logger.get_background_service_logger()
@@ -129,9 +129,10 @@ def _get_node_socket_addr(node_info: NodeInfo):
 
 class NodeLandscapeAggregator(metaclass=Singleton):
     def __init__(self):
+        self._logger = logger
         self.keep_updating = True
-        self._node_registry = NodeRegistry()
-        self._data_model_registry = DataModelRegistry()
+        self._node_registry = NodeRegistry(self._logger)
+        self._data_model_registry = DataModelRegistry(self._logger)
 
     async def update(self):
         """
@@ -172,14 +173,18 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                     for common_data_model in data_models
                 }
 
-                self._node_registry._nodes = {
+                self._node_registry.nodes = {
                     node_info.id: node_info for node_info in nodes_info
                 }
-                self._data_model_registry._data_models = data_models
-                self._data_model_registry._datasets_location = datasets_locations
-                logger.debug(f"Nodes:{[node for node in self._node_registry.nodes]}")
+                self._data_model_registry.data_models = data_models
+                self._data_model_registry.datasets_location = datasets_locations
+                self._logger.debug(
+                    f"Nodes:{[node for node in self._node_registry.nodes]}"
+                )
             except Exception as exc:
-                logger.error(f"Node Landscape Aggregator exception: {type(exc)}:{exc}")
+                self._logger.error(
+                    f"Node Landscape Aggregator exception: {type(exc)}:{exc}"
+                )
             finally:
                 await asyncio.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
 

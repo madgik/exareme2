@@ -11,6 +11,7 @@ import pytest
 import sqlalchemy as sql
 import toml
 
+from mipengine.controller.controller_logger import get_request_logger
 from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_registry import NodeRegistry
@@ -695,6 +696,8 @@ def localnodetmp_tasks_handler(localnodetmp_node_service):
 def reset_node_landscape_aggregator():
     nla = NodeLandscapeAggregator()
     nla.keep_updating = False
-    nla._node_registry = NodeRegistry()
-    nla._data_model_registry = DataModelRegistry()
+    nla._node_registry = NodeRegistry(get_request_logger("NODE-REGISTRY"))
+    nla._data_model_registry = DataModelRegistry(
+        get_request_logger("DATA-MODEL-REGISTRY")
+    )
     yield

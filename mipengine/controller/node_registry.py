@@ -1,3 +1,4 @@
+from logging import Logger
 from typing import Dict
 
 from mipengine.node_info_DTOs import NodeInfo
@@ -5,8 +6,9 @@ from mipengine.node_info_DTOs import NodeRole
 
 
 class NodeRegistry:
-    def __init__(self):
-        self.nodes: Dict[str, NodeInfo] = {}
+    def __init__(self, logger: Logger):
+        self._logger = logger
+        self._nodes: Dict[str, NodeInfo] = {}
 
     @property
     def nodes(self) -> Dict[str, NodeInfo]:
