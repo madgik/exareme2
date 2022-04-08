@@ -191,6 +191,7 @@ def _init_database_monetdb_container(db_ip, db_port):
     )
     if res.returncode == 0:
         print(f"\nDatabase ({db_ip}:{db_port}) already initialized, continuing.")
+
         return
 
     print(f"\nInitializing database ({db_ip}:{db_port})")

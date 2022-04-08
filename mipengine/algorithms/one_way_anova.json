@@ -5,8 +5,8 @@
     "enabled": true,
     "inputdata": {
         "x": {
-            "label": "features",
-            "desc": "Features",
+            "label": "independent",
+            "desc": "independent variable",
             "types": [
                 "int", "text"
             ],
@@ -17,8 +17,8 @@
             "multiple": false
         },
         "y": {
-            "label": "target",
-            "desc": "Target variable",
+            "label": "dependent",
+            "desc": "Dependent variable",
             "types": [
                 "real", "int"
             ],

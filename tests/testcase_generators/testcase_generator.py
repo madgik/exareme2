@@ -130,9 +130,9 @@ class NumericalInputDataVariables(InputDataVariable):
 class NominalInputDataVariables(InputDataVariable):
     @cached_property
     def all_variables(self):
-        """Gets the names of all numerical variables available."""
-        numerical_vars = self.db.get_nominal_variables()
-        return numerical_vars
+        """Gets the names of all nominal variables available."""
+        nominal_vars = self.db.get_nominal_variables()
+        return nominal_vars
 
 
 class MixedInputDataVariables:
@@ -377,9 +377,7 @@ class TestCaseGenerator(ABC):
         try:
             output = self.compute_expected_output(input_data, parameters)
         except Exception as err:
-            raise Exception(
-                f"{err}, datasets: \033[1m {input_['inputdata']['datasets']} \033[0m"
-            )
+            raise Exception(f"{err}, datasets: {input_['inputdata']['datasets']}")
 
         return {"input": input_, "output": output}
 
@@ -391,7 +389,7 @@ class TestCaseGenerator(ABC):
                 item = self.generate_test_case()
                 test_cases.append(item)
             except Exception as err:
-                print(f"\033[1m\033[91mAn error occurred:\033[0m\033[0m {err}")
+                print(f"An error occurred: {err}")
 
         return {"test_cases": test_cases}
 
