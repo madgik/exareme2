@@ -6,7 +6,7 @@ from mipengine.node_info_DTOs import NodeRole
 
 class NodeRegistry:
     def __init__(self):
-        self.nodes: Dict[str, NodeInfo] = {}
+        self._nodes: Dict[str, NodeInfo] = {}
 
     @property
     def nodes(self) -> Dict[str, NodeInfo]:

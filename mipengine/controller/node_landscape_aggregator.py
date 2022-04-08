@@ -160,25 +160,26 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 local_nodes = [
                     node for node in nodes_info if node.role == NodeRole.LOCALNODE
                 ]
-                datasets_locations = await _get_datasets_locations(local_nodes)
-                datasets_labels = await _get_datasets_labels(local_nodes)
-                data_model_cdes_across_nodes = await _get_cdes_across_nodes(local_nodes)
+                (
+                    dataset_locations,
+                    aggregated_datasets,
+                ) = await _gather_all_dataset_infos(local_nodes)
+                data_model_cdes_per_node = await _get_cdes_across_nodes(local_nodes)
                 compatible_data_models = _get_compatible_data_models(
-                    data_model_cdes_across_nodes
+                    data_model_cdes_per_node
                 )
-                data_models = get_updated_data_model_with_dataset_enumerations(
-                    compatible_data_models, datasets_labels
+                _update_data_models_with_aggregated_datasets(
+                    compatible_data_models, aggregated_datasets
                 )
-                datasets_locations = {
-                    common_data_model: datasets_locations[common_data_model]
-                    for common_data_model in data_models
-                }
+                datasets_locations = _get_dataset_locations_of_compatible_data_models(
+                    compatible_data_models, dataset_locations
+                )
 
-                self._node_registry._nodes = {
+                self._node_registry.nodes = {
                     node_info.id: node_info for node_info in nodes_info
                 }
-                self._data_model_registry._data_models = data_models
-                self._data_model_registry._datasets_location = datasets_locations
+                self._data_model_registry.data_models = compatible_data_models
+                self._data_model_registry.datasets_location = datasets_locations
                 logger.debug(f"Nodes:{[node for node in self._node_registry.nodes]}")
             except Exception as exc:
                 logger.error(f"Node Landscape Aggregator exception: {type(exc)}:{exc}")
@@ -237,42 +238,50 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         )
 
 
-async def _get_datasets_locations(nodes: List[NodeInfo]) -> Dict[str, Dict[str, str]]:
-    datasets_locations = {}
+async def _gather_all_dataset_infos(
+    nodes: List[NodeInfo],
+) -> Tuple[Dict[str, Dict[str, str]], Dict[str, Dict[str, str]]]:
+    """
+
+    Args:
+        nodes: The nodes available in the system
+
+    Returns:
+        A tuple with:
+         1. The location of each dataset.
+         2. The aggregated datasets, existing in all nodes
+    """
+    dataset_locations = {}
+    aggregated_datasets = {}
+
     for node_info in nodes:
         node_socket_addr = _get_node_socket_addr(node_info)
         datasets_per_data_model = await _get_node_datasets_per_data_model(
             node_socket_addr
         )
         for data_model, datasets in datasets_per_data_model.items():
-            current_datasets = (
-                datasets_locations[data_model]
-                if data_model in datasets_locations
+
+            current_labels = (
+                aggregated_datasets[data_model]
+                if data_model in aggregated_datasets
                 else {}
+            )
+            current_datasets = (
+                dataset_locations[data_model] if data_model in dataset_locations else {}
             )
 
             for dataset in datasets:
+                current_labels[dataset] = datasets[dataset]
+
                 if dataset in current_datasets:
                     current_datasets[dataset].append(node_info.id)
                 else:
                     current_datasets[dataset] = [node_info.id]
-            datasets_locations[data_model] = current_datasets
 
-    return datasets_locations
+            aggregated_datasets[data_model] = current_labels
+            dataset_locations[data_model] = current_datasets
 
-
-async def _get_datasets_labels(nodes: List[NodeInfo]) -> Dict[str, Dict[str, str]]:
-    datasets_labels = {}
-    for node_info in nodes:
-        node_socket_addr = _get_node_socket_addr(node_info)
-        datasets_per_data_model = await _get_node_datasets_per_data_model(
-            node_socket_addr
-        )
-        for data_model, datasets in datasets_per_data_model.items():
-            datasets_labels[data_model] = {}
-            for dataset in datasets:
-                datasets_labels[data_model][dataset] = datasets[dataset]
-    return datasets_labels
+    return dataset_locations, aggregated_datasets
 
 
 async def _get_cdes_across_nodes(
@@ -290,6 +299,15 @@ async def _get_cdes_across_nodes(
                 nodes_cdes[data_model] = []
             nodes_cdes[data_model].append((node_info.id, cdes))
     return nodes_cdes
+
+
+def _get_dataset_locations_of_compatible_data_models(
+    compatible_data_models, dataset_locations
+):
+    return {
+        compatible_data_model: dataset_locations[compatible_data_model]
+        for compatible_data_model in compatible_data_models
+    }
 
 
 def _get_compatible_data_models(
@@ -326,10 +344,13 @@ def _get_compatible_data_models(
     return data_models
 
 
-def get_updated_data_model_with_dataset_enumerations(
+def _update_data_models_with_aggregated_datasets(
     data_models: Dict[str, CommonDataElements],
-    datasets_labels: Dict[str, Dict[str, str]],
-) -> Dict[str, CommonDataElements]:
+    aggregated_datasets: Dict[str, Dict[str, str]],
+):
+    """
+    Updates each data_model's 'dataset' enumerations with the aggregated datasets
+    """
     for data_model in data_models:
         dataset_cde = data_models[data_model].values["dataset"]
         new_dataset_cde = CommonDataElement(
@@ -337,9 +358,8 @@ def get_updated_data_model_with_dataset_enumerations(
             label=dataset_cde.label,
             sql_type=dataset_cde.sql_type,
             is_categorical=dataset_cde.is_categorical,
-            enumerations=datasets_labels[data_model],
+            enumerations=aggregated_datasets[data_model],
             min=dataset_cde.min,
             max=dataset_cde.max,
         )
         data_models[data_model].values["dataset"] = new_dataset_cde
-    return data_models

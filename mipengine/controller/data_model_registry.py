@@ -11,8 +11,8 @@ def _have_common_elements(a: List[Any], b: List[Any]):
 
 class DataModelRegistry:
     def __init__(self):
-        self.data_models: Dict[str, CommonDataElements] = {}
-        self.datasets_location: Dict[str, Dict[str, List[str]]] = {}
+        self._data_models: Dict[str, CommonDataElements] = {}
+        self._datasets_location: Dict[str, Dict[str, List[str]]] = {}
 
     @property
     def data_models(self):
