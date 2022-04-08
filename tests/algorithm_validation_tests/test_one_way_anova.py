@@ -60,21 +60,8 @@ def test_anova_algorithm(test_input, expected):
     result = json.loads(anova_one_way_request(test_input).content)
     aov = result["anova_table"]
     tukey = result["tuckey_test"]
-    min_per_group = result["min_per_group"]
-    max_per_group = result["max_per_group"]
-    ci_info_sample_stds = result["ci_info"]["sample_stds"]
-    ci_info_means = result["ci_info"]["means"]
-    ci_info_m_minus_s = result["ci_info"]["m-s"]
-    ci_info_m_plus_s = result["ci_info"]["m+s"]
 
-    e_aov = {
-        k: v
-        for k, v in expected.items()
-        if k != "tuckey_test"
-        and k != "min_per_group"
-        and k != "max_per_group"
-        and k != "ci_info"
-    }
+    e_aov = {k: v for k, v in expected.items() if k != "tuckey_test"}
     e_tukey = expected["tuckey_test"]
     res_aov = set(aov.keys())
     res_aov.remove("x_label")
