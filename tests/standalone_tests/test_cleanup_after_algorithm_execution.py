@@ -5,10 +5,8 @@ from os import path
 from unittest.mock import patch
 
 import pytest
-import toml
 
 from mipengine import AttrDict
-from mipengine.common_data_elements import CommonDataElements
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
@@ -29,6 +27,7 @@ from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 WAIT_CLEANUP_TIME_LIMIT = 40
 WAIT_BEFORE_BRING_TMPNODE_DOWN = 20
 WAIT_BACKGROUND_TASKS_TO_FINISH = 30
+NLA_WAIT_TIME_LIMIT = 60
 
 
 @pytest.fixture(scope="session")
@@ -36,9 +35,8 @@ def controller_config_dict_mock():
     controller_config = {
         "log_level": "DEBUG",
         "framework_log_level": "INFO",
-        "cdes_metadata_path": "./tests/demo_data",
         "deployment_type": "LOCAL",
-        "node_registry_update_interval": 2,
+        "node_landscape_aggregator_update_interval": 2,
         "cleanup": {
             "contextids_cleanup_folder": "/tmp",
             "nodes_cleanup_interval": 2,
@@ -69,13 +67,6 @@ def controller_config_dict_mock():
     return controller_config
 
 
-@pytest.fixture(scope="session")
-def cdes_mock():
-    common_data_elements = CommonDataElements()
-    common_data_elements.data_models = {"dementia:0.1": {}}
-    return common_data_elements
-
-
 @pytest.fixture(autouse=True, scope="session")
 def patch_controller(controller_config_dict_mock):
     with patch(
@@ -85,7 +76,7 @@ def patch_controller(controller_config_dict_mock):
         yield
 
 
-@pytest.fixture(autouse=True, scope="session")  # (scope="function")
+@pytest.fixture(autouse=True, scope="session")
 def patch_cleaner(controller_config_dict_mock):
     with patch(
         "mipengine.controller.cleaner.controller_config",
@@ -106,16 +97,34 @@ def patch_cleaner_small_release_timelimit(controller_config_dict_mock):
 
 
 @pytest.fixture(autouse=True, scope="session")
-def patch_node_registry(controller_config_dict_mock):
+def patch_node_landscape_aggregator(controller_config_dict_mock):
     with patch(
-        "mipengine.controller.node_registry.controller_config",
+        "mipengine.controller.node_landscape_aggregator.controller_config",
         AttrDict(controller_config_dict_mock),
     ), patch(
-        "mipengine.controller.node_registry.NODE_REGISTRY_UPDATE_INTERVAL",
-        AttrDict(controller_config_dict_mock).node_registry_update_interval,
+        "mipengine.controller.node_landscape_aggregator.NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL",
+        AttrDict(controller_config_dict_mock).node_landscape_aggregator_update_interval,
     ), patch(
-        "mipengine.controller.node_registry.CELERY_TASKS_TIMEOUT",
+        "mipengine.controller.node_landscape_aggregator.CELERY_TASKS_TIMEOUT",
         AttrDict(controller_config_dict_mock).rabbitmq.celery_tasks_timeout,
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True, scope="session")
+def patch_algorithm_executor(controller_config_dict_mock):
+    with patch(
+        "mipengine.controller.algorithm_executor.ctrl_config",
+        AttrDict(controller_config_dict_mock),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True, scope="session")
+def patch_nodes_addresses(controller_config_dict_mock):
+    with patch(
+        "mipengine.controller.nodes_addresses.controller_config",
+        AttrDict(controller_config_dict_mock),
     ):
         yield
 
@@ -125,27 +134,6 @@ def patch_celery_app(controller_config_dict_mock):
     with patch(
         "mipengine.controller.celery_app.controller_config",
         AttrDict(controller_config_dict_mock),
-    ):
-        yield
-
-
-@pytest.fixture(autouse=True, scope="session")
-def patch_common_data_elements(controller_config_dict_mock):
-    with patch(
-        "mipengine.controller.controller_common_data_elements.controller_config",
-        AttrDict(controller_config_dict_mock),
-    ):
-        yield
-
-
-@pytest.fixture(autouse=True, scope="session")
-def patch_algorithm_executor(controller_config_dict_mock, cdes_mock):
-    with patch(
-        "mipengine.controller.algorithm_executor.ctrl_config",
-        AttrDict(controller_config_dict_mock),
-    ), patch(
-        "mipengine.controller.algorithm_executor.controller_common_data_elements",
-        cdes_mock,
     ):
         yield
 
@@ -223,21 +211,31 @@ algorithm_request_dto = AlgorithmRequestDTO(
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(
-    init_data_globalnode,
     load_data_localnode1,
     load_data_localnode2,
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnode2_tasks_handler,
+    reset_node_landscape_aggregator,
 ):
+
     controller = Controller()
 
-    # start node registry
-    # node registry has to run on the background because it is used by the Cleaner
-    controller.start_node_registry()
-    # Start the cleanup loop
-    controller.start_cleanup_loop()
+    # start node landscape aggregator
+    # node landscape aggregator has to run on the background because it is used by the Cleaner
+    controller.start_node_landscape_aggregator()
+    # wait until node registry gets the nodes info
+    start = time.time()
+    while not controller._node_landscape_aggregator._node_registry._nodes:
+        if time.time() - start > NLA_WAIT_TIME_LIMIT:
+            pytest.fail(
+                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+            )
+        await asyncio.sleep(2)
 
+    # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
+    controller.start_cleanup_loop()
     request_id = get_a_uniqueid()
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
@@ -341,9 +339,9 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
             )
         await asyncio.sleep(2)
 
-    controller.stop_node_registry()
+    controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
-    # give some time for node registry and cleanup background tasks to stop gracefully
+    # give some time for node landscape aggregator and cleanup background tasks to stop gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
 
     if (
@@ -359,25 +357,34 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         assert False
 
 
-# @pytest.mark.skip
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing_contextid(
     patch_cleaner_small_release_timelimit,
-    init_data_globalnode,
     load_data_localnode1,
     load_data_localnode2,
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnode2_tasks_handler,
+    reset_node_landscape_aggregator,
 ):
 
     controller = Controller()
 
-    # start node registry
-    # node registry has to run on the background because it is used by the Cleaner
-    controller.start_node_registry()
+    # start node landscape aggregator
+    # node landscape aggregator has to run on the background because it is used by the Cleaner
+    controller.start_node_landscape_aggregator()
+    # wait until node registry gets the nodes info
+    start = time.time()
+    while not controller._node_landscape_aggregator._node_registry._nodes:
+        if time.time() - start > NLA_WAIT_TIME_LIMIT:
+            pytest.fail(
+                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+            )
+        await asyncio.sleep(2)
+
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
@@ -479,9 +486,9 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
             )
         await asyncio.sleep(2)
 
-    controller.stop_node_registry()
+    controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
-    # give some time for node registry and cleanup background tasks to stop gracefully
+    # give some time for node landscape aggregator and cleanup background tasks to stop gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
 
     if (
@@ -500,20 +507,30 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_rabbitmq_down_algorithm_execution(
-    init_data_globalnode,
     load_data_localnode1,
     load_data_localnodetmp,
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
     localnodetmp_node_service,
+    reset_node_landscape_aggregator,
 ):
     controller = Controller()
 
-    # start node registry
-    # node registry has to run on the background because it is used by the Cleaner
-    controller.start_node_registry()
+    # start node landscape aggregator
+    # node landscape aggregator has to run on the background because it is used by the Cleaner
+    controller.start_node_landscape_aggregator()
+    # wait until node registry gets the nodes info
+    start = time.time()
+    while not controller._node_landscape_aggregator._node_registry._nodes:
+        if time.time() - start > NLA_WAIT_TIME_LIMIT:
+            pytest.fail(
+                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+            )
+        await asyncio.sleep(2)
+
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
@@ -633,11 +650,11 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
         await asyncio.sleep(2)
 
-    controller.stop_node_registry()
+    controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
     localnodetmp_tasks_handler.close()
 
-    # give some time for node registry and cleanup background tasks to finish gracefully
+    # give some time for node landscape aggregator and cleanup background tasks to finish gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
 
     # the node service was started in here so it must manually killed, otherwise it is
@@ -668,13 +685,24 @@ async def test_cleanup_node_service_down_algorithm_execution(
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
     localnodetmp_node_service,
+    reset_node_landscape_aggregator,
 ):
     controller = Controller()
 
-    # start node registry
-    # node registry has to run on the background because it is used by the Cleaner
-    controller.start_node_registry()
+    # start node landscape aggregator
+    # node landscape aggregator has to run on the background because it is used by the Cleaner
+    controller.start_node_landscape_aggregator()
+    # wait until node registry gets the nodes info
+    start = time.time()
+    while not controller._node_landscape_aggregator._node_registry._nodes:
+        if time.time() - start > NLA_WAIT_TIME_LIMIT:
+            pytest.fail(
+                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+            )
+        await asyncio.sleep(2)
+
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
@@ -788,10 +816,10 @@ async def test_cleanup_node_service_down_algorithm_execution(
 
     await asyncio.sleep(2)
 
-    controller.stop_node_registry()
+    controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
 
-    # give some time for node registry and cleanup background tasks to finish gracefully
+    # give some time for node landscape aggregator and cleanup background tasks to finish gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
 
     # the node service was started in here so it must manually killed, otherwise it is
@@ -821,13 +849,24 @@ async def test_cleanup_controller_restart(
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
+    reset_node_landscape_aggregator,
 ):
     controller = Controller()
 
-    # start node registry
-    # node registry has to run on the background because it is used by the Cleaner
-    controller.start_node_registry()
+    # start node landscape aggregator
+    # node landscape aggregator has to run on the background because it is used by the Cleaner
+    controller.start_node_landscape_aggregator()
+    # wait until node registry gets the nodes info
+    start = time.time()
+    while not controller._node_landscape_aggregator._node_registry._nodes:
+        if time.time() - start > NLA_WAIT_TIME_LIMIT:
+            pytest.fail(
+                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+            )
+        await asyncio.sleep(2)
+
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
@@ -899,17 +938,17 @@ async def test_cleanup_controller_restart(
         request_id=request_id, context_id=context_id
     )
 
-    controller.stop_node_registry()
+    controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
-    # give some time for node registry and cleanup background tasks to stop gracefully
+    # give some time for node landscape aggregator and cleanup background tasks to stop gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
 
     controller._cleaner.release_contextid_for_cleanup(context_id=context_id)
 
     # instantiate a new Controller
     controller = Controller()
-    # start node registry
-    controller.start_node_registry()
+    # start node landscape aggregator
+    controller.start_node_landscape_aggregator()
     # Start the cleanup loop
     controller.start_cleanup_loop()
 
@@ -947,10 +986,10 @@ async def test_cleanup_controller_restart(
 
     await asyncio.sleep(2)
 
-    controller.stop_node_registry()
+    controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
 
-    # give some time for node registry and cleanup background tasks to finish gracefully
+    # give some time for node landscape aggregator and cleanup background tasks to finish gracefully
     await asyncio.sleep(WAIT_BACKGROUND_TASKS_TO_FINISH)
 
     if (

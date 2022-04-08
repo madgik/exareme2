@@ -29,7 +29,7 @@ spec:
           - containerPort: 50000
         volumeMounts:
         - mountPath: /home/monetdb
-          name: monetdb-data
+          name: db-data
 
       - name: rabbitmq
         image: {{ .Values.mipengine_images.repository }}/mipengine_rabbitmq:{{ .Values.mipengine_images.version }}
@@ -76,6 +76,6 @@ spec:
           value: {{ quote .Values.smpc.optional }}
 
       volumes:
-      - name: monetdb-data
+      - name: db-data
         hostPath:
           path: {{ .Values.monetdb_storage }}

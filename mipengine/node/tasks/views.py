@@ -6,8 +6,10 @@ from mipengine.node import DATA_TABLE_PRIMARY_KEY
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import views
 from mipengine.node.monetdb_interface.common_actions import create_table_name
-from mipengine.node.monetdb_interface.common_actions import get_data_model_datasets
 from mipengine.node.monetdb_interface.common_actions import get_data_models
+from mipengine.node.monetdb_interface.common_actions import (
+    get_dataset_code_per_dataset_label,
+)
 from mipengine.node.node_logger import initialise_logger
 from mipengine.node_exceptions import DataModelUnavailable
 from mipengine.node_exceptions import DatasetUnavailable
@@ -93,7 +95,7 @@ def validate_data_model_and_datasets_exist(data_model: str, datasets: List[str])
     if data_model not in get_data_models():
         raise DataModelUnavailable(node_config.identifier, data_model)
 
-    available_datasets = get_data_model_datasets(data_model)
+    available_datasets = get_dataset_code_per_dataset_label(data_model)
     for dataset in datasets:
         if dataset not in available_datasets:
             raise DatasetUnavailable(node_config.identifier, dataset)

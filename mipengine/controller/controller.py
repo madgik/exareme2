@@ -15,8 +15,10 @@ from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.cleaner import Cleaner
-from mipengine.controller.node_registry import node_registry
+from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
+from mipengine.node_info_DTOs import NodeInfo
+from mipengine.node_tasks_DTOs import CommonDataElements
 
 
 class _NodeInfoDTO(BaseModel):
@@ -31,9 +33,11 @@ class _NodeInfoDTO(BaseModel):
 
 class Controller:
     def __init__(self):
-        self._node_registry = node_registry
+        self._node_landscape_aggregator = NodeLandscapeAggregator()
         self._controller_logger = ctrl_logger.get_background_service_logger()
-        self._cleaner = Cleaner(node_registry=self._node_registry)
+        self._cleaner = Cleaner(
+            node_landscape_aggregator=self._node_landscape_aggregator
+        )
 
     def start_cleanup_loop(self):
         self._controller_logger.info("starting cleanup_loop")
@@ -70,7 +74,7 @@ class Controller:
         self._cleaner.add_contextid_for_cleanup(context_id, algo_execution_node_ids)
 
         datasets_per_local_node: Dict[str, List[str]] = {
-            task_handler.node_id: self._node_registry.get_node_specific_datasets(
+            task_handler.node_id: self._node_landscape_aggregator.get_node_specific_datasets(
                 task_handler.node_id, data_model, datasets
             )
             for task_handler in node_tasks_handlers.local_nodes_tasks_handlers
@@ -117,7 +121,11 @@ class Controller:
             algo_parameters=algorithm_request_dto.parameters,
             algo_flags=algorithm_request_dto.flags,
         )
-        algorithm_executor = AlgorithmExecutor(algorithm_execution_dto, tasks_handlers)
+        algorithm_executor = AlgorithmExecutor(
+            algorithm_execution_dto,
+            tasks_handlers,
+            node_landscape_aggregator=self._node_landscape_aggregator,
+        )
 
         loop = asyncio.get_running_loop()
 
@@ -136,45 +144,45 @@ class Controller:
         available_datasets_per_data_model = (
             self.get_all_available_datasets_per_data_model()
         )
+
         validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             available_datasets_per_data_model=available_datasets_per_data_model,
         )
 
-    def start_node_registry(self):
-        self._controller_logger.info("starting node registry")
-        self._node_registry.keep_updating = True
-        asyncio.create_task(self._node_registry.update())
-        self._controller_logger.info("started node registry")
+    def start_node_landscape_aggregator(self):
+        self._controller_logger.info("starting node landscape aggregator")
+        self._node_landscape_aggregator.start()
+        self._controller_logger.info("started node landscape aggregator")
 
-    def stop_node_registry(self):
-        self._node_registry.keep_updating = False
+    def stop_node_landscape_aggregator(self):
+        self._node_landscape_aggregator.stop()
 
-    def get_all_datasets_per_node(self):
-        datasets = {}
-        for node in self._node_registry.get_all_local_nodes():
-            datasets[node.id] = node.datasets_per_data_model
-        return datasets
+    def get_datasets_location(self) -> Dict[str, Dict[str, List[str]]]:
+        return self._node_landscape_aggregator.get_datasets_location()
 
-    def get_all_available_schemas(self):
-        return self._node_registry.get_all_available_data_models()
+    def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
+        return self._node_landscape_aggregator.get_cdes_per_data_model()
 
-    def get_all_available_datasets_per_data_model(self):
-        return self._node_registry.get_all_available_datasets_per_data_model()
+    def get_all_available_data_models(self) -> List[str]:
+        return list(self._node_landscape_aggregator.get_cdes_per_data_model().keys())
 
-    def get_all_local_nodes(self):
-        return self._node_registry.get_all_local_nodes()
+    def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
+        return (
+            self._node_landscape_aggregator.get_all_available_datasets_per_data_model()
+        )
 
-    def get_global_node(self):
-        global_nodes = self._node_registry.get_all_global_nodes()
-        if global_nodes:
-            return global_nodes[0]
+    def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
+        return self._node_landscape_aggregator.get_all_local_nodes()
+
+    def get_global_node(self) -> NodeInfo:
+        return self._node_landscape_aggregator.get_global_node()
 
     def _get_nodes_tasks_handlers(
         self, data_model: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
-        global_node = self._node_registry.get_all_global_nodes()[0]
+        global_node = self._node_landscape_aggregator.get_global_node()
         global_node_tasks_handler = _create_node_task_handler(
             _NodeInfoDTO(
                 node_id=global_node.id,
@@ -197,15 +205,30 @@ class Controller:
             local_nodes_tasks_handlers=local_nodes_tasks_handlers,
         )
 
+    def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
+        node = self._node_landscape_aggregator.get_node_info(node_id)
+        return _NodeInfoDTO(
+            node_id=node.id,
+            queue_address=":".join([str(node.ip), str(node.port)]),
+            db_address=":".join([str(node.db_ip), str(node.db_port)]),
+            tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        )
+
     def _get_nodes_info_by_dataset(
         self, data_model: str, datasets: List[str]
     ) -> List[_NodeInfoDTO]:
-        local_nodes = self._node_registry.get_nodes_with_any_of_datasets(
-            data_model=data_model,
-            datasets=datasets,
+        local_node_ids = (
+            self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(
+                data_model=data_model,
+                datasets=datasets,
+            )
         )
+        local_nodes_info = [
+            self._node_landscape_aggregator.get_node_info(node_id)
+            for node_id in local_node_ids
+        ]
         nodes_info = []
-        for local_node in local_nodes:
+        for local_node in local_nodes_info:
             nodes_info.append(
                 _NodeInfoDTO(
                     node_id=local_node.id,

@@ -93,7 +93,6 @@ kubectl delete node <node-name>
 1. Configure the [helm chart values](values.yaml).
 
    - The `mipengine_images -> version` should be the mip-engine services version in dockerhub.
-   - The `cdes_path` should be set to the **master** node hostpath that contains the pathologies metadata.
    - The `localnodes` is a counter for the localnodes. Should be equal to the number of local nodes that exist in the cluster.
 
 1. From the `MIP-Engine` folder, deploy the services:

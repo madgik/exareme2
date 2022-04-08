@@ -11,6 +11,9 @@ import pytest
 import sqlalchemy as sql
 import toml
 
+from mipengine.controller.data_model_registry import DataModelRegistry
+from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.node_registry import NodeRegistry
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.udfgen import udfio
 
@@ -218,6 +221,12 @@ def _load_data_monetdb_container(db_ip, db_port):
         cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     print(f"\nData loaded to database ({db_ip}:{db_port})")
+
+
+def _remove_data_model_from_localnodetmp_monetdb(data_model_code, data_model_version):
+    # Remove data_model
+    cmd = f"mipdb delete-data-model {data_model_code} -v {data_model_version} -f  --ip {COMMON_IP} --port {MONETDB_LOCALNODETMP_PORT} "
+    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
 
 
 @pytest.fixture(scope="session")
@@ -681,3 +690,12 @@ def localnodetmp_tasks_handler(localnodetmp_node_service):
     tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
     yield tasks_handler
     tasks_handler.close()
+
+
+@pytest.fixture(scope="function")
+def reset_node_landscape_aggregator():
+    nla = NodeLandscapeAggregator()
+    nla.keep_updating = False
+    nla._node_registry = NodeRegistry()
+    nla._data_model_registry = DataModelRegistry()
+    yield

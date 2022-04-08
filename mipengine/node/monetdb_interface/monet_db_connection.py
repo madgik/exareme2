@@ -6,23 +6,11 @@ import pymonetdb
 
 from mipengine.node import config as node_config
 from mipengine.node import node_logger as logging
+from mipengine.singleton import Singleton
 
 BROKEN_PIPE_MAX_ATTEMPTS = 50
 OCC_MAX_ATTEMPTS = 50
 INTEGRITY_ERROR_RETRY_INTERVAL = 0.5
-
-
-class Singleton(type):
-    """
-    Copied from https://stackoverflow.com/questions/6760685/creating-a-singleton-in-python
-    """
-
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
 
 
 class MonetDB(metaclass=Singleton):

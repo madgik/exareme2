@@ -114,8 +114,6 @@ def create_configs(c):
     for node in deployment_config["nodes"]:
         node_config = template_node_config.copy()
 
-        node_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
-
         node_config["identifier"] = node["id"]
         node_config["role"] = node["role"]
         node_config["log_level"] = deployment_config["log_level"]
@@ -145,9 +143,8 @@ def create_configs(c):
     controller_config["log_level"] = deployment_config["log_level"]
     controller_config["framework_log_level"] = deployment_config["framework_log_level"]
 
-    controller_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
-    controller_config["node_registry_update_interval"] = deployment_config[
-        "node_registry_update_interval"
+    controller_config["node_landscape_aggregator_update_interval"] = deployment_config[
+        "node_landscape_aggregator_update_interval"
     ]
     controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
         "celery_tasks_timeout"
@@ -267,8 +264,6 @@ def create_monetdb(c, node, image=None, log_level=None):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        # A volume is used to pass the udfio inside the monetdb container.
-        # This is done so that we don't need to rebuild every time the udfio.py file is changed.
         cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} {image}"""
         run(c, cmd)
 
@@ -626,18 +621,19 @@ def deploy(
         sys.exit(1)
 
     node_ids = []
-    monetdb_ports = []
+    local_nodes_monetdb_ports = []
     for node_config_file in config_files:
         with open(node_config_file) as fp:
             node_config = toml.load(fp)
         node_ids.append(node_config["identifier"])
-        monetdb_ports.append(node_config["monetdb"]["port"])
+        if node_config["role"] == "LOCALNODE":
+            local_nodes_monetdb_ports.append(node_config["monetdb"]["port"])
 
     node_ids.sort()  # Sorting the ids protects removing a similarly named id, localnode1 would remove localnode10.
 
     create_monetdb(c, node=node_ids, image=monetdb_image, log_level=log_level)
     create_rabbitmq(c, node=node_ids)
-    init_monetdb(c, port=monetdb_ports)
+    init_monetdb(c, port=local_nodes_monetdb_ports)
 
     if start_nodes or start_all:
         start_node(

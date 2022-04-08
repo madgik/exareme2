@@ -9,24 +9,22 @@ nodes:
   - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/hostname_master
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
-    containerPath: /opt/data
-  - hostPath: /opt/monetdb
-    containerPath: /opt/monetdb
+    containerPath: /opt/mipengine/data
 - role: worker
   extraMounts:
   - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/hostname_worker1
     containerPath: /etc/hostname
-  - hostPath: /opt/monetdb1
-    containerPath: /opt/monetdb
+  - hostPath: ./tests/test_data
+    containerPath: /opt/mipengine/csvs
 - role: worker
   extraMounts:
   - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/hostname_worker2
     containerPath: /etc/hostname
-  - hostPath: /opt/monetdb2
-    containerPath: /opt/monetdb
+  - hostPath: ./tests/test_data
+    containerPath: /opt/mipengine/csvs
 - role: worker
   extraMounts:
   - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/hostname_worker3
     containerPath: /etc/hostname
-  - hostPath: /opt/monetdb3
-    containerPath: /opt/monetdb
+  - hostPath: ./tests/test_data
+    containerPath: /opt/mipengine/csvs
