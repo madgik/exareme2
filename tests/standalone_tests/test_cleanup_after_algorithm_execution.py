@@ -234,6 +234,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         await asyncio.sleep(2)
 
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
     request_id = get_a_uniqueid()
     context_id = get_a_uniqueid()
@@ -383,6 +384,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
         await asyncio.sleep(2)
 
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
@@ -528,6 +530,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         await asyncio.sleep(2)
 
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
@@ -699,6 +702,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
         await asyncio.sleep(2)
 
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
@@ -862,6 +866,7 @@ async def test_cleanup_controller_restart(
         await asyncio.sleep(2)
 
     # Start the cleanup loop
+    controller._cleaner._reset_cleanup()
     controller.start_cleanup_loop()
 
     request_id = get_a_uniqueid()
