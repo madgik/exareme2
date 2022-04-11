@@ -57,6 +57,12 @@ class Controller:
     ):
         context_id = get_a_uniqueid()
         algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
+        algo_execution_logger.info(
+            f"Experiment with request id '{request_id}' started, "
+            f"with algorithm '{algorithm_name}', "
+            f"touching datasets '{','.join(algorithm_request_dto.inputdata.datasets)}', "
+            f"with parameters '{algorithm_request_dto.json()}'."
+        )
 
         data_model = algorithm_request_dto.inputdata.data_model
         datasets = algorithm_request_dto.inputdata.datasets
@@ -124,7 +130,9 @@ class Controller:
         algorithm_executor = AlgorithmExecutor(
             algorithm_execution_dto,
             tasks_handlers,
-            node_landscape_aggregator=self._node_landscape_aggregator,
+            self._node_landscape_aggregator.get_cdes(
+                algorithm_execution_dto.data_model
+            ),
         )
 
         loop = asyncio.get_running_loop()
