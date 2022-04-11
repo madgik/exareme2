@@ -30,6 +30,7 @@ if not OUTDIR.exists():
     OUTDIR.mkdir()
 
 COMMON_IP = "127.0.0.1"
+COMMON_IP = "127.0.0.1"
 RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
 RABBITMQ_LOCALNODE1_NAME = "rabbitmq_test_localnode1"
 RABBITMQ_LOCALNODE2_NAME = "rabbitmq_test_localnode2"
