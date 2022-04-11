@@ -151,9 +151,7 @@ def create_configs(c):
                 "get_result_max_retries"
             ]
         else:
-            node_config["smpc"]["client_id"] = str(
-                int(node["id"][-1]) - 1
-            )  # TODO SMPC Simple node["id"]
+            node_config["smpc"]["client_id"] = node["id"]
             node_config["smpc"][
                 "client_address"
             ] = f"{SMPC_BASE_ADDRESS}:{node['smpc_client_port']}"
@@ -795,13 +793,13 @@ def start_smpc_coordinator(
     start_smpc_coordinator_container(c, ip, smpc_image)
 
 
-def start_smpc_player(c, ip, id, order, image):
+def start_smpc_player(c, ip, order, image):
     name = f"{SMPC_PLAYER_BASE_NAME}_{order}"
     message(
         f"Starting container {name} ...",
         Level.HEADER,
     )
-    container_cmd = f"python player.py {order}"  # TODO SMPC id instead of order
+    container_cmd = f"python player.py {order}"  # SMPC player id cannot be alphanumeric
     env_variables = (
         f"-e PLAYER_REPO_0=http://{ip}:7000 "
         f"-e PLAYER_REPO_1=http://{ip}:7001 "
@@ -813,9 +811,8 @@ def start_smpc_player(c, ip, id, order, image):
         f"-p {5000 + order}:{5000 + order} "
         f"-p {SMPC_PLAYER_BASE_PORT + order}:{7100 + order} "
         f"-p {14000 + order}:{14000 + order} "
-    )  # TODO SMPC Internal port should not change
-    volumes = f"-v /home/thanasis/smpc/NetworkData.txt:/SCALE-MAMBA/Data/NetworkData.txt"  # TODO SMPC Remove
-    cmd = f"""docker run -d {container_ports} {volumes} {env_variables} --name {name} {image} {container_cmd}"""
+    )  # SMPC player port is increasing using the player id
+    cmd = f"""docker run -d {container_ports} {env_variables} --name {name} {image} {container_cmd}"""
     run(c, cmd)
 
 
@@ -838,8 +835,7 @@ def start_smpc_players(c, ip=None, image=None):
     rm_containers(c, container_name="smpc_player")
 
     for i in range(3):
-        cont_id = f"player{i}"
-        start_smpc_player(c, ip, cont_id, i, image)
+        start_smpc_player(c, ip, i, image)
 
 
 def start_smpc_client(c, node_id, ip, image):
@@ -857,18 +853,17 @@ def start_smpc_client(c, node_id, ip, image):
         f"Starting container {name} ...",
         Level.HEADER,
     )
-    container_cmd = f"python client.py {client_id[-1]}"  # TODO SMPC Remove [-1]
+    container_cmd = f"python client.py"
     env_variables = (
         f"-e PLAYER_REPO_0=http://{ip}:7000 "
         f"-e PLAYER_REPO_1=http://{ip}:7001 "
         f"-e PLAYER_REPO_2=http://{ip}:7002 "
         f"-e COORDINATOR_URL=http://{ip}:{SMPC_COORDINATOR_PORT} "
+        f"-e ID={client_id} "
+        f"-e PORT={client_port} "
     )
-    container_ports = (
-        f"-p {client_port}:{client_port} "  # TODO SMPC Internal port should not change
-    )
-    volumes = f"-v /home/thanasis/smpc/NetworkData.txt:/SCALE-MAMBA/Data/NetworkData.txt"  # TODO SMPC Remove
-    cmd = f"""docker run -d {container_ports} {volumes} {env_variables} --name {name} {image} {container_cmd}"""
+    container_ports = f"-p {client_port}:{client_port} "
+    cmd = f"""docker run -d {container_ports} {env_variables} --name {name} {image} {container_cmd}"""
     run(c, cmd)
 
 

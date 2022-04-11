@@ -69,7 +69,7 @@ SMPC_TASKS_TIMEOUT = 120
 
 ########### SMPC Cluster ############
 SMPC_CLUSTER_IMAGE = "gpikra/coordinator:latest"
-SMPC_COORD_DB_IMAGE = "mongo:5.0.6"
+SMPC_COORD_DB_IMAGE = "gpikra/mongodb:latest"
 SMPC_COORD_QUEUE_IMAGE = "redis:alpine3.15"
 
 SMPC_COORD_CONT_NAME = "smpc_test_coordinator"
@@ -758,12 +758,6 @@ def smpc_players(
                 "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
             },
-            volumes={
-                "/home/thanasis/smpc/NetworkData.txt": {
-                    "bind": "/SCALE-MAMBA/Data/NetworkData.txt",
-                    "mode": "ro",
-                }
-            },  # TODO SMPC Remove
             command="python player.py 0",
         )
 
@@ -787,12 +781,6 @@ def smpc_players(
                 "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
             },
-            volumes={
-                "/home/thanasis/smpc/NetworkData.txt": {
-                    "bind": "/SCALE-MAMBA/Data/NetworkData.txt",
-                    "mode": "ro",
-                }
-            },  # TODO SMPC Remove
             command="python player.py 1",
         )
 
@@ -816,12 +804,6 @@ def smpc_players(
                 "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
             },
-            volumes={
-                "/home/thanasis/smpc/NetworkData.txt": {
-                    "bind": "/SCALE-MAMBA/Data/NetworkData.txt",
-                    "mode": "ro",
-                }
-            },  # TODO SMPC Remove
             command="python player.py 2",
         )
 
@@ -854,21 +836,17 @@ def smpc_clients(
             name=SMPC_CLIENT1_CONT_NAME,
             detach=True,
             ports={
-                9000: SMPC_CLIENT1_PORT,
+                SMPC_CLIENT1_PORT: SMPC_CLIENT1_PORT,
             },
             environment={
                 "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
                 "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
                 "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+                "ID": f"{SMPC_CLIENT1_ID}",
+                "PORT": f"{SMPC_CLIENT1_PORT}",
             },
-            volumes={
-                "/home/thanasis/smpc/NetworkData.txt": {
-                    "bind": "/SCALE-MAMBA/Data/NetworkData.txt",
-                    "mode": "ro",
-                }
-            },  # TODO SMPC Remove
-            command=f"python client.py {SMPC_CLIENT1_ID}",
+            command=f"python client.py",
         )
 
     # Start client 2
@@ -880,21 +858,17 @@ def smpc_clients(
             name=SMPC_CLIENT2_CONT_NAME,
             detach=True,
             ports={
-                9001: SMPC_CLIENT2_PORT,
+                SMPC_CLIENT2_PORT: SMPC_CLIENT2_PORT,
             },
             environment={
                 "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
                 "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
                 "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+                "ID": f"{SMPC_CLIENT2_ID}",
+                "PORT": f"{SMPC_CLIENT2_PORT}",
             },
-            volumes={
-                "/home/thanasis/smpc/NetworkData.txt": {
-                    "bind": "/SCALE-MAMBA/Data/NetworkData.txt",
-                    "mode": "ro",
-                }
-            },  # TODO SMPC Remove
-            command=f"python client.py {SMPC_CLIENT2_ID}",
+            command="python client.py",
         )
 
     # TODO Very slow development if containers are always removed afterwards
