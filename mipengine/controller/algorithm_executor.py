@@ -42,11 +42,10 @@ from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
-from mipengine.controller.controller_common_data_elements import (
-    controller_common_data_elements,
-)
+from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
+from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.udfgen import TensorBinaryOp
@@ -97,6 +96,7 @@ class AlgorithmExecutor:
         self,
         algorithm_execution_dto: AlgorithmExecutionDTO,
         nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
+        common_data_elements: Dict[str, CommonDataElement],
     ):
         self._logger = ctrl_logger.get_request_logger(
             request_id=algorithm_execution_dto.request_id
@@ -107,7 +107,7 @@ class AlgorithmExecutor:
         self._request_id = algorithm_execution_dto.request_id
         self._context_id = algorithm_execution_dto.context_id
         self._algorithm_name = algorithm_execution_dto.algorithm_name
-
+        self._common_data_elements = common_data_elements
         self._global_node: GlobalNode = None
         self._local_nodes: List[LocalNode] = []
         self._algorithm_flow_module = None
@@ -115,36 +115,40 @@ class AlgorithmExecutor:
 
     def _instantiate_nodes(self):
 
-        # instantiate the GLOBAL Node object
+        # Instantiate the GLOBAL Node object
         self._global_node = GlobalNode(
             request_id=self._request_id,
             context_id=self._context_id,
             node_tasks_handler=self._nodes_tasks_handlers_dto.global_node_tasks_handler,
         )
 
-        # Parameters for the creation of the view tables in the db. Each of the LOCAL
-        # nodes will have access only to these view tables and not on the primary data
-        # tables
-        # TODO Convert to object instead of dict?
-        initial_view_tables_params = {
-            "commandId": get_next_command_id(),
-            "data_model": self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model,
-            "datasets": self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
-            "x": self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
-            "y": self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
-            "filters": self._algorithm_execution_dto.algorithm_request_dto.inputdata.filters,
-        }
-
-        # instantiate the LOCAL Node objects
-        self._local_nodes = [
-            LocalNode(
-                request_id=self._request_id,
-                context_id=self._context_id,
-                node_tasks_handler=node_tasks_handler,
-                initial_view_tables_params=initial_view_tables_params,
+        # Instantiate the LOCAL Node objects
+        command_id = get_next_command_id()
+        self._local_nodes = []
+        for (
+            node_tasks_handler
+        ) in self._nodes_tasks_handlers_dto.local_nodes_tasks_handlers:
+            # Parameters for the creation of the view tables in the db. Each of the LOCAL
+            # nodes will have access only to these view tables and not on the primary data tables.
+            # TODO Convert to object instead of dict?
+            initial_view_tables_params = {
+                "commandId": command_id,
+                "data_model": self._algorithm_execution_dto.data_model,
+                "datasets": self._algorithm_execution_dto.datasets_per_local_node[
+                    node_tasks_handler.node_id
+                ],
+                "x": self._algorithm_execution_dto.x_vars,
+                "y": self._algorithm_execution_dto.y_vars,
+                "filters": self._algorithm_execution_dto.var_filters,
+            }
+            self._local_nodes.append(
+                LocalNode(
+                    request_id=self._request_id,
+                    context_id=self._context_id,
+                    node_tasks_handler=node_tasks_handler,
+                    initial_view_tables_params=initial_view_tables_params,
+                )
             )
-            for node_tasks_handler in self._nodes_tasks_handlers_dto.local_nodes_tasks_handlers
-        ]
 
     def _get_use_smpc_flag(self) -> bool:
         """
@@ -153,15 +157,11 @@ class AlgorithmExecutor:
         If the smpc flag exists in the request and smpc usage is optional,
         then it's defined from the request.
         """
-        algo_request = self._algorithm_execution_dto.algorithm_request_dto
+        flags = self._algorithm_execution_dto.algo_flags
 
         use_smpc = ctrl_config.smpc.enabled
-        if (
-            ctrl_config.smpc.optional
-            and algo_request.flags
-            and USE_SMPC_FLAG in algo_request.flags.keys()
-        ):
-            use_smpc = algo_request.flags[USE_SMPC_FLAG]
+        if ctrl_config.smpc.optional and flags and USE_SMPC_FLAG in flags.keys():
+            use_smpc = flags[USE_SMPC_FLAG]
 
         return use_smpc
 
@@ -170,21 +170,21 @@ class AlgorithmExecutor:
             global_node=self._global_node,
             local_nodes=self._local_nodes,
             algorithm_name=self._algorithm_name,
-            algorithm_parameters=self._algorithm_execution_dto.algorithm_request_dto.parameters,
-            x_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
-            y_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
-            data_model=self._algorithm_execution_dto.algorithm_request_dto.inputdata.data_model,
-            datasets=self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
+            algorithm_parameters=self._algorithm_execution_dto.algo_parameters,
+            x_variables=self._algorithm_execution_dto.x_vars,
+            y_variables=self._algorithm_execution_dto.y_vars,
+            data_model=self._algorithm_execution_dto.data_model,
+            datasets_per_local_node=self._algorithm_execution_dto.datasets_per_local_node,
             use_smpc=self._get_use_smpc_flag(),
             logger=self._logger,
         )
         if len(self._local_nodes) > 1:
             self._execution_interface = _AlgorithmExecutionInterface(
-                algo_execution_interface_dto
+                algo_execution_interface_dto, self._common_data_elements
             )
         else:
             self._execution_interface = _SingleLocalNodeAlgorithmExecutionInterface(
-                algo_execution_interface_dto
+                algo_execution_interface_dto, self._common_data_elements
             )
 
         # Get algorithm module
@@ -209,7 +209,7 @@ class AlgorithmExecutor:
             TimeoutError,
             ClosedBrokerConnectionError,
         ) as err:
-            self._logger.error(f"{err}")
+            self._logger.error(f"ErrorType: '{type(err)}' and message: '{err}'")
             raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
             self._logger.error(f"{traceback.format_exc()}")
@@ -224,7 +224,7 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     x_variables: Optional[List[str]] = None
     y_variables: Optional[List[str]] = None
     data_model: str
-    datasets: List[str]
+    datasets_per_local_node: Dict[str, List[str]]
     use_smpc: bool
     logger: Logger
 
@@ -233,22 +233,25 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
 
 
 class _AlgorithmExecutionInterface:
-    def __init__(self, algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO):
+    def __init__(
+        self,
+        algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO,
+        common_data_elements: Dict[str, CommonDataElement],
+    ):
         self._global_node: GlobalNode = algo_execution_interface_dto.global_node
         self._local_nodes: List[LocalNode] = algo_execution_interface_dto.local_nodes
         self._algorithm_name = algo_execution_interface_dto.algorithm_name
         self._algorithm_parameters = algo_execution_interface_dto.algorithm_parameters
         self._x_variables = algo_execution_interface_dto.x_variables
         self._y_variables = algo_execution_interface_dto.y_variables
-        self._datasets = algo_execution_interface_dto.datasets
+        self._datasets_per_local_node = (
+            algo_execution_interface_dto.datasets_per_local_node
+        )
         self._use_smpc = algo_execution_interface_dto.use_smpc
-        cdes = controller_common_data_elements.data_models[
-            algo_execution_interface_dto.data_model
-        ]
         varnames = (self._x_variables or []) + (self._y_variables or [])
         self._metadata = {
-            varname: cde.__dict__
-            for varname, cde in cdes.items()
+            varname: cde.dict()
+            for varname, cde in common_data_elements.items()
             if varname in varnames
         }
 
@@ -292,8 +295,8 @@ class _AlgorithmExecutionInterface:
         return self._metadata
 
     @property
-    def datasets(self):
-        return self._datasets
+    def datasets_per_local_node(self):
+        return self.datasets_per_local_node
 
     @property
     def use_smpc(self):
@@ -677,8 +680,12 @@ class _AlgorithmExecutionInterface:
 
 
 class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
-    def __init__(self, algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO):
-        super().__init__(algo_execution_interface_dto)
+    def __init__(
+        self,
+        algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO,
+        common_data_elements: Dict[str, CommonDataElement],
+    ):
+        super().__init__(algo_execution_interface_dto, common_data_elements)
         self._global_node = self._local_nodes[0]
 
     def _share_local_node_data(

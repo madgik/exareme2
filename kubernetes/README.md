@@ -18,6 +18,12 @@ helm
 
 To configure kubernetes to use docker you should also follow this [guide](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#docker "guide") .
 
+### Hostname configuration
+
+Currently, each node is distinguished from another one using their hostnames and they <b>MUST</b> be alphanumeric.
+<br>If the node's hostname does not comply with that convention it has to be configured
+from the kubelet following this [guide](https://kubernetes.io/docs/reference/labels-annotations-taints/#kubernetesiohostname).
+
 ## Cluster Management
 
 ### Initialize the cluster
@@ -87,7 +93,6 @@ kubectl delete node <node-name>
 1. Configure the [helm chart values](values.yaml).
 
    - The `mipengine_images -> version` should be the mip-engine services version in dockerhub.
-   - The `cdes_path` should be set to the **master** node hostpath that contains the pathologies metadata.
    - The `localnodes` is a counter for the localnodes. Should be equal to the number of local nodes that exist in the cluster.
 
 1. From the `MIP-Engine` folder, deploy the services:

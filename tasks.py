@@ -47,7 +47,9 @@ Paths are subject to change so in the following documentation the global variabl
 
 """
 import copy
+import itertools
 import json
+import pathlib
 import shutil
 import sys
 from enum import Enum
@@ -64,6 +66,7 @@ from invoke import task
 from termcolor import colored
 
 import tests
+from mipengine.udfgen import udfio
 
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
@@ -80,7 +83,7 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
-DEMO_DATA_FOLDER = Path(tests.__file__).parent / "demo_data"
+TEST_DATA_FOLDER = Path(tests.__file__).parent / "test_data"
 
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
 MIPENGINE_NODE_CONFIG_FILE = "MIPENGINE_NODE_CONFIG_FILE"
@@ -125,8 +128,6 @@ def create_configs(c):
     for node in deployment_config["nodes"]:
         node_config = copy.deepcopy(template_node_config)
 
-        node_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
-
         node_config["identifier"] = node["id"]
         node_config["role"] = node["role"]
         node_config["log_level"] = deployment_config["log_level"]
@@ -137,6 +138,10 @@ def create_configs(c):
 
         node_config["rabbitmq"]["ip"] = deployment_config["ip"]
         node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
+
+        node_config["privacy"]["minimum_row_count"] = deployment_config["privacy"][
+            "minimum_row_count"
+        ]
 
         node_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
         node_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
@@ -167,9 +172,8 @@ def create_configs(c):
     controller_config["log_level"] = deployment_config["log_level"]
     controller_config["framework_log_level"] = deployment_config["framework_log_level"]
 
-    controller_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
-    controller_config["node_registry_update_interval"] = deployment_config[
-        "node_registry_update_interval"
+    controller_config["node_landscape_aggregator_update_interval"] = deployment_config[
+        "node_landscape_aggregator_update_interval"
     ]
     controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
         "celery_tasks_timeout"
@@ -184,6 +188,14 @@ def create_configs(c):
     )
     controller_config["localnodes"]["dns"] = ""
     controller_config["localnodes"]["port"] = ""
+
+    controller_config["cleanup"]["contextids_cleanup_folder"] = "/tmp"
+    controller_config["cleanup"]["nodes_cleanup_interval"] = deployment_config[
+        "cleanup"
+    ]["nodes_cleanup_interval"]
+    controller_config["cleanup"]["contextid_release_timelimit"] = deployment_config[
+        "cleanup"
+    ]["contextid_release_timelimit"]
 
     controller_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
     controller_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
@@ -275,6 +287,8 @@ def create_monetdb(c, node, image=None, log_level=None):
 
     get_docker_image(c, image)
 
+    udfio_full_path = path.abspath(udfio.__file__)
+
     node_ids = node
     for node_id in node_ids:
         container_name = f"monetdb-{node_id}"
@@ -288,7 +302,7 @@ def create_monetdb(c, node, image=None, log_level=None):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} --name {container_name} {image}"""
+        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} {image}"""
         run(c, cmd)
 
 
@@ -312,7 +326,7 @@ def init_monetdb(c, port):
 @task(iterable=["port"])
 def load_data(c, port=None):
     """
-    Load data into the specified DB from the 'DEMO_DATA_FOLDER'.
+    Load data into the specified DB from the 'TEST_DATA_FOLDER'.
 
     :param port: A list of ports, in which it will load the data. If not set, it will use the `NODES_CONFIG_DIR` files.
     """
@@ -331,15 +345,68 @@ def load_data(c, port=None):
         for node_config_file in config_files:
             with open(node_config_file) as fp:
                 node_config = toml.load(fp)
-            if "local" in node_config["identifier"]:
+            if node_config["role"] == "LOCALNODE":
                 local_node_ports.append(node_config["monetdb"]["port"])
 
-    with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
-        template_node_config = toml.load(fp)
-    for port in local_node_ports:
-        message(f"Loading data on MonetDB at port {port}...", Level.HEADER)
-        cmd = f"poetry run mipdb load-folder {DEMO_DATA_FOLDER}  --ip 127.0.0.1 --port {port} "
-        run(c, cmd)
+    local_node_ports = sorted(local_node_ports)
+
+    # Load the test data folder into the dbs
+    data_model_folders = [
+        TEST_DATA_FOLDER / folder for folder in listdir(TEST_DATA_FOLDER)
+    ]
+    for data_model_folder in data_model_folders:
+
+        # Load all data models in each db
+        with open(data_model_folder / "CDEsMetadata.json") as data_model_metadata_file:
+            data_model_metadata = json.load(data_model_metadata_file)
+            data_model_code = data_model_metadata["code"]
+            data_model_version = data_model_metadata["version"]
+        cdes_file = data_model_folder / "CDEsMetadata.json"
+        for port in local_node_ports:
+            message(
+                f"Loading data model '{data_model_code}:{data_model_version}' metadata in MonetDB at port {port}...",
+                Level.HEADER,
+            )
+            cmd = f"poetry run mipdb add-data-model {cdes_file} --port {port} "
+            run(c, cmd)
+
+        # Load only the 1st csv of each dataset "with 0 suffix" in the 1st node
+        first_node_csvs = sorted(
+            [
+                data_model_folder / file
+                for file in listdir(data_model_folder)
+                if file.endswith("0.csv") and not file.endswith("10.csv")
+            ]
+        )
+        for csv in first_node_csvs:
+            port = local_node_ports[0]
+            message(
+                f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                Level.HEADER,
+            )
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --port {port} "
+            run(c, cmd)
+
+        # Load the data model's remaining csvs in the rest of the nodes with round-robin fashion
+        remaining_csvs = sorted(
+            [
+                data_model_folder / file
+                for file in listdir(data_model_folder)
+                if file.endswith(".csv") and not file.endswith("0.csv")
+            ]
+        )
+        if len(local_node_ports) > 1:
+            local_node_ports_cycle = itertools.cycle(local_node_ports[1:])
+        else:
+            local_node_ports_cycle = itertools.cycle(local_node_ports)
+        for csv in remaining_csvs:
+            port = next(local_node_ports_cycle)
+            message(
+                f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                Level.HEADER,
+            )
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --port {port} "
+            run(c, cmd)
 
 
 @task(iterable=["node"])
@@ -368,12 +435,13 @@ def create_rabbitmq(c, node, rabbitmq_image=None):
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
         with open(node_config_file) as fp:
             node_config = toml.load(fp)
-        container_ports = f"{node_config['rabbitmq']['port']}:5672"
+        queue_port = f"{node_config['rabbitmq']['port']}:5672"
+        api_port = f"{node_config['rabbitmq']['port']+10000}:15672"
         message(
-            f"Starting container {container_name} on ports {container_ports}...",
+            f"Starting container {container_name} on ports {queue_port}...",
             Level.HEADER,
         )
-        cmd = f"docker run -d -p {container_ports} --name {container_name} {rabbitmq_image}"
+        cmd = f"docker run -d -p {queue_port} -p {api_port} --name {container_name} {rabbitmq_image}"
         run(c, cmd)
 
     for node_id in node_ids:
@@ -471,6 +539,7 @@ def start_node(
         )
 
     node_ids = get_node_ids(all_, node)
+    node_ids.sort()  # Sorting the ids protects removing a similarly named id, localnode1 would remove localnode10.
 
     for node_id in node_ids:
         kill_node(c, node_id)
@@ -598,16 +667,19 @@ def deploy(
         sys.exit(1)
 
     node_ids = []
-    monetdb_ports = []
+    local_nodes_monetdb_ports = []
     for node_config_file in config_files:
         with open(node_config_file) as fp:
             node_config = toml.load(fp)
         node_ids.append(node_config["identifier"])
-        monetdb_ports.append(node_config["monetdb"]["port"])
+        if node_config["role"] == "LOCALNODE":
+            local_nodes_monetdb_ports.append(node_config["monetdb"]["port"])
+
+    node_ids.sort()  # Sorting the ids protects removing a similarly named id, localnode1 would remove localnode10.
 
     create_monetdb(c, node=node_ids, image=monetdb_image, log_level=log_level)
     create_rabbitmq(c, node=node_ids)
-    init_monetdb(c, port=monetdb_ports)
+    init_monetdb(c, port=local_nodes_monetdb_ports)
 
     if start_nodes or start_all:
         start_node(
@@ -675,6 +747,7 @@ def start_flower(c, node=None, all_=False):
     FLOWER_PORT = 5550
 
     node_ids = get_node_ids(all_, node)
+    node_ids.sort()
 
     for node_id in node_ids:
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
@@ -683,18 +756,20 @@ def start_flower(c, node=None, all_=False):
 
         ip = node_config["rabbitmq"]["ip"]
         port = node_config["rabbitmq"]["port"]
+        api_port = port + 10000
         user_and_password = (
             node_config["rabbitmq"]["user"] + ":" + node_config["rabbitmq"]["password"]
         )
         vhost = node_config["rabbitmq"]["vhost"]
         flower_url = ip + ":" + str(port)
-        broker_api = f"amqp://{user_and_password}@{flower_url}/{vhost}"
+        broker = f"amqp://{user_and_password}@{flower_url}/{vhost}"
+        broker_api = f"http://{user_and_password}@{ip + ':' + str(api_port)}/api/"
 
         flower_index = node_ids.index(node_id)
         flower_port = FLOWER_PORT + flower_index
 
         message(f"Starting flower container for node {node_id}...", Level.HEADER)
-        command = f"docker run --name flower-{node_id} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker_api} "
+        command = f"docker run --name flower-{node_id} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker} --broker-api={broker_api}"
         run(c, command)
         cmd = "docker ps | grep '[f]lower'"
         run(c, cmd, warn=True, show_ok=False)
@@ -907,13 +982,41 @@ def deploy_smpc(c, ip=None, smpc_image=None, smpc_db_image=None, smpc_queue_imag
     start_smpc_clients(c, ip, smpc_image)
 
 
+@task(iterable=["db"])
+def reload_udfio(c, db):
+    """
+    Used for reloading the udfio module inside the monetdb containers.
+
+    :param db: The names of the monetdb containers.
+    """
+    dbs = db
+    for db in dbs:
+        sql_reload_query = """
+CREATE OR REPLACE FUNCTION
+reload_udfio()
+RETURNS
+INT
+LANGUAGE PYTHON
+{
+    import udfio
+    import importlib
+    importlib.reload(udfio)
+    return 0
+};
+
+SELECT reload_udfio();
+        """
+        command = f'docker exec -t {db} mclient db --statement "{sql_reload_query}"'
+        run(c, command)
+
+
 def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok=True):
     if attach_:
         c.run(cmd, pty=True)
         return
 
     if not wait:
-        # TODO disown=True will make c.run(..) return immediatelly
+        # TODO disown=True will make c.run(..) return immediately
         c.run(cmd, disown=True)
         # TODO wait is False to get in here
         # nevertheless, it will wait (sleep) for 4 seconds here, why??

@@ -1,7 +1,8 @@
-from typing import List
+from typing import Dict
 
 import pytest
 
+from mipengine.controller.controller_logger import get_request_logger
 from mipengine.controller.node_registry import NodeRegistry
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
@@ -14,217 +15,65 @@ mocked_node_addresses = [
 ]
 
 
-def get_nodes_datasets_per_data_model():
+def get_mocked_node_info() -> Dict[str, NodeInfo]:
     return {
-        "globalnode": None,
-        "localnode1": {
-            "data_model1:0.1": [
-                "dataset1",
-                "dataset2",
-                "dataset3",
-                "dataset4",
-                "dataset5",
-            ],
-            "data_model2:0.1": ["dataset6"],
-        },
-        "localnode2": {
-            "data_model2:0.1": [
-                "dataset7",
-                "dataset8",
-                "dataset9",
-            ],
-        },
-        "localnode3": {
-            "data_model2:0.1": [
-                "dataset10",
-            ],
-        },
-    }
-
-
-def get_mocked_node_info() -> List[NodeInfo]:
-    return [
-        NodeInfo(
+        "globalnode": NodeInfo(
             id="globalnode",
             role=NodeRole.GLOBALNODE,
             ip=mocked_node_addresses[0].split(":")[0],
             port=mocked_node_addresses[0].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50000,
-            datasets_per_data_model=get_nodes_datasets_per_data_model()["globalnode"],
         ),
-        NodeInfo(
+        "localnode1": NodeInfo(
             id="localnode1",
             role=NodeRole.LOCALNODE,
             ip=mocked_node_addresses[1].split(":")[0],
             port=mocked_node_addresses[1].split(":")[1],
             db_ip="127.0.0.1",
-            db_port=50000,
-            datasets_per_data_model=get_nodes_datasets_per_data_model()["localnode1"],
+            db_port=50001,
         ),
-        NodeInfo(
+        "localnode2": NodeInfo(
             id="localnode2",
             role=NodeRole.LOCALNODE,
             ip=mocked_node_addresses[2].split(":")[0],
             port=mocked_node_addresses[2].split(":")[1],
             db_ip="127.0.0.1",
-            db_port=50000,
-            datasets_per_data_model=get_nodes_datasets_per_data_model()["localnode2"],
+            db_port=50002,
         ),
-        NodeInfo(
+        "localnode3": NodeInfo(
             id="localnode3",
             role=NodeRole.LOCALNODE,
             ip=mocked_node_addresses[2].split(":")[0],
             port=mocked_node_addresses[2].split(":")[1],
             db_ip="127.0.0.1",
-            db_port=50000,
-            datasets_per_data_model=get_nodes_datasets_per_data_model()["localnode3"],
+            db_port=50003,
         ),
-    ]
+    }
 
 
 @pytest.fixture
 def mocked_node_registry():
-    node_registry = NodeRegistry()
+    node_registry = NodeRegistry(get_request_logger("NODE-REGISTRY"))
     node_registry.nodes = get_mocked_node_info()
     return node_registry
 
 
-def test_get_all_global_nodes(mocked_node_registry):
-    global_nodes = mocked_node_registry.get_all_global_nodes()
-    assert len(global_nodes) == 1
-    assert global_nodes[0].role == NodeRole.GLOBALNODE
+def test_get_global_node(mocked_node_registry):
+    global_node = mocked_node_registry.get_global_node()
+    assert global_node.role == NodeRole.GLOBALNODE
 
 
 def test_get_all_local_nodes(mocked_node_registry):
     local_nodes = mocked_node_registry.get_all_local_nodes()
     assert len(local_nodes) == 3
-    for node in local_nodes:
-        assert node.role == NodeRole.LOCALNODE
+    for node_info in local_nodes:
+        assert local_nodes[node_info].role == NodeRole.LOCALNODE
 
 
-test_cases_get_nodes_with_any_of_datasets = [
-    ("data_model1:0.1", ["dataset1", "dataset2"], ["localnode1"]),
-    ("data_model1:0.1", ["non_existing"], []),
-    ("non_existing", ["dataset1"], []),
-    ("data_model2:0.1", ["dataset6"], ["localnode1"]),
-    ("data_model2:0.1", ["dataset7"], ["localnode2"]),
-    (
-        "data_model2:0.1",
-        ["dataset6", "dataset7", "dataset8", "dataset10"],
-        ["localnode1", "localnode2", "localnode3"],
-    ),
-]
-
-
-@pytest.mark.parametrize(
-    "data_model, datasets, node_ids",
-    test_cases_get_nodes_with_any_of_datasets,
-)
-def test_get_nodes_with_any_of_datasets(
-    data_model, datasets, node_ids, mocked_node_registry
-):
-    test_nodes = mocked_node_registry.get_nodes_with_any_of_datasets(
-        data_model, datasets
-    )
-    assert len(test_nodes) == len(node_ids)
-    test_node_ids = [test_node.id for test_node in test_nodes]
-    assert set(test_node_ids) == set(node_ids)
-
-
-test_cases_data_model_exists = [
-    ("data_model1:0.1", True),
-    ("data_model2:0.1", True),
-    ("non_existing", False),
-]
-
-
-@pytest.mark.parametrize(
-    "data_model, exists",
-    test_cases_data_model_exists,
-)
-def test_data_model_exists(data_model, exists, mocked_node_registry):
-    print(mocked_node_registry.data_model_exists(data_model))
-    assert mocked_node_registry.data_model_exists(data_model) == exists
-
-
-test_cases_dataset_exists = [
-    ("data_model1:0.1", "dataset1", True),
-    ("data_model1:0.1", "dataset5", True),
-    ("data_model2:0.1", "dataset6", True),
-    ("data_model2:0.1", "dataset10", True),
-    ("non_existing", "dataset6", False),
-    ("data_model1:0.1", "non_existing", False),
-    ("data_model1:0.1", "dataset6", False),
-]
-
-
-@pytest.mark.parametrize(
-    "data_model, dataset, exists",
-    test_cases_dataset_exists,
-)
-def test_dataset_exists(data_model, dataset, exists, mocked_node_registry):
-    assert mocked_node_registry.dataset_exists(data_model, dataset) == exists
-
-
-test_cases_get_nodes_with_any_of_datasets = [
-    ("data_model1:0.1", ["dataset1"], ["localnode1"]),
-    ("data_model1:0.1", ["dataset1", "dataset2"], ["localnode1"]),
-    ("data_model1:0.1", ["dataset1", "dataset6"], ["localnode1"]),
-    ("data_model1:0.1", ["dataset1", "dataset7"], ["localnode1"]),
-    (
-        "data_model2:0.1",
-        ["dataset1", "dataset7", "dataset10"],
-        ["localnode2", "localnode3"],
-    ),
-    (
-        "data_model2:0.1",
-        ["dataset6", "dataset7", "dataset10"],
-        ["localnode1", "localnode2", "localnode3"],
-    ),
-]
-
-
-@pytest.mark.parametrize(
-    "data_model, datasets, expected_node_names",
-    test_cases_get_nodes_with_any_of_datasets,
-)
-def test_get_nodes_with_any_of_datasets(
-    data_model, datasets, expected_node_names, mocked_node_registry
-):
-    nodes_info = mocked_node_registry.get_nodes_with_any_of_datasets(
-        data_model, datasets
-    )
-    node_names = [node_info.id for node_info in nodes_info]
-    node_names.sort()
-    expected_node_names.sort()
-    assert node_names == expected_node_names
-
-
-def test_get_all_available_data_models(mocked_node_registry):
-    expected_available_data_models = ["data_model1:0.1", "data_model2:0.1"]
-    expected_available_data_models.sort()
-
-    available_data_models = mocked_node_registry.get_all_available_data_models()
-    available_data_models.sort()
-
-    assert available_data_models == expected_available_data_models
-
-
-def test_get_all_available_datasets_per_data_model(mocked_node_registry):
-    expected_datasets_per_data_model = {
-        "data_model1:0.1": ["dataset1", "dataset2", "dataset3", "dataset4", "dataset5"],
-        "data_model2:0.1": [
-            "dataset6",
-            "dataset7",
-            "dataset8",
-            "dataset9",
-            "dataset10",
-        ],
-    }
-
-    datasets_per_data_model = (
-        mocked_node_registry.get_all_available_datasets_per_data_model()
-    )
-
-    assert datasets_per_data_model == expected_datasets_per_data_model
+def test_get_node_info(mocked_node_registry):
+    expected_id = "localnode1"
+    node_info = mocked_node_registry.get_node_info(expected_id)
+    assert node_info.id == expected_id
+    assert node_info.role == NodeRole.LOCALNODE
+    assert node_info.db_port == 50001

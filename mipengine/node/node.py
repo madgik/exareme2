@@ -15,7 +15,7 @@ node_logger = init_logger("NODE INITIALIZATION")
 node_logger.info("Creating the celery app...")
 celery = Celery(
     "mipengine.node",
-    broker=f"amqp://{rabbitmq_credentials}@{rabbitmq_socket_addr}/{vhost}",
+    broker=f"pyamqp://{rabbitmq_credentials}@{rabbitmq_socket_addr}/{vhost}",
     backend="rpc://",
     include=[
         "mipengine.node.tasks.tables",

@@ -1,5 +1,7 @@
 from abc import ABC
 
+from mipengine.node_tasks_DTOs import TableType
+
 
 class NodeData(ABC):
     """
@@ -13,7 +15,7 @@ class TableName(NodeData):
     def __init__(self, table_name):
         self._full_name = table_name
         full_name_split = self._full_name.split("_")
-        self._table_type = full_name_split[0]
+        self._table_type = TableType(full_name_split[0].upper())
         self._node_id = full_name_split[1]
         self._context_id = full_name_split[2]
         self._command_id = full_name_split[3]
@@ -24,7 +26,7 @@ class TableName(NodeData):
         return self._full_name
 
     @property
-    def table_type(self) -> str:
+    def table_type(self) -> TableType:
         return self._table_type
 
     @property
@@ -45,7 +47,7 @@ class TableName(NodeData):
 
     def without_node_id(self) -> str:
         return (
-            self._table_type
+            self._table_type.value
             + "_"
             + self._context_id
             + "_"

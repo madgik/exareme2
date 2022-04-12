@@ -36,6 +36,10 @@ class IQueuedUDFAsyncResult(IAsyncResult, ABC):
 
 
 class INodeTasksHandler(ABC):
+    @abstractmethod
+    def close(self):
+        pass
+
     @property
     @abstractmethod
     def node_id(self) -> str:
@@ -44,6 +48,11 @@ class INodeTasksHandler(ABC):
     @property
     @abstractmethod
     def node_data_address(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def tasks_timeout(self) -> int:
         pass
 
     # @abstractmethod

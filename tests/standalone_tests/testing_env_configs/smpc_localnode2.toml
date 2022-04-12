@@ -1,9 +1,9 @@
-identifier = "test_smpc_localnode2"
+identifier = "testsmpclocalnode2"
 log_level = "DEBUG"
 framework_log_level = "INFO"
 
 role = "LOCALNODE"
-cdes_metadata_path = "./tests/demo_data"
+cdes_metadata_path = "./tests/test_data"
 
 [privacy]
 minimum_row_count = 10

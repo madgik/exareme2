@@ -15,7 +15,7 @@ from tests.dev_env_tests import algorithms_url
 from tests.dev_env_tests.nodes_communication import get_celery_app
 from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 
-local_node_id = "localnode1"
+local_node_id = "localnode2"
 local_node = get_celery_app(local_node_id)
 local_node_create_table = get_celery_task_signature(local_node, "create_table")
 local_node_insert_data_to_table = get_celery_task_signature(
@@ -33,12 +33,12 @@ local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def request_id():
-    return "test_views_" + uuid.uuid4().hex + "_request"
+    return "testviews" + uuid.uuid4().hex + "request"
 
 
 @pytest.fixture(autouse=True)
 def context_id(request_id):
-    context_id = "test_views_" + uuid.uuid4().hex
+    context_id = "testviews" + uuid.uuid4().hex
 
     yield context_id
 
@@ -205,7 +205,6 @@ def test_data_model_view_without_filters(request_id, context_id):
     schema_result_json = local_node_get_view_schema.delay(
         request_id=request_id, table_name=view_name
     ).get()
-    print(TableSchema.parse_raw(schema_result_json))
     assert schema == TableSchema.parse_raw(schema_result_json)
 
     view_data_json = local_node_get_view_data.delay(
@@ -296,7 +295,7 @@ def test_bad_filters_exception():
     request_params = {
         "inputdata": {
             "data_model": "dementia:0.1",
-            "datasets": ["edsd"],
+            "datasets": ["edsd0"],
             "x": [
                 "lefthippocampus",
             ],
@@ -374,7 +373,7 @@ def test_data_model_view_with_data_model_unavailable_exception(request_id, conte
         ).get()
 
     assert (
-        "Data model 'non_existing' is not available in node: 'localnode1'"
+        f"Data model 'non_existing' is not available in node: '{local_node_id}'"
         in exc.value.message
     )
 
@@ -396,6 +395,6 @@ def test_data_model_view_with_dataset_unavailable_exception(request_id, context_
         ).get()
 
     assert (
-        "Dataset 'non_existing' is not available in node: 'localnode1'"
+        f"Dataset 'non_existing' is not available in node: '{local_node_id}'"
         in exc.value.message
     )

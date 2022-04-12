@@ -44,16 +44,21 @@
    ip = "172.17.0.1"
    log_level = "DEBUG"
    framework_log_level ="INFO"
-   monetdb_image = "madgik/mipenginedb:0.6.0"
+   monetdb_image = "madgik/mipenginedb:latest"
    rabbitmq_image = "madgik/mipengine_rabbitmq:latest"
-
-   cdes_metadata_path = "./tests/demo_data"
 
    algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 
-   node_registry_update_interval = 30
+   node_landscape_aggregator_update_interval = 30
    celery_tasks_timeout = 20
    celery_smpc_tasks_timeout = 120
+
+   [privacy]
+   minimum_row_count = 10
+
+   [cleanup]
+   nodes_cleanup_interval=10
+   contextid_release_timelimit=3600 #an hour
 
    [smpc]
    enabled=true
@@ -61,7 +66,7 @@
    get_result_interval = 2
    get_result_max_retries = 100
    smpc_image="gpikra/coordinator:latest"
-   db_image="mongo:5.0.6"
+   db_image="gpikra/mongodb:latest"
    queue_image="redis:alpine3.15"
 
    [[nodes]]

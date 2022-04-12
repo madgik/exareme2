@@ -1,10 +1,14 @@
+import logging
 from typing import Dict
 from typing import List
+from typing import Tuple
 
 from mipengine import DType
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 from mipengine.node_exceptions import TablesNotFound
 from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import CommonDataElement
+from mipengine.node_tasks_DTOs import CommonDataElements
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.table_data_DTOs import ColumnData
@@ -25,7 +29,20 @@ def create_table_name(
     """
     Creates and returns in lower case a table name with the format
     <nodeId>_<contextId>_<tableType>_<commandId>_<command_subid>
+
+    Underscores are not allowed in any parameter provided.
     """
+    if not node_id.isalnum():
+        raise ValueError(f"'node_id' is not alphanumeric. Value: '{node_id}'")
+    if not context_id.isalnum():
+        raise ValueError(f"'context_id' is not alphanumeric. Value: '{context_id}'")
+    if not command_id.isalnum():
+        raise ValueError(f"'command_id' is not alphanumeric. Value: '{command_id}'")
+    if not command_subid.isalnum():
+        raise ValueError(
+            f"'command_subid' is not alphanumeric. Value: '{command_subid}'"
+        )
+
     if table_type not in {TableType.NORMAL, TableType.VIEW, TableType.MERGE}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
 
@@ -226,20 +243,20 @@ def get_data_models() -> List[str]:
     return data_models
 
 
-def get_data_model_datasets(data_model) -> List[str]:
+def get_dataset_code_per_dataset_label(data_model) -> Dict[str, str]:
     """
-    Retrieves the enabled datasets of the specific data_model.
+    Retrieves the enabled key-value pair of code and label, for a specific data_model.
 
     Returns
     ------
-    List[str]
+    Dict[str, str]
         The datasets.
     """
     data_model_code, data_model_version = data_model.split(":")
 
     datasets_rows = MonetDB().execute_and_fetchall(
         f"""
-        SELECT code
+        SELECT code, label
         FROM "mipdb_metadata"."datasets"
         WHERE data_model_id =
         (
@@ -251,22 +268,18 @@ def get_data_model_datasets(data_model) -> List[str]:
         AND status = 'ENABLED'
         """
     )
-
-    # Flatten the list
-    datasets = [
-        dataset_name for dataset_row in datasets_rows for dataset_name in dataset_row
-    ]
+    datasets = {code: label for code, label in datasets_rows}
     return datasets
 
 
-def get_data_model_cdes(data_model) -> Dict[str, str]:
+def get_data_model_cdes(data_model) -> CommonDataElements:
     """
     Retrieves the cdes of the specific data_model.
 
     Returns
     ------
-    Dict[str, str(CommonDataElement)]
-        A dict of cde codes to the metadata object in str format.
+    CommonDataElements
+        A CommonDataElements object
     """
 
     cdes_rows = MonetDB().execute_and_fetchall(
@@ -275,7 +288,11 @@ def get_data_model_cdes(data_model) -> Dict[str, str]:
         """
     )
 
-    cdes = {code: metadata for code, metadata in cdes_rows}
+    cdes = CommonDataElements(
+        values={
+            code: CommonDataElement.parse_raw(metadata) for code, metadata in cdes_rows
+        }
+    )
 
     return cdes
 

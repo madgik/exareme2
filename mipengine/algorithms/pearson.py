@@ -112,9 +112,9 @@ def local1(y, x):
 
     sx = X.sum(axis=0)
     sy = Y.sum(axis=0)
-    sxx = (X ** 2).sum(axis=0)
+    sxx = (X**2).sum(axis=0)
     sxy = (X * Y.T[:, :, numpy.newaxis]).sum(axis=1)
-    syy = (Y ** 2).sum(axis=0)
+    syy = (Y**2).sum(axis=0)
 
     transfer_ = {}
     transfer_["n_obs"] = {"data": n_obs, "operation": "sum"}
@@ -151,7 +151,7 @@ def global1(local_transfers, alpha):
     correlations = (n_obs * sxy - sx * sy[:, numpy.newaxis]) / d
     correlations[d == 0] = 0
     correlations = correlations.clip(-1, 1)
-    t_squared = correlations ** 2 * (df / ((1.0 - correlations) * (1.0 + correlations)))
+    t_squared = correlations**2 * (df / ((1.0 - correlations) * (1.0 + correlations)))
     p_values = special.betainc(
         0.5 * df, 0.5, numpy.fmin(numpy.asarray(df / (df + t_squared)), 1.0)
     )

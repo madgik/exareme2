@@ -23,8 +23,8 @@ spec:
         ports:
           - containerPort: 4999
         volumeMounts:
-        - mountPath: /opt/data
-          name: metadata
+        - mountPath: /opt/cleanup
+          name: cleanup-file
         env:
         - name: LOG_LEVEL
           value: {{ .Values.log_level }}
@@ -32,8 +32,12 @@ spec:
           value: {{ .Values.framework_log_level }}
         - name: DEPLOYMENT_TYPE
           value: "KUBERNETES"
-        - name: NODE_REGISTRY_UPDATE_INTERVAL
-          value: "{{ .Values.controller.node_registry_update_interval }}"
+        - name: NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL
+          value: "{{ .Values.controller.node_landscape_aggregator_update_interval }}"
+        - name: NODES_CLEANUP_INTERVAL
+          value: "{{ .Values.controller.nodes_cleanup_interval }}"
+        - name: NODES_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT
+          value: "86400"  # One day in seconds
         - name: CELERY_TASKS_TIMEOUT
           value: "{{ .Values.controller.celery_tasks_timeout }}"
         - name: CELERY_SMPC_TASKS_TIMEOUT
@@ -48,9 +52,9 @@ spec:
           value: {{ quote .Values.smpc.optional }}
 
       volumes:
-      - name: metadata
+      - name: cleanup-file
         hostPath:
-          path: {{ .Values.cdes_path }}
+          path: {{ .Values.controller.cleanup_file_folder }}
 
 ---
 

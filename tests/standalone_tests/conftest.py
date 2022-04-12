@@ -1,15 +1,22 @@
 import os
+import re
 import subprocess
 import time
 from os import path
 from pathlib import Path
 
 import docker
+import psutil
 import pytest
 import sqlalchemy as sql
 import toml
 
+from mipengine.controller.controller_logger import get_request_logger
+from mipengine.controller.data_model_registry import DataModelRegistry
+from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.node_registry import NodeRegistry
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
+from mipengine.udfgen import udfio
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/mipengine_rabbitmq:latest"
@@ -17,7 +24,7 @@ TESTING_MONETDB_CONT_IMAGE = "madgik/mipenginedb:latest"
 
 this_mod_path = os.path.dirname(os.path.abspath(__file__))
 TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
-TEST_DATA_FOLDER = Path(this_mod_path).parent / "demo_data"
+TEST_DATA_FOLDER = Path(this_mod_path).parent / "test_data"
 
 OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
@@ -112,19 +119,29 @@ class MonetDBSetupError(Exception):
 
 
 def _create_monetdb_container(cont_name, cont_port):
+    print(f"\nCreating monetdb container '{cont_name}' at port {cont_port}...")
     client = docker.from_env()
-    try:
-        container = client.containers.get(cont_name)
-    except docker.errors.NotFound:
+    container_names = [container.name for container in client.containers.list(all=True)]
+    if cont_name not in container_names:
+        # A volume is used to pass the udfio inside the monetdb container.
+        # This is done so that we don't need to rebuild every time the udfio.py file is changed.
+        udfio_full_path = path.abspath(udfio.__file__)
         container = client.containers.run(
             TESTING_MONETDB_CONT_IMAGE,
             detach=True,
             ports={"50000/tcp": cont_port},
+            volumes=[f"{udfio_full_path}:/home/udflib/udfio.py"],
             name=cont_name,
             publish_all_ports=True,
         )
+    else:
+        container = client.containers.get(cont_name)
+        # After a machine restart the container exists, but it is stopped. (Used only in development)
+        if container.status == "exited":
+            container.start()
+
     # The time needed to start a monetdb container varies considerably. We need
-    # to wait until some phrase appear in the logs to avoid starting the tests
+    # to wait until a phrase appears in the logs to avoid starting the tests
     # too soon. The process is abandoned after 100 tries (50 sec).
     for _ in range(100):
         if b"new database mapi:monetdb" in container.logs():
@@ -132,12 +149,15 @@ def _create_monetdb_container(cont_name, cont_port):
         time.sleep(0.5)
     else:
         raise MonetDBSetupError
+    print(f"Monetdb container '{cont_name}' started.")
 
 
 def _remove_monetdb_container(cont_name):
+    print(f"\nRemoving monetdb container '{cont_name}'.")
     client = docker.from_env()
     container = client.containers.get(cont_name)
     container.remove(v=True, force=True)
+    print(f"Removed monetdb container '{cont_name}'.")
 
 
 @pytest.fixture(scope="session")
@@ -210,14 +230,44 @@ def monetdb_localnodetmp():
 
 
 def _init_database_monetdb_container(db_ip, db_port):
-    # init the db
+    # Check if the database is already initialized
+    cmd = f"mipdb list-data-models --ip {db_ip} --port {db_port} "
+    res = subprocess.run(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    if res.returncode == 0:
+        print(f"\nDatabase ({db_ip}:{db_port}) already initialized, continuing.")
+        return
+
+    print(f"\nInitializing database ({db_ip}:{db_port})")
     cmd = f"mipdb init --ip {db_ip} --port {db_port} "
-    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+    subprocess.run(
+        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    print(f"\nDatabase ({db_ip}:{db_port}) initialized.")
 
 
 def _load_data_monetdb_container(db_ip, db_port):
-    # load the data
+    # Check if the database is already loaded
+    cmd = f"mipdb list-datasets --ip {db_ip} --port {db_port} "
+    res = subprocess.run(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    if "There are no datasets" not in str(res.stdout):
+        print(f"\nDatabase ({db_ip}:{db_port}) already loaded, continuing.")
+        return
+
+    print(f"\nLoading data to database ({db_ip}:{db_port})")
     cmd = f"mipdb load-folder {TEST_DATA_FOLDER}  --ip {db_ip} --port {db_port} "
+    subprocess.run(
+        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    print(f"\nData loaded to database ({db_ip}:{db_port})")
+
+
+def _remove_data_model_from_localnodetmp_monetdb(data_model_code, data_model_version):
+    # Remove data_model
+    cmd = f"mipdb delete-data-model {data_model_code} -v {data_model_version} -f  --ip {COMMON_IP} --port {MONETDB_LOCALNODETMP_PORT} "
     subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
 
 
@@ -255,10 +305,9 @@ def _create_db_cursor(db_port):
         def __init__(self) -> None:
             username = "monetdb"
             password = "monetdb"
-            # ip = "172.17.0.1"
             port = db_port
             dbfarm = "db"
-            url = f"monetdb://{username}:{password}@localhost:{port}/{dbfarm}:"
+            url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}:"
             self._executor = sql.create_engine(url, echo=True)
 
         def execute(self, query, *args, **kwargs) -> list:
@@ -303,13 +352,16 @@ def localnodetmp_db_cursor():
 
 
 def _clean_db(cursor):
-    # schema_id=2000 is the default schema id
-    select_user_tables = (
-        "SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000"
-    )
-    user_tables = cursor.execute(select_user_tables).fetchall()
-    for table_name, *_ in user_tables:
-        cursor.execute(f"DROP TABLE {table_name} CASCADE")
+    table_types = {0, 1, 3, 5}  # 0=table, 1=view, 3=merge_table, 5=remote_table
+
+    for table_type in table_types:
+        select_user_tables = f"SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000 AND type={table_type}"
+        user_tables = cursor.execute(select_user_tables).fetchall()
+        for table_name, *_ in user_tables:
+            if table_type == 1:  # view
+                cursor.execute(f"DROP VIEW {table_name}")
+            else:
+                cursor.execute(f"DROP TABLE {table_name}")
 
 
 @pytest.fixture(scope="function")
@@ -379,16 +431,21 @@ def use_smpc_localnode2_database(monetdb_smpc_localnode2, clean_smpc_localnode2_
 
 
 def _create_rabbitmq_container(cont_name, cont_port):
+    print(f"\nCreating rabbitmq container '{cont_name}' at port {cont_port}...")
     client = docker.from_env()
-    try:
-        container = client.containers.get(cont_name)
-    except docker.errors.NotFound:
+    container_names = [container.name for container in client.containers.list(all=True)]
+    if cont_name not in container_names:
         container = client.containers.run(
             TESTING_RABBITMQ_CONT_IMAGE,
             detach=True,
             ports={"5672/tcp": cont_port},
             name=cont_name,
         )
+    else:
+        container = client.containers.get(cont_name)
+        # After a machine restart the container exists, but it is stopped. (Used only in development)
+        if container.status == "exited":
+            container.start()
 
     while (
         "Health" not in container.attrs["State"]
@@ -397,14 +454,18 @@ def _create_rabbitmq_container(cont_name, cont_port):
         container.reload()  # attributes are cached, this refreshes them..
         time.sleep(1)
 
+    print(f"Rabbitmq container '{cont_name}' started.")
+
 
 def _remove_rabbitmq_container(cont_name):
+    print(f"\nRemoving rabbitmq container '{cont_name}'.")
     try:
         client = docker.from_env()
         container = client.containers.get(cont_name)
         container.remove(v=True, force=True)
     except docker.errors.NotFound:
-        pass  # container was removed by other means..
+        pass  # container was removed by other means...
+    print(f"Removed rabbitmq container '{cont_name}'.")
 
 
 @pytest.fixture(scope="session")
@@ -485,7 +546,12 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     with open(node_config_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]
+
+    print(f"\nCreating node service with id '{node_id}'...")
+
     logpath = OUTDIR / (node_id + ".out")
+    if os.path.isfile(logpath):
+        os.remove(logpath)
 
     env = os.environ.copy()
     env["ALGORITHM_FOLDERS"] = algo_folders_env_variable_val
@@ -493,8 +559,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
 
     cmd = f"poetry run celery -A mipengine.node.node worker -l DEBUG >> {logpath} --purge 2>&1 "
 
-    # if executed without "exec" it is spawned as a child process of the shell and it is
-    # difficult to kill it
+    # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
     proc = subprocess.Popen(
         "exec " + cmd,
@@ -504,17 +569,40 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
         env=env,
     )
 
-    # the celery app needs sometime to be ready, we should have some kind of check
-    # for that, for now just a sleep..
-    time.sleep(10)
+    # Check that celery started
+    for _ in range(100):
+        try:
+            with open(logpath) as logfile:
+                if bool(
+                    re.search("CELERY - FRAMEWORK - celery@.* ready.", logfile.read())
+                ):
+                    break
+        except FileNotFoundError:
+            pass
+        time.sleep(0.5)
+    else:
+        with open(logpath) as logfile:
+            raise TimeoutError(
+                f"The node service '{node_id}' didn't manage to start in the designated time. Logs: \n{logfile.read()}"
+            )
 
+    print(f"Created node service with id '{node_id}' and process id '{proc.pid}'.")
     return proc
 
 
 def kill_node_service(proc):
+    print(f"\nKilling node service with process id '{proc.pid}'...")
+    psutil_proc = psutil.Process(proc.pid)
     proc.kill()
-    # might take some time for the celery service to be killed
-    time.sleep(10)
+    for _ in range(100):
+        if psutil_proc.status() == "zombie" or psutil_proc.status() == "sleeping":
+            break
+        time.sleep(0.1)
+    else:
+        raise TimeoutError(
+            f"Node service is still running, status: '{psutil_proc.status()}'."
+        )
+    print(f"Killed node service with process id '{proc.pid}'.")
 
 
 @pytest.fixture(scope="session")
@@ -594,33 +682,7 @@ def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     kill_node_service(proc)
 
 
-@pytest.fixture(scope="session")
-def globalnode_tasks_handler_celery(globalnode_node_service):
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
-
-    with open(node_config_filepath) as fp:
-        tmp = toml.load(fp)
-        node_id = tmp["identifier"]
-        queue_domain = tmp["rabbitmq"]["ip"]
-        queue_port = tmp["rabbitmq"]["port"]
-        db_domain = tmp["monetdb"]["ip"]
-        db_port = tmp["monetdb"]["port"]
-    queue_address = ":".join([str(queue_domain), str(queue_port)])
-    db_address = ":".join([str(db_domain), str(db_port)])
-
-    return NodeTasksHandlerCelery(
-        node_id=node_id,
-        node_queue_addr=queue_address,
-        node_db_addr=db_address,
-        tasks_timeout=TASKS_TIMEOUT,
-        smpc_tasks_timeout=SMPC_TASKS_TIMEOUT,
-    )
-
-
-@pytest.fixture(scope="session")
-def localnode1_tasks_handler_celery(localnode1_node_service):
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
-
+def create_node_tasks_handler_celery(node_config_filepath):
     with open(node_config_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]
@@ -641,25 +703,44 @@ def localnode1_tasks_handler_celery(localnode1_node_service):
 
 
 @pytest.fixture(scope="function")
-def localnodetmp_tasks_handler_celery(localnodetmp_node_service):
+def globalnode_tasks_handler(globalnode_node_service):
+    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
+    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+    yield tasks_handler
+    tasks_handler.close()
+
+
+@pytest.fixture(scope="function")
+def localnode1_tasks_handler(localnode1_node_service):
+    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
+    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+    yield tasks_handler
+    tasks_handler.close()
+
+
+@pytest.fixture(scope="function")
+def localnode2_tasks_handler(localnode2_node_service):
+    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE2_CONFIG_FILE)
+    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+    yield tasks_handler
+    tasks_handler.close()
+
+
+@pytest.fixture(scope="function")
+def localnodetmp_tasks_handler(localnodetmp_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
+    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+    yield tasks_handler
+    tasks_handler.close()
 
-    with open(node_config_filepath) as fp:
-        tmp = toml.load(fp)
-        node_id = tmp["identifier"]
-        queue_domain = tmp["rabbitmq"]["ip"]
-        queue_port = tmp["rabbitmq"]["port"]
-        db_domain = tmp["monetdb"]["ip"]
-        db_port = tmp["monetdb"]["port"]
-    queue_address = ":".join([str(queue_domain), str(queue_port)])
-    db_address = ":".join([str(db_domain), str(db_port)])
 
-    return NodeTasksHandlerCelery(
-        node_id=node_id,
-        node_queue_addr=queue_address,
-        node_db_addr=db_address,
-        tasks_timeout=TASKS_TIMEOUT,
-        smpc_tasks_timeout=SMPC_TASKS_TIMEOUT,
+@pytest.fixture(scope="function")
+def reset_node_landscape_aggregator():
+    nla = NodeLandscapeAggregator()
+    nla.keep_updating = False
+    nla._node_registry = NodeRegistry(get_request_logger("NODE-REGISTRY"))
+    nla._data_model_registry = DataModelRegistry(
+        get_request_logger("DATA-MODEL-REGISTRY")
     )
 
 
