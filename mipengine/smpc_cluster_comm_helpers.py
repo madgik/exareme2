@@ -44,7 +44,7 @@ def trigger_smpc(
     coordinator_address: str,
     jobid: str,
     computation_type: SMPCRequestType,
-    clients: List[int],
+    clients: List[str],
 ):
     request_url = coordinator_address + TRIGGER_COMPUTATION_ENDPOINT + jobid
     request_headers = {"Content-type": "application/json", "Accept": "text/plain"}

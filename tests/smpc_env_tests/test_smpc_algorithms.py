@@ -15,7 +15,18 @@ def get_parametrization_list_success_cases():
     request_dict = {
         "inputdata": {
             "data_model": "dementia:0.1",
-            "datasets": ["edsd"],
+            "datasets": [
+                "edsd0",
+                "edsd1",
+                "edsd2",
+                "edsd3",
+                "edsd4",
+                "edsd5",
+                "edsd6",
+                "edsd7",
+                "edsd8",
+                "edsd9",
+            ],
             "x": [
                 "lefthippocampus",
             ],
@@ -25,7 +36,18 @@ def get_parametrization_list_success_cases():
                     {
                         "id": "dataset",
                         "type": "string",
-                        "value": ["edsd"],
+                        "value": [
+                            "edsd0",
+                            "edsd1",
+                            "edsd2",
+                            "edsd3",
+                            "edsd4",
+                            "edsd5",
+                            "edsd6",
+                            "edsd7",
+                            "edsd8",
+                            "edsd9",
+                        ],
                         "operator": "in",
                     },
                     {
@@ -51,7 +73,7 @@ def get_parametrization_list_success_cases():
         "title": "Standard Deviation",
         "columns": [
             {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.3611575592573076], "type": "FLOAT"},
+            {"name": "std_deviation", "data": [0.35797549230253856], "type": "FLOAT"},
             {"name": "min_value", "data": [1.0], "type": "FLOAT"},
             {"name": "max_value", "data": [4.0], "type": "FLOAT"},
         ],
@@ -64,7 +86,18 @@ def get_parametrization_list_success_cases():
     request_dict = {
         "inputdata": {
             "data_model": "dementia:0.1",
-            "datasets": ["edsd"],
+            "datasets": [
+                "edsd0",
+                "edsd1",
+                "edsd2",
+                "edsd3",
+                "edsd4",
+                "edsd5",
+                "edsd6",
+                "edsd7",
+                "edsd8",
+                "edsd9",
+            ],
             "x": [
                 "lefthippocampus",
             ],
@@ -74,7 +107,18 @@ def get_parametrization_list_success_cases():
                     {
                         "id": "dataset",
                         "type": "string",
-                        "value": ["edsd"],
+                        "value": [
+                            "edsd0",
+                            "edsd1",
+                            "edsd2",
+                            "edsd3",
+                            "edsd4",
+                            "edsd5",
+                            "edsd6",
+                            "edsd7",
+                            "edsd8",
+                            "edsd9",
+                        ],
                         "operator": "in",
                     },
                     {
@@ -103,7 +147,7 @@ def get_parametrization_list_success_cases():
         "title": "Standard Deviation",
         "columns": [
             {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.3611575592573076], "type": "FLOAT"},
+            {"name": "std_deviation", "data": [0.35797549230253856], "type": "FLOAT"},
             {"name": "min_value", "data": [1.0], "type": "FLOAT"},
             {"name": "max_value", "data": [4.0], "type": "FLOAT"},
         ],
@@ -237,7 +281,18 @@ def get_parametrization_list_exception_cases():
     request_dict = {
         "inputdata": {
             "data_model": "dementia:0.1",
-            "datasets": ["edsd"],
+            "datasets": [
+                "edsd0",
+                "edsd1",
+                "edsd2",
+                "edsd3",
+                "edsd4",
+                "edsd5",
+                "edsd6",
+                "edsd7",
+                "edsd8",
+                "edsd9",
+            ],
             "x": [
                 "lefthippocampus",
             ],
@@ -247,7 +302,18 @@ def get_parametrization_list_exception_cases():
                     {
                         "id": "dataset",
                         "type": "string",
-                        "value": ["edsd"],
+                        "value": [
+                            "edsd0",
+                            "edsd1",
+                            "edsd2",
+                            "edsd3",
+                            "edsd4",
+                            "edsd5",
+                            "edsd6",
+                            "edsd7",
+                            "edsd8",
+                            "edsd9",
+                        ],
                         "operator": "in",
                     },
                     {

@@ -175,7 +175,7 @@ class INodeTasksHandler(ABC):
     @abstractmethod
     def load_data_to_smpc_client(
         self, request_id: str, table_name: str, jobid: str
-    ) -> int:
+    ) -> str:
         pass
 
     @abstractmethod

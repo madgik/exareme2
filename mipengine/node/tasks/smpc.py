@@ -58,7 +58,7 @@ def validate_smpc_templates_match(
 
 @shared_task
 @initialise_logger
-def load_data_to_smpc_client(request_id: str, table_name: str, jobid: str) -> int:
+def load_data_to_smpc_client(request_id: str, table_name: str, jobid: str) -> str:
     """
     Loads SMPC data into the SMPC client to be used for a computation.
 

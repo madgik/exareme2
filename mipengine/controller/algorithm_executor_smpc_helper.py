@@ -22,7 +22,7 @@ def load_operation_data_to_smpc_clients(
     command_id: int,
     local_nodes_table: Optional[LocalNodesTable],
     op_type: SMPCRequestType,
-) -> List[int]:
+) -> List[str]:
     smpc_clients = []
     if local_nodes_table:
         for node, table in local_nodes_table.nodes_tables.items():
@@ -37,7 +37,7 @@ def load_operation_data_to_smpc_clients(
 
 def load_data_to_smpc_clients(
     command_id: int, smpc_tables: LocalNodesSMPCTables
-) -> Tuple[List[int], List[int], List[int], List[int]]:
+) -> Tuple[List[str], List[str], List[str], List[str]]:
     sum_op_smpc_clients = load_operation_data_to_smpc_clients(
         command_id, smpc_tables.sum_op_local_nodes_table, SMPCRequestType.SUM
     )
@@ -63,7 +63,7 @@ def trigger_smpc_operation(
     context_id: str,
     command_id: int,
     op_type: SMPCRequestType,
-    smpc_op_clients: List[int],
+    smpc_op_clients: List[str],
 ) -> bool:
     trigger_smpc(
         logger=logger,
@@ -84,7 +84,7 @@ def trigger_smpc_operations(
     logger: Logger,
     context_id: str,
     command_id: int,
-    smpc_clients_per_op: Tuple[List[int], List[int], List[int], List[int]],
+    smpc_clients_per_op: Tuple[List[str], List[str], List[str], List[str]],
 ) -> Tuple[bool, bool, bool, bool]:
     (
         sum_op_smpc_clients,

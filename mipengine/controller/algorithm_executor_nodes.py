@@ -325,7 +325,7 @@ class LocalNode(_Node):
                 raise NotImplementedError
         return udf_results
 
-    def load_data_to_smpc_client(self, table_name: str, jobid: str) -> int:
+    def load_data_to_smpc_client(self, table_name: str, jobid: str) -> str:
         return self._node_tasks_handler.load_data_to_smpc_client(
             self.request_id, table_name, jobid
         )

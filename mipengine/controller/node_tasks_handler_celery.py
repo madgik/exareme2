@@ -401,7 +401,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     @broker_connection_closed_handler
     def load_data_to_smpc_client(
         self, request_id: str, table_name: str, jobid: str
-    ) -> int:
+    ) -> str:
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["load_data_to_smpc_client"]
         )

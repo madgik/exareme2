@@ -88,7 +88,6 @@ TEST_DATA_FOLDER = Path(tests.__file__).parent / "test_data"
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
 MIPENGINE_NODE_CONFIG_FILE = "MIPENGINE_NODE_CONFIG_FILE"
 
-SMPC_BASE_ADDRESS = "http://127.0.0.1"
 SMPC_COORDINATOR_PORT = 12314
 SMPC_COORDINATOR_DB_PORT = 27017
 SMPC_COORDINATOR_QUEUE_PORT = 6379
@@ -148,7 +147,7 @@ def create_configs(c):
         if node["role"] == "GLOBALNODE":
             node_config["smpc"][
                 "coordinator_address"
-            ] = f"{SMPC_BASE_ADDRESS}:{SMPC_COORDINATOR_PORT}"
+            ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
             node_config["smpc"]["get_result_interval"] = deployment_config["smpc"][
                 "get_result_interval"
             ]
@@ -159,7 +158,7 @@ def create_configs(c):
             node_config["smpc"]["client_id"] = node["id"]
             node_config["smpc"][
                 "client_address"
-            ] = f"{SMPC_BASE_ADDRESS}:{node['smpc_client_port']}"
+            ] = f"http://{deployment_config['ip']}:{node['smpc_client_port']}"
 
         node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
         with open(node_config_file, "w+") as fp:
@@ -201,7 +200,7 @@ def create_configs(c):
     controller_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
     controller_config["smpc"][
         "coordinator_address"
-    ] = f"{SMPC_BASE_ADDRESS}:{SMPC_COORDINATOR_PORT}"
+    ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
 
     CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
@@ -637,8 +636,6 @@ def deploy(
     :param smpc: Deploy the SMPC cluster as well. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     """
 
-    cleanup(c)
-
     if not log_level:
         log_level = get_deployment_config("log_level")
 
@@ -921,7 +918,7 @@ def start_smpc_client(c, node_id, ip, image):
     client_id = node_config["smpc"]["client_id"]
     client_port = node_config["smpc"]["client_address"].split(":")[
         2
-    ]  # Get the port from the address e.g. 'http://127.0.0.1:9000'
+    ]  # Get the port from the address e.g. 'http://172.17.0.1:9000'
 
     name = f"{SMPC_CLIENT_BASE_NAME}_{client_id}"
     message(

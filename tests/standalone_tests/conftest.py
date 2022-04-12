@@ -102,9 +102,6 @@ SMPC_PLAYER3_PORT2 = 7002
 SMPC_PLAYER3_PORT3 = 14002
 SMPC_CLIENT1_PORT = 9000
 SMPC_CLIENT2_PORT = 9001
-
-SMPC_CLIENT1_ID = 0
-SMPC_CLIENT2_ID = 1
 #####################################
 
 
@@ -912,6 +909,9 @@ def smpc_clients(
     try:
         container = docker_cli.containers.get(SMPC_CLIENT1_CONT_NAME)
     except docker.errors.NotFound:
+        with open(path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)) as fp:
+            tmp = toml.load(fp)
+            client_id = tmp["smpc"]["client_id"]
         docker_cli.containers.run(
             image=SMPC_CLUSTER_IMAGE,
             name=SMPC_CLIENT1_CONT_NAME,
@@ -924,7 +924,7 @@ def smpc_clients(
                 "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
                 "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
-                "ID": f"{SMPC_CLIENT1_ID}",
+                "ID": client_id,
                 "PORT": f"{SMPC_CLIENT1_PORT}",
             },
             command=f"python client.py",
@@ -934,6 +934,9 @@ def smpc_clients(
     try:
         container = docker_cli.containers.get(SMPC_CLIENT2_CONT_NAME)
     except docker.errors.NotFound:
+        with open(path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)) as fp:
+            tmp = toml.load(fp)
+            client_id = tmp["smpc"]["client_id"]
         docker_cli.containers.run(
             image=SMPC_CLUSTER_IMAGE,
             name=SMPC_CLIENT2_CONT_NAME,
@@ -946,7 +949,7 @@ def smpc_clients(
                 "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
                 "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
-                "ID": f"{SMPC_CLIENT2_ID}",
+                "ID": client_id,
                 "PORT": f"{SMPC_CLIENT2_PORT}",
             },
             command="python client.py",
