@@ -1,4 +1,4 @@
-name: Development Env Tests
+name: SMPC Env Tests
 
 on:
   push:
@@ -87,7 +87,7 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       - name: Copy .deployment.toml file
-        run: cp ./tests/dev_env_tests/deployment_template.toml .deployment.toml
+        run: cp ./tests/smpc_env_tests/deployment_template.toml .deployment.toml
 
       - name: Create config files
         run: poetry run inv create-configs
@@ -103,5 +103,5 @@ jobs:
           poetry run inv start-node --all
           poetry run inv start-controller --detached
 
-      - name: Run development env tests
-        run: poetry run pytest tests/dev_env_tests --verbosity=4
+      - name: Run smpc env tests
+        run: poetry run pytest tests/smpc_env_tests --verbosity=4

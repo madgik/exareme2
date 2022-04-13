@@ -1,0 +1,54 @@
+ip = "172.17.0.1"
+log_level = "DEBUG"
+framework_log_level ="INFO"
+monetdb_image = "madgik/mipenginedb:testing"
+rabbitmq_image = "madgik/mipengine_rabbitmq:testing"
+
+algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
+
+node_landscape_aggregator_update_interval = 30
+celery_tasks_timeout = 20
+celery_run_udf_task_timeout = 120
+
+[privacy]
+minimum_row_count = 10
+
+[cleanup]
+nodes_cleanup_interval=10
+contextid_release_timelimit=3600 #an hour
+
+[smpc]
+enabled=true
+optional=false
+get_result_interval = 2
+get_result_max_retries = 100
+smpc_image="gpikra/coordinator:latest"
+db_image="gpikra/mongodb:latest"
+queue_image="redis:alpine3.15"
+
+[[nodes]]
+id = "globalnode"
+role = "GLOBALNODE"
+monetdb_port=50000
+rabbitmq_port=5670
+
+[[nodes]]
+id = "localnode1"
+role = "LOCALNODE"
+monetdb_port=50001
+rabbitmq_port=5671
+smpc_client_port=9000
+
+[[nodes]]
+id = "localnode2"
+role = "LOCALNODE"
+monetdb_port=50002
+rabbitmq_port=5672
+smpc_client_port=9001
+
+[[nodes]]
+id = "localnode3"
+role="LOCALNODE"
+monetdb_port=50003
+rabbitmq_port=5673
+smpc_client_port=9002
