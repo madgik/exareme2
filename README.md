@@ -51,7 +51,7 @@
 
    node_landscape_aggregator_update_interval = 30
    celery_tasks_timeout = 20
-   celery_smpc_tasks_timeout = 120
+   celery_run_udf_task_timeout = 120
 
    [privacy]
    minimum_row_count = 10

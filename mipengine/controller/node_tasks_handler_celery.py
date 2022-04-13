@@ -125,13 +125,13 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         node_queue_addr: str,
         node_db_addr: str,
         tasks_timeout: int,
-        smpc_tasks_timeout: int,
+        run_udf_task_timeout: int,
     ):
         self._node_id = node_id
         self._celery_app = get_node_celery_app(node_queue_addr)
         self._db_address = node_db_addr
         self._tasks_timeout = tasks_timeout
-        self._smpc_tasks_timeout = smpc_tasks_timeout
+        self._run_udf_task_timeout = run_udf_task_timeout
 
     def close(self):
         self._celery_app.close()
@@ -343,7 +343,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
     def get_queued_udf_result(self, async_result: QueuedUDFAsyncResult) -> UDFResults:
-        result_str = async_result.get(self._tasks_timeout)
+        result_str = async_result.get(self._run_udf_task_timeout)
         return UDFResults.parse_raw(result_str)
 
     @time_limit_exceeded_handler
@@ -410,7 +410,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             request_id=request_id,
             table_name=table_name,
             jobid=jobid,
-        ).get(self._smpc_tasks_timeout)
+        ).get(self._tasks_timeout)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
@@ -430,7 +430,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             context_id=context_id,
             command_id=command_id,
             command_subid=command_subid,
-        ).get(self._smpc_tasks_timeout)
+        ).get(self._tasks_timeout)
 
     # CLEANUP functionality
     @time_limit_exceeded_handler

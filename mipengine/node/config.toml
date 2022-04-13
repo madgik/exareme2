@@ -4,8 +4,6 @@ role = "$NODE_ROLE"
 log_level = "$LOG_LEVEL"
 framework_log_level = "$FRAMEWORK_LOG_LEVEL"
 
-cdes_metadata_path = "./tests/test_data"
-
 [privacy]
 minimum_row_count = 10
 
