@@ -117,13 +117,10 @@ def local1(y, x, covar_enums):
     covariable = x.reset_index(drop=True).to_numpy().squeeze()
     var_label = y.columns.values.tolist()[0]
     covar_label = x.columns.values.tolist()[0]
+    covar_enums = np.array(covar_enums)
     dataset = pd.DataFrame()
     dataset[var_label] = variable
     dataset[covar_label] = covariable
-
-    # to use for SMPC conversion, maybe
-    # unique_vals_covar = np.unique(covariable)
-    # if unique_vals_covar != covar_enums:
 
     n_obs = y.shape[0]
     min_per_group = dataset.groupby([covar_label]).min()
@@ -147,6 +144,11 @@ def local1(y, x, covar_enums):
     group_ssq.columns = ["sum_sq"]
     group_stats_df = pd.DataFrame(group_stats)
     group_stats_df["group_ssq"] = group_ssq
+
+    diff = list(set(covar_enums) - set(group_stats.index))
+    if diff:
+        diff_df = pd.DataFrame(0, index=diff, columns=["count", "sum", "group_ssq"])
+        group_stats_df = group_stats.append(diff_df)
 
     sec_transfer_ = {}
     sec_transfer_["n_obs"] = {"data": n_obs, "operation": "sum"}
@@ -177,14 +179,10 @@ def local1(y, x, covar_enums):
         "covar_label": covar_label,
         "var_min_per_group": var_min_per_group,
         "var_max_per_group": var_max_per_group,
-        "covar_enums": covar_enums,
+        "covar_enums": covar_enums.tolist(),
         "overall_stats_sum2": overall_stats["sum"].tolist(),
-        # "overall_stats_count": overall_stats["count"].tolist(),
-        # "overall_ssq": overall_ssq.item(),
         "overall_stats_index": overall_stats.index.tolist(),
         "group_stats_sum": group_stats_df["sum"].tolist(),
-        # "group_stats_count": group_stats_df["count"].tolist(),
-        # "group_stats_ssq": group_stats_df["group_ssq"].tolist(),
         "group_stats_df_index": group_stats_df.index.tolist(),
     }
 
@@ -226,6 +224,22 @@ def global1(sec_local_transfers, local_transfers):
             diff = list(set(x) - set(y))
             if diff != []:
                 group_stats_index.append(diff)
+
+    # remove zero count groups
+    if not np.all(group_stats_count):
+        df = pd.DataFrame(
+            {
+                "groups": group_stats_index,
+                "count": group_stats_count,
+                "ssq": group_ssq,
+                "sum": group_stats_sum,
+            }
+        )
+        df = df[df["count"] != 0]
+        group_stats_index = df["groups"].tolist()
+        group_stats_count = np.array(df["count"])
+        group_stats_sum = np.array(df["sum"])
+        group_ssq = np.array(df["ssq"])
 
     categories = local_transfers[0]["covar_enums"]
     if len(categories) < 2:
@@ -298,12 +312,13 @@ def global1(sec_local_transfers, local_transfers):
     g_cat = np.array(group_stats_index)
     n_groups = len(g_cat)
     gnobs = group_stats_count
-    gmeans = group_stats_sum / group_stats_count
-
+    gmeans = group_stats_sum / gnobs
     gvar = table.loc["Residual"]["mean_sq"] / gnobs
     g1, g2 = np.array(list(itertools.combinations(np.arange(n_groups), 2))).T
+
     mn = gmeans[g1] - gmeans[g2]
     se = np.sqrt(gvar[g1] + gvar[g2])
+
     tval = mn / se
     df = table.at["Residual", "df"]
 
@@ -352,15 +367,15 @@ def global1(sec_local_transfers, local_transfers):
         tukey_row["p_tuckey"] = row["Pr(>|t|)"]
         tukey_dict.append(tukey_row)
 
-    means = group_stats_sum / group_stats_count
-    variances = group_ssq / group_stats_count - means**2
+    # means = group_stats_sum / group_stats_count
+    variances = group_ssq / group_stats_count - gmeans**2
     sample_vars = (group_stats_count - 1) / group_stats_count * variances
     sample_stds = np.sqrt(np.array(sample_vars))
 
     transfer_ = {
         "n_obs": n_obs,
         "categories": categories,
-        "means": means.tolist(),
+        "means": gmeans.tolist(),
         "sample_stds": sample_stds.tolist(),
         "var_min_per_group_list": var_min_per_group_list,
         "var_max_per_group_list": var_max_per_group_list,
@@ -397,8 +412,6 @@ def create_means_plot(
     group_stats_index,
 ):
     categories = [c for c in categories if c in group_stats_index]
-    # means1 = [means[cat] for cat in categories]
-    # sample_stds = [sample_stds[cat] for cat in categories]
     df1_means_stds_dict = {
         "categories": categories,
         "sample_stds": list(sample_stds),
