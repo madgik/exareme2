@@ -2,6 +2,7 @@ from typing import Dict
 
 import pytest
 
+from mipengine.controller.controller_logger import get_request_logger
 from mipengine.controller.node_registry import NodeRegistry
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
@@ -53,7 +54,7 @@ def get_mocked_node_info() -> Dict[str, NodeInfo]:
 
 @pytest.fixture
 def mocked_node_registry():
-    node_registry = NodeRegistry()
+    node_registry = NodeRegistry(get_request_logger("NODE-REGISTRY"))
     node_registry.nodes = get_mocked_node_info()
     return node_registry
 

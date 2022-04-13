@@ -1,7 +1,9 @@
+from logging import Logger
 from typing import Any
 from typing import Dict
 from typing import List
 
+from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 
 
@@ -10,9 +12,10 @@ def _have_common_elements(a: List[Any], b: List[Any]):
 
 
 class DataModelRegistry:
-    def __init__(self):
-        self.data_models: Dict[str, CommonDataElements] = {}
-        self.datasets_location: Dict[str, Dict[str, List[str]]] = {}
+    def __init__(self, logger: Logger):
+        self._logger = logger
+        self._data_models: Dict[str, CommonDataElements] = {}
+        self._datasets_location: Dict[str, Dict[str, List[str]]] = {}
 
     @property
     def data_models(self):
@@ -24,13 +27,15 @@ class DataModelRegistry:
 
     @data_models.setter
     def data_models(self, value):
+        _log_data_model_changes(self._logger, self._data_models, value)
         self._data_models = value
 
     @datasets_location.setter
     def datasets_location(self, value):
+        _log_dataset_changes(self._logger, self._datasets_location, value)
         self._datasets_location = value
 
-    def get_cdes(self, data_model):
+    def get_cdes(self, data_model) -> Dict[str, CommonDataElement]:
         return self.data_models[data_model].values
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
@@ -94,3 +99,46 @@ class DataModelRegistry:
             if node_id in self.datasets_location[data_model][dataset]
         ]
         return datasets_in_node
+
+
+def _log_data_model_changes(logger, old_data_models, new_data_models):
+    added_data_models = new_data_models.keys() - old_data_models.keys()
+    for data_model in added_data_models:
+        logger.info(f"Datamodel '{data_model}' was added.")
+
+    removed_data_models = old_data_models.keys() - new_data_models.keys()
+    for data_model in removed_data_models:
+        logger.info(f"Datamodel '{data_model}' was removed.")
+
+
+def _log_dataset_changes(
+    logger, old_datasets_per_data_model, new_datasets_per_data_model
+):
+    _log_datasets_added(
+        logger, old_datasets_per_data_model, new_datasets_per_data_model
+    )
+    _log_datasets_removed(
+        logger, old_datasets_per_data_model, new_datasets_per_data_model
+    )
+
+
+def _log_datasets_added(
+    logger, old_datasets_per_data_model, new_datasets_per_data_model
+):
+    for data_model in new_datasets_per_data_model:
+        added_datasets = new_datasets_per_data_model[data_model].keys()
+        if data_model in old_datasets_per_data_model:
+            added_datasets -= old_datasets_per_data_model[data_model].keys()
+        for dataset in added_datasets:
+            logger.info(f"Dataset '{dataset}' of datamodel '{data_model}' was added.")
+
+
+def _log_datasets_removed(
+    logger, old_datasets_per_data_model, new_datasets_per_data_model
+):
+    for data_model in old_datasets_per_data_model:
+        removed_datasets = old_datasets_per_data_model[data_model].keys()
+        if data_model in new_datasets_per_data_model:
+            removed_datasets -= new_datasets_per_data_model[data_model].keys()
+        for dataset in removed_datasets:
+            logger.info(f"Dataset '{dataset}' of datamodel '{data_model}' was removed.")

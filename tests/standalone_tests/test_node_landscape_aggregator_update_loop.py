@@ -286,10 +286,7 @@ async def test_update_loop_data_models_removed(
     # If NLA updates when the data model is being removed from the db it will crash and remove the node completely.
     # We need to wait for it to be added again.
     start = time.time()
-    while (
-        "dementia:0.1" in controller.get_cdes_per_data_model()
-        and localnodetmp_node_id not in controller.get_all_local_nodes()
-    ):
+    while "dementia:0.1" in controller.get_cdes_per_data_model():
         if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(
                 f"Data model registry did not remove the 'dementia:0.1' during {WAIT_TIME_LIMIT=}"
@@ -305,10 +302,7 @@ async def test_update_loop_data_models_removed(
     # Wait until data model registry no longer contains 'tbi:0.1' and that the tmp node is there.
     # If NLA updates when the data model is being removed from the db it will crash and remove the node completely.
     # We need to wait for it to be added again.
-    while (
-        "tbi:0.1" in controller.get_cdes_per_data_model()
-        and localnodetmp_node_id not in controller.get_all_local_nodes()
-    ):
+    while "tbi:0.1" in controller.get_cdes_per_data_model():
         if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(
                 f"Data model registry did not remove the 'tbi:0.1' during {WAIT_TIME_LIMIT=}"
