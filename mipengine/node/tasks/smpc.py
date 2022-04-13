@@ -1,5 +1,4 @@
 import json
-from time import sleep
 from typing import List
 from typing import Optional
 
@@ -19,8 +18,6 @@ from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.smpc_cluster_comm_helpers import SMPCComputationError
 from mipengine.smpc_DTOs import SMPCRequestType
-from mipengine.smpc_DTOs import SMPCResponse
-from mipengine.smpc_DTOs import SMPCResponseStatus
 from mipengine.smpc_DTOs import SMPCResponseWithOutput
 from mipengine.table_data_DTOs import ColumnData
 
@@ -116,36 +113,27 @@ def get_smpc_result(
     if node_config.role != NodeRole.GLOBALNODE:
         raise PermissionError("get_smpc_result is allowed only for a GLOBALNODE.")
 
-    attempts = 0
-    while True:
-        sleep(node_config.smpc.get_result_interval)
+    response = smpc_cluster.get_smpc_result(
+        coordinator_address=node_config.smpc.coordinator_address,
+        jobid=jobid,
+    )
 
-        response = smpc_cluster.get_smpc_result(
-            coordinator_address=node_config.smpc.coordinator_address,
-            jobid=jobid,
+    # We do not need to wait for the result to be ready since the CONTROLLER will do that.
+    # The CONTROLLER will trigger this task only when the result is ready.
+    try:
+        smpc_response = SMPCResponseWithOutput.parse_raw(response)
+    except Exception as exc:
+        raise SMPCComputationError(
+            f"The smpc response could not be parsed into an SMPCResponseWithOutput. "
+            f"\nResponse: {response} \nException: {exc}"
         )
-        smpc_response = SMPCResponse.parse_raw(response)
-        if smpc_response.status == SMPCResponseStatus.FAILED:
-            raise SMPCComputationError(
-                f"The SMPC returned a {SMPCResponseStatus.FAILED} status. Body: {response}"
-            )
-        elif smpc_response.status == SMPCResponseStatus.COMPLETED:
-            # SMPCResponse contains the output only when the Status is COMPLETED
-            smpc_response_with_output = SMPCResponseWithOutput.parse_raw(response)
-            break
-
-        if attempts > node_config.smpc.get_result_max_retries:
-            raise SMPCComputationError(
-                f"Max retries for the SMPC exceeded the limit: {node_config.smpc.get_result_max_retries}"
-            )
-        attempts += 1
 
     results_table_name = _create_smpc_results_table(
         request_id=request_id,
         context_id=context_id,
         command_id=command_id,
         command_subid=command_subid,
-        smpc_op_result_data=smpc_response_with_output.computationOutput,
+        smpc_op_result_data=smpc_response.computationOutput,
     )
 
     return results_table_name

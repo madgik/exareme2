@@ -1,15 +1,20 @@
 from logging import Logger
+from time import sleep
 from typing import List
 from typing import Optional
 from typing import Tuple
 
+from mipengine import smpc_cluster_comm_helpers as smpc_cluster
 from mipengine.controller import config as ctrl_config
 from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesSMPCTables
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
+from mipengine.smpc_cluster_comm_helpers import SMPCComputationError
 from mipengine.smpc_cluster_comm_helpers import trigger_smpc
 from mipengine.smpc_DTOs import SMPCRequestType
+from mipengine.smpc_DTOs import SMPCResponse
+from mipengine.smpc_DTOs import SMPCResponseStatus
 
 
 def get_smpc_job_id(
@@ -105,6 +110,68 @@ def trigger_smpc_operations(
         logger, context_id, command_id, SMPCRequestType.UNION, union_op_smpc_clients
     )
     return sum_op, min_op, max_op, union_op
+
+
+def wait_for_smpc_result_to_be_ready(
+    context_id: str,
+    command_id: int,
+    operation: SMPCRequestType,
+):
+    jobid = get_smpc_job_id(
+        context_id=context_id,
+        command_id=command_id,
+        operation=operation,
+    )
+
+    attempts = 0
+    while True:
+        sleep(ctrl_config.smpc.get_result_interval)
+
+        response = smpc_cluster.get_smpc_result(
+            coordinator_address=ctrl_config.smpc.coordinator_address,
+            jobid=jobid,
+        )
+        try:
+            smpc_response = SMPCResponse.parse_raw(response)
+        except Exception as exc:
+            raise SMPCComputationError(
+                f"The SMPC response could not be parsed. \nResponse{response}. \nException: {exc}"
+            )
+
+        if smpc_response.status == SMPCResponseStatus.FAILED:
+            raise SMPCComputationError(
+                f"The SMPC returned a {SMPCResponseStatus.FAILED} status. Body: {response}"
+            )
+        elif smpc_response.status == SMPCResponseStatus.COMPLETED:
+            break
+
+        if attempts > ctrl_config.smpc.get_result_max_retries:
+            raise SMPCComputationError(
+                f"Max retries for the SMPC exceeded the limit: {ctrl_config.smpc.get_result_max_retries}"
+            )
+        attempts += 1
+
+
+def wait_for_smpc_results_to_be_ready(
+    context_id: str,
+    command_id: int,
+    sum_op: bool,
+    min_op: bool,
+    max_op: bool,
+    union_op: bool,
+):
+    wait_for_smpc_result_to_be_ready(
+        context_id, command_id, SMPCRequestType.SUM
+    ) if sum_op else None
+    wait_for_smpc_result_to_be_ready(
+        context_id, command_id, SMPCRequestType.MIN
+    ) if min_op else None
+    wait_for_smpc_result_to_be_ready(
+        context_id, command_id, SMPCRequestType.MAX
+    ) if max_op else None
+    wait_for_smpc_result_to_be_ready(
+        context_id, command_id, SMPCRequestType.UNION
+    ) if union_op else None
 
 
 def get_smpc_results(

@@ -28,6 +28,9 @@ from mipengine.controller.algorithm_executor_smpc_helper import (
     load_data_to_smpc_clients,
 )
 from mipengine.controller.algorithm_executor_smpc_helper import trigger_smpc_operations
+from mipengine.controller.algorithm_executor_smpc_helper import (
+    wait_for_smpc_results_to_be_ready,
+)
 from mipengine.controller.algorithm_flow_data_objects import AlgoFlowData
 from mipengine.controller.algorithm_flow_data_objects import GlobalNodeData
 from mipengine.controller.algorithm_flow_data_objects import GlobalNodeSMPCTables
@@ -42,7 +45,6 @@ from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import CommonDataElement
@@ -454,6 +456,15 @@ class _AlgorithmExecutionInterface:
             context_id=self._global_node.context_id,
             command_id=command_id,
             smpc_clients_per_op=smpc_clients_per_op,
+        )
+
+        wait_for_smpc_results_to_be_ready(
+            context_id=self._global_node.context_id,
+            command_id=command_id,
+            sum_op=sum_op,
+            min_op=min_op,
+            max_op=max_op,
+            union_op=union_op,
         )
 
         (
