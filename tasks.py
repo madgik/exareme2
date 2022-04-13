@@ -974,9 +974,7 @@ def deploy_smpc(c, ip=None, smpc_image=None, smpc_db_image=None, smpc_queue_imag
     """
     rm_containers(c, smpc=True)
     start_smpc_coordinator(c, ip, smpc_image, smpc_db_image, smpc_queue_image)
-    sleep(10)  # TODO SMPC Remove
     start_smpc_players(c, ip, smpc_image)
-    sleep(10)  # TODO SMPC Remove
     start_smpc_clients(c, ip, smpc_image)
 
 

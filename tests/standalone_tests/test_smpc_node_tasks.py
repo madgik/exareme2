@@ -1,5 +1,6 @@
 import json
 import uuid
+from time import sleep
 from typing import Tuple
 
 import pytest
@@ -17,8 +18,11 @@ from mipengine.node_tasks_DTOs import UDFPosArguments
 from mipengine.node_tasks_DTOs import UDFResults
 from mipengine.smpc_cluster_comm_helpers import ADD_DATASET_ENDPOINT
 from mipengine.smpc_cluster_comm_helpers import TRIGGER_COMPUTATION_ENDPOINT
+from mipengine.smpc_cluster_comm_helpers import get_smpc_result
 from mipengine.smpc_DTOs import SMPCRequestData
 from mipengine.smpc_DTOs import SMPCRequestType
+from mipengine.smpc_DTOs import SMPCResponse
+from mipengine.smpc_DTOs import SMPCResponseStatus
 from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import smpc_global_step
 from tests.algorithms.orphan_udfs import smpc_local_step
@@ -488,6 +492,24 @@ def test_get_smpc_result(
     )
     assert response.status_code == 200
 
+    # --------------- Wait for SMPC result to be ready ------------------------
+    for _ in range(1, 100):
+        response = get_smpc_result(
+            coordinator_address=SMPC_COORDINATOR_ADDRESS,
+            jobid=smpc_job_id,
+        )
+        smpc_response = SMPCResponse.parse_raw(response)
+
+        if smpc_response.status == SMPCResponseStatus.FAILED:
+            raise ValueError(
+                f"The SMPC returned a {SMPCResponseStatus.FAILED} status. Body: {response}"
+            )
+        elif smpc_response.status == SMPCResponseStatus.COMPLETED:
+            break
+        sleep(1)
+    else:
+        raise TimeoutError("SMPC did not finish in 100 tries.")
+
     # --------------- GET SMPC RESULT IN GLOBALNODE ------------------------
     result_tablename = get_smpc_result_task.delay(
         request_id=request_id,
@@ -663,7 +685,25 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     )
     assert response.status_code == 200
 
-    # --------- Get Results of SMPC in globalnode -----------------
+    # --------------- Wait for SMPC result to be ready ------------------------
+    for _ in range(1, 100):
+        response = get_smpc_result(
+            coordinator_address=SMPC_COORDINATOR_ADDRESS,
+            jobid=smpc_job_id,
+        )
+        smpc_response = SMPCResponse.parse_raw(response)
+
+        if smpc_response.status == SMPCResponseStatus.FAILED:
+            raise ValueError(
+                f"The SMPC returned a {SMPCResponseStatus.FAILED} status. Body: {response}"
+            )
+        elif smpc_response.status == SMPCResponseStatus.COMPLETED:
+            break
+        sleep(1)
+    else:
+        raise TimeoutError("SMPC did not finish in 100 tries.")
+
+    # --------- Get SMPC result in globalnode -----------------
     sum_op_values_tablename = get_smpc_result_task_globalnode.delay(
         request_id=request_id,
         context_id=context_id,

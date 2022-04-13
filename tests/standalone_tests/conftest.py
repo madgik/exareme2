@@ -797,8 +797,6 @@ def smpc_coordinator():
             command="python coordinator.py",
         )
 
-    time.sleep(10)  # TODO SMPC Remove
-
     yield
 
     # TODO Very slow development if containers are always removed afterwards
@@ -811,9 +809,7 @@ def smpc_coordinator():
 
 
 @pytest.fixture(scope="session")
-def smpc_players(
-    smpc_coordinator,  # TODO SMPC Remove
-):
+def smpc_players():
     docker_cli = docker.from_env()
 
     # Start player 1
@@ -885,8 +881,6 @@ def smpc_players(
             command="python player.py 2",
         )
 
-    time.sleep(10)  # TODO SMPC Remove
-
     yield
 
     # TODO Very slow development if containers are always removed afterwards
@@ -899,17 +893,14 @@ def smpc_players(
 
 
 @pytest.fixture(scope="session")
-def smpc_clients(
-    smpc_coordinator,  # TODO SMPC Remove
-    smpc_players,  # TODO SMPC Remove
-):
+def smpc_clients():
     docker_cli = docker.from_env()
 
     # Start client 1
     try:
         container = docker_cli.containers.get(SMPC_CLIENT1_CONT_NAME)
     except docker.errors.NotFound:
-        with open(path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)) as fp:
+        with open(path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_SMPC_CONFIG_FILE)) as fp:
             tmp = toml.load(fp)
             client_id = tmp["smpc"]["client_id"]
         docker_cli.containers.run(
@@ -934,7 +925,7 @@ def smpc_clients(
     try:
         container = docker_cli.containers.get(SMPC_CLIENT2_CONT_NAME)
     except docker.errors.NotFound:
-        with open(path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)) as fp:
+        with open(path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE2_SMPC_CONFIG_FILE)) as fp:
             tmp = toml.load(fp)
             client_id = tmp["smpc"]["client_id"]
         docker_cli.containers.run(
@@ -955,6 +946,8 @@ def smpc_clients(
             command="python client.py",
         )
 
+    yield
+
     # TODO Very slow development if containers are always removed afterwards
     # client1_cont = docker_cli.containers.get(SMPC_CLIENT1_CONT_NAME)
     # client1_cont.remove(v=True, force=True)
@@ -964,4 +957,5 @@ def smpc_clients(
 
 @pytest.fixture(scope="session")
 def smpc_cluster(smpc_coordinator, smpc_players, smpc_clients):
+    time.sleep(20)  # TODO Check when the smpc cluster is actually ready
     yield
