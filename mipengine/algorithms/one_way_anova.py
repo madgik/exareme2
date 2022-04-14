@@ -174,15 +174,11 @@ def local1(y, x, covar_enums):
         "operation": "sum",
     }
     transfer_ = {
-        "n_obs": n_obs,
         "var_label": var_label,
         "covar_label": covar_label,
         "var_min_per_group": var_min_per_group,
         "var_max_per_group": var_max_per_group,
         "covar_enums": covar_enums.tolist(),
-        "overall_stats_sum2": overall_stats["sum"].tolist(),
-        "overall_stats_index": overall_stats.index.tolist(),
-        "group_stats_sum": group_stats_df["sum"].tolist(),
         "group_stats_df_index": group_stats_df.index.tolist(),
     }
 
