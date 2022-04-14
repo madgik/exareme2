@@ -139,50 +139,6 @@
             "input": {
                 "inputdata": {
                     "x": [
-                        "ppmicategory"
-                    ],
-                    "y": [
-                        "rightlateralventricle"
-                    ],
-                    "data_model": "dementia:0.1",
-                    "datasets": [
-                        "desd-synthdata5",
-                        "desd-synthdata1",
-                        "ppmi3",
-                        "desd-synthdata9",
-                        "edsd8"
-                    ],
-                    "filters": ""
-                },
-                "parameters": {}
-            },
-            "output": {
-                "df_residual": 78.0,
-                "df_explained": 1.0,
-                "ss_residual": 5892.772138140303,
-                "ss_explained": 51.231908234572735,
-                "ms_residual": 75.54836074538849,
-                "ms_explained": 51.231908234572735,
-                "p_value": 0.4127408139294514,
-                "f_stat": 0.6781339492888991,
-                "tuckey_test": [
-                    {
-                        "groupA": "HC",
-                        "groupB": "PD",
-                        "meanA": 12.916617857142855,
-                        "meanB": 14.594396153846153,
-                        "diff": -1.6777782967032984,
-                        "se": 2.0374024718165535,
-                        "t_stat": -0.8234888883821696,
-                        "p_tuckey": 0.4127418054676967
-                    }
-                ]
-            }
-        },
-        {
-            "input": {
-                "inputdata": {
-                    "x": [
                         "parkinsonbroadcategory"
                     ],
                     "y": [
@@ -465,6 +421,50 @@
                 ]
             }
         },
+        {
+            "input": {
+                "inputdata": {
+                    "x": [
+                        "ppmicategory"
+                    ],
+                    "y": [
+                        "rightlateralventricle"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata5",
+                        "desd-synthdata1",
+                        "ppmi3",
+                        "desd-synthdata9",
+                        "edsd8"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {}
+            },
+            "output": {
+                "df_residual": 78.0,
+                "df_explained": 1.0,
+                "ss_residual": 5892.772138140303,
+                "ss_explained": 51.231908234572735,
+                "ms_residual": 75.54836074538849,
+                "ms_explained": 51.231908234572735,
+                "p_value": 0.4127408139294514,
+                "f_stat": 0.6781339492888991,
+                "tuckey_test": [
+                    {
+                        "groupA": "HC",
+                        "groupB": "PD",
+                        "meanA": 12.916617857142855,
+                        "meanB": 14.594396153846153,
+                        "diff": -1.6777782967032984,
+                        "se": 2.0374024718165535,
+                        "t_stat": -0.8234888883821696,
+                        "p_tuckey": 0.4127418054676967
+                    }
+                ]
+            }
+},
         {
             "input": {
                 "inputdata": {
