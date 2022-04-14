@@ -462,6 +462,10 @@ def kill_node(c, node=None, all_=False):
         cmd = (
             f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
             f"&& pgrep -P $pid | xargs kill -9 "
+        )
+        run(c, cmd, warn=True, show_ok=False)
+        cmd = (
+            f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
             f"&& kill -9 $pid "
         )
         run(c, cmd, warn=True)
