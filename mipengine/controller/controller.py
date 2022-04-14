@@ -57,11 +57,12 @@ class Controller:
     ):
         context_id = get_a_uniqueid()
         algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-        algo_execution_logger.info(
-            f"Experiment with request id '{request_id}' started, "
-            f"with algorithm '{algorithm_name}', "
-            f"touching datasets '{','.join(algorithm_request_dto.inputdata.datasets)}', "
-            f"with parameters '{algorithm_request_dto.json()}'."
+        _log_experiment_execution(
+            logger=algo_execution_logger,
+            request_id=request_id,
+            algorithm_name=algorithm_name,
+            datasets=algorithm_request_dto.inputdata.datasets,
+            algorithm_parameters=algorithm_request_dto.json(),
         )
 
         data_model = algorithm_request_dto.inputdata.data_model
@@ -263,3 +264,18 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery
 def get_a_uniqueid() -> str:
     uid = datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
     return f"{uid}"
+
+
+def _log_experiment_execution(
+    logger,
+    request_id: str,
+    algorithm_name: str,
+    datasets: List[str],
+    algorithm_parameters: str,
+):
+    logger.info(
+        f"Experiment with request id '{request_id}' started, "
+        f"with algorithm '{algorithm_name}', "
+        f"touching datasets '{','.join(datasets)}', "
+        f"with parameters '{algorithm_parameters}'."
+    )
