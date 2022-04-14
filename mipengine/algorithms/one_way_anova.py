@@ -249,7 +249,7 @@ def global1(sec_local_transfers, local_transfers):
     df_residual = n_obs - len(group_stats_index)
     ss_residual = overall_ssq - sum(group_stats_sum**2 / group_stats_count)
     overall_mean = overall_stats_sum / overall_stats_count
-    ss_total = overall_ssq - overall_stats_sum**2 / overall_stats_count
+    # ss_total = overall_ssq - overall_stats_sum ** 2 / overall_stats_count # exists in Exareme I but is not used
 
     ss_explained = sum(
         (overall_mean - group_stats_sum / group_stats_count) ** 2 * group_stats_count
