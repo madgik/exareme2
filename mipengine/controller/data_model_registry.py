@@ -130,7 +130,10 @@ def _log_datasets_added(
         if data_model in old_datasets_per_data_model:
             added_datasets -= old_datasets_per_data_model[data_model].keys()
         for dataset in added_datasets:
-            logger.info(f"Dataset '{dataset}' of datamodel '{data_model}' was added.")
+            # TODO Remove [0] when dataset can be located only in one node. https://team-1617704806227.atlassian.net/browse/MIP-579
+            logger.info(
+                f"Dataset '{dataset}' of datamodel '{data_model}' was added in node '{new_datasets_per_data_model[data_model][dataset][0]}'."
+            )
 
 
 def _log_datasets_removed(
@@ -141,4 +144,7 @@ def _log_datasets_removed(
         if data_model in new_datasets_per_data_model:
             removed_datasets -= new_datasets_per_data_model[data_model].keys()
         for dataset in removed_datasets:
-            logger.info(f"Dataset '{dataset}' of datamodel '{data_model}' was removed.")
+            # TODO Remove [0] when dataset can be located only in one node. https://team-1617704806227.atlassian.net/browse/MIP-579
+            logger.info(
+                f"Dataset '{dataset}' of datamodel '{data_model}' was removed from node '{old_datasets_per_data_model[data_model][dataset][0]}'."
+            )
