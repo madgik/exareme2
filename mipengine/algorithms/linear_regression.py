@@ -116,7 +116,7 @@ class LinearRegression:
         self.n_obs_ = n_obs
         self.df_ = df
         self.rse_ = (rss / df) ** 0.5
-        self.std_err_ = ((self.rse_ ** 2) * numpy.diag(xTx_inv)) ** 0.5
+        self.std_err_ = ((self.rse_**2) * numpy.diag(xTx_inv)) ** 0.5
         self.t_stat_ = coefficients.T[0] / self.std_err_
         self.ci_ = (
             coefficients.T[0] - stats.t.ppf(1 - ALPHA / 2, df) * self.std_err_,
