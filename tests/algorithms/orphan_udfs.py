@@ -29,6 +29,15 @@ def local_step(table: DataFrame):
     return state_, transfer_
 
 
+@udf(table=relation(S), return_type=scalar(int))
+def high_proccess_need_step(table: DataFrame):
+    sum_ = 0
+    for item in range(1, 800000000):
+        sum_ = sum_ + item
+    sum_ = int(sum_)
+    return sum_
+
+
 @udf(table=relation(S), return_type=secure_transfer(sum_op=True))
 def smpc_local_step(table: DataFrame):
     sum_ = 0

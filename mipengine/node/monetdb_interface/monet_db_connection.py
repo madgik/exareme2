@@ -110,6 +110,19 @@ class MonetDB(metaclass=Singleton):
                     self._connection.rollback()
                     sleep(INTEGRITY_ERROR_RETRY_INTERVAL)
                     continue
+                except pymonetdb.exceptions.OperationalError as exc:
+                    integrity_error = exc
+                    if str(exc).startswith(
+                        "42000"
+                    ) and "CREATE OR REPLACE UNION FUNCTION" in str(exc):
+                        self._connection.rollback()
+                        self._logger.info(
+                            "TRYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY"
+                        )
+                        sleep(INTEGRITY_ERROR_RETRY_INTERVAL)
+                        continue
+                    self._connection.rollback()
+                    raise exc
                 except Exception as exc:
                     self._connection.rollback()
                     raise exc

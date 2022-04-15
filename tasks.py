@@ -514,14 +514,14 @@ def start_node(
                 if detached or all_:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
-                        f"-A mipengine.node.node worker -l {framework_log_level} >> {outpath} "
-                        f"--purge 2>&1"
+                        f"-A mipengine.node.node worker -l {framework_log_level}   >> {outpath} "
+                        f" --concurrency=2 --purge 2>&1"
                     )
                     run(c, cmd, wait=False)
                 else:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
-                        f"mipengine.node.node worker -l {framework_log_level} --purge"
+                        f"mipengine.node.node worker -l {framework_log_level} --concurrency=2 --purge"
                     )
                     run(c, cmd, attach_=True)
 
