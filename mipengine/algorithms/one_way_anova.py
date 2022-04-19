@@ -199,7 +199,7 @@ def local1(y, x, covar_enums):
 
 
 @udf(
-    sec_local_transfers=secure_transfer(sum_op=True),
+    sec_local_transfers=secure_transfer(sum_op=True, min_op=True, max_op=True),
     local_transfers=merge_transfer(),
     return_type=[transfer()],
 )
