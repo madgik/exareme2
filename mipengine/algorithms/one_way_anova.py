@@ -76,23 +76,16 @@ def run(algo_interface):
     means = result["means"]
     sample_stds = result["sample_stds"]
     categories = result["categories"]
-    var_min_per_group_list = result["var_min_per_group_list"]
-    var_max_per_group_list = result["var_max_per_group_list"]
+    var_min_per_group = result["var_min_per_group"]
+    var_max_per_group = result["var_max_per_group"]
     group_stats_index = result["group_stats_index"]
 
-    min_per_group, max_per_group, ci_info = create_means_plot(
-        means,
-        sample_stds,
-        categories,
-        var_min_per_group_list,
-        var_max_per_group_list,
-        group_stats_index,
-    )
+    ci_info = get_ci_info(means, sample_stds, categories, group_stats_index)
     anova_table = AnovaResult(
         anova_table=anova_result,
         tuckey_test=tukey_test,
-        min_per_group=min_per_group,
-        max_per_group=max_per_group,
+        min_per_group=var_min_per_group,
+        max_per_group=var_max_per_group,
         ci_info=ci_info,
     )
 
@@ -110,6 +103,8 @@ T = TypeVar("T")
     return_type=[secure_transfer(sum_op=True), transfer()],
 )
 def local1(y, x, covar_enums):
+    import sys
+
     import numpy as np
     import pandas as pd
 
@@ -125,8 +120,6 @@ def local1(y, x, covar_enums):
     n_obs = y.shape[0]
     min_per_group = dataset.groupby([covar_label]).min()
     max_per_group = dataset.groupby([covar_label]).max()
-    var_min_per_group = min_per_group.T.to_dict(orient="records").pop()
-    var_max_per_group = max_per_group.T.to_dict(orient="records").pop()
     var_sq = var_label + "_sq"
     dataset[var_sq] = variable**2
 
@@ -142,12 +135,21 @@ def local1(y, x, covar_enums):
     group_stats.columns = ["count", "sum"]
     group_ssq = dataset[[var_sq, covar_label]].groupby(covar_label).sum()
     group_ssq.columns = ["sum_sq"]
+    min_per_group.columns = ["min_per_group"]
+    max_per_group.columns = ["max_per_group"]
     group_stats_df = pd.DataFrame(group_stats)
     group_stats_df["group_ssq"] = group_ssq
-
+    group_stats_df["min_per_group"] = min_per_group
+    group_stats_df["max_per_group"] = max_per_group
     diff = list(set(covar_enums) - set(group_stats.index))
     if diff:
-        diff_df = pd.DataFrame(0, index=diff, columns=["count", "sum", "group_ssq"])
+        diff_df = pd.DataFrame(
+            0,
+            index=diff,
+            columns=["count", "sum", "group_ssq", "min_per_group", "max_per_group"],
+        )
+        diff_df["min_per_group"] = sys.float_info.max
+        diff_df["max_per_group"] = sys.float_info.min
         group_stats_df = group_stats.append(diff_df)
 
     sec_transfer_ = {}
@@ -173,11 +175,17 @@ def local1(y, x, covar_enums):
         "data": group_stats_df["group_ssq"].tolist(),
         "operation": "sum",
     }
+    sec_transfer_["min_per_group"] = {
+        "data": group_stats_df["min_per_group"].to_dict(),
+        "operation": "min",
+    }
+    sec_transfer_["max_per_group"] = {
+        "data": group_stats_df["max_per_group"].to_dict(),
+        "operation": "max",
+    }
     transfer_ = {
         "var_label": var_label,
         "covar_label": covar_label,
-        "var_min_per_group": var_min_per_group,
-        "var_max_per_group": var_max_per_group,
         "covar_enums": covar_enums.tolist(),
         "group_stats_df_index": group_stats_df.index.tolist(),
     }
@@ -200,9 +208,8 @@ def global1(sec_local_transfers, local_transfers):
     n_obs = sec_local_transfers["n_obs"]
     var_label = [t["var_label"] for t in local_transfers][0]
     covar_label = [t["covar_label"] for t in local_transfers][0]
-    var_min_per_group_list = [t["var_min_per_group"] for t in local_transfers]
-    var_max_per_group_list = [t["var_max_per_group"] for t in local_transfers]
-
+    var_min_per_group = sec_local_transfers["min_per_group"]
+    var_max_per_group = sec_local_transfers["max_per_group"]
     overall_stats_sum = np.array(sec_local_transfers["overall_stats_sum"])
     overall_stats_count = np.array(sec_local_transfers["overall_stats_count"])
     overall_ssq = np.array(sec_local_transfers["overall_ssq"])
@@ -229,13 +236,20 @@ def global1(sec_local_transfers, local_transfers):
                 "count": group_stats_count,
                 "ssq": group_ssq,
                 "sum": group_stats_sum,
-            }
+            },
+            index=group_stats_index,
         )
+        # df.columns = ["min"]
+        # df.columns = ["max"]
+        df["min"] = df.index.to_series().map(var_min_per_group)
+        df["max"] = df.index.to_series().map(var_max_per_group)
         df = df[df["count"] != 0]
         group_stats_index = df["groups"].tolist()
         group_stats_count = np.array(df["count"])
         group_stats_sum = np.array(df["sum"])
         group_ssq = np.array(df["ssq"])
+        var_min_per_group = df["min"].to_dict()
+        var_max_per_group = df["max"].to_dict()
 
     categories = local_transfers[0]["covar_enums"]
     if len(categories) < 2:
@@ -373,8 +387,8 @@ def global1(sec_local_transfers, local_transfers):
         "categories": categories,
         "means": gmeans.tolist(),
         "sample_stds": sample_stds.tolist(),
-        "var_min_per_group_list": var_min_per_group_list,
-        "var_max_per_group_list": var_max_per_group_list,
+        "var_min_per_group": var_min_per_group,
+        "var_max_per_group": var_max_per_group,
         "group_stats_index": group_stats_index,
         "xname": covar_label,
         "yname": "95% CI: " + var_label,
@@ -399,12 +413,10 @@ def global1(sec_local_transfers, local_transfers):
     return transfer_
 
 
-def create_means_plot(
+def get_ci_info(
     means,
     sample_stds,
     categories,
-    var_min_per_group_list,
-    var_max_per_group_list,
     group_stats_index,
 ):
     categories = [c for c in categories if c in group_stats_index]
@@ -423,21 +435,6 @@ def create_means_plot(
         df1_means_stds["means"] + df1_means_stds["sample_stds"]
     )
 
-    # Finding min and max per group across nodes
-    keys_min = {k for d in var_min_per_group_list for k in d.keys()}
-    keys_max = {k for d in var_max_per_group_list for k in d.keys()}
-    var_min = {}
-    var_max = {}
-    for k in keys_min:
-        var = [d[k] for d in var_min_per_group_list if k in d.keys()]
-        var_min[k] = min(var)
-
-    for k in keys_max:
-        var = [d[k] for d in var_max_per_group_list if k in d.keys()]
-        var_max[k] = max(var)
-
-    min_per_group = var_min
-    max_per_group = var_max
     ci_info = df1_means_stds.to_dict()
 
-    return min_per_group, max_per_group, ci_info
+    return ci_info
