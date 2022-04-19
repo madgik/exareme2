@@ -15,8 +15,7 @@ from mipengine.udfgen.udfgenerator import udf
 class AnovaResult(BaseModel):
     anova_table: dict
     tuckey_test: list
-    min_per_group: dict
-    max_per_group: dict
+    min_max_per_group: dict
     ci_info: dict
 
 
@@ -80,12 +79,18 @@ def run(algo_interface):
     var_max_per_group = result["var_max_per_group"]
     group_stats_index = result["group_stats_index"]
 
-    ci_info = get_ci_info(means, sample_stds, categories, group_stats_index)
+    min_max_per_group, ci_info = get_min_max_ci_info(
+        means,
+        sample_stds,
+        categories,
+        var_min_per_group,
+        var_max_per_group,
+        group_stats_index,
+    )
     anova_table = AnovaResult(
         anova_table=anova_result,
         tuckey_test=tukey_test,
-        min_per_group=var_min_per_group,
-        max_per_group=var_max_per_group,
+        min_max_per_group=min_max_per_group,
         ci_info=ci_info,
     )
 
@@ -176,11 +181,11 @@ def local1(y, x, covar_enums):
         "operation": "sum",
     }
     sec_transfer_["min_per_group"] = {
-        "data": group_stats_df["min_per_group"].to_dict(),
+        "data": group_stats_df["min_per_group"].tolist(),
         "operation": "min",
     }
     sec_transfer_["max_per_group"] = {
-        "data": group_stats_df["max_per_group"].to_dict(),
+        "data": group_stats_df["max_per_group"].tolist(),
         "operation": "max",
     }
     transfer_ = {
@@ -208,8 +213,8 @@ def global1(sec_local_transfers, local_transfers):
     n_obs = sec_local_transfers["n_obs"]
     var_label = [t["var_label"] for t in local_transfers][0]
     covar_label = [t["covar_label"] for t in local_transfers][0]
-    var_min_per_group = sec_local_transfers["min_per_group"]
-    var_max_per_group = sec_local_transfers["max_per_group"]
+    var_min_per_group = np.array(sec_local_transfers["min_per_group"])
+    var_max_per_group = np.array(sec_local_transfers["max_per_group"])
     overall_stats_sum = np.array(sec_local_transfers["overall_stats_sum"])
     overall_stats_count = np.array(sec_local_transfers["overall_stats_count"])
     overall_ssq = np.array(sec_local_transfers["overall_ssq"])
@@ -236,20 +241,18 @@ def global1(sec_local_transfers, local_transfers):
                 "count": group_stats_count,
                 "ssq": group_ssq,
                 "sum": group_stats_sum,
+                "min": var_min_per_group,
+                "max": var_max_per_group,
             },
             index=group_stats_index,
         )
-        # df.columns = ["min"]
-        # df.columns = ["max"]
-        df["min"] = df.index.to_series().map(var_min_per_group)
-        df["max"] = df.index.to_series().map(var_max_per_group)
         df = df[df["count"] != 0]
         group_stats_index = df["groups"].tolist()
         group_stats_count = np.array(df["count"])
         group_stats_sum = np.array(df["sum"])
         group_ssq = np.array(df["ssq"])
-        var_min_per_group = df["min"].to_dict()
-        var_max_per_group = df["max"].to_dict()
+        var_min_per_group = np.array(df["min"])
+        var_max_per_group = np.array(df["max"])
 
     categories = local_transfers[0]["covar_enums"]
     if len(categories) < 2:
@@ -387,8 +390,8 @@ def global1(sec_local_transfers, local_transfers):
         "categories": categories,
         "means": gmeans.tolist(),
         "sample_stds": sample_stds.tolist(),
-        "var_min_per_group": var_min_per_group,
-        "var_max_per_group": var_max_per_group,
+        "var_min_per_group": var_min_per_group.tolist(),
+        "var_max_per_group": var_max_per_group.tolist(),
         "group_stats_index": group_stats_index,
         "xname": covar_label,
         "yname": "95% CI: " + var_label,
@@ -413,10 +416,12 @@ def global1(sec_local_transfers, local_transfers):
     return transfer_
 
 
-def get_ci_info(
+def get_min_max_ci_info(
     means,
     sample_stds,
     categories,
+    var_min_per_group,
+    var_max_per_group,
     group_stats_index,
 ):
     categories = [c for c in categories if c in group_stats_index]
@@ -424,6 +429,11 @@ def get_ci_info(
         "categories": categories,
         "sample_stds": list(sample_stds),
         "means": list(means),
+    }
+    df_min_max = {
+        "categories": categories,
+        "min": var_min_per_group,
+        "max": var_max_per_group,
     }
     df1_means_stds = pd.DataFrame(df1_means_stds_dict, index=categories).drop(
         "categories", 1
@@ -435,6 +445,7 @@ def get_ci_info(
         df1_means_stds["means"] + df1_means_stds["sample_stds"]
     )
 
+    min_max_per_group = df_min_max
     ci_info = df1_means_stds.to_dict()
 
-    return ci_info
+    return min_max_per_group, ci_info
