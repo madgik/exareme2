@@ -61,7 +61,6 @@ class Cleaner:
                                     request_id=CLEANER_REQUEST_ID,
                                     context_id=context_id,
                                 )
-                                task_handler.close()
                                 self._remove_nodeid_from_cleanup(
                                     context_id=context_id, node_id=node_id
                                 )

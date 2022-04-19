@@ -4,13 +4,13 @@ from typing import List
 from typing import Tuple
 
 from asgiref.sync import sync_to_async
+from celery import Celery
 
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 
 # TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
 # so the module can be easily unit tested
-from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_registry import NodeRegistry
 from mipengine.controller.nodes_addresses import get_nodes_addresses
@@ -54,9 +54,6 @@ async def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
         if not isinstance(result, Exception)
     ]
 
-    for app in celery_apps:
-        app.close()
-
     return nodes_info
 
 
@@ -89,6 +86,22 @@ async def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataEl
 
     if not isinstance(result, Exception):
         return CommonDataElements.parse_raw(result)
+
+
+def get_node_celery_app(socket_addr):
+    user = controller_config.rabbitmq.user
+    password = controller_config.rabbitmq.password
+    vhost = controller_config.rabbitmq.vhost
+    broker = f"pyamqp://{user}:{password}@{socket_addr}/{vhost}"
+    broker_transport_options = {
+        "max_retries": controller_config.rabbitmq.celery_tasks_max_retries,
+        "interval_start": controller_config.rabbitmq.celery_tasks_interval_start,
+        "interval_step": controller_config.rabbitmq.celery_tasks_interval_step,
+        "interval_max": controller_config.rabbitmq.celery_tasks_interval_max,
+    }
+    cel_app = Celery(broker=broker, backend="rpc://")
+    cel_app.conf.broker_transport_options = broker_transport_options
+    return cel_app
 
 
 def _task_to_async(task, app):

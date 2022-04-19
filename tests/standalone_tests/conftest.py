@@ -665,7 +665,6 @@ def globalnode_tasks_handler(globalnode_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
     tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
     yield tasks_handler
-    tasks_handler.close()
 
 
 @pytest.fixture(scope="function")
@@ -673,7 +672,6 @@ def localnode1_tasks_handler(localnode1_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
     tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
     yield tasks_handler
-    tasks_handler.close()
 
 
 @pytest.fixture(scope="function")

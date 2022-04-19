@@ -12,6 +12,7 @@ from celery.result import AsyncResult
 from kombu.exceptions import OperationalError
 
 from mipengine.controller.celery_app import get_node_celery_app
+from mipengine.controller.celery_app import remove_app
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
@@ -83,6 +84,8 @@ def broker_connection_closed_handler(method: Callable):
         try:
             return method(ref, *args, **kwargs)
         except (OperationalError, ConnectionResetError) as error:
+            if isinstance(error, ConnectionResetError):
+                remove_app(ref._node_queue_addr)
             raise ClosedBrokerConnectionError(
                 message=f"Connection to broker closed for node: '{ref.node_id}' when tried "
                 f"to call '{method}' with task_kwargs={kwargs} due to: '{type(error)}:{error}'",
@@ -105,17 +108,6 @@ class ClosedBrokerConnectionError(Exception):
         super().__init__(message)
 
 
-class NodeTasksHandlerCeleryAsyncResult:
-    def __init__(self, result: AsyncResult, connection: kombu.connection.Connection):
-        self._result = result
-        self._connection = connection
-
-    def get(self, timeout: int):
-        with self._connection:
-            res = self._result.get(timeout)
-        return res
-
-
 class NodeTasksHandlerCelery(INodeTasksHandler):
 
     # TODO create custom type and validator for the socket address
@@ -123,12 +115,13 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         self, node_id: str, node_queue_addr: str, node_db_addr: str, tasks_timeout
     ):
         self._node_id = node_id
+        self._node_queue_addr = node_queue_addr
         self._celery_app = get_node_celery_app(node_queue_addr)
         self._db_address = node_db_addr
         self._tasks_timeout = tasks_timeout
 
     def close(self):
-        self._celery_app.close()
+        pass
 
     @property
     def node_id(self) -> str:
@@ -142,20 +135,9 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     def tasks_timeout(self) -> int:
         return self._tasks_timeout
 
-    def _apply_async(
-        self, task_signature, **kwargs
-    ) -> NodeTasksHandlerCeleryAsyncResult:
-        # The existing connection to the broker is passed in apply_async because the
-        # default behaviour (not passing a
-        # connection object), when the broker is down, is for the celery app to try to
-        # create a new connection to the broker, without raising any exceptions.
-        # Nevertheless, while the broker is down the call to apply_async just hangs
-        # waiting for a connection with the broker to be established. Passing the
-        # existing connection object to apply_async causes the call to raise an
-        # exception if the broker is down
-        conn = self._celery_app.broker_connection()
-        async_result = task_signature.apply_async(connection=conn, kwargs=kwargs)
-        return NodeTasksHandlerCeleryAsyncResult(result=async_result, connection=conn)
+    def _apply_async(self, task_signature, **kwargs):
+        async_result = task_signature.apply_async(kwargs=kwargs)
+        return async_result
 
     # TABLES functionality
     @time_limit_exceeded_handler
