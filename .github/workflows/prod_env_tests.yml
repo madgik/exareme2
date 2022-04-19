@@ -276,28 +276,28 @@ jobs:
           time: '60s'  #https://team-1617704806227.atlassian.net/browse/MIP-248
 
       - name: Controller logs
-        run: kubectl logs -l app=mipengine-controller
+        run: kubectl logs -l app=mipengine-controller --tail -1
 
       - name: Globalnode logs
-        run: kubectl logs -l nodeType=globalnode -c node
+        run: kubectl logs -l nodeType=globalnode -c node --tail -1
 
       - name: Localnode logs
-        run: kubectl logs -l nodeType=localnode -c node
+        run: kubectl logs -l nodeType=localnode -c node --tail -1
 
       - name: Controller logs (post run)
         uses: webiny/action-post-run@2.0.1
         with:
-          run: kubectl logs -l app=mipengine-controller
+          run: kubectl logs -l app=mipengine-controller --tail -1
 
       - name: Globalnode logs (post run)
         uses: webiny/action-post-run@2.0.1
         with:
-          run: kubectl logs -l nodeType=globalnode -c node
+          run: kubectl logs -l nodeType=globalnode -c node --tail -1
 
       - name: Localnode logs (post run)
         uses: webiny/action-post-run@2.0.1
         with:
-          run: kubectl logs -l nodeType=localnode -c node
+          run: kubectl logs -l nodeType=localnode -c node --tail -1
 
       - name: Run production env tests
         run: poetry run pytest tests/prod_env_tests --verbosity=4
