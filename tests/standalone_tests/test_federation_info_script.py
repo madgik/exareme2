@@ -5,10 +5,10 @@ from unittest.mock import patch
 import pytest
 
 from mipengine import AttrDict
-from mipengine.controller.controller import _log_experiment_execution
 from mipengine.controller.controller_logger import init_logger
 from mipengine.controller.data_model_registry import _log_data_model_changes
 from mipengine.controller.data_model_registry import _log_dataset_changes
+from mipengine.controller.federation_info_logs import log_experiment_execution
 from mipengine.controller.node_registry import log_node_changes
 from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_PORT
 
@@ -69,7 +69,7 @@ def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
         old_datasets_per_data_model={"dementia:0.1": {"edsd": ["localnode1"]}},
         new_datasets_per_data_model={"tbi:0.1": {"dummy_tbi": ["localnode2"]}},
     )
-    _log_experiment_execution(logger, "test", "test_algorithm", ["edsd"], "parameters")
+    log_experiment_execution(logger, "test", "test_algorithm", ["edsd"], "parameters")
 
     # Get the logged output
     captured = capsys.readouterr()

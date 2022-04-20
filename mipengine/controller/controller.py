@@ -15,6 +15,7 @@ from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.cleaner import Cleaner
+from mipengine.controller.federation_info_logs import log_experiment_execution
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.node_info_DTOs import NodeInfo
@@ -57,7 +58,7 @@ class Controller:
     ):
         context_id = get_a_uniqueid()
         algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-        _log_experiment_execution(
+        log_experiment_execution(
             logger=algo_execution_logger,
             request_id=request_id,
             algorithm_name=algorithm_name,
@@ -264,18 +265,3 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery
 def get_a_uniqueid() -> str:
     uid = datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
     return f"{uid}"
-
-
-def _log_experiment_execution(
-    logger,
-    request_id: str,
-    algorithm_name: str,
-    datasets: List[str],
-    algorithm_parameters: str,
-):
-    logger.info(
-        f"Experiment with request id '{request_id}' started, "
-        f"with algorithm '{algorithm_name}', "
-        f"touching datasets '{','.join(datasets)}', "
-        f"with parameters '{algorithm_parameters}'."
-    )
