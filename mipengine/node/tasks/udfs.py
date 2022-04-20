@@ -1,7 +1,9 @@
+import logging
 from typing import Dict
 from typing import List
 from typing import Tuple
 
+from billiard.process import current_process
 from celery import shared_task
 
 from mipengine.node import config as node_config
@@ -79,6 +81,7 @@ def run_udf(
         str(UDFResults)
             The results, with the tablenames, that the execution created.
     """
+
     validate_smpc_usage(use_smpc, node_config.smpc.enabled, node_config.smpc.optional)
 
     positional_args = UDFPosArguments.parse_raw(positional_args_json)
@@ -93,6 +96,8 @@ def run_udf(
         keyword_args=keyword_args,
         use_smpc=use_smpc,
     )
+    logging.error(f"TO SPITAKI SOY")
+    logging.error(f"{current_process().index=}")
 
     udfs.run_udf(udf_statements)
 

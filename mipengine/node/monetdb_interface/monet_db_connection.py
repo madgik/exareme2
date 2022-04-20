@@ -1,3 +1,4 @@
+import random
 from contextlib import contextmanager
 from time import sleep
 from typing import List
@@ -97,7 +98,7 @@ class MonetDB(metaclass=Singleton):
             f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}"
         )
 
-        for _ in range(OCC_MAX_ATTEMPTS):
+        for tries in range(OCC_MAX_ATTEMPTS):
             with self.cursor() as cur:
                 try:
                     cur.executemany(query, parameters) if many else cur.execute(
@@ -108,18 +109,21 @@ class MonetDB(metaclass=Singleton):
                 except pymonetdb.exceptions.IntegrityError as exc:
                     integrity_error = exc
                     self._connection.rollback()
+                    self._logger.error(f"INTEGRITY ERROR: {str(exc)}")
                     sleep(INTEGRITY_ERROR_RETRY_INTERVAL)
                     continue
                 except pymonetdb.exceptions.OperationalError as exc:
                     integrity_error = exc
-                    if str(exc).startswith(
-                        "42000"
-                    ) and "CREATE OR REPLACE UNION FUNCTION" in str(exc):
-                        self._connection.rollback()
-                        self._logger.info(
-                            "TRYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY"
+
+                    self._logger.error(f"OPERATIONALERROR: {str(exc)} sleeping for")
+                    if "transaction conflict detected" in str(exc):
+                        self._logger.error(f"{tries=}")
+                        sleeping = random.random()
+                        self._logger.error(
+                            f"OPERATIONALERROR: {str(exc)} sleeping for {sleeping}"
                         )
-                        sleep(INTEGRITY_ERROR_RETRY_INTERVAL)
+                        self._connection.rollback()
+                        sleep(sleeping)
                         continue
                     self._connection.rollback()
                     raise exc

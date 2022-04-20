@@ -477,6 +477,7 @@ def start_node(
     framework_log_level=None,
     detached=False,
     algorithm_folders=None,
+    concurrency=None,
 ):
     """
     (Re)Start the node(s) service(s). If a node service is running, stop and start it again.
@@ -515,14 +516,15 @@ def start_node(
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
                         f"-A mipengine.node.node worker -l {framework_log_level}   >> {outpath} "
-                        f" --concurrency=2 --purge 2>&1"
+                        f" --concurrency=6 --purge 2>&1"
                     )
                     run(c, cmd, wait=False)
                 else:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
-                        f"mipengine.node.node worker -l {framework_log_level} --concurrency=2 --purge"
+                        f"mipengine.node.node worker -l {framework_log_level} --concurrency=6 --purge"
                     )
+                    print(cmd)
                     run(c, cmd, attach_=True)
 
 
@@ -630,7 +632,8 @@ def deploy(
             local_nodes_monetdb_ports.append(node_config["monetdb"]["port"])
 
     node_ids.sort()  # Sorting the ids protects removing a similarly named id, localnode1 would remove localnode10.
-
+    node_ids = ["localnode1"]
+    local_nodes_monetdb_ports = ["50001"]
     create_monetdb(c, node=node_ids, image=monetdb_image, log_level=log_level)
     create_rabbitmq(c, node=node_ids)
     init_monetdb(c, port=local_nodes_monetdb_ports)
