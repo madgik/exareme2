@@ -6,6 +6,7 @@ import numpy
 import scipy.stats as stats
 from pydantic import BaseModel
 
+from mipengine.algorithms.preprocessing import DesignMatrixPreprocessor
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
@@ -39,7 +40,10 @@ def run(algo_interface):
     x = algo_interface.initial_view_tables["x"]
     y = algo_interface.initial_view_tables["y"]
 
-    p = len(algo_interface.x_variables)
+    preprocessor = DesignMatrixPreprocessor(algo_interface)
+    x = preprocessor.transform(x)
+
+    p = len(preprocessor.new_varnames) - 1
 
     lr = LinearRegression(algo_interface)
     lr.fit(X=x, y=y)
@@ -56,7 +60,7 @@ def run(algo_interface):
         r_squared_adjusted=lr.r_squared_adjusted_,
         f_stat=lr.f_stat_,
         f_pvalue=lr.f_p_value_,
-        indep_vars=algo_interface.x_variables,
+        indep_vars=preprocessor.new_varnames,
         coefficients=[c[0] for c in lr.coefficients_],
         std_err=lr.std_err_.tolist(),
         t_stats=lr.t_stat_.tolist(),
@@ -135,7 +139,6 @@ S2 = TypeVar("S2")
 
 @udf(x=relation(S1), y=relation(S2), return_type=[secure_transfer(sum_op=True)])
 def fit_local(x, y):
-    x.insert(0, "Intercept", [1] * len(x))  # TODO move to preprocessing function
     xTx = x.T @ x
     xTy = x.T @ y
     sy = float(y.sum())
@@ -172,7 +175,6 @@ def fit_global(local_transfers):
 
 @udf(x=relation(S1), coefficients=literal(), return_type=state())
 def predict_local(x, coefficients):
-    x.insert(0, "Intercept", [1] * len(x))  # TODO move to preprocessing function
     coefficients = numpy.array(coefficients)
 
     y_pred = x @ coefficients
