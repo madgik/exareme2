@@ -741,4 +741,7 @@ def get_func_name(
     if tensor_op:
         return tensor_op.name
 
+    if isinstance(func, str):
+        return func
+
     return make_unique_func_name(func)

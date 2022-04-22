@@ -34,6 +34,7 @@ from mipengine.udfgen.udfgenerator import UDFBadDefinition
 from mipengine.udfgen.udfgenerator import convert_udfgenargs_to_udfargs
 from mipengine.udfgen.udfgenerator import copy_types_from_udfargs
 from mipengine.udfgen.udfgenerator import generate_udf_queries
+from mipengine.udfgen.udfgenerator import get_create_design_matrix_execution_queries
 from mipengine.udfgen.udfgenerator import get_funcparts_from_udf_registry
 from mipengine.udfgen.udfgenerator import get_matrix_transpose_template
 from mipengine.udfgen.udfgenerator import get_tensor_binary_op_template
@@ -5464,3 +5465,141 @@ FROM
     tens1 AS tensor_0"""
     result = get_tensor_binary_op_template(operand_0, operand_1, op)
     assert result == expected
+
+
+class N:
+    ...
+
+
+def test_get_create_design_matrix_select_only_numerical():
+    enums = {}
+    numerical_vars = ["n1", "n2"]
+    design_matrix = N()
+    design_matrix.name = "test_table"
+    args = {
+        "x": design_matrix,
+        "enums": enums,
+        "numerical_vars": numerical_vars,
+        "intercept": True,
+    }
+    expected = """\
+INSERT INTO $main_output_table_name
+SELECT
+    row_id,
+    1 AS "intercept",
+    n1,
+    n2
+FROM
+    test_table;"""
+    result = get_create_design_matrix_execution_queries(args)
+    assert result.udf_select_query.template == expected
+
+
+def test_get_create_design_matrix_select_only_categorical():
+    enums = {
+        "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
+    }
+    numerical_vars = []
+    design_matrix = N()
+    design_matrix.name = "test_table"
+    args = {
+        "x": design_matrix,
+        "enums": enums,
+        "numerical_vars": numerical_vars,
+        "intercept": True,
+    }
+    expected = """\
+INSERT INTO $main_output_table_name
+SELECT
+    row_id,
+    1 AS "intercept",
+    CASE WHEN c1 = 'l1' THEN 1 ELSE 0 END AS "c1__1",
+    CASE WHEN c1 = 'l2' THEN 1 ELSE 0 END AS "c1__2"
+FROM
+    test_table;"""
+    result = get_create_design_matrix_execution_queries(args)
+    assert result.udf_select_query.template == expected
+
+
+def test_get_create_design_matrix_select_no_intercept():
+    enums = {
+        "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
+    }
+    numerical_vars = []
+    design_matrix = N()
+    design_matrix.name = "test_table"
+    args = {
+        "x": design_matrix,
+        "enums": enums,
+        "numerical_vars": numerical_vars,
+        "intercept": False,
+    }
+    expected = """\
+INSERT INTO $main_output_table_name
+SELECT
+    row_id,
+    CASE WHEN c1 = 'l1' THEN 1 ELSE 0 END AS "c1__1",
+    CASE WHEN c1 = 'l2' THEN 1 ELSE 0 END AS "c1__2"
+FROM
+    test_table;"""
+    result = get_create_design_matrix_execution_queries(args)
+    assert result.udf_select_query.template == expected
+
+
+def test_get_create_design_matrix_select_full():
+    enums = {
+        "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
+        "c2": [
+            {"code": "A", "dummy": "c2__1"},
+            {"code": "B", "dummy": "c2__2"},
+            {"code": "C", "dummy": "c2__3"},
+        ],
+    }
+    numerical_vars = ["n1", "n2"]
+    design_matrix = N()
+    design_matrix.name = "test_table"
+    args = {
+        "x": design_matrix,
+        "enums": enums,
+        "numerical_vars": numerical_vars,
+        "intercept": True,
+    }
+    expected = """\
+INSERT INTO $main_output_table_name
+SELECT
+    row_id,
+    1 AS "intercept",
+    n1,
+    n2,
+    CASE WHEN c1 = 'l1' THEN 1 ELSE 0 END AS "c1__1",
+    CASE WHEN c1 = 'l2' THEN 1 ELSE 0 END AS "c1__2",
+    CASE WHEN c2 = 'A' THEN 1 ELSE 0 END AS "c2__1",
+    CASE WHEN c2 = 'B' THEN 1 ELSE 0 END AS "c2__2",
+    CASE WHEN c2 = 'C' THEN 1 ELSE 0 END AS "c2__3"
+FROM
+    test_table;"""
+    result = get_create_design_matrix_execution_queries(args)
+    assert result.udf_select_query.template == expected
+
+
+def test_get_create_design_matrix_create_query():
+    enums = {
+        "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
+        "c2": [
+            {"code": "A", "dummy": "c2__1"},
+            {"code": "B", "dummy": "c2__2"},
+            {"code": "C", "dummy": "c2__3"},
+        ],
+    }
+    numerical_vars = ["n1", "n2"]
+    design_matrix = N()
+    design_matrix.name = "test_table"
+    args = {
+        "x": design_matrix,
+        "enums": enums,
+        "numerical_vars": numerical_vars,
+        "intercept": True,
+    }
+    expected = 'CREATE TABLE $main_output_table_name("row_id" INT,"intercept" DOUBLE,"n1" DOUBLE,"n2" DOUBLE,"c1__1" DOUBLE,"c1__2" DOUBLE,"c2__1" DOUBLE,"c2__2" DOUBLE,"c2__3" DOUBLE);'
+    result = get_create_design_matrix_execution_queries(args)
+    assert result.udf_results[0].create_query.template == expected
