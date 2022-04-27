@@ -45,7 +45,7 @@ def create_data_model_view(
     datasets: List[str],
     columns: List[str],
     filters: dict = None,
-    drop_na: bool = True,
+    dropna: bool = True,
 ) -> str:
     """
     Creates a MIP specific view of a data_model with specific columns, filters and datasets to the DB.
@@ -66,7 +66,7 @@ def create_data_model_view(
         A list of column names
     filters : dict
         A Jquery filters object
-    drop_na : bool
+    dropna : bool
         A bool that determines if the not null constraints about the columns should be included in the filters
 
     Returns
@@ -79,7 +79,7 @@ def create_data_model_view(
         filters = _get_filters_with_datasets_constraints(
             filters=filters, datasets=datasets
         )
-    if not drop_na:
+    if not dropna:
         filters = _get_filters_with_columns_constraints(
             filters=filters, columns=columns
         )

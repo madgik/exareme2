@@ -307,7 +307,7 @@ def test_data_model_view_with_filters(
             datasets=[],
             columns=columns,
             filters=filters,
-            drop_na=False,
+            dropna=False,
         )
         .get()
     )
@@ -432,7 +432,7 @@ def test_data_model_view_null_constraints(
             datasets=datasets,
             columns=columns,
             filters=None,
-            drop_na=False,
+            dropna=False,
         )
         .get()
     )
