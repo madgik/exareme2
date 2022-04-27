@@ -45,7 +45,7 @@ def create_data_model_view(
     datasets: List[str],
     columns: List[str],
     filters: dict = None,
-    include_nulls: bool = False,
+    drop_na: bool = True,
 ) -> str:
     """
     Creates a MIP specific view of a data_model with specific columns, filters and datasets to the DB.
@@ -66,8 +66,8 @@ def create_data_model_view(
         A list of column names
     filters : dict
         A Jquery filters object
-    include_nulls : bool
-        A bool that determines if the not null constrains about the columns should be included in the filters
+    drop_na : bool
+        A bool that determines if the not null constraints about the columns should be included in the filters
 
     Returns
     ------
@@ -76,11 +76,13 @@ def create_data_model_view(
     """
     _validate_data_model_and_datasets_exist(data_model, datasets)
     if datasets:
-        filters = _get_filters_with_datasets_constrains(
+        filters = _get_filters_with_datasets_constraints(
             filters=filters, datasets=datasets
         )
-    if not include_nulls:
-        filters = _get_filters_with_columns_constrains(filters=filters, columns=columns)
+    if not drop_na:
+        filters = _get_filters_with_columns_constraints(
+            filters=filters, columns=columns
+        )
 
     view_name = create_table_name(
         TableType.VIEW,
@@ -100,7 +102,7 @@ def create_data_model_view(
     return view_name
 
 
-def _get_filters_with_datasets_constrains(filters, datasets):
+def _get_filters_with_datasets_constraints(filters, datasets):
     """
     This function will return the given filters which will also include the dataset's constraints.
     """
@@ -125,7 +127,7 @@ def _get_filters_with_datasets_constrains(filters, datasets):
     }
 
 
-def _get_filters_with_columns_constrains(filters, columns):
+def _get_filters_with_columns_constraints(filters, columns):
     """
     This function will return the given filters which will also include the column's constraints.
     """
