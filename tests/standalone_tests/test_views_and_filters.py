@@ -447,31 +447,6 @@ def test_data_model_view_null_constraints(
     assert None in gose_score_column.data
 
 
-def test_bad_filters_exception():
-    algorithm_name = "standard_deviation"
-    request_params = {
-        "inputdata": {
-            "data_model": "dementia:0.1",
-            "datasets": ["edsd0"],
-            "x": [
-                "lefthippocampus",
-            ],
-            "filters": {"whateveeeeeer": "!!!"},
-        },
-    }
-
-    algorithm_url = algorithms_url + "/" + algorithm_name
-    headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    response = requests.post(
-        algorithm_url,
-        data=json.dumps(request_params),
-        headers=headers,
-    )
-
-    assert "Invalid filters format." in response.text
-    assert response.status_code == 400
-
-
 def test_data_model_view_with_privacy_error(
     request_id,
     context_id,
