@@ -45,6 +45,7 @@ def create_data_model_view(
     datasets: List[str],
     columns: List[str],
     filters: dict = None,
+    dropna: bool = True,
 ) -> str:
     """
     Creates a MIP specific view of a data_model with specific columns, filters and datasets to the DB.
@@ -65,13 +66,23 @@ def create_data_model_view(
         A list of column names
     filters : dict
         A Jquery filters object
+    dropna : bool
+        A bool that determines if the not null constraints about the columns should be included in the filters
 
     Returns
     ------
     str
         The name of the created view
     """
-    validate_data_model_and_datasets_exist(data_model, datasets)
+    _validate_data_model_and_datasets_exist(data_model, datasets)
+    if datasets:
+        filters = _get_filters_with_datasets_constraints(
+            filters=filters, datasets=datasets
+        )
+    if not dropna:
+        filters = _get_filters_with_columns_constraints(
+            filters=filters, columns=columns
+        )
 
     view_name = create_table_name(
         TableType.VIEW,
@@ -91,7 +102,61 @@ def create_data_model_view(
     return view_name
 
 
-def validate_data_model_and_datasets_exist(data_model: str, datasets: List[str]):
+def _get_filters_with_datasets_constraints(filters, datasets):
+    """
+    This function will return the given filters which will also include the dataset's constraints.
+    """
+    rules = [
+        {
+            "id": "dataset",
+            "field": "dataset",
+            "type": "string",
+            "input": "text",
+            "operator": "in",
+            "value": datasets,
+        }
+    ]
+
+    if filters:
+        rules.append(filters)
+
+    return {
+        "condition": "AND",
+        "rules": rules,
+        "valid": True,
+    }
+
+
+def _get_filters_with_columns_constraints(filters, columns):
+    """
+    This function will return the given filters which will also include the column's constraints.
+    """
+    rules = [
+        {
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": variable,
+                    "type": "string",
+                    "operator": "is_not_null",
+                    "value": None,
+                }
+                for variable in columns
+            ],
+        }
+    ]
+
+    if filters:
+        rules.append(filters)
+
+    return {
+        "condition": "AND",
+        "rules": rules,
+        "valid": True,
+    }
+
+
+def _validate_data_model_and_datasets_exist(data_model: str, datasets: List[str]):
     if data_model not in get_data_models():
         raise DataModelUnavailable(node_config.identifier, data_model)
 
