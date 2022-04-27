@@ -79,7 +79,7 @@ def create_data_model_view(
         filters = _get_filters_with_datasets_constraints(
             filters=filters, datasets=datasets
         )
-    if not dropna:
+    if dropna:
         filters = _get_filters_with_columns_constraints(
             filters=filters, columns=columns
         )
