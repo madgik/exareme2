@@ -1,0 +1,37 @@
+{
+    "name": "one_way_anova",
+    "desc": "ANOVA One-way",
+    "label": "ANOVA One-way",
+    "enabled": true,
+    "inputdata": {
+        "x": {
+            "label": "independent",
+            "desc": "independent variable",
+            "types": [
+                "int", "text"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": false
+        },
+        "y": {
+            "label": "dependent",
+            "desc": "Dependent variable",
+            "types": [
+                "real", "int"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": false
+        }
+    },
+    "parameters": {
+    },
+    "flags": {
+        "formula": false
+    }
+}
