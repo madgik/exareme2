@@ -7,6 +7,9 @@ from asgiref.sync import sync_to_async
 
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
+
+# TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
+# so the module can be easily unit tested
 from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_registry import NodeRegistry
@@ -15,9 +18,6 @@ from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
-
-# TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
-# so the module can be easily unit tested
 from mipengine.singleton import Singleton
 
 logger = ctrl_logger.get_background_service_logger()
@@ -66,15 +66,16 @@ async def _get_node_datasets_per_data_model(
     celery_app = get_node_celery_app(node_socket_addr)
     task_signature = celery_app.signature(GET_NODE_DATASETS_PER_DATA_MODEL_SIGNATURE)
 
-    result = await _task_to_async(task_signature, app=celery_app)(
-        request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
-    )
+    try:
+        datasets_per_data_model = await _task_to_async(task_signature, app=celery_app)(
+            request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+        )
+    except Exception as exc:
+        logger.error(
+            f"Error at 'get_node_datasets_per_data_model' in node '{node_socket_addr}': {type(exc)}:{exc}"
+        )
+        datasets_per_data_model = {}
 
-    datasets_per_data_model = {}
-    if not isinstance(result, Exception):
-        datasets_per_data_model = {
-            data_model: datasets for data_model, datasets in result.items()
-        }
     return datasets_per_data_model
 
 
@@ -131,9 +132,10 @@ def _get_node_socket_addr(node_info: NodeInfo):
 
 class NodeLandscapeAggregator(metaclass=Singleton):
     def __init__(self):
+        self._logger = logger
         self.keep_updating = True
-        self._node_registry = NodeRegistry()
-        self._data_model_registry = DataModelRegistry()
+        self._node_registry = NodeRegistry(self._logger)
+        self._data_model_registry = DataModelRegistry(self._logger)
 
     async def update(self):
         """
@@ -178,11 +180,16 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 self._node_registry.nodes = {
                     node_info.id: node_info for node_info in nodes_info
                 }
+
                 self._data_model_registry.data_models = compatible_data_models
                 self._data_model_registry.datasets_location = datasets_locations
-                logger.debug(f"Nodes:{[node for node in self._node_registry.nodes]}")
+                self._logger.debug(
+                    f"Nodes:{[node for node in self._node_registry.nodes]}"
+                )
             except Exception as exc:
-                logger.error(f"Node Landscape Aggregator exception: {type(exc)}:{exc}")
+                self._logger.error(
+                    f"Node Landscape Aggregator exception: {type(exc)}:{exc}"
+                )
             finally:
                 await asyncio.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
 
@@ -205,7 +212,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
     def get_node_info(self, node_id: str) -> NodeInfo:
         return self._node_registry.get_node_info(node_id)
 
-    def get_cdes(self, data_model: str):
+    def get_cdes(self, data_model: str) -> Dict[str, CommonDataElement]:
         return self._data_model_registry.get_cdes(data_model)
 
     def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
@@ -260,7 +267,6 @@ async def _gather_all_dataset_infos(
             node_socket_addr
         )
         for data_model, datasets in datasets_per_data_model.items():
-
             current_labels = (
                 aggregated_datasets[data_model]
                 if data_model in aggregated_datasets
@@ -335,7 +341,8 @@ def _get_compatible_data_models(
         for node, cdes in cdes_from_all_nodes[1:]:
             if not first_cdes == cdes:
                 logger.info(
-                    f"Node '{first_node}' and node '{node}' on data model '{data_model}' have incompatibility on the following cdes: {first_cdes} and {cdes}"
+                    f"Node '{first_node}' and node '{node}' on data model '{data_model}' have incompatibility on the "
+                    f"following cdes: {first_cdes} and {cdes} "
                 )
                 break
         else:

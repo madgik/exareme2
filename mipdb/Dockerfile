@@ -29,6 +29,13 @@ WORKDIR $DATA_PATH
 # Installing dependencies
 #######################################################
 RUN pip install mipdb==0.4.0
+RUN pip install click==8.1.2
+RUN pip install pymonetdb==1.4.1
+
+#######################################################
+# COPY log aggregator inside
+#######################################################
+COPY federation_info.py /home/federation_info.py
 
 #######################################################
 # Keep the container running
