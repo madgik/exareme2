@@ -55,7 +55,7 @@ jobs:
           file: monetdb/Dockerfile
           push: false
           load: true
-          tags: madgik/mipenginedb:latest
+          tags: madgik/mipenginedb:dev
           cache-from: type=local,src=/tmp/.buildx-cache/monetdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
 
@@ -74,7 +74,7 @@ jobs:
           file: rabbitmq/Dockerfile
           push: false
           load: true
-          tags: madgik/mipengine_rabbitmq:latest
+          tags: madgik/mipengine_rabbitmq:dev
           cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
           cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
 
