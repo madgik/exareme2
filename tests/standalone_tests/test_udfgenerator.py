@@ -84,12 +84,12 @@ class TestUDFRegistry:
 
 def test_copy_types_from_udfargs():
     udfgen_args = {
-        "a": RelationArg(table_name="A", schema=[]),
+        "a": RelationArg(table_name="A", schema=[("a", int)]),
         "b": TensorArg(table_name="B", dtype=int, ndims=2),
     }
     udfparams = copy_types_from_udfargs(udfgen_args)
     assert udfparams == {
-        "a": relation(schema=[]),
+        "a": relation(schema=[("a", int)]),
         "b": tensor(dtype=int, ndims=2),
     }
 
@@ -5569,13 +5569,13 @@ INSERT INTO $main_output_table_name
 SELECT
     row_id,
     1 AS "intercept",
-    n1,
-    n2,
     CASE WHEN c1 = 'l1' THEN 1 ELSE 0 END AS "c1__1",
     CASE WHEN c1 = 'l2' THEN 1 ELSE 0 END AS "c1__2",
     CASE WHEN c2 = 'A' THEN 1 ELSE 0 END AS "c2__1",
     CASE WHEN c2 = 'B' THEN 1 ELSE 0 END AS "c2__2",
-    CASE WHEN c2 = 'C' THEN 1 ELSE 0 END AS "c2__3"
+    CASE WHEN c2 = 'C' THEN 1 ELSE 0 END AS "c2__3",
+    n1,
+    n2
 FROM
     test_table;"""
     result = get_create_design_matrix_execution_queries(args)
@@ -5600,6 +5600,6 @@ def test_get_create_design_matrix_create_query():
         "numerical_vars": numerical_vars,
         "intercept": True,
     }
-    expected = 'CREATE TABLE $main_output_table_name("row_id" INT,"intercept" DOUBLE,"n1" DOUBLE,"n2" DOUBLE,"c1__1" DOUBLE,"c1__2" DOUBLE,"c2__1" DOUBLE,"c2__2" DOUBLE,"c2__3" DOUBLE);'
+    expected = 'CREATE TABLE $main_output_table_name("row_id" INT,"intercept" DOUBLE,"c1__1" DOUBLE,"c1__2" DOUBLE,"c2__1" DOUBLE,"c2__2" DOUBLE,"c2__3" DOUBLE,"n1" DOUBLE,"n2" DOUBLE);'
     result = get_create_design_matrix_execution_queries(args)
     assert result.udf_results[0].create_query.template == expected

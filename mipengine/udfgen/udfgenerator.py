@@ -2900,7 +2900,7 @@ def get_new_design_matrix_table(keyword_args):
         for varname in enums.keys()
         for enum in enums[varname]
     ]
-    columns = rowid_column + intercept_column + numerical_columns + dummy_columns
+    columns = rowid_column + intercept_column + dummy_columns + numerical_columns
     table = Table(name=table_name, columns=columns)
     return table
 

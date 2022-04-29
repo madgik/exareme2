@@ -100,8 +100,8 @@ class DesignMatrixPreprocessor:
         names = []
         if self.intercept:
             names.append("Intercept")
-        names.extend([varname for varname in numerical_vars])
         names.extend([e["label"] for enum in enums.values() for e in enum])
+        names.extend([varname for varname in numerical_vars])
         return names
 
     def transform(self, x):
