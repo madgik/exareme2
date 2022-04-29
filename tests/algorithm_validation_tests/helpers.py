@@ -1,6 +1,8 @@
 import copy
+import functools
 import json
 
+import numpy as np
 import requests
 
 
@@ -50,3 +52,10 @@ def get_test_params(expected_file, slc=None):
         slc = slice(len(params))
     params = [(p["input"], p["output"]) for p in params[slc]]
     return params
+
+
+assert_allclose = functools.partial(
+    np.testing.assert_allclose,
+    rtol=1e-7,
+    atol=1e-10,
+)
