@@ -43,8 +43,6 @@ def run(executor):
     X, y = executor.create_primary_data_views(
         variable_groups=[executor.x_variables, executor.y_variables],
     )
-    X = executor.initial_view_tables["x"]
-    y = executor.initial_view_tables["y"]
 
     preprocessor = DesignMatrixPreprocessor(executor)
     X = preprocessor.transform(X)
