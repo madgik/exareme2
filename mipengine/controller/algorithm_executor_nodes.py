@@ -99,73 +99,14 @@ class _Node(_INode, ABC):
         request_id: str,
         context_id: str,
         node_tasks_handler: INodeTasksHandler,
-        initial_view_tables_params: Dict[str, Any] = None,
     ):
-        self._node_tasks_handler = node_tasks_handler
-        self.node_id = self._node_tasks_handler.node_id
-        self.request_id = request_id
-        self.context_id = context_id
-
-        self._initial_view_tables = None
-        if initial_view_tables_params is not None:
-            self._initial_view_tables = self._create_initial_view_tables(
-                initial_view_tables_params
-            )
+        self._node_tasks_handler: INodeTasksHandler = node_tasks_handler
+        self.node_id: str = self._node_tasks_handler.node_id
+        self.request_id: str = request_id
+        self.context_id: str = context_id
 
     def __repr__(self):
         return f"{self.node_id}"
-
-    @property
-    def initial_view_tables(self) -> Dict[str, TableName]:
-        return self._initial_view_tables
-
-    def _create_initial_view_tables(
-        self, initial_view_tables_params
-    ) -> Dict[str, TableName]:
-        # will contain the views created from the data model, datasets. Its keys are
-        # the variable sets x, y etc
-        initial_view_tables = {}
-
-        # initial views
-        variable_x = "x"
-        variable_y = "y"
-        command_id = str(initial_view_tables_params["commandId"])
-        if (
-            initial_view_tables_params[variable_x]
-            and initial_view_tables_params[variable_y]
-        ):
-            X_viewname, Y_viewname = self.create_data_model_views(
-                command_id=command_id,
-                data_model=initial_view_tables_params["data_model"],
-                datasets=initial_view_tables_params["datasets"],
-                columns_per_view=[
-                    initial_view_tables_params[variable_x],
-                    initial_view_tables_params[variable_y],
-                ],
-                filters=initial_view_tables_params["filters"],
-            )
-            initial_view_tables[variable_x] = X_viewname
-            initial_view_tables[variable_y] = Y_viewname
-        elif initial_view_tables_params[variable_x]:
-            view_name, *_ = self.create_data_model_views(
-                command_id=command_id,
-                data_model=initial_view_tables_params["data_model"],
-                datasets=initial_view_tables_params["datasets"],
-                columns_per_view=[initial_view_tables_params[variable_x]],
-                filters=initial_view_tables_params["filters"],
-            )
-            initial_view_tables[variable_x] = view_name
-        elif initial_view_tables_params[variable_y]:
-            view_name, *_ = self.create_data_model_views(
-                command_id=command_id,
-                data_model=initial_view_tables_params["data_model"],
-                datasets=initial_view_tables_params["datasets"],
-                columns_per_view=[initial_view_tables_params[variable_y]],
-                filters=initial_view_tables_params["filters"],
-            )
-            initial_view_tables[variable_y] = view_name
-
-        return initial_view_tables
 
     @property
     def node_address(self) -> str:
