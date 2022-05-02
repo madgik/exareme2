@@ -1,3 +1,4 @@
+import itertools
 import logging
 from typing import Dict
 from typing import List
@@ -195,7 +196,10 @@ def get_table_data(table_name: str) -> List[ColumnData]:
     data = list(zip(*data))
 
     columns_data = []
-    for current_column, current_values in zip(schema.columns, data):
+    # zip_longest is used because if there are no rows, no columns will be added as well
+    for current_column, current_values in itertools.zip_longest(
+        schema.columns, data, fillvalue=[]
+    ):
         if current_column.dtype == DType.INT:
             columns_data.append(
                 ColumnDataInt(name=current_column.name, data=current_values)

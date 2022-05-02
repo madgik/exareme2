@@ -312,8 +312,12 @@ def localnodetmp_db_cursor():
 
 
 def _clean_db(cursor):
-    table_types = {0, 1, 3, 5}  # 0=table, 1=view, 3=merge_table, 5=remote_table
-
+    table_types = [
+        3,
+        5,
+        1,
+        0,
+    ]  # 3=merge_table, 5=remote_table, 1=view, 0=table (Order is IMPORTANT)
     for table_type in table_types:
         select_user_tables = f"SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000 AND type={table_type}"
         user_tables = cursor.execute(select_user_tables).fetchall()

@@ -42,14 +42,16 @@ class _INode(ABC):
         pass
 
     @abstractmethod
-    def create_data_model_view(
+    def create_data_model_views(
         self,
         command_id: str,
         data_model: str,
         datasets: List[str],
-        columns: List[str],
-        filters: List[str],
-    ) -> TableName:
+        columns_per_view: List[List[str]],
+        filters: dict,
+        dropna: bool = True,
+        check_min_rows: bool = True,
+    ) -> List[TableName]:
         pass
 
     @abstractmethod
@@ -124,32 +126,44 @@ class _Node(_INode, ABC):
         # the variable sets x, y etc
         initial_view_tables = {}
 
-        # initial view for variables in X
-        variable = "x"
-        if initial_view_tables_params[variable]:
-            command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_data_model_view(
+        # initial views
+        variable_x = "x"
+        variable_y = "y"
+        command_id = str(initial_view_tables_params["commandId"])
+        if (
+            initial_view_tables_params[variable_x]
+            and initial_view_tables_params[variable_y]
+        ):
+            X_viewname, Y_viewname = self.create_data_model_views(
                 command_id=command_id,
                 data_model=initial_view_tables_params["data_model"],
                 datasets=initial_view_tables_params["datasets"],
-                columns=initial_view_tables_params[variable],
+                columns_per_view=[
+                    initial_view_tables_params[variable_x],
+                    initial_view_tables_params[variable_y],
+                ],
                 filters=initial_view_tables_params["filters"],
             )
-            initial_view_tables["x"] = view_name
-
-        # initial view for variables in Y
-        variable = "y"
-        if initial_view_tables_params[variable]:
-            command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_data_model_view(
+            initial_view_tables[variable_x] = X_viewname
+            initial_view_tables[variable_y] = Y_viewname
+        elif initial_view_tables_params[variable_x]:
+            view_name, *_ = self.create_data_model_views(
                 command_id=command_id,
                 data_model=initial_view_tables_params["data_model"],
                 datasets=initial_view_tables_params["datasets"],
-                columns=initial_view_tables_params[variable],
+                columns_per_view=[initial_view_tables_params[variable_x]],
                 filters=initial_view_tables_params["filters"],
             )
-
-            initial_view_tables["y"] = view_name
+            initial_view_tables[variable_x] = view_name
+        elif initial_view_tables_params[variable_y]:
+            view_name, *_ = self.create_data_model_views(
+                command_id=command_id,
+                data_model=initial_view_tables_params["data_model"],
+                datasets=initial_view_tables_params["datasets"],
+                columns_per_view=[initial_view_tables_params[variable_y]],
+                filters=initial_view_tables_params["filters"],
+            )
+            initial_view_tables[variable_y] = view_name
 
         return initial_view_tables
 
@@ -196,26 +210,28 @@ class _Node(_INode, ABC):
         )
         return [TableName(table_name) for table_name in result]
 
-    # TODO: this is very specific to mip, very inconsistent with the rest, has to
-    # be abstracted somehow
-    def create_data_model_view(
+    def create_data_model_views(
         self,
         command_id: str,
         data_model: str,
         datasets: List[str],
-        columns: List[str],
-        filters: List[str],
-    ) -> TableName:
-        result = self._node_tasks_handler.create_data_model_view(
+        columns_per_view: List[List[str]],
+        filters: dict = None,
+        dropna: bool = True,
+        check_min_rows: bool = True,
+    ) -> List[TableName]:
+        views = self._node_tasks_handler.create_data_model_views(
             request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             data_model=data_model,
             datasets=datasets,
-            columns=columns,
+            columns_per_view=columns_per_view,
             filters=filters,
+            dropna=dropna,
+            check_min_rows=check_min_rows,
         )
-        return TableName(result)
+        return [TableName(view) for view in views]
 
     # MERGE TABLES functionality
     def get_merge_tables(self) -> List[TableName]:
