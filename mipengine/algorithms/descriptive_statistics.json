@@ -1,0 +1,27 @@
+{
+	"name": "descriptive_statistics",
+	"desc": "descriptive_statistics",
+	"label": "descriptive_statistics",
+	"enabled": true,
+	"inputdata": {
+		"x": {
+			"label": "features",
+			"desc": "Features",
+			"types": [
+				"real"
+			],
+			"stattypes": [
+				"numerical"
+			],
+			"notblank": false,
+			"multiple": true
+		}
+
+	},
+	"parameters": {
+
+	},
+	"flags": {
+		"formula": false
+	}
+}
