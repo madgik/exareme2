@@ -96,7 +96,7 @@ def run_udf(
         keyword_args=keyword_args,
         use_smpc=use_smpc,
     )
-    logging.error(f"TO SPITAKI SOY")
+    logging.error(f"UFD logging")
     logging.error(f"{current_process().index=}")
 
     udfs.run_udf(udf_statements)
