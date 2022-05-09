@@ -1,6 +1,8 @@
 from logging import Logger
 from typing import Dict
 
+from mipengine.controller.federation_info_logs import log_node_joined_federation
+from mipengine.controller.federation_info_logs import log_node_left_federation
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 
@@ -43,8 +45,8 @@ class NodeRegistry:
 def log_node_changes(logger, old_nodes, new_nodes):
     added_nodes = set(new_nodes.keys()) - set(old_nodes.keys())
     for node in added_nodes:
-        logger.info(f"Node with id '{node}' joined the federation.")
+        log_node_joined_federation(logger, node)
 
     removed_nodes = set(old_nodes.keys()) - set(new_nodes.keys())
     for node in removed_nodes:
-        logger.info(f"Node with id '{node}' left the federation.")
+        log_node_left_federation(logger, node)

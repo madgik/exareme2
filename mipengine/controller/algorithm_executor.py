@@ -361,6 +361,7 @@ class _AlgorithmExecutionInterface:
             for share, local_nodes_data in zip(share_to_global, all_local_nodes_data):
                 if share:
                     result = self._share_local_node_data(local_nodes_data, command_id)
+                    command_id = get_next_command_id()
                 else:
                     result = local_nodes_data
                 results_after_sharing_step.append(result)
@@ -533,6 +534,7 @@ class _AlgorithmExecutionInterface:
                     results_after_sharing_step.append(
                         self._share_global_table_to_locals(table)
                     )
+                    command_id = get_next_command_id()
                 else:
                     results_after_sharing_step.append(table)
 
