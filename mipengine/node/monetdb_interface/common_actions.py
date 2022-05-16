@@ -1,5 +1,6 @@
 import itertools
 import logging
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -191,39 +192,45 @@ def get_table_data(table_name: str) -> List[ColumnData]:
         """
     )
 
-    # TableData contain columns
-    # we need to switch the data given from the database from row-stored to column-stored
     column_stored_data = list(zip(*row_stored_data))
+    # In case there are no rows in the table, the `column_stored_data` will be an empty list.
+    # The `column_stored_data` needs to have a value for each column, so we fill it with empty lists.
+    if not column_stored_data:
+        column_stored_data = [[] for _ in schema.columns]
 
-    columns_data = []
-    # If the table is empty the `column_stored_data` will be an empty list,
-    # `zip_longest` covers that case, filling the columns' data with empty lists.
-    for current_column, current_values in itertools.zip_longest(
-        schema.columns, column_stored_data, fillvalue=[]
-    ):
+    return _convert_column_stored_data_to_column_data_objects(
+        column_stored_data, schema
+    )
+
+
+def _convert_column_stored_data_to_column_data_objects(
+    column_stored_data: List[List[Any]], schema: TableSchema
+):
+    table_data = []
+    for current_column, current_values in zip(schema.columns, column_stored_data):
         if current_column.dtype == DType.INT:
-            columns_data.append(
+            table_data.append(
                 ColumnDataInt(name=current_column.name, data=current_values)
             )
         elif current_column.dtype == DType.STR:
-            columns_data.append(
+            table_data.append(
                 ColumnDataStr(name=current_column.name, data=current_values)
             )
         elif current_column.dtype == DType.FLOAT:
-            columns_data.append(
+            table_data.append(
                 ColumnDataFloat(name=current_column.name, data=current_values)
             )
         elif current_column.dtype == DType.JSON:
-            columns_data.append(
+            table_data.append(
                 ColumnDataJSON(name=current_column.name, data=current_values)
             )
         elif current_column.dtype == DType.BINARY:
-            columns_data.append(
+            table_data.append(
                 ColumnDataBinary(name=current_column.name, data=current_values)
             )
         else:
             raise ValueError("Invalid column type")
-    return columns_data
+    return table_data
 
 
 def get_data_models() -> List[str]:
