@@ -261,6 +261,24 @@ class _AlgorithmExecutionInterface:
         dropna: bool = True,
         check_min_rows: bool = True,
     ) -> List[LocalNodesTable]:
+        """
+        Creates primary data views, for each variable group provided,
+        using also the algorithm request arguments (data_model, datasets, filters).
+
+        Parameters
+        ----------
+        variable_groups : List[List[str]]
+            A list of variable_groups. The variable group is a list of columns.
+        dropna : bool
+            Remove NAs from the view.
+        check_min_rows : bool
+            Raise an exception if there are not enough rows in the view.
+
+        Returns
+        ------
+        List[LocalNodesTable]
+            A (LocalNodesTable) view for each variable_group provided.
+        """
 
         command_id = str(get_next_command_id())
         views_per_localnode = [

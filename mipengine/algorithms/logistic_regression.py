@@ -25,7 +25,7 @@ def run(algo_interface):
 
     classes = algo_interface.algorithm_parameters["classes"]
 
-    X_relation, Y_relation = algo_interface.create_primary_data_views(
+    X_relation, y_relation = algo_interface.create_primary_data_views(
         variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
     )
 
@@ -36,7 +36,7 @@ def run(algo_interface):
 
     y = local_run(
         func=label_binarize,
-        keyword_args={"y": Y_relation, "classes": classes},
+        keyword_args={"y": y_relation, "classes": classes},
     )
 
     # init model

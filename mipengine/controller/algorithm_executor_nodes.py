@@ -52,6 +52,31 @@ class _INode(ABC):
         dropna: bool = True,
         check_min_rows: bool = True,
     ) -> List[TableName]:
+        """
+        Creates views on a specific data model.
+
+        Parameters
+        ----------
+        command_id : str
+            The id of the command.
+        data_model : str
+            The data model of the view.
+        datasets : str
+            The datasets that will be included in the view.
+        columns_per_view : List[List[str]]
+            A list of column names' for each view to be created.
+        filters : dict
+            A dict representation of a jQuery QueryBuilder json. (https://querybuilder.js.org/)
+        dropna : bool
+            Remove NAs from the view.
+        check_min_rows : bool
+            Raise an exception if there are not enough rows in the view.
+
+        Returns
+        ------
+        List[TableName]
+            A list of views(TableName) created, corresponding to the columns_per_view list.
+        """
         pass
 
     @abstractmethod

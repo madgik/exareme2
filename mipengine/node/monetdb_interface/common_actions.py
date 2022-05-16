@@ -182,7 +182,7 @@ def get_table_data(table_name: str) -> List[ColumnData]:
     """
     schema = get_table_schema(table_name)
 
-    data = MonetDB().execute_and_fetchall(
+    row_stored_data = MonetDB().execute_and_fetchall(
         f"""
         SELECT {table_name}.*
         FROM {table_name}
@@ -193,12 +193,13 @@ def get_table_data(table_name: str) -> List[ColumnData]:
 
     # TableData contain columns
     # we need to switch the data given from the database from row-stored to column-stored
-    data = list(zip(*data))
+    column_stored_data = list(zip(*row_stored_data))
 
     columns_data = []
-    # zip_longest is used because if there are no rows, no columns will be added as well
+    # If the table is empty the `column_stored_data` will be an empty list,
+    # `zip_longest` covers that case, filling the columns' data with empty lists.
     for current_column, current_values in itertools.zip_longest(
-        schema.columns, data, fillvalue=[]
+        schema.columns, column_stored_data, fillvalue=[]
     ):
         if current_column.dtype == DType.INT:
             columns_data.append(
@@ -314,12 +315,13 @@ def drop_db_artifacts_by_context_id(context_id: str):
 
     _drop_udfs_by_context_id(context_id)
     # Order of the table types matter not to have dependencies when dropping the tables
-    for table_type in [
+    table_type_drop_order = (
         TableType.MERGE,
         TableType.REMOTE,
         TableType.VIEW,
         TableType.NORMAL,
-    ]:
+    )
+    for table_type in table_type_drop_order:
         print("Dropping tabletype: " + str(table_type))
         _drop_table_by_type_and_context_id(table_type, context_id)
 
