@@ -11,6 +11,9 @@ import pytest
 import sqlalchemy as sql
 import toml
 
+from mipengine import AttrDict
+from mipengine.controller.celery_app import get_node_celery_app
+from mipengine.controller.controller_logger import get_request_logger
 from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_registry import NodeRegistry
@@ -18,8 +21,8 @@ from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCeler
 from mipengine.udfgen import udfio
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
-TESTING_RABBITMQ_CONT_IMAGE = "madgik/mipengine_rabbitmq:latest"
-TESTING_MONETDB_CONT_IMAGE = "madgik/mipenginedb:latest"
+TESTING_RABBITMQ_CONT_IMAGE = "madgik/mipengine_rabbitmq:dev"
+TESTING_MONETDB_CONT_IMAGE = "madgik/mipenginedb:dev"
 
 this_mod_path = os.path.dirname(os.path.abspath(__file__))
 TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
@@ -692,10 +695,74 @@ def localnodetmp_tasks_handler(localnodetmp_node_service):
     tasks_handler.close()
 
 
+def get_node_config_by_id(node_config_file: str):
+    with open(path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)) as fp:
+        node_config = AttrDict(toml.load(fp))
+    return node_config
+
+
+@pytest.fixture(scope="session")
+def globalnode_celery_app(globalnode_node_service):
+    config = get_node_config_by_id(GLOBALNODE_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
+@pytest.fixture(scope="session")
+def localnode1_celery_app(localnode1_node_service):
+    config = get_node_config_by_id(LOCALNODE1_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
+@pytest.fixture(scope="session")
+def localnode2_celery_app(localnode2_node_service):
+    config = get_node_config_by_id(LOCALNODE2_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
+@pytest.fixture(scope="function")
+def localnodetmp_celery_app(localnodetmp_node_service):
+    config = get_node_config_by_id(LOCALNODETMP_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
+@pytest.fixture(scope="session")
+def smpc_globalnode_celery_app(smpc_globalnode_node_service):
+    config = get_node_config_by_id(GLOBALNODE_SMPC_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
+@pytest.fixture(scope="session")
+def smpc_localnode1_celery_app(smpc_localnode1_node_service):
+    config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
+@pytest.fixture(scope="session")
+def smpc_localnode2_celery_app(smpc_localnode2_node_service):
+    config = get_node_config_by_id(LOCALNODE2_SMPC_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
 @pytest.fixture(scope="function")
 def reset_node_landscape_aggregator():
     nla = NodeLandscapeAggregator()
     nla.keep_updating = False
-    nla._node_registry = NodeRegistry()
-    nla._data_model_registry = DataModelRegistry()
+    nla._node_registry = NodeRegistry(get_request_logger("NODE-REGISTRY"))
+    nla._data_model_registry = DataModelRegistry(
+        get_request_logger("DATA-MODEL-REGISTRY")
+    )
     yield

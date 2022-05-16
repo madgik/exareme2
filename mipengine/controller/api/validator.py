@@ -110,13 +110,18 @@ def _validate_inputdata_filter(data_model, filter):
     validate_filter(data_model, filter, cdes)
 
 
-# TODO This will be removed with the dynamic inputdata logic.
 def _validate_algorithm_inputdatas(
     inputdata: AlgorithmInputDataDTO, inputdata_specs: InputDataSpecifications
 ):
 
-    _validate_algorithm_inputdata(inputdata.x, inputdata_specs.x, inputdata.data_model)
-    _validate_algorithm_inputdata(inputdata.y, inputdata_specs.y, inputdata.data_model)
+    if inputdata_specs.x:
+        _validate_algorithm_inputdata(
+            inputdata.x, inputdata_specs.x, inputdata.data_model
+        )
+    if inputdata_specs.y:
+        _validate_algorithm_inputdata(
+            inputdata.y, inputdata_specs.y, inputdata.data_model
+        )
 
 
 def _validate_algorithm_inputdata(

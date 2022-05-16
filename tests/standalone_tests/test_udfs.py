@@ -18,20 +18,11 @@ from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import get_column_rows
 from tests.algorithms.orphan_udfs import local_step
 from tests.algorithms.orphan_udfs import very_slow_udf
-from tests.standalone_tests.conftest import LOCALNODE1_CONFIG_FILE
-from tests.standalone_tests.nodes_communication_helper import get_celery_app
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
-from tests.standalone_tests.nodes_communication_helper import get_node_config_by_id
 
 command_id = "command123"
 request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
 context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
-
-
-@pytest.fixture(scope="session")
-def localnode1_celery_app():
-    localnode1_config = get_node_config_by_id(LOCALNODE1_CONFIG_FILE)
-    yield get_celery_app(localnode1_config)
 
 
 def create_table_with_one_column_and_ten_rows(celery_app) -> Tuple[str, int]:
