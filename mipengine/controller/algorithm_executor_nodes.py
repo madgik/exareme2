@@ -42,44 +42,6 @@ class _INode(ABC):
         pass
 
     @abstractmethod
-    def create_data_model_views(
-        self,
-        command_id: str,
-        data_model: str,
-        datasets: List[str],
-        columns_per_view: List[List[str]],
-        filters: dict,
-        dropna: bool = True,
-        check_min_rows: bool = True,
-    ) -> List[TableName]:
-        """
-        Creates views on a specific data model.
-
-        Parameters
-        ----------
-        command_id : str
-            The id of the command.
-        data_model : str
-            The data model of the view.
-        datasets : str
-            The datasets that will be included in the view.
-        columns_per_view : List[List[str]]
-            A list of column names' for each view to be created.
-        filters : dict
-            A dict representation of a jQuery QueryBuilder json. (https://querybuilder.js.org/)
-        dropna : bool
-            Remove NAs from the view.
-        check_min_rows : bool
-            Raise an exception if there are not enough rows in the view.
-
-        Returns
-        ------
-        List[TableName]
-            A list of views(TableName) created, corresponding to the columns_per_view list.
-        """
-        pass
-
-    @abstractmethod
     def get_merge_tables(self) -> List[TableName]:
         pass
 
@@ -176,29 +138,6 @@ class _Node(_INode, ABC):
         )
         return [TableName(table_name) for table_name in result]
 
-    def create_data_model_views(
-        self,
-        command_id: str,
-        data_model: str,
-        datasets: List[str],
-        columns_per_view: List[List[str]],
-        filters: dict = None,
-        dropna: bool = True,
-        check_min_rows: bool = True,
-    ) -> List[TableName]:
-        views = self._node_tasks_handler.create_data_model_views(
-            request_id=self.request_id,
-            context_id=self.context_id,
-            command_id=command_id,
-            data_model=data_model,
-            datasets=datasets,
-            columns_per_view=columns_per_view,
-            filters=filters,
-            dropna=dropna,
-            check_min_rows=check_min_rows,
-        )
-        return [TableName(view) for view in views]
-
     # MERGE TABLES functionality
     def get_merge_tables(self) -> List[TableName]:
         result = self._node_tasks_handler.get_merge_tables(
@@ -277,6 +216,54 @@ class _Node(_INode, ABC):
 
 
 class LocalNode(_Node):
+    def create_data_model_views(
+        self,
+        command_id: str,
+        data_model: str,
+        datasets: List[str],
+        columns_per_view: List[List[str]],
+        filters: dict = None,
+        dropna: bool = True,
+        check_min_rows: bool = True,
+    ) -> List[TableName]:
+        """
+        Creates views on a specific data model.
+
+        Parameters
+        ----------
+        command_id : str
+            The id of the command.
+        data_model : str
+            The data model of the view.
+        datasets : str
+            The datasets that will be included in the view.
+        columns_per_view : List[List[str]]
+            A list of column names' for each view to be created.
+        filters : dict
+            A dict representation of a jQuery QueryBuilder json. (https://querybuilder.js.org/)
+        dropna : bool
+            Remove NAs from the view.
+        check_min_rows : bool
+            Raise an exception if there are not enough rows in the view.
+
+        Returns
+        ------
+        List[TableName]
+            A list of views(TableName) created, corresponding to the columns_per_view list.
+        """
+        views = self._node_tasks_handler.create_data_model_views(
+            request_id=self.request_id,
+            context_id=self.context_id,
+            command_id=command_id,
+            data_model=data_model,
+            datasets=datasets,
+            columns_per_view=columns_per_view,
+            filters=filters,
+            dropna=dropna,
+            check_min_rows=check_min_rows,
+        )
+        return [TableName(view) for view in views]
+
     def get_queued_udf_result(
         self, async_result: IQueuedUDFAsyncResult
     ) -> List[NodeData]:
