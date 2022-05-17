@@ -24,12 +24,12 @@ def run(algo_interface):
     global_run = algo_interface.run_udf_on_global_node
 
     X_relation = algo_interface.initial_view_tables["x"]
-    [x_var_name] = algo_interface.__dict__["_x_variables"]
+    [x_var_name] = algo_interface.x_variables
 
     covar_enums = list(algo_interface.metadata[x_var_name]["enumerations"])
 
     Y_relation = algo_interface.initial_view_tables["y"]
-    [y_var_name] = algo_interface.__dict__["_y_variables"]
+    [y_var_name] = algo_interface.y_variables
 
     sec_local_transfers, local_transfers = local_run(
         func=local1,
@@ -45,7 +45,9 @@ def run(algo_interface):
     )
 
     result = json.loads(result.get_table_data()[1][0])
+    n_obs = result["n_obs"]
     anova_result = {
+        "n_obs": n_obs,
         "y_label": y_var_name,
         "x_label": x_var_name,
         "df_residual": result["df_residual"],
