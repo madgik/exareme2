@@ -297,26 +297,7 @@ class _AlgorithmExecutionInterface:
             for local_node in self._local_nodes
         ]
 
-        # Add empty dicts for as many views created in the nodes
-        views_of_first_node = views_per_localnode[0][1]
-        local_nodes_tables_dicts = [{} for _ in views_of_first_node]
-        for localnode, localnode_views in views_per_localnode:
-            if len(localnode_views) != len(local_nodes_tables_dicts):
-                assert ValueError(
-                    f"All views from localnodes should have the same length. "
-                    f"{localnode_views} and {local_nodes_tables_dicts} have different length."
-                )
-
-            # Each view in a node should be added to the proper local_nodes_tables_dict
-            for view, local_nodes_tables in zip(
-                localnode_views, local_nodes_tables_dicts
-            ):
-                local_nodes_tables[localnode] = view
-
-        return [
-            LocalNodesTable(local_nodes_tables_dict)
-            for local_nodes_tables_dict in local_nodes_tables_dicts
-        ]
+        return _convert_views_per_localnode_to_local_nodes_tables(views_per_localnode)
 
     # UDFs functionality
     def run_udf_on_local_nodes(
@@ -760,3 +741,52 @@ def get_func_name(
         return tensor_op.name
 
     return make_unique_func_name(func)
+
+
+def _convert_views_per_localnode_to_local_nodes_tables(
+    views_per_localnode: List[Tuple[LocalNode, List[TableName]]]
+) -> List[LocalNodesTable]:
+    """
+    In the views_per_localnode the views are stored per the localnode where they exist.
+    In order to create LocalNodesTable objects we need to store them according to the similar "LocalNodesTable"
+    they belong to. We group together one view from each node, based on the views' order.
+
+    Parameters
+    ----------
+    views_per_localnode: List[Tuple[LocalNode, List[TableName]]]
+        views grouped per the localnode where they exist.
+
+    Returns
+    ------
+    List[LocalNodesTable]
+        One (LocalNodesTable) view for each one existing in the localnodes.
+    """
+    views_count = _get_amount_of_localnodes_views(views_per_localnode)
+
+    local_nodes_tables_dicts: List[Dict[LocalNode, TableName]] = [
+        {} for _ in range(views_count)
+    ]
+    for localnode, local_node_views in views_per_localnode:
+        for view, local_nodes_tables in zip(local_node_views, local_nodes_tables_dicts):
+            local_nodes_tables[localnode] = view
+    local_nodes_tables = [
+        LocalNodesTable(local_nodes_tables_dict)
+        for local_nodes_tables_dict in local_nodes_tables_dicts
+    ]
+    return local_nodes_tables
+
+
+def _get_amount_of_localnodes_views(
+    views_per_localnode: List[Tuple[LocalNode, List[TableName]]]
+) -> int:
+    """
+    Returns the amount of views after validating all localnodes created the same amount of views.
+    """
+    views_count = len(views_per_localnode[0][1])
+    for local_node, local_node_views in views_per_localnode:
+        if len(local_node_views) != views_count:
+            raise ValueError(
+                f"All views from localnodes should have the same length. "
+                f"{local_node} has {len(local_node_views)} instead of {views_count}."
+            )
+    return views_count
