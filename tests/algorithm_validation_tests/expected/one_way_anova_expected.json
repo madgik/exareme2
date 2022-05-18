@@ -220,6 +220,48 @@
             "input": {
                 "inputdata": {
                     "x": [
+                        "gender"
+                    ],
+                    "y": [
+                        "leftainsanteriorinsula"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi7",
+                        "edsd4"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {}
+            },
+            "output": {
+                "n_obs": 133,
+                "df_residual": 131.0,
+                "df_explained": 1.0,
+                "ss_residual": 26.02199128486563,
+                "ss_explained": 2.1026057476155584,
+                "ms_residual": 0.19864115484630254,
+                "ms_explained": 2.1026057476155584,
+                "p_value": 0.0014504629611290232,
+                "f_stat": 10.584945245825002,
+                "tuckey_test": [
+                    {
+                        "groupA": "F",
+                        "groupB": "M",
+                        "meanA": 4.0918465116279075,
+                        "meanB": 4.36065888888889,
+                        "diff": -0.26881237726098295,
+                        "se": 0.08262375979915451,
+                        "t_stat": -3.2534512822270973,
+                        "p_tuckey": 0.0014490939077459464
+                    }
+                ]
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "x": [
                         "ppmicategory"
                     ],
                     "y": [
@@ -446,48 +488,6 @@
                         "se": 10.064766756881538,
                         "t_stat": 0.06623766678058857,
                         "p_tuckey": 0.9
-                    }
-                ]
-            }
-        },
-        {
-            "input": {
-                "inputdata": {
-                    "x": [
-                        "gender"
-                    ],
-                    "y": [
-                        "leftainsanteriorinsula"
-                    ],
-                    "data_model": "dementia:0.1",
-                    "datasets": [
-                        "ppmi7",
-                        "edsd4"
-                    ],
-                    "filters": ""
-                },
-                "parameters": {}
-            },
-            "output": {
-                "n_obs": 133,
-                "df_residual": 131.0,
-                "df_explained": 1.0,
-                "ss_residual": 26.02199128486563,
-                "ss_explained": 2.1026057476155584,
-                "ms_residual": 0.19864115484630254,
-                "ms_explained": 2.1026057476155584,
-                "p_value": 0.0014504629611290232,
-                "f_stat": 10.584945245825002,
-                "tuckey_test": [
-                    {
-                        "groupA": "F",
-                        "groupB": "M",
-                        "meanA": 4.0918465116279075,
-                        "meanB": 4.36065888888889,
-                        "diff": -0.26881237726098295,
-                        "se": 0.08262375979915451,
-                        "t_stat": -3.2534512822270973,
-                        "p_tuckey": 0.0014490939077459464
                     }
                 ]
             }
