@@ -3,7 +3,6 @@ from typing import Dict
 from typing import List
 from typing import Tuple
 
-from billiard.process import current_process
 from celery import shared_task
 
 from mipengine.node import config as node_config
@@ -96,10 +95,9 @@ def run_udf(
         keyword_args=keyword_args,
         use_smpc=use_smpc,
     )
-    logging.error(f"UFD logging")
-    logging.error(f"{current_process().index=}")
-
-    udfs.run_udf(udf_statements)
+    logging.info(f"Starting the udfs {request_id}")
+    udfs.run_udf(udf_statements, request_id)
+    logging.info(f"End the udfs {request_id}")
 
     return udf_results.json()
 
