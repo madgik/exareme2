@@ -1,8 +1,6 @@
-import json
 import uuid
 
 import pytest
-import requests
 
 from mipengine.datatypes import DType
 from mipengine.node_exceptions import DataModelUnavailable
@@ -11,7 +9,6 @@ from mipengine.node_exceptions import InsufficientDataError
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
-from tests.standalone_tests import algorithms_url
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 
 
@@ -21,14 +18,8 @@ def request_id():
 
 
 @pytest.fixture(autouse=True)
-def context_id(request_id, localnode1_celery_app):
-    context_id = "testviews" + uuid.uuid4().hex
-
-    yield context_id
-
-    get_celery_task_signature(localnode1_celery_app, "clean_up").delay(
-        request_id=request_id, context_id=context_id.lower()
-    ).get()
+def context_id():
+    return "testviews" + uuid.uuid4().hex
 
 
 def test_view_without_filters(
@@ -37,6 +28,7 @@ def test_view_without_filters(
     load_data_localnode1,
     rabbitmq_localnode1,
     localnode1_celery_app,
+    use_localnode1_database,
 ):
     table_schema = TableSchema(
         columns=[
@@ -110,6 +102,7 @@ def test_view_with_filters(
     load_data_localnode1,
     rabbitmq_localnode1,
     localnode1_celery_app,
+    use_localnode1_database,
 ):
     table_schema = TableSchema(
         columns=[
@@ -203,6 +196,7 @@ def test_data_model_view_without_filters(
     load_data_localnode1,
     rabbitmq_localnode1,
     localnode1_celery_app,
+    use_localnode1_database,
 ):
     columns = [
         "dataset",
@@ -211,15 +205,15 @@ def test_data_model_view_without_filters(
         "pupil_reactivity_right_eye_result",
     ]
     data_model = "tbi:0.1"
-    view_name = (
-        get_celery_task_signature(localnode1_celery_app, "create_data_model_view")
+    view_name, *_ = (
+        get_celery_task_signature(localnode1_celery_app, "create_data_model_views")
         .delay(
             request_id=request_id,
             context_id=context_id,
             command_id=uuid.uuid4().hex,
             data_model=data_model,
             datasets=[],
-            columns=columns,
+            columns_per_view=[columns],
         )
         .get()
     )
@@ -255,14 +249,6 @@ def test_data_model_view_without_filters(
     assert len(view_data.columns) == len(schema.columns)
     assert view_data.name == view_name
 
-    view_schema_json = (
-        get_celery_task_signature(localnode1_celery_app, "get_table_schema")
-        .delay(request_id=request_id, table_name=view_name)
-        .get()
-    )
-    view_schema = TableSchema.parse_raw(view_schema_json)
-    assert view_schema == schema
-
 
 def test_data_model_view_with_filters(
     request_id,
@@ -270,6 +256,7 @@ def test_data_model_view_with_filters(
     load_data_localnode1,
     rabbitmq_localnode1,
     localnode1_celery_app,
+    use_localnode1_database,
 ):
     columns = [
         "dataset",
@@ -297,15 +284,15 @@ def test_data_model_view_with_filters(
         ],
         "valid": True,
     }
-    view_name = (
-        get_celery_task_signature(localnode1_celery_app, "create_data_model_view")
+    view_name, *_ = (
+        get_celery_task_signature(localnode1_celery_app, "create_data_model_views")
         .delay(
             request_id=request_id,
             context_id=context_id,
             command_id=uuid.uuid4().hex,
             data_model=data_model,
             datasets=[],
-            columns=columns,
+            columns_per_view=[columns],
             filters=filters,
             dropna=False,
         )
@@ -343,14 +330,6 @@ def test_data_model_view_with_filters(
     assert len(view_data.columns) == len(schema.columns)
     assert view_data.name == view_name
 
-    view_schema_json = (
-        get_celery_task_signature(localnode1_celery_app, "get_table_schema")
-        .delay(request_id=request_id, table_name=view_name)
-        .get()
-    )
-    view_schema = TableSchema.parse_raw(view_schema_json)
-    assert view_schema == schema
-
 
 def test_data_model_view_dataset_constraint(
     request_id,
@@ -358,20 +337,21 @@ def test_data_model_view_dataset_constraint(
     load_data_localnode1,
     rabbitmq_localnode1,
     localnode1_celery_app,
+    use_localnode1_database,
 ):
     columns = [
         "dataset",
     ]
     data_model = "tbi:0.1"
-    view_name = (
-        get_celery_task_signature(localnode1_celery_app, "create_data_model_view")
+    view_name, *_ = (
+        get_celery_task_signature(localnode1_celery_app, "create_data_model_views")
         .delay(
             request_id=request_id,
             context_id=context_id,
             command_id=uuid.uuid4().hex,
             data_model=data_model,
             datasets=["dummy_tbi1"],
-            columns=columns,
+            columns_per_view=[columns],
             filters=None,
         )
         .get()
@@ -393,21 +373,22 @@ def test_data_model_view_null_constraints(
     load_data_localnode1,
     rabbitmq_localnode1,
     localnode1_celery_app,
+    use_localnode1_database,
 ):
     columns = [
         "gose_score",
     ]
     data_model = "tbi:0.1"
     datasets = ["dummy_tbi1"]
-    view_name_without_nulls = (
-        get_celery_task_signature(localnode1_celery_app, "create_data_model_view")
+    view_name_without_nulls, *_ = (
+        get_celery_task_signature(localnode1_celery_app, "create_data_model_views")
         .delay(
             request_id=request_id,
             context_id=context_id,
             command_id=uuid.uuid4().hex,
             data_model=data_model,
             datasets=datasets,
-            columns=columns,
+            columns_per_view=[columns],
             filters=None,
         )
         .get()
@@ -422,15 +403,15 @@ def test_data_model_view_null_constraints(
     _, gose_score_column = TableData.parse_raw(view_data_json).columns
     assert None not in gose_score_column.data
 
-    view_name_with_nulls = (
-        get_celery_task_signature(localnode1_celery_app, "create_data_model_view")
+    view_name_with_nulls, *_ = (
+        get_celery_task_signature(localnode1_celery_app, "create_data_model_views")
         .delay(
             request_id=request_id,
             context_id=context_id,
             command_id=uuid.uuid4().hex,
             data_model=data_model,
             datasets=datasets,
-            columns=columns,
+            columns_per_view=[columns],
             filters=None,
             dropna=False,
         )
@@ -447,12 +428,13 @@ def test_data_model_view_null_constraints(
     assert None in gose_score_column.data
 
 
-def test_data_model_view_with_privacy_error(
+def test_data_model_view_min_rows_checks(
     request_id,
     context_id,
     load_data_localnode1,
     rabbitmq_localnode1,
     localnode1_celery_app,
+    use_localnode1_database,
 ):
     columns = [
         "dataset",
@@ -484,16 +466,28 @@ def test_data_model_view_with_privacy_error(
     }
     with pytest.raises(InsufficientDataError):
         get_celery_task_signature(
-            localnode1_celery_app, "create_data_model_view"
+            localnode1_celery_app, "create_data_model_views"
         ).delay(
             request_id=request_id,
             context_id=context_id,
             command_id=uuid.uuid4().hex,
             data_model=data_model,
             datasets=[],
-            columns=columns,
+            columns_per_view=[columns],
             filters=filters,
         ).get()
+
+    # Check the same view creation with min rows check disabled
+    get_celery_task_signature(localnode1_celery_app, "create_data_model_views").delay(
+        request_id=request_id,
+        context_id=context_id,
+        command_id=uuid.uuid4().hex,
+        data_model=data_model,
+        datasets=[],
+        columns_per_view=[columns],
+        filters=filters,
+        check_min_rows=False,
+    ).get()
 
 
 def test_data_model_view_with_data_model_unavailable_exception(
@@ -502,6 +496,7 @@ def test_data_model_view_with_data_model_unavailable_exception(
     load_data_localnode1,
     rabbitmq_localnode1,
     localnode1_celery_app,
+    use_localnode1_database,
 ):
     columns = [
         "dataset",
@@ -509,14 +504,14 @@ def test_data_model_view_with_data_model_unavailable_exception(
     data_model = "non_existing"
     with pytest.raises(DataModelUnavailable) as exc:
         get_celery_task_signature(
-            localnode1_celery_app, "create_data_model_view"
+            localnode1_celery_app, "create_data_model_views"
         ).delay(
             request_id=request_id,
             context_id=context_id,
             command_id=uuid.uuid4().hex,
             data_model=data_model,
             datasets=[],
-            columns=columns,
+            columns_per_view=[columns],
         ).get()
 
     assert (
@@ -531,6 +526,7 @@ def test_data_model_view_with_dataset_unavailable_exception(
     load_data_localnode1,
     rabbitmq_localnode1,
     localnode1_celery_app,
+    use_localnode1_database,
 ):
     columns = [
         "dataset",
@@ -538,17 +534,138 @@ def test_data_model_view_with_dataset_unavailable_exception(
     data_model = "tbi:0.1"
     with pytest.raises(DatasetUnavailable) as exc:
         get_celery_task_signature(
-            localnode1_celery_app, "create_data_model_view"
+            localnode1_celery_app, "create_data_model_views"
         ).delay(
             request_id=request_id,
             context_id=context_id,
             command_id=uuid.uuid4().hex,
             data_model=data_model,
             datasets=["non_existing"],
-            columns=columns,
+            columns_per_view=[columns],
         ).get()
 
     assert (
         f"Dataset 'non_existing' is not available in node: 'testlocalnode1'"
         in exc.value.message
     )
+
+
+def test_multiple_data_model_views(
+    request_id,
+    context_id,
+    load_data_localnode1,
+    rabbitmq_localnode1,
+    localnode1_celery_app,
+    use_localnode1_database,
+):
+    columns_per_view = [
+        [
+            "age_value",
+            "gcs_motor_response_scale",
+        ],
+        [
+            "dataset",
+            "pupil_reactivity_right_eye_result",
+        ],
+    ]
+    data_model = "tbi:0.1"
+    view1_name, view2_name = (
+        get_celery_task_signature(localnode1_celery_app, "create_data_model_views")
+        .delay(
+            request_id=request_id,
+            context_id=context_id,
+            command_id=uuid.uuid4().hex,
+            data_model=data_model,
+            datasets=[],
+            columns_per_view=columns_per_view,
+        )
+        .get()
+    )
+    views = (
+        get_celery_task_signature(localnode1_celery_app, "get_views")
+        .delay(request_id=request_id, context_id=context_id)
+        .get()
+    )
+    assert view1_name in views
+    assert view2_name in views
+    schema1 = TableSchema(
+        columns=[
+            ColumnInfo(name="row_id", dtype=DType.INT),
+            ColumnInfo(name="age_value", dtype=DType.INT),
+            ColumnInfo(name="gcs_motor_response_scale", dtype=DType.STR),
+        ]
+    )
+    schema_result_json = (
+        get_celery_task_signature(localnode1_celery_app, "get_table_schema")
+        .delay(request_id=request_id, table_name=view1_name)
+        .get()
+    )
+    assert schema1 == TableSchema.parse_raw(schema_result_json)
+
+    schema2 = TableSchema(
+        columns=[
+            ColumnInfo(name="row_id", dtype=DType.INT),
+            ColumnInfo(name="dataset", dtype=DType.STR),
+            ColumnInfo(name="pupil_reactivity_right_eye_result", dtype=DType.STR),
+        ]
+    )
+    schema_result_json = (
+        get_celery_task_signature(localnode1_celery_app, "get_table_schema")
+        .delay(request_id=request_id, table_name=view2_name)
+        .get()
+    )
+    assert schema2 == TableSchema.parse_raw(schema_result_json)
+
+
+def test_multiple_data_model_views_null_constraints(
+    request_id,
+    context_id,
+    load_data_localnode1,
+    rabbitmq_localnode1,
+    localnode1_celery_app,
+    use_localnode1_database,
+):
+    columns_per_view = [
+        [
+            "gose_score",  # Column with values
+        ],
+        [
+            "gcs_eye_response_scale",  # Column without values
+        ],
+    ]
+    data_model = "tbi:0.1"
+    datasets = ["dummy_tbi1"]
+    view_name_with_values, view_name_with_nulls = (
+        get_celery_task_signature(localnode1_celery_app, "create_data_model_views")
+        .delay(
+            request_id=request_id,
+            context_id=context_id,
+            command_id=uuid.uuid4().hex,
+            data_model=data_model,
+            datasets=datasets,
+            columns_per_view=columns_per_view,
+            filters=None,
+            check_min_rows=False,
+        )
+        .get()
+    )
+
+    # Check that the all null view doesn't have any rows (All rows were dropped)
+    view_name_with_nulls_data_json = (
+        get_celery_task_signature(localnode1_celery_app, "get_table_data")
+        .delay(request_id=request_id, table_name=view_name_with_nulls)
+        .get()
+    )
+    _, gose_score_column = TableData.parse_raw(view_name_with_nulls_data_json).columns
+    assert len(gose_score_column.data) == 0
+
+    # Check that the view that didn't have nulls is also empty due to multiple views having linked null constraints
+    view_name_with_values_data_json = (
+        get_celery_task_signature(localnode1_celery_app, "get_table_data")
+        .delay(request_id=request_id, table_name=view_name_with_values)
+        .get()
+    )
+    _, gcs_eye_response_scale_column = TableData.parse_raw(
+        view_name_with_values_data_json
+    ).columns
+    assert len(gcs_eye_response_scale_column.data) == 0

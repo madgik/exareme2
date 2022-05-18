@@ -37,18 +37,19 @@ def get_views(request_id: str, context_id: str) -> List[str]:
 
 @shared_task
 @initialise_logger
-def create_data_model_view(
+def create_data_model_views(
     request_id: str,
     context_id: str,
     command_id: str,
     data_model: str,
     datasets: List[str],
-    columns: List[str],
+    columns_per_view: List[List[str]],
     filters: dict = None,
     dropna: bool = True,
-) -> str:
+    check_min_rows: bool = True,
+) -> List[str]:
     """
-    Creates a MIP specific view of a data_model with specific columns, filters and datasets to the DB.
+    Create a view on a provided data model with specific columns, filters and datasets to the DB.
 
     Parameters
     ----------
@@ -62,33 +63,62 @@ def create_data_model_view(
         The data_model data table on which the view will be created
     datasets : List[str]
         The datasets that will be used in the view.
-    columns : List[str]
-        A list of column names
+    columns_per_view : List[List[str]]
+        One view will be created for each list of columns.
     filters : dict
         A Jquery filters object
     dropna : bool
-        A bool that determines if the not null constraints about the columns should be included in the filters
+        A flag that determines if the not null constraints about the columns should be included in the filters
+    check_min_rows : bool
+        A flag that determines if the min_rows_threshold should be checked.
 
     Returns
     ------
-    str
-        The name of the created view
+    List[str]
+        The names of the created views
     """
     _validate_data_model_and_datasets_exist(data_model, datasets)
     if datasets:
         filters = _get_filters_with_datasets_constraints(
             filters=filters, datasets=datasets
         )
+
+    # In each view, it's not null constraints should include the columns of ALL views
     if dropna:
-        filters = _get_filters_with_columns_constraints(
-            filters=filters, columns=columns
+        all_columns = [column for columns in columns_per_view for column in columns]
+        filters = _get_filters_with_columns_not_null_constraints(
+            filters=filters, columns=all_columns
         )
 
+    return [
+        create_data_model_view(
+            context_id=context_id,
+            command_id=command_id,
+            command_sub_id=str(count),
+            data_model=data_model,
+            columns=view_columns,
+            filters=filters,
+            check_min_rows=check_min_rows,
+        )
+        for count, view_columns in enumerate(columns_per_view)
+    ]
+
+
+def create_data_model_view(
+    context_id: str,
+    command_id: str,
+    command_sub_id: str,
+    data_model: str,
+    columns: List[str],
+    filters: dict = None,
+    check_min_rows: bool = True,
+) -> str:
     view_name = create_table_name(
-        TableType.VIEW,
-        node_config.identifier,
-        context_id,
-        command_id,
+        table_type=TableType.VIEW,
+        node_id=node_config.identifier,
+        context_id=context_id,
+        command_id=command_id,
+        command_subid=command_sub_id,
     )
     columns.insert(0, DATA_TABLE_PRIMARY_KEY)
 
@@ -97,7 +127,7 @@ def create_data_model_view(
         table_name=f'"{data_model}"."primary_data"',
         columns=columns,
         filters=filters,
-        enable_min_rows_threshold=True,
+        check_min_rows=check_min_rows,
     )
     return view_name
 
@@ -127,9 +157,9 @@ def _get_filters_with_datasets_constraints(filters, datasets):
     }
 
 
-def _get_filters_with_columns_constraints(filters, columns):
+def _get_filters_with_columns_not_null_constraints(filters, columns):
     """
-    This function will return the given filters which will also include the column's constraints.
+    This function will return the given filters which will also include the columns' not null constraints.
     """
     rules = [
         {

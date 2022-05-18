@@ -23,12 +23,13 @@ def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
     global_run = algo_interface.run_udf_on_global_node
 
-    X_relation = algo_interface.initial_view_tables["x"]
+    X_relation, Y_relation = algo_interface.create_primary_data_views(
+        variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
+    )
+
     x_var_name = algo_interface.__dict__["_x_variables"].pop()
 
     covar_enums = list(algo_interface.metadata[x_var_name]["enumerations"])
-
-    Y_relation = algo_interface.initial_view_tables["y"]
 
     y_var_name = algo_interface.__dict__["_y_variables"].pop()
     sec_local_transfers, local_transfers = local_run(

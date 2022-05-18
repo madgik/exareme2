@@ -43,7 +43,6 @@ from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import CommonDataElement
@@ -109,47 +108,22 @@ class AlgorithmExecutor:
         self._context_id = algorithm_execution_dto.context_id
         self._algorithm_name = algorithm_execution_dto.algorithm_name
         self._common_data_elements = common_data_elements
-        self._global_node: GlobalNode = None
-        self._local_nodes: List[LocalNode] = []
         self._algorithm_flow_module = None
         self._execution_interface = None
 
-    def _instantiate_nodes(self):
-
-        # Instantiate the GLOBAL Node object
-        self._global_node = GlobalNode(
+        self._global_node: GlobalNode = GlobalNode(
             request_id=self._request_id,
             context_id=self._context_id,
             node_tasks_handler=self._nodes_tasks_handlers_dto.global_node_tasks_handler,
         )
-
-        # Instantiate the LOCAL Node objects
-        command_id = get_next_command_id()
-        self._local_nodes = []
-        for (
-            node_tasks_handler
-        ) in self._nodes_tasks_handlers_dto.local_nodes_tasks_handlers:
-            # Parameters for the creation of the view tables in the db. Each of the LOCAL
-            # nodes will have access only to these view tables and not on the primary data tables.
-            # TODO Convert to object instead of dict?
-            initial_view_tables_params = {
-                "commandId": command_id,
-                "data_model": self._algorithm_execution_dto.data_model,
-                "datasets": self._algorithm_execution_dto.datasets_per_local_node[
-                    node_tasks_handler.node_id
-                ],
-                "x": self._algorithm_execution_dto.x_vars,
-                "y": self._algorithm_execution_dto.y_vars,
-                "filters": self._algorithm_execution_dto.var_filters,
-            }
-            self._local_nodes.append(
-                LocalNode(
-                    request_id=self._request_id,
-                    context_id=self._context_id,
-                    node_tasks_handler=node_tasks_handler,
-                    initial_view_tables_params=initial_view_tables_params,
-                )
+        self._local_nodes: List[LocalNode] = [
+            LocalNode(
+                request_id=self._request_id,
+                context_id=self._context_id,
+                node_tasks_handler=node_tasks_handler,
             )
+            for node_tasks_handler in self._nodes_tasks_handlers_dto.local_nodes_tasks_handlers
+        ]
 
     def _get_use_smpc_flag(self) -> bool:
         """
@@ -174,6 +148,7 @@ class AlgorithmExecutor:
             algorithm_parameters=self._algorithm_execution_dto.algo_parameters,
             x_variables=self._algorithm_execution_dto.x_vars,
             y_variables=self._algorithm_execution_dto.y_vars,
+            var_filters=self._algorithm_execution_dto.var_filters,
             data_model=self._algorithm_execution_dto.data_model,
             datasets_per_local_node=self._algorithm_execution_dto.datasets_per_local_node,
             use_smpc=self._get_use_smpc_flag(),
@@ -192,7 +167,6 @@ class AlgorithmExecutor:
 
     def run(self):
         try:
-            self._instantiate_nodes()
             self._logger.info(
                 f"executing algorithm:{self._algorithm_name} on "
                 f"local nodes: {self._local_nodes=}"
@@ -223,6 +197,7 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     algorithm_parameters: Optional[Dict[str, Any]] = None
     x_variables: Optional[List[str]] = None
     y_variables: Optional[List[str]] = None
+    var_filters: dict = None
     data_model: str
     datasets_per_local_node: Dict[str, List[str]]
     use_smpc: bool
@@ -243,6 +218,8 @@ class _AlgorithmExecutionInterface:
         self._algorithm_parameters = algo_execution_interface_dto.algorithm_parameters
         self._x_variables = algo_execution_interface_dto.x_variables
         self._y_variables = algo_execution_interface_dto.y_variables
+        self._var_filters = algo_execution_interface_dto.var_filters
+        self._data_model = algo_execution_interface_dto.data_model
         self._datasets_per_local_node = (
             algo_execution_interface_dto.datasets_per_local_node
         )
@@ -253,28 +230,6 @@ class _AlgorithmExecutionInterface:
             for varname, cde in common_data_elements.items()
             if varname in varnames
         }
-
-        # TODO: validate all local nodes have created the base_view_table??
-        self._initial_view_tables = {}
-        tmp_variable_node_table = {}
-
-        # TODO: clean up this mindfuck??
-        # https://github.com/madgik/MIP-Engine/pull/132#discussion_r727076138
-        for node in self._local_nodes:
-            for (variable_name, table_name) in node.initial_view_tables.items():
-                if variable_name in tmp_variable_node_table:
-                    tmp_variable_node_table[variable_name].update({node: table_name})
-                else:
-                    tmp_variable_node_table[variable_name] = {node: table_name}
-
-        self._initial_view_tables = {
-            variable_name: LocalNodesTable(node_table)
-            for (variable_name, node_table) in tmp_variable_node_table.items()
-        }
-
-    @property
-    def initial_view_tables(self) -> Dict[str, LocalNodesTable]:
-        return self._initial_view_tables
 
     @property
     def algorithm_parameters(self) -> Dict[str, Any]:
@@ -294,11 +249,55 @@ class _AlgorithmExecutionInterface:
 
     @property
     def datasets_per_local_node(self):
-        return self.datasets_per_local_node
+        return self._datasets_per_local_node
 
     @property
     def use_smpc(self):
         return self._use_smpc
+
+    def create_primary_data_views(
+        self,
+        variable_groups: List[List[str]],
+        dropna: bool = True,
+        check_min_rows: bool = True,
+    ) -> List[LocalNodesTable]:
+        """
+        Creates primary data views, for each variable group provided,
+        using also the algorithm request arguments (data_model, datasets, filters).
+
+        Parameters
+        ----------
+        variable_groups : List[List[str]]
+            A list of variable_groups. The variable group is a list of columns.
+        dropna : bool
+            Remove NAs from the view.
+        check_min_rows : bool
+            Raise an exception if there are not enough rows in the view.
+
+        Returns
+        ------
+        List[LocalNodesTable]
+            A (LocalNodesTable) view for each variable_group provided.
+        """
+
+        command_id = str(get_next_command_id())
+        views_per_localnode = [
+            (
+                local_node,
+                local_node.create_data_model_views(
+                    command_id=command_id,
+                    data_model=self._data_model,
+                    datasets=self.datasets_per_local_node[local_node.node_id],
+                    columns_per_view=variable_groups,
+                    filters=self._var_filters,
+                    dropna=dropna,
+                    check_min_rows=check_min_rows,
+                ),
+            )
+            for local_node in self._local_nodes
+        ]
+
+        return _convert_views_per_localnode_to_local_nodes_tables(views_per_localnode)
 
     # UDFs functionality
     def run_udf_on_local_nodes(
@@ -742,3 +741,52 @@ def get_func_name(
         return tensor_op.name
 
     return make_unique_func_name(func)
+
+
+def _convert_views_per_localnode_to_local_nodes_tables(
+    views_per_localnode: List[Tuple[LocalNode, List[TableName]]]
+) -> List[LocalNodesTable]:
+    """
+    In the views_per_localnode the views are stored per the localnode where they exist.
+    In order to create LocalNodesTable objects we need to store them according to the similar "LocalNodesTable"
+    they belong to. We group together one view from each node, based on the views' order.
+
+    Parameters
+    ----------
+    views_per_localnode: List[Tuple[LocalNode, List[TableName]]]
+        views grouped per the localnode where they exist.
+
+    Returns
+    ------
+    List[LocalNodesTable]
+        One (LocalNodesTable) view for each one existing in the localnodes.
+    """
+    views_count = _get_amount_of_localnodes_views(views_per_localnode)
+
+    local_nodes_tables_dicts: List[Dict[LocalNode, TableName]] = [
+        {} for _ in range(views_count)
+    ]
+    for localnode, local_node_views in views_per_localnode:
+        for view, local_nodes_tables in zip(local_node_views, local_nodes_tables_dicts):
+            local_nodes_tables[localnode] = view
+    local_nodes_tables = [
+        LocalNodesTable(local_nodes_tables_dict)
+        for local_nodes_tables_dict in local_nodes_tables_dicts
+    ]
+    return local_nodes_tables
+
+
+def _get_amount_of_localnodes_views(
+    views_per_localnode: List[Tuple[LocalNode, List[TableName]]]
+) -> int:
+    """
+    Returns the amount of views after validating all localnodes created the same amount of views.
+    """
+    views_count = len(views_per_localnode[0][1])
+    for local_node, local_node_views in views_per_localnode:
+        if len(local_node_views) != views_count:
+            raise ValueError(
+                f"All views from localnodes should have the same length. "
+                f"{local_node} has {len(local_node_views)} instead of {views_count}."
+            )
+    return views_count

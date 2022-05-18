@@ -57,8 +57,8 @@ def get_celery_task_signature(celery_app, task):
             "mipengine.node.tasks.tables.insert_data_to_table"
         ),
         "create_view": celery_app.signature("mipengine.node.tasks.views.create_view"),
-        "create_data_model_view": celery_app.signature(
-            "mipengine.node.tasks.views.create_data_model_view"
+        "create_data_model_views": celery_app.signature(
+            "mipengine.node.tasks.views.create_data_model_views"
         ),
         "get_views": celery_app.signature("mipengine.node.tasks.views.get_views"),
         "create_merge_table": celery_app.signature(
