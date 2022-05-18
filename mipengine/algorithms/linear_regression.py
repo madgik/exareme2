@@ -36,9 +36,9 @@ class LinearRegressionResult(BaseModel):
 
 
 def run(algo_interface):
-    x = algo_interface.initial_view_tables["x"]
-    y = algo_interface.initial_view_tables["y"]
-
+    x, y = algo_interface.create_primary_data_views(
+        variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
+    )
     p = len(algo_interface.x_variables)
 
     lr = LinearRegression(algo_interface)
