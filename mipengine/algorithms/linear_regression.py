@@ -5,7 +5,7 @@ import numpy
 import scipy.stats as stats
 from pydantic import BaseModel
 
-from mipengine.algorithms.preprocessing import DesignMatrixPreprocessor
+from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import relation_to_vector
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
@@ -44,10 +44,10 @@ def run(executor):
         variable_groups=[executor.x_variables, executor.y_variables],
     )
 
-    preprocessor = DesignMatrixPreprocessor(executor)
-    X = preprocessor.transform(X)
+    dummy_encoder = DummyEncoder(executor)
+    X = dummy_encoder.transform(X)
 
-    p = len(preprocessor.new_varnames) - 1
+    p = len(dummy_encoder.new_varnames) - 1
 
     lr = LinearRegression(executor)
     lr.fit(X=X, y=y)
@@ -69,7 +69,7 @@ def run(executor):
         r_squared_adjusted=lr.r_squared_adjusted,
         f_stat=lr.f_stat,
         f_pvalue=lr.f_p_value,
-        indep_vars=preprocessor.new_varnames,
+        indep_vars=dummy_encoder.new_varnames,
         coefficients=[c[0] for c in lr.coefficients],
         std_err=lr.std_err.tolist(),
         t_stats=lr.t_stat.tolist(),

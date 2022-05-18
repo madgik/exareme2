@@ -2010,8 +2010,8 @@ def generate_udf_queries(
             udf_select_query=udf_execution_query,
         )
 
-    if func_name == "create_design_matrix":
-        return get_create_design_matrix_execution_queries(keyword_args)
+    if func_name == "create_dummy_encoded_design_matrix":
+        return get_create_dummy_encoded_design_matrix_execution_queries(keyword_args)
 
     return get_udf_templates_using_udfregistry(
         request_id=request_id,
@@ -2866,10 +2866,10 @@ def get_matrix_transpose_template(matrix):
 
 
 # ~~~~~~~~~~~~~~ SQL special queries ~~~~~~~~~~~~~~ #
-def get_create_design_matrix_execution_queries(keyword_args):
-    dm_table = get_new_design_matrix_table(keyword_args)
-    udf_select = get_create_design_matrix_select_stmt(dm_table)
-    output_schema = get_design_matrix_schema(dm_table)
+def get_create_dummy_encoded_design_matrix_execution_queries(keyword_args):
+    dm_table = get_dummy_encoded_design_matrix_table(keyword_args)
+    udf_select = get_dummy_encoded_design_matrix_select_stmt(dm_table)
+    output_schema = get_dummy_encoded_design_matrix_schema(dm_table)
     output_type = relation(schema=output_schema)
     udf_outputs = get_udf_outputs(
         output_type,
@@ -2884,7 +2884,7 @@ def get_create_design_matrix_execution_queries(keyword_args):
     )
 
 
-def get_new_design_matrix_table(keyword_args):
+def get_dummy_encoded_design_matrix_table(keyword_args):
     enums = keyword_args["enums"]
     numerical_vars = keyword_args["numerical_vars"]
     intercept = keyword_args["intercept"]
@@ -2905,12 +2905,12 @@ def get_new_design_matrix_table(keyword_args):
     return table
 
 
-def get_create_design_matrix_select_stmt(design_matrix_table):
+def get_dummy_encoded_design_matrix_select_stmt(design_matrix_table):
     sel = Select(columns=design_matrix_table.columns, tables=[design_matrix_table])
     return sel.compile()
 
 
-def get_design_matrix_schema(design_matrix_table):
+def get_dummy_encoded_design_matrix_schema(design_matrix_table):
     assert design_matrix_table.columns[0].name == "row_id"
     schema = [("row_id", int)]
     for column in design_matrix_table.columns[1:]:

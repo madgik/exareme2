@@ -8,7 +8,7 @@ from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
 
-class DesignMatrixPreprocessor:
+class DummyEncoder:
     def __init__(self, executor, intercept=True):
         self._local_run = executor.run_udf_on_local_nodes
         self._global_run = executor.run_udf_on_global_node
@@ -73,7 +73,7 @@ class DesignMatrixPreprocessor:
             return list(
                 reduce(
                     lambda a, b: set(a) | set(b),
-                    [l["enumerations"][varname] for l in local_transfers],
+                    [loctrans["enumerations"][varname] for loctrans in local_transfers],
                     {},
                 )
             )
@@ -85,7 +85,7 @@ class DesignMatrixPreprocessor:
 
     def _create_design_matrix(self, x, enums):
         design_matrix = self._local_run(
-            func="create_design_matrix",
+            func="create_dummy_encoded_design_matrix",
             keyword_args=dict(
                 x=x,
                 enums=enums,

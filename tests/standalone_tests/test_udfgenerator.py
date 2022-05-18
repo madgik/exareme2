@@ -34,7 +34,9 @@ from mipengine.udfgen.udfgenerator import UDFBadDefinition
 from mipengine.udfgen.udfgenerator import convert_udfgenargs_to_udfargs
 from mipengine.udfgen.udfgenerator import copy_types_from_udfargs
 from mipengine.udfgen.udfgenerator import generate_udf_queries
-from mipengine.udfgen.udfgenerator import get_create_design_matrix_execution_queries
+from mipengine.udfgen.udfgenerator import (
+    get_create_dummy_encoded_design_matrix_execution_queries,
+)
 from mipengine.udfgen.udfgenerator import get_funcparts_from_udf_registry
 from mipengine.udfgen.udfgenerator import get_matrix_transpose_template
 from mipengine.udfgen.udfgenerator import get_tensor_binary_op_template
@@ -5491,7 +5493,7 @@ SELECT
     n2
 FROM
     test_table;"""
-    result = get_create_design_matrix_execution_queries(args)
+    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
     assert result.udf_select_query.template == expected
 
 
@@ -5517,7 +5519,7 @@ SELECT
     CASE WHEN c1 = 'l2' THEN 1 ELSE 0 END AS "c1__2"
 FROM
     test_table;"""
-    result = get_create_design_matrix_execution_queries(args)
+    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
     assert result.udf_select_query.template == expected
 
 
@@ -5542,7 +5544,7 @@ SELECT
     CASE WHEN c1 = 'l2' THEN 1 ELSE 0 END AS "c1__2"
 FROM
     test_table;"""
-    result = get_create_design_matrix_execution_queries(args)
+    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
     assert result.udf_select_query.template == expected
 
 
@@ -5578,7 +5580,7 @@ SELECT
     n2
 FROM
     test_table;"""
-    result = get_create_design_matrix_execution_queries(args)
+    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
     assert result.udf_select_query.template == expected
 
 
@@ -5601,5 +5603,5 @@ def test_get_create_design_matrix_create_query():
         "intercept": True,
     }
     expected = 'CREATE TABLE $main_output_table_name("row_id" INT,"intercept" DOUBLE,"c1__1" DOUBLE,"c1__2" DOUBLE,"c2__1" DOUBLE,"c2__2" DOUBLE,"c2__3" DOUBLE,"n1" DOUBLE,"n2" DOUBLE);'
-    result = get_create_design_matrix_execution_queries(args)
+    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
     assert result.udf_results[0].create_query.template == expected
