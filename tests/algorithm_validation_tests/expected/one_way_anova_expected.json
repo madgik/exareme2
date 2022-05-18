@@ -66,69 +66,6 @@
             "input": {
                 "inputdata": {
                     "x": [
-                        "neurodegenerativescategories"
-                    ],
-                    "y": [
-                        "leftsplsuperiorparietallobule"
-                    ],
-                    "data_model": "dementia:0.1",
-                    "datasets": [
-                        "edsd4",
-                        "ppmi7",
-                        "desd-synthdata1"
-                    ],
-                    "filters": ""
-                },
-                "parameters": {}
-            },
-            "output": {
-                "n_obs": 151,
-                "df_residual": 148.0,
-                "df_explained": 2.0,
-                "ss_residual": 194.73228649621421,
-                "ss_explained": 13.003797127494162,
-                "ms_residual": 1.315758692541988,
-                "ms_explained": 6.501898563747081,
-                "p_value": 0.008366151766828292,
-                "f_stat": 4.941558509627399,
-                "tuckey_test": [
-                    {
-                        "groupA": "AD",
-                        "groupB": "MCI",
-                        "meanA": 10.021695833333334,
-                        "meanB": 10.262386538461538,
-                        "diff": -0.24069070512820367,
-                        "se": 0.2295968013880239,
-                        "t_stat": -1.048319069225319,
-                        "p_tuckey": 0.5451709200176148
-                    },
-                    {
-                        "groupA": "AD",
-                        "groupB": "PD",
-                        "meanA": 10.021695833333334,
-                        "meanB": 10.731835294117646,
-                        "diff": -0.7101394607843119,
-                        "se": 0.23067472656925592,
-                        "t_stat": -3.078531711496818,
-                        "p_tuckey": 0.006964631056885273
-                    },
-                    {
-                        "groupA": "MCI",
-                        "groupB": "PD",
-                        "meanA": 10.262386538461538,
-                        "meanB": 10.731835294117646,
-                        "diff": -0.4694487556561082,
-                        "se": 0.22605804968966825,
-                        "t_stat": -2.076673475244814,
-                        "p_tuckey": 0.09819983685504485
-                    }
-                ]
-            }
-        },
-        {
-            "input": {
-                "inputdata": {
-                    "x": [
                         "edsdcategory"
                     ],
                     "y": [
@@ -233,71 +170,6 @@
                         "se": 0.04463111788377796,
                         "t_stat": -6.060796591437956,
                         "p_tuckey": 0.001
-                    }
-                ]
-            }
-        },
-        {
-            "input": {
-                "inputdata": {
-                    "x": [
-                        "alzheimerbroadcategory"
-                    ],
-                    "y": [
-                        "leftofugoccipitalfusiformgyrus"
-                    ],
-                    "data_model": "dementia:0.1",
-                    "datasets": [
-                        "desd-synthdata9",
-                        "ppmi7",
-                        "edsd8",
-                        "ppmi3",
-                        "desd-synthdata5"
-                    ],
-                    "filters": ""
-                },
-                "parameters": {}
-            },
-            "output": {
-                "n_obs": 363,
-                "df_residual": 360.0,
-                "df_explained": 2.0,
-                "ss_residual": 75.83399248295689,
-                "ss_explained": 8.11766670999065,
-                "ms_residual": 0.21064997911932468,
-                "ms_explained": 4.058833354995325,
-                "p_value": 1.1226250438663189e-08,
-                "f_stat": 19.26814031486877,
-                "tuckey_test": [
-                    {
-                        "groupA": "AD",
-                        "groupB": "CN",
-                        "meanA": 4.007528089887639,
-                        "meanB": 4.269251162790698,
-                        "diff": -0.26172307290305863,
-                        "se": 0.06939936642234246,
-                        "t_stat": -3.7712602635346166,
-                        "p_tuckey": 0.001
-                    },
-                    {
-                        "groupA": "AD",
-                        "groupB": "Other",
-                        "meanA": 4.007528089887639,
-                        "meanB": 4.373864893617022,
-                        "diff": -0.36633680372938304,
-                        "se": 0.059053639263865636,
-                        "t_stat": -6.203458555576964,
-                        "p_tuckey": 0.001
-                    },
-                    {
-                        "groupA": "CN",
-                        "groupB": "Other",
-                        "meanA": 4.269251162790698,
-                        "meanB": 4.373864893617022,
-                        "diff": -0.10461373082632441,
-                        "se": 0.05974861483071759,
-                        "t_stat": -1.7508980103174048,
-                        "p_tuckey": 0.1880372384961404
                     }
                 ]
             }
@@ -8057,6 +7929,134 @@
                         "se": 0.06500488542137592,
                         "t_stat": 2.0118605749931375,
                         "p_tuckey": 0.26147784580049893
+                    }
+                ]
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "x": [
+                        "neurodegenerativescategories"
+                    ],
+                    "y": [
+                        "leftsplsuperiorparietallobule"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd4",
+                        "ppmi7",
+                        "desd-synthdata1"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {}
+            },
+            "output": {
+                "n_obs": 151,
+                "df_residual": 148.0,
+                "df_explained": 2.0,
+                "ss_residual": 194.73228649621421,
+                "ss_explained": 13.003797127494162,
+                "ms_residual": 1.315758692541988,
+                "ms_explained": 6.501898563747081,
+                "p_value": 0.008366151766828292,
+                "f_stat": 4.941558509627399,
+                "tuckey_test": [
+                    {
+                        "groupA": "AD",
+                        "groupB": "MCI",
+                        "meanA": 10.021695833333334,
+                        "meanB": 10.262386538461538,
+                        "diff": -0.24069070512820367,
+                        "se": 0.2295968013880239,
+                        "t_stat": -1.048319069225319,
+                        "p_tuckey": 0.5451709200176148
+                    },
+                    {
+                        "groupA": "AD",
+                        "groupB": "PD",
+                        "meanA": 10.021695833333334,
+                        "meanB": 10.731835294117646,
+                        "diff": -0.7101394607843119,
+                        "se": 0.23067472656925592,
+                        "t_stat": -3.078531711496818,
+                        "p_tuckey": 0.006964631056885273
+                    },
+                    {
+                        "groupA": "MCI",
+                        "groupB": "PD",
+                        "meanA": 10.262386538461538,
+                        "meanB": 10.731835294117646,
+                        "diff": -0.4694487556561082,
+                        "se": 0.22605804968966825,
+                        "t_stat": -2.076673475244814,
+                        "p_tuckey": 0.09819983685504485
+                    }
+                ]
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "x": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "y": [
+                        "leftofugoccipitalfusiformgyrus"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata9",
+                        "ppmi7",
+                        "edsd8",
+                        "ppmi3",
+                        "desd-synthdata5"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {}
+            },
+            "output": {
+                "n_obs": 363,
+                "df_residual": 360.0,
+                "df_explained": 2.0,
+                "ss_residual": 75.83399248295689,
+                "ss_explained": 8.11766670999065,
+                "ms_residual": 0.21064997911932468,
+                "ms_explained": 4.058833354995325,
+                "p_value": 1.1226250438663189e-08,
+                "f_stat": 19.26814031486877,
+                "tuckey_test": [
+                    {
+                        "groupA": "AD",
+                        "groupB": "CN",
+                        "meanA": 4.007528089887639,
+                        "meanB": 4.269251162790698,
+                        "diff": -0.26172307290305863,
+                        "se": 0.06939936642234246,
+                        "t_stat": -3.7712602635346166,
+                        "p_tuckey": 0.001
+                    },
+                    {
+                        "groupA": "AD",
+                        "groupB": "Other",
+                        "meanA": 4.007528089887639,
+                        "meanB": 4.373864893617022,
+                        "diff": -0.36633680372938304,
+                        "se": 0.059053639263865636,
+                        "t_stat": -6.203458555576964,
+                        "p_tuckey": 0.001
+                    },
+                    {
+                        "groupA": "CN",
+                        "groupB": "Other",
+                        "meanA": 4.269251162790698,
+                        "meanB": 4.373864893617022,
+                        "diff": -0.10461373082632441,
+                        "se": 0.05974861483071759,
+                        "t_stat": -1.7508980103174048,
+                        "p_tuckey": 0.1880372384961404
                     }
                 ]
             }
