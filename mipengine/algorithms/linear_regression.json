@@ -8,10 +8,13 @@
             "label": "features",
             "desc": "Features",
             "types": [
-                "real"
+                "real",
+                "int",
+                "text"
             ],
             "stattypes": [
-                "numerical"
+                "numerical",
+                "nominal"
             ],
             "notblank": true,
             "multiple": true
