@@ -7,9 +7,6 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
-from billiard.exceptions import SoftTimeLimitExceeded
-from billiard.exceptions import TimeLimitExceeded
-from celery.exceptions import TimeoutError
 from pydantic import BaseModel
 
 from mipengine import algorithm_modules
@@ -43,8 +40,9 @@ from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
+from mipengine.controller.celery_app import CeleryConnectionError
+from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import TableData
@@ -203,13 +201,8 @@ class AlgorithmExecutor:
             )
             self._logger.info(f"finished execution of algorithm:{self._algorithm_name}")
             return algorithm_result
-        except (
-            SoftTimeLimitExceeded,
-            TimeLimitExceeded,
-            TimeoutError,
-            ClosedBrokerConnectionError,
-        ) as err:
-            self._logger.error(f"ErrorType: '{type(err)}' and message: '{err}'")
+        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+            self._logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
             raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
             self._logger.error(f"{traceback.format_exc()}")

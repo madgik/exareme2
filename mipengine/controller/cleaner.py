@@ -1,7 +1,8 @@
-import asyncio
 import os
+import time
 from datetime import datetime
 from datetime import timezone
+from multiprocessing.pool import ThreadPool
 from pathlib import Path
 from typing import List
 
@@ -12,6 +13,7 @@ from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
+from mipengine.singleton import Singleton
 
 CLEANER_REQUEST_ID = "CLEANER"
 CONTEXT_ID_CLEANUP_FILE = "contextids_cleanup.toml"
@@ -27,18 +29,18 @@ class _NodeInfoDTO(BaseModel):
         allow_mutation = False
 
 
-class Cleaner:
-    def __init__(self, node_landscape_aggregator: NodeLandscapeAggregator):
+class Cleaner(metaclass=Singleton):
+    def __init__(self):
         self._logger = ctrl_logger.get_background_service_logger()
-
-        self._node_landscape_aggregator = node_landscape_aggregator
 
         self._cleanup_file_processor = CleanupFileProcessor(self._logger)
         self._clean_up_interval = controller_config.cleanup.nodes_cleanup_interval
-        self.keep_cleaning_up = True
 
-    async def cleanup_loop(self):
-        while self.keep_cleaning_up:
+        self._keep_cleaning_up = True
+        self._thread_pool = None
+
+    def _cleanup_loop(self):
+        while self._keep_cleaning_up:
             try:
                 contextids_and_status = self._cleanup_file_processor.read_cleanup_file()
                 for context_id, status in contextids_and_status.items():
@@ -76,7 +78,24 @@ class Cleaner:
             except Exception as exc:
                 self._logger.error(f"Cleanup exception: {type(exc)}:{exc}")
             finally:
-                await asyncio.sleep(self._clean_up_interval)
+                time.sleep(self._clean_up_interval)
+
+    def start(self):
+        self._terminate_thread_pool()  # in case one calls start without before calling stop
+
+        self._keep_cleaning_up = True
+
+        self._thread_pool = ThreadPool()
+        self._thread_pool.apply_async(self._cleanup_loop)
+
+    def stop(self):
+        self._terminate_thread_pool()
+
+    def _terminate_thread_pool(self):
+        self._keep_cleaning_up = False
+        if self._thread_pool:
+            self._thread_pool.terminate()
+            self._thread_pool.join()  # blocks here until all jobs in threadpool finish
 
     def add_contextid_for_cleanup(
         self, context_id: str, algo_execution_node_ids: List[str]
@@ -97,8 +116,8 @@ class Cleaner:
         self._cleanup_file_processor.set_released_true_to_file(context_id=context_id)
 
     def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
-        global_node = self._node_landscape_aggregator.get_global_node()
-        local_nodes = self._node_landscape_aggregator.get_all_local_nodes()
+        global_node = NodeLandscapeAggregator().get_global_node()
+        local_nodes = NodeLandscapeAggregator().get_all_local_nodes()
 
         if node_id == global_node.id:
             return _NodeInfoDTO(
@@ -117,12 +136,15 @@ class Cleaner:
                 tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
             )
 
-        raise KeyError(f"Node with id '{node_id}' is not currently available.")
+        raise KeyError(
+            f"(Cleaner::_get_node_info_by_id) Node with id '{node_id}' is "
+            f"not currently available."
+        )
 
     # This is only supposed to be called from a test.
     # In all other circumstances cleanup should not be reset manually
     def _reset_cleanup(self):
-        self._cleanup_file_processor._delete_cleanup_file()
+        self._cleanup_file_processor._initialize_cleanup_file()
 
 
 def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery:
@@ -149,7 +171,7 @@ class CleanupFileProcessor:
 
         # create file if it does not exist
         if not os.path.isfile(self._cleanup_file_path):
-            Path(self._cleanup_file_path).touch()
+            self._initialize_cleanup_file()
 
         # changes to the file will be first written on a temporary file. Then the temporary
         # file replaces the cleanup file. The reason for that is that renaming is atomic
@@ -168,8 +190,9 @@ class CleanupFileProcessor:
             parsed_toml[context_id] = {"nodes": node_ids}
         else:
             self._logger.warning(
-                f"Attempting to add {context_id=} for cleanup but this context_id is "
-                f"already in the contextids_cleanup_file. This should never happen..."
+                f"(Cleaner::append_to_cleanup_file) Attempting to add {context_id=} for "
+                f"cleanup but this context_id is already in the contextids_cleanup_file. "
+                f"This should never happen..."
             )
             parsed_toml[context_id]["nodes"].extend(node_ids)
             # remove possible duplicates
@@ -198,7 +221,7 @@ class CleanupFileProcessor:
                     parsed_toml[context_id]["nodes"].remove(node_id)
                 except ValueError:
                     self._logger.warning(
-                        f"Tried to remove {node_id=} for {context_id=} "
+                        f"(Cleaner::remove_from_cleanup_file) Tried to remove {node_id=} for {context_id=} "
                         f"but this context_id.node_id is not in the "
                         f"clean_up file.This should not happen."
                     )
@@ -207,7 +230,7 @@ class CleanupFileProcessor:
                 parsed_toml.pop(context_id)
         else:
             self._logger.warning(
-                f"Tried to remove {context_id=} but this context_id is "
+                f"(Cleaner::remove_from_cleanup_file) Tried to remove {context_id=} but this context_id is "
                 f"not in the clean_up file.This should not happen."
             )
             pass
@@ -217,7 +240,7 @@ class CleanupFileProcessor:
     def read_cleanup_file(self) -> dict:
         if not os.path.isfile(self._cleanup_file_path):
             self._logger.warning(
-                f"{self._cleanup_file_path=} does not exist. This should not happen"
+                f"(Cleaner::read_cleanup_file) {self._cleanup_file_path=} does not exist. This should not happen"
             )
             return {}
         with open(self._cleanup_file_path, "r") as f:
@@ -225,7 +248,7 @@ class CleanupFileProcessor:
                 parsed_toml = toml.load(f)
             except Exception as exc:
                 self._logger.warning(
-                    f"Trying to read {controller_config.cleanup.contextids_cleanup_file=} "
+                    f"(Cleaner::read_cleanup_file) Trying to read {controller_config.cleanup.contextids_cleanup_file=} "
                     f"raised exception: {exc}"
                 )
         return parsed_toml
@@ -238,8 +261,11 @@ class CleanupFileProcessor:
         # likely to become corrupted
         os.rename(self._cleanup_file_tmp_path, self._cleanup_file_path)
 
-    def _delete_cleanup_file(self):
+    def _initialize_cleanup_file(self):
+        # delete it
         cleanup_file_path = Path(
             controller_config.cleanup.contextids_cleanup_folder
         ).joinpath(Path(CONTEXT_ID_CLEANUP_FILE))
         cleanup_file_path.unlink()
+        # create it
+        Path(self._cleanup_file_path).touch()

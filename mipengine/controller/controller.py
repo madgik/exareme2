@@ -1,4 +1,5 @@
 import asyncio
+import concurrent
 import logging
 import random
 from datetime import datetime
@@ -14,6 +15,7 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
+from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
@@ -33,21 +35,30 @@ class _NodeInfoDTO(BaseModel):
 
 class Controller:
     def __init__(self):
-        self._node_landscape_aggregator = NodeLandscapeAggregator()
+        CeleryAppFactory().reset()
+
         self._controller_logger = ctrl_logger.get_background_service_logger()
-        self._cleaner = Cleaner(
-            node_landscape_aggregator=self._node_landscape_aggregator
-        )
+
+        self._node_landscape_aggregator = NodeLandscapeAggregator()
+        self._cleaner = Cleaner()
 
     def start_cleanup_loop(self):
-        self._controller_logger.info("starting cleanup_loop")
-        self._cleaner.keep_cleaning_up = True
-        task = asyncio.create_task(self._cleaner.cleanup_loop())
-        self._controller_logger.info("started clean_up loop")
-        return task
+        self._controller_logger.info("(Controller) Cleaner starting ...")
+        self._cleaner.start()
+        self._controller_logger.info("(Controller) Cleaner started.")
 
     def stop_cleanup_loop(self):
-        self._cleaner.keep_cleaning_up = False
+        self._cleaner.stop()
+
+    def start_node_landscape_aggregator(self):
+        self._controller_logger.info(
+            "(Controller) NodeLandscapeAggregator starting ..."
+        )
+        self._node_landscape_aggregator.start()
+        self._controller_logger.info("(Controller) NodeLandscapeAggregator started.")
+
+    def stop_node_landscape_aggregator(self):
+        self._node_landscape_aggregator.stop()
 
     async def exec_algorithm(
         self,
@@ -131,14 +142,17 @@ class Controller:
             ),
         )
 
-        loop = asyncio.get_running_loop()
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        loop = asyncio.get_event_loop()
 
-        logger.info(f"starts executing->  {algorithm_name=}")
-        # TODO: AlgorithmExecutor is not yet implemented with asyncio. This is a
-        # temporary solution for not blocking the calling function
-        algorithm_result = await loop.run_in_executor(None, algorithm_executor.run)
-        logger.info(f"finished execution->  {algorithm_name=}")
-        logger.info(f"algorithm result-> {algorithm_result.json()=}")
+        logger.info(f"Starts executing->  {algorithm_name=} with {request_id=}")
+
+        # Blocking method AlgorithmExecutor.run() will run in a separate thread of the
+        # threadpool and at the same time yield control to the exevent loop
+        algorithm_result = await loop.run_in_executor(executor, algorithm_executor.run)
+
+        logger.info(f"Finished execution->  {algorithm_name=} with {request_id=}")
+        logger.info(f"Algorithm {request_id=} result-> {algorithm_result.json()=}")
 
         return algorithm_result.json()
 
@@ -154,14 +168,6 @@ class Controller:
             algorithm_request_dto=algorithm_request_dto,
             available_datasets_per_data_model=available_datasets_per_data_model,
         )
-
-    def start_node_landscape_aggregator(self):
-        self._controller_logger.info("starting node landscape aggregator")
-        self._node_landscape_aggregator.start()
-        self._controller_logger.info("started node landscape aggregator")
-
-    def stop_node_landscape_aggregator(self):
-        self._node_landscape_aggregator.stop()
 
     def get_datasets_location(self) -> Dict[str, Dict[str, List[str]]]:
         return self._node_landscape_aggregator.get_datasets_location()
@@ -196,7 +202,7 @@ class Controller:
             )
         )
 
-        # Get only the relevant nodes from the node registry
+        # Get only the relevant nodes
         local_nodes_info = self._get_nodes_info_by_dataset(
             data_model=data_model, datasets=datasets
         )

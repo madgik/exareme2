@@ -37,6 +37,8 @@ class DataModelRegistry:
 
     def get_cdes(self, data_model) -> Dict[str, CommonDataElement]:
         return self.data_models[data_model].values
+        # if data_model in self.data_models:
+        #     return self.data_models[data_model].values
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         """
