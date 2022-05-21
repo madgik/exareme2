@@ -156,7 +156,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             columns_per_view=columns_per_view,
             filters=filters,
             dropna=dropna,
-            check_min_rows=check_min_rows
+            check_min_rows=check_min_rows,
         )
         result = celery_app.get_result(
             async_result=async_result, timeout=self._tasks_timeout
