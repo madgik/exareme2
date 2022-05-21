@@ -38,6 +38,7 @@ SMPC_COORDINATOR_ADDRESS = "http://dl056.madgik.di.uoa.gr:12314"
 
 TASKS_TIMEOUT = 60
 
+
 def create_secure_transfer_table(celery_app) -> str:
     task_signature = get_celery_task_signature("create_table")
 
