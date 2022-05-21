@@ -42,7 +42,6 @@ from mipengine.controller.algorithm_flow_data_objects import (
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import TableData
