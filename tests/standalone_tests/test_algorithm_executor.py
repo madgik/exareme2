@@ -37,14 +37,16 @@ class NodeMock(_INode):
     def get_views(self) -> List[TableName]:
         pass
 
-    def create_data_model_view(
+    def create_data_model_views(
         self,
         command_id: str,
         data_model: str,
         datasets: List[str],
-        columns: List[str],
-        filters: List[str],
-    ) -> TableName:
+        columns_per_view: List[List[str]],
+        filters: dict = None,
+        dropna: bool = True,
+        check_min_rows: bool = True,
+    ) -> List[TableName]:
         pass
 
     def get_merge_tables(self) -> List[TableName]:

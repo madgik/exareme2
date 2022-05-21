@@ -21,7 +21,6 @@ signature_mapping = {
     "get_smpc_result": "mipengine.node.tasks.smpc.get_smpc_result",
 }
 
-
 def get_celery_task_signature(task):
     if task not in signature_mapping.keys():
         raise ValueError(f"Task: {task} is not a valid task.")
