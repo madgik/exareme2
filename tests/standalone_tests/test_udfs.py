@@ -23,6 +23,7 @@ from tests.standalone_tests.nodes_communication_helper import get_celery_task_si
 command_id = "command123"
 request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
 context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
+
 TASKS_TIMEOUT = 60
 
 

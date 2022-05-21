@@ -43,8 +43,9 @@ devtools="^0.7.0"
 docker = "^5.0.3"
 tqdm = "^4.62.3"
 SQLAlchemy = "~1.3.0"
-mipdb = "0.3.0"
-psutil = "5.9.0"
+statsmodels = "^0.13.2"
+mipdb = "0.4.0"
+psutil = "^5.9.0"
 
 
 [tool.pytest.ini_options]

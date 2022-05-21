@@ -19,30 +19,7 @@ def do_post_request():
         "leftamygdala",
         "rightamygdala",
     ]
-    filters = {
-        "condition": "AND",
-        "rules": [
-            {
-                "id": "dataset",
-                "type": "string",
-                "value": datasets,
-                "operator": "in",
-            },
-            {
-                "condition": "AND",
-                "rules": [
-                    {
-                        "id": variable,
-                        "type": "string",
-                        "operator": "is_not_null",
-                        "value": None,
-                    }
-                    for variable in x
-                ],
-            },
-        ],
-        "valid": True,
-    }
+    filters = None
 
     algorithm_input_data = AlgorithmInputDataDTO(
         data_model=data_model,

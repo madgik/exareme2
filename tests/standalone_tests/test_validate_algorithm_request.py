@@ -550,6 +550,17 @@ def get_parametrization_list_exception_cases():
             ),
             (BadUserInput, "Parameter .* values should be less than .*"),
         ),
+        (
+            "algorithm_without_x",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="test_data_model2:0.1",
+                    datasets=["test_dataset2", "test_dataset3"],
+                    x=["test_cde1"],
+                ),
+            ),
+            (BadUserInput, "Inputdata .* should be provided."),
+        ),
     ]
     return parametrization_list
 

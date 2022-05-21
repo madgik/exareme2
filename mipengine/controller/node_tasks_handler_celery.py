@@ -19,7 +19,7 @@ TASK_SIGNATURES: Final = {
     "get_table_data": "mipengine.node.tasks.common.get_table_data",
     "create_table": "mipengine.node.tasks.tables.create_table",
     "get_views": "mipengine.node.tasks.views.get_views",
-    "create_data_model_view": "mipengine.node.tasks.views.create_data_model_view",
+    "create_data_model_views": "mipengine.node.tasks.views.create_data_model_views",
     "get_remote_tables": "mipengine.node.tasks.remote_tables.get_remote_tables",
     "create_remote_table": "mipengine.node.tasks.remote_tables.create_remote_table",
     "get_merge_tables": "mipengine.node.tasks.merge_tables.get_merge_tables",
@@ -139,8 +139,10 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         command_id: str,
         data_model: str,
         datasets: List[str],
-        columns: List[str],
-        filters: List[str],
+        columns_per_view: List[List[str]],
+        filters: dict,
+        dropna: bool = True,
+        check_min_rows: bool = True,
     ) -> str:
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["create_data_model_view"]
@@ -151,13 +153,14 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             command_id=command_id,
             data_model=data_model,
             datasets=datasets,
-            columns=columns,
+            columns_per_view=columns_per_view,
             filters=filters,
+            dropna=dropna,
+            check_min_rows=check_min_rows
         )
         result = celery_app.get_result(
             async_result=async_result, timeout=self._tasks_timeout
         )
-
         return result
 
     # MERGE TABLES functionality

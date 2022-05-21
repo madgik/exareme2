@@ -1,3 +1,4 @@
+import enum
 import os
 import re
 import subprocess
@@ -206,6 +207,7 @@ def _init_database_monetdb_container(db_ip, db_port):
     )
     if res.returncode == 0:
         print(f"\nDatabase ({db_ip}:{db_port}) already initialized, continuing.")
+
         return
 
     print(f"\nInitializing database ({db_ip}:{db_port})")
@@ -321,13 +323,24 @@ def localnodetmp_db_cursor():
 
 
 def _clean_db(cursor):
-    table_types = {0, 1, 3, 5}  # 0=table, 1=view, 3=merge_table, 5=remote_table
+    class TableType(enum.Enum):
+        NORMAL = 0
+        VIEW = 1
+        MERGE = 3
+        REMOTE = 5
 
-    for table_type in table_types:
-        select_user_tables = f"SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000 AND type={table_type}"
+    # Order of the table types matter not to have dependencies when dropping the tables
+    table_type_drop_order = (
+        TableType.MERGE,
+        TableType.REMOTE,
+        TableType.VIEW,
+        TableType.NORMAL,
+    )
+    for table_type in table_type_drop_order:
+        select_user_tables = f"SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000 AND type={table_type.value}"
         user_tables = cursor.execute(select_user_tables).fetchall()
         for table_name, *_ in user_tables:
-            if table_type == 1:  # view
+            if table_type == TableType.VIEW:
                 cursor.execute(f"DROP VIEW {table_name}")
             else:
                 cursor.execute(f"DROP TABLE {table_name}")
@@ -707,6 +720,68 @@ def get_node_config_by_id(node_config_file: str):
     with open(path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)) as fp:
         node_config = AttrDict(toml.load(fp))
     return node_config
+
+
+def get_node_config_by_id(node_config_file: str):
+    with open(path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)) as fp:
+        node_config = AttrDict(toml.load(fp))
+    return node_config
+
+
+@pytest.fixture(scope="session")
+def globalnode_celery_app(globalnode_node_service):
+    config = get_node_config_by_id(GLOBALNODE_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
+@pytest.fixture(scope="session")
+def localnode1_celery_app(localnode1_node_service):
+    config = get_node_config_by_id(LOCALNODE1_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
+@pytest.fixture(scope="session")
+def localnode2_celery_app(localnode2_node_service):
+    config = get_node_config_by_id(LOCALNODE2_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
+@pytest.fixture(scope="function")
+def localnodetmp_celery_app(localnodetmp_node_service):
+    config = get_node_config_by_id(LOCALNODETMP_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
+@pytest.fixture(scope="session")
+def smpc_globalnode_celery_app(smpc_globalnode_node_service):
+    config = get_node_config_by_id(GLOBALNODE_SMPC_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
+@pytest.fixture(scope="session")
+def smpc_localnode1_celery_app(smpc_localnode1_node_service):
+    config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
+
+
+@pytest.fixture(scope="session")
+def smpc_localnode2_celery_app(smpc_localnode2_node_service):
+    config = get_node_config_by_id(LOCALNODE2_SMPC_CONFIG_FILE)
+    yield get_node_celery_app(
+        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
+    )
 
 
 @pytest.fixture(scope="function")

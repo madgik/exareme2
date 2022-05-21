@@ -17,6 +17,7 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.cleaner import Cleaner
+from mipengine.controller.federation_info_logs import log_experiment_execution
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.node_info_DTOs import NodeInfo
@@ -68,11 +69,12 @@ class Controller:
     ):
         context_id = get_a_uniqueid()
         algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-        algo_execution_logger.info(
-            f"Experiment with request id '{request_id}' started, "
-            f"with algorithm '{algorithm_name}', "
-            f"touching datasets '{','.join(algorithm_request_dto.inputdata.datasets)}', "
-            f"with parameters '{algorithm_request_dto.json()}'."
+        log_experiment_execution(
+            logger=algo_execution_logger,
+            request_id=request_id,
+            algorithm_name=algorithm_name,
+            datasets=algorithm_request_dto.inputdata.datasets,
+            algorithm_parameters=algorithm_request_dto.json(),
         )
 
         data_model = algorithm_request_dto.inputdata.data_model
