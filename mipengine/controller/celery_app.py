@@ -65,7 +65,7 @@ class CeleryWrapper:
 
             raise connection_error
 
-    # get_result() is blocking, because from celery.result.AsyncResult.get() is blocking
+    # get_result() is blocking, because celery.result.AsyncResult.get() is blocking
     def get_result(
         self, async_result: AsyncResult, timeout: int
     ) -> Union[str, dict, list]:
