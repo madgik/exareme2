@@ -4,7 +4,7 @@ signature_mapping = {
     "get_tables": "mipengine.node.tasks.tables.get_tables",
     "insert_data_to_table": "mipengine.node.tasks.tables.insert_data_to_table",
     "create_view": "mipengine.node.tasks.views.create_view",
-    "create_data_model_view": "mipengine.node.tasks.views.create_data_model_view",
+    "create_data_model_views": "mipengine.node.tasks.views.create_data_model_views",
     "get_views": "mipengine.node.tasks.views.get_views",
     "create_merge_table": "mipengine.node.tasks.merge_tables.create_merge_table",
     "get_merge_tables": "mipengine.node.tasks.merge_tables.get_merge_tables",
@@ -20,6 +20,7 @@ signature_mapping = {
     "load_data_to_smpc_client": "mipengine.node.tasks.smpc.load_data_to_smpc_client",
     "get_smpc_result": "mipengine.node.tasks.smpc.get_smpc_result",
 }
+
 
 def get_celery_task_signature(task):
     if task not in signature_mapping.keys():
