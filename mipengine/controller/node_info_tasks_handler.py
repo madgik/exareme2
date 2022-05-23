@@ -11,7 +11,6 @@ from celery.exceptions import TimeoutError
 from celery.result import AsyncResult
 from kombu.exceptions import OperationalError
 
-# from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException

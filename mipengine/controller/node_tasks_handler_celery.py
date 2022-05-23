@@ -132,7 +132,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         return result
 
     # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
-    def create_data_model_view(
+    def create_data_model_views(
         self,
         request_id: str,
         context_id: str,
@@ -145,7 +145,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         check_min_rows: bool = True,
     ) -> str:
         celery_app = self._get_node_celery_app()
-        task_signature = TASK_SIGNATURES["create_data_model_view"]
+        task_signature = TASK_SIGNATURES["create_data_model_views"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             request_id=request_id,
