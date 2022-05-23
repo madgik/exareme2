@@ -56,29 +56,30 @@ class Cleaner(metaclass=Singleton):
                         > controller_config.cleanup.contextid_release_timelimit
                     ):
                         for node_id in status["nodes"]:
-                            try:
-                                node_info = self._get_node_info_by_id(node_id)
-                                task_handler = _create_node_task_handler(node_info)
-                                task_handler.clean_up(
-                                    request_id=CLEANER_REQUEST_ID,
-                                    context_id=context_id,
-                                )
-                                self._remove_nodeid_from_cleanup(
-                                    context_id=context_id, node_id=node_id
-                                )
-                                self._logger.debug(
-                                    f"clean_up task succeeded for {node_id=} for {context_id=}"
-                                )
-                            except Exception as exc:
-                                self._logger.debug(
-                                    f"clean_up task FAILED for {node_id=} "
-                                    f"for {context_id=}. Will retry in {self._clean_up_interval=} secs. Fail "
-                                    f"reason: {type(exc)}:{exc}"
-                                )
+                            self._cleanup_node(context_id, node_id)
             except Exception as exc:
                 self._logger.error(f"Cleanup exception: {type(exc)}:{exc}")
             finally:
                 time.sleep(self._clean_up_interval)
+
+    def _cleanup_node(self, context_id, node_id):
+        try:
+            node_info = self._get_node_info_by_id(node_id)
+            task_handler = _create_node_task_handler(node_info)
+            task_handler.clean_up(
+                request_id=CLEANER_REQUEST_ID,
+                context_id=context_id,
+            )
+            self._remove_nodeid_from_cleanup(context_id=context_id, node_id=node_id)
+            self._logger.debug(
+                f"clean_up task succeeded for {node_id=} for {context_id=}"
+            )
+        except Exception as exc:
+            self._logger.debug(
+                f"clean_up task FAILED for {node_id=} "
+                f"for {context_id=}. Will retry in {self._clean_up_interval=} secs. Fail "
+                f"reason: {type(exc)}:{exc}"
+            )
 
     def start(self):
         self._terminate_thread_pool()  # in case one calls start without before calling stop
