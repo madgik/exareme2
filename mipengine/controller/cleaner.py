@@ -18,6 +18,12 @@ from mipengine.singleton import Singleton
 CLEANER_REQUEST_ID = "CLEANER"
 CONTEXT_ID_CLEANUP_FILE = "contextids_cleanup.toml"
 
+# Cleanup entry example:
+# [3502300] <--context_id
+# nodes = [ "testglobalnode", "testlocalnode1", "testlocalnodetmp",]
+# timestamp = "2022-05-23T14:40:34.203085+00:00"
+# released = true
+
 
 class _NodeInfoDTO(BaseModel):
     node_id: str
@@ -44,18 +50,20 @@ class Cleaner(metaclass=Singleton):
             try:
                 contextids_and_status = self._cleanup_file_processor.read_cleanup_file()
                 for context_id, status in contextids_and_status.items():
-                    if not status["nodes"]:
-                        self._remove_contextid_from_cleanup(context_id=context_id)
-                    elif status["released"] or self._is_expired(
-                        timestamp=status["timestamp"]
-                    ):
-                        self._cleanup_nodes_list(
-                            context_id=context_id, node_ids=status["nodes"]
-                        )
+                    self._process_contextid(context_id, status)
             except Exception as exc:
                 self._logger.error(f"Cleanup exception: {type(exc)}:{exc}")
             finally:
                 time.sleep(self._clean_up_interval)
+
+    def _process_contextid(self, context_id: str, status: dict):
+        if status["nodes"]:
+            if status["released"] or self._is_expired(status["timestamp"]):
+                self._cleanup_nodes_list(
+                    context_id=context_id, node_ids=status["nodes"]
+                )
+        else:
+            self._remove_contextid_from_cleanup(context_id=context_id)
 
     def _is_expired(self, timestamp: str):
         now = datetime.now(timezone.utc)
