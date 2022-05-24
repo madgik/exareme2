@@ -1,8 +1,8 @@
 import os
+import threading
 import time
 from datetime import datetime
 from datetime import timezone
-from multiprocessing.pool import ThreadPool
 from pathlib import Path
 from typing import List
 
@@ -43,7 +43,7 @@ class Cleaner(metaclass=Singleton):
         self._clean_up_interval = controller_config.cleanup.nodes_cleanup_interval
 
         self._keep_cleaning_up = True
-        self._thread_pool = None
+        self._cleanup_loop_thread = None
 
     def _cleanup_loop(self):
         while self._keep_cleaning_up:
@@ -94,21 +94,18 @@ class Cleaner(metaclass=Singleton):
                 )
 
     def start(self):
-        self._terminate_thread_pool()  # in case one calls start without before calling stop
+        self.stop()
 
         self._keep_cleaning_up = True
-
-        self._thread_pool = ThreadPool()
-        self._thread_pool.apply_async(self._cleanup_loop)
+        self._cleanup_loop_thread = threading.Thread(
+            target=self._cleanup_loop, daemon=True
+        )
+        self._cleanup_loop_thread.start()
 
     def stop(self):
-        self._terminate_thread_pool()
-
-    def _terminate_thread_pool(self):
-        self._keep_cleaning_up = False
-        if self._thread_pool:
-            self._thread_pool.terminate()
-            self._thread_pool.join()  # blocks here until all jobs in threadpool finish
+        if self._cleanup_loop_thread and self._cleanup_loop_thread.is_alive():
+            self._keep_cleaning_up = False
+            self._cleanup_loop_thread.join()
 
     def add_contextid_for_cleanup(
         self, context_id: str, algo_execution_node_ids: List[str]

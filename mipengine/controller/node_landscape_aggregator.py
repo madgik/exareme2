@@ -1,5 +1,5 @@
+import threading
 import time
-from multiprocessing.pool import ThreadPool
 from threading import Lock
 from typing import Dict
 from typing import List
@@ -107,9 +107,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         self._initialize()
 
         self._keep_updating = True
-        self._thread_pool = None
-        # self._node_registry_lock=Lock()
-        # self._data_model_registry_lock=Lock()
+        self._update_loop_thread = None
         self._update_lock = Lock()
 
     def _update(self):
@@ -188,22 +186,18 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         self._data_model_registry = DataModelRegistry(logger)
 
     def start(self):
-        self._terminate_thread_pool()  # in case one calls start without before calling stop
+        self.stop()
 
         self._initialize()
         self._keep_updating = True
 
-        self._thread_pool = ThreadPool()
-        self._thread_pool.apply_async(self._update)
+        self._update_loop_thread = threading.Thread(target=self._update, daemon=True)
+        self._update_loop_thread.start()
 
     def stop(self):
-        self._terminate_thread_pool()
-
-    def _terminate_thread_pool(self):
-        self._keep_updating = False
-        if self._thread_pool:
-            self._thread_pool.terminate()
-            self._thread_pool.join()  # blocks here until all jobs in threadpool finish
+        if self._update_loop_thread and self._update_loop_thread.is_alive():
+            self._keep_updating = False
+            self._update_loop_thread.join()
 
     def get_nodes(self) -> Dict[str, NodeInfo]:
         with self._update_lock:
