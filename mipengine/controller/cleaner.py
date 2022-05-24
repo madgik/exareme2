@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 from datetime import timezone
 from pathlib import Path
+from threading import Lock
 from typing import List
 
 import toml
@@ -168,6 +169,7 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery
 
 class CleanupFileProcessor:
     def __init__(self, logger):
+        self._file_lock = Lock()
         self._logger = logger
 
         # Create all parent folders, if needed.
@@ -248,34 +250,37 @@ class CleanupFileProcessor:
         self._write_to_cleanup_file(parsed_toml)
 
     def read_cleanup_file(self) -> dict:
-        if not os.path.isfile(self._cleanup_file_path):
-            self._logger.warning(
-                f"(Cleaner::read_cleanup_file) {self._cleanup_file_path=} does not exist. This should not happen"
-            )
-            return {}
-        with open(self._cleanup_file_path, "r") as f:
-            try:
-                parsed_toml = toml.load(f)
-            except Exception as exc:
+        with self._file_lock:
+            if not os.path.isfile(self._cleanup_file_path):
                 self._logger.warning(
-                    f"(Cleaner::read_cleanup_file) Trying to read {controller_config.cleanup.contextids_cleanup_file=} "
-                    f"raised exception: {exc}"
+                    f"(Cleaner::read_cleanup_file) {self._cleanup_file_path=} does not exist. This should not happen"
                 )
-        return parsed_toml
+                return {}
+            with open(self._cleanup_file_path, "r") as f:
+                try:
+                    parsed_toml = toml.load(f)
+                except Exception as exc:
+                    self._logger.warning(
+                        f"(Cleaner::read_cleanup_file) Trying to read {controller_config.cleanup.contextids_cleanup_file=} "
+                        f"raised exception: {exc}"
+                    )
+            return parsed_toml
 
     def _write_to_cleanup_file(self, toml_string: str):
-        with open(self._cleanup_file_tmp_path, "w") as f:
-            toml.dump(toml_string, f)
+        with self._file_lock:
+            with open(self._cleanup_file_tmp_path, "w") as f:
+                toml.dump(toml_string, f)
 
-        # renaming is atomic. Of course if more Controllers are spawn the file is very
-        # likely to become corrupted
-        os.rename(self._cleanup_file_tmp_path, self._cleanup_file_path)
+            # renaming is atomic. Of course if more Controllers are spawn the file is very
+            # likely to become corrupted
+            os.rename(self._cleanup_file_tmp_path, self._cleanup_file_path)
 
     def _initialize_cleanup_file(self):
-        # delete it
-        cleanup_file_path = Path(
-            controller_config.cleanup.contextids_cleanup_folder
-        ).joinpath(Path(CONTEXT_ID_CLEANUP_FILE))
-        cleanup_file_path.unlink()
-        # create it
-        Path(self._cleanup_file_path).touch()
+        with self._file_lock:
+            # delete it
+            cleanup_file_path = Path(
+                controller_config.cleanup.contextids_cleanup_folder
+            ).joinpath(Path(CONTEXT_ID_CLEANUP_FILE))
+            cleanup_file_path.unlink()
+            # create it
+            Path(self._cleanup_file_path).touch()
