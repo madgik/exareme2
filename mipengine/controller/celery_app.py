@@ -81,12 +81,13 @@ class CeleryWrapper:
             # get_backgroung_service_logger() makes no sense
 
             ######################
-            import traceback
-
-            traceback.format_exc()
             print(
                 f"(celery_app::CeleryWrapper::get_result) {timeout_error=} {async_result.id=}"
             )
+            import traceback
+
+            tr = traceback.format_exc()
+            print(tr)
             ######################
 
             try:
@@ -94,10 +95,14 @@ class CeleryWrapper:
             except kombu.exceptions.OperationalError as oper_err_inner:
 
                 ######################
+                print(
+                    f"(celery_app::CeleryWrapper::get_result) {oper_err_inner=} {async_result.id=}"
+                )
+
                 import traceback
 
-                traceback.format_exc()
-                print(f"(celery_app::CeleryWrapper::get_result) {oper_err_inner=}")
+                tr = traceback.format_exc()
+                print(tr)
                 ######################
 
                 self._close()
@@ -108,6 +113,7 @@ class CeleryWrapper:
                     error_details=f"while getting {async_result.id=}",
                 )
                 raise connection_error
+
             raise CeleryTaskTimeoutException(
                 timeout_type=type(timeout_error),
                 connection_address=self._socket_addr,
@@ -116,11 +122,13 @@ class CeleryWrapper:
         except kombu.exceptions.OperationalError as oper_err:
             # TODO how are things supposed to be logged in here?
             # get_backgroung_service_logger() makes no sense
-            ####################33
+            ######################
+            print(f"(celery_app::CeleryWrapper::get_result) {oper_err=}")
+
             import traceback
 
-            traceback.format_exc()
-            print(f"(celery_app::CeleryWrapper::get_result) {oper_err=}")
+            tr = traceback.format_exc()
+            print(tr)
             ######################
 
             self._close()
@@ -143,7 +151,11 @@ class CeleryWrapper:
         vhost = controller_config.rabbitmq.vhost
         broker = f"pyamqp://{user}:{password}@{self._socket_addr}/{vhost}"
         celery_app = Celery(broker=broker, backend="rpc://")
+
+        # connection pool disabled
+        # connections are established and closed for every use
         celery_app.conf.broker_pool_limit = None
+
         return celery_app
 
 

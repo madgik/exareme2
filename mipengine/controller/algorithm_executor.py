@@ -179,7 +179,7 @@ class AlgorithmExecutor:
             self._logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
             raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
-            self._logger.error(f"{traceback.format_exc()}")
+            self._logger.error(traceback.format_exc())
             raise exc
 
 
