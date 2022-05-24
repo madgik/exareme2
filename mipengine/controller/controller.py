@@ -43,6 +43,8 @@ class Controller:
         self._node_landscape_aggregator = NodeLandscapeAggregator()
         self._cleaner = Cleaner()
 
+        self._executor = concurrent.futures.ThreadPoolExecutor()
+
     def start_cleanup_loop(self):
         self._controller_logger.info("(Controller) Cleaner starting ...")
         self._cleaner.start()
@@ -144,14 +146,15 @@ class Controller:
             ),
         )
 
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        loop = asyncio.get_event_loop()
-
         logger.info(f"Starts executing->  {algorithm_name=} with {request_id=}")
 
-        # Blocking method AlgorithmExecutor.run() will run in a separate thread of the
-        # threadpool and at the same time yield control to the exevent loop
-        algorithm_result = await loop.run_in_executor(executor, algorithm_executor.run)
+        # By calling blocking method AlgorithmExecutor.run() inside run_in_executor(),
+        # AlgorithmExecutor.run() will run in a separate thread of the
+        # threadpool and at the same time yield control to the exevent loop, through await
+        loop = asyncio.get_event_loop()
+        algorithm_result = await loop.run_in_executor(
+            self._executor, algorithm_executor.run
+        )
 
         logger.info(f"Finished execution->  {algorithm_name=} with {request_id=}")
         logger.info(f"Algorithm {request_id=} result-> {algorithm_result.json()=}")
