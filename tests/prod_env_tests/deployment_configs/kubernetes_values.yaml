@@ -2,7 +2,7 @@ localnodes: 3
 
 mipengine_images:
   repository: madgik
-  version: latest
+  version: dev
 
 log_level: DEBUG
 framework_log_level: INFO

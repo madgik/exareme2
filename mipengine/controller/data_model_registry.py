@@ -3,6 +3,10 @@ from typing import Any
 from typing import Dict
 from typing import List
 
+from mipengine.controller.federation_info_logs import log_datamodel_added
+from mipengine.controller.federation_info_logs import log_datamodel_removed
+from mipengine.controller.federation_info_logs import log_dataset_added
+from mipengine.controller.federation_info_logs import log_dataset_removed
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 
@@ -104,11 +108,11 @@ class DataModelRegistry:
 def _log_data_model_changes(logger, old_data_models, new_data_models):
     added_data_models = new_data_models.keys() - old_data_models.keys()
     for data_model in added_data_models:
-        logger.info(f"Datamodel '{data_model}' was added.")
+        log_datamodel_added(data_model, logger)
 
     removed_data_models = old_data_models.keys() - new_data_models.keys()
     for data_model in removed_data_models:
-        logger.info(f"Datamodel '{data_model}' was removed.")
+        log_datamodel_removed(data_model, logger)
 
 
 def _log_dataset_changes(
@@ -130,7 +134,7 @@ def _log_datasets_added(
         if data_model in old_datasets_per_data_model:
             added_datasets -= old_datasets_per_data_model[data_model].keys()
         for dataset in added_datasets:
-            logger.info(f"Dataset '{dataset}' of datamodel '{data_model}' was added.")
+            log_dataset_added(data_model, dataset, logger, new_datasets_per_data_model)
 
 
 def _log_datasets_removed(
@@ -141,4 +145,6 @@ def _log_datasets_removed(
         if data_model in new_datasets_per_data_model:
             removed_datasets -= new_datasets_per_data_model[data_model].keys()
         for dataset in removed_datasets:
-            logger.info(f"Dataset '{dataset}' of datamodel '{data_model}' was removed.")
+            log_dataset_removed(
+                data_model, dataset, logger, old_datasets_per_data_model
+            )

@@ -29,30 +29,7 @@ def do_post_request():
         "rightamygdala",
     ]
     y = ["alzheimerbroadcategory"]
-    filters = {
-        "condition": "AND",
-        "rules": [
-            {
-                "id": "dataset",
-                "type": "string",
-                "value": datasets,
-                "operator": "in",
-            },
-            {
-                "condition": "AND",
-                "rules": [
-                    {
-                        "id": variable,
-                        "type": "string",
-                        "operator": "is_not_null",
-                        "value": None,
-                    }
-                    for variable in x + y
-                ],
-            },
-        ],
-        "valid": True,
-    }
+    filters = None
     classes = ["AD", "CN"]
 
     algorithm_input_data = AlgorithmInputDataDTO(

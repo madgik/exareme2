@@ -42,17 +42,6 @@ class _INode(ABC):
         pass
 
     @abstractmethod
-    def create_data_model_view(
-        self,
-        command_id: str,
-        data_model: str,
-        datasets: List[str],
-        columns: List[str],
-        filters: List[str],
-    ) -> TableName:
-        pass
-
-    @abstractmethod
     def get_merge_tables(self) -> List[TableName]:
         pass
 
@@ -97,61 +86,14 @@ class _Node(_INode, ABC):
         request_id: str,
         context_id: str,
         node_tasks_handler: INodeTasksHandler,
-        initial_view_tables_params: Dict[str, Any] = None,
     ):
-        self._node_tasks_handler = node_tasks_handler
-        self.node_id = self._node_tasks_handler.node_id
-        self.request_id = request_id
-        self.context_id = context_id
-
-        self._initial_view_tables = None
-        if initial_view_tables_params is not None:
-            self._initial_view_tables = self._create_initial_view_tables(
-                initial_view_tables_params
-            )
+        self._node_tasks_handler: INodeTasksHandler = node_tasks_handler
+        self.node_id: str = self._node_tasks_handler.node_id
+        self.request_id: str = request_id
+        self.context_id: str = context_id
 
     def __repr__(self):
         return f"{self.node_id}"
-
-    @property
-    def initial_view_tables(self) -> Dict[str, TableName]:
-        return self._initial_view_tables
-
-    def _create_initial_view_tables(
-        self, initial_view_tables_params
-    ) -> Dict[str, TableName]:
-        # will contain the views created from the data model, datasets. Its keys are
-        # the variable sets x, y etc
-        initial_view_tables = {}
-
-        # initial view for variables in X
-        variable = "x"
-        if initial_view_tables_params[variable]:
-            command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_data_model_view(
-                command_id=command_id,
-                data_model=initial_view_tables_params["data_model"],
-                datasets=initial_view_tables_params["datasets"],
-                columns=initial_view_tables_params[variable],
-                filters=initial_view_tables_params["filters"],
-            )
-            initial_view_tables["x"] = view_name
-
-        # initial view for variables in Y
-        variable = "y"
-        if initial_view_tables_params[variable]:
-            command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_data_model_view(
-                command_id=command_id,
-                data_model=initial_view_tables_params["data_model"],
-                datasets=initial_view_tables_params["datasets"],
-                columns=initial_view_tables_params[variable],
-                filters=initial_view_tables_params["filters"],
-            )
-
-            initial_view_tables["y"] = view_name
-
-        return initial_view_tables
 
     @property
     def node_address(self) -> str:
@@ -195,27 +137,6 @@ class _Node(_INode, ABC):
             request_id=self.request_id, context_id=self.context_id
         )
         return [TableName(table_name) for table_name in result]
-
-    # TODO: this is very specific to mip, very inconsistent with the rest, has to
-    # be abstracted somehow
-    def create_data_model_view(
-        self,
-        command_id: str,
-        data_model: str,
-        datasets: List[str],
-        columns: List[str],
-        filters: List[str],
-    ) -> TableName:
-        result = self._node_tasks_handler.create_data_model_view(
-            request_id=self.request_id,
-            context_id=self.context_id,
-            command_id=command_id,
-            data_model=data_model,
-            datasets=datasets,
-            columns=columns,
-            filters=filters,
-        )
-        return TableName(result)
 
     # MERGE TABLES functionality
     def get_merge_tables(self) -> List[TableName]:
@@ -295,6 +216,54 @@ class _Node(_INode, ABC):
 
 
 class LocalNode(_Node):
+    def create_data_model_views(
+        self,
+        command_id: str,
+        data_model: str,
+        datasets: List[str],
+        columns_per_view: List[List[str]],
+        filters: dict = None,
+        dropna: bool = True,
+        check_min_rows: bool = True,
+    ) -> List[TableName]:
+        """
+        Creates views on a specific data model.
+
+        Parameters
+        ----------
+        command_id : str
+            The id of the command.
+        data_model : str
+            The data model of the view.
+        datasets : str
+            The datasets that will be included in the view.
+        columns_per_view : List[List[str]]
+            A list of column names' for each view to be created.
+        filters : dict
+            A dict representation of a jQuery QueryBuilder json. (https://querybuilder.js.org/)
+        dropna : bool
+            Remove NAs from the view.
+        check_min_rows : bool
+            Raise an exception if there are not enough rows in the view.
+
+        Returns
+        ------
+        List[TableName]
+            A list of views(TableName) created, corresponding to the columns_per_view list.
+        """
+        views = self._node_tasks_handler.create_data_model_views(
+            request_id=self.request_id,
+            context_id=self.context_id,
+            command_id=command_id,
+            data_model=data_model,
+            datasets=datasets,
+            columns_per_view=columns_per_view,
+            filters=filters,
+            dropna=dropna,
+            check_min_rows=check_min_rows,
+        )
+        return [TableName(view) for view in views]
+
     def get_queued_udf_result(
         self, async_result: IQueuedUDFAsyncResult
     ) -> List[NodeData]:

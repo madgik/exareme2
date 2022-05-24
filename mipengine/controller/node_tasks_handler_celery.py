@@ -26,7 +26,7 @@ TASK_SIGNATURES: Final = {
     "get_table_data": "mipengine.node.tasks.common.get_table_data",
     "create_table": "mipengine.node.tasks.tables.create_table",
     "get_views": "mipengine.node.tasks.views.get_views",
-    "create_data_model_view": "mipengine.node.tasks.views.create_data_model_view",
+    "create_data_model_views": "mipengine.node.tasks.views.create_data_model_views",
     "get_remote_tables": "mipengine.node.tasks.remote_tables.get_remote_tables",
     "create_remote_table": "mipengine.node.tasks.remote_tables.create_remote_table",
     "get_merge_tables": "mipengine.node.tasks.merge_tables.get_merge_tables",
@@ -220,18 +220,20 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     # TODO: this is very specific to mip, very inconsistent with the rest, has to be abstracted somehow
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
-    def create_data_model_view(
+    def create_data_model_views(
         self,
         request_id: str,
         context_id: str,
         command_id: str,
         data_model: str,
         datasets: List[str],
-        columns: List[str],
-        filters: List[str],
+        columns_per_view: List[List[str]],
+        filters: dict,
+        dropna: bool = True,
+        check_min_rows: bool = True,
     ) -> str:
         task_signature = self._celery_app.signature(
-            TASK_SIGNATURES["create_data_model_view"]
+            TASK_SIGNATURES["create_data_model_views"]
         )
         result = self._apply_async(
             task_signature=task_signature,
@@ -240,8 +242,10 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             command_id=command_id,
             data_model=data_model,
             datasets=datasets,
-            columns=columns,
+            columns_per_view=columns_per_view,
             filters=filters,
+            dropna=dropna,
+            check_min_rows=check_min_rows,
         ).get(self._tasks_timeout)
         return result
 

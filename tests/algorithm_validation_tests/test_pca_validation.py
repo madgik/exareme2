@@ -11,30 +11,7 @@ expected_file = Path(__file__).parent / "expected" / "pca_expected.json"
 def pca_request(input):
     url = "http://127.0.0.1:4999/algorithms" + "/pca"
 
-    filters = {
-        "condition": "AND",
-        "rules": [
-            {
-                "id": "dataset",
-                "type": "string",
-                "value": input["inputdata"]["datasets"],
-                "operator": "in",
-            },
-            {
-                "condition": "AND",
-                "rules": [
-                    {
-                        "id": variable,
-                        "type": "string",
-                        "operator": "is_not_null",
-                        "value": None,
-                    }
-                    for variable in input["inputdata"]["y"]
-                ],
-            },
-        ],
-        "valid": True,
-    }
+    filters = None
     input["inputdata"]["filters"] = filters
     request_json = json.dumps(input)
 

@@ -26,13 +26,10 @@ from mipengine.smpc_DTOs import SMPCResponseStatus
 from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import smpc_global_step
 from tests.algorithms.orphan_udfs import smpc_local_step
-from tests.standalone_tests.conftest import GLOBALNODE_SMPC_CONFIG_FILE
-from tests.standalone_tests.conftest import LOCALNODE1_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE1_SMPC_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE2_SMPC_CONFIG_FILE
-from tests.standalone_tests.nodes_communication_helper import get_celery_app
+from tests.standalone_tests.conftest import get_node_config_by_id
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
-from tests.standalone_tests.nodes_communication_helper import get_node_config_by_id
 from tests.standalone_tests.test_udfs import create_table_with_one_column_and_ten_rows
 
 request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
@@ -41,30 +38,6 @@ command_id = "command123"
 smpc_job_id = "testKey123"
 SMPC_GET_DATASET_ENDPOINT = "/api/update-dataset/"
 SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
-
-
-@pytest.fixture(scope="session")
-def localnode_1_celery_app():
-    config = get_node_config_by_id(LOCALNODE1_CONFIG_FILE)
-    yield get_celery_app(config)
-
-
-@pytest.fixture(scope="session")
-def smpc_globalnode_celery_app():
-    config = get_node_config_by_id(GLOBALNODE_SMPC_CONFIG_FILE)
-    yield get_celery_app(config)
-
-
-@pytest.fixture(scope="session")
-def smpc_localnode1_celery_app():
-    config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
-    yield get_celery_app(config)
-
-
-@pytest.fixture(scope="session")
-def smpc_localnode2_celery_app():
-    config = get_node_config_by_id(LOCALNODE2_SMPC_CONFIG_FILE)
-    yield get_celery_app(config)
 
 
 def create_secure_transfer_table(celery_app) -> str:
@@ -174,15 +147,15 @@ def validate_dict_table_data_match_expected(
 
 
 def test_secure_transfer_output_with_smpc_off(
-    localnode1_node_service, use_localnode1_database, localnode_1_celery_app
+    localnode1_node_service, use_localnode1_database, localnode1_celery_app
 ):
-    run_udf_task = get_celery_task_signature(localnode_1_celery_app, "run_udf")
+    run_udf_task = get_celery_task_signature(localnode1_celery_app, "run_udf")
     get_table_data_task = get_celery_task_signature(
-        localnode_1_celery_app, "get_table_data"
+        localnode1_celery_app, "get_table_data"
     )
 
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode_1_celery_app
+        localnode1_celery_app
     )
 
     pos_args_str = UDFPosArguments(args=[NodeTableDTO(value=input_table_name)]).json()
@@ -211,17 +184,17 @@ def test_secure_transfer_output_with_smpc_off(
 
 
 def test_secure_transfer_input_with_smpc_off(
-    localnode1_node_service, use_localnode1_database, localnode_1_celery_app
+    localnode1_node_service, use_localnode1_database, localnode1_celery_app
 ):
-    run_udf_task = get_celery_task_signature(localnode_1_celery_app, "run_udf")
+    run_udf_task = get_celery_task_signature(localnode1_celery_app, "run_udf")
     get_table_data_task = get_celery_task_signature(
-        localnode_1_celery_app, "get_table_data"
+        localnode1_celery_app, "get_table_data"
     )
 
     (
         secure_transfer_results_tablename,
         secure_transfer_results_values_sum,
-    ) = create_table_with_secure_transfer_results_with_smpc_off(localnode_1_celery_app)
+    ) = create_table_with_secure_transfer_results_with_smpc_off(localnode1_celery_app)
 
     pos_args_str = UDFPosArguments(
         args=[NodeTableDTO(value=secure_transfer_results_tablename)]

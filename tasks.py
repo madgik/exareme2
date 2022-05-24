@@ -495,11 +495,17 @@ def kill_node(c, node=None, all_=False):
             f"Killing previous celery instance(s) with pattern '{node_pattern}' ...",
             Level.HEADER,
         )
-        # In order for the node service to be killed, we need to kill the celery worker process with the "node_pattern"
-        # in it's name and it's parent process, the celery main process.
+
+        # We need to kill the celery worker processes with the "node_pattern", if provided.
+        # First we kill the parent process (celery workers' parent) if there is one, when "node_pattern is provided,
+        # and then we kill all the celery worker processes with/without a pattern.
         cmd = (
             f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
             f"&& pgrep -P $pid | xargs kill -9 "
+        )
+        run(c, cmd, warn=True, show_ok=False)
+        cmd = (
+            f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
             f"&& kill -9 $pid "
         )
         run(c, cmd, warn=True)
@@ -1136,7 +1142,7 @@ def get_docker_image(c, image, always_pull=False):
     cmd = f"docker images -q {image}"
     _, image_tag = image.split(":")
     result = run(c, cmd, show_ok=False)
-    if result.stdout != "" and image_tag != "latest":
+    if result.stdout != "" and image_tag != "latest" and image_tag != "dev":
         return
 
     message(f"Pulling image {image} ...", Level.HEADER)
