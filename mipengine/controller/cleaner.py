@@ -281,6 +281,6 @@ class CleanupFileProcessor:
             cleanup_file_path = Path(
                 controller_config.cleanup.contextids_cleanup_folder
             ).joinpath(Path(CONTEXT_ID_CLEANUP_FILE))
-            cleanup_file_path.unlink()
+            cleanup_file_path.unlink(missing_ok=True)
             # create it
             Path(self._cleanup_file_path).touch()
