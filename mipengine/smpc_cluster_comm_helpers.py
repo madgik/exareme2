@@ -1,3 +1,4 @@
+import json
 from logging import Logger
 from typing import List
 
@@ -14,9 +15,12 @@ GET_RESULT_ENDPOINT = "/api/get-result/job-id/"
 def load_data_to_smpc_client(client_address: str, jobid: str, values: str):
     request_url = client_address + ADD_DATASET_ENDPOINT + jobid
     request_headers = {"Content-type": "application/json", "Accept": "text/plain"}
+    # TODO (SMPC) Currently only ints are supported so it's hardcoded
+    # https://team-1617704806227.atlassian.net/browse/MIP-518
+    data = {"type": "int", "data": json.loads(values)}
     response = requests.post(
         url=request_url,
-        data=values,
+        data=json.dumps(data),
         headers=request_headers,
     )
     if response.status_code != 200:

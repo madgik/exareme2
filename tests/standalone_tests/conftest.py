@@ -78,8 +78,8 @@ TASKS_TIMEOUT = 10
 RUN_UDF_TASK_TIMEOUT = 120
 
 ########### SMPC Cluster ############
-SMPC_CLUSTER_IMAGE = "gpikra/coordinator:latest"
-SMPC_COORD_DB_IMAGE = "gpikra/mongodb:latest"
+SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v2.0.0"
+SMPC_COORD_DB_IMAGE = "mongo:5.0.8"
 SMPC_COORD_QUEUE_IMAGE = "redis:alpine3.15"
 
 SMPC_COORD_CONT_NAME = "smpc_test_coordinator"
@@ -832,7 +832,6 @@ def smpc_coordinator():
             detach=True,
             ports={27017: SMPC_COORD_DB_PORT},
             environment={
-                "MONGO_INITDB_DATABASE": "agoradb",
                 "MONGO_INITDB_ROOT_USERNAME": "sysadmin",
                 "MONGO_INITDB_ROOT_PASSWORD": "123qwe",
             },
@@ -866,10 +865,12 @@ def smpc_coordinator():
                 "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
                 "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
                 "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
-                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "REDIS_HOST": f"{COMMON_IP}",
                 "REDIS_PORT": f"{SMPC_COORD_QUEUE_PORT}",
                 "REDIS_PSWD": "agora",
+                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
+                "DB_UNAME": "sysadmin",
+                "DB_PSWD": "1234qwe",
             },
             command="python coordinator.py",
         )
@@ -906,8 +907,10 @@ def smpc_players():
                 "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
                 "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
                 "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
-                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
+                "DB_UNAME": "sysadmin",
+                "DB_PSWD": "1234qwe",
             },
             command="python player.py 0",
         )
@@ -929,8 +932,10 @@ def smpc_players():
                 "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
                 "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
                 "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
-                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
+                "DB_UNAME": "sysadmin",
+                "DB_PSWD": "1234qwe",
             },
             command="python player.py 1",
         )
@@ -952,8 +957,10 @@ def smpc_players():
                 "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
                 "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
                 "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
-                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
+                "DB_UNAME": "sysadmin",
+                "DB_PSWD": "1234qwe",
             },
             command="python player.py 2",
         )

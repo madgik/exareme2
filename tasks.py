@@ -800,7 +800,6 @@ def start_smpc_coordinator_db(c, image):
         Level.HEADER,
     )
     env_variables = (
-        "-e MONGO_INITDB_DATABASE=agoradb "
         "-e MONGO_INITDB_ROOT_USERNAME=sysadmin "
         "-e MONGO_INITDB_ROOT_PASSWORD=123qwe "
     )
@@ -830,10 +829,12 @@ def start_smpc_coordinator_container(c, ip, image):
         f"-e PLAYER_REPO_0=http://{ip}:7000 "
         f"-e PLAYER_REPO_1=http://{ip}:7001 "
         f"-e PLAYER_REPO_2=http://{ip}:7002 "
-        f"-e DB_URL={ip}:{SMPC_COORDINATOR_DB_PORT} "
         f"-e REDIS_HOST={ip} "
         f"-e REDIS_PORT={SMPC_COORDINATOR_QUEUE_PORT} "
         "-e REDIS_PSWD=agora "
+        f"-e DB_URL={ip}:{SMPC_COORDINATOR_DB_PORT} "
+        "-e DB_UNAME=sysadmin "
+        "-e DB_PSWD=123qwe "
     )
     cmd = f"""docker run -d -p {container_ports} {env_variables} --name {SMPC_COORDINATOR_NAME} {image} {container_cmd}"""
     run(c, cmd)
@@ -872,24 +873,26 @@ def start_smpc_coordinator(
     start_smpc_coordinator_container(c, ip, smpc_image)
 
 
-def start_smpc_player(c, ip, order, image):
-    name = f"{SMPC_PLAYER_BASE_NAME}_{order}"
+def start_smpc_player(c, ip, id, image):
+    name = f"{SMPC_PLAYER_BASE_NAME}_{id}"
     message(
         f"Starting container {name} ...",
         Level.HEADER,
     )
-    container_cmd = f"python player.py {order}"  # SMPC player id cannot be alphanumeric
+    container_cmd = f"python player.py {id}"  # SMPC player id cannot be alphanumeric
     env_variables = (
         f"-e PLAYER_REPO_0=http://{ip}:7000 "
         f"-e PLAYER_REPO_1=http://{ip}:7001 "
         f"-e PLAYER_REPO_2=http://{ip}:7002 "
-        f"-e DB_URL={ip}:{SMPC_COORDINATOR_DB_PORT} "
         f"-e COORDINATOR_URL=http://{ip}:{SMPC_COORDINATOR_PORT} "
+        f"-e DB_URL={ip}:{SMPC_COORDINATOR_DB_PORT} "
+        "-e DB_UNAME=sysadmin "
+        "-e DB_PSWD=123qwe "
     )
     container_ports = (
-        f"-p {5000 + order}:{5000 + order} "
-        f"-p {SMPC_PLAYER_BASE_PORT + order}:{7100 + order} "
-        f"-p {14000 + order}:{14000 + order} "
+        f"-p {5000 + id}:{5000 + id} "
+        f"-p {SMPC_PLAYER_BASE_PORT + id}:{7100 + id} "
+        f"-p {14000 + id}:{14000 + id} "
     )  # SMPC player port is increasing using the player id
     cmd = f"""docker run -d {container_ports} {env_variables} --name {name} {image} {container_cmd}"""
     run(c, cmd)
