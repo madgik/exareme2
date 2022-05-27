@@ -12,8 +12,10 @@ from pydantic import BaseModel
 
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller.algorithm_execution_tasks_handler import (
+    NodeAlgorithmTasksHandler,
+)
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.singleton import Singleton
 
 CLEANER_REQUEST_ID = "CLEANER"
@@ -158,8 +160,8 @@ class Cleaner(metaclass=Singleton):
         self._cleanup_file_processor._initialize_cleanup_file()
 
 
-def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery:
-    return NodeTasksHandlerCelery(
+def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeAlgorithmTasksHandler:
+    return NodeAlgorithmTasksHandler(
         node_id=node_info.node_id,
         node_queue_addr=node_info.queue_address,
         node_db_addr=node_info.db_address,

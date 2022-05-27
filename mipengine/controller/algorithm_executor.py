@@ -42,12 +42,16 @@ from mipengine.controller.algorithm_flow_data_objects import (
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
-from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.udfgen import TensorBinaryOp
 from mipengine.udfgen import make_unique_func_name
+
+
+class AsyncResult:
+    def get(self, timeout=None):
+        pass
 
 
 class AlgorithmExecutionException(Exception):
@@ -611,7 +615,7 @@ class _AlgorithmExecutionInterface:
                     return True
 
     def _get_local_run_udfs_results(
-        self, tasks: Dict[LocalNode, IQueuedUDFAsyncResult]
+        self, tasks: Dict[LocalNode, AsyncResult]
     ) -> List[List[Tuple[LocalNode, NodeData]]]:
         all_nodes_results = {}
         for node, task in tasks.items():

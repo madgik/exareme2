@@ -12,6 +12,9 @@ from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
+from mipengine.controller.algorithm_execution_tasks_handler import (
+    NodeAlgorithmTasksHandler,
+)
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
@@ -19,7 +22,6 @@ from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.federation_info_logs import log_experiment_execution
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import CommonDataElements
 
@@ -258,8 +260,8 @@ class Controller:
         return nodes_info
 
 
-def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeTasksHandlerCelery:
-    return NodeTasksHandlerCelery(
+def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeAlgorithmTasksHandler:
+    return NodeAlgorithmTasksHandler(
         node_id=node_info.node_id,
         node_queue_addr=node_info.queue_address,
         node_db_addr=node_info.db_address,
