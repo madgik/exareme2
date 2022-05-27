@@ -49,10 +49,12 @@ class CeleryWrapper:
             # get_backgroung_service_logger() makes no sense
 
             ######################
+            print(f"(celery_app::CeleryWrapper::queue_task) {exc=}\n")
+
             import traceback
 
-            traceback.format_exc()
-            print(f"(celery_app::CeleryWrapper::queue_task) {exc=}\n")
+            tr = traceback.format_exc()
+            print(tr)
             ######################
 
             self._close()
