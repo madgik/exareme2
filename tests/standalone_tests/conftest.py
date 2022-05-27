@@ -13,12 +13,14 @@ import sqlalchemy as sql
 import toml
 
 from mipengine import AttrDict
+from mipengine.controller.algorithm_execution_tasks_handler import (
+    NodeAlgorithmTasksHandler,
+)
 from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.controller_logger import get_request_logger
 from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_registry import NodeRegistry
-from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.udfgen import udfio
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
@@ -680,7 +682,7 @@ def create_node_tasks_handler_celery(node_config_filepath):
     queue_address = ":".join([str(queue_domain), str(queue_port)])
     db_address = ":".join([str(db_domain), str(db_port)])
 
-    return NodeTasksHandlerCelery(
+    return NodeAlgorithmTasksHandler(
         node_id=node_id,
         node_queue_addr=queue_address,
         node_db_addr=db_address,
