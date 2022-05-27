@@ -14,10 +14,6 @@ from kombu.exceptions import OperationalError
 from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
-from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
-from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
-from mipengine.controller.node_tasks_handler_interface import UDFKeyArguments
-from mipengine.controller.node_tasks_handler_interface import UDFPosArguments
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import CommonDataElements
 from mipengine.node_tasks_DTOs import TableData
@@ -40,6 +36,7 @@ class NodeInfoTasksHandler:
         return CeleryAppFactory().get_celery_app(socket_addr=self._node_queue_addr)
 
     # --------------- get_node_info task ---------------
+    # NON-BLOCKING
     def queue_node_info_task(self, request_id: str) -> AsyncResult:
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_node_info"]
@@ -54,21 +51,7 @@ class NodeInfoTasksHandler:
             print(f"{exc=}")
             raise exc
 
-    # from multiprocessing.pool import ThreadPool
-    # from multiprocessing.pool import AsyncResult as threading_AsyncResult
-    # def result_node_info_task_async(
-    #     self, async_result: AsyncResult
-    # ) -> threading_AsyncResult:
-
-    #     pool = ThreadPool()
-    #     threading_async_result = pool.apply_async(
-    #         self.result_node_info_task,
-    #         kwds={
-    #             "async_result": async_result,
-    #         },
-    #     )
-    #     return threading_async_result
-
+    # BLOCKING
     def result_node_info_task(self, async_result: AsyncResult) -> NodeInfo:
         celery_app = self._get_node_celery_app()
         try:
@@ -82,6 +65,7 @@ class NodeInfoTasksHandler:
             raise exc
 
     # --------------- get_node_datasets_per_data_model task ---------------
+    # NON-BLOCKING
     def queue_node_datasets_per_data_model_task(self, request_id: str) -> AsyncResult:
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_node_datasets_per_data_model"]
@@ -96,20 +80,7 @@ class NodeInfoTasksHandler:
             print(f"{exc=}")
             raise exc
 
-    # def result_node_datasets_per_data_model_task_async(
-    #     self, async_result: AsyncResult
-    # ) -> threading_AsyncResult:
-    #     from multiprocessing.pool import ThreadPool
-
-    #     pool = ThreadPool()
-    #     threading_async_result = pool.apply_async(
-    #         self.result_node_datasets_per_data_model_task,
-    #         kwds={
-    #             "async_result": async_result,
-    #         },
-    #     )
-    #     return threading_async_result
-
+    # BLOCKING
     def result_node_datasets_per_data_model_task(
         self, async_result: AsyncResult
     ) -> NodeInfo:
@@ -125,6 +96,7 @@ class NodeInfoTasksHandler:
             raise exc
 
     # --------------- get_data_model_cdes task ---------------
+    # NON-BLOCKING
     def queue_data_model_cdes_task(
         self, request_id: str, data_model: str
     ) -> AsyncResult:
@@ -142,20 +114,7 @@ class NodeInfoTasksHandler:
             print(f"{exc=}")
             raise exc
 
-    # def result_data_model_cdes_task_async(
-    #     self, async_result: AsyncResult
-    # ) -> threading_AsyncResult:
-    #     from multiprocessing.pool import ThreadPool
-
-    #     pool = ThreadPool()
-    #     threading_async_result = pool.apply_async(
-    #         self.result_data_model_cdes_task,
-    #         kwds={
-    #             "async_result": async_result,
-    #         },
-    #     )
-    #     return threading_async_result
-
+    # BLOCKING
     def result_data_model_cdes_task(self, async_result: AsyncResult) -> NodeInfo:
         celery_app = self._get_node_celery_app()
         try:
