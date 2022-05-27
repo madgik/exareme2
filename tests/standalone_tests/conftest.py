@@ -724,12 +724,6 @@ def get_node_config_by_id(node_config_file: str):
     return node_config
 
 
-def get_node_config_by_id(node_config_file: str):
-    with open(path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)) as fp:
-        node_config = AttrDict(toml.load(fp))
-    return node_config
-
-
 @pytest.fixture(scope="session")
 def globalnode_celery_app(globalnode_node_service):
     config = get_node_config_by_id(GLOBALNODE_CONFIG_FILE)
