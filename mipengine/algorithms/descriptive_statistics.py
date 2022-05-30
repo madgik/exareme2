@@ -3,6 +3,10 @@ import pandas as pd
 
 from typing import TypeVar
 
+from typing import List
+
+from pydantic import BaseModel
+
 from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
@@ -22,6 +26,29 @@ import json
 
 T = TypeVar('T')
 S = TypeVar("S")
+
+class DescriptiveResult(BaseModel):
+    title: str
+    variable: List[float]
+    max: List[float]
+    min: List[float]
+    mean: List[float]
+    count_not_null: List[float]
+    count_num_null: List[float]
+    std: List[float]
+    q1: List[List[float]]
+    q2: List[List[float]]
+    q3: List[List[float]]
+    max_model: List[float]
+    min_model: List[float]
+    mean_model: List[float]
+    count_not_null_model: List[float]
+    count_num_null_model: List[float]
+    std_model: List[float]
+    q1_model: List[List[float]]
+    q2_model: List[List[float]]
+    q3_model: List[List[float]]
+
 
 def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
@@ -66,9 +93,9 @@ def run(algo_interface):
     q3_array = quartiles_array[:,2,:]
     #print(q1_array)
 
-    q1_final = numpy.apply_along_axis(str,0, q1_array).tolist()
-    q2_final = numpy.apply_along_axis(str,0, q2_array).tolist()
-    q3_final = numpy.apply_along_axis(str,0, q3_array).tolist()
+    q1_final = q1_array.tolist()
+    q2_final = q2_array.tolist()
+    q3_final = q3_array.tolist()
 
     x_variables = algo_interface.x_variables
 
@@ -124,9 +151,9 @@ def run(algo_interface):
     q3_array_nn = quartiles_array_nn[:,2,:]
     #print(q1_array)
 
-    q1_final_nn = numpy.apply_along_axis(str,0, q1_array_nn).tolist()
-    q2_final_nn = numpy.apply_along_axis(str,0, q2_array_nn).tolist()
-    q3_final_nn = numpy.apply_along_axis(str,0, q3_array_nn).tolist()
+    q1_final_nn = q1_array_nn.tolist()
+    q2_final_nn = q2_array_nn.tolist()
+    q3_final_nn = q3_array_nn.tolist()
 
     local_result2_nn = local_run(
         func=local_step_2,
@@ -141,29 +168,27 @@ def run(algo_interface):
 
     new_std_nn = json.loads(global_result2_nn.get_table_data()[1][0])["deviation"]
 
-    result = TabularDataResult(
-        title="STATS",
-        columns=[
-            ColumnDataStr(name="variable", data=x_variables),
-            ColumnDataFloat(name="max", data=new_max),
-            ColumnDataFloat(name="min", data=new_min),
-            ColumnDataFloat(name="mean", data=new_mean),
-            ColumnDataFloat(name="count_not_null", data=count_not_null),
-            ColumnDataFloat(name="count_num_null", data=count_num_null),
-            ColumnDataFloat(name="std", data=new_std),
-            ColumnDataStr(name="q1", data=q1_final),
-            ColumnDataStr(name="q2", data=q2_final),
-            ColumnDataStr(name="q3", data=q3_final),
-            ColumnDataFloat(name="max_model", data=new_max_nn),
-            ColumnDataFloat(name="min_model", data=new_min_nn),
-            ColumnDataFloat(name="mean_model", data=new_mean_nn),
-            ColumnDataFloat(name="count_not_null_model", data=count_not_null_nn),
-            ColumnDataFloat(name="count_num_null_model", data=count_num_null_nn),
-            ColumnDataFloat(name="std_model", data=new_std_nn),
-            ColumnDataStr(name="q1_model", data=q1_final_nn),
-            ColumnDataStr(name="q2_model", data=q2_final_nn),
-            ColumnDataStr(name="q3_model", data=q3_final_nn),
-            ])
+    result = DescriptiveResult(
+        title="Descriptive Statistics",
+        max=new_max
+        min=new_min
+        mean=new_mean
+        count_not_null= count_not_null
+        count_num_null= count_num_null
+        std=new_std
+        q1= q1_final
+        q2= q2_final
+        q3= q3_final
+        max_model=new_max_nn
+        min_model= new_min_nn
+        mean_model= new_mean_nn
+        count_not_null_model=count_not_null_nn
+        count_num_null_model=count_num_null_nn
+        std_model=new_std_nn
+        q1_model=q1_final_nn
+        q2_model=q2_final_nn
+        q3_model=q3_final_nn
+    )
     return result
 
 
