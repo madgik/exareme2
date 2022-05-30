@@ -170,23 +170,23 @@ def run(algo_interface):
 
     result = DescriptiveResult(
         title="Descriptive Statistics",
-        max=new_max
-        min=new_min
-        mean=new_mean
-        count_not_null= count_not_null
-        count_num_null= count_num_null
-        std=new_std
-        q1= q1_final
-        q2= q2_final
-        q3= q3_final
-        max_model=new_max_nn
-        min_model= new_min_nn
-        mean_model= new_mean_nn
-        count_not_null_model=count_not_null_nn
-        count_num_null_model=count_num_null_nn
-        std_model=new_std_nn
-        q1_model=q1_final_nn
-        q2_model=q2_final_nn
+        max=new_max,
+        min=new_min,
+        mean=new_mean,
+        count_not_null= count_not_null,
+        count_num_null= count_num_null,
+        std=new_std,
+        q1= q1_final,
+        q2= q2_final,
+        q3= q3_final,
+        max_model=new_max_nn,
+        min_model= new_min_nn,
+        mean_model= new_mean_nn,
+        count_not_null_model=count_not_null_nn,
+        count_num_null_model=count_num_null_nn,
+        std_model=new_std_nn,
+        q1_model=q1_final_nn,
+        q2_model=q2_final_nn,
         q3_model=q3_final_nn
     )
     return result
