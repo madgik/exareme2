@@ -14,7 +14,8 @@ BROKEN_PIPE_MAX_ATTEMPTS = 50
 OCC_MAX_ATTEMPTS = 50
 INTEGRITY_ERROR_RETRY_INTERVAL = 0.5
 
-eventlet_lock = Semaphore()
+create_eventlet_lock = Semaphore()
+insert_eventlet_lock = Semaphore()
 
 
 class MonetDB:
@@ -42,15 +43,12 @@ class MonetDB:
 
     def _get_connection(self):
         conn = self._connection_pool.pop()
-        self._logger.info(f"Got connection {conn}.")
         return conn
 
     def _release_connection(self, conn):
-        self._logger.info(f"Releasing connection {conn}.")
         self._connection_pool.append(conn)
 
     def _replace_connection(self, conn):
-        self._logger.info(f"Replacing connection {conn}.")
         conn.close()
         return self.create_connection()
 
@@ -63,23 +61,17 @@ class MonetDB:
                 # of the connection so that it sees changes from other processes/connections.
                 # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
                 # -on-another-connect.
-                # self._logger.info(f"Commiting before the cursor")
-                # _connection.commit()
+                _connection.commit()
 
-                self._logger.info("Getting cursor")
                 cur = _connection.cursor()
-                self._logger.info(f"Got cursor")
                 yield cur
-                self._logger.info("Closing cursor")
                 cur.close()
                 break
             except BrokenPipeError as exc:
                 broken_pipe_error = exc
-                self._logger.info("Broken pipe error")
                 _connection = self._replace_connection(_connection)
                 continue
             except Exception as exc:
-                self._logger.info(f"{exc}")
                 raise exc
         else:
             raise broken_pipe_error
@@ -95,17 +87,14 @@ class MonetDB:
         conn = self._get_connection()
 
         self._logger.info(
-            f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}, available_connections={len(self._connection_pool)} {conn=}"
+            f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}"
         )
 
         with self.cursor(conn) as cur:
-            self._logger.info(f"Execute with {conn=} {query[0:25]=}")
             cur.executemany(query, parameters) if many else cur.execute(
                 query, parameters
             )
-            self._logger.info(f"Fetchall with {conn=} {query[0:25]=}")
             result = cur.fetchall()
-            self._logger.info(f"Got result {result}.")
 
         self._release_connection(conn)
         return result
@@ -123,7 +112,7 @@ class MonetDB:
         conn = self._get_connection()
 
         self._logger.info(
-            f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}, available_connections={len(self._connection_pool)} {conn=}"
+            f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}"
         )
 
         for tries in range(OCC_MAX_ATTEMPTS):
@@ -131,32 +120,32 @@ class MonetDB:
                 with self.cursor(conn) as cur:
                     if "CREATE" in query:
                         try:
-                            self._logger.info("Aquiring")
-                            eventlet_lock.acquire(timeout=5)
-                            self._logger.info(f"Execute with {conn=} {query[0:25]=}")
+                            create_eventlet_lock.acquire(timeout=5)
                             cur.executemany(query, parameters) if many else cur.execute(
                                 query, parameters
                             )
-                            self._logger.info(f"Committing with {conn=} {query[0:25]=}")
                             conn.commit()
                         finally:
-                            self._logger.info("Releasing")
-                            eventlet_lock.release()
+                            create_eventlet_lock.release()
+                    elif "INSERT INTO" in query:
+                        try:
+                            insert_eventlet_lock.acquire(timeout=5)
+                            cur.executemany(query, parameters) if many else cur.execute(
+                                query, parameters
+                            )
+                            conn.commit()
+                        finally:
+                            insert_eventlet_lock.release()
                     else:
-                        self._logger.info(f"Execute with {conn}")
                         cur.executemany(query, parameters) if many else cur.execute(
                             query, parameters
                         )
-                        self._logger.info(f"Committing with {conn}")
                         conn.commit()
-                self._logger.info("Returning the connection")
                 self._release_connection(conn)
-                self._logger.info("Returned the connection")
                 break
             except pymonetdb.exceptions.IntegrityError as exc:
                 integrity_error = exc
                 conn.rollback()
-                self._logger.error(f"INTEGRITY ERROR: {str(exc)}")
                 sleep(INTEGRITY_ERROR_RETRY_INTERVAL)
                 continue
             except Exception as exc:
@@ -166,7 +155,6 @@ class MonetDB:
         else:
             self._release_connection(conn)
             raise integrity_error
-        self._logger.info(f"{query[0:20]=} DONE!")
 
 
 monetdb = MonetDB()

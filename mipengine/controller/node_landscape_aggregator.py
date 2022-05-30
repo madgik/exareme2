@@ -156,7 +156,6 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         Once all the information is aggregated and validated the NLA will provide the information to the Node Registry and to the Data Model Registry.
         """
 
-        self.keep_updating = False
         while self.keep_updating:
             try:
                 nodes_addresses = get_nodes_addresses()
@@ -188,6 +187,8 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 self._logger.debug(
                     f"Nodes:{[node for node in self._node_registry.nodes]}"
                 )
+                self.keep_updating = False
+
             except Exception as exc:
                 self._logger.error(
                     f"Node Landscape Aggregator exception: {type(exc)}:{exc}"

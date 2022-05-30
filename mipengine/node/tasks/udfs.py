@@ -95,9 +95,7 @@ def run_udf(
         keyword_args=keyword_args,
         use_smpc=use_smpc,
     )
-    logging.info(f"Starting the udfs {request_id}")
     udfs.run_udf(udf_statements, request_id)
-    logging.info(f"End the udfs {request_id}")
 
     return udf_results.json()
 
