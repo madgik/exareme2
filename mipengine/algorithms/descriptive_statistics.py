@@ -170,6 +170,7 @@ def run(algo_interface):
 
     result = DescriptiveResult(
         title="Descriptive Statistics",
+        variable= x_variables,
         max=new_max,
         min=new_min,
         mean=new_mean,
