@@ -48,33 +48,20 @@ class MonetDB:
     def _release_connection(self, conn):
         self._connection_pool.append(conn)
 
-    def _replace_connection(self, conn):
-        conn.close()
+    def _replace_connection(self):
         return self.create_connection()
 
     @contextmanager
     def cursor(self, _connection):
-        broken_pipe_error = None
-        for _ in range(BROKEN_PIPE_MAX_ATTEMPTS):
-            try:
-                # We use a single instance of a connection and by committing before a select query we refresh the state
-                # of the connection so that it sees changes from other processes/connections.
-                # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
-                # -on-another-connect.
-                _connection.commit()
+        # We use a single instance of a connection and by committing before a select query we refresh the state
+        # of the connection so that it sees changes from other processes/connections.
+        # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
+        # -on-another-connect.
+        _connection.commit()
 
-                cur = _connection.cursor()
-                yield cur
-                cur.close()
-                break
-            except BrokenPipeError as exc:
-                broken_pipe_error = exc
-                _connection = self._replace_connection(_connection)
-                continue
-            except Exception as exc:
-                raise exc
-        else:
-            raise broken_pipe_error
+        cur = _connection.cursor()
+        yield cur
+        cur.close()
 
     def execute_and_fetchall(self, query: str, parameters=None, many=False) -> List:
         """
@@ -90,11 +77,24 @@ class MonetDB:
             f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}"
         )
 
-        with self.cursor(conn) as cur:
-            cur.executemany(query, parameters) if many else cur.execute(
-                query, parameters
-            )
-            result = cur.fetchall()
+        broken_pipe_error = None
+        for tries in range(OCC_MAX_ATTEMPTS):
+            try:
+                with self.cursor(conn) as cur:
+                    cur.executemany(query, parameters) if many else cur.execute(
+                        query, parameters
+                    )
+                    result = cur.fetchall()
+                    break
+            except BrokenPipeError as exc:
+                broken_pipe_error = exc
+                conn = self._replace_connection()
+                sleep(tries * 0.2)
+                continue
+            except Exception as exc:
+                raise exc
+        else:
+            raise broken_pipe_error
 
         self._release_connection(conn)
         return result
@@ -144,9 +144,12 @@ class MonetDB:
                 self._release_connection(conn)
                 break
             except pymonetdb.exceptions.IntegrityError as exc:
-                integrity_error = exc
                 conn.rollback()
                 sleep(INTEGRITY_ERROR_RETRY_INTERVAL)
+                continue
+            except BrokenPipeError as exc:
+                conn = self._replace_connection()
+                sleep(tries * 0.2)
                 continue
             except Exception as exc:
                 conn.rollback()
@@ -154,7 +157,7 @@ class MonetDB:
                 raise exc
         else:
             self._release_connection(conn)
-            raise integrity_error
+            raise exc
 
 
 monetdb = MonetDB()
