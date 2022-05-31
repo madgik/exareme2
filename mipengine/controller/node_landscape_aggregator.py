@@ -138,39 +138,34 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                     self._node_registry.nodes = {
                         node_info.id: node_info for node_info in nodes_info
                     }
-                    logger.debug(
-                        f"Nodes:{[node for node in self._node_registry.nodes]}"
-                    )
-                    print(f"Nodes:{[node for node in self._node_registry.nodes]}")
 
                     local_nodes = [
                         node for node in nodes_info if node.role == NodeRole.LOCALNODE
                     ]
+                    (
+                        dataset_locations,
+                        aggregated_datasets,
+                    ) = _gather_all_dataset_info(local_nodes)
+                    data_model_cdes_per_node = _get_cdes_across_nodes(local_nodes)
+                    compatible_data_models = _get_compatible_data_models(
+                        data_model_cdes_per_node
+                    )
+                    _update_data_models_with_aggregated_datasets(
+                        compatible_data_models, aggregated_datasets
+                    )
+                    datasets_locations = (
+                        _get_dataset_locations_of_compatible_data_models(
+                            compatible_data_models, dataset_locations
+                        )
+                    )
 
-                    if local_nodes:
-                        (
-                            dataset_locations,
-                            aggregated_datasets,
-                        ) = _gather_all_dataset_info(local_nodes)
-                        data_model_cdes_per_node = _get_cdes_across_nodes(local_nodes)
-                    if data_model_cdes_per_node:
-                        compatible_data_models = _get_compatible_data_models(
-                            data_model_cdes_per_node
-                        )
-                    if compatible_data_models and aggregated_datasets:
-                        _update_data_models_with_aggregated_datasets(
-                            compatible_data_models, aggregated_datasets
-                        )
-                    if compatible_data_models and dataset_locations:
-                        datasets_locations = (
-                            _get_dataset_locations_of_compatible_data_models(
-                                compatible_data_models, dataset_locations
-                            )
-                        )
+                    self._data_model_registry.data_models = compatible_data_models
+                    self._data_model_registry.datasets_location = datasets_locations
 
-                    if compatible_data_models and datasets_locations:
-                        self._data_model_registry.data_models = compatible_data_models
-                        self._data_model_registry.datasets_location = datasets_locations
+                    logger.debug(
+                        f"Nodes:{[node for node in self._node_registry.nodes]}"
+                    )
+                    print(f"Nodes:{[node for node in self._node_registry.nodes]}")
 
             except Exception as exc:
                 logger.warning(
