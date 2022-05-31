@@ -29,7 +29,7 @@ S = TypeVar("S")
 
 class DescriptiveResult(BaseModel):
     title: str
-    variable: List[float]
+    variable: List[str]
     max: List[float]
     min: List[float]
     mean: List[float]
