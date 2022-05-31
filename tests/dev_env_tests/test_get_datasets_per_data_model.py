@@ -91,7 +91,7 @@ test_cases_get_node_info_datasets = [
 ]
 
 
-@pytest.mark.skip(reason="fails nad corrupts db of local node")
+# @pytest.mark.skip(reason="fails nad corrupts db of local node")
 @pytest.mark.parametrize(
     "node_id, expected_datasets_per_data_model",
     test_cases_get_node_info_datasets,
