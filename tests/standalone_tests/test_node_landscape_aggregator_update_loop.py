@@ -29,12 +29,7 @@ def controller_config_mock():
             "log_level": "DEBUG",
             "framework_log_level": "INFO",
             "deployment_type": "LOCAL",
-            "node_landscape_aggregator_update_interval": 2,  # 5,
-            # "cleanup": {
-            #     "contextids_cleanup_folder": "/tmp",
-            #     "nodes_cleanup_interval": 2,
-            #     "contextid_release_timelimit": 3600,  # 1hour
-            # },
+            "node_landscape_aggregator_update_interval": 30,
             "localnodes": {
                 "config_file": "./tests/standalone_tests/testing_env_configs/test_node_landscape_aggregator.json",
                 "dns": "",
@@ -230,7 +225,6 @@ def test_update_loop_rabbitmq_down(
     kill_node_service(localnodetmp_node_service)
 
 
-@pytest.mark.skip(reason="fails, needs fixing")
 @pytest.mark.slow
 def test_update_loop_data_models_removed(
     load_data_localnodetmp,
