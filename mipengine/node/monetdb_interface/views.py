@@ -19,7 +19,7 @@ def create_view(
     table_name: str,
     columns: List[str],
     filters: dict,
-    enable_min_rows_threshold=False,
+    check_min_rows=False,
 ):
     filter_clause = ""
     if filters:
@@ -35,7 +35,7 @@ def create_view(
 
     MonetDB().execute(view_creation_query)
 
-    if enable_min_rows_threshold:
+    if check_min_rows:
         view_rows_query_result = MonetDB().execute_and_fetchall(
             f"""
             SELECT COUNT(*)

@@ -44,8 +44,8 @@
    ip = "172.17.0.1"
    log_level = "INFO"
    framework_log_level ="INFO"
-   monetdb_image = "madgik/mipenginedb:latest"
-   rabbitmq_image = "madgik/mipengine_rabbitmq:latest"
+   monetdb_image = "madgik/mipenginedb:dev"
+   rabbitmq_image = "madgik/mipengine_rabbitmq:dev"
 
    algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 
