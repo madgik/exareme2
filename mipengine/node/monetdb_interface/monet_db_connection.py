@@ -9,9 +9,7 @@ from mipengine.node import config as node_config
 from mipengine.node import node_logger as logging
 from mipengine.singleton import Singleton
 
-BROKEN_PIPE_MAX_ATTEMPTS = 50
-OCC_MAX_ATTEMPTS = 50
-INTEGRITY_ERROR_RETRY_INTERVAL = 0.5
+MAX_ATTEMPTS = 50
 
 create_eventlet_lock = Semaphore()
 insert_eventlet_lock = Semaphore()
@@ -92,7 +90,7 @@ class MonetDB(metaclass=Singleton):
             f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
         )
 
-        for tries in range(OCC_MAX_ATTEMPTS):
+        for tries in range(MAX_ATTEMPTS):
             try:
                 with self.cursor(conn) as cur:
                     cur.executemany(
@@ -131,7 +129,7 @@ class MonetDB(metaclass=Singleton):
             f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
         )
 
-        for tries in range(OCC_MAX_ATTEMPTS):
+        for tries in range(MAX_ATTEMPTS):
             try:
                 if "CREATE OR REPLACE FUNCTION" in db_execution_dto.query:
                     try:
