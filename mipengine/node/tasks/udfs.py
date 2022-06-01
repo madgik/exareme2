@@ -95,7 +95,7 @@ def run_udf(
         keyword_args=keyword_args,
         use_smpc=use_smpc,
     )
-    udfs.run_udf(udf_statements, request_id)
+    udfs.run_udf(udf_statements)
 
     return udf_results.json()
 

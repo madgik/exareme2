@@ -9,6 +9,7 @@ from eventlet.lock import Semaphore
 
 from mipengine.node import config as node_config
 from mipengine.node import node_logger as logging
+from mipengine.singleton import Singleton
 
 BROKEN_PIPE_MAX_ATTEMPTS = 50
 OCC_MAX_ATTEMPTS = 50
@@ -18,7 +19,14 @@ create_eventlet_lock = Semaphore()
 insert_eventlet_lock = Semaphore()
 
 
-class MonetDB:
+class DBExecutionDTO:
+    def __init__(self, query, parameters=None, many=False):
+        self.query = query
+        self.parameters = parameters
+        self.many = many
+
+
+class MonetDB(metaclass=Singleton):
     """
     MonetDB is a Singleton class because we want it to be initialized at runtime.
 
@@ -51,6 +59,15 @@ class MonetDB:
     def _replace_connection(self):
         return self.create_connection()
 
+    def execute_and_commit(self, conn, db_execution_dto):
+        with self.cursor(conn) as cur:
+            cur.executemany(
+                db_execution_dto.query, db_execution_dto.parameters
+            ) if db_execution_dto.many else cur.execute(
+                db_execution_dto.query, db_execution_dto.parameters
+            )
+        conn.commit()
+
     @contextmanager
     def cursor(self, _connection):
         # We use a single instance of a connection and by committing before a select query we refresh the state
@@ -63,7 +80,7 @@ class MonetDB:
         yield cur
         cur.close()
 
-    def execute_and_fetchall(self, query: str, parameters=None, many=False) -> List:
+    def execute_and_fetchall(self, db_execution_dto: DBExecutionDTO) -> List:
         """
         Used to execute select queries that return a result.
         Should NOT be used to execute "CREATE, DROP, ALTER, UPDATE, ..." statements.
@@ -74,79 +91,20 @@ class MonetDB:
         conn = self._get_connection()
 
         self._logger.info(
-            f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}"
+            f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
         )
 
-        broken_pipe_error = None
         for tries in range(OCC_MAX_ATTEMPTS):
             try:
                 with self.cursor(conn) as cur:
-                    cur.executemany(query, parameters) if many else cur.execute(
-                        query, parameters
+                    cur.executemany(
+                        db_execution_dto.query, db_execution_dto.parameters
+                    ) if db_execution_dto.many else cur.execute(
+                        db_execution_dto.query, db_execution_dto.parameters
                     )
                     result = cur.fetchall()
-                    break
-            except BrokenPipeError as exc:
-                broken_pipe_error = exc
-                conn = self._replace_connection()
-                sleep(tries * 0.2)
-                continue
-            except Exception as exc:
-                raise exc
-        else:
-            raise broken_pipe_error
-
-        self._release_connection(conn)
-        return result
-
-    def execute(self, query: str, parameters=None, many=False):
-        """
-        Executes statements that don't have a result. For example "CREATE,DROP,UPDATE".
-        And handles the *Optimistic Concurrency Control by giving each call X attempts
-        if they fail with pymonetdb.exceptions.IntegrityError.
-        *https://www.monetdb.org/blog/optimistic-concurrency-control
-
-        'many' option to provide the functionality of executemany.
-        'parameters' option to provide the functionality of bind-parameters.
-        """
-        conn = self._get_connection()
-
-        self._logger.info(
-            f"Query: {query} \n, parameters: {str(parameters)}\n, many: {many}"
-        )
-
-        for tries in range(OCC_MAX_ATTEMPTS):
-            try:
-                with self.cursor(conn) as cur:
-                    if "CREATE" in query:
-                        try:
-                            create_eventlet_lock.acquire(timeout=5)
-                            cur.executemany(query, parameters) if many else cur.execute(
-                                query, parameters
-                            )
-                            conn.commit()
-                        finally:
-                            create_eventlet_lock.release()
-                    elif "INSERT INTO" in query:
-                        try:
-                            insert_eventlet_lock.acquire(timeout=5)
-                            cur.executemany(query, parameters) if many else cur.execute(
-                                query, parameters
-                            )
-                            conn.commit()
-                        finally:
-                            insert_eventlet_lock.release()
-                    else:
-                        cur.executemany(query, parameters) if many else cur.execute(
-                            query, parameters
-                        )
-                        conn.commit()
                 self._release_connection(conn)
-                break
-            except pymonetdb.exceptions.IntegrityError as exc:
-                conn.rollback()
-                sleep(INTEGRITY_ERROR_RETRY_INTERVAL)
-                continue
+                return result
             except BrokenPipeError as exc:
                 conn = self._replace_connection()
                 sleep(tries * 0.2)
@@ -159,5 +117,52 @@ class MonetDB:
             self._release_connection(conn)
             raise exc
 
+    def execute(self, db_execution_dto):
+        """
+        Executes statements that don't have a result. For example "CREATE,DROP,UPDATE".
+        And handles the *Optimistic Concurrency Control by giving each call X attempts
+        if they fail with pymonetdb.exceptions.IntegrityError.
+        *https://www.monetdb.org/blog/optimistic-concurrency-control
 
-monetdb = MonetDB()
+        'many' option to provide the functionality of executemany.
+        'parameters' option to provide the functionality of bind-parameters.
+        """
+        conn = self._get_connection()
+
+        self._logger.info(
+            f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
+        )
+
+        for tries in range(OCC_MAX_ATTEMPTS):
+            try:
+                if "CREATE OR REPLACE FUNCTION" in db_execution_dto.query:
+                    try:
+                        create_eventlet_lock.acquire(timeout=5)
+                        self.execute_and_commit(conn, db_execution_dto)
+                    finally:
+                        create_eventlet_lock.release()
+                elif "INSERT INTO" in db_execution_dto.query:
+                    try:
+                        insert_eventlet_lock.acquire(timeout=5)
+                        self.execute_and_commit(conn, db_execution_dto)
+                    finally:
+                        insert_eventlet_lock.release()
+                else:
+                    self.execute_and_commit(conn, db_execution_dto)
+                self._release_connection(conn)
+                break
+            except pymonetdb.exceptions.IntegrityError as exc:
+                conn.rollback()
+                sleep(tries * 0.2)
+                continue
+            except BrokenPipeError as exc:
+                conn = self._replace_connection()
+                sleep(tries * 0.2)
+                continue
+            except Exception as exc:
+                conn.rollback()
+                self._release_connection(conn)
+                raise exc
+        else:
+            self._release_connection(conn)
+            raise exc
