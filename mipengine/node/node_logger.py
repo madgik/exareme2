@@ -1,5 +1,4 @@
 import inspect
-import json
 import logging
 import time
 from functools import wraps
@@ -8,7 +7,6 @@ from mipengine.node import config as node_config
 from mipengine.node_exceptions import RequestIDNotFound
 
 LOGGING_ID_TASK_PARAM = "request_id"
-func_kwards = []
 
 
 def init_logger(request_id):
@@ -49,10 +47,6 @@ def initialise_logger(func):
             raise RequestIDNotFound()
 
         init_logger(request_id)
-        func_kwards.append((func.__name__, kwargs))
-        localnode1 = open(f"input5.txt", "w")
-        localnode1.write(json.dumps(func_kwards))
-        localnode1.close()
         return func(*args, **kwargs)
 
     return wrapper

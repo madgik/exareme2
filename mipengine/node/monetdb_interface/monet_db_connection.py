@@ -1,5 +1,3 @@
-import random
-import threading
 from contextlib import contextmanager
 from time import sleep
 from typing import List

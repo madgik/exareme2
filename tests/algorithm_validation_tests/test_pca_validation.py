@@ -33,6 +33,7 @@ def get_test_params(expected_file, slc=None):
 def test_pca_algorithm(test_input, expected):
     response = pca_request(test_input)
     result = json.loads(response.content)
+
     assert response.status_code == 200
     assert int(result["n_obs"]) == int(expected["n_obs"])
     np.testing.assert_allclose(

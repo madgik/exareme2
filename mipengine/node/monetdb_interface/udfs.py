@@ -1,4 +1,3 @@
-import logging
 from typing import List
 
 from mipengine.node.monetdb_interface.monet_db_connection import DBExecutionDTO
