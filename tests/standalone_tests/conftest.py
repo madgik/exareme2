@@ -1,3 +1,4 @@
+import enum
 import os
 import re
 import subprocess
@@ -313,13 +314,24 @@ def localnodetmp_db_cursor():
 
 
 def _clean_db(cursor):
-    table_types = {0, 1, 3, 5}  # 0=table, 1=view, 3=merge_table, 5=remote_table
+    class TableType(enum.Enum):
+        NORMAL = 0
+        VIEW = 1
+        MERGE = 3
+        REMOTE = 5
 
-    for table_type in table_types:
-        select_user_tables = f"SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000 AND type={table_type}"
+    # Order of the table types matter not to have dependencies when dropping the tables
+    table_type_drop_order = (
+        TableType.MERGE,
+        TableType.REMOTE,
+        TableType.VIEW,
+        TableType.NORMAL,
+    )
+    for table_type in table_type_drop_order:
+        select_user_tables = f"SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000 AND type={table_type.value}"
         user_tables = cursor.execute(select_user_tables).fetchall()
         for table_name, *_ in user_tables:
-            if table_type == 1:  # view
+            if table_type == TableType.VIEW:
                 cursor.execute(f"DROP VIEW {table_name}")
             else:
                 cursor.execute(f"DROP TABLE {table_name}")
