@@ -1013,11 +1013,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "pylint"
-<<<<<<< HEAD
-version = "2.13.5"
-=======
 version = "2.13.8"
->>>>>>> master
 description = "python code static checker"
 category = "dev"
 optional = false
