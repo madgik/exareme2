@@ -54,7 +54,11 @@ def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
     global_run = algo_interface.run_udf_on_global_node
 
-    X_relation = algo_interface.initial_view_tables["x"]
+    #X_relation = algo_interface.initial_view_tables["x"]
+
+    X_relation, *_ = algo_interface.create_primary_data_views(
+        variable_groups=[algo_interface.x_variables],dropna=False
+    )
 
     X = local_run(
         func=relation_to_matrix,
