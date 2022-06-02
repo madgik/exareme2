@@ -113,6 +113,7 @@ def trigger_smpc_operations(
 
 
 def wait_for_smpc_result_to_be_ready(
+    logger: Logger,
     context_id: str,
     command_id: int,
     operation: SMPCRequestType,
@@ -122,6 +123,8 @@ def wait_for_smpc_result_to_be_ready(
         command_id=command_id,
         operation=operation,
     )
+
+    logger.info(f"Waiting for SMPC, with jobid: '{jobid}', to finish.")
 
     attempts = 0
     while True:
@@ -150,9 +153,11 @@ def wait_for_smpc_result_to_be_ready(
                 f"Max retries for the SMPC exceeded the limit: {ctrl_config.smpc.get_result_max_retries}"
             )
         attempts += 1
+    logger.info(f"SMPC, with jobid: '{jobid}', finished.")
 
 
 def wait_for_smpc_results_to_be_ready(
+    logger: Logger,
     context_id: str,
     command_id: int,
     sum_op: bool,
@@ -161,16 +166,16 @@ def wait_for_smpc_results_to_be_ready(
     union_op: bool,
 ):
     wait_for_smpc_result_to_be_ready(
-        context_id, command_id, SMPCRequestType.SUM
+        logger, context_id, command_id, SMPCRequestType.SUM
     ) if sum_op else None
     wait_for_smpc_result_to_be_ready(
-        context_id, command_id, SMPCRequestType.MIN
+        logger, context_id, command_id, SMPCRequestType.MIN
     ) if min_op else None
     wait_for_smpc_result_to_be_ready(
-        context_id, command_id, SMPCRequestType.MAX
+        logger, context_id, command_id, SMPCRequestType.MAX
     ) if max_op else None
     wait_for_smpc_result_to_be_ready(
-        context_id, command_id, SMPCRequestType.UNION
+        logger, context_id, command_id, SMPCRequestType.UNION
     ) if union_op else None
 
 

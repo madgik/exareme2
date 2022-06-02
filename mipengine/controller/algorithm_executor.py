@@ -461,6 +461,7 @@ class _AlgorithmExecutionInterface:
         )
 
         wait_for_smpc_results_to_be_ready(
+            logger=self._logger,
             context_id=self._global_node.context_id,
             command_id=command_id,
             sum_op=sum_op,

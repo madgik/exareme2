@@ -609,10 +609,10 @@ def start_controller(c, detached=False, algorithm_folders=None):
             with c.prefix("export QUART_APP=mipengine/controller/api/app:app"):
                 outpath = OUTDIR / "controller.out"
                 if detached:
-                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0 --port 4999 >> {outpath} 2>&1"
+                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0 --port 5000 >> {outpath} 2>&1"
                     run(c, cmd, wait=False)
                 else:
-                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0 --port 4999"
+                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0 --port 5000"
                     run(c, cmd, attach_=True)
 
 
@@ -890,8 +890,8 @@ def start_smpc_player(c, ip, id, image):
         "-e DB_PSWD=123qwe "
     )
     container_ports = (
-        f"-p {5000 + id}:{5000 + id} "
-        f"-p {SMPC_PLAYER_BASE_PORT + id}:{7100 + id} "
+        f"-p {6000 + id}:{6000 + id} "
+        f"-p {SMPC_PLAYER_BASE_PORT + id}:{7000 + id} "
         f"-p {14000 + id}:{14000 + id} "
     )  # SMPC player port is increasing using the player id
     cmd = f"""docker run -d {container_ports} {env_variables} --name {name} {image} {container_cmd}"""

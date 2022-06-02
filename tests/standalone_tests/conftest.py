@@ -65,6 +65,8 @@ MONETDB_LOCALNODETMP_PORT = 61003
 MONETDB_SMPC_GLOBALNODE_PORT = 61004
 MONETDB_SMPC_LOCALNODE1_PORT = 61005
 MONETDB_SMPC_LOCALNODE2_PORT = 61006
+CONTROLLER_PORT = 4500
+CONTROLLER_SMPC_PORT = 4501
 
 GLOBALNODE_CONFIG_FILE = "testglobalnode.toml"
 LOCALNODE1_CONFIG_FILE = "testlocalnode1.toml"
@@ -73,12 +75,16 @@ LOCALNODETMP_CONFIG_FILE = "testlocalnodetmp.toml"
 GLOBALNODE_SMPC_CONFIG_FILE = "smpc_globalnode.toml"
 LOCALNODE1_SMPC_CONFIG_FILE = "smpc_localnode1.toml"
 LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
+CONTROLLER_CONFIG_FILE = "testcontroller.toml"
+CONTROLLER_SMPC_CONFIG_FILE = "test_smpc_controller.toml"
+CONTROLLER_LOCALNODES_CONFIG_FILE = "test_localnodes_addresses.json"
+CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE = "test_smpc_localnodes_addresses.json"
 
 TASKS_TIMEOUT = 10
 RUN_UDF_TASK_TIMEOUT = 120
 
 ########### SMPC Cluster ############
-SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v2.0.0"
+SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v6.0.0"
 SMPC_COORD_DB_IMAGE = "mongo:5.0.8"
 SMPC_COORD_QUEUE_IMAGE = "redis:alpine3.15"
 
@@ -94,13 +100,13 @@ SMPC_CLIENT2_CONT_NAME = "smpc_test_client2"
 SMPC_COORD_PORT = 12314
 SMPC_COORD_DB_PORT = 27017
 SMPC_COORD_QUEUE_PORT = 6379
-SMPC_PLAYER1_PORT1 = 5000
+SMPC_PLAYER1_PORT1 = 6000
 SMPC_PLAYER1_PORT2 = 7000
 SMPC_PLAYER1_PORT3 = 14000
-SMPC_PLAYER2_PORT1 = 5001
+SMPC_PLAYER2_PORT1 = 6001
 SMPC_PLAYER2_PORT2 = 7001
 SMPC_PLAYER2_PORT3 = 14001
-SMPC_PLAYER3_PORT1 = 5002
+SMPC_PLAYER3_PORT1 = 6002
 SMPC_PLAYER3_PORT2 = 7002
 SMPC_PLAYER3_PORT3 = 14002
 SMPC_CLIENT1_PORT = 9000
@@ -112,6 +118,23 @@ SMPC_CLIENT2_PORT = 9001
 # but when the fixture start, it should check if it already exists, thus
 # not creating it again (fast). This could solve the problem of some
 # tests destroying some containers to test things.
+
+
+def _search_for_string_in_logfile(
+    log_to_search_for: str, logspath: Path, retries: int = 100
+):
+    for _ in range(retries):
+        try:
+            with open(logspath) as logfile:
+                if bool(re.search(log_to_search_for, logfile.read())):
+                    return
+        except FileNotFoundError:
+            pass
+        time.sleep(0.5)
+
+    raise TimeoutError(
+        f"Could not find the log '{log_to_search_for}' after '{retries}' tries.  Logs available at: '{logspath}'."
+    )
 
 
 class MonetDBSetupError(Exception):
@@ -264,6 +287,7 @@ def _load_data_monetdb_container(db_ip, db_port):
         cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     print(f"\nData loaded to database ({db_ip}:{db_port})")
+    time.sleep(2)  # Needed to avoid db crash while loading
 
 
 def _remove_data_model_from_localnodetmp_monetdb(data_model_code, data_model_version):
@@ -299,6 +323,20 @@ def load_data_localnodetmp(monetdb_localnodetmp):
     yield
 
 
+@pytest.fixture(scope="session")
+def load_data_smpc_localnode1(monetdb_smpc_localnode1):
+    _init_database_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT)
+    _load_data_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT)
+    yield
+
+
+@pytest.fixture(scope="session")
+def load_data_smpc_localnode2(monetdb_smpc_localnode2):
+    _init_database_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT)
+    _load_data_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT)
+    yield
+
+
 def _create_db_cursor(db_port):
     class MonetDBTesting:
         """MonetDB class used for testing."""
@@ -311,7 +349,7 @@ def _create_db_cursor(db_port):
             url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}:"
             self._executor = sql.create_engine(url, echo=True)
 
-        def execute(self, query, *args, **kwargs) -> list:
+        def execute(self, query, *args, **kwargs):
             return self._executor.execute(query, *args, **kwargs)
 
     return MonetDBTesting()
@@ -582,28 +620,14 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     )
 
     # Check that celery started
-    for _ in range(100):
-        try:
-            with open(logpath) as logfile:
-                if bool(
-                    re.search("CELERY - FRAMEWORK - celery@.* ready.", logfile.read())
-                ):
-                    break
-        except FileNotFoundError:
-            pass
-        time.sleep(0.5)
-    else:
-        with open(logpath) as logfile:
-            raise TimeoutError(
-                f"The node service '{node_id}' didn't manage to start in the designated time. Logs: \n{logfile.read()}"
-            )
+    _search_for_string_in_logfile("CELERY - FRAMEWORK - celery@.* ready.", logpath)
 
     print(f"Created node service with id '{node_id}' and process id '{proc.pid}'.")
     return proc
 
 
-def kill_node_service(proc):
-    print(f"\nKilling node service with process id '{proc.pid}'...")
+def kill_service(proc):
+    print(f"\nKilling service with process id '{proc.pid}'...")
     psutil_proc = psutil.Process(proc.pid)
     proc.kill()
     for _ in range(100):
@@ -612,9 +636,9 @@ def kill_node_service(proc):
         time.sleep(0.1)
     else:
         raise TimeoutError(
-            f"Node service is still running, status: '{psutil_proc.status()}'."
+            f"Service is still running, status: '{psutil_proc.status()}'."
         )
-    print(f"Killed node service with process id '{proc.pid}'.")
+    print(f"Killed service with process id '{proc.pid}'.")
 
 
 @pytest.fixture(scope="session")
@@ -624,7 +648,7 @@ def globalnode_node_service(rabbitmq_globalnode, monetdb_globalnode):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 @pytest.fixture(scope="session")
@@ -634,7 +658,7 @@ def localnode1_node_service(rabbitmq_localnode1, monetdb_localnode1):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 @pytest.fixture(scope="session")
@@ -644,7 +668,7 @@ def localnode2_node_service(rabbitmq_localnode2, monetdb_localnode2):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 @pytest.fixture(scope="session")
@@ -654,7 +678,7 @@ def smpc_globalnode_node_service(rabbitmq_smpc_globalnode, monetdb_smpc_globalno
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 @pytest.fixture(scope="session")
@@ -664,7 +688,7 @@ def smpc_localnode1_node_service(rabbitmq_smpc_localnode1, monetdb_smpc_localnod
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 @pytest.fixture(scope="session")
@@ -674,7 +698,7 @@ def smpc_localnode2_node_service(rabbitmq_smpc_localnode2, monetdb_smpc_localnod
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 @pytest.fixture(scope="function")
@@ -691,7 +715,7 @@ def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield proc
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 def create_node_tasks_handler_celery(node_config_filepath):
@@ -710,7 +734,7 @@ def create_node_tasks_handler_celery(node_config_filepath):
         node_queue_addr=queue_address,
         node_db_addr=db_address,
         tasks_timeout=TASKS_TIMEOUT,
-        run_udf_task_timoeut=RUN_UDF_TASK_TIMEOUT,
+        run_udf_task_timeout=RUN_UDF_TASK_TIMEOUT,
     )
 
 
@@ -819,6 +843,95 @@ def reset_node_landscape_aggregator():
 
 
 @pytest.fixture(scope="session")
+def controller_service():
+    print(f"\nCreating controller service...")
+
+    service_port = CONTROLLER_PORT
+    controller_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE
+    )
+    localnodes_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODES_CONFIG_FILE
+    )
+
+    proc = _create_controller_service(
+        service_port,
+        controller_config_filepath,
+        localnodes_config_filepath,
+        "testcontroller.out",
+    )
+    yield
+    kill_service(proc)
+
+
+@pytest.fixture(scope="session")
+def smpc_controller_service():
+    print(f"\nCreating smpc controller service...")
+
+    service_port = CONTROLLER_SMPC_PORT
+    controller_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_CONFIG_FILE
+    )
+    localnodes_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE
+    )
+
+    proc = _create_controller_service(
+        service_port,
+        controller_config_filepath,
+        localnodes_config_filepath,
+        "test_smpc_controller.out",
+    )
+    yield
+    kill_service(proc)
+
+
+def _create_controller_service(
+    service_port: int,
+    controller_config_filepath: str,
+    localnodes_config_filepath: str,
+    logs_filename: str,
+):
+    logpath = OUTDIR / logs_filename
+    if os.path.isfile(logpath):
+        os.remove(logpath)
+
+    env = os.environ.copy()
+    env["ALGORITHM_FOLDERS"] = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    env["LOCALNODES_CONFIG_FILE"] = localnodes_config_filepath
+    env["MIPENGINE_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
+    env["QUART_APP"] = "mipengine/controller/api/app:app"
+    env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)
+
+    cmd = (
+        f"poetry run quart run --host=0.0.0.0 --port {service_port} >> {logpath} 2>&1 "
+    )
+
+    # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
+    # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
+    proc = subprocess.Popen(
+        "exec " + cmd,
+        shell=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        env=env,
+    )
+
+    # Check that quart started
+    _search_for_string_in_logfile("CONTROLLER - WEBAPI - Running on ", logpath)
+
+    # Check that nodes were loaded
+    _search_for_string_in_logfile(
+        "INFO - CONTROLLER - BACKGROUND - federation_info_logs", logpath
+    )
+
+    print(
+        f"Created controller service on port '{service_port}' and process id '{proc.pid}'."
+    )
+    return proc
+
+
+@pytest.fixture(scope="session")
 def smpc_coordinator():
     docker_cli = docker.from_env()
 
@@ -870,7 +983,7 @@ def smpc_coordinator():
                 "REDIS_PSWD": "agora",
                 "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "DB_UNAME": "sysadmin",
-                "DB_PSWD": "1234qwe",
+                "DB_PSWD": "123qwe",
             },
             command="python coordinator.py",
         )
@@ -899,8 +1012,8 @@ def smpc_players():
             name=SMPC_PLAYER1_CONT_NAME,
             detach=True,
             ports={
-                5000: SMPC_PLAYER1_PORT1,
-                7100: SMPC_PLAYER1_PORT2,
+                6000: SMPC_PLAYER1_PORT1,
+                7000: SMPC_PLAYER1_PORT2,
                 14000: SMPC_PLAYER1_PORT3,
             },
             environment={
@@ -910,7 +1023,7 @@ def smpc_players():
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
                 "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "DB_UNAME": "sysadmin",
-                "DB_PSWD": "1234qwe",
+                "DB_PSWD": "123qwe",
             },
             command="python player.py 0",
         )
@@ -924,8 +1037,8 @@ def smpc_players():
             name=SMPC_PLAYER2_CONT_NAME,
             detach=True,
             ports={
-                5001: SMPC_PLAYER2_PORT1,
-                7101: SMPC_PLAYER2_PORT2,
+                6001: SMPC_PLAYER2_PORT1,
+                7001: SMPC_PLAYER2_PORT2,
                 14001: SMPC_PLAYER2_PORT3,
             },
             environment={
@@ -935,7 +1048,7 @@ def smpc_players():
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
                 "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "DB_UNAME": "sysadmin",
-                "DB_PSWD": "1234qwe",
+                "DB_PSWD": "123qwe",
             },
             command="python player.py 1",
         )
@@ -949,8 +1062,8 @@ def smpc_players():
             name=SMPC_PLAYER3_CONT_NAME,
             detach=True,
             ports={
-                5002: SMPC_PLAYER3_PORT1,
-                7102: SMPC_PLAYER3_PORT2,
+                6002: SMPC_PLAYER3_PORT1,
+                7002: SMPC_PLAYER3_PORT2,
                 14002: SMPC_PLAYER3_PORT3,
             },
             environment={
@@ -960,7 +1073,7 @@ def smpc_players():
                 "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
                 "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "DB_UNAME": "sysadmin",
-                "DB_PSWD": "1234qwe",
+                "DB_PSWD": "123qwe",
             },
             command="python player.py 2",
         )

@@ -48,4 +48,4 @@ RUN rm -rf mipengine/node
 #######################################################
 ENV FRAMEWORK_LOG_LEVEL="INFO"
 ENV PYTHONPATH=$CODE_PATH
-CMD ["sh", "-c", "hypercorn -b 0.0.0.0:4999 -w 1 --log-level $FRAMEWORK_LOG_LEVEL mipengine/controller/api/app:app"]
+CMD ["sh", "-c", "hypercorn -b 0.0.0.0:5000 -w 1 --log-level $FRAMEWORK_LOG_LEVEL mipengine/controller/api/app:app"]

@@ -31,8 +31,6 @@ password = "monetdb"
 [smpc]
 enabled = true
 optional = false
-client_id = "1" # TODO SMPC Change to alphanumeric
+client_id = "testsmpclocalnode1"
 client_address = "http://172.17.0.1:9000"
 coordinator_address = "http://172.17.0.1:12314"
-get_result_interval = 1
-get_result_max_retries = 120

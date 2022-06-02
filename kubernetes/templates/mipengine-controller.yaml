@@ -25,7 +25,7 @@ spec:
         image: {{ .Values.mipengine_images.repository }}/mipengine_controller:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
         ports:
-          - containerPort: 4999
+          - containerPort: 5000
         volumeMounts:
         - mountPath: /opt/cleanup
           name: cleanup-file
@@ -127,8 +127,8 @@ spec:
     app: mipengine-controller
   ports:
     - protocol: TCP
-      port: 4999
-      targetPort: 4999
+      port: 5000
+      targetPort: 5000
       nodePort: 30000
 
 ---
@@ -211,8 +211,8 @@ spec:
     imagePullPolicy: IfNotPresent
     command: ["python", "player.py", "0"]
     ports:
-      - containerPort: 5000
-      - containerPort: 7100
+      - containerPort: 6000
+      - containerPort: 7000
       - containerPort: 14000
     env:
     - name: COORDINATOR_IP
@@ -250,14 +250,14 @@ spec:
   selector:
     smpc_player: player0
   ports:
-    - name: port-5000
+    - name: port-6000
       protocol: TCP
-      port: 5000
-      targetPort: 5000
+      port: 6000
+      targetPort: 6000
     - name: port-7000
       protocol: TCP
       port: 7000
-      targetPort: 7100
+      targetPort: 7000
     - name: port-14000
       protocol: TCP
       port: 14000
@@ -291,8 +291,8 @@ spec:
     imagePullPolicy: IfNotPresent
     command: ["python", "player.py", "1"]
     ports:
-      - containerPort: 5001
-      - containerPort: 7101
+      - containerPort: 6001
+      - containerPort: 7001
       - containerPort: 14001
     env:
     - name: COORDINATOR_IP
@@ -330,14 +330,14 @@ spec:
   selector:
     smpc_player: player1
   ports:
-    - name: port-5001
+    - name: port-6001
       protocol: TCP
-      port: 5001
-      targetPort: 5001
+      port: 6001
+      targetPort: 6001
     - name: port-7001
       protocol: TCP
       port: 7001
-      targetPort: 7101
+      targetPort: 7001
     - name: port-14001
       protocol: TCP
       port: 14001
@@ -371,8 +371,8 @@ spec:
     imagePullPolicy: IfNotPresent
     command: ["python", "player.py", "2"]
     ports:
-      - containerPort: 5002
-      - containerPort: 7102
+      - containerPort: 6002
+      - containerPort: 7002
       - containerPort: 14002
     env:
     - name: COORDINATOR_IP
@@ -410,14 +410,14 @@ spec:
   selector:
     smpc_player: player2
   ports:
-    - name: port-5002
+    - name: port-6002
       protocol: TCP
-      port: 5002
-      targetPort: 5002
+      port: 6002
+      targetPort: 6002
     - name: port-7002
       protocol: TCP
       port: 7002
-      targetPort: 7102
+      targetPort: 7002
     - name: port-14002
       protocol: TCP
       port: 14002

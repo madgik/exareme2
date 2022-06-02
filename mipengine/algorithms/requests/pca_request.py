@@ -8,7 +8,7 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 
 
 def do_post_request():
-    url = "http://127.0.0.1:4999/algorithms" + "/pca"
+    url = "http://127.0.0.1:5000/algorithms" + "/pca"
 
     data_model = "dementia:0.1"
     datasets = ["edsd"]

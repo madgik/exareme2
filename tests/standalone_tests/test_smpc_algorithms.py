@@ -1,10 +1,11 @@
 import json
 import re
+import time
 
 import pytest
 import requests
 
-algorithms_url = "http://127.0.0.1:4999/algorithms"
+algorithms_url = "http://127.0.0.1:4501/algorithms"
 
 
 def get_parametrization_list_success_cases():
@@ -73,7 +74,7 @@ def get_parametrization_list_success_cases():
         "title": "Standard Deviation",
         "columns": [
             {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.35797549230253856], "type": "FLOAT"},
+            {"name": "std_deviation", "data": [0.3611575592573076], "type": "FLOAT"},
             {"name": "min_value", "data": [1.0], "type": "FLOAT"},
             {"name": "max_value", "data": [4.0], "type": "FLOAT"},
         ],
@@ -147,7 +148,7 @@ def get_parametrization_list_success_cases():
         "title": "Standard Deviation",
         "columns": [
             {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.35797549230253856], "type": "FLOAT"},
+            {"name": "std_deviation", "data": [0.3611575592573076], "type": "FLOAT"},
             {"name": "min_value", "data": [1.0], "type": "FLOAT"},
             {"name": "max_value", "data": [4.0], "type": "FLOAT"},
         ],
@@ -258,11 +259,23 @@ def get_parametrization_list_success_cases():
     return parametrization_list
 
 
+@pytest.mark.smpc
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_success_cases(),
 )
-def test_post_smpc_algorithm(algorithm_name, request_dict, expected_response):
+def test_post_smpc_algorithm(
+    smpc_cluster,
+    smpc_globalnode_node_service,
+    smpc_localnode1_node_service,
+    load_data_smpc_localnode1,
+    smpc_localnode2_node_service,
+    load_data_smpc_localnode2,
+    smpc_controller_service,
+    algorithm_name,
+    request_dict,
+    expected_response,
+):
     algorithm_url = algorithms_url + "/" + algorithm_name
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
@@ -349,6 +362,7 @@ def get_parametrization_list_exception_cases():
     return parametrization_list
 
 
+@pytest.mark.smpc
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_exception_cases(),

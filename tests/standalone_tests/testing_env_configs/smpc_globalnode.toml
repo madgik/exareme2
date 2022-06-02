@@ -34,5 +34,3 @@ optional = false
 client_id = ""
 client_address = ""
 coordinator_address = "http://172.17.0.1:12314"
-get_result_interval = 1
-get_result_max_retries = 120

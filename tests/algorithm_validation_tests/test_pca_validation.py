@@ -9,7 +9,7 @@ expected_file = Path(__file__).parent / "expected" / "pca_expected.json"
 
 
 def pca_request(input):
-    url = "http://127.0.0.1:4999/algorithms" + "/pca"
+    url = "http://127.0.0.1:5000/algorithms" + "/pca"
 
     filters = None
     input["inputdata"]["filters"] = filters

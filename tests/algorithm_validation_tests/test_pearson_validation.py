@@ -10,7 +10,7 @@ expected_file = Path(__file__).parent / "expected" / "pearson_expected.json"
 
 
 def pearson_request(input):
-    url = "http://127.0.0.1:4999/algorithms" + "/pearson"
+    url = "http://127.0.0.1:5000/algorithms" + "/pearson"
 
     variables = copy.deepcopy(input["inputdata"]["y"])
     if input["inputdata"]["x"]:
