@@ -1,3 +1,4 @@
+import itertools
 import logging
 from typing import Any
 from typing import Dict
@@ -5,7 +6,6 @@ from typing import List
 from typing import Tuple
 
 from mipengine import DType
-from mipengine.node.monetdb_interface.monet_db_connection import DBExecutionDTO
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 from mipengine.node_exceptions import TablesNotFound
 from mipengine.node_tasks_DTOs import ColumnInfo
@@ -86,8 +86,7 @@ def get_table_schema(table_name: str) -> TableSchema:
         A schema which is TableSchema object.
     """
     schema = MonetDB().execute_and_fetchall(
-        DBExecutionDTO(
-            f"""
+        f"""
         SELECT columns.name, columns.type
         FROM columns
         RIGHT JOIN tables
@@ -95,7 +94,6 @@ def get_table_schema(table_name: str) -> TableSchema:
         WHERE
         tables.name = '{table_name}'
         """
-        )
     )
     if not schema:
         raise TablesNotFound([table_name])
@@ -127,15 +125,13 @@ def get_table_type(table_name: str) -> TableType:
     """
 
     monetdb_table_type_result = MonetDB().execute_and_fetchall(
-        DBExecutionDTO(
-            f"""
+        f"""
         SELECT type
         FROM
         tables
         WHERE
         tables.name = '{table_name}'
         """
-        )
     )
     if not monetdb_table_type_result:
         raise TablesNotFound([table_name])
@@ -160,14 +156,12 @@ def get_table_names(table_type: TableType, context_id: str) -> List[str]:
         A list of table names.
     """
     table_names = MonetDB().execute_and_fetchall(
-        DBExecutionDTO(
-            f"""
+        f"""
         SELECT name FROM tables
         WHERE
          type = {str(_convert_mip2monet_table_type(table_type))} AND
         name LIKE '%{context_id.lower()}%' AND
         system = false"""
-        )
     )
 
     return [table[0] for table in table_names]
@@ -190,14 +184,12 @@ def get_table_data(table_name: str) -> List[ColumnData]:
     schema = get_table_schema(table_name)
 
     row_stored_data = MonetDB().execute_and_fetchall(
-        DBExecutionDTO(
-            f"""
+        f"""
         SELECT {table_name}.*
         FROM {table_name}
         INNER JOIN tables ON tables.name = '{table_name}'
         WHERE tables.system=false
         """
-        )
     )
 
     column_stored_data = list(zip(*row_stored_data))
@@ -252,12 +244,10 @@ def get_data_models() -> List[str]:
     """
 
     data_models_code_and_version = MonetDB().execute_and_fetchall(
-        DBExecutionDTO(
-            f"""SELECT code, version
+        f"""SELECT code, version
             FROM "mipdb_metadata"."data_models"
             WHERE status = 'ENABLED'
         """
-        )
     )
     data_models = [
         code + ":" + version for code, version in data_models_code_and_version
@@ -277,8 +267,7 @@ def get_dataset_code_per_dataset_label(data_model) -> Dict[str, str]:
     data_model_code, data_model_version = data_model.split(":")
 
     datasets_rows = MonetDB().execute_and_fetchall(
-        DBExecutionDTO(
-            f"""
+        f"""
         SELECT code, label
         FROM "mipdb_metadata"."datasets"
         WHERE data_model_id =
@@ -290,7 +279,6 @@ def get_dataset_code_per_dataset_label(data_model) -> Dict[str, str]:
         )
         AND status = 'ENABLED'
         """
-        )
     )
     datasets = {code: label for code, label in datasets_rows}
     return datasets
@@ -307,11 +295,9 @@ def get_data_model_cdes(data_model) -> CommonDataElements:
     """
 
     cdes_rows = MonetDB().execute_and_fetchall(
-        DBExecutionDTO(
-            f"""
+        f"""
         SELECT code, metadata FROM "{data_model}"."variables_metadata"
         """
-        )
     )
 
     cdes = CommonDataElements(
@@ -397,20 +383,18 @@ def _drop_table_by_type_and_context_id(table_type: TableType, context_id: str):
         The id of the experiment
     """
     table_names_and_types = MonetDB().execute_and_fetchall(
-        DBExecutionDTO(
-            f"""
+        f"""
         SELECT name, type FROM tables
         WHERE name LIKE '%{context_id.lower()}%'
         AND tables.type = {str(_convert_mip2monet_table_type(table_type))}
         AND system = false
         """
-        )
     )
     for name, table_type in table_names_and_types:
         if table_type == _convert_mip2monet_table_type(TableType.VIEW):
-            MonetDB().execute(DBExecutionDTO(f"DROP VIEW {name}"))
+            MonetDB().execute(f"DROP VIEW {name}")
         else:
-            MonetDB().execute(DBExecutionDTO(f"DROP TABLE {name}"))
+            MonetDB().execute(f"DROP TABLE {name}")
 
 
 def _drop_udfs_by_context_id(context_id: str):
@@ -423,13 +407,11 @@ def _drop_udfs_by_context_id(context_id: str):
         The id of the experiment
     """
     function_names = MonetDB().execute_and_fetchall(
-        DBExecutionDTO(
-            f"""
+        f"""
         SELECT name FROM functions
         WHERE name LIKE '%{context_id.lower()}%'
         AND system = false
         """
-        )
     )
     for name in function_names:
-        MonetDB().execute(DBExecutionDTO(f"DROP FUNCTION {name[0]}"))
+        MonetDB().execute(f"DROP FUNCTION {name[0]}")

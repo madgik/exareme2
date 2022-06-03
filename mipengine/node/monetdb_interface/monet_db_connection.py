@@ -76,7 +76,7 @@ class MonetDB(metaclass=Singleton):
         yield cur
         cur.close()
 
-    def execute_and_fetchall(self, db_execution_dto: DBExecutionDTO) -> List:
+    def execute_and_fetchall(self, query: str, parameters=None, many=False) -> List:
         """
         Used to execute select queries that return a result.
         Should NOT be used to execute "CREATE, DROP, ALTER, UPDATE, ..." statements.
@@ -85,6 +85,7 @@ class MonetDB(metaclass=Singleton):
         'parameters' option to provide the functionality of bind-parameters.
         """
         conn = self._get_connection()
+        db_execution_dto = DBExecutionDTO(query=query, parameters=parameters, many=many)
 
         self._logger.info(
             f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
@@ -113,7 +114,7 @@ class MonetDB(metaclass=Singleton):
             self._release_connection(conn)
             raise exc
 
-    def execute(self, db_execution_dto):
+    def execute(self, query: str, parameters=None, many=False):
         """
         Executes statements that don't have a result. For example "CREATE,DROP,UPDATE".
         And handles the *Optimistic Concurrency Control by giving each call X attempts
@@ -124,6 +125,7 @@ class MonetDB(metaclass=Singleton):
         'parameters' option to provide the functionality of bind-parameters.
         """
         conn = self._get_connection()
+        db_execution_dto = DBExecutionDTO(query=query, parameters=parameters, many=many)
 
         self._logger.info(
             f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
@@ -147,10 +149,6 @@ class MonetDB(metaclass=Singleton):
                     self.execute_and_commit(conn, db_execution_dto)
                 self._release_connection(conn)
                 break
-            except pymonetdb.exceptions.IntegrityError as exc:
-                conn.rollback()
-                sleep(tries * 0.2)
-                continue
             except BrokenPipeError as exc:
                 conn = self._replace_connection()
                 sleep(tries * 0.2)
