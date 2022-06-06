@@ -351,6 +351,7 @@ ANDLN = " " + AND + LN
 SPC4 = " " * 4
 SCOLON = ";"
 ROWID = "row_id"
+NODEID = "node_id"
 
 
 def get_smpc_build_template(secure_transfer_type):
@@ -816,7 +817,7 @@ class MergeTensorType(TableType, ParametrizedType, InputType, OutputType):
 
     @property
     def schema(self):
-        nodeid_column = [("node_id", dt.STR)]
+        nodeid_column = [(NODEID, dt.STR)]
         dimcolumns = [(f"dim{i}", dt.INT) for i in range(self.ndims)]
         valcolumn = [("val", self.dtype)]
         return nodeid_column + dimcolumns + valcolumn  # type: ignore
@@ -2512,7 +2513,7 @@ def convert_table_arg_to_table_ast_node(table_arg, alias=None):
 
 
 def nodeid_column():
-    return Cast(name="$node_id", type_=dt.STR.to_sql(), alias="node_id")
+    return Cast(name="$node_id", type_=dt.STR.to_sql(), alias=NODEID)
 
 
 # ~~~~~~~~~~~~~~~~~ CREATE TABLE and INSERT query generator ~~~~~~~~~ #
@@ -2557,7 +2558,7 @@ def _create_table_udf_output(
     if isinstance(output_type, ScalarType) or not nodeid:
         output_schema = iotype_to_sql_schema(output_type)
     else:
-        output_schema = f'"node_id" {dt.STR.to_sql()},' + iotype_to_sql_schema(
+        output_schema = f'"{NODEID}" {dt.STR.to_sql()},' + iotype_to_sql_schema(
             output_type
         )
     create_table = CREATE_TABLE + " $" + table_name + f"({output_schema})" + SCOLON
