@@ -3,10 +3,14 @@ import logging
 import time
 from functools import wraps
 
+from celery import current_task
+
 from mipengine.node import config as node_config
 from mipengine.node_exceptions import RequestIDNotFound
 
 LOGGING_ID_TASK_PARAM = "request_id"
+
+task_loggers = {}
 
 
 def init_logger(request_id):
@@ -29,7 +33,7 @@ def init_logger(request_id):
 
 
 def get_logger():
-    return logging.getLogger("node")
+    return task_loggers[current_task.request.id]
 
 
 def initialise_logger(func):
@@ -46,8 +50,10 @@ def initialise_logger(func):
         else:
             raise RequestIDNotFound()
 
-        init_logger(request_id)
-        return func(*args, **kwargs)
+        task_loggers[current_task.request.id] = init_logger(request_id)
+        function = func(*args, **kwargs)
+        del task_loggers[current_task.request.id]
+        return function
 
     return wrapper
 

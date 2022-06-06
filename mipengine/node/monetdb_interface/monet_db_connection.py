@@ -10,9 +10,14 @@ from mipengine.node import node_logger as logging
 from mipengine.singleton import Singleton
 
 MAX_ATTEMPTS = 50
+BROKEN_PIPE_ERROR_RETRY = 0.2
+CREATE_OR_REPLACE_QUERY_TIMEOUT = 1
+INSERT_INTO_QUERY_TIMEOUT = (
+    node_config.celery.worker_concurrency * node_config.celery.run_udf_time_limit
+)
 
-create_eventlet_lock = Semaphore()
-insert_eventlet_lock = Semaphore()
+create_function_query_lock = Semaphore()
+insert_query_lock = Semaphore()
 
 
 class DBExecutionDTO:
@@ -22,9 +27,9 @@ class DBExecutionDTO:
         self.many = many
 
 
-class MonetDB(metaclass=Singleton):
+class MonetDBPool(metaclass=Singleton):
     """
-    MonetDB is a Singleton class because we want it to be initialized at runtime.
+    MonetDBPool is a Singleton class because we want it to be initialized at runtime.
 
     If the connection is a public module variable, it will be initialized at import time
     from Celery and all the Celery workers will use the same connection instance.
@@ -33,10 +38,10 @@ class MonetDB(metaclass=Singleton):
     """
 
     def __init__(self):
-        self._connection_pool = [self.create_connection() for _ in range(24)]
+        self._connection_pool = [self._create_connection() for _ in range(24)]
         self._logger = logging.get_logger()
 
-    def create_connection(self):
+    def _create_connection(self):
         return pymonetdb.connect(
             hostname=node_config.monetdb.ip,
             port=node_config.monetdb.port,
@@ -46,16 +51,12 @@ class MonetDB(metaclass=Singleton):
         )
 
     def _get_connection(self):
-        conn = self._connection_pool.pop()
-        return conn
+        return self._connection_pool.pop()
 
     def _release_connection(self, conn):
         self._connection_pool.append(conn)
 
-    def _replace_connection(self):
-        return self.create_connection()
-
-    def execute_and_commit(self, conn, db_execution_dto):
+    def _execute_and_commit(self, conn, db_execution_dto):
         with self.cursor(conn) as cur:
             cur.executemany(
                 db_execution_dto.query, db_execution_dto.parameters
@@ -76,6 +77,12 @@ class MonetDB(metaclass=Singleton):
         yield cur
         cur.close()
 
+    @contextmanager
+    def lock(self, query_lock, timeout):
+        query_lock.acquire(timeout=timeout)
+        yield
+        query_lock.release()
+
     def execute_and_fetchall(self, query: str, parameters=None, many=False) -> List:
         """
         Used to execute select queries that return a result.
@@ -84,7 +91,6 @@ class MonetDB(metaclass=Singleton):
         'many' option to provide the functionality of executemany, all results will be fetched.
         'parameters' option to provide the functionality of bind-parameters.
         """
-        conn = self._get_connection()
         db_execution_dto = DBExecutionDTO(query=query, parameters=parameters, many=many)
 
         self._logger.info(
@@ -92,6 +98,7 @@ class MonetDB(metaclass=Singleton):
         )
 
         for tries in range(MAX_ATTEMPTS):
+            conn = self._get_connection()
             try:
                 with self.cursor(conn) as cur:
                     cur.executemany(
@@ -100,19 +107,16 @@ class MonetDB(metaclass=Singleton):
                         db_execution_dto.query, db_execution_dto.parameters
                     )
                     result = cur.fetchall()
-                self._release_connection(conn)
                 return result
-            except BrokenPipeError as exc:
-                conn = self._replace_connection()
-                sleep(tries * 0.2)
+            except BrokenPipeError:
+                conn = self._create_connection()
+                sleep(tries * BROKEN_PIPE_ERROR_RETRY)
                 continue
             except Exception as exc:
                 conn.rollback()
-                self._release_connection(conn)
                 raise exc
-        else:
-            self._release_connection(conn)
-            raise exc
+            finally:
+                self._release_connection(conn)
 
     def execute(self, query: str, parameters=None, many=False):
         """
@@ -124,7 +128,6 @@ class MonetDB(metaclass=Singleton):
         'many' option to provide the functionality of executemany.
         'parameters' option to provide the functionality of bind-parameters.
         """
-        conn = self._get_connection()
         db_execution_dto = DBExecutionDTO(query=query, parameters=parameters, many=many)
 
         self._logger.info(
@@ -132,31 +135,23 @@ class MonetDB(metaclass=Singleton):
         )
 
         for tries in range(MAX_ATTEMPTS):
+            conn = self._get_connection()
             try:
                 if "CREATE OR REPLACE FUNCTION" in db_execution_dto.query:
-                    try:
-                        create_eventlet_lock.acquire(timeout=5)
-                        self.execute_and_commit(conn, db_execution_dto)
-                    finally:
-                        create_eventlet_lock.release()
+                    with create_function_query_lock:
+                        self._execute_and_commit(conn, db_execution_dto)
                 elif "INSERT INTO" in db_execution_dto.query:
-                    try:
-                        insert_eventlet_lock.acquire(timeout=5)
-                        self.execute_and_commit(conn, db_execution_dto)
-                    finally:
-                        insert_eventlet_lock.release()
+                    with insert_query_lock:
+                        self._execute_and_commit(conn, db_execution_dto)
                 else:
-                    self.execute_and_commit(conn, db_execution_dto)
-                self._release_connection(conn)
+                    self._execute_and_commit(conn, db_execution_dto)
                 break
-            except BrokenPipeError as exc:
-                conn = self._replace_connection()
-                sleep(tries * 0.2)
+            except BrokenPipeError:
+                conn = self._create_connection()
+                sleep(tries * BROKEN_PIPE_ERROR_RETRY)
                 continue
             except Exception as exc:
                 conn.rollback()
-                self._release_connection(conn)
                 raise exc
-        else:
-            self._release_connection(conn)
-            raise exc
+            finally:
+                self._release_connection(conn)
