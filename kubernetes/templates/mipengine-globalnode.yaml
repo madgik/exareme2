@@ -76,9 +76,9 @@ spec:
           value: "50000"
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
+        {{ if .Values.smpc.enabled }}
         - name: SMPC_OPTIONAL
           value: {{ quote .Values.smpc.optional }}
-        {{ if .Values.smpc.enabled }}
         - name: SMPC_CLIENT_ID
           valueFrom:
             fieldRef:

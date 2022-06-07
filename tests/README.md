@@ -31,7 +31,19 @@ These tests are run:
 - with the production algorithms loaded,
 - using `helm` charts and `kind` for a pseudo federated kubernetes environment,
 - having only the controller endpoints exposed and
-- the tests contained can only be of prod_env_tests nature.
+- the tests contained can only be of production nature.
+
+### SMPC Environment
+
+These tests are run:
+
+- with the basic (monetdb, rabbitmq) docker images pre-built,
+- with 3 nodes(globalnode, 2 localnodes) and 1 controller,
+- with the test data loaded through the mip_db container,
+- with the production algorithms loaded,
+- using `helm` charts and `kind` for a pseudo federated kubernetes environment,
+- having only the controller endpoints exposed and
+- the tests contained can only be of production nature.
 
 ### Algorithm Validation Tests
 
@@ -42,16 +54,5 @@ These tests are run:
 - with 10 localnodes, 1 globalnode and 1 controller in a different job,
 - with the test data loaded using `inv load-data` and
 - with the production algorithms loaded,
-- using the `inv deploy` command of the `tasks.py` with a `.deployment.toml` template,
-- can be run based on the nodes' information in the `.deployment.toml`.
-
-### SMPC Environment
-
-These tests are run:
-
-- with the basic (monetdb, rabbitmq) docker images pre-built,
-- with 4 nodes(globalnode, 3 localnodes) and 1 controller,
-- with the test data loaded using `inv load-data` and
-- with the production and testing algorithms loaded,
 - using the `inv deploy` command of the `tasks.py` with a `.deployment.toml` template,
 - can be run based on the nodes' information in the `.deployment.toml`.

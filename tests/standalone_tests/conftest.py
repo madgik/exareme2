@@ -79,9 +79,12 @@ CONTROLLER_CONFIG_FILE = "testcontroller.toml"
 CONTROLLER_SMPC_CONFIG_FILE = "test_smpc_controller.toml"
 CONTROLLER_LOCALNODES_CONFIG_FILE = "test_localnodes_addresses.json"
 CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE = "test_smpc_localnodes_addresses.json"
+CONTROLLER_OUTPUT_FILE = "test_controller.out"
+SMPC_CONTROLLER_OUTPUT_FILE = "test_smpc_controller.out"
 
 TASKS_TIMEOUT = 10
 RUN_UDF_TASK_TIMEOUT = 120
+SMPC_CLUSTER_SLEEP_TIME = 60
 
 ########### SMPC Cluster ############
 SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v6.0.0"
@@ -844,8 +847,6 @@ def reset_node_landscape_aggregator():
 
 @pytest.fixture(scope="session")
 def controller_service():
-    print(f"\nCreating controller service...")
-
     service_port = CONTROLLER_PORT
     controller_config_filepath = path.join(
         TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE
@@ -858,7 +859,7 @@ def controller_service():
         service_port,
         controller_config_filepath,
         localnodes_config_filepath,
-        "testcontroller.out",
+        CONTROLLER_OUTPUT_FILE,
     )
     yield
     kill_service(proc)
@@ -866,8 +867,6 @@ def controller_service():
 
 @pytest.fixture(scope="session")
 def smpc_controller_service():
-    print(f"\nCreating smpc controller service...")
-
     service_port = CONTROLLER_SMPC_PORT
     controller_config_filepath = path.join(
         TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_CONFIG_FILE
@@ -880,7 +879,7 @@ def smpc_controller_service():
         service_port,
         controller_config_filepath,
         localnodes_config_filepath,
-        "test_smpc_controller.out",
+        SMPC_CONTROLLER_OUTPUT_FILE,
     )
     yield
     kill_service(proc)
@@ -892,6 +891,8 @@ def _create_controller_service(
     localnodes_config_filepath: str,
     logs_filename: str,
 ):
+    print(f"\nCreating controller service on port '{service_port}'...")
+
     logpath = OUTDIR / logs_filename
     if os.path.isfile(logpath):
         os.remove(logpath)
@@ -924,10 +925,7 @@ def _create_controller_service(
     _search_for_string_in_logfile(
         "INFO - CONTROLLER - BACKGROUND - federation_info_logs", logpath
     )
-
-    print(
-        f"Created controller service on port '{service_port}' and process id '{proc.pid}'."
-    )
+    print(f"\nCreated controller service on port '{service_port}'.")
     return proc
 
 
@@ -935,9 +933,10 @@ def _create_controller_service(
 def smpc_coordinator():
     docker_cli = docker.from_env()
 
+    print(f"\nWaiting for smpc coordinator db to be ready...")
     # Start coordinator db
     try:
-        container = docker_cli.containers.get(SMPC_COORD_DB_CONT_NAME)
+        docker_cli.containers.get(SMPC_COORD_DB_CONT_NAME)
     except docker.errors.NotFound:
         docker_cli.containers.run(
             image=SMPC_COORD_DB_IMAGE,
@@ -949,10 +948,12 @@ def smpc_coordinator():
                 "MONGO_INITDB_ROOT_PASSWORD": "123qwe",
             },
         )
+    print("Created controller db service.")
 
     # Start coordinator queue
+    print(f"\nWaiting for smpc coordinator queue to be ready...")
     try:
-        container = docker_cli.containers.get(SMPC_COORD_QUEUE_CONT_NAME)
+        docker_cli.containers.get(SMPC_COORD_QUEUE_CONT_NAME)
     except docker.errors.NotFound:
         docker_cli.containers.run(
             image=SMPC_COORD_QUEUE_IMAGE,
@@ -964,10 +965,12 @@ def smpc_coordinator():
             },
             command="redis-server --requirepass agora",
         )
+    print("Created controller queue service.")
 
     # Start coordinator
+    print(f"\nWaiting for smpc coordinator to be ready...")
     try:
-        container = docker_cli.containers.get(SMPC_COORD_CONT_NAME)
+        docker_cli.containers.get(SMPC_COORD_CONT_NAME)
     except docker.errors.NotFound:
         docker_cli.containers.run(
             image=SMPC_CLUSTER_IMAGE,
@@ -987,6 +990,7 @@ def smpc_coordinator():
             },
             command="python coordinator.py",
         )
+    print("Created controller service.")
 
     yield
 
@@ -1004,8 +1008,9 @@ def smpc_players():
     docker_cli = docker.from_env()
 
     # Start player 1
+    print(f"\nWaiting for smpc player 1 to be ready...")
     try:
-        container = docker_cli.containers.get(SMPC_PLAYER1_CONT_NAME)
+        docker_cli.containers.get(SMPC_PLAYER1_CONT_NAME)
     except docker.errors.NotFound:
         docker_cli.containers.run(
             image=SMPC_CLUSTER_IMAGE,
@@ -1027,10 +1032,12 @@ def smpc_players():
             },
             command="python player.py 0",
         )
+    print("Created smpc player 1 service.")
 
     # Start player 2
+    print(f"\nWaiting for smpc player 2 to be ready...")
     try:
-        container = docker_cli.containers.get(SMPC_PLAYER2_CONT_NAME)
+        docker_cli.containers.get(SMPC_PLAYER2_CONT_NAME)
     except docker.errors.NotFound:
         docker_cli.containers.run(
             image=SMPC_CLUSTER_IMAGE,
@@ -1052,10 +1059,12 @@ def smpc_players():
             },
             command="python player.py 1",
         )
+    print("Created smpc player 2 service.")
 
     # Start player 3
+    print(f"\nWaiting for smpc player 3 to be ready...")
     try:
-        container = docker_cli.containers.get(SMPC_PLAYER3_CONT_NAME)
+        docker_cli.containers.get(SMPC_PLAYER3_CONT_NAME)
     except docker.errors.NotFound:
         docker_cli.containers.run(
             image=SMPC_CLUSTER_IMAGE,
@@ -1077,6 +1086,7 @@ def smpc_players():
             },
             command="python player.py 2",
         )
+    print("Created smpc player 3 service.")
 
     yield
 
@@ -1094,8 +1104,9 @@ def smpc_clients():
     docker_cli = docker.from_env()
 
     # Start client 1
+    print(f"\nWaiting for smpc client 1 to be ready...")
     try:
-        container = docker_cli.containers.get(SMPC_CLIENT1_CONT_NAME)
+        docker_cli.containers.get(SMPC_CLIENT1_CONT_NAME)
     except docker.errors.NotFound:
         with open(path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_SMPC_CONFIG_FILE)) as fp:
             tmp = toml.load(fp)
@@ -1117,10 +1128,12 @@ def smpc_clients():
             },
             command=f"python client.py",
         )
+    print("Created smpc client 1 service.")
 
     # Start client 2
+    print(f"\nWaiting for smpc client 2 to be ready...")
     try:
-        container = docker_cli.containers.get(SMPC_CLIENT2_CONT_NAME)
+        docker_cli.containers.get(SMPC_CLIENT2_CONT_NAME)
     except docker.errors.NotFound:
         with open(path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE2_SMPC_CONFIG_FILE)) as fp:
             tmp = toml.load(fp)
@@ -1142,6 +1155,7 @@ def smpc_clients():
             },
             command="python client.py",
         )
+    print("Created smpc client 2 service.")
 
     yield
 
@@ -1154,5 +1168,9 @@ def smpc_clients():
 
 @pytest.fixture(scope="session")
 def smpc_cluster(smpc_coordinator, smpc_players, smpc_clients):
-    time.sleep(20)  # TODO Check when the smpc cluster is actually ready
+    print(f"\nWaiting for smpc cluster to be ready...")
+    time.sleep(
+        SMPC_CLUSTER_SLEEP_TIME
+    )  # TODO Check when the smpc cluster is actually ready
+    print(f"\nFinished waiting '{SMPC_CLUSTER_SLEEP_TIME}' secs for SMPC cluster.")
     yield

@@ -259,6 +259,7 @@ def get_parametrization_list_success_cases():
     return parametrization_list
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
 @pytest.mark.smpc
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
@@ -362,12 +363,23 @@ def get_parametrization_list_exception_cases():
     return parametrization_list
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
 @pytest.mark.smpc
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
     get_parametrization_list_exception_cases(),
 )
-def test_post_smpc_algorithm_exception(algorithm_name, request_dict, expected_response):
+def test_post_smpc_algorithm_exception(
+    smpc_globalnode_node_service,
+    smpc_localnode1_node_service,
+    load_data_smpc_localnode1,
+    smpc_localnode2_node_service,
+    load_data_smpc_localnode2,
+    smpc_controller_service,
+    algorithm_name,
+    request_dict,
+    expected_response,
+):
     algorithm_url = algorithms_url + "/" + algorithm_name
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}

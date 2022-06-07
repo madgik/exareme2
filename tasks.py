@@ -143,16 +143,17 @@ def create_configs(c):
         ]
 
         node_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
-        node_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
-        if node["role"] == "GLOBALNODE":
-            node_config["smpc"][
-                "coordinator_address"
-            ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
-        else:
-            node_config["smpc"]["client_id"] = node["id"]
-            node_config["smpc"][
-                "client_address"
-            ] = f"http://{deployment_config['ip']}:{node['smpc_client_port']}"
+        if node_config["smpc"]["enabled"]:
+            node_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
+            if node["role"] == "GLOBALNODE":
+                node_config["smpc"][
+                    "coordinator_address"
+                ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
+            else:
+                node_config["smpc"]["client_id"] = node["id"]
+                node_config["smpc"][
+                    "client_address"
+                ] = f"http://{deployment_config['ip']}:{node['smpc_client_port']}"
 
         node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
         with open(node_config_file, "w+") as fp:
@@ -191,17 +192,18 @@ def create_configs(c):
     ]["contextid_release_timelimit"]
 
     controller_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
-    controller_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
-    controller_config["smpc"][
-        "coordinator_address"
-    ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
+    if controller_config["smpc"]["enabled"]:
+        controller_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
+        controller_config["smpc"][
+            "coordinator_address"
+        ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
 
-    controller_config["smpc"]["get_result_interval"] = deployment_config["smpc"][
-        "get_result_interval"
-    ]
-    controller_config["smpc"]["get_result_max_retries"] = deployment_config["smpc"][
-        "get_result_max_retries"
-    ]
+        controller_config["smpc"]["get_result_interval"] = deployment_config["smpc"][
+            "get_result_interval"
+        ]
+        controller_config["smpc"]["get_result_max_retries"] = deployment_config["smpc"][
+            "get_result_max_retries"
+        ]
 
     CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"

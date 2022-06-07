@@ -175,13 +175,21 @@ jobs:
       - name: Get container disk space
         run: df -h
 
-      - name: Load docker images to kind
+      - name: Load docker images to kind containers and delete them locally
         run: |
           kind load docker-image madgik/mipengine_node:dev
+          docker image rm madgik/mipengine_node:dev
           kind load docker-image madgik/mipengine_controller:dev --nodes kind-control-plane
+          docker image rm madgik/mipengine_controller:dev
           kind load docker-image madgik/mipenginedb:dev
+          docker image rm madgik/mipenginedb:dev
           kind load docker-image madgik/mipengine_mipdb:dev
+          docker image rm madgik/mipengine_mipdb:dev
           kind load docker-image madgik/mipengine_rabbitmq:dev
+          docker image rm madgik/mipengine_rabbitmq:dev
+
+      - name: Get container disk space
+        run: df -h
 
       - name: Copy prod_env_tests values.yaml
         run: cp -r tests/prod_env_tests/deployment_configs/kubernetes_values.yaml kubernetes/values.yaml

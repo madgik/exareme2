@@ -5,7 +5,7 @@ import requests
 
 
 def algorithm_request(algorithm: str, input: dict):
-    url = "http://127.0.0.1:500/algorithms" + f"/{algorithm}"
+    url = "http://127.0.0.1:5000/algorithms" + f"/{algorithm}"
 
     variables = copy.deepcopy(input["inputdata"]["y"])
     if input["inputdata"]["x"]:

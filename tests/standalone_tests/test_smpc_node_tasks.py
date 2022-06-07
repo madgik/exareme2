@@ -223,6 +223,7 @@ def test_secure_transfer_input_with_smpc_off(
     )
 
 
+@pytest.mark.smpc
 def test_validate_smpc_templates_match(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -244,6 +245,7 @@ def test_validate_smpc_templates_match(
         pytest.fail(f"No exception should be raised. Exception: {exc}")
 
 
+@pytest.mark.smpc
 def test_validate_smpc_templates_dont_match(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -264,6 +266,7 @@ def test_validate_smpc_templates_dont_match(
     assert "SMPC templates dont match." in str(exc)
 
 
+@pytest.mark.smpc
 def test_secure_transfer_run_udf_flow_with_smpc_on(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -350,6 +353,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     )
 
 
+@pytest.mark.smpc
 def test_load_data_to_smpc_client_from_globalnode_fails(
     smpc_globalnode_node_service,
     smpc_globalnode_celery_app,
@@ -367,6 +371,7 @@ def test_load_data_to_smpc_client_from_globalnode_fails(
     assert "load_data_to_smpc_client is allowed only for a LOCALNODE." in str(exc)
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
 @pytest.mark.smpc
 def test_load_data_to_smpc_client(
     smpc_localnode1_node_service,
@@ -408,6 +413,7 @@ def test_load_data_to_smpc_client(
     assert json.dumps(result) == sum_op_values_str
 
 
+@pytest.mark.smpc
 def test_get_smpc_result_from_localnode_fails(
     smpc_localnode1_node_service,
     smpc_localnode1_celery_app,
@@ -426,6 +432,7 @@ def test_get_smpc_result_from_localnode_fails(
     assert "get_smpc_result is allowed only for a GLOBALNODE." in str(exc)
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
 @pytest.mark.smpc
 def test_get_smpc_result(
     smpc_globalnode_node_service,
@@ -447,7 +454,7 @@ def test_get_smpc_result(
     smpc_computation_data = [100]
     response = requests.post(
         request_url,
-        data=json.dumps(smpc_computation_data),
+        data=json.dumps({"type": "int", "data": smpc_computation_data}),
         headers=request_headers,
     )
     assert response.status_code == 200
@@ -496,6 +503,7 @@ def test_get_smpc_result(
     )
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
 @pytest.mark.smpc
 def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_node_service,

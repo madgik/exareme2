@@ -32,13 +32,3 @@ nodes:
   extraPortMappings:
   - containerPort: 32000	# Used for debugging smpc cluster
     hostPort: 9001		# Used for debugging smpc cluster
-
-- role: worker
-  extraMounts:
-  - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/hostname_worker3
-    containerPath: /etc/hostname
-  - hostPath: ./tests/test_data
-    containerPath: /opt/mipengine/csvs
-  extraPortMappings:
-  - containerPort: 32000	# Used for debugging smpc cluster
-    hostPort: 9002		# Used for debugging smpc cluster

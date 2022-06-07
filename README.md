@@ -61,12 +61,12 @@
    contextid_release_timelimit=3600 #an hour
 
    [smpc]
-   enabled=true
+   enabled=false
    optional=false
-   get_result_interval = 2
+   get_result_interval = 10
    get_result_max_retries = 100
-   smpc_image="gpikra/coordinator:latest"
-   db_image="gpikra/mongodb:latest"
+   smpc_image="gpikra/coordinator:v6.0.0"
+   db_image="mongo:5.0.8"
    queue_image="redis:alpine3.15"
 
    [[nodes]]

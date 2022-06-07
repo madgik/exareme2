@@ -52,8 +52,10 @@ spec:
           value: "5672"
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
+        {{ if .Values.smpc.enabled }}
         - name: SMPC_OPTIONAL
           value: {{ quote .Values.smpc.optional }}
+        {{ end }}
 
       ### --- SMPC components ---
       {{ if .Values.smpc.enabled }}

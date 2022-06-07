@@ -109,8 +109,6 @@ def _task_to_async(task, app):
         # Since apply_async is used instead of delay so that we can pass the connection as an argument,
         # the args and kwargs need to be passed as named arguments.
         with app.broker_connection() as conn:
-            # r = task.apply_async(args=args, kwargs=kwargs, connection=conn)
-            # print(f"{r=}")
             async_result = await sync_to_async(task.apply_async)(
                 args=args, kwargs=kwargs, connection=conn
             )
@@ -159,10 +157,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         while self.keep_updating:
             try:
                 nodes_addresses = get_nodes_addresses()
-                print(f"{nodes_addresses=}")
-
                 nodes_info = await _get_nodes_info(nodes_addresses)
-                print(f"{nodes_info=}")
                 local_nodes = [
                     node for node in nodes_info if node.role == NodeRole.LOCALNODE
                 ]

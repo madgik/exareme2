@@ -54,6 +54,7 @@ def controller_config_dict_mock():
             "password": "password",
             "vhost": "user_vhost",
             "celery_tasks_timeout": 40,
+            "celery_run_udf_task_timeout": 40,
             "celery_tasks_max_retries": 3,
             "celery_tasks_interval_start": 0,
             "celery_tasks_interval_step": 0.2,
