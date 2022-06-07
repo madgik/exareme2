@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from functools import wraps
 from time import sleep
 from typing import List
 
@@ -25,6 +26,31 @@ class DBExecutionDTO:
         self.query = query
         self.parameters = parameters
         self.many = many
+
+
+def exception_handling(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        for tries in range(MAX_ATTEMPTS):
+            conn = self._get_connection()
+
+            try:
+                function = func(self, *args, **kwargs, conn=conn)
+                break
+            except BrokenPipeError as bpe:
+                conn = self._create_connection()
+                sleep(tries * BROKEN_PIPE_ERROR_RETRY)
+                continue
+            except Exception as exc:
+                conn.rollback()
+                raise exc
+            finally:
+                self._release_connection(conn)
+        else:
+            raise bpe
+        return function
+
+    return wrapper
 
 
 class MonetDBPool(metaclass=Singleton):
@@ -83,7 +109,10 @@ class MonetDBPool(metaclass=Singleton):
         yield
         query_lock.release()
 
-    def execute_and_fetchall(self, query: str, parameters=None, many=False) -> List:
+    @exception_handling
+    def execute_and_fetchall(
+        self, query: str, parameters=None, many=False, conn=None
+    ) -> List:
         """
         Used to execute select queries that return a result.
         Should NOT be used to execute "CREATE, DROP, ALTER, UPDATE, ..." statements.
@@ -97,28 +126,17 @@ class MonetDBPool(metaclass=Singleton):
             f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
         )
 
-        for tries in range(MAX_ATTEMPTS):
-            conn = self._get_connection()
-            try:
-                with self.cursor(conn) as cur:
-                    cur.executemany(
-                        db_execution_dto.query, db_execution_dto.parameters
-                    ) if db_execution_dto.many else cur.execute(
-                        db_execution_dto.query, db_execution_dto.parameters
-                    )
-                    result = cur.fetchall()
-                return result
-            except BrokenPipeError:
-                conn = self._create_connection()
-                sleep(tries * BROKEN_PIPE_ERROR_RETRY)
-                continue
-            except Exception as exc:
-                conn.rollback()
-                raise exc
-            finally:
-                self._release_connection(conn)
+        with self.cursor(conn) as cur:
+            cur.executemany(
+                db_execution_dto.query, db_execution_dto.parameters
+            ) if db_execution_dto.many else cur.execute(
+                db_execution_dto.query, db_execution_dto.parameters
+            )
+            result = cur.fetchall()
+        return result
 
-    def execute(self, query: str, parameters=None, many=False):
+    @exception_handling
+    def execute(self, query: str, parameters=None, many=False, conn=None):
         """
         Executes statements that don't have a result. For example "CREATE,DROP,UPDATE".
         And handles the *Optimistic Concurrency Control by giving each call X attempts
@@ -134,24 +152,11 @@ class MonetDBPool(metaclass=Singleton):
             f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
         )
 
-        for tries in range(MAX_ATTEMPTS):
-            conn = self._get_connection()
-            try:
-                if "CREATE OR REPLACE FUNCTION" in db_execution_dto.query:
-                    with create_function_query_lock:
-                        self._execute_and_commit(conn, db_execution_dto)
-                elif "INSERT INTO" in db_execution_dto.query:
-                    with insert_query_lock:
-                        self._execute_and_commit(conn, db_execution_dto)
-                else:
-                    self._execute_and_commit(conn, db_execution_dto)
-                break
-            except BrokenPipeError:
-                conn = self._create_connection()
-                sleep(tries * BROKEN_PIPE_ERROR_RETRY)
-                continue
-            except Exception as exc:
-                conn.rollback()
-                raise exc
-            finally:
-                self._release_connection(conn)
+        if "CREATE OR REPLACE FUNCTION" in db_execution_dto.query:
+            with create_function_query_lock:
+                self._execute_and_commit(conn, db_execution_dto)
+        elif "INSERT INTO" in db_execution_dto.query:
+            with insert_query_lock:
+                self._execute_and_commit(conn, db_execution_dto)
+        else:
+            self._execute_and_commit(conn, db_execution_dto)

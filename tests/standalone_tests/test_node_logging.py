@@ -7,6 +7,8 @@ from mipengine import AttrDict
 from mipengine.node import node_logger
 from mipengine.node.node_logger import initialise_logger
 
+task_loggers = {}
+
 
 @pytest.fixture(scope="module", autouse=True)
 def mock_node_config():
@@ -25,6 +27,19 @@ def mock_node_config():
         yield
 
     return node_config
+
+
+@pytest.fixture(scope="module", autouse=True)
+def mock_current_task():
+    current_task = AttrDict({"request": {"id": "1234"}})
+
+    with patch(
+        "mipengine.node.node_logger.current_task",
+        current_task,
+    ):
+        yield
+
+    return current_task
 
 
 @initialise_logger
