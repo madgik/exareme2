@@ -51,10 +51,6 @@ class INodeAlgorithmTasksHandler(ABC):
     def tasks_timeout(self) -> int:
         pass
 
-    # @abstractmethod
-    # def get_node_role(self):#TODO does that make sense???
-    #     pass
-
     # TABLES functionality
     @abstractmethod
     def get_tables(self, request_id: str, context_id: str) -> List[str]:
