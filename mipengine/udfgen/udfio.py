@@ -42,13 +42,6 @@ def as_tensor_table(array: np.ndarray):
 
 
 def from_tensor_table(table: dict):
-    # XXX Hack, find better way
-    table = {
-        re.sub(r"\w+_(dim\d+)", r"\1", key)
-        if re.match(r"\w+_(dim\d+)", key)
-        else re.sub(r"\w+_(val)", r"\1", key): val
-        for key, val in table.items()
-    }
     ndims = len(table) - 1
     multi_index = [table[f"dim{i}"] for i in range(ndims)]
     shape = [max(idx) + 1 for idx in multi_index]

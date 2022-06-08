@@ -9,9 +9,9 @@ from mipengine.udfgen.udfio import split_secure_transfer_dict
 
 def test_merge_tensor_to_list_2tables_0D():
     columns = dict(
-        prefix_node_id=np.array(["a", "b"]),
-        prefix_dim0=np.array([0, 0]),
-        prefix_val=np.array([1, 2]),
+        node_id=np.array(["a", "b"]),
+        dim0=np.array([0, 0]),
+        val=np.array([1, 2]),
     )
     xs = merge_tensor_to_list(columns)
     assert xs == [np.array([1]), np.array([2])]
@@ -19,9 +19,9 @@ def test_merge_tensor_to_list_2tables_0D():
 
 def test_merge_tensor_to_list_2tables_1D():
     columns = dict(
-        prefix_node_id=np.array(["a", "a", "b", "b"]),
-        prefix_dim0=np.array([0, 1, 0, 1]),
-        prefix_val=np.array([1, 1, 2, 2]),
+        node_id=np.array(["a", "a", "b", "b"]),
+        dim0=np.array([0, 1, 0, 1]),
+        val=np.array([1, 1, 2, 2]),
     )
     expected_xs = [np.array([1, 1]), np.array([2, 2])]
     xs = merge_tensor_to_list(columns)
@@ -30,10 +30,10 @@ def test_merge_tensor_to_list_2tables_1D():
 
 def test_merge_tensor_to_list_2tables_2D():
     columns = dict(
-        prefix_node_id=np.array(["a", "a", "a", "a", "b", "b", "b", "b"]),
-        prefix_dim0=np.array([0, 0, 1, 1, 0, 0, 1, 1]),
-        prefix_dim1=np.array([0, 1, 0, 1, 0, 1, 0, 1]),
-        prefix_val=np.array([1, 1, 1, 1, 2, 2, 2, 2]),
+        node_id=np.array(["a", "a", "a", "a", "b", "b", "b", "b"]),
+        dim0=np.array([0, 0, 1, 1, 0, 0, 1, 1]),
+        dim1=np.array([0, 1, 0, 1, 0, 1, 0, 1]),
+        val=np.array([1, 1, 1, 1, 2, 2, 2, 2]),
     )
     expected_xs = [np.array([[1, 1], [1, 1]]), np.array([[2, 2], [2, 2]])]
     xs = merge_tensor_to_list(columns)
@@ -42,12 +42,10 @@ def test_merge_tensor_to_list_2tables_2D():
 
 def test_merge_tensor_to_list_3tables_2D():
     columns = dict(
-        prefix_node_id=np.array(
-            ["a", "a", "a", "a", "b", "b", "b", "b", "c", "c", "c", "c"]
-        ),
-        prefix_dim0=np.array([0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]),
-        prefix_dim1=np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]),
-        prefix_val=np.array([1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]),
+        node_id=np.array(["a", "a", "a", "a", "b", "b", "b", "b", "c", "c", "c", "c"]),
+        dim0=np.array([0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]),
+        dim1=np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]),
+        val=np.array([1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]),
     )
     expected_xs = [
         np.array([[1, 1], [1, 1]]),
@@ -60,15 +58,13 @@ def test_merge_tensor_to_list_3tables_2D():
 
 def test_merge_tensor_to_list_no_nodeid():
     columns = dict(
-        prefix_nodeid=np.array(
-            ["a", "a", "a", "a", "b", "b", "b", "b", "c", "c", "c", "c"]
-        ),
-        prefix_dim0=np.array([0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]),
-        prefix_dim1=np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]),
-        prefix_val=np.array([1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]),
+        nodeid=np.array(["a", "a", "a", "a", "b", "b", "b", "b", "c", "c", "c", "c"]),
+        dim0=np.array([0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]),
+        dim1=np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]),
+        val=np.array([1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]),
     )
     with pytest.raises(ValueError):
-        xs = merge_tensor_to_list(columns)
+        merge_tensor_to_list(columns)
 
 
 def get_secure_transfers_to_merged_dict_success_cases():

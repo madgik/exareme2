@@ -1719,7 +1719,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_dim1', 'x_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['x_dim0', 'x_dim1', 'x_val'])})
     result = x
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -1796,7 +1796,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    X = udfio.from_tensor_table({n: _columns[n] for n in ['X_dim0', 'X_dim1', 'X_val']})
+    X = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['X_dim0', 'X_dim1', 'X_val'])})
     result = X
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -1872,6 +1872,7 @@ class TestUDFGen_RelationToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col0", dtype=DType.INT),
                         ColumnInfo(name="col1", dtype=DType.FLOAT),
                         ColumnInfo(name="col2", dtype=DType.STR),
@@ -1885,14 +1886,14 @@ class TestUDFGen_RelationToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name("r_col0" INT,"r_col1" DOUBLE,"r_col2" VARCHAR(500))
+$udf_name("r_row_id" INT,"r_col0" INT,"r_col1" DOUBLE,"r_col2" VARCHAR(500))
 RETURNS
 TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    r = pd.DataFrame({n: _columns[n] for n in ['r_col0', 'r_col1', 'r_col2']})
+    r = pd.DataFrame({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col0', 'col1', 'col2'], ['r_row_id', 'r_col0', 'r_col1', 'r_col2'])}).set_index('row_id')
     result = r
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -1907,6 +1908,7 @@ SELECT
 FROM
     $udf_name((
         SELECT
+            rel_in_db.row_id,
             rel_in_db.col0,
             rel_in_db.col1,
             rel_in_db.col2
@@ -1950,6 +1952,7 @@ class TestUDFGen_2RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel1_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col0", dtype=DType.INT),
                         ColumnInfo(name="col1", dtype=DType.FLOAT),
                         ColumnInfo(name="col2", dtype=DType.STR),
@@ -1961,6 +1964,7 @@ class TestUDFGen_2RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel2_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col4", dtype=DType.INT),
                         ColumnInfo(name="col5", dtype=DType.FLOAT),
                         ColumnInfo(name="col6", dtype=DType.STR),
@@ -1974,15 +1978,15 @@ class TestUDFGen_2RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name("r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_col4" INT,"r2_col5" DOUBLE,"r2_col6" VARCHAR(500))
+$udf_name("r1_row_id" INT,"r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_row_id" INT,"r2_col4" INT,"r2_col5" DOUBLE,"r2_col6" VARCHAR(500))
 RETURNS
 TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    r1 = pd.DataFrame({n: _columns[n] for n in ['r1_col0', 'r1_col1', 'r1_col2']})
-    r2 = pd.DataFrame({n: _columns[n] for n in ['r2_col4', 'r2_col5', 'r2_col6']})
+    r1 = pd.DataFrame({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col0', 'col1', 'col2'], ['r1_row_id', 'r1_col0', 'r1_col1', 'r1_col2'])}).set_index('row_id')
+    r2 = pd.DataFrame({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col4', 'col5', 'col6'], ['r2_row_id', 'r2_col4', 'r2_col5', 'r2_col6'])}).set_index('row_id')
     result = r1
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -1997,9 +2001,11 @@ SELECT
 FROM
     $udf_name((
         SELECT
+            rel1_in_db.row_id,
             rel1_in_db.col0,
             rel1_in_db.col1,
             rel1_in_db.col2,
+            rel2_in_db.row_id,
             rel2_in_db.col4,
             rel2_in_db.col5,
             rel2_in_db.col6
@@ -2047,6 +2053,7 @@ class TestUDFGen_3RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel1_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col0", dtype=DType.INT),
                         ColumnInfo(name="col1", dtype=DType.FLOAT),
                         ColumnInfo(name="col2", dtype=DType.STR),
@@ -2058,6 +2065,7 @@ class TestUDFGen_3RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel2_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col4", dtype=DType.INT),
                         ColumnInfo(name="col5", dtype=DType.FLOAT),
                         ColumnInfo(name="col6", dtype=DType.STR),
@@ -2069,6 +2077,7 @@ class TestUDFGen_3RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel3_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col8", dtype=DType.INT),
                         ColumnInfo(name="col9", dtype=DType.FLOAT),
                         ColumnInfo(name="col10", dtype=DType.STR),
@@ -2082,16 +2091,16 @@ class TestUDFGen_3RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name("r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_col4" INT,"r2_col5" DOUBLE,"r2_col6" VARCHAR(500),"r3_col8" INT,"r3_col9" DOUBLE,"r3_col10" VARCHAR(500))
+$udf_name("r1_row_id" INT,"r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_row_id" INT,"r2_col4" INT,"r2_col5" DOUBLE,"r2_col6" VARCHAR(500),"r3_row_id" INT,"r3_col8" INT,"r3_col9" DOUBLE,"r3_col10" VARCHAR(500))
 RETURNS
 TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    r1 = pd.DataFrame({n: _columns[n] for n in ['r1_col0', 'r1_col1', 'r1_col2']})
-    r2 = pd.DataFrame({n: _columns[n] for n in ['r2_col4', 'r2_col5', 'r2_col6']})
-    r3 = pd.DataFrame({n: _columns[n] for n in ['r3_col8', 'r3_col9', 'r3_col10']})
+    r1 = pd.DataFrame({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col0', 'col1', 'col2'], ['r1_row_id', 'r1_col0', 'r1_col1', 'r1_col2'])}).set_index('row_id')
+    r2 = pd.DataFrame({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col4', 'col5', 'col6'], ['r2_row_id', 'r2_col4', 'r2_col5', 'r2_col6'])}).set_index('row_id')
+    r3 = pd.DataFrame({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col8', 'col9', 'col10'], ['r3_row_id', 'r3_col8', 'r3_col9', 'r3_col10'])}).set_index('row_id')
     result = r1
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -2106,12 +2115,15 @@ SELECT
 FROM
     $udf_name((
         SELECT
+            rel1_in_db.row_id,
             rel1_in_db.col0,
             rel1_in_db.col1,
             rel1_in_db.col2,
+            rel2_in_db.row_id,
             rel2_in_db.col4,
             rel2_in_db.col5,
             rel2_in_db.col6,
+            rel3_in_db.row_id,
             rel3_in_db.col8,
             rel3_in_db.col9,
             rel3_in_db.col10
@@ -2160,6 +2172,7 @@ class TestUDFGen_2SameRelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries)
                 name="rel1_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col0", dtype=DType.INT),
                         ColumnInfo(name="col1", dtype=DType.FLOAT),
                         ColumnInfo(name="col2", dtype=DType.STR),
@@ -2171,6 +2184,7 @@ class TestUDFGen_2SameRelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries)
                 name="rel1_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col0", dtype=DType.INT),
                         ColumnInfo(name="col1", dtype=DType.FLOAT),
                         ColumnInfo(name="col2", dtype=DType.STR),
@@ -2184,15 +2198,15 @@ class TestUDFGen_2SameRelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries)
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name("r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_col0" INT,"r2_col1" DOUBLE,"r2_col2" VARCHAR(500))
+$udf_name("r1_row_id" INT,"r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_row_id" INT,"r2_col0" INT,"r2_col1" DOUBLE,"r2_col2" VARCHAR(500))
 RETURNS
 TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    r1 = pd.DataFrame({n: _columns[n] for n in ['r1_col0', 'r1_col1', 'r1_col2']})
-    r2 = pd.DataFrame({n: _columns[n] for n in ['r2_col0', 'r2_col1', 'r2_col2']})
+    r1 = pd.DataFrame({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col0', 'col1', 'col2'], ['r1_row_id', 'r1_col0', 'r1_col1', 'r1_col2'])}).set_index('row_id')
+    r2 = pd.DataFrame({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col0', 'col1', 'col2'], ['r2_row_id', 'r2_col0', 'r2_col1', 'r2_col2'])}).set_index('row_id')
     result = r1
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -2207,9 +2221,11 @@ SELECT
 FROM
     $udf_name((
         SELECT
+            rel1_in_db.row_id,
             rel1_in_db.col0,
             rel1_in_db.col1,
             rel1_in_db.col2,
+            rel1_in_db.row_id,
             rel1_in_db.col0,
             rel1_in_db.col1,
             rel1_in_db.col2
@@ -2275,8 +2291,8 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
-    return udfio.as_relational_table(numpy.array(x))
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
+    return x.reset_index()
 }"""
 
     @pytest.fixture(scope="class")
@@ -2350,7 +2366,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
     v = 42
     result = v
     return result
@@ -2422,7 +2438,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
     v = 42
     w = 24
     result = v + w
@@ -2505,7 +2521,7 @@ FROM
         ]
 
 
-class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase, _TestGenerateUDFQueries):
+class TestUDFGen_RelationIncludeRowId(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         S = TypeVar("S")
@@ -2538,14 +2554,14 @@ class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase, _TestGenerateUDFQueries)
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name("r_c0" INT,"r_c1" DOUBLE,"r_c2" VARCHAR(500))
+$udf_name("r_row_id" INT,"r_c0" INT,"r_c1" DOUBLE,"r_c2" VARCHAR(500))
 RETURNS
 TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    r = pd.DataFrame({n: _columns[n] for n in ['r_c0', 'r_c1', 'r_c2']})
+    r = pd.DataFrame({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'c0', 'c1', 'c2'], ['r_row_id', 'r_c0', 'r_c1', 'r_c2'])}).set_index('row_id')
     result = r
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -2560,6 +2576,84 @@ SELECT
 FROM
     $udf_name((
         SELECT
+            rel_in_db.row_id,
+            rel_in_db.c0,
+            rel_in_db.c1,
+            rel_in_db.c2
+        FROM
+            rel_in_db
+    ));"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
+        ]
+
+
+class TestUDFGen_RelationExcludeNodeid(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        S = TypeVar("S")
+
+        @udf(r=relation(schema=S), return_type=tensor(dtype=DType.FLOAT, ndims=2))
+        def f(r):
+            result = r
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="rel_in_db",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="node_id", dtype=DType.INT),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
+                        ColumnInfo(name="c0", dtype=DType.INT),
+                        ColumnInfo(name="c1", dtype=DType.FLOAT),
+                        ColumnInfo(name="c2", dtype=DType.STR),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            )
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name("r_row_id" INT,"r_c0" INT,"r_c1" DOUBLE,"r_c2" VARCHAR(500))
+RETURNS
+TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    r = pd.DataFrame({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'c0', 'c1', 'c2'], ['r_row_id', 'r_c0', 'r_c1', 'r_c2'])}).set_index('row_id')
+    result = r
+    return udfio.as_tensor_table(numpy.array(result))
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name((
+        SELECT
+            rel_in_db.row_id,
             rel_in_db.c0,
             rel_in_db.c1,
             rel_in_db.c2
@@ -2621,7 +2715,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    t = udfio.from_tensor_table({n: _columns[n] for n in ['t_dim0', 't_dim1', 't_val']})
+    t = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['t_dim0', 't_dim1', 't_val'])})
     result = t
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -2708,8 +2802,8 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
-    y = udfio.from_tensor_table({n: _columns[n] for n in ['y_dim0', 'y_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
+    y = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['y_dim0', 'y_val'])})
     result = x - y
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -2812,9 +2906,9 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
-    y = udfio.from_tensor_table({n: _columns[n] for n in ['y_dim0', 'y_val']})
-    z = udfio.from_tensor_table({n: _columns[n] for n in ['z_dim0', 'z_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
+    y = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['y_dim0', 'y_val'])})
+    z = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['z_dim0', 'z_val'])})
     result = x + y + z
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -2924,9 +3018,9 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_dim1', 'x_val']})
-    y = udfio.from_tensor_table({n: _columns[n] for n in ['y_dim0', 'y_dim1', 'y_val']})
-    z = udfio.from_tensor_table({n: _columns[n] for n in ['z_dim0', 'z_dim1', 'z_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['x_dim0', 'x_dim1', 'x_val'])})
+    y = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['y_dim0', 'y_dim1', 'y_val'])})
+    z = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['z_dim0', 'z_dim1', 'z_val'])})
     result = x + y + z
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -3032,8 +3126,8 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
-    y = udfio.from_tensor_table({n: _columns[n] for n in ['y_dim0', 'y_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
+    y = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['y_dim0', 'y_val'])})
     result = sum(x - y)
     return result
 }"""
@@ -3293,7 +3387,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_dim1', 'x_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['x_dim0', 'x_dim1', 'x_val'])})
     result = sum(x)
     return result
 }"""
@@ -3360,7 +3454,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    xs = udfio.merge_tensor_to_list({n: _columns[n] for n in ['xs_node_id', 'xs_dim0', 'xs_val']})
+    xs = udfio.merge_tensor_to_list({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['node_id', 'dim0', 'val'], ['xs_node_id', 'xs_dim0', 'xs_val'])})
     x = sum(xs)
     return udfio.as_tensor_table(numpy.array(x))
 }"""
@@ -3395,6 +3489,9 @@ FROM
         ]
 
 
+@pytest.mark.skip(
+    reason="The traceback flag is never used. Should be removed from udfgen altogether."
+)
 class TestUDFGen_TracebackFlag(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
