@@ -389,9 +389,9 @@ def get_table_build_template(input_type: "TableType"):
         raise TypeError(
             f"Build template only for InputTypes. Type provided: {input_type}"
         )
-    COLUMNS_COMPREHENSION_TMPL = "{{n: _columns[n] for n in {colnames}}}"
+    COLUMNS_COMPREHENSION_TMPL = "{{name: _columns[name_w_prefix] for name, name_w_prefix in zip({colnames}, {colnames_w_prefix})}}"
     if isinstance(input_type, RelationType):
-        return f"{{varname}} = pd.DataFrame({COLUMNS_COMPREHENSION_TMPL})"
+        return f"{{varname}} = udfio.from_relational_table({COLUMNS_COMPREHENSION_TMPL}, '{ROWID}')"
     if isinstance(input_type, TensorType):
         return f"{{varname}} = udfio.from_tensor_table({COLUMNS_COMPREHENSION_TMPL})"
     if isinstance(input_type, MergeTensorType):
@@ -473,7 +473,7 @@ def get_main_return_stmt_template(output_type: "OutputType", smpc_used: bool):
             f"Return statement template only for OutputTypes. Type provided: {output_type}"
         )
     if isinstance(output_type, RelationType):
-        return "return udfio.as_relational_table(numpy.array({return_name}))"
+        return f"return udfio.as_relational_table({{return_name}}, '{ROWID}')"
     if isinstance(output_type, TensorType):
         return "return udfio.as_tensor_table(numpy.array({return_name}))"
     if isinstance(output_type, ScalarType):
@@ -1197,10 +1197,12 @@ class TableBuild(ASTNode):
         self.template = template
 
     def compile(self) -> str:
-        colnames = self.arg.type.column_names(prefix=self.arg_name)
+        colnames = self.arg.type.column_names()
+        colnames_w_prefix = self.arg.type.column_names(prefix=self.arg_name)
         return self.template.format(
             varname=self.arg_name,
             colnames=colnames,
+            colnames_w_prefix=colnames_w_prefix,
             table_name=self.arg.table_name,
         )
 
@@ -2095,7 +2097,7 @@ def is_statetype_schema(schema):
 
 
 def convert_table_schema_to_relation_schema(table_schema):
-    return [(c.name, c.dtype) for c in table_schema if c.name != ROWID]
+    return [(c.name, c.dtype) for c in table_schema if c.name != NODEID]
 
 
 # <--
@@ -2412,10 +2414,7 @@ def map_unknown_to_known_typeparams(
 
 
 def get_udf_select_template(output_type: OutputType, table_args: Dict[str, TableArg]):
-    tensors = get_table_ast_nodes_from_table_args(
-        table_args,
-        arg_type=(TensorArg),
-    )
+    tensors = get_table_ast_nodes_from_table_args(table_args, arg_type=TensorArg)
     relations = get_table_ast_nodes_from_table_args(table_args, arg_type=RelationArg)
     tables = tensors or relations
     columns = [column for table in tables for column in table.columns.values()]
