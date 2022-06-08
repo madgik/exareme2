@@ -1,7 +1,9 @@
+from typing import Dict
 from typing import Final
 
 from celery.result import AsyncResult
 
+from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
@@ -35,8 +37,8 @@ class NodeInfoTasksHandler:
             )
             return async_result
         except CeleryConnectionError as exc:
-            # TODO: how should log here???
-            print(f"{exc=}")
+            logger = ctrl_logger.get_request_logger(request_id=request_id)
+            logger.error(exc)
             raise exc
 
     # BLOCKING
@@ -52,8 +54,8 @@ class NodeInfoTasksHandler:
             )
             return NodeInfo.parse_raw(result)
         except (CeleryTaskTimeoutException, ConnectionError) as exc:
-            # TODO: how should log here???
-            print(f"{exc=}")
+            logger = ctrl_logger.get_request_logger(request_id=request_id)
+            logger.error(exc)
             raise exc
 
     # --------------- get_node_datasets_per_data_model task ---------------
@@ -68,14 +70,14 @@ class NodeInfoTasksHandler:
             )
             return async_result
         except CeleryConnectionError as exc:
-            # TODO: how should log here???
-            print(f"{exc=}")
+            logger = ctrl_logger.get_request_logger(request_id=request_id)
+            logger.error(exc)
             raise exc
 
     # BLOCKING
     def result_node_datasets_per_data_model_task(
         self, async_result: AsyncResult, request_id: str
-    ) -> NodeInfo:
+    ) -> Dict[str, Dict[str, str]]:
         celery_app = self._get_node_celery_app()
         try:
             result = celery_app.get_result(
@@ -85,8 +87,8 @@ class NodeInfoTasksHandler:
             )
             return result
         except (CeleryTaskTimeoutException, CeleryConnectionError) as exc:
-            # TODO: how should log here???
-            print(f"{exc=}")
+            logger = ctrl_logger.get_request_logger(request_id=request_id)
+            logger.error(exc)
             raise exc
 
     # --------------- get_data_model_cdes task ---------------
@@ -104,14 +106,14 @@ class NodeInfoTasksHandler:
             )
             return async_result
         except CeleryConnectionError as exc:
-            # TODO: how should log here???
-            print(f"{exc=}")
+            logger = ctrl_logger.get_request_logger(request_id=request_id)
+            logger.error(exc)
             raise exc
 
     # BLOCKING
     def result_data_model_cdes_task(
         self, async_result: AsyncResult, request_id: str
-    ) -> NodeInfo:
+    ) -> CommonDataElements:
         celery_app = self._get_node_celery_app()
         try:
             result = celery_app.get_result(
@@ -121,6 +123,6 @@ class NodeInfoTasksHandler:
             )
             return CommonDataElements.parse_raw(result)
         except (CeleryTaskTimeoutException, CeleryConnectionError) as exc:
-            # TODO: how should log here???
-            print(f"{exc=}")
+            logger = ctrl_logger.get_request_logger(request_id=request_id)
+            logger.error(exc)
             raise exc
