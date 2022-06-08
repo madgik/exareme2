@@ -41,11 +41,7 @@ class Controller:
         )
 
     def start_cleanup_loop(self):
-        self._controller_logger.info("starting cleanup_loop")
-        self._cleaner.keep_cleaning_up = True
-        task = asyncio.create_task(self._cleaner.cleanup_loop())
-        self._controller_logger.info("started clean_up loop")
-        return task
+        pass
 
     def stop_cleanup_loop(self):
         self._cleaner.keep_cleaning_up = False

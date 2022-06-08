@@ -329,7 +329,6 @@ def drop_db_artifacts_by_context_id(context_id: str):
         TableType.NORMAL,
     )
     for table_type in table_type_drop_order:
-        print("Dropping tabletype: " + str(table_type))
         _drop_table_by_type_and_context_id(table_type, context_id)
 
 

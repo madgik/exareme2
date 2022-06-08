@@ -520,7 +520,7 @@ def start_node(
                 if detached or all_:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
-                        f"-A mipengine.node.node worker -l {framework_log_level} >> {outpath} "
+                        f"-A mipengine.node.node worker -l {framework_log_level} > {outpath} "
                         f"--pool=eventlet --purge 2>&1"
                     )
                     run(c, cmd, wait=False)

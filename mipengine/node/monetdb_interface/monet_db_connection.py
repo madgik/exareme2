@@ -10,7 +10,8 @@ from mipengine.node import config as node_config
 from mipengine.node import node_logger as logging
 from mipengine.singleton import Singleton
 
-MAX_ATTEMPTS = 50
+INTEGRITY_ERROR_RETRY_INTERVAL = 1
+BROKEN_PIPE_MAX_ATTEMPTS = 50
 BROKEN_PIPE_ERROR_RETRY = 0.2
 CREATE_OR_REPLACE_QUERY_TIMEOUT = 1
 INSERT_INTO_QUERY_TIMEOUT = (
@@ -28,16 +29,26 @@ class DBExecutionDTO:
         self.many = many
 
 
-def exception_handling(func):
+def _query_execution_exception_handling(func):
+    """
+    On the query execution we need to handle the 'BrokenPipeError' exception.
+    In the case of the 'BrokenPipeError' exception, we create a new connection,
+    and we retry for x amount of times the execution in case the database has recovered.
+    """
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        for tries in range(MAX_ATTEMPTS):
+        for tries in range(BROKEN_PIPE_MAX_ATTEMPTS):
             conn = self._get_connection()
 
             try:
                 function = func(self, *args, **kwargs, conn=conn)
                 break
-            except BrokenPipeError as bpe:
+            except pymonetdb.exceptions.IntegrityError as exc:
+                self._connection.rollback()
+                sleep(INTEGRITY_ERROR_RETRY_INTERVAL)
+                continue
+            except BrokenPipeError as exc:
                 conn = self._create_connection()
                 sleep(tries * BROKEN_PIPE_ERROR_RETRY)
                 continue
@@ -47,7 +58,8 @@ def exception_handling(func):
             finally:
                 self._release_connection(conn)
         else:
-            raise bpe
+            raise exc
+
         return function
 
     return wrapper
@@ -57,17 +69,24 @@ class MonetDBPool(metaclass=Singleton):
     """
     MonetDBPool is a Singleton class because we want it to be initialized at runtime.
 
-    If the connection is a public module variable, it will be initialized at import time
-    from Celery and all the Celery workers will use the same connection instance.
-
-    We want one MonetDB connection instance per Celery worker/process.
+    We use sudo-multithreading(eventlet greenlets),
+    we provide a connection pool to support concurrent query execution.
     """
 
     def __init__(self):
-        self._connection_pool = [self._create_connection() for _ in range(24)]
         self._logger = logging.get_logger()
+        self._connection_pool = [self._create_connection() for _ in range(16)]
 
     def _create_connection(self):
+        self._logger.info(
+            {
+                "hostname": node_config.monetdb.ip,
+                "port": node_config.monetdb.port,
+                "username": node_config.monetdb.username,
+                "password": node_config.monetdb.password,
+                "database": node_config.monetdb.database,
+            }
+        )
         return pymonetdb.connect(
             hostname=node_config.monetdb.ip,
             port=node_config.monetdb.port,
@@ -93,10 +112,11 @@ class MonetDBPool(metaclass=Singleton):
 
     @contextmanager
     def cursor(self, _connection):
-        # We use a single instance of a connection and by committing before a select query we refresh the state
-        # of the connection so that it sees changes from other processes/connections.
-        # https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
-        # -on-another-connect.
+        """
+        We use sudo-multithreading (eventlet greenlets) by committing before a select query we refresh the state
+        of the connection so that it sees changes from other connections.
+        https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
+        """
         _connection.commit()
 
         cur = _connection.cursor()
@@ -109,22 +129,21 @@ class MonetDBPool(metaclass=Singleton):
         yield
         query_lock.release()
 
-    @exception_handling
+    @_query_execution_exception_handling
     def execute_and_fetchall(
         self, query: str, parameters=None, many=False, conn=None
     ) -> List:
         """
-        Used to execute select queries that return a result.
-        Should NOT be used to execute "CREATE, DROP, ALTER, UPDATE, ..." statements.
+        Used to execute only select queries that return a result.
 
         'many' option to provide the functionality of executemany, all results will be fetched.
         'parameters' option to provide the functionality of bind-parameters.
         """
         db_execution_dto = DBExecutionDTO(query=query, parameters=parameters, many=many)
 
-        self._logger.info(
-            f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
-        )
+        # self._logger.info(
+        #     f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
+        # )
 
         with self.cursor(conn) as cur:
             cur.executemany(
@@ -135,28 +154,33 @@ class MonetDBPool(metaclass=Singleton):
             result = cur.fetchall()
         return result
 
-    @exception_handling
+    @_query_execution_exception_handling
     def execute(self, query: str, parameters=None, many=False, conn=None):
         """
         Executes statements that don't have a result. For example "CREATE,DROP,UPDATE".
-        And handles the *Optimistic Concurrency Control by giving each call X attempts
-        if they fail with pymonetdb.exceptions.IntegrityError.
-        *https://www.monetdb.org/blog/optimistic-concurrency-control
+
+        By adding create_function_query_lock we serialized the execution of the queries that contain 'create or replace function',
+        in order to handle the error 'CREATE OR REPLACE FUNCTION: transaction conflict detected'
+        https://www.mail-archive.com/checkin-list@monetdb.org/msg46062.html
+
+        By adding insert_query_lock we serialized the execution of the queries that contain 'INSERT INTO'.
+        We need this insert_query_lock in order to ensure that we will have the zero-cost that the monetdb provides on the udfs.
+
 
         'many' option to provide the functionality of executemany.
         'parameters' option to provide the functionality of bind-parameters.
         """
         db_execution_dto = DBExecutionDTO(query=query, parameters=parameters, many=many)
-
-        self._logger.info(
-            f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
-        )
+        #
+        # self._logger.info(
+        #     f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
+        # )
 
         if "CREATE OR REPLACE FUNCTION" in db_execution_dto.query:
-            with create_function_query_lock:
+            with self.lock(create_function_query_lock, CREATE_OR_REPLACE_QUERY_TIMEOUT):
                 self._execute_and_commit(conn, db_execution_dto)
         elif "INSERT INTO" in db_execution_dto.query:
-            with insert_query_lock:
+            with self.lock(insert_query_lock, INSERT_INTO_QUERY_TIMEOUT):
                 self._execute_and_commit(conn, db_execution_dto)
         else:
             self._execute_and_commit(conn, db_execution_dto)
