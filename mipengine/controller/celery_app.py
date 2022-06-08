@@ -1,3 +1,4 @@
+import traceback
 from typing import Union
 
 import amqp
@@ -9,6 +10,7 @@ from celery.canvas import Signature
 from celery.result import AsyncResult
 
 from mipengine.controller import config as controller_config
+from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.singleton import Singleton
 
 
@@ -45,17 +47,10 @@ class CeleryWrapper:
             amqp.exceptions.AccessRefused,
             amqp.exceptions.NotAllowed,
         ) as exc:
-            # TODO how are things supposed to be logged in here?
-            # get_backgroung_service_logger() makes no sense
-
-            ######################
-            print(f"(celery_app::CeleryWrapper::queue_task) {exc=}\n")
-
-            import traceback
+            logger = ctrl_logger.get_request_logger(request_id=kwargs["request_id"])
 
             tr = traceback.format_exc()
-            print(tr)
-            ######################
+            logger.error(tr)
 
             self._close()
             self._celery_app = self._create_new_celery_app()
@@ -69,7 +64,7 @@ class CeleryWrapper:
 
     # get_result() is blocking, because celery.result.AsyncResult.get() is blocking
     def get_result(
-        self, async_result: AsyncResult, timeout: int
+        self, async_result: AsyncResult, timeout: int, request_id: str
     ) -> Union[str, dict, list]:
         try:
             result = async_result.get(timeout)
@@ -79,33 +74,18 @@ class CeleryWrapper:
             billiard.exceptions.SoftTimeLimitExceeded,
             billiard.exceptions.TimeLimitExceeded,
         ) as timeout_error:
-            # TODO how are things supposed to be logged in here?
-            # get_backgroung_service_logger() makes no sense
-
-            ######################
-            print(
-                f"(celery_app::CeleryWrapper::get_result) {timeout_error=} {async_result.id=}"
-            )
-            import traceback
+            logger = ctrl_logger.get_request_logger(request_id=request_id)
 
             tr = traceback.format_exc()
-            print(tr)
-            ######################
+            logger.error(tr)
 
             try:
                 self._celery_app.control.inspect().ping()
             except kombu.exceptions.OperationalError as oper_err_inner:
-
-                ######################
-                print(
-                    f"(celery_app::CeleryWrapper::get_result) {oper_err_inner=} {async_result.id=}"
-                )
-
-                import traceback
+                logger = ctrl_logger.get_request_logger(request_id=request_id)
 
                 tr = traceback.format_exc()
-                print(tr)
-                ######################
+                logger.error(tr)
 
                 self._close()
                 self._celery_app = self._create_new_celery_app()
@@ -122,16 +102,10 @@ class CeleryWrapper:
                 async_result=async_result,
             )
         except kombu.exceptions.OperationalError as oper_err:
-            # TODO how are things supposed to be logged in here?
-            # get_backgroung_service_logger() makes no sense
-            ######################
-            print(f"(celery_app::CeleryWrapper::get_result) {oper_err=}")
-
-            import traceback
+            logger = ctrl_logger.get_request_logger(request_id=request_id)
 
             tr = traceback.format_exc()
-            print(tr)
-            ######################
+            logger.error(tr)
 
             self._close()
             self._celery_app = self._create_new_celery_app()

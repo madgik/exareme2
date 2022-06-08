@@ -135,7 +135,9 @@ class INodeAlgorithmTasksHandler(ABC):
         pass
 
     @abstractmethod
-    def get_queued_udf_result(self, async_result: AsyncResult) -> UDFResults:
+    def get_queued_udf_result(
+        self, async_result: AsyncResult, request_id: str
+    ) -> UDFResults:
         pass
 
     @abstractmethod
@@ -221,7 +223,9 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             context_id=context_id,
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
         return list(result)
 
@@ -232,7 +236,9 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             task_signature=task_signature, request_id=request_id, table_name=table_name
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
         return TableSchema.parse_raw(result)
 
@@ -243,7 +249,9 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             task_signature=task_signature, request_id=request_id, table_name=table_name
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
         return TableData.parse_raw(result)
 
@@ -262,7 +270,9 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             schema_json=schema_json,
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
 
         return result
@@ -277,7 +287,9 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             context_id=context_id,
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
 
         return result
@@ -310,7 +322,9 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             check_min_rows=check_min_rows,
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
         return result
 
@@ -324,7 +338,9 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             context_id=context_id,
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
 
         return result
@@ -342,7 +358,9 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             table_names=table_names,
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
 
         return result
@@ -357,7 +375,9 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             context_id=context_id,
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
         return result
 
@@ -379,7 +399,11 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             monetdb_socket_address=original_db_url,
             request_id=request_id,
         )
-        celery_app.get_result(async_result=async_result, timeout=self._tasks_timeout)
+        celery_app.get_result(
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
+        )
 
     # UDFs functionality
     def queue_run_udf(
@@ -407,10 +431,16 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         )
         return async_result
 
-    def get_queued_udf_result(self, async_result: AsyncResult) -> UDFResults:
+    def get_queued_udf_result(
+        self,
+        async_result: AsyncResult,
+        request_id: str,
+    ) -> UDFResults:
         celery_app = self._get_node_celery_app()
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
         return UDFResults.parse_raw(result)
 
@@ -421,7 +451,9 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             task_signature=task_signature, algorithm_name=algorithm_name
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
         return result
 
@@ -446,7 +478,9 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             keyword_args_json=UDFKeyArguments(args={}).json(),
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
 
         return result
@@ -454,36 +488,43 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     # ------------- SMPC functionality ---------------
     def validate_smpc_templates_match(
         self,
-        context_id: str,
+        request_id: str,
         table_name: str,
     ):
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["validate_smpc_templates_match"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
-            context_id=context_id,
+            request_id=request_id,
             table_name=table_name,
         )
-        celery_app.get_result(async_result=async_result, timeout=self._tasks_timeout)
+        celery_app.get_result(
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
+        )
 
     def load_data_to_smpc_client(
-        self, context_id: str, table_name: str, jobid: str
+        self, request_id: str, table_name: str, jobid: str
     ) -> int:
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["load_data_to_smpc_client"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
-            context_id=context_id,
+            request_id=request_id,
             table_name=table_name,
             jobid=jobid,
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
         )
         return result
 
     def get_smpc_result(
         self,
+        request_id: str,
         jobid: str,
         context_id: str,
         command_id: str,
@@ -493,12 +534,17 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         task_signature = TASK_SIGNATURES["get_smpc_result"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
+            request_id=request_id,
             jobid=jobid,
             context_id=context_id,
             command_id=command_id,
             command_subid=command_subid,
         )
-        celery_app.get_result(async_result=async_result, timeout=self._tasks_timeout)
+        celery_app.get_result(
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
+        )
 
     # CLEANUP functionality
     def clean_up(self, request_id: str, context_id: str):
@@ -507,4 +553,8 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         async_result = celery_app.queue_task(
             task_signature=task_signature, request_id=request_id, context_id=context_id
         )
-        celery_app.get_result(async_result=async_result, timeout=self._tasks_timeout)
+        celery_app.get_result(
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            request_id=request_id,
+        )

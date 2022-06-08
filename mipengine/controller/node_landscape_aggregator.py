@@ -50,7 +50,10 @@ def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
     nodes_info = []
     for tasks_handler, async_result in async_results.items():
         try:
-            result = tasks_handler.result_node_info_task(async_result=async_result)
+            result = tasks_handler.result_node_info_task(
+                async_result=async_result,
+                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+            )
             nodes_info.append(result)
         except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
             # just log the exception do not reraise it
@@ -72,7 +75,8 @@ def _get_node_datasets_per_data_model(
         )
         datasets_per_data_model = (
             tasks_handler.result_node_datasets_per_data_model_task(
-                async_result=async_result
+                async_result=async_result,
+                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
             )
         )
         return datasets_per_data_model
@@ -90,7 +94,7 @@ def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements
             request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
         )
         datasets_per_data_model = tasks_handler.result_data_model_cdes_task(
-            async_result=async_result
+            async_result=async_result, request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
         )
         return datasets_per_data_model
     except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:

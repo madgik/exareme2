@@ -40,11 +40,15 @@ class NodeInfoTasksHandler:
             raise exc
 
     # BLOCKING
-    def result_node_info_task(self, async_result: AsyncResult) -> NodeInfo:
+    def result_node_info_task(
+        self, async_result: AsyncResult, request_id: str
+    ) -> NodeInfo:
         celery_app = self._get_node_celery_app()
         try:
             result = celery_app.get_result(
-                async_result=async_result, timeout=self._tasks_timeout
+                async_result=async_result,
+                timeout=self._tasks_timeout,
+                request_id=request_id,
             )
             return NodeInfo.parse_raw(result)
         except (CeleryTaskTimeoutException, ConnectionError) as exc:
@@ -70,12 +74,14 @@ class NodeInfoTasksHandler:
 
     # BLOCKING
     def result_node_datasets_per_data_model_task(
-        self, async_result: AsyncResult
+        self, async_result: AsyncResult, request_id: str
     ) -> NodeInfo:
         celery_app = self._get_node_celery_app()
         try:
             result = celery_app.get_result(
-                async_result=async_result, timeout=self._tasks_timeout
+                async_result=async_result,
+                timeout=self._tasks_timeout,
+                request_id=request_id,
             )
             return result
         except (CeleryTaskTimeoutException, CeleryConnectionError) as exc:
@@ -103,11 +109,15 @@ class NodeInfoTasksHandler:
             raise exc
 
     # BLOCKING
-    def result_data_model_cdes_task(self, async_result: AsyncResult) -> NodeInfo:
+    def result_data_model_cdes_task(
+        self, async_result: AsyncResult, request_id: str
+    ) -> NodeInfo:
         celery_app = self._get_node_celery_app()
         try:
             result = celery_app.get_result(
-                async_result=async_result, timeout=self._tasks_timeout
+                async_result=async_result,
+                timeout=self._tasks_timeout,
+                request_id=request_id,
             )
             return CommonDataElements.parse_raw(result)
         except (CeleryTaskTimeoutException, CeleryConnectionError) as exc:

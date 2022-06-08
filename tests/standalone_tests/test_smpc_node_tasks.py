@@ -55,7 +55,9 @@ def create_secure_transfer_table(celery_app) -> str:
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     )
-    table_name = celery_app.get_result(async_result=async_result, timeout=TASKS_TIMEOUT)
+    table_name = celery_app.get_result(
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+    )
     return table_name
 
 
@@ -83,7 +85,9 @@ def create_table_with_secure_transfer_results_with_smpc_off(
         table_name=table_name,
         values=values,
     )
-    celery_app.get_result(async_result=async_result, timeout=TASKS_TIMEOUT)
+    celery_app.get_result(
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+    )
 
     return table_name, secure_transfer_1_value + secure_transfer_2_value
 
@@ -115,7 +119,9 @@ def create_table_with_multiple_secure_transfer_templates(
         table_name=table_name,
         values=values,
     )
-    celery_app.get_result(async_result=async_result, timeout=TASKS_TIMEOUT)
+    celery_app.get_result(
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+    )
 
     return table_name
 
@@ -136,7 +142,9 @@ def create_table_with_smpc_sum_op_values(celery_app) -> Tuple[str, str]:
         table_name=table_name,
         values=values,
     )
-    celery_app.get_result(async_result=async_result, timeout=TASKS_TIMEOUT)
+    celery_app.get_result(
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+    )
 
     return table_name, json.dumps(sum_op_values)
 
@@ -154,7 +162,7 @@ def validate_dict_table_data_match_expected(
         table_name=table_name,
     )
     table_data_str = celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     table_data: TableData = TableData.parse_raw(table_data_str)
     result_str, *_ = table_data.columns[1].data
@@ -184,7 +192,7 @@ def test_secure_transfer_output_with_smpc_off(
         keyword_args_json=UDFKeyArguments(args={}).json(),
     )
     udf_results_str = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     results = UDFResults.parse_raw(udf_results_str).results
@@ -227,7 +235,7 @@ def test_secure_transfer_input_with_smpc_off(
         keyword_args_json=UDFKeyArguments(args={}).json(),
     )
     udf_results_str = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     results = UDFResults.parse_raw(udf_results_str).results
@@ -265,7 +273,7 @@ def test_validate_smpc_templates_match(
             table_name=table_name,
         )
         smpc_localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT
+            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
         )
     except Exception as exc:
         pytest.fail(f"No exception should be raised. Exception: {exc}")
@@ -291,7 +299,7 @@ def test_validate_smpc_templates_dont_match(
             table_name=table_name,
         )
         smpc_localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT
+            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
         )
     assert "SMPC templates dont match." in str(exc)
 
@@ -323,7 +331,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
         use_smpc=True,
     )
     udf_results_str = smpc_localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     local_step_results = UDFResults.parse_raw(udf_results_str).results
@@ -373,7 +381,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
         use_smpc=True,
     )
     udf_results_str = smpc_localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     global_step_results = UDFResults.parse_raw(udf_results_str).results
@@ -407,7 +415,7 @@ def test_load_data_to_smpc_client_from_globalnode_fails(
             jobid="whatever",
         )
         smpc_globalnode_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT
+            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
         )
     assert "load_data_to_smpc_client is allowed only for a LOCALNODE." in str(exc)
 
@@ -436,7 +444,7 @@ def test_load_data_to_smpc_client(
         jobid="testKey123",
     )
     smpc_localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     node_config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
@@ -474,7 +482,7 @@ def test_get_smpc_result_from_localnode_fails(
             jobid="whatever",
         )
         smpc_localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT
+            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
         )
     assert "get_smpc_result is allowed only for a GLOBALNODE." in str(exc)
 
@@ -525,7 +533,7 @@ def test_get_smpc_result(
         jobid=smpc_job_id,
     )
     result_tablename = smpc_globalnode_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     validate_dict_table_data_match_expected(
         celery_app=smpc_globalnode_celery_app,

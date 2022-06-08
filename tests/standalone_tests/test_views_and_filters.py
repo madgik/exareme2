@@ -50,7 +50,7 @@ def test_view_without_filters(
         schema_json=table_schema.json(),
     )
     table_name = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
@@ -61,7 +61,9 @@ def test_view_without_filters(
         table_name=table_name,
         values=values,
     )
-    localnode1_celery_app.get_result(async_result=async_result, timeout=TASKS_TIMEOUT)
+    localnode1_celery_app.get_result(
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+    )
 
     columns = ["col1", "col3"]
     task_signature = get_celery_task_signature("create_view")
@@ -75,7 +77,7 @@ def test_view_without_filters(
         filters=None,
     )
     view_name = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     task_signature = get_celery_task_signature("get_views")
@@ -83,7 +85,7 @@ def test_view_without_filters(
         task_signature=task_signature, request_id=request_id, context_id=context_id
     )
     views = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     assert view_name in views
@@ -99,7 +101,7 @@ def test_view_without_filters(
         task_signature=task_signature, request_id=request_id, table_name=view_name
     )
     schema_result_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     assert view_intended_schema == TableSchema.parse_raw(schema_result_json)
 
@@ -108,7 +110,7 @@ def test_view_without_filters(
         task_signature=task_signature, request_id=request_id, table_name=view_name
     )
     view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     view_data = TableData.parse_raw(view_data_json)
     assert len(view_data.columns) == len(view_intended_schema.columns)
@@ -140,7 +142,7 @@ def test_view_with_filters(
         schema_json=table_schema.json(),
     )
     table_name = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
@@ -151,7 +153,9 @@ def test_view_with_filters(
         table_name=table_name,
         values=values,
     )
-    localnode1_celery_app.get_result(async_result=async_result, timeout=TASKS_TIMEOUT)
+    localnode1_celery_app.get_result(
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+    )
 
     columns = ["col1", "col3"]
     filters = {
@@ -184,7 +188,7 @@ def test_view_with_filters(
         filters=filters,
     )
     view_name = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     task_signature = get_celery_task_signature("get_views")
@@ -192,7 +196,7 @@ def test_view_with_filters(
         task_signature=task_signature, request_id=request_id, context_id=context_id
     )
     views = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     assert view_name in views
     view_intended_schema = TableSchema(
@@ -207,7 +211,7 @@ def test_view_with_filters(
         task_signature=task_signature, request_id=request_id, table_name=view_name
     )
     schema_result_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     assert view_intended_schema == TableSchema.parse_raw(schema_result_json)
 
@@ -216,7 +220,7 @@ def test_view_with_filters(
         task_signature=task_signature, request_id=request_id, table_name=view_name
     )
     view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     view_data = TableData.parse_raw(view_data_json)
     assert len(view_data.columns) == 2
@@ -250,14 +254,14 @@ def test_data_model_view_without_filters(
         columns_per_view=[columns],
     )
     view_name, *_ = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     task_signature = get_celery_task_signature("get_views")
     async_result = localnode1_celery_app.queue_task(
         task_signature=task_signature, request_id=request_id, context_id=context_id
     )
     views = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     assert view_name in views
 
@@ -275,7 +279,7 @@ def test_data_model_view_without_filters(
         task_signature=task_signature, request_id=request_id, table_name=view_name
     )
     schema_result_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     assert schema == TableSchema.parse_raw(schema_result_json)
 
@@ -284,7 +288,7 @@ def test_data_model_view_without_filters(
         task_signature=task_signature, request_id=request_id, table_name=view_name
     )
     view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     view_data = TableData.parse_raw(view_data_json)
     assert len(view_data.columns) == len(schema.columns)
@@ -338,7 +342,7 @@ def test_data_model_view_with_filters(
         dropna=False,
     )
     view_name, *_ = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     task_signature = get_celery_task_signature("get_views")
@@ -346,7 +350,7 @@ def test_data_model_view_with_filters(
         task_signature=task_signature, request_id=request_id, context_id=context_id
     )
     views = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     assert view_name in views
 
@@ -365,7 +369,7 @@ def test_data_model_view_with_filters(
         task_signature=task_signature, request_id=request_id, table_name=view_name
     )
     schema_result_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     assert schema == TableSchema.parse_raw(schema_result_json)
 
@@ -374,7 +378,7 @@ def test_data_model_view_with_filters(
         task_signature=task_signature, request_id=request_id, table_name=view_name
     )
     view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     view_data = TableData.parse_raw(view_data_json)
     assert len(view_data.columns) == len(schema.columns)
@@ -405,7 +409,7 @@ def test_data_model_view_dataset_constraint(
         filters=None,
     )
     view_name, *_ = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     task_signature = get_celery_task_signature("get_table_data")
@@ -413,7 +417,7 @@ def test_data_model_view_dataset_constraint(
         task_signature=task_signature, request_id=request_id, table_name=view_name
     )
     view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     _, dataset_column = TableData.parse_raw(view_data_json).columns
@@ -445,7 +449,7 @@ def test_data_model_view_null_constraints(
         filters=None,
     )
     view_name_without_nulls, *_ = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     task_signature = get_celery_task_signature("get_table_data")
@@ -455,7 +459,7 @@ def test_data_model_view_null_constraints(
         table_name=view_name_without_nulls,
     )
     view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     _, gose_score_column = TableData.parse_raw(view_data_json).columns
     assert None not in gose_score_column.data
@@ -473,7 +477,7 @@ def test_data_model_view_null_constraints(
         dropna=False,
     )
     view_name_with_nulls, *_ = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     task_signature = get_celery_task_signature("get_table_data")
@@ -483,7 +487,7 @@ def test_data_model_view_null_constraints(
         table_name=view_name_with_nulls,
     )
     view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     _, gose_score_column = TableData.parse_raw(view_data_json).columns
 
@@ -539,7 +543,7 @@ def test_data_model_view_min_rows_checks(
             filters=filters,
         )
         localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT
+            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
         )
 
         # Check the same view creation with min rows check disabled
@@ -556,7 +560,7 @@ def test_data_model_view_min_rows_checks(
             check_min_rows=False,
         )
         localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT
+            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
         )
 
 
@@ -584,7 +588,7 @@ def test_data_model_view_with_data_model_unavailable_exception(
             columns_per_view=[columns],
         )
         localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT
+            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
         )
 
     assert (
@@ -617,7 +621,7 @@ def test_data_model_view_with_dataset_unavailable_exception(
             columns_per_view=[columns],
         )
         localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT
+            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
         )
 
     assert (
@@ -656,7 +660,7 @@ def test_multiple_data_model_views(
         columns_per_view=columns_per_view,
     )
     view1_name, view2_name = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     task_signature = get_celery_task_signature("get_views")
@@ -664,7 +668,7 @@ def test_multiple_data_model_views(
         task_signature=task_signature, request_id=request_id, context_id=context_id
     )
     views = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     assert view1_name in views
     assert view2_name in views
@@ -680,7 +684,7 @@ def test_multiple_data_model_views(
         task_signature=task_signature, request_id=request_id, table_name=view1_name
     )
     schema_result_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     assert schema1 == TableSchema.parse_raw(schema_result_json)
 
@@ -696,7 +700,7 @@ def test_multiple_data_model_views(
         task_signature=task_signature, request_id=request_id, table_name=view2_name
     )
     schema_result_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     assert schema2 == TableSchema.parse_raw(schema_result_json)
 
@@ -733,7 +737,7 @@ def test_multiple_data_model_views_null_constraints(
         check_min_rows=False,
     )
     view_name_with_values, view_name_with_nulls = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     # Check that the all null view doesn't have any rows (All rows were dropped)
@@ -744,7 +748,7 @@ def test_multiple_data_model_views_null_constraints(
         table_name=view_name_with_nulls,
     )
     view_name_with_nulls_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     _, gose_score_column = TableData.parse_raw(view_name_with_nulls_data_json).columns
@@ -758,7 +762,7 @@ def test_multiple_data_model_views_null_constraints(
         table_name=view_name_with_values,
     )
     view_name_with_values_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     _, gcs_eye_response_scale_column = TableData.parse_raw(
         view_name_with_values_data_json

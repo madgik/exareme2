@@ -269,7 +269,9 @@ class LocalNode(_Node):
         return [TableName(view) for view in views]
 
     def get_queued_udf_result(self, async_result: AsyncResult) -> List[NodeData]:
-        node_udf_results = self._node_tasks_handler.get_queued_udf_result(async_result)
+        node_udf_results = self._node_tasks_handler.get_queued_udf_result(
+            async_result=async_result, request_id=self.request_id
+        )
         udf_results = []
         for result in node_udf_results.results:
             if isinstance(result, NodeTableDTO):
@@ -311,7 +313,9 @@ def create_node_table_from_node_table_dto(node_table_dto: NodeTableDTO):
 
 class GlobalNode(_Node):
     def get_queued_udf_result(self, async_result: AsyncResult) -> List[TableName]:
-        node_udf_results = self._node_tasks_handler.get_queued_udf_result(async_result)
+        node_udf_results = self._node_tasks_handler.get_queued_udf_result(
+            async_result=async_result, request_id=self.request_id
+        )
         results = []
         for result in node_udf_results.results:
             if isinstance(result, NodeTableDTO):

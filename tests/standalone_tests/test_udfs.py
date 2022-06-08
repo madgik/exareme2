@@ -43,7 +43,9 @@ def create_table_with_one_column_and_ten_rows(celery_app) -> Tuple[str, int]:
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     )
-    table_name = celery_app.get_result(async_result=async_result, timeout=TASKS_TIMEOUT)
+    table_name = celery_app.get_result(
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+    )
 
     values = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
     async_result = celery_app.queue_task(
@@ -52,7 +54,9 @@ def create_table_with_one_column_and_ten_rows(celery_app) -> Tuple[str, int]:
         table_name=table_name,
         values=values,
     )
-    celery_app.get_result(async_result=async_result, timeout=TASKS_TIMEOUT)
+    celery_app.get_result(
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+    )
 
     return table_name, 55
 
@@ -66,7 +70,7 @@ def test_get_udf(localnode1_node_service, localnode1_celery_app):
         func_name=make_unique_func_name(get_column_rows),
     )
     fetched_udf = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     assert get_column_rows.__name__ in fetched_udf
 
@@ -95,7 +99,7 @@ def test_run_udf_relation_to_scalar(
         keyword_args_json=kw_args_str,
     )
     udf_results_str = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     results = UDFResults.parse_raw(udf_results_str).results
     assert len(results) == 1
@@ -109,7 +113,7 @@ def test_run_udf_relation_to_scalar(
         table_name=result.value,
     )
     table_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
     table_data = TableData.parse_raw(table_data_json)
 
@@ -144,7 +148,7 @@ def test_run_udf_state_and_transfer_output(
         keyword_args_json=kw_args_str,
     )
     udf_results_str = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     results = UDFResults.parse_raw(udf_results_str).results
@@ -162,7 +166,7 @@ def test_run_udf_state_and_transfer_output(
         table_name=transfer_result.value,
     )
     transfer_table_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT
+        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
     )
 
     table_data = TableData.parse_raw(transfer_table_data_json)
@@ -208,5 +212,5 @@ def test_slow_udf_exception(
             keyword_args_json=kw_args_str,
         )
         localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT
+            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
         )
