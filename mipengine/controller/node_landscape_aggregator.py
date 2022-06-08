@@ -166,17 +166,15 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                     self._data_model_registry.data_models = compatible_data_models
                     self._data_model_registry.datasets_location = datasets_locations
 
-                    logger.debug(
-                        f"Nodes:{[node for node in self._node_registry.nodes]}"
+                    logger.info(
+                        f"Online nodes:{[node for node in self._node_registry.nodes]}"
                     )
-                    print(f"Nodes:{[node for node in self._node_registry.nodes]}")
 
             except Exception as exc:
                 logger.warning(
                     f"NodeLandscapeAggregator caught an exception but will continue to "
                     f"update {exc=}"
                 )
-                pass
             finally:
                 time.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
 
