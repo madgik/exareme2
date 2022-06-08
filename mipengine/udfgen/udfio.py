@@ -42,13 +42,6 @@ def as_tensor_table(array: np.ndarray):
 
 
 def from_tensor_table(table: dict):
-    # XXX Hack, find better way
-    table = {
-        re.sub(r"\w+_(dim\d+)", r"\1", key)
-        if re.match(r"\w+_(dim\d+)", key)
-        else re.sub(r"\w+_(val)", r"\1", key): val
-        for key, val in table.items()
-    }
     ndims = len(table) - 1
     multi_index = [table[f"dim{i}"] for i in range(ndims)]
     shape = [max(idx) + 1 for idx in multi_index]
@@ -60,17 +53,17 @@ def from_tensor_table(table: dict):
     return np.array(array)
 
 
-def as_relational_table(array: np.ndarray):
-    """
-    TODO Output of relational tables needs to be refactored
-    What objects can we return? Do we need a name parameter?
-    https://team-1617704806227.atlassian.net/browse/MIP-536
+def from_relational_table(table: dict, row_id: str):
+    result = pd.DataFrame(table)
+    if row_id in result.columns:
+        return result.set_index(row_id)
+    return result
 
-    """
-    # assert len(array.shape) in (1, 2)
-    # names = (f"{name}_{i}" for i in range(array.shape[1]))
-    # out = {n: c for n, c in zip(names, array)}
-    return array
+
+def as_relational_table(result, row_id):
+    if isinstance(result, pd.DataFrame) and row_id == result.index.name:
+        return result.reset_index()
+    return result
 
 
 def reduce_tensor_pair(op, a: pd.DataFrame, b: pd.DataFrame):

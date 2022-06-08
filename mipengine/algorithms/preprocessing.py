@@ -56,7 +56,7 @@ class DummyEncoder:
     @staticmethod
     @udf(x=relation(), categorical_vars=literal(), return_type=transfer())
     def _gather_enums_local(x, categorical_vars):
-        categorical_vars = ["x_" + varname for varname in categorical_vars]
+        categorical_vars = [varname for varname in categorical_vars]
         enumerations = {}
         for cat in categorical_vars:
             enumerations[cat] = list(x[cat].unique())
@@ -79,7 +79,7 @@ class DummyEncoder:
             )
 
         keys = local_transfers[0]["enumerations"].keys()
-        enumerations = {key[2:]: reduce_enums(key) for key in keys}
+        enumerations = {key: reduce_enums(key) for key in keys}
 
         return enumerations
 
