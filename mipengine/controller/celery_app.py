@@ -117,10 +117,8 @@ class CeleryWrapper:
             raise connection_error
 
     def _create_new_celery_app(self):
-        try:
+        if hasattr(self, "_celery_app"):
             self._celery_app.close()
-        except AttributeError:
-            pass  # ignore it, there is no existing celery instance
         user = controller_config.rabbitmq.user
         password = controller_config.rabbitmq.password
         vhost = controller_config.rabbitmq.vhost
