@@ -1253,7 +1253,7 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
         posargs = [TensorArg("table_name", dtype=int, ndims=1)]
         keywordargs = {"z": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = get_udf_templates_using_udfregistry(
+            get_udf_templates_using_udfregistry(
                 request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
@@ -1280,7 +1280,7 @@ class TestUDFGen_LoggerArgument_provided_in_pos_args(TestUDFGenBase):
     def test_get_udf_templates(self, udfregistry, funcname):
         posargs = [TensorArg("table_name", dtype=int, ndims=1), LiteralArg(1)]
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = get_udf_templates_using_udfregistry(
+            get_udf_templates_using_udfregistry(
                 request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
@@ -1310,7 +1310,7 @@ class TestUDFGen_LoggerArgument_provided_in_kw_args(TestUDFGenBase):
         posargs = [TensorArg("table_name", dtype=int, ndims=1)]
         keywordargs = {"logger": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = get_udf_templates_using_udfregistry(
+            get_udf_templates_using_udfregistry(
                 request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
@@ -1359,7 +1359,7 @@ class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = generate_udf_queries(
+            generate_udf_queries(
                 request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
@@ -1455,7 +1455,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
             )
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _ = generate_udf_queries(
+            generate_udf_queries(
                 request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
@@ -1490,19 +1490,9 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
                 type_=TableType.NORMAL,
             ),
         ]
-        try:
-            _ = generate_udf_queries(
-                request_id=REQUEST_ID,
-                func_name=funcname,
-                positional_args=posargs,
-                keyword_args={},
-                smpc_used=False,
-            )
-        except Exception as exc:
-            pytest.fail(f"An exception should not have been raised. {exc}")
 
         with pytest.raises(UDFBadCall) as exc:
-            _ = generate_udf_queries(
+            generate_udf_queries(
                 request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
@@ -1549,7 +1539,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
             )
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _ = generate_udf_queries(
+            generate_udf_queries(
                 request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
@@ -1581,7 +1571,7 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         ]
         keywordargs = {}
         with pytest.raises(ValueError) as e:
-            _, _ = get_udf_templates_using_udfregistry(
+            get_udf_templates_using_udfregistry(
                 request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
@@ -1599,7 +1589,7 @@ class TestUDFGen_KW_args_on_tensor_operation:
         posargs = []
         keywordargs = {"Μ": 5, "v": 7}
         with pytest.raises(UDFBadCall) as e:
-            _ = generate_udf_queries(
+            generate_udf_queries(
                 request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
