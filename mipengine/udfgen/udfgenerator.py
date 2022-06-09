@@ -1332,7 +1332,9 @@ class LiteralAssignments(ASTNode):
         self.literals = literals
 
     def compile(self) -> str:
-        return LN.join(f"{name} = {arg.value}" for name, arg in self.literals.items())
+        return LN.join(
+            f"{name} = {repr(arg.value)}" for name, arg in self.literals.items()
+        )
 
 
 class LoggerAssignment(ASTNode):
