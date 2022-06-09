@@ -352,6 +352,7 @@ SPC4 = " " * 4
 SCOLON = ";"
 ROWID = "row_id"
 NODEID = "node_id"
+DEFERRED = "deferred"
 
 
 def get_smpc_build_template(secure_transfer_type):
@@ -831,11 +832,20 @@ class RelationType(TableType, ParametrizedType, InputType, OutputType):
     def __init__(self, schema):
         if isinstance(schema, TypeVar):
             self._schema = schema
+        elif schema == DEFERRED:
+            self._schema = DEFERRED
         else:
             self._schema = [
-                (name, dt.from_py(dtype) if isinstance(dtype, type) else dtype)
-                for name, dtype in schema
+                (name, self._convert_dtype(dtype)) for name, dtype in schema
             ]
+
+    @staticmethod
+    def _convert_dtype(dtype):
+        if isinstance(dtype, type):
+            return dt.from_py(dtype)
+        if isinstance(dtype, str):
+            return dt(dtype)
+        return dtype
 
     @property
     def schema(self):
@@ -2352,6 +2362,27 @@ def get_output_types(
 
     if traceback:
         return scalar(str), []
+    # TODO New feature: deferred output schema. This is very useful but is
+    # implemented as a hack. It should be re-implemented cleanly once the
+    # udfgenerator is refactored.
+    # See https://team-1617704806227.atlassian.net/browse/MIP-610
+    if funcparts.main_output_type == relation(schema=DEFERRED):
+        # XXX This supposes an argument name "output_schema" which is not part
+        # of the parameters declared in the udf definition. It only works as
+        # long as we pass it as a keyword arg. Anyway, the positional/keyword
+        # args mechanism in UDFs is conceptually wrong and should be dropped in
+        # favor of keyword only args.
+        # See https://team-1617704806227.atlassian.net/browse/MIP-607
+        if "output_schema" in udf_args:
+            deferred_schema = udf_args["output_schema"].value
+            del udf_args["output_schema"]
+            main_output_type = relation(schema=deferred_schema)
+            return main_output_type, []
+        else:
+            raise UDFBadCall(
+                "A UDF with output type relation(schema=DEFERRED) was "
+                "declared. Expected output_schema in udf_args."
+            )
     if (
         isinstance(funcparts.main_output_type, ParametrizedType)
         and funcparts.main_output_type.is_generic
