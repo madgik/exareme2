@@ -29,7 +29,7 @@ def controller_config_mock():
             "log_level": "DEBUG",
             "framework_log_level": "INFO",
             "deployment_type": "LOCAL",
-            "node_landscape_aggregator_update_interval": 30,
+            "node_landscape_aggregator_update_interval": 10,
             "localnodes": {
                 "config_file": "./tests/standalone_tests/testing_env_configs/test_node_landscape_aggregator.json",
                 "dns": "",
