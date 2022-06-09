@@ -32,5 +32,5 @@ password = "monetdb"
 enabled = true
 optional = false
 client_id = "testsmpclocalnode2"
-client_address = "http://172.17.0.1:9001"
+client_address = "http://172.17.0.1:9006"
 coordinator_address = "http://172.17.0.1:12314"

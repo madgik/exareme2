@@ -453,7 +453,7 @@ class _AlgorithmExecutionInterface:
             command_id, local_nodes_smpc_tables
         )
 
-        (sum_op, min_op, max_op, union_op,) = trigger_smpc_operations(
+        (sum_op, min_op, max_op, union_op) = trigger_smpc_operations(
             logger=self._logger,
             context_id=self._global_node.context_id,
             command_id=command_id,

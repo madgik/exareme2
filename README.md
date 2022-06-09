@@ -80,14 +80,14 @@
    role = "LOCALNODE"
    monetdb_port=50001
    rabbitmq_port=5671
-   smpc_client_port=9000
+   smpc_client_port=9001
 
    [[nodes]]
    id = "localnode2"
    role = "LOCALNODE"
    monetdb_port=50002
    rabbitmq_port=5672
-   smpc_client_port=9001
+   smpc_client_port=9002
 
    ```
 
