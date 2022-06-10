@@ -30,14 +30,15 @@ class NodeInfoTasksHandler:
     def queue_node_info_task(self, request_id: str) -> AsyncResult:
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_node_info"]
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
         try:
             async_result = celery_app.queue_task(
                 task_signature=task_signature,
+                logger=logger,
                 request_id=request_id,
             )
             return async_result
         except CeleryConnectionError as exc:
-            logger = ctrl_logger.get_request_logger(request_id=request_id)
             logger.error(exc)
             raise exc
 
@@ -46,15 +47,15 @@ class NodeInfoTasksHandler:
         self, async_result: AsyncResult, request_id: str
     ) -> NodeInfo:
         celery_app = self._get_node_celery_app()
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
         try:
             result = celery_app.get_result(
                 async_result=async_result,
                 timeout=self._tasks_timeout,
-                request_id=request_id,
+                logger=logger,
             )
             return NodeInfo.parse_raw(result)
         except (CeleryTaskTimeoutException, ConnectionError) as exc:
-            logger = ctrl_logger.get_request_logger(request_id=request_id)
             logger.error(exc)
             raise exc
 
@@ -63,14 +64,15 @@ class NodeInfoTasksHandler:
     def queue_node_datasets_per_data_model_task(self, request_id: str) -> AsyncResult:
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_node_datasets_per_data_model"]
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
         try:
             async_result = celery_app.queue_task(
                 task_signature=task_signature,
+                logger=logger,
                 request_id=request_id,
             )
             return async_result
         except CeleryConnectionError as exc:
-            logger = ctrl_logger.get_request_logger(request_id=request_id)
             logger.error(exc)
             raise exc
 
@@ -79,15 +81,15 @@ class NodeInfoTasksHandler:
         self, async_result: AsyncResult, request_id: str
     ) -> Dict[str, Dict[str, str]]:
         celery_app = self._get_node_celery_app()
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
         try:
             result = celery_app.get_result(
                 async_result=async_result,
                 timeout=self._tasks_timeout,
-                request_id=request_id,
+                logger=logger,
             )
             return result
         except (CeleryTaskTimeoutException, CeleryConnectionError) as exc:
-            logger = ctrl_logger.get_request_logger(request_id=request_id)
             logger.error(exc)
             raise exc
 
@@ -98,15 +100,16 @@ class NodeInfoTasksHandler:
     ) -> AsyncResult:
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_data_model_cdes"]
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
         try:
             async_result = celery_app.queue_task(
                 task_signature=task_signature,
+                logger=logger,
                 request_id=request_id,
                 data_model=data_model,
             )
             return async_result
         except CeleryConnectionError as exc:
-            logger = ctrl_logger.get_request_logger(request_id=request_id)
             logger.error(exc)
             raise exc
 
@@ -115,14 +118,14 @@ class NodeInfoTasksHandler:
         self, async_result: AsyncResult, request_id: str
     ) -> CommonDataElements:
         celery_app = self._get_node_celery_app()
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
         try:
             result = celery_app.get_result(
                 async_result=async_result,
                 timeout=self._tasks_timeout,
-                request_id=request_id,
+                logger=logger,
             )
             return CommonDataElements.parse_raw(result)
         except (CeleryTaskTimeoutException, CeleryConnectionError) as exc:
-            logger = ctrl_logger.get_request_logger(request_id=request_id)
             logger.error(exc)
             raise exc

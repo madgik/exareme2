@@ -10,8 +10,18 @@ from celery.canvas import Signature
 from celery.result import AsyncResult
 
 from mipengine.controller import config as controller_config
-from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.singleton import Singleton
+
+
+class Logger:
+    def info(msg: str, *args, **kwargs):
+        pass
+
+    def debug(msg: str, *args, **kwargs):
+        pass
+
+    def error(msg: str, *args, **kwargs):
+        pass
 
 
 class CeleryConnectionError(Exception):
@@ -37,7 +47,9 @@ class CeleryWrapper:
         self._celery_app.close()
 
     # queue_task() is non-blocking, because apply_async() is non-blocking
-    def queue_task(self, task_signature: str, *args, **kwargs) -> AsyncResult:
+    def queue_task(
+        self, task_signature: str, logger: Logger, *args, **kwargs
+    ) -> AsyncResult:
         try:
             task_signature = self._celery_app.signature(task_signature)
             async_result = task_signature.apply_async(args, kwargs)
@@ -47,8 +59,6 @@ class CeleryWrapper:
             amqp.exceptions.AccessRefused,
             amqp.exceptions.NotAllowed,
         ) as exc:
-            logger = ctrl_logger.get_request_logger(request_id=kwargs["request_id"])
-
             tr = traceback.format_exc()
             logger.error(tr)
 
@@ -64,17 +74,21 @@ class CeleryWrapper:
 
     # get_result() is blocking, because celery.result.AsyncResult.get() is blocking
     def get_result(
-        self, async_result: AsyncResult, timeout: int, request_id: str
+        self, async_result: AsyncResult, timeout: int, logger: Logger
     ) -> Union[str, dict, list]:
         try:
             result = async_result.get(timeout)
             return result
+        except Exception as exc:
+            import traceback
+
+            tr = traceback.format_exc()
+
         except (
             celery.exceptions.TimeoutError,
             billiard.exceptions.SoftTimeLimitExceeded,
             billiard.exceptions.TimeLimitExceeded,
         ) as timeout_error:
-            logger = ctrl_logger.get_request_logger(request_id=request_id)
 
             tr = traceback.format_exc()
             logger.error(tr)
@@ -82,8 +96,6 @@ class CeleryWrapper:
             try:
                 self._celery_app.control.inspect().ping()
             except kombu.exceptions.OperationalError as oper_err_inner:
-                logger = ctrl_logger.get_request_logger(request_id=request_id)
-
                 tr = traceback.format_exc()
                 logger.error(tr)
 
@@ -102,8 +114,6 @@ class CeleryWrapper:
                 async_result=async_result,
             )
         except kombu.exceptions.OperationalError as oper_err:
-            logger = ctrl_logger.get_request_logger(request_id=request_id)
-
             tr = traceback.format_exc()
             logger.error(tr)
 
