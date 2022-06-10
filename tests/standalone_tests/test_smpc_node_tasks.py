@@ -1,5 +1,6 @@
 import json
 import uuid
+from time import sleep
 from typing import Tuple
 
 import pytest
@@ -17,8 +18,11 @@ from mipengine.node_tasks_DTOs import UDFPosArguments
 from mipengine.node_tasks_DTOs import UDFResults
 from mipengine.smpc_cluster_comm_helpers import ADD_DATASET_ENDPOINT
 from mipengine.smpc_cluster_comm_helpers import TRIGGER_COMPUTATION_ENDPOINT
+from mipengine.smpc_cluster_comm_helpers import get_smpc_result
 from mipengine.smpc_DTOs import SMPCRequestData
 from mipengine.smpc_DTOs import SMPCRequestType
+from mipengine.smpc_DTOs import SMPCResponse
+from mipengine.smpc_DTOs import SMPCResponseStatus
 from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import smpc_global_step
 from tests.algorithms.orphan_udfs import smpc_local_step
@@ -33,7 +37,7 @@ context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 command_id = "command123"
 smpc_job_id = "testKey123"
 SMPC_GET_DATASET_ENDPOINT = "/api/update-dataset/"
-SMPC_COORDINATOR_ADDRESS = "http://dl056.madgik.di.uoa.gr:12314"
+SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
 
 
 def create_secure_transfer_table(celery_app) -> str:
@@ -219,6 +223,7 @@ def test_secure_transfer_input_with_smpc_off(
     )
 
 
+@pytest.mark.smpc
 def test_validate_smpc_templates_match(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -240,6 +245,7 @@ def test_validate_smpc_templates_match(
         pytest.fail(f"No exception should be raised. Exception: {exc}")
 
 
+@pytest.mark.smpc
 def test_validate_smpc_templates_dont_match(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -260,6 +266,7 @@ def test_validate_smpc_templates_dont_match(
     assert "SMPC templates dont match." in str(exc)
 
 
+@pytest.mark.smpc
 def test_secure_transfer_run_udf_flow_with_smpc_on(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -346,6 +353,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     )
 
 
+@pytest.mark.smpc
 def test_load_data_to_smpc_client_from_globalnode_fails(
     smpc_globalnode_node_service,
     smpc_globalnode_celery_app,
@@ -363,13 +371,13 @@ def test_load_data_to_smpc_client_from_globalnode_fails(
     assert "load_data_to_smpc_client is allowed only for a LOCALNODE." in str(exc)
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
+@pytest.mark.smpc
 def test_load_data_to_smpc_client(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
     smpc_localnode1_celery_app,
+    smpc_cluster,
 ):
     table_name, sum_op_values_str = create_table_with_smpc_sum_op_values(
         smpc_localnode1_celery_app
@@ -381,9 +389,8 @@ def test_load_data_to_smpc_client(
 
     load_data_to_smpc_client_task.delay(
         request_id=request_id,
-        context_id=context_id,
         table_name=table_name,
-        jobid="testKey123",
+        jobid=smpc_job_id,
     ).get()
 
     node_config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
@@ -406,6 +413,7 @@ def test_load_data_to_smpc_client(
     assert json.dumps(result) == sum_op_values_str
 
 
+@pytest.mark.smpc
 def test_get_smpc_result_from_localnode_fails(
     smpc_localnode1_node_service,
     smpc_localnode1_celery_app,
@@ -424,13 +432,13 @@ def test_get_smpc_result_from_localnode_fails(
     assert "get_smpc_result is allowed only for a GLOBALNODE." in str(exc)
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
+@pytest.mark.smpc
 def test_get_smpc_result(
     smpc_globalnode_node_service,
     use_smpc_globalnode_database,
     smpc_globalnode_celery_app,
+    smpc_cluster,
 ):
     get_smpc_result_task = get_celery_task_signature(
         smpc_globalnode_celery_app, "get_smpc_result"
@@ -446,7 +454,7 @@ def test_get_smpc_result(
     smpc_computation_data = [100]
     response = requests.post(
         request_url,
-        data=json.dumps(smpc_computation_data),
+        data=json.dumps({"type": "int", "data": smpc_computation_data}),
         headers=request_headers,
     )
     assert response.status_code == 200
@@ -464,6 +472,24 @@ def test_get_smpc_result(
     )
     assert response.status_code == 200
 
+    # --------------- Wait for SMPC result to be ready ------------------------
+    for _ in range(1, 100):
+        response = get_smpc_result(
+            coordinator_address=SMPC_COORDINATOR_ADDRESS,
+            jobid=smpc_job_id,
+        )
+        smpc_response = SMPCResponse.parse_raw(response)
+
+        if smpc_response.status == SMPCResponseStatus.FAILED:
+            raise ValueError(
+                f"The SMPC returned a {SMPCResponseStatus.FAILED} status. Body: {response}"
+            )
+        elif smpc_response.status == SMPCResponseStatus.COMPLETED:
+            break
+        sleep(1)
+    else:
+        raise TimeoutError("SMPC did not finish in 100 tries.")
+
     # --------------- GET SMPC RESULT IN GLOBALNODE ------------------------
     result_tablename = get_smpc_result_task.delay(
         request_id=request_id,
@@ -477,9 +503,8 @@ def test_get_smpc_result(
     )
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
+@pytest.mark.smpc
 def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_node_service,
     smpc_localnode1_node_service,
@@ -490,6 +515,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_celery_app,
     smpc_localnode1_celery_app,
     smpc_localnode2_celery_app,
+    smpc_cluster,
 ):
     run_udf_task_globalnode = get_celery_task_signature(
         smpc_globalnode_celery_app, "run_udf"
@@ -612,13 +638,11 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     # --------- LOAD LOCALNODE ADD OP DATA TO SMPC CLIENTS -----------------
     smpc_client_1 = load_data_to_smpc_client_task_localnode1.delay(
         request_id=request_id,
-        context_id=context_id,
         table_name=local_1_smpc_result.value.sum_op_values.value,
         jobid=smpc_job_id,
     ).get()
     smpc_client_2 = load_data_to_smpc_client_task_localnode2.delay(
         request_id=request_id,
-        context_id=context_id,
         table_name=local_2_smpc_result.value.sum_op_values.value,
         jobid=smpc_job_id,
     ).get()
@@ -642,7 +666,25 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     )
     assert response.status_code == 200
 
-    # --------- Get Results of SMPC in globalnode -----------------
+    # --------------- Wait for SMPC result to be ready ------------------------
+    for _ in range(1, 100):
+        response = get_smpc_result(
+            coordinator_address=SMPC_COORDINATOR_ADDRESS,
+            jobid=smpc_job_id,
+        )
+        smpc_response = SMPCResponse.parse_raw(response)
+
+        if smpc_response.status == SMPCResponseStatus.FAILED:
+            raise ValueError(
+                f"The SMPC returned a {SMPCResponseStatus.FAILED} status. Body: {response}"
+            )
+        elif smpc_response.status == SMPCResponseStatus.COMPLETED:
+            break
+        sleep(1)
+    else:
+        raise TimeoutError("SMPC did not finish in 100 tries.")
+
+    # --------- Get SMPC result in globalnode -----------------
     sum_op_values_tablename = get_smpc_result_task_globalnode.delay(
         request_id=request_id,
         context_id=context_id,

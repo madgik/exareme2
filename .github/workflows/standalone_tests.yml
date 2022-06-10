@@ -86,10 +86,34 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-      - name: Run standalone tests
-        run: |
-          source .venv/bin/activate
-          poetry run pytest --cov=mipengine --cov-report=xml tests/standalone_tests --verbosity=2 #--capture=tee-sys
+      - name: SMPC Controller logs (post run)
+        uses: webiny/action-post-run@2.0.1
+        with:
+          run: cat /tmp/mipengine/test_smpc_controller.out
+
+      - name: SMPC Coordinator logs (post run)
+        uses: webiny/action-post-run@2.0.1
+        with:
+          run: docker logs smpc_test_coordinator
+
+      - name: SMPC Client 1 logs (post run)
+        uses: webiny/action-post-run@2.0.1
+        with:
+          run: docker logs smpc_test_client1
+
+      - name: SMPC Player 1 logs (post run)
+        uses: webiny/action-post-run@2.0.1
+        with:
+          run: docker logs smpc_test_player1
+
+      - name: Run all standalone tests except the SMPC
+        run: poetry run pytest -s -m "not smpc" --cov=mipengine --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
+
+      - name: Cleanup running containers to have resources for the SMPC tests
+        run: poetry run inv cleanup
+
+      - name: Run SMPC specific standalone tests
+        run: poetry run pytest -s -m "smpc" --cov=mipengine --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4
 
       - name: Publish coverage on codeclimate
         uses: paambaati/codeclimate-action@v2.7.5
@@ -97,4 +121,5 @@ jobs:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
           coverageLocations: |
-            ./coverage.xml:coverage.py
+            ./non_smpc_cov.xml:coverage.py
+            ./smpc_cov.xml:coverage.py
