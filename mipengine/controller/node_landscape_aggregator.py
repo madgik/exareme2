@@ -1,5 +1,6 @@
 import threading
 import time
+import traceback
 from threading import Lock
 from typing import Dict
 from typing import List
@@ -46,6 +47,9 @@ def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
         except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
             # just log the exception do not reraise it
             logger.warning(exc)
+        except Exception as exc:
+            # just log full traceback exception as error and do not reraise it
+            logger.error(traceback.format_exc())
 
     nodes_info = []
     for tasks_handler, async_result in async_results.items():
@@ -58,6 +62,9 @@ def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
         except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
             # just log the exception do not reraise it
             logger.warning(exc)
+        except Exception as exc:
+            # just log full traceback exception as error and do not reraise it
+            logger.error(traceback.format_exc())
 
     return nodes_info
 
@@ -83,6 +90,9 @@ def _get_node_datasets_per_data_model(
     except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
         # just log the exception do not reraise it
         logger.warning(exc)
+    except Exception as exc:
+        # just log full traceback exception as error and do not reraise it
+        logger.error(traceback.format_exc())
 
 
 def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements:
@@ -100,6 +110,9 @@ def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements
     except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
         # just log the exception do not reraise it
         logger.warning(exc)
+    except Exception as exc:
+        # just log full traceback exception as error and do not reraise it
+        logger.error(traceback.format_exc())
 
 
 def _get_node_socket_addr(node_info: NodeInfo):
