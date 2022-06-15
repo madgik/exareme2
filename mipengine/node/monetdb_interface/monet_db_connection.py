@@ -46,10 +46,6 @@ def query_execution_exception_handling(func):
             try:
                 function = func(self, *args, **kwargs, conn=conn)
                 break
-            except pymonetdb.exceptions.IntegrityError as exc:
-                self._connection.rollback()
-                sleep(INTEGRITY_ERROR_RETRY_INTERVAL)
-                continue
             except BrokenPipeError as exc:
                 conn = self._create_connection()
                 sleep(tries * BROKEN_PIPE_ERROR_RETRY)
@@ -152,13 +148,16 @@ class MonetDBPool(metaclass=Singleton):
         """
         Executes statements that don't have a result. For example "CREATE,DROP,UPDATE".
 
-        By adding create_function_query_lock we serialized the execution of the queries that contain 'create or replace function',
+        By adding create_function_query_lock we serialized the execution of the queries that contain 'create remote table',
+        in order to a bug that was found.
+        https://github.com/MonetDB/MonetDB/issues/7304
+
+        By adding create_remote_table_query_lock we serialized the execution of the queries that contain 'create or replace function',
         in order to handle the error 'CREATE OR REPLACE FUNCTION: transaction conflict detected'
         https://www.mail-archive.com/checkin-list@monetdb.org/msg46062.html
 
         By adding insert_query_lock we serialized the execution of the queries that contain 'INSERT INTO'.
         We need this insert_query_lock in order to ensure that we will have the zero-cost that the monetdb provides on the udfs.
-
 
         'many' option to provide the functionality of executemany.
         'parameters' option to provide the functionality of bind-parameters.

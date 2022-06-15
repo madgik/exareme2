@@ -45,6 +45,7 @@ def setup_celery_logging(*args, **kwargs):
     logger.setLevel(node_config.framework_log_level)
 
 
+celery.conf.worker_concurrency = node_config.celery.worker_concurrency
 # TODO https://team-1617704806227.atlassian.net/browse/MIP-473
 # celery.conf.task_soft_time_limit = node_config.celery.task_soft_time_limit
 # celery.conf.task_time_limit = node_config.celery.task_time_limit
