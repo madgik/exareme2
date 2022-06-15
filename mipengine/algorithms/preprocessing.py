@@ -1,8 +1,10 @@
 import json
 
+from mipengine.udfgen import DEFERRED
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
 from mipengine.udfgen import relation
+from mipengine.udfgen import state
 from mipengine.udfgen import tensor
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
@@ -123,3 +125,128 @@ def relation_to_vector(rel, executor):
 @udf(rel=relation(), return_type=tensor(dtype=float, ndims=1))
 def relation_to_vector_local_udf(rel):
     return rel
+
+
+class KFold:
+    """Slits dataset into train and test sets for performing k-flod cross-validation
+
+    NOTE: This is currently implemented in a very inefficient maner, making one
+    `run_udf_on_local_nodes` per split, per table. The reason is limitations in
+    the current UDF generator. In the future this class might be re-implemented
+    more efficiently. However, the interface won't change.
+    """
+
+    def __init__(self, executor, n_splits):
+        """
+        Parameters
+        ----------
+        executor: _AlgorithmExecutionInterface
+        n_splits: int
+        """
+        self._local_run = executor.run_udf_on_local_nodes
+        self._global_run = executor.run_udf_on_global_node
+        self.n_splits = n_splits
+
+    def split(self, X, y):
+        local_state = self._local_run(
+            func=self._split_local,
+            keyword_args={"x": X, "y": y, "n_splits": self.n_splits},
+            share_to_global=[False],
+        )
+
+        x_return_schema = [(c.name, c.dtype) for c in X.get_table_schema().columns]
+        y_return_schema = [(c.name, c.dtype) for c in y.get_table_schema().columns]
+
+        x_train = [
+            self._local_run(
+                func=self._get_split_local,
+                keyword_args=dict(
+                    local_state=local_state,
+                    i=i,
+                    key="x_train",
+                    output_schema=x_return_schema,
+                ),
+                share_to_global=[False],
+            )
+            for i in range(self.n_splits)
+        ]
+
+        x_test = [
+            self._local_run(
+                func=self._get_split_local,
+                keyword_args=dict(
+                    local_state=local_state,
+                    i=i,
+                    key="x_test",
+                    output_schema=x_return_schema,
+                ),
+                share_to_global=[False],
+            )
+            for i in range(self.n_splits)
+        ]
+
+        y_train = [
+            self._local_run(
+                func=self._get_split_local,
+                keyword_args=dict(
+                    local_state=local_state,
+                    i=i,
+                    key="y_train",
+                    output_schema=y_return_schema,
+                ),
+                share_to_global=[False],
+            )
+            for i in range(self.n_splits)
+        ]
+
+        y_test = [
+            self._local_run(
+                func=self._get_split_local,
+                keyword_args=dict(
+                    local_state=local_state,
+                    i=i,
+                    key="y_test",
+                    output_schema=y_return_schema,
+                ),
+                share_to_global=[False],
+            )
+            for i in range(self.n_splits)
+        ]
+
+        return x_train, x_test, y_train, y_test
+
+    @staticmethod
+    @udf(x=relation(), y=relation(), n_splits=literal(), return_type=state())
+    def _split_local(x, y, n_splits):
+        import itertools
+
+        import sklearn.model_selection
+
+        kf = sklearn.model_selection.KFold(n_splits=n_splits)
+
+        x_cv_indices, y_cv_indices = itertools.tee(kf.split(x), 2)
+
+        x_train, x_test = [], []
+        for train_idx, test_idx in x_cv_indices:
+            x_train.append(x.iloc[train_idx])
+            x_test.append(x.iloc[test_idx])
+
+        y_train, y_test = [], []
+        for train_idx, test_idx in y_cv_indices:
+            y_train.append(y.iloc[train_idx])
+            y_test.append(y.iloc[test_idx])
+
+        state_ = dict(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test)
+        return state_
+
+    @staticmethod
+    @udf(
+        local_state=state(),
+        i=literal(),
+        key=literal(),
+        return_type=relation(schema=DEFERRED),
+    )
+    def _get_split_local(local_state, i, key):
+        split = local_state[key][i]
+        result = split
+        return result
