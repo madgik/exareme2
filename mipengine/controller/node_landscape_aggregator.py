@@ -37,28 +37,24 @@ def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
         for node_socket_addr in nodes_socket_addr
     ]
 
-    async_results = {}
-    try:
-        for tasks_handler in node_info_tasks_handlers:
-            tmp = tasks_handler.queue_node_info_task(
+    nodes_info = []
+    for tasks_handler in node_info_tasks_handlers:
+        try:
+            async_result = tasks_handler.queue_node_info_task(
                 request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
             )
-            async_results[tasks_handler] = tmp
-
-        nodes_info = []
-        for tasks_handler, async_result in async_results.items():
             result = tasks_handler.result_node_info_task(
                 async_result=async_result,
                 request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
             )
             nodes_info.append(result)
-    except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
-        # just log the exception do not reraise it
-        logger.warning(exc)
-    except Exception as exc:
-        # just log full traceback exception as error and do not reraise it
-        logger.error(traceback.format_exc())
 
+        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+            # just log the exception do not reraise it
+            logger.warning(exc)
+        except Exception as exc:
+            # just log full traceback exception as error and do not reraise it
+            logger.error(traceback.format_exc())
     return nodes_info
 
 
@@ -69,6 +65,7 @@ def _get_node_datasets_per_data_model(
         node_queue_addr=node_socket_addr, tasks_timeout=CELERY_TASKS_TIMEOUT
     )
 
+    datasets_per_data_model = {}
     try:
         async_result = tasks_handler.queue_node_datasets_per_data_model_task(
             request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
@@ -79,13 +76,15 @@ def _get_node_datasets_per_data_model(
                 request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
             )
         )
-        return datasets_per_data_model
+
     except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
         # just log the exception do not reraise it
         logger.warning(exc)
     except Exception as exc:
         # just log full traceback exception as error and do not reraise it
         logger.error(traceback.format_exc())
+
+    return datasets_per_data_model
 
 
 def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements:
@@ -278,29 +277,26 @@ def _gather_all_dataset_info(
     for node_info in nodes:
         node_socket_addr = _get_node_socket_addr(node_info)
         datasets_per_data_model = _get_node_datasets_per_data_model(node_socket_addr)
-        if datasets_per_data_model:
-            for data_model, datasets in datasets_per_data_model.items():
-                current_labels = (
-                    aggregated_datasets[data_model]
-                    if data_model in aggregated_datasets
-                    else {}
-                )
-                current_datasets = (
-                    dataset_locations[data_model]
-                    if data_model in dataset_locations
-                    else {}
-                )
+        for data_model, datasets in datasets_per_data_model.items():
+            current_labels = (
+                aggregated_datasets[data_model]
+                if data_model in aggregated_datasets
+                else {}
+            )
+            current_datasets = (
+                dataset_locations[data_model] if data_model in dataset_locations else {}
+            )
 
-                for dataset in datasets:
-                    current_labels[dataset] = datasets[dataset]
+            for dataset in datasets:
+                current_labels[dataset] = datasets[dataset]
 
-                    if dataset in current_datasets:
-                        current_datasets[dataset].append(node_info.id)
-                    else:
-                        current_datasets[dataset] = [node_info.id]
+                if dataset in current_datasets:
+                    current_datasets[dataset].append(node_info.id)
+                else:
+                    current_datasets[dataset] = [node_info.id]
 
-                aggregated_datasets[data_model] = current_labels
-                dataset_locations[data_model] = current_datasets
+            aggregated_datasets[data_model] = current_labels
+            dataset_locations[data_model] = current_datasets
     return dataset_locations, aggregated_datasets
 
 
@@ -313,9 +309,10 @@ def _get_cdes_across_nodes(
         datasets_per_data_model = _get_node_datasets_per_data_model(node_socket_addr)
         for data_model in datasets_per_data_model:
             cdes = _get_node_cdes(node_socket_addr, data_model)
-            if data_model not in nodes_cdes:
-                nodes_cdes[data_model] = []
-            nodes_cdes[data_model].append((node_info.id, cdes))
+            if cdes:
+                if data_model not in nodes_cdes:
+                    nodes_cdes[data_model] = []
+                    nodes_cdes[data_model].append((node_info.id, cdes))
     return nodes_cdes
 
 
