@@ -453,7 +453,7 @@ class _AlgorithmExecutionInterface:
             command_id, local_nodes_smpc_tables
         )
 
-        (sum_op, min_op, max_op, union_op) = trigger_smpc_operations(
+        (sum_op, min_op, max_op) = trigger_smpc_operations(
             logger=self._logger,
             context_id=self._global_node.context_id,
             command_id=command_id,
@@ -467,14 +467,12 @@ class _AlgorithmExecutionInterface:
             sum_op=sum_op,
             min_op=min_op,
             max_op=max_op,
-            union_op=union_op,
         )
 
         (
             sum_op_result_table,
             min_op_result_table,
             max_op_result_table,
-            union_op_result_table,
         ) = get_smpc_results(
             node=self._global_node,
             context_id=self._global_node.context_id,
@@ -482,7 +480,6 @@ class _AlgorithmExecutionInterface:
             sum_op=sum_op,
             min_op=min_op,
             max_op=max_op,
-            union_op=union_op,
         )
 
         return GlobalNodeSMPCTables(
@@ -492,7 +489,6 @@ class _AlgorithmExecutionInterface:
                 sum_op=sum_op_result_table,
                 min_op=min_op_result_table,
                 max_op=max_op_result_table,
-                union_op=union_op_result_table,
             ),
         )
 
@@ -723,9 +719,6 @@ class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
                     sum_op=local_nodes_data.nodes_smpc_tables[self._global_node].sum_op,
                     min_op=local_nodes_data.nodes_smpc_tables[self._global_node].min_op,
                     max_op=local_nodes_data.nodes_smpc_tables[self._global_node].max_op,
-                    union_op=local_nodes_data.nodes_smpc_tables[
-                        self._global_node
-                    ].union_op,
                 ),
             )
 

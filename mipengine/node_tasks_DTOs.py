@@ -183,7 +183,6 @@ class NodeSMPCValueDTO(ImmutableBaseModel):
     sum_op_values: NodeTableDTO = None
     min_op_values: NodeTableDTO = None
     max_op_values: NodeTableDTO = None
-    union_op_values: NodeTableDTO = None
 
 
 class NodeSMPCDTO(NodeUDFDTO):

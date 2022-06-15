@@ -1048,11 +1048,6 @@ class TestUDFGenBase:
                         udf_output.max_op_values.tablename_placeholder
                     )
                     template_mapping[tablename_placeholder] = tablename_placeholder
-                if udf_output.union_op_values:
-                    tablename_placeholder = (
-                        udf_output.union_op_values.tablename_placeholder
-                    )
-                    template_mapping[tablename_placeholder] = tablename_placeholder
             else:
                 pytest.fail(
                     f"A udf_output must be of the format TableUDFOutput or SMPCUDFOutput."
@@ -1121,10 +1116,6 @@ class TestUDFGenBase:
                 if udf_output.max_op_values:
                     queries.extend(
                         self._concrete_table_udf_outputs(udf_output.max_op_values)
-                    )
-                if udf_output.union_op_values:
-                    queries.extend(
-                        self._concrete_table_udf_outputs(udf_output.union_op_values)
                     )
             else:
                 pytest.fail(
@@ -4630,7 +4621,7 @@ LANGUAGE PYTHON
     state = pickle.loads(__state_str)
     result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'max': {'data':
         state['num'], 'operation': 'max'}}
-    template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
+    template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict(result)
     _conn.execute(f"INSERT INTO $main_output_table_name_sum_op VALUES ('$node_id', '{json.dumps(sum_op)}');")
     _conn.execute(f"INSERT INTO $main_output_table_name_max_op VALUES ('$node_id', '{json.dumps(max_op)}');")
     return json.dumps(template)
@@ -4889,7 +4880,7 @@ LANGUAGE PYTHON
     result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'min': {'data':
         state['num'], 'operation': 'min'}, 'max': {'data': state['num'],
         'operation': 'max'}}
-    template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
+    template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict(result)
     _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(template)}');")
     _conn.execute(f"INSERT INTO $loopback_table_name_0_sum_op VALUES ('$node_id', '{json.dumps(sum_op)}');")
     _conn.execute(f"INSERT INTO $loopback_table_name_0_min_op VALUES ('$node_id', '{json.dumps(min_op)}');")
@@ -5160,8 +5151,7 @@ LANGUAGE PYTHON
     __min_op_values = None
     __max_op_values_str = _conn.execute("SELECT secure_transfer from test_smpc_max_op_values_table;")["secure_transfer"][0]
     __max_op_values = json.loads(__max_op_values_str)
-    __union_op_values = None
-    transfer = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values,__union_op_values)
+    transfer = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values)
     return json.dumps(transfer)
 }"""
 

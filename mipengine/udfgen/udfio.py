@@ -207,7 +207,7 @@ def _calc_numeric_values(value1: Any, value2: Any, operation: str):
         raise NotImplementedError
 
 
-def split_secure_transfer_dict(dict_: dict) -> Tuple[dict, list, list, list, list]:
+def split_secure_transfer_dict(dict_: dict) -> Tuple[dict, list, list, list]:
     """
     When SMPC is used, a secure transfer dict should be split in different parts:
     1) The template of the dict with relative positions instead of values,
@@ -241,7 +241,6 @@ def split_secure_transfer_dict(dict_: dict) -> Tuple[dict, list, list, list, lis
         op_flat_data["sum"],
         op_flat_data["min"],
         op_flat_data["max"],
-        [],
     )
 
 
@@ -265,7 +264,6 @@ def construct_secure_transfer_dict(
     sum_op_values: List[int] = None,
     min_op_values: List[int] = None,
     max_op_values: List[int] = None,
-    union_op_values: List[int] = None,
 ) -> dict:
     """
     When SMPC is used, a secure_transfer dict is broken into template and values.

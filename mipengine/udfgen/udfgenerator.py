@@ -375,9 +375,8 @@ def get_smpc_build_template(secure_transfer_type):
     stmts.extend(get_smpc_op_template(secure_transfer_type.sum_op, "sum_op"))
     stmts.extend(get_smpc_op_template(secure_transfer_type.min_op, "min_op"))
     stmts.extend(get_smpc_op_template(secure_transfer_type.max_op, "max_op"))
-    stmts.extend(get_smpc_op_template(secure_transfer_type.union_op, "union_op"))
     stmts.append(
-        "{varname} = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values,__union_op_values)"
+        "{varname} = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values)"
     )
     return LN.join(stmts)
 
@@ -437,14 +436,13 @@ def _get_secure_transfer_op_return_stmt_template(op_enabled, table_name_tmpl, op
 def _get_secure_transfer_main_return_stmt_template(output_type, smpc_used):
     if smpc_used:
         return_stmts = [
-            "template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict({return_name})"
+            "template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict({return_name})"
         ]
         (
             _,
             sum_op_tmpl,
             min_op_tmpl,
             max_op_tmpl,
-            union_op_tmpl,
         ) = _get_smpc_table_template_names(_get_main_table_template_name())
         return_stmts.extend(
             _get_secure_transfer_op_return_stmt_template(
@@ -459,11 +457,6 @@ def _get_secure_transfer_main_return_stmt_template(output_type, smpc_used):
         return_stmts.extend(
             _get_secure_transfer_op_return_stmt_template(
                 output_type.max_op, max_op_tmpl, "max_op"
-            )
-        )
-        return_stmts.extend(
-            _get_secure_transfer_op_return_stmt_template(
-                output_type.union_op, union_op_tmpl, "union_op"
             )
         )
         return_stmts.append("return json.dumps(template)")
@@ -500,14 +493,13 @@ def _get_secure_transfer_sec_return_stmt_template(
 ):
     if smpc_used:
         return_stmts = [
-            "template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict({return_name})"
+            "template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict({return_name})"
         ]
         (
             template_tmpl,
             sum_op_tmpl,
             min_op_tmpl,
             max_op_tmpl,
-            union_op_tmpl,
         ) = _get_smpc_table_template_names(tablename_placeholder)
         return_stmts.append(
             '_conn.execute(f"INSERT INTO $'
@@ -527,11 +519,6 @@ def _get_secure_transfer_sec_return_stmt_template(
         return_stmts.extend(
             _get_secure_transfer_op_return_stmt_template(
                 output_type.max_op, max_op_tmpl, "max_op"
-            )
-        )
-        return_stmts.extend(
-            _get_secure_transfer_op_return_stmt_template(
-                output_type.union_op, union_op_tmpl, "union_op"
             )
         )
         return LN.join(return_stmts)
@@ -905,13 +892,11 @@ class SecureTransferType(DictType, InputType, LoopbackOutputType):
     _sum_op: bool
     _min_op: bool
     _max_op: bool
-    _union_op: bool
 
-    def __init__(self, sum_op=False, min_op=False, max_op=False, union_op=False):
+    def __init__(self, sum_op=False, min_op=False, max_op=False):
         self._sum_op = sum_op
         self._min_op = min_op
         self._max_op = max_op
-        self._union_op = union_op
 
     @property
     def sum_op(self):
@@ -925,17 +910,13 @@ class SecureTransferType(DictType, InputType, LoopbackOutputType):
     def max_op(self):
         return self._max_op
 
-    @property
-    def union_op(self):
-        return self._union_op
 
-
-def secure_transfer(sum_op=False, min_op=False, max_op=False, union_op=False):
-    if not sum_op and not min_op and not max_op and not union_op:
+def secure_transfer(sum_op=False, min_op=False, max_op=False):
+    if not sum_op and not min_op and not max_op:
         raise UDFBadDefinition(
             "In a secure_transfer at least one operation should be enabled."
         )
-    return SecureTransferType(sum_op, min_op, max_op, union_op)
+    return SecureTransferType(sum_op, min_op, max_op)
 
 
 class StateType(DictType, InputType, LoopbackOutputType):
@@ -1068,7 +1049,6 @@ class SMPCSecureTransferArg(UDFArgument):
     sum_op_values_table_name: str
     min_op_values_table_name: str
     max_op_values_table_name: str
-    union_op_values_table_name: str
 
     def __init__(
         self,
@@ -1076,26 +1056,21 @@ class SMPCSecureTransferArg(UDFArgument):
         sum_op_values_table_name: str,
         min_op_values_table_name: str,
         max_op_values_table_name: str,
-        union_op_values_table_name: str,
     ):
         sum_op = False
         min_op = False
         max_op = False
-        union_op = False
         if sum_op_values_table_name:
             sum_op = True
         if min_op_values_table_name:
             min_op = True
         if max_op_values_table_name:
             max_op = True
-        if union_op_values_table_name:
-            union_op = True
-        self.type = SecureTransferType(sum_op, min_op, max_op, union_op)
+        self.type = SecureTransferType(sum_op, min_op, max_op)
         self.template_table_name = template_table_name
         self.sum_op_values_table_name = sum_op_values_table_name
         self.min_op_values_table_name = min_op_values_table_name
         self.max_op_values_table_name = max_op_values_table_name
-        self.union_op_values_table_name = union_op_values_table_name
 
 
 class LiteralArg(UDFArgument):
@@ -1253,7 +1228,6 @@ class SMPCBuild(ASTNode):
             sum_op_values_table_name=self.arg.sum_op_values_table_name,
             min_op_values_table_name=self.arg.min_op_values_table_name,
             max_op_values_table_name=self.arg.max_op_values_table_name,
-            union_op_values_table_name=self.arg.union_op_values_table_name,
         )
 
 
@@ -2055,21 +2029,17 @@ def convert_smpc_udf_input_to_udf_arg(smpc_udf_input: SMPCTablesInfo):
     sum_op_table_name = None
     min_op_table_name = None
     max_op_table_name = None
-    union_op_table_name = None
     if smpc_udf_input.sum_op_values:
         sum_op_table_name = smpc_udf_input.sum_op_values.name
     if smpc_udf_input.min_op_values:
         min_op_table_name = smpc_udf_input.min_op_values.name
     if smpc_udf_input.max_op_values:
         max_op_table_name = smpc_udf_input.max_op_values.name
-    if smpc_udf_input.union_op_values:
-        union_op_table_name = smpc_udf_input.union_op_values.name
     return SMPCSecureTransferArg(
         template_table_name=smpc_udf_input.template.name,
         sum_op_values_table_name=sum_op_table_name,
         min_op_values_table_name=min_op_table_name,
         max_op_values_table_name=max_op_table_name,
-        union_op_values_table_name=union_op_table_name,
     )
 
 
@@ -2544,7 +2514,6 @@ def _get_smpc_table_template_names(prefix: str):
         prefix + "_sum_op",
         prefix + "_min_op",
         prefix + "_max_op",
-        prefix + "_union_op",
     )
 
 
@@ -2574,27 +2543,22 @@ def _create_smpc_udf_output(output_type: SecureTransferType, table_name_prefix: 
         sum_op_tmpl,
         min_op_tmpl,
         max_op_tmpl,
-        union_op_tmpl,
     ) = _get_smpc_table_template_names(table_name_prefix)
     template = _create_table_udf_output(output_type, template_tmpl)
     sum_op = None
     min_op = None
     max_op = None
-    union_op = None
     if output_type.sum_op:
         sum_op = _create_table_udf_output(output_type, sum_op_tmpl)
     if output_type.min_op:
         min_op = _create_table_udf_output(output_type, min_op_tmpl)
     if output_type.max_op:
         max_op = _create_table_udf_output(output_type, max_op_tmpl)
-    if output_type.union_op:
-        union_op = _create_table_udf_output(output_type, union_op_tmpl)
     return SMPCUDFGenResult(
         template=template,
         sum_op_values=sum_op,
         min_op_values=min_op,
         max_op_values=max_op,
-        union_op_values=union_op,
     )
 
 

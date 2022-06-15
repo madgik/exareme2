@@ -285,9 +285,6 @@ class LocalNode(_Node):
                         max_op=create_node_table_from_node_table_dto(
                             result.value.max_op_values
                         ),
-                        union_op=create_node_table_from_node_table_dto(
-                            result.value.union_op_values
-                        ),
                     )
                 )
             else:

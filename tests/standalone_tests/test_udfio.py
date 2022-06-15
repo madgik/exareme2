@@ -196,7 +196,6 @@ def get_secure_transfer_dict_success_cases():
                 [2],
                 [],
                 [],
-                [],
             ),
             {
                 "a": 2,
@@ -215,7 +214,6 @@ def get_secure_transfer_dict_success_cases():
                 [2, 5],
                 [],
                 [],
-                [],
             ),
             {"a": 2, "b": 5},
         ),
@@ -228,7 +226,6 @@ def get_secure_transfer_dict_success_cases():
                     "a": {"data": [0, 1, 2], "operation": "sum"},
                 },
                 [1, 2, 3],
-                [],
                 [],
                 [],
             ),
@@ -263,7 +260,6 @@ def get_secure_transfer_dict_success_cases():
                 [10, 10, 20, 30, 40, 50, 60, 10, 20, 30, 40, 50, 60, 70, 80, 90],
                 [],
                 [],
-                [],
             ),
             {
                 "a": 10,
@@ -282,7 +278,6 @@ def get_secure_transfer_dict_success_cases():
                 [],
                 [2, 5.6],
                 [],
-                [],
             ),
             {
                 "min": [2, 5.6],
@@ -299,7 +294,6 @@ def get_secure_transfer_dict_success_cases():
                 [],
                 [],
                 [2, 5.6],
-                [],
             ),
             {
                 "max": [2, 5.6],
@@ -326,7 +320,6 @@ def get_secure_transfer_dict_success_cases():
                 [1, 2, 3, 4.5, 6, 7.8],
                 [6, 7.8, 1.5, 2.0],
                 [6.8, 7, 1.5, 2],
-                [],
             ),
             {
                 "sum1": [1, 2, 3, 4.5],
@@ -350,7 +343,6 @@ def get_secure_transfer_dict_success_cases():
                 [100, 200, 300],
                 [],
                 [58],
-                [],
             ),
             {
                 "sum": [100, 200, 300],
