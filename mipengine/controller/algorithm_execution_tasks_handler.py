@@ -189,12 +189,18 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
 
     # TODO create custom type and validator for the socket address
     def __init__(
-        self, node_id: str, node_queue_addr: str, node_db_addr: str, tasks_timeout
+        self,
+        node_id: str,
+        node_queue_addr: str,
+        node_db_addr: str,
+        tasks_timeout: int,
+        run_udf_task_timeout: int,
     ):
         self._node_id = node_id
         self._node_queue_addr = node_queue_addr
         self._db_address = node_db_addr
         self._tasks_timeout = tasks_timeout
+        self._run_udf_task_timeout = run_udf_task_timeout
 
     @property
     def node_id(self) -> str:
@@ -452,7 +458,7 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         celery_app = self._get_node_celery_app()
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout, logger=logger
+            async_result=async_result, timeout=self._run_udf_task_timeout, logger=logger
         )
         return UDFResults.parse_raw(result)
 

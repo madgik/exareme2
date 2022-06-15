@@ -264,6 +264,7 @@ def test_single_local_node_algorithm_execution(
         node_queue_addr=queue_addr,
         node_db_addr=db_addr,
         tasks_timeout=45,
+        run_udf_task_timeout=120,
     )
 
     single_node_task_handler = NodesTasksHandlersDTO(

@@ -16,7 +16,7 @@ from tests.standalone_tests.conftest import _create_node_service
 from tests.standalone_tests.conftest import _create_rabbitmq_container
 from tests.standalone_tests.conftest import _load_data_monetdb_container
 from tests.standalone_tests.conftest import _remove_data_model_from_localnodetmp_monetdb
-from tests.standalone_tests.conftest import kill_node_service
+from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
 WAIT_TIME_LIMIT = 120
@@ -40,6 +40,7 @@ def controller_config_mock():
                 "password": "password",
                 "vhost": "user_vhost",
                 "celery_tasks_timeout": 10,
+                "celery_run_udf_task_timeout": 30,
                 "celery_tasks_max_retries": 3,
                 "celery_tasks_interval_start": 0,
                 "celery_tasks_interval_step": 0.2,
@@ -117,7 +118,7 @@ def test_update_loop_node_service_down(
         and len(data_models["dementia:0.1"].values) == 186
     )
 
-    kill_node_service(localnodetmp_node_service)
+    kill_service(localnodetmp_node_service)
 
     # wait until node registry removes tmplocalnode
     start = time.time()
@@ -152,7 +153,7 @@ def test_update_loop_node_service_down(
     # the node service was started in here, so it must manually be killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
     # where the node service is supposedly down
-    kill_node_service(localnodetmp_node_service_proc)
+    kill_service(localnodetmp_node_service_proc)
 
 
 @pytest.mark.slow
@@ -222,7 +223,7 @@ def test_update_loop_rabbitmq_down(
     # the node service was started in here, so it must manually be killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
     # where the node service is supposedly down
-    kill_node_service(localnodetmp_node_service)
+    kill_service(localnodetmp_node_service)
 
 
 @pytest.mark.slow
@@ -325,7 +326,7 @@ def test_update_loop_data_models_removed(
     # the node service was started in here, so it must manually be killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
     # where the node service is supposedly down
-    kill_node_service(localnodetmp_node_service)
+    kill_service(localnodetmp_node_service)
 
 
 def remove_data_model_from_localnodetmp_monetdb(data_model):

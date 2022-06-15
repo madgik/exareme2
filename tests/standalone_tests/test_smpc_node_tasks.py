@@ -1,5 +1,6 @@
 import json
 import uuid
+from time import sleep
 from typing import Tuple
 
 import pytest
@@ -18,8 +19,11 @@ from mipengine.node_tasks_DTOs import UDFPosArguments
 from mipengine.node_tasks_DTOs import UDFResults
 from mipengine.smpc_cluster_comm_helpers import ADD_DATASET_ENDPOINT
 from mipengine.smpc_cluster_comm_helpers import TRIGGER_COMPUTATION_ENDPOINT
+from mipengine.smpc_cluster_comm_helpers import get_smpc_result
 from mipengine.smpc_DTOs import SMPCRequestData
 from mipengine.smpc_DTOs import SMPCRequestType
+from mipengine.smpc_DTOs import SMPCResponse
+from mipengine.smpc_DTOs import SMPCResponseStatus
 from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import smpc_global_step
 from tests.algorithms.orphan_udfs import smpc_local_step
@@ -34,9 +38,20 @@ context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 command_id = "command123"
 smpc_job_id = "testKey123"
 SMPC_GET_DATASET_ENDPOINT = "/api/update-dataset/"
-SMPC_COORDINATOR_ADDRESS = "http://dl056.madgik.di.uoa.gr:12314"
+SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
 
 TASKS_TIMEOUT = 60
+
+
+class Logger:
+    def info(msg: str, *args, **kwargs):
+        print(msg)
+
+    def debug(msg: str, *args, **kwargs):
+        print(msg)
+
+    def error(msg: str, *args, **kwargs):
+        print(msg)
 
 
 def create_secure_transfer_table(celery_app) -> str:
@@ -50,13 +65,14 @@ def create_secure_transfer_table(celery_app) -> str:
     )
     async_result = celery_app.queue_task(
         task_signature=task_signature,
+        logger=Logger(),
         request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     )
     table_name = celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
     )
     return table_name
 
@@ -81,12 +97,13 @@ def create_table_with_secure_transfer_results_with_smpc_off(
 
     async_result = celery_app.queue_task(
         task_signature=task_signature,
+        logger=Logger(),
         request_id=request_id,
         table_name=table_name,
         values=values,
     )
     celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
     )
 
     return table_name, secure_transfer_1_value + secure_transfer_2_value
@@ -115,12 +132,13 @@ def create_table_with_multiple_secure_transfer_templates(
 
     async_result = celery_app.queue_task(
         task_signature=task_signature,
+        logger=Logger(),
         request_id=request_id,
         table_name=table_name,
         values=values,
     )
     celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
     )
 
     return table_name
@@ -138,12 +156,13 @@ def create_table_with_smpc_sum_op_values(celery_app) -> Tuple[str, str]:
 
     async_result = celery_app.queue_task(
         task_signature=task_signature,
+        logger=Logger(),
         request_id=request_id,
         table_name=table_name,
         values=values,
     )
     celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
     )
 
     return table_name, json.dumps(sum_op_values)
@@ -158,11 +177,12 @@ def validate_dict_table_data_match_expected(
     assert table_name is not None
     async_result = celery_app.queue_task(
         task_signature=get_table_data_task_signature,
+        logger=Logger(),
         request_id=request_id,
         table_name=table_name,
     )
     table_data_str = celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
     )
     table_data: TableData = TableData.parse_raw(table_data_str)
     result_str, *_ = table_data.columns[1].data
@@ -184,6 +204,7 @@ def test_secure_transfer_output_with_smpc_off(
 
     async_result = localnode1_celery_app.queue_task(
         task_signature=run_udf_task,
+        logger=Logger(),
         command_id="1",
         request_id=request_id,
         context_id=context_id,
@@ -192,7 +213,7 @@ def test_secure_transfer_output_with_smpc_off(
         keyword_args_json=UDFKeyArguments(args={}).json(),
     )
     udf_results_str = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
     )
 
     results = UDFResults.parse_raw(udf_results_str).results
@@ -227,6 +248,7 @@ def test_secure_transfer_input_with_smpc_off(
 
     async_result = localnode1_celery_app.queue_task(
         task_signature=run_udf_task,
+        logger=Logger(),
         command_id="1",
         request_id=request_id,
         context_id=context_id,
@@ -235,7 +257,7 @@ def test_secure_transfer_input_with_smpc_off(
         keyword_args_json=UDFKeyArguments(args={}).json(),
     )
     udf_results_str = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
     )
 
     results = UDFResults.parse_raw(udf_results_str).results
@@ -253,6 +275,7 @@ def test_secure_transfer_input_with_smpc_off(
     )
 
 
+@pytest.mark.smpc
 def test_validate_smpc_templates_match(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -269,16 +292,18 @@ def test_validate_smpc_templates_match(
     try:
         async_result = smpc_localnode1_celery_app.queue_task(
             task_signature=validate_smpc_templates_match_task,
+            logger=Logger(),
             request_id=request_id,
             table_name=table_name,
         )
         smpc_localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+            async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
         )
     except Exception as exc:
         pytest.fail(f"No exception should be raised. Exception: {exc}")
 
 
+@pytest.mark.smpc
 def test_validate_smpc_templates_dont_match(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -295,15 +320,17 @@ def test_validate_smpc_templates_dont_match(
     with pytest.raises(ValueError) as exc:
         async_result = smpc_localnode1_celery_app.queue_task(
             task_signature=validate_smpc_templates_match_task,
+            logger=Logger(),
             request_id=request_id,
             table_name=table_name,
         )
         smpc_localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+            async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
         )
     assert "SMPC templates dont match." in str(exc)
 
 
+@pytest.mark.smpc
 def test_secure_transfer_run_udf_flow_with_smpc_on(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -322,6 +349,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
 
     async_result = smpc_localnode1_celery_app.queue_task(
         task_signature=run_udf_task,
+        logger=Logger(),
         command_id="1",
         request_id=request_id,
         context_id=context_id,
@@ -331,7 +359,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
         use_smpc=True,
     )
     udf_results_str = smpc_localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
     )
 
     local_step_results = UDFResults.parse_raw(udf_results_str).results
@@ -381,7 +409,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
         use_smpc=True,
     )
     udf_results_str = smpc_localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
     )
 
     global_step_results = UDFResults.parse_raw(udf_results_str).results
@@ -399,6 +427,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     )
 
 
+@pytest.mark.smpc
 def test_load_data_to_smpc_client_from_globalnode_fails(
     smpc_globalnode_node_service,
     smpc_globalnode_celery_app,
@@ -410,23 +439,24 @@ def test_load_data_to_smpc_client_from_globalnode_fails(
     with pytest.raises(PermissionError) as exc:
         async_result = smpc_globalnode_celery_app.queue_task(
             task_signature=load_data_to_smpc_client_task,
+            logger=Logger(),
             request_id=request_id,
             table_name="whatever",
             jobid="whatever",
         )
         smpc_globalnode_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+            async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
         )
     assert "load_data_to_smpc_client is allowed only for a LOCALNODE." in str(exc)
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
+@pytest.mark.smpc
 def test_load_data_to_smpc_client(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
     smpc_localnode1_celery_app,
+    smpc_cluster,
 ):
     table_name, sum_op_values_str = create_table_with_smpc_sum_op_values(
         smpc_localnode1_celery_app
@@ -438,13 +468,13 @@ def test_load_data_to_smpc_client(
 
     async_result = smpc_localnode1_celery_app.queue_task(
         task_signature=load_data_to_smpc_client_task,
+        logger=Logger(),
         request_id=request_id,
-        context_id=context_id,
         table_name=table_name,
-        jobid="testKey123",
+        jobid=smpc_job_id,
     )
     smpc_localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
     )
 
     node_config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
@@ -467,6 +497,7 @@ def test_load_data_to_smpc_client(
     assert json.dumps(result) == sum_op_values_str
 
 
+@pytest.mark.smpc
 def test_get_smpc_result_from_localnode_fails(
     smpc_localnode1_node_service,
     smpc_localnode1_celery_app,
@@ -476,6 +507,7 @@ def test_get_smpc_result_from_localnode_fails(
     with pytest.raises(PermissionError) as exc:
         async_result = smpc_localnode1_celery_app.queue_task(
             task_signature=get_smpc_result_task,
+            logger=Logger(),
             request_id="whatever",
             context_id="whatever",
             command_id="whatever",
@@ -487,13 +519,13 @@ def test_get_smpc_result_from_localnode_fails(
     assert "get_smpc_result is allowed only for a GLOBALNODE." in str(exc)
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
+@pytest.mark.smpc
 def test_get_smpc_result(
     smpc_globalnode_node_service,
     use_smpc_globalnode_database,
     smpc_globalnode_celery_app,
+    smpc_cluster,
 ):
     get_smpc_result_task = get_celery_task_signature("get_smpc_result")
 
@@ -506,7 +538,7 @@ def test_get_smpc_result(
     smpc_computation_data = [100]
     response = requests.post(
         request_url,
-        data=json.dumps(smpc_computation_data),
+        data=json.dumps({"type": "int", "data": smpc_computation_data}),
         headers=request_headers,
     )
     assert response.status_code == 200
@@ -524,9 +556,28 @@ def test_get_smpc_result(
     )
     assert response.status_code == 200
 
+    # --------------- Wait for SMPC result to be ready ------------------------
+    for _ in range(1, 100):
+        response = get_smpc_result(
+            coordinator_address=SMPC_COORDINATOR_ADDRESS,
+            jobid=smpc_job_id,
+        )
+        smpc_response = SMPCResponse.parse_raw(response)
+
+        if smpc_response.status == SMPCResponseStatus.FAILED:
+            raise ValueError(
+                f"The SMPC returned a {SMPCResponseStatus.FAILED} status. Body: {response}"
+            )
+        elif smpc_response.status == SMPCResponseStatus.COMPLETED:
+            break
+        sleep(1)
+    else:
+        raise TimeoutError("SMPC did not finish in 100 tries.")
+
     # --------------- GET SMPC RESULT IN GLOBALNODE ------------------------
     async_result = smpc_globalnode_celery_app.queue_task(
         task_signature=get_smpc_result_task,
+        logger=Logger(),
         request_id=request_id,
         context_id=context_id,
         command_id=command_id,
@@ -543,9 +594,8 @@ def test_get_smpc_result(
     )
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
+@pytest.mark.smpc
 def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_node_service,
     smpc_localnode1_node_service,
@@ -556,6 +606,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_celery_app,
     smpc_localnode1_celery_app,
     smpc_localnode2_celery_app,
+    smpc_cluster,
 ):
     run_udf_task_globalnode = get_celery_task_signature(
         smpc_globalnode_celery_app, "run_udf"
@@ -678,13 +729,11 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     # --------- LOAD LOCALNODE ADD OP DATA TO SMPC CLIENTS -----------------
     smpc_client_1 = load_data_to_smpc_client_task_localnode1.delay(
         request_id=request_id,
-        context_id=context_id,
         table_name=local_1_smpc_result.value.sum_op_values.value,
         jobid=smpc_job_id,
     ).get()
     smpc_client_2 = load_data_to_smpc_client_task_localnode2.delay(
         request_id=request_id,
-        context_id=context_id,
         table_name=local_2_smpc_result.value.sum_op_values.value,
         jobid=smpc_job_id,
     ).get()
@@ -708,7 +757,25 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     )
     assert response.status_code == 200
 
-    # --------- Get Results of SMPC in globalnode -----------------
+    # --------------- Wait for SMPC result to be ready ------------------------
+    for _ in range(1, 100):
+        response = get_smpc_result(
+            coordinator_address=SMPC_COORDINATOR_ADDRESS,
+            jobid=smpc_job_id,
+        )
+        smpc_response = SMPCResponse.parse_raw(response)
+
+        if smpc_response.status == SMPCResponseStatus.FAILED:
+            raise ValueError(
+                f"The SMPC returned a {SMPCResponseStatus.FAILED} status. Body: {response}"
+            )
+        elif smpc_response.status == SMPCResponseStatus.COMPLETED:
+            break
+        sleep(1)
+    else:
+        raise TimeoutError("SMPC did not finish in 100 tries.")
+
+    # --------- Get SMPC result in globalnode -----------------
     sum_op_values_tablename = get_smpc_result_task_globalnode.delay(
         request_id=request_id,
         context_id=context_id,

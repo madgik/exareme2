@@ -60,6 +60,7 @@ class ANOVAOneWayTestCaseGenerator(TestCaseGenerator):
             tukey_results.append(tukey_result)
 
         expected_out = dict()
+        expected_out["n_obs"] = n_obs
         expected_out["df_residual"] = result["df"]["Residual"]
         expected_out["df_explained"] = result["df"][x_names]
         expected_out["ss_residual"] = result["sum_sq"]["Residual"]

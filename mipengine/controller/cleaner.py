@@ -33,6 +33,7 @@ class _NodeInfoDTO(BaseModel):
     queue_address: str
     db_address: str
     tasks_timeout: int
+    run_udf_task_timeout: int
 
     class Config:
         allow_mutation = False
@@ -138,6 +139,7 @@ class Cleaner(metaclass=Singleton):
                 queue_address=":".join([str(global_node.ip), str(global_node.port)]),
                 db_address=":".join([str(global_node.db_ip), str(global_node.db_port)]),
                 tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+                run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
             )
 
         if node_id in local_nodes.keys():
@@ -147,6 +149,7 @@ class Cleaner(metaclass=Singleton):
                 queue_address=":".join([str(local_node.ip), str(local_node.port)]),
                 db_address=":".join([str(local_node.db_ip), str(local_node.db_port)]),
                 tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+                run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
             )
 
         raise KeyError(
@@ -166,6 +169,7 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeAlgorithmTasksHand
         node_queue_addr=node_info.queue_address,
         node_db_addr=node_info.db_address,
         tasks_timeout=node_info.tasks_timeout,
+        run_udf_task_timeout=node_info.run_udf_task_timeout,
     )
 
 
