@@ -309,10 +309,9 @@ def _get_cdes_across_nodes(
         datasets_per_data_model = _get_node_datasets_per_data_model(node_socket_addr)
         for data_model in datasets_per_data_model:
             cdes = _get_node_cdes(node_socket_addr, data_model)
-            if cdes:
-                if data_model not in nodes_cdes:
-                    nodes_cdes[data_model] = []
-                    nodes_cdes[data_model].append((node_info.id, cdes))
+            if data_model not in nodes_cdes:
+                nodes_cdes[data_model] = []
+            nodes_cdes[data_model].append((node_info.id, cdes))
     return nodes_cdes
 
 
