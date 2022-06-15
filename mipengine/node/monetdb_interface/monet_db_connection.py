@@ -1,9 +1,9 @@
 from contextlib import contextmanager
 from functools import wraps
-from time import sleep
 from typing import List
 
 import pymonetdb
+from eventlet.greenthread import sleep
 from eventlet.lock import Semaphore
 
 from mipengine.node import config as node_config
@@ -14,10 +14,12 @@ INTEGRITY_ERROR_RETRY_INTERVAL = 1
 BROKEN_PIPE_MAX_ATTEMPTS = 50
 BROKEN_PIPE_ERROR_RETRY = 0.2
 CREATE_OR_REPLACE_QUERY_TIMEOUT = 1
+CREATE_REMOTE_TABLE_QUERY_TIMEOUT = 1
 INSERT_INTO_QUERY_TIMEOUT = (
     node_config.celery.worker_concurrency * node_config.celery.run_udf_time_limit
 )
 
+create_remote_table_query_lock = Semaphore()
 create_function_query_lock = Semaphore()
 insert_query_lock = Semaphore()
 
@@ -29,7 +31,7 @@ class DBExecutionDTO:
         self.many = many
 
 
-def _query_execution_exception_handling(func):
+def query_execution_exception_handling(func):
     """
     On the query execution we need to handle the 'BrokenPipeError' exception.
     In the case of the 'BrokenPipeError' exception, we create a new connection,
@@ -78,15 +80,6 @@ class MonetDBPool(metaclass=Singleton):
         self._connection_pool = [self._create_connection() for _ in range(16)]
 
     def _create_connection(self):
-        self._logger.info(
-            {
-                "hostname": node_config.monetdb.ip,
-                "port": node_config.monetdb.port,
-                "username": node_config.monetdb.username,
-                "password": node_config.monetdb.password,
-                "database": node_config.monetdb.database,
-            }
-        )
         return pymonetdb.connect(
             hostname=node_config.monetdb.ip,
             port=node_config.monetdb.port,
@@ -129,7 +122,7 @@ class MonetDBPool(metaclass=Singleton):
         yield
         query_lock.release()
 
-    @_query_execution_exception_handling
+    @query_execution_exception_handling
     def execute_and_fetchall(
         self, query: str, parameters=None, many=False, conn=None
     ) -> List:
@@ -141,9 +134,9 @@ class MonetDBPool(metaclass=Singleton):
         """
         db_execution_dto = DBExecutionDTO(query=query, parameters=parameters, many=many)
 
-        # self._logger.info(
-        #     f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
-        # )
+        self._logger.info(
+            f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
+        )
 
         with self.cursor(conn) as cur:
             cur.executemany(
@@ -154,7 +147,7 @@ class MonetDBPool(metaclass=Singleton):
             result = cur.fetchall()
         return result
 
-    @_query_execution_exception_handling
+    @query_execution_exception_handling
     def execute(self, query: str, parameters=None, many=False, conn=None):
         """
         Executes statements that don't have a result. For example "CREATE,DROP,UPDATE".
@@ -171,13 +164,18 @@ class MonetDBPool(metaclass=Singleton):
         'parameters' option to provide the functionality of bind-parameters.
         """
         db_execution_dto = DBExecutionDTO(query=query, parameters=parameters, many=many)
-        #
-        # self._logger.info(
-        #     f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
-        # )
+
+        self._logger.info(
+            f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
+        )
 
         if "CREATE OR REPLACE FUNCTION" in db_execution_dto.query:
             with self.lock(create_function_query_lock, CREATE_OR_REPLACE_QUERY_TIMEOUT):
+                self._execute_and_commit(conn, db_execution_dto)
+        elif "CREATE REMOTE" in db_execution_dto.query:
+            with self.lock(
+                create_remote_table_query_lock, CREATE_REMOTE_TABLE_QUERY_TIMEOUT
+            ):
                 self._execute_and_commit(conn, db_execution_dto)
         elif "INSERT INTO" in db_execution_dto.query:
             with self.lock(insert_query_lock, INSERT_INTO_QUERY_TIMEOUT):

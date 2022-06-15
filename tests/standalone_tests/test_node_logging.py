@@ -7,8 +7,6 @@ from mipengine import AttrDict
 from mipengine.node import node_logger
 from mipengine.node.node_logger import initialise_logger
 
-task_loggers = {}
-
 
 @pytest.fixture(scope="module", autouse=True)
 def mock_node_config():

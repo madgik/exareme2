@@ -14,7 +14,7 @@ task_loggers = {}
 
 
 def init_logger(request_id):
-    logger = logging.getLogger("node")
+    logger = logging.getLogger(request_id)
 
     formatter = logging.Formatter(
         f"%(asctime)s - %(levelname)s - NODE - {node_config.role} - {node_config.identifier} - %(module)s - %(funcName)s(%(lineno)d) - {request_id} - %(message)s"

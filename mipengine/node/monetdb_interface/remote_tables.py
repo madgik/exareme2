@@ -18,7 +18,7 @@ def create_remote_table(name, schema, monetdb_socket_address: str):
     MonetDBPool().execute(
         f"""
         CREATE REMOTE TABLE {name}
-        ( {columns_schema}) ON 'mapi:monetdb://{monetdb_socket_address}/{node_config.monetdb.database}'
+        ( {columns_schema}) ON 'mapi:monetdb://{monetdb_socket_address}/{node_config.monetdb.database}/sys/{name}'
         WITH USER 'monetdb' PASSWORD 'monetdb'
         """
     )
