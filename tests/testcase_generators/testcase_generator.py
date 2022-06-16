@@ -5,6 +5,7 @@ from abc import ABC
 from abc import abstractmethod
 from functools import cached_property
 from functools import partial
+from traceback import format_exc
 
 import pandas as pd
 import pymonetdb
@@ -206,7 +207,7 @@ def make_parameters(properties, y=None, x=None):
     if properties["type"] == "float":
         return FloatParameter(min=properties["min"], max=properties["max"])
     if properties["type"] == "enum_from_list":
-        return EnumFromList(enums=properties["enumerations"])
+        return EnumFromList(enums=properties["enums"])
     if properties["type"] == "enum_from_cde":
         return make_enum_from_cde_parameter(properties, y, x)
     else:
@@ -374,23 +375,28 @@ class TestCaseGenerator(ABC):
             )
 
         parameters = input_["parameters"]
+
         try:
             output = self.compute_expected_output(input_data, parameters)
+
         except Exception as err:
-            raise Exception(f"{err}, datasets: {input_['inputdata']['datasets']}")
+            raise Exception(
+                f"{err}, input_data: {input_data}, parameters: {parameters}, datasets: {input_['inputdata']['datasets']}, traceback: {format_exc()}"
+            )
 
         return {"input": input_, "output": output}
 
     def generate_test_cases(self, num_test_cases=100):
-        test_cases = []
-        while len(test_cases) < num_test_cases:
-            print(f"Generating test case #{len(test_cases) + 1}.")
-            try:
-                item = self.generate_test_case()
-                test_cases.append(item)
-            except Exception as err:
-                print(f"An error occurred: {err}")
+        test_cases = [self.generate_test_case() for _ in tqdm(range(num_test_cases))]
 
+        def append_test_case_number(test_case, num):
+            test_case["test_case_num"] = num
+            return test_case
+
+        test_cases = [
+            append_test_case_number(test_case, i)
+            for i, test_case in enumerate(test_cases)
+        ]
         return {"test_cases": test_cases}
 
     def write_test_cases(self, file, num_test_cases=100):
