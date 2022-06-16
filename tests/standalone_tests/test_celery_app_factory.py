@@ -15,7 +15,7 @@ from mipengine.node_tasks_DTOs import TableSchema
 from tests.standalone_tests.conftest import COMMON_IP
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_PORT
-from tests.standalone_tests.conftest import kill_node_service
+from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
 REQUEST_ID = "testrequestid"
@@ -144,7 +144,7 @@ def test_get_result_node_down(localnodetmp_node_service, task_signatures):
         schema_json=test_table_schema.json(),
     )
 
-    kill_node_service(localnodetmp_node_service)
+    kill_service(localnodetmp_node_service)
     remove_localnodetmp_rabbitmq()
 
     with pytest.raises(CeleryConnectionError):

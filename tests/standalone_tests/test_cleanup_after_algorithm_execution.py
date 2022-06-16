@@ -573,7 +573,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # kill rabbitmq container for localnotmp
     remove_localnodetmp_rabbitmq()
     # kill the celery app of localnodetmp
-    kill_node_service(localnodetmp_node_service)
+    kill_service(localnodetmp_node_service)
 
     # Releasing contextid, signals the Cleaner to start cleaning the contextid from the nodes
     # Nevertheless, localnodetmp is currently down, so cannot be cleaned
@@ -625,7 +625,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # the node service was started in here so it must manually killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
     # where theh node service is supposedly down
-    kill_node_service(localnodetmp_node_service_proc)
+    kill_service(localnodetmp_node_service_proc)
 
     if (
         globalnode_tables_before_cleanup
@@ -727,7 +727,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     )
 
     # kill the celery app of localnodetmp
-    kill_node_service(localnodetmp_node_service)
+    kill_service(localnodetmp_node_service)
 
     # Releasing contextid, signals the Cleaner to start cleaning the contextid from the nodes
     # Nevertheless, localnodetmp is currently down, so cannot be cleaned
