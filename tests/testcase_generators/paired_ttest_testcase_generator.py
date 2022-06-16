@@ -29,8 +29,6 @@ class PairedTtestTestCaseGenerator(TestCaseGenerator):
         y = data[y_name].tolist()
         x = data[x_name].tolist()
 
-        x1_sqrd_sum = sum(X[x_name] ** 2)
-        # x2_sqrd_sum = sum(Y[y_name] ** 2)
         diff_sum = sum(X[x_name] - Y[y_name])
         diff_sqrd_sum = sum((X[x_name] - Y[y_name]) ** 2)
 
@@ -51,9 +49,6 @@ class PairedTtestTestCaseGenerator(TestCaseGenerator):
             (np.std(x, ddof=1) ** 2 + np.std(y, ddof=1) ** 2) / 2
         )
 
-        devel1 = sum(((X[x_name]) - np.mean(X[x_name])) ** 2)
-        devel2 = sum(((Y[y_name]) - np.mean(Y[y_name])) ** 2)
-
         expected_out = {
             "statistic": res[0],
             "p_value": res[1],
@@ -63,11 +58,6 @@ class PairedTtestTestCaseGenerator(TestCaseGenerator):
             "ci_upper": ci_upper,
             "ci_lower": ci_lower,
             "cohens_d": cohens_d,
-            "devel1": devel1,
-            "devel2": devel2,
-            "x1_sqrd_sum": x1_sqrd_sum,
-            "mean_x1": np.mean(X[x_name]),
-            "sum_x1": sum(X[x_name]),
         }
 
         return expected_out
