@@ -83,19 +83,19 @@ class INodeTasksHandler(ABC):
     def get_views(self, request_id: str, context_id: str) -> List[str]:
         pass
 
-    # TODO: this is very specific to mip, very inconsistent with the rest, has to be
-    # abstracted somehow
     @abstractmethod
-    def create_data_model_view(
+    def create_data_model_views(
         self,
         request_id: str,
         context_id: str,
         command_id: str,
         data_model: str,
         datasets: List[str],
-        columns: List[str],
-        filters: List[str],
-    ) -> str:
+        columns_per_view: List[List[str]],
+        filters: dict,
+        dropna: bool = True,
+        check_min_rows: bool = True,
+    ) -> List[str]:
         pass
 
     # MERGE TABLES functionality

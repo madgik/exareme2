@@ -23,13 +23,17 @@ class PearsonResult(BaseModel):
 def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
     global_run = algo_interface.run_udf_on_global_node
-    Y_relation = algo_interface.initial_view_tables["y"]
     alpha = algo_interface.algorithm_parameters["alpha"]
 
-    if "x" in algo_interface.initial_view_tables:
-        X_relation = algo_interface.initial_view_tables["x"]
+    if algo_interface.x_variables:
+        Y_relation, X_relation = algo_interface.create_primary_data_views(
+            variable_groups=[algo_interface.y_variables, algo_interface.x_variables],
+        )
     else:
-        X_relation = algo_interface.initial_view_tables["y"]
+        Y_relation, *_ = algo_interface.create_primary_data_views(
+            variable_groups=[algo_interface.y_variables],
+        )
+        X_relation = Y_relation
 
     column_names = [
         x.__dict__["name"]
