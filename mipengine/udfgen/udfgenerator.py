@@ -1300,7 +1300,14 @@ class LiteralAssignments(ASTNode):
         self.literals = literals
 
     def compile(self) -> str:
-        return LN.join(f"{name} = {arg.value}" for name, arg in self.literals.items())
+        literal_assignments = []
+        for name, arg in self.literals.items():
+            if isinstance(arg.value, str):
+                literal_assignments.append(f"{name} = '{arg.value}'")
+            else:
+                literal_assignments.append(f"{name} = {arg.value}")
+
+        return LN.join(literal_assignments)
 
 
 class LoggerAssignment(ASTNode):
@@ -1931,7 +1938,7 @@ def validate_udf_table_input_types(table_input_types):
 # ~~~~~~~~~~~~~~~~~ Module Public Function ~~~~~~~~~~~~~~~ #
 
 
-LiteralValue = Union[Number, numpy.ndarray]
+LiteralValue = Union[Number, numpy.ndarray, str]
 UDFGenArgument = Union[TableInfo, LiteralValue, SMPCTablesInfo]
 
 
