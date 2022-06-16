@@ -42,7 +42,6 @@ async def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
         celery_app: celery_app.signature(GET_NODE_INFO_SIGNATURE)
         for celery_app in celery_apps
     }
-
     tasks_coroutines = [
         _task_to_async(task, app=app)(request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID)
         for app, task in nodes_task_signature.items()

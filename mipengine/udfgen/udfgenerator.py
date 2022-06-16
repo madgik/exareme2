@@ -841,7 +841,8 @@ class RelationType(TableType, ParametrizedType, InputType, OutputType):
         return self._schema
 
 
-def relation(schema):
+def relation(schema=None):
+    schema = schema or TypeVar("S")
     return RelationType(schema)
 
 
@@ -1473,6 +1474,20 @@ class UDFDefinition(ASTNode):
         )
 
 
+class StarColumn(ASTNode):
+    def compile(self, *_, **__):
+        return "*"
+
+
+class ConstColumn(ASTNode):
+    def __init__(self, value, alias):
+        self.name = str(value)
+        self.alias = alias
+
+    def compile(self, use_alias=False):
+        return f"{self.name}" + (f' AS "{self.alias}"' if use_alias else "")
+
+
 class Column(ASTNode):
     def __init__(self, name: str, table: "Table" = None, alias=""):
         self.name = name
@@ -1558,6 +1573,17 @@ class Column(ASTNode):
         raise TypeError(f"unsupported operand types for /: {type(other)} and Column")
 
 
+class Cast(ASTNode):
+    def __init__(self, name, type_, alias):
+        self.name = name
+        self.type_ = type_
+        self.alias = alias
+
+    def compile(self, use_alias=False):
+        result = f"CAST('{self.name}' AS {self.type_})"
+        return result + (f" AS {self.alias}" if use_alias else "")
+
+
 class ColumnEqualityClause(ASTNode):
     def __init__(self, column1: Column, column2: Column):
         self.column1 = column1
@@ -1601,9 +1627,12 @@ class TableFunction(ASTNode):
 
 
 class Table(ASTNode):
-    def __init__(self, name: str, columns: List[Column], alias=""):
+    def __init__(self, name: str, columns: List[Union[str, Column]], alias=""):
         self.name = name
-        self.columns = {colname: Column(colname, self) for colname in columns}
+        if columns and isinstance(columns[0], str):
+            self.columns = {colname: Column(colname, self) for colname in columns}
+        else:
+            self.columns = columns
         self.c = self.columns
         self.alias = alias
 
@@ -1987,6 +2016,9 @@ def generate_udf_queries(
             udf_results=udf_outputs,
             udf_select_query=udf_execution_query,
         )
+
+    if func_name == "create_dummy_encoded_design_matrix":
+        return get_create_dummy_encoded_design_matrix_execution_queries(keyword_args)
 
     return get_udf_templates_using_udfregistry(
         request_id=request_id,
@@ -2434,7 +2466,7 @@ def get_udf_select_template(output_type: OutputType, table_args: Dict[str, Table
     if isinstance(output_type, TableType):
         subquery = Select(columns, tables, where_clause) if tables else None
         func = TableFunction(name="$udf_name", subquery=subquery)
-        select_stmt = Select([nodeid_column(), Column("*")], [func])
+        select_stmt = Select([nodeid_column(), StarColumn()], [func])
         return select_stmt.compile()
     raise TypeError(f"Got {output_type} as output. Expected ScalarType or TableType")
 
@@ -2487,11 +2519,7 @@ def convert_table_arg_to_table_ast_node(table_arg, alias=None):
 
 
 def nodeid_column():
-    return ScalarFunction(
-        name="CAST",
-        columns=[Column("'$node_id'", alias=dt.STR.to_sql())],
-        alias="node_id",
-    )
+    return Cast(name="$node_id", type_=dt.STR.to_sql(), alias="node_id")
 
 
 # ~~~~~~~~~~~~~~~~~ CREATE TABLE and INSERT query generator ~~~~~~~~~ #
@@ -2527,11 +2555,18 @@ def _get_smpc_table_template_names(prefix: str):
     )
 
 
-def _create_table_udf_output(output_type: OutputType, table_name: str) -> UDFGenResult:
+def _create_table_udf_output(
+    output_type: OutputType,
+    table_name: str,
+    nodeid=True,
+) -> UDFGenResult:
     drop_table = DROP_TABLE_IF_EXISTS + " $" + table_name + SCOLON
-    output_schema = f'"node_id" {dt.STR.to_sql()},' + iotype_to_sql_schema(output_type)
-    if isinstance(output_type, ScalarType):
+    if isinstance(output_type, ScalarType) or not nodeid:
         output_schema = iotype_to_sql_schema(output_type)
+    else:
+        output_schema = f'"node_id" {dt.STR.to_sql()},' + iotype_to_sql_schema(
+            output_type
+        )
     create_table = CREATE_TABLE + " $" + table_name + f"({output_schema})" + SCOLON
     return TableUDFGenResult(
         tablename_placeholder=table_name,
@@ -2571,21 +2606,25 @@ def _create_smpc_udf_output(output_type: SecureTransferType, table_name_prefix: 
 
 
 def _create_udf_output(
-    output_type: OutputType, table_name: str, smpc_used: bool
+    output_type: OutputType,
+    table_name: str,
+    smpc_used: bool,
+    nodeid=True,
 ) -> UDFGenResult:
     if isinstance(output_type, SecureTransferType) and smpc_used:
         return _create_smpc_udf_output(output_type, table_name)
     else:
-        return _create_table_udf_output(output_type, table_name)
+        return _create_table_udf_output(output_type, table_name, nodeid)
 
 
 def get_udf_outputs(
     main_output_type: OutputType,
     sec_output_types: List[LoopbackOutputType],
     smpc_used: bool,
+    nodeid=True,
 ) -> List[UDFGenResult]:
     table_name = _get_main_table_template_name()
-    udf_outputs = [_create_udf_output(main_output_type, table_name, smpc_used)]
+    udf_outputs = [_create_udf_output(main_output_type, table_name, smpc_used, nodeid)]
 
     if sec_output_types:
         for table_name, sec_output_type in _get_loopback_tables_template_names(
@@ -2831,3 +2870,57 @@ def get_matrix_transpose_template(matrix):
         [table],
     )
     return select_stmt.compile()
+
+
+# ~~~~~~~~~~~~~~ SQL special queries ~~~~~~~~~~~~~~ #
+def get_create_dummy_encoded_design_matrix_execution_queries(keyword_args):
+    dm_table = get_dummy_encoded_design_matrix_table(keyword_args)
+    udf_select = get_dummy_encoded_design_matrix_select_stmt(dm_table)
+    output_schema = get_dummy_encoded_design_matrix_schema(dm_table)
+    output_type = relation(schema=output_schema)
+    udf_outputs = get_udf_outputs(
+        output_type,
+        sec_output_types=None,
+        smpc_used=False,
+        nodeid=False,
+    )
+    udf_execution_query = get_udf_execution_template(udf_select)
+    return UDFGenExecutionQueries(
+        udf_results=udf_outputs,
+        udf_select_query=udf_execution_query,
+    )
+
+
+def get_dummy_encoded_design_matrix_table(keyword_args):
+    enums = keyword_args["enums"]
+    numerical_vars = keyword_args["numerical_vars"]
+    intercept = keyword_args["intercept"]
+    table_name = keyword_args["x"].name
+    rowid_column = [Column(name="row_id")]
+    intercept_column = [ConstColumn(value=1, alias="intercept")] if intercept else []
+    numerical_columns = [Column(name=varname) for varname in numerical_vars]
+    dummy_columns = [
+        ConstColumn(
+            value=f"CASE WHEN {varname} = '{enum['code']}' THEN 1 ELSE 0 END",
+            alias=enum["dummy"],
+        )
+        for varname in enums.keys()
+        for enum in enums[varname]
+    ]
+    columns = rowid_column + intercept_column + dummy_columns + numerical_columns
+    table = Table(name=table_name, columns=columns)
+    return table
+
+
+def get_dummy_encoded_design_matrix_select_stmt(design_matrix_table):
+    sel = Select(columns=design_matrix_table.columns, tables=[design_matrix_table])
+    return sel.compile()
+
+
+def get_dummy_encoded_design_matrix_schema(design_matrix_table):
+    assert design_matrix_table.columns[0].name == "row_id"
+    schema = [("row_id", int)]
+    for column in design_matrix_table.columns[1:]:
+        colname = column.alias or column.name
+        schema.append((colname, float))
+    return schema

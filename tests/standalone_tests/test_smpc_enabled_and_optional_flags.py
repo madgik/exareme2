@@ -27,6 +27,7 @@ def get_validate_smpc_usage_success_cases():
     return validate_smpc_usage_success_cases
 
 
+@pytest.mark.smpc
 @pytest.mark.parametrize(
     "node_config, use_smpc", get_validate_smpc_usage_success_cases()
 )
@@ -66,6 +67,7 @@ def get_validate_smpc_usage_fail_cases():
     return validate_smpc_usage_fail_cases
 
 
+@pytest.mark.smpc
 @pytest.mark.parametrize(
     "node_config, use_smpc, exception", get_validate_smpc_usage_fail_cases()
 )

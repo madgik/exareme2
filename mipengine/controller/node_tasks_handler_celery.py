@@ -120,12 +120,18 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
 
     # TODO create custom type and validator for the socket address
     def __init__(
-        self, node_id: str, node_queue_addr: str, node_db_addr: str, tasks_timeout
+        self,
+        node_id: str,
+        node_queue_addr: str,
+        node_db_addr: str,
+        tasks_timeout: int,
+        run_udf_task_timeout: int,
     ):
         self._node_id = node_id
         self._celery_app = get_node_celery_app(node_queue_addr)
         self._db_address = node_db_addr
         self._tasks_timeout = tasks_timeout
+        self._run_udf_task_timeout = run_udf_task_timeout
 
     def close(self):
         self._celery_app.close()
@@ -341,7 +347,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
     def get_queued_udf_result(self, async_result: QueuedUDFAsyncResult) -> UDFResults:
-        result_str = async_result.get(self._tasks_timeout)
+        result_str = async_result.get(self._run_udf_task_timeout)
         return UDFResults.parse_raw(result_str)
 
     @time_limit_exceeded_handler
@@ -383,7 +389,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     @broker_connection_closed_handler
     def validate_smpc_templates_match(
         self,
-        context_id: str,
+        request_id: str,
         table_name: str,
     ):
         task_signature = self._celery_app.signature(
@@ -391,21 +397,21 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         )
         self._apply_async(
             task_signature=task_signature,
-            context_id=context_id,
+            request_id=request_id,
             table_name=table_name,
         ).get(self._tasks_timeout)
 
     @time_limit_exceeded_handler
     @broker_connection_closed_handler
     def load_data_to_smpc_client(
-        self, context_id: str, table_name: str, jobid: str
-    ) -> int:
+        self, request_id: str, table_name: str, jobid: str
+    ) -> str:
         task_signature = self._celery_app.signature(
             TASK_SIGNATURES["load_data_to_smpc_client"]
         )
         return self._apply_async(
             task_signature=task_signature,
-            context_id=context_id,
+            request_id=request_id,
             table_name=table_name,
             jobid=jobid,
         ).get(self._tasks_timeout)
@@ -414,6 +420,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
     @broker_connection_closed_handler
     def get_smpc_result(
         self,
+        request_id: str,
         jobid: str,
         context_id: str,
         command_id: str,
@@ -422,6 +429,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         task_signature = self._celery_app.signature(TASK_SIGNATURES["get_smpc_result"])
         return self._apply_async(
             task_signature=task_signature,
+            request_id=request_id,
             jobid=jobid,
             context_id=context_id,
             command_id=command_id,

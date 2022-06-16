@@ -116,7 +116,10 @@ class InputDataVariable(ABC):
         if not self._notblank and not coin():
             return
         num = triangular() if self._multiple else 1
-        choice = random_permutation(self.all_variables, r=num)
+        choice = random_permutation(
+            self.all_variables,
+            r=min(num, len(self.all_variables)),
+        )
         return choice
 
 
@@ -136,8 +139,12 @@ class NominalInputDataVariables(InputDataVariable):
         return nominal_vars
 
 
-class MixedInputDataVariables:
-    pass
+class MixedInputDataVariables(InputDataVariable):
+    @cached_property
+    def all_variables(self):
+        """Gets the names of all variables available, both numerical and nominal."""
+        all_vars = self.db.get_nominal_variables() + self.db.get_numerical_variables()
+        return all_vars
 
 
 def make_input_data_variables(properties):
@@ -152,7 +159,10 @@ def make_input_data_variables(properties):
             properties["multiple"],
         )
     elif set(properties["stattypes"]) == {"numerical", "nominal"}:
-        raise NotImplementedError
+        return MixedInputDataVariables(
+            properties["notblank"],
+            properties["multiple"],
+        )
 
 
 class AlgorithmParameter(ABC):
@@ -364,7 +374,7 @@ class TestCaseGenerator(ABC):
         return y_data, x_data
 
     def generate_test_case(self):
-        for _ in range(1000):
+        for _ in range(10_000):
             input_ = self.generate_input()
             input_data = self.get_input_data(input_)
             if input_data is not None:

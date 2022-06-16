@@ -64,18 +64,6 @@ class IncompatibleTableTypes(Exception):
         super().__init__(self.message)
 
 
-class SMPCUsageError(Exception):
-    pass
-
-
-class SMPCCommunicationError(Exception):
-    pass
-
-
-class SMPCComputationError(Exception):
-    pass
-
-
 class RequestIDNotFound(Exception):
     """Exception raised while checking the presence of request_id in task's arguments.
 
