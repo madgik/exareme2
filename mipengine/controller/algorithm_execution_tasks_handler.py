@@ -231,7 +231,7 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         result = celery_app.get_result(
             async_result=async_result,
             timeout=self._tasks_timeout,
-            request_id=request_id,
+            logger=logger,
         )
         return list(result)
 
@@ -537,7 +537,7 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             jobid=jobid,
         )
         result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout
+            async_result=async_result, logger=logger, timeout=self._tasks_timeout
         )
         return result
 
