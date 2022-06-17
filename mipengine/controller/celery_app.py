@@ -79,10 +79,6 @@ class CeleryWrapper:
         try:
             result = async_result.get(timeout)
             return result
-        except Exception as exc:
-            import traceback
-
-            tr = traceback.format_exc()
 
         except (
             celery.exceptions.TimeoutError,

@@ -17,6 +17,7 @@ from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_PORT
 from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
+from tests.standalone_tests.std_output_logger import StdOutputLogger
 
 REQUEST_ID = "testrequestid"
 
@@ -67,6 +68,7 @@ def test_queue_task(localnode1_node_service, task_signatures):
     )
     async_result = celery_app.queue_task(
         task_signature=task_signatures["create_table"],
+        logger=StdOutputLogger(),
         request_id=REQUEST_ID,
         context_id=get_a_random_context_id(),
         command_id="testcmndid",
@@ -87,6 +89,7 @@ def test_get_result(localnode1_node_service, task_signatures):
     )
     async_result = celery_app.queue_task(
         task_signature=task_signatures["create_table"],
+        logger=StdOutputLogger(),
         request_id=REQUEST_ID,
         context_id=get_a_random_context_id(),
         command_id="testcmndid",
@@ -95,8 +98,8 @@ def test_get_result(localnode1_node_service, task_signatures):
 
     result = celery_app.get_result(
         async_result=async_result,
+        logger=StdOutputLogger(),
         timeout=30,
-        request_id=REQUEST_ID,
     )
 
     assert isinstance(result, str)
@@ -118,6 +121,7 @@ def test_queue_task_node_down(localnodetmp_node_service, task_signatures):
     with pytest.raises(CeleryConnectionError):
         celery_app.queue_task(
             task_signature=task_signatures["create_table"],
+            logger=StdOutputLogger(),
             request_id=REQUEST_ID,
             context_id=get_a_random_context_id(),
             command_id="testcmndid",
@@ -138,6 +142,7 @@ def test_get_result_node_down(localnodetmp_node_service, task_signatures):
 
     async_result = celery_app.queue_task(
         task_signature=task_signatures["create_table"],
+        logger=StdOutputLogger(),
         request_id=REQUEST_ID,
         context_id=get_a_random_context_id(),
         command_id="testcmndid",
@@ -149,7 +154,7 @@ def test_get_result_node_down(localnodetmp_node_service, task_signatures):
 
     with pytest.raises(CeleryConnectionError):
         result = celery_app.get_result(
-            async_result=async_result, timeout=5, request_id=REQUEST_ID
+            async_result=async_result, logger=StdOutputLogger(), timeout=5
         )
 
 

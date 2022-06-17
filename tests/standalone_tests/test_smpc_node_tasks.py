@@ -43,7 +43,7 @@ SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
 TASKS_TIMEOUT = 60
 
 
-class Logger:
+class StdOutputLogger:
     def info(msg: str, *args, **kwargs):
         print(msg)
 
@@ -65,14 +65,14 @@ def create_secure_transfer_table(celery_app) -> str:
     )
     async_result = celery_app.queue_task(
         task_signature=task_signature,
-        logger=Logger(),
+        logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     )
     table_name = celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
     return table_name
 
@@ -97,13 +97,13 @@ def create_table_with_secure_transfer_results_with_smpc_off(
 
     async_result = celery_app.queue_task(
         task_signature=task_signature,
-        logger=Logger(),
+        logger=StdOutputLogger(),
         request_id=request_id,
         table_name=table_name,
         values=values,
     )
     celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
 
     return table_name, secure_transfer_1_value + secure_transfer_2_value
@@ -132,13 +132,13 @@ def create_table_with_multiple_secure_transfer_templates(
 
     async_result = celery_app.queue_task(
         task_signature=task_signature,
-        logger=Logger(),
+        logger=StdOutputLogger(),
         request_id=request_id,
         table_name=table_name,
         values=values,
     )
     celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
 
     return table_name
@@ -156,13 +156,13 @@ def create_table_with_smpc_sum_op_values(celery_app) -> Tuple[str, str]:
 
     async_result = celery_app.queue_task(
         task_signature=task_signature,
-        logger=Logger(),
+        logger=StdOutputLogger(),
         request_id=request_id,
         table_name=table_name,
         values=values,
     )
     celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
 
     return table_name, json.dumps(sum_op_values)
@@ -177,12 +177,12 @@ def validate_dict_table_data_match_expected(
     assert table_name is not None
     async_result = celery_app.queue_task(
         task_signature=get_table_data_task_signature,
-        logger=Logger(),
+        logger=StdOutputLogger(),
         request_id=request_id,
         table_name=table_name,
     )
     table_data_str = celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
     table_data: TableData = TableData.parse_raw(table_data_str)
     result_str, *_ = table_data.columns[1].data
@@ -204,7 +204,7 @@ def test_secure_transfer_output_with_smpc_off(
 
     async_result = localnode1_celery_app.queue_task(
         task_signature=run_udf_task,
-        logger=Logger(),
+        logger=StdOutputLogger(),
         command_id="1",
         request_id=request_id,
         context_id=context_id,
@@ -213,7 +213,7 @@ def test_secure_transfer_output_with_smpc_off(
         keyword_args_json=UDFKeyArguments(args={}).json(),
     )
     udf_results_str = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
 
     results = UDFResults.parse_raw(udf_results_str).results
@@ -248,7 +248,7 @@ def test_secure_transfer_input_with_smpc_off(
 
     async_result = localnode1_celery_app.queue_task(
         task_signature=run_udf_task,
-        logger=Logger(),
+        logger=StdOutputLogger(),
         command_id="1",
         request_id=request_id,
         context_id=context_id,
@@ -257,7 +257,7 @@ def test_secure_transfer_input_with_smpc_off(
         keyword_args_json=UDFKeyArguments(args={}).json(),
     )
     udf_results_str = localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
 
     results = UDFResults.parse_raw(udf_results_str).results
@@ -292,12 +292,12 @@ def test_validate_smpc_templates_match(
     try:
         async_result = smpc_localnode1_celery_app.queue_task(
             task_signature=validate_smpc_templates_match_task,
-            logger=Logger(),
+            logger=StdOutputLogger(),
             request_id=request_id,
             table_name=table_name,
         )
         smpc_localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
         )
     except Exception as exc:
         pytest.fail(f"No exception should be raised. Exception: {exc}")
@@ -320,12 +320,12 @@ def test_validate_smpc_templates_dont_match(
     with pytest.raises(ValueError) as exc:
         async_result = smpc_localnode1_celery_app.queue_task(
             task_signature=validate_smpc_templates_match_task,
-            logger=Logger(),
+            logger=StdOutputLogger(),
             request_id=request_id,
             table_name=table_name,
         )
         smpc_localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
         )
     assert "SMPC templates dont match." in str(exc)
 
@@ -349,7 +349,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
 
     async_result = smpc_localnode1_celery_app.queue_task(
         task_signature=run_udf_task,
-        logger=Logger(),
+        logger=StdOutputLogger(),
         command_id="1",
         request_id=request_id,
         context_id=context_id,
@@ -359,7 +359,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
         use_smpc=True,
     )
     udf_results_str = smpc_localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
 
     local_step_results = UDFResults.parse_raw(udf_results_str).results
@@ -400,6 +400,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
 
     async_result = smpc_localnode1_celery_app.queue_task(
         task_signature=run_udf_task,
+        logger=StdOutputLogger(),
         command_id="2",
         request_id=request_id,
         context_id=context_id,
@@ -409,7 +410,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
         use_smpc=True,
     )
     udf_results_str = smpc_localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
 
     global_step_results = UDFResults.parse_raw(udf_results_str).results
@@ -439,13 +440,13 @@ def test_load_data_to_smpc_client_from_globalnode_fails(
     with pytest.raises(PermissionError) as exc:
         async_result = smpc_globalnode_celery_app.queue_task(
             task_signature=load_data_to_smpc_client_task,
-            logger=Logger(),
+            logger=StdOutputLogger(),
             request_id=request_id,
             table_name="whatever",
             jobid="whatever",
         )
         smpc_globalnode_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
         )
     assert "load_data_to_smpc_client is allowed only for a LOCALNODE." in str(exc)
 
@@ -468,13 +469,13 @@ def test_load_data_to_smpc_client(
 
     async_result = smpc_localnode1_celery_app.queue_task(
         task_signature=load_data_to_smpc_client_task,
-        logger=Logger(),
+        logger=StdOutputLogger(),
         request_id=request_id,
         table_name=table_name,
         jobid=smpc_job_id,
     )
     smpc_localnode1_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, logger=Logger()
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
 
     node_config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
@@ -507,14 +508,14 @@ def test_get_smpc_result_from_localnode_fails(
     with pytest.raises(PermissionError) as exc:
         async_result = smpc_localnode1_celery_app.queue_task(
             task_signature=get_smpc_result_task,
-            logger=Logger(),
+            logger=StdOutputLogger(),
             request_id="whatever",
             context_id="whatever",
             command_id="whatever",
             jobid="whatever",
         )
         smpc_localnode1_celery_app.get_result(
-            async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
         )
     assert "get_smpc_result is allowed only for a GLOBALNODE." in str(exc)
 
@@ -577,14 +578,14 @@ def test_get_smpc_result(
     # --------------- GET SMPC RESULT IN GLOBALNODE ------------------------
     async_result = smpc_globalnode_celery_app.queue_task(
         task_signature=get_smpc_result_task,
-        logger=Logger(),
+        logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
         command_id=command_id,
         jobid=smpc_job_id,
     )
     result_tablename = smpc_globalnode_celery_app.get_result(
-        async_result=async_result, timeout=TASKS_TIMEOUT, request_id=request_id
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
     validate_dict_table_data_match_expected(
         celery_app=smpc_globalnode_celery_app,
