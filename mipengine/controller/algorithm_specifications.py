@@ -1,127 +1,135 @@
-import importlib
 import logging
-import typing
-from dataclasses import dataclass
-from enum import Enum
-from enum import unique
 from pathlib import Path
-from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 
-from dataclasses_json import dataclass_json
+from pydantic import BaseModel
 
 from mipengine import ALGORITHM_FOLDERS
-
-# TODO Enums are not supported from the dataclass_json library
-# For now some helper methods are added.
-# All of the helper methods and the __post_init methods should be removed with pydantic.
-
-
-@unique
-class InputDataStatType(str, Enum):
-    NUMERICAL = "numerical"
-    NOMINAL = "nominal"
-
-    @classmethod
-    def has_value(cls, item):
-        return item in [v.value for v in cls.__members__.values()]
-
-    @classmethod
-    def get_values(cls):
-        return [v.value for v in cls.__members__.values()]
-
-
-@unique
-class InputDataType(str, Enum):
-    REAL = "real"
-    INT = "int"
-    TEXT = "text"
-
-    @classmethod
-    def has_value(cls, item):
-        return item in [v.value for v in cls.__members__.values()]
-
-    @classmethod
-    def get_values(cls):
-        return [v.value for v in cls.__members__.values()]
+from mipengine.controller.api.algorithm_specifications_dtos import (
+    AlgorithmSpecificationDTO,
+)
+from mipengine.controller.api.algorithm_specifications_dtos import (
+    AlgorithmSpecificationsDTO,
+)
+from mipengine.controller.api.algorithm_specifications_dtos import (
+    InputDataSpecificationDTO,
+)
+from mipengine.controller.api.algorithm_specifications_dtos import (
+    InputDataSpecificationsDTO,
+)
+from mipengine.controller.api.algorithm_specifications_dtos import InputDataStatType
+from mipengine.controller.api.algorithm_specifications_dtos import InputDataType
+from mipengine.controller.api.algorithm_specifications_dtos import (
+    ParameterSpecificationDTO,
+)
 
 
-@dataclass_json
-@dataclass
-class InputDataSpecification:
+class InputDataSpecification(BaseModel):
     label: str
     desc: str
-    types: List[str]
-    stattypes: List[str]
+    types: List[InputDataType]
+    stattypes: List[InputDataStatType]
     notblank: bool
     multiple: bool
     enumslen: Optional[int] = None
 
-    def __post_init__(self):
-        if not all(InputDataType.has_value(elem) for elem in self.types):
-            raise ValueError(
-                f"Input data types can include: {InputDataType.get_values()}"
-            )
+    def convert_to_inputdata_specification_dto(self):
+        # The only difference of the DTO is that it's stattypes is Optional,
+        # due to the fact that the datasets/data_model variables are added.
+        return InputDataSpecificationDTO(
+            label=self.label,
+            desc=self.desc,
+            types=self.types,
+            stattypes=self.stattypes,
+            notblank=self.notblank,
+            multiple=self.multiple,
+            enumslen=self.enumslen,
+        )
 
-        if not all(InputDataStatType.has_value(elem) for elem in self.stattypes):
-            raise ValueError(
-                f"Input data stattypes can include: {InputDataStatType.get_values()}"
-            )
+
+def get_data_model_input_data_specification_DTO():
+    return InputDataSpecificationDTO(
+        label="Data model of the data.",
+        desc="The data model that the algorithm will run on.",
+        types=[InputDataType.TEXT],
+        notblank=True,
+        multiple=False,
+        stattypes=None,
+        enumslen=None,
+    )
 
 
-@dataclass_json
-@dataclass
-class InputDataSpecifications:
+def get_datasets_input_data_specification_DTO():
+    return InputDataSpecificationDTO(
+        label="Set of data to use.",
+        desc="The set of data to run the algorithm on.",
+        types=[InputDataType.TEXT],
+        notblank=True,
+        multiple=True,
+        stattypes=None,
+        enumslen=None,
+    )
+
+
+def get_filters_input_data_specification_DTO():
+    return InputDataSpecificationDTO(
+        label="filter on the data.",
+        desc="Features used in my algorithm.",
+        types=[InputDataType.JSONOBJECT],
+        notblank=False,
+        multiple=False,
+        stattypes=None,
+        enumslen=None,
+    )
+
+
+class InputDataSpecifications(BaseModel):
     x: Optional[InputDataSpecification] = None
     y: Optional[InputDataSpecification] = None
 
-
-@unique
-class ParameterType(str, Enum):
-    REAL = "real"
-    INT = "int"
-    TEXT = "text"
-    BOOLEAN = "boolean"
-
-    @classmethod
-    def has_value(cls, item):
-        return item in [v.value for v in cls.__members__.values()]
-
-    @classmethod
-    def get_values(cls):
-        return [v.value for v in cls.__members__.values()]
+    def convert_to_inputdata_specifications_dto(self):
+        # In the DTO the datasets, data_model and filter parameters are added from the engine.
+        # These parameters are not added by the algorithm developer.
+        x = self.x.convert_to_inputdata_specification_dto() if self.x else None
+        y = self.y.convert_to_inputdata_specification_dto() if self.y else None
+        return InputDataSpecificationsDTO(
+            x=x,
+            y=y,
+            data_model=get_data_model_input_data_specification_DTO(),
+            datasets=get_datasets_input_data_specification_DTO(),
+            filter=get_filters_input_data_specification_DTO(),
+        )
 
 
-@dataclass_json
-@dataclass
-class ParameterSpecification:
-    label: str
-    desc: str
-    type: str
-    notblank: bool
-    multiple: bool
-    default: "typing.Any"  # Dataclass doesn't support the Any type. Don't change.
-    enums: Optional[List[Any]] = None
-    min: Optional[int] = None
-    max: Optional[int] = None
+class ParameterSpecification(ParameterSpecificationDTO):
+    # The parameter specification is identical to the DTO
+    pass
 
 
-@dataclass_json
-@dataclass
-class AlgorithmSpecifications:
+class AlgorithmSpecification(BaseModel):
     name: str
     desc: str
     label: str
     enabled: bool
-    inputdata: Optional[InputDataSpecifications] = None
+    inputdata: InputDataSpecifications
     parameters: Optional[Dict[str, ParameterSpecification]] = None
     flags: Optional[Dict[str, bool]] = None
 
+    def convert_to_algorithm_specifications_dto(self):
+        # Converting to a DTO does not include the flags.
+        return AlgorithmSpecificationDTO(
+            name=self.name,
+            desc=self.desc,
+            label=self.label,
+            inputdata=self.inputdata.convert_to_inputdata_specifications_dto(),
+            parameters=self.parameters,
+        )
 
-class AlgorithmsSpecifications:
-    enabled_algorithms: Dict[str, AlgorithmSpecifications]
+
+class AlgorithmSpecifications:
+    enabled_algorithms: Dict[str, AlgorithmSpecification]
 
     def __init__(self):
         all_algorithms = {}
@@ -129,9 +137,10 @@ class AlgorithmsSpecifications:
             algorithms_path = Path(algorithms_path)
             for algorithm_property_path in algorithms_path.glob("*.json"):
                 try:
-                    algorithm = AlgorithmSpecifications.from_json(
-                        open(algorithm_property_path).read()
-                    )
+                    with open(algorithm_property_path) as algorithm_specifications_file:
+                        algorithm = AlgorithmSpecification.parse_raw(
+                            algorithm_specifications_file.read()
+                        )
                 except Exception as e:
                     logging.error(f"Parsing property file: {algorithm_property_path}")
                     raise e
@@ -144,5 +153,13 @@ class AlgorithmsSpecifications:
                 if algorithm.enabled
             }
 
+    def get_enabled_algorithm_dtos(self) -> AlgorithmSpecificationsDTO:
+        return AlgorithmSpecificationsDTO(
+            __root__=[
+                algorithm.convert_to_algorithm_specifications_dto()
+                for algorithm in self.enabled_algorithms.values()
+            ]
+        )
 
-algorithms_specifications = AlgorithmsSpecifications()
+
+algorithm_specifications = AlgorithmSpecifications()

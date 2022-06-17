@@ -2,11 +2,11 @@ from unittest.mock import patch
 
 import pytest
 
-from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
-from mipengine.controller.algorithms_specifications import AlgorithmsSpecifications
-from mipengine.controller.algorithms_specifications import InputDataSpecification
-from mipengine.controller.algorithms_specifications import InputDataSpecifications
-from mipengine.controller.algorithms_specifications import ParameterSpecification
+from mipengine.controller.algorithm_specifications import AlgorithmSpecification
+from mipengine.controller.algorithm_specifications import AlgorithmSpecifications
+from mipengine.controller.algorithm_specifications import InputDataSpecification
+from mipengine.controller.algorithm_specifications import InputDataSpecifications
+from mipengine.controller.algorithm_specifications import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
@@ -134,9 +134,9 @@ def available_datasets_per_data_model():
 
 @pytest.fixture(scope="module", autouse=True)
 def mock_algorithms_specs():
-    algorithms_specifications = AlgorithmsSpecifications()
+    algorithms_specifications = AlgorithmSpecifications()
     algorithms_specifications.enabled_algorithms = {
-        "test_algorithm1": AlgorithmSpecifications(
+        "test_algorithm1": AlgorithmSpecification(
             name="test algorithm1",
             desc="test algorithm1",
             label="test algorithm1",
@@ -200,7 +200,7 @@ def mock_algorithms_specs():
             },
             flags={"formula": False},
         ),
-        "algorithm_without_y": AlgorithmSpecifications(
+        "algorithm_without_y": AlgorithmSpecification(
             name="algorithm_without_y",
             desc="algorithm_without_y",
             label="algorithm_without_y",
@@ -217,7 +217,7 @@ def mock_algorithms_specs():
                 ),
             ),
         ),
-        "algorithm_without_x": AlgorithmSpecifications(
+        "algorithm_without_x": AlgorithmSpecification(
             name="algorithm_without_x",
             desc="algorithm_without_x",
             label="algorithm_without_x",
@@ -237,7 +237,7 @@ def mock_algorithms_specs():
     }
 
     with patch(
-        "mipengine.controller.api.validator.algorithms_specifications",
+        "mipengine.controller.api.validator.algorithm_specifications",
         algorithms_specifications,
     ):
         yield
