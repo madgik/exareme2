@@ -20,6 +20,6 @@ controller:
 smpc:
   enabled: true
   optional: false
-  image: gpikra/coordinator:v6.0.0
+  image: gpikra/coordinator:v7.0.0
   db_image: mongo:5.0.8
   queue_image: redis:alpine3.15

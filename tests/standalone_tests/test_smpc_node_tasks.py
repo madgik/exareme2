@@ -371,7 +371,6 @@ def test_load_data_to_smpc_client_from_globalnode_fails(
     assert "load_data_to_smpc_client is allowed only for a LOCALNODE." in str(exc)
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
 @pytest.mark.smpc
 def test_load_data_to_smpc_client(
     smpc_localnode1_node_service,
@@ -432,7 +431,6 @@ def test_get_smpc_result_from_localnode_fails(
     assert "get_smpc_result is allowed only for a GLOBALNODE." in str(exc)
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
 @pytest.mark.smpc
 def test_get_smpc_result(
     smpc_globalnode_node_service,
@@ -503,7 +501,6 @@ def test_get_smpc_result(
     )
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
 @pytest.mark.smpc
 def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_node_service,

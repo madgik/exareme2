@@ -87,7 +87,7 @@ RUN_UDF_TASK_TIMEOUT = 120
 SMPC_CLUSTER_SLEEP_TIME = 60
 
 ########### SMPC Cluster ############
-SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v6.0.0"
+SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v7.0.0"
 SMPC_COORD_DB_IMAGE = "mongo:5.0.8"
 SMPC_COORD_QUEUE_IMAGE = "redis:alpine3.15"
 

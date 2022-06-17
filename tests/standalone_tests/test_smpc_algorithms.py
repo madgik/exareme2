@@ -259,7 +259,6 @@ def get_parametrization_list_success_cases():
     return parametrization_list
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
 @pytest.mark.smpc
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
@@ -363,7 +362,6 @@ def get_parametrization_list_exception_cases():
     return parametrization_list
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
 @pytest.mark.smpc
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",

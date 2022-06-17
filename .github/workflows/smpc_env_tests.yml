@@ -178,7 +178,7 @@ jobs:
 
       - name: Pull SMPC images
         run: |
-          docker pull gpikra/coordinator:v6.0.0
+          docker pull gpikra/coordinator:v7.0.0
           docker pull mongo:5.0.8
           docker pull redis:alpine3.15
 
@@ -194,8 +194,8 @@ jobs:
           docker image rm madgik/mipengine_mipdb:dev
           kind load docker-image madgik/mipengine_rabbitmq:dev
           docker image rm madgik/mipengine_rabbitmq:dev
-          kind load docker-image gpikra/coordinator:v6.0.0
-          docker image rm gpikra/coordinator:v6.0.0
+          kind load docker-image gpikra/coordinator:v7.0.0
+          docker image rm gpikra/coordinator:v7.0.0
           kind load docker-image mongo:5.0.8 --nodes kind-control-plane
           docker image rm mongo:5.0.8
           kind load docker-image redis:alpine3.15 --nodes kind-control-plane
