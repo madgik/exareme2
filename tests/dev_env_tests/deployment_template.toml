@@ -8,6 +8,7 @@ algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 
 node_landscape_aggregator_update_interval = 10
 celery_tasks_timeout = 30
+celery_run_udf_task_timeout = 120
 
 [privacy]
 minimum_row_count = 10

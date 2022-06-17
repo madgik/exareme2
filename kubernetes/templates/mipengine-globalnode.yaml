@@ -18,6 +18,10 @@ spec:
     spec:
       nodeSelector:
         nodeType: master
+      volumes:
+      - name: db-data
+        hostPath:
+          path: {{ .Values.monetdb_storage }}
       containers:
       - name: monetdb
         image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
@@ -72,10 +76,15 @@ spec:
           value: "50000"
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
+        {{ if .Values.smpc.enabled }}
         - name: SMPC_OPTIONAL
           value: {{ quote .Values.smpc.optional }}
-
-      volumes:
-      - name: db-data
-        hostPath:
-          path: {{ .Values.monetdb_storage }}
+        - name: SMPC_CLIENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: SMPC_COORDINATOR_IP
+          value: mipengine-smpc-coordinator-service
+        - name: SMPC_COORDINATOR_ADDRESS
+          value: "http://$(SMPC_COORDINATOR_IP):12314"
+        {{ end }}
