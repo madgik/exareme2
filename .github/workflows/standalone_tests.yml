@@ -113,7 +113,7 @@ jobs:
         run: poetry run inv cleanup
 
       - name: Run SMPC specific standalone tests
-        run: poetry run pytest -s -m "smpc" --cov=mipengine --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4
+        run: poetry run pytest -x -s -m "smpc" --cov=mipengine --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4
 
       - name: Publish coverage on codeclimate
         uses: paambaati/codeclimate-action@v2.7.5
