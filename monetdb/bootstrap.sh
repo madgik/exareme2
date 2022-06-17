@@ -9,6 +9,7 @@ monetdbd start $MONETDB_STORAGE
 # Create the database instance
 monetdb create db
 monetdb set embedpy3=true db
+monetdb set max_clients=128 db
 monetdb release db
 
 tail -fn +1 $MONETDB_STORAGE/merovingian.log
