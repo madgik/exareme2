@@ -1,4 +1,5 @@
 import traceback
+from threading import Lock
 from typing import Union
 
 import amqp
@@ -41,6 +42,7 @@ class CeleryTaskTimeoutException(Exception):
 class CeleryWrapper:
     def __init__(self, socket_addr: str):
         self._socket_addr = socket_addr
+        self._celery_object_creation_lock = Lock()
         self._celery_app = self._create_new_celery_app()
 
     def _close(self):
@@ -62,8 +64,9 @@ class CeleryWrapper:
             tr = traceback.format_exc()
             logger.error(tr)
 
-            self._close()
-            self._celery_app = self._create_new_celery_app()
+            if not self._celery_object_creation_lock.locked():
+                self._close()
+                self._celery_app = self._create_new_celery_app()
 
             connection_error = CeleryConnectionError(
                 connection_address=self._socket_addr,
@@ -95,8 +98,9 @@ class CeleryWrapper:
                 tr = traceback.format_exc()
                 logger.error(tr)
 
-                self._close()
-                self._celery_app = self._create_new_celery_app()
+                if not self._celery_object_creation_lock.locked():
+                    self._close()
+                    self._celery_app = self._create_new_celery_app()
 
                 connection_error = CeleryConnectionError(
                     connection_address=self._socket_addr,
@@ -113,8 +117,9 @@ class CeleryWrapper:
             tr = traceback.format_exc()
             logger.error(tr)
 
-            self._close()
-            self._celery_app = self._create_new_celery_app()
+            if not self._celery_object_creation_lock.locked():
+                self._close()
+                self._celery_app = self._create_new_celery_app()
 
             connection_error = CeleryConnectionError(
                 connection_address=self._socket_addr,
@@ -123,19 +128,32 @@ class CeleryWrapper:
             raise connection_error
 
     def _create_new_celery_app(self):
-        if hasattr(self, "_celery_app"):
-            self._celery_app.close()
-        user = controller_config.rabbitmq.user
-        password = controller_config.rabbitmq.password
-        vhost = controller_config.rabbitmq.vhost
-        broker = f"pyamqp://{user}:{password}@{self._socket_addr}/{vhost}"
-        celery_app = Celery(broker=broker, backend="rpc://")
+        with self._celery_object_creation_lock:
+            if hasattr(self, "_celery_app"):
+                self._celery_app.close()
+            user = controller_config.rabbitmq.user
+            password = controller_config.rabbitmq.password
+            vhost = controller_config.rabbitmq.vhost
+            broker = f"pyamqp://{user}:{password}@{self._socket_addr}/{vhost}"
+            celery_app = Celery(broker=broker, backend="rpc://")
 
-        # connection pool disabled
-        # connections are established and closed for every use
-        celery_app.conf.broker_pool_limit = None
+            # connection pool disabled
+            # connections are established and closed for every use
+            celery_app.conf.broker_pool_limit = None
 
-        return celery_app
+            connection_is_ok = False
+            while not connection_is_ok:
+                try:
+                    celery_app.control.inspect().ping()
+                    connection_is_ok = True
+                except kombu.exceptions.OperationalError:
+                    celery_app = Celery(broker=broker, backend="rpc://")
+                    celery_app.conf.broker_pool_limit = None
+                import time
+
+                time.sleep(1)
+
+            return celery_app
 
 
 class CeleryAppFactory(metaclass=Singleton):
