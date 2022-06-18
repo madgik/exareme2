@@ -12,8 +12,8 @@ class AlgorithmInputDataDTO(BaseModel):
     data_model: str
     datasets: List[str]
     filters: dict = None
-    x: Optional[List[str]] = None
-    y: Optional[List[str]] = None
+    y: Optional[List[str]]
+    x: Optional[List[str]]
 
 
 class AlgorithmRequestDTO(BaseModel):

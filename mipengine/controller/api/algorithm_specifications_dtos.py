@@ -42,16 +42,16 @@ class InputDataSpecificationDTO(ImmutableBaseModel):
     types: List[InputDataType]
     notblank: bool
     multiple: bool
-    stattypes: Optional[List[InputDataStatType]] = None
-    enumslen: Optional[int] = None
+    stattypes: Optional[List[InputDataStatType]]
+    enumslen: Optional[int]
 
 
 class InputDataSpecificationsDTO(ImmutableBaseModel):
     data_model: InputDataSpecificationDTO
     datasets: InputDataSpecificationDTO
     filter: InputDataSpecificationDTO
-    x: Optional[InputDataSpecificationDTO] = None
-    y: Optional[InputDataSpecificationDTO] = None
+    y: InputDataSpecificationDTO
+    x: Optional[InputDataSpecificationDTO]
 
 
 class ParameterSpecificationDTO(ImmutableBaseModel):
@@ -61,9 +61,9 @@ class ParameterSpecificationDTO(ImmutableBaseModel):
     notblank: bool
     multiple: bool
     default: Any
-    enums: Optional[List[Any]] = None
-    min: Optional[int] = None
-    max: Optional[int] = None
+    enums: Optional[List[Any]]
+    min: Optional[float]
+    max: Optional[float]
 
 
 class AlgorithmSpecificationDTO(ImmutableBaseModel):
@@ -71,7 +71,7 @@ class AlgorithmSpecificationDTO(ImmutableBaseModel):
     desc: str
     label: str
     inputdata: InputDataSpecificationsDTO
-    parameters: Optional[Dict[str, ParameterSpecificationDTO]] = None
+    parameters: Optional[Dict[str, ParameterSpecificationDTO]]
 
 
 class AlgorithmSpecificationsDTO(ImmutableBaseModel):

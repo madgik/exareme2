@@ -33,7 +33,7 @@ class InputDataSpecification(BaseModel):
     stattypes: List[InputDataStatType]
     notblank: bool
     multiple: bool
-    enumslen: Optional[int] = None
+    enumslen: Optional[int]
 
     def convert_to_inputdata_specification_dto(self):
         # The only difference of the DTO is that it's stattypes is Optional,
@@ -86,17 +86,17 @@ def get_filters_input_data_specification_DTO():
 
 
 class InputDataSpecifications(BaseModel):
-    x: Optional[InputDataSpecification] = None
-    y: Optional[InputDataSpecification] = None
+    y: InputDataSpecification
+    x: Optional[InputDataSpecification]
 
     def convert_to_inputdata_specifications_dto(self):
         # In the DTO the datasets, data_model and filter parameters are added from the engine.
         # These parameters are not added by the algorithm developer.
+        y = self.y.convert_to_inputdata_specification_dto()
         x = self.x.convert_to_inputdata_specification_dto() if self.x else None
-        y = self.y.convert_to_inputdata_specification_dto() if self.y else None
         return InputDataSpecificationsDTO(
-            x=x,
             y=y,
+            x=x,
             data_model=get_data_model_input_data_specification_DTO(),
             datasets=get_datasets_input_data_specification_DTO(),
             filter=get_filters_input_data_specification_DTO(),
@@ -114,8 +114,8 @@ class AlgorithmSpecification(BaseModel):
     label: str
     enabled: bool
     inputdata: InputDataSpecifications
-    parameters: Optional[Dict[str, ParameterSpecification]] = None
-    flags: Optional[Dict[str, bool]] = None
+    parameters: Optional[Dict[str, ParameterSpecification]]
+    flags: Optional[Dict[str, bool]]
 
     def convert_to_algorithm_specifications_dto(self):
         # Converting to a DTO does not include the flags.

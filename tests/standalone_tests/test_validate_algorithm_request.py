@@ -200,23 +200,6 @@ def mock_algorithms_specs():
             },
             flags={"formula": False},
         ),
-        "algorithm_without_y": AlgorithmSpecification(
-            name="algorithm_without_y",
-            desc="algorithm_without_y",
-            label="algorithm_without_y",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="features",
-                    desc="Features",
-                    types=["real"],
-                    stattypes=["numerical"],
-                    notblank=True,
-                    multiple=True,
-                    enumslen=None,
-                ),
-            ),
-        ),
         "algorithm_without_x": AlgorithmSpecification(
             name="algorithm_without_x",
             desc="algorithm_without_x",
@@ -276,16 +259,6 @@ def get_parametrization_list_success_cases():
                     data_model="test_data_model2:0.1",
                     datasets=["test_dataset2", "test_dataset3"],
                     y=["test_cde1"],
-                ),
-            ),
-        ),
-        (
-            "algorithm_without_y",
-            AlgorithmRequestDTO(
-                inputdata=AlgorithmInputDataDTO(
-                    data_model="test_data_model2:0.1",
-                    datasets=["test_dataset2", "test_dataset3"],
-                    x=["test_cde1"],
                 ),
             ),
         ),
@@ -556,7 +529,6 @@ def get_parametrization_list_exception_cases():
                 inputdata=AlgorithmInputDataDTO(
                     data_model="test_data_model2:0.1",
                     datasets=["test_dataset2", "test_dataset3"],
-                    x=["test_cde1"],
                 ),
             ),
             (BadUserInput, "Inputdata .* should be provided."),
