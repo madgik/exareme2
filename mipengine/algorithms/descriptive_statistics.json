@@ -8,12 +8,24 @@
 			"label": "features",
 			"desc": "Features",
 			"types": [
-				"real"
+				"int", "real", "text"
 			],
 			"stattypes": [
 				"numerical"
 			],
 			"notblank": false,
+			"multiple": true
+		},
+		"y": {
+			"label": "features",
+			"desc": "Features",
+			"types": [
+				"int", "real", "text"
+			],
+			"stattypes": [
+				"nominal"
+			],
+			"notblank": true,
 			"multiple": true
 		}
 

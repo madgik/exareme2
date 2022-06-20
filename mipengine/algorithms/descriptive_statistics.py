@@ -2,6 +2,7 @@ import numpy
 import pandas as pd
 
 from typing import TypeVar
+from typing import Dict
 
 from typing import List
 
@@ -30,6 +31,9 @@ S = TypeVar("S")
 class DescriptiveResult(BaseModel):
     title: str
     variable: List[str]
+    numerical_variables: List[str]
+    categorical_variables: List[str]
+    categorical_counts: List[Dict]
     max: List[float]
     min: List[float]
     mean: List[float]
@@ -56,9 +60,39 @@ def run(algo_interface):
 
     #X_relation = algo_interface.initial_view_tables["x"]
 
-    X_relation, *_ = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.x_variables],dropna=False
+    X_relation, Y_relation = algo_interface.create_primary_data_views(
+        variable_groups=[algo_interface.x_variables,algo_interface.y_variables],dropna=False
     )
+
+    metadata_dict = algo_interface.metadata
+
+    categorical_columns = []
+    numerical_columns = []
+    for colname,rest_dict in metadata_dict.items():
+        if rest_dict['is_categorical'] == True:
+            categorical_columns.append(colname)
+        else:
+            numerical_columns.append(colname)
+    print(categorical_columns)
+    print(numerical_columns)
+
+    local_result_categorical = local_run(
+        func=count_locals,
+        positional_args=[Y_relation,categorical_columns],
+        share_to_global=[True],
+    )
+
+    global_categorical = global_run(
+        func=global_counts,
+        positional_args=[local_result_categorical,categorical_columns],
+        share_to_locals=[False]
+    )
+
+    global_categorical_res = json.loads(global_categorical.get_table_data()[1][0])
+    categorical_counts_list = []
+    for curr_column in categorical_columns:
+        categorical_counts_list.append(global_categorical_res[curr_column])
+
 
     X = local_run(
         func=relation_to_matrix,
@@ -175,6 +209,9 @@ def run(algo_interface):
     result = DescriptiveResult(
         title="Descriptive Statistics",
         variable= x_variables,
+        numerical_variables= numerical_columns,
+        categorical_variables= categorical_columns,
+        categorical_counts = categorical_counts_list,
         max=new_max,
         min=new_min,
         mean=new_mean,
@@ -196,6 +233,32 @@ def run(algo_interface):
     )
     return result
 
+@udf(input_df=relation(S),columns_list =literal(),return_type=[transfer()])
+def count_locals(input_df,columns_list):
+    values_list1 = []
+    #raise(ValueError(input_df.head(5)))
+    for curr_column in columns_list:
+        filled_values1 = input_df['input_df_'+curr_column].fillna("NaN")
+        values_list1.append(filled_values1.value_counts(dropna=False).to_dict())
+    ret_dict1 = {}
+    for curr_column,curr_dict in zip(columns_list,values_list1):
+        ret_dict1[curr_column] = curr_dict
+    return ret_dict1
+
+@udf(local_transfers=merge_transfer(),columns_list =literal(), return_type=[transfer()])
+def global_counts(local_transfers,columns_list):
+    from collections import Counter
+
+    final_dict = {}
+    for curr_column in columns_list:
+        first_dict = local_transfers[0][curr_column]
+        res = Counter(first_dict)
+        rem_transfers = local_transfers[1:]
+        for curr_transfer in rem_transfers:
+            c = curr_transfer[curr_column]
+            res += Counter(c)
+        final_dict[curr_column] = dict(res)
+    return final_dict
 
 @udf(rel=relation(S), return_type=tensor(float, 2))
 def relation_to_matrix(rel):
