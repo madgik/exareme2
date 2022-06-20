@@ -1,5 +1,7 @@
+import time
 import traceback
 from threading import Lock
+from threading import Thread
 from typing import Union
 
 import amqp
@@ -11,6 +13,7 @@ from celery.canvas import Signature
 from celery.result import AsyncResult
 
 from mipengine.controller import config as controller_config
+from mipengine.controller import controller_logger
 from mipengine.singleton import Singleton
 
 
@@ -42,8 +45,8 @@ class CeleryTaskTimeoutException(Exception):
 class CeleryWrapper:
     def __init__(self, socket_addr: str):
         self._socket_addr = socket_addr
-        self._celery_object_creation_lock = Lock()
-        self._celery_app = self._create_new_celery_app()
+        self._instantiate_new_celery_object_lock = Lock()
+        self._instantiate_new_celery_object()
 
     def _close(self):
         self._celery_app.close()
@@ -64,9 +67,8 @@ class CeleryWrapper:
             tr = traceback.format_exc()
             logger.error(tr)
 
-            if not self._celery_object_creation_lock.locked():
-                self._close()
-                self._celery_app = self._create_new_celery_app()
+            if not self._instantiate_new_celery_object_lock.locked():
+                self._start_instantiate_new_celery_object_thread()
 
             connection_error = CeleryConnectionError(
                 connection_address=self._socket_addr,
@@ -98,9 +100,8 @@ class CeleryWrapper:
                 tr = traceback.format_exc()
                 logger.error(tr)
 
-                if not self._celery_object_creation_lock.locked():
-                    self._close()
-                    self._celery_app = self._create_new_celery_app()
+                if not self._instantiate_new_celery_object_lock.locked():
+                    self._start_instantiate_new_celery_object_thread()
 
                 connection_error = CeleryConnectionError(
                     connection_address=self._socket_addr,
@@ -117,9 +118,8 @@ class CeleryWrapper:
             tr = traceback.format_exc()
             logger.error(tr)
 
-            if not self._celery_object_creation_lock.locked():
-                self._close()
-                self._celery_app = self._create_new_celery_app()
+            if not self._instantiate_new_celery_object_lock.locked():
+                self._start_instantiate_new_celery_object_thread()
 
             connection_error = CeleryConnectionError(
                 connection_address=self._socket_addr,
@@ -127,8 +127,20 @@ class CeleryWrapper:
             )
             raise connection_error
 
-    def _create_new_celery_app(self):
-        with self._celery_object_creation_lock:
+    def _start_instantiate_new_celery_object_thread(self):
+        instantiate_new_celery_object_thread = Thread(
+            target=self._instantiate_new_celery_object, daemon=True
+        )
+        instantiate_new_celery_object_thread.start()
+
+    def _instantiate_new_celery_object(self):
+        with self._instantiate_new_celery_object_lock:
+            logger = controller_logger.get_background_service_logger()
+            logger.info(
+                f"Instantiating new Celery object for CeleryWrapper with {self._socket_addr=}"
+            )
+            print(f"")
+
             if hasattr(self, "_celery_app"):
                 self._celery_app.close()
             user = controller_config.rabbitmq.user
@@ -141,19 +153,25 @@ class CeleryWrapper:
             # connections are established and closed for every use
             celery_app.conf.broker_pool_limit = None
 
+            # check connection
             connection_is_ok = False
+            retry_interval = 1
             while not connection_is_ok:
                 try:
                     celery_app.control.inspect().ping()
                     connection_is_ok = True
                 except kombu.exceptions.OperationalError:
+                    logger.debug(
+                        f"Connection to broker ({self._socket_addr=}) is not established. Will retry in {retry_interval} seconds."
+                    )
                     celery_app = Celery(broker=broker, backend="rpc://")
                     celery_app.conf.broker_pool_limit = None
-                import time
 
-                time.sleep(1)
-
-            return celery_app
+                time.sleep(retry_interval)
+            logger.info(
+                f"Connection to broker ({self._socket_addr=}) successfully established."
+            )
+            self._celery_app = celery_app
 
 
 class CeleryAppFactory(metaclass=Singleton):
