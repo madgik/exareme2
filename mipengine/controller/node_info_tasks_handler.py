@@ -7,6 +7,7 @@ from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
+from mipengine.controller.celery_app import CeleryWrapper
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import CommonDataElements
 
@@ -22,7 +23,11 @@ class NodeInfoTasksHandler:
         self._node_queue_addr = node_queue_addr
         self._tasks_timeout = tasks_timeout
 
-    def _get_node_celery_app(self):
+    @property
+    def node_queue_addr(self) -> str:
+        return self._node_queue_addr
+
+    def _get_node_celery_app(self) -> CeleryWrapper:
         return CeleryAppFactory().get_celery_app(socket_addr=self._node_queue_addr)
 
     # --------------- get_node_info task ---------------
