@@ -349,6 +349,5 @@ jobs:
         with:
           run: kubectl logs -l nodeType=localnode --tail -1 -c smpc-client
 
-# TODO SMPC currently doesn't support decimals
-#      - name: Run the first 5 algorithm validation tests from each algorithm
-#        run: poetry run pytest tests/algorithm_validation_tests/ -k "input0- or input1- or input2- or input3- or input4-" -vvvv
+      - name: Run the first 5 algorithm validation tests from each algorithm
+        run: poetry run pytest tests/algorithm_validation_tests/ -k "input0- or input1- or input2- or input3- or input4-" -vvvv

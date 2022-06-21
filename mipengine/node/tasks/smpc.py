@@ -17,7 +17,7 @@ from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.smpc_cluster_comm_helpers import SMPCComputationError
-from mipengine.smpc_DTOs import SMPCRequestType
+from mipengine.smpc_cluster_comm_helpers import SMPCUsageError
 from mipengine.smpc_DTOs import SMPCResponseWithOutput
 from mipengine.table_data_DTOs import ColumnData
 
@@ -172,4 +172,8 @@ def _create_smpc_results_table(
 
 def _get_smpc_values_from_table_data(table_data: List[ColumnData]):
     node_id_column, values_column = table_data
+
+    if not values_column.data:
+        raise SMPCUsageError("A node doesn't have data to contribute to the SMPC.")
+
     return values_column.data

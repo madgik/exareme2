@@ -12,15 +12,21 @@ TRIGGER_COMPUTATION_ENDPOINT = "/api/secure-aggregation/job-id/"
 GET_RESULT_ENDPOINT = "/api/get-result/job-id/"
 
 
+def _get_smpc_load_data_request_data_structure(data_values: str):
+    """
+    The current approach with the SMPC cluster is to send all computations as floats.
+    That way we don't need to have separate operations for sum-int and sum-float.
+    """
+    data = {"type": "float", "data": json.loads(data_values)}
+    return json.dumps(data)
+
+
 def load_data_to_smpc_client(client_address: str, jobid: str, values: str):
     request_url = client_address + ADD_DATASET_ENDPOINT + jobid
     request_headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    # TODO (SMPC) Currently only ints are supported so it's hardcoded
-    # https://team-1617704806227.atlassian.net/browse/MIP-518
-    data = {"type": "int", "data": json.loads(values)}
     response = requests.post(
         url=request_url,
-        data=json.dumps(data),
+        data=_get_smpc_load_data_request_data_structure(values),
         headers=request_headers,
     )
     if response.status_code != 200:

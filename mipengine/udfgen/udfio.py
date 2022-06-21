@@ -121,8 +121,17 @@ def merge_tensor_to_list(columns):
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ Secure Transfer methods ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+smpc_sum_op = "sum"
+smpc_min_op = "min"
+smpc_max_op = "max"
+smpc_numeric_operations = [smpc_sum_op, smpc_min_op, smpc_max_op]
 
-numeric_operations = ["sum", "min", "max"]
+smpc_int_type = "int"
+smpc_float_type = "float"
+smpc_numeric_types = [smpc_int_type, smpc_float_type]
+smpc_transfer_op_key = "operation"
+smpc_transfer_val_type_key = "type"
+smpc_transfer_data_key = "data"
 
 
 def secure_transfers_to_merged_dict(transfers: List[dict]):
@@ -136,34 +145,60 @@ def secure_transfers_to_merged_dict(transfers: List[dict]):
     # Get all keys from a list of dicts
     all_keys = set().union(*(d.keys() for d in transfers))
     for key in all_keys:
-        operation = transfers[0][key]["operation"]
-        if operation in numeric_operations:
-            result[key] = _operation_on_secure_transfer_key_data(
-                key, transfers, operation
-            )
-        else:
-            raise NotImplementedError(
-                f"Secure transfer operation not supported: {operation}"
-            )
+        _validate_transfer_value_operation(transfers[0][key])
+        _validate_transfer_value_type(transfers[0][key])
+        result[key] = _operation_on_secure_transfer_key_data(
+            key,
+            transfers,
+            transfers[0][key][smpc_transfer_op_key],
+            transfers[0][key][smpc_transfer_val_type_key],
+        )
     return result
 
 
-def _operation_on_secure_transfer_key_data(key, transfers: List[dict], operation: str):
+def _validate_transfer_value_operation(transfer_value: dict):
+    try:
+        operation = transfer_value[smpc_transfer_op_key]
+    except KeyError:
+        raise ValueError(
+            "Secure Transfer operation is not provided. Expected format: {'a' : {'data': X, 'operation': Y, 'type': Z}}"
+        )
+    if operation not in smpc_numeric_operations:
+        raise ValueError(f"Secure Transfer operation is not supported: '{operation}'.")
+
+
+def _validate_transfer_value_type(transfer_value: dict):
+    try:
+        values_type = transfer_value[smpc_transfer_val_type_key]
+    except KeyError:
+        raise ValueError(
+            "Secure Transfer type is not provided. Expected format: {'a' : {'data': X, 'operation': Y, 'type': Z}}"
+        )
+    if values_type not in smpc_numeric_types:
+        raise ValueError(f"Secure Transfer type is not supported: '{values_type}'.")
+
+
+def _operation_on_secure_transfer_key_data(
+    key, transfers: List[dict], operation: str, values_type: str
+):
     """
     Given a list of secure_transfer dicts, it makes the appropriate operation on the data of the key provided.
     """
-    result = transfers[0][key]["data"]
+    result = transfers[0][key][smpc_transfer_data_key]
     for transfer in transfers[1:]:
-        if transfer[key]["operation"] not in numeric_operations:
+        _validate_transfer_value_operation(transfer[key])
+        _validate_transfer_value_type(transfer[key])
+        if transfer[key][smpc_transfer_op_key] != operation:
             raise ValueError(
-                f"Secure Transfer operation is not supported: {transfer[key]['operation']}"
+                f"All secure transfer keys should have the same operation value. "
+                f"'{operation}' != {transfer[key][smpc_transfer_op_key]}"
             )
-        if transfer[key]["operation"] != operation:
+        if transfer[key][smpc_transfer_val_type_key] != values_type:
             raise ValueError(
-                f"All secure transfer keys should have the same 'operation' value. "
-                f"'{operation}' != {transfer[key]['operation']}"
+                f"All secure transfer keys should have the same type value. "
+                f"'{values_type}' != {transfer[key][smpc_transfer_val_type_key]}"
             )
-        result = _calc_values(result, transfer[key]["data"], operation)
+        result = _calc_values(result, transfer[key][smpc_transfer_data_key], operation)
     return result
 
 
@@ -197,11 +232,11 @@ def _validate_calc_values(value1, value2):
 
 
 def _calc_numeric_values(value1: Any, value2: Any, operation: str):
-    if operation == "sum":
+    if operation == smpc_sum_op:
         return value1 + value2
-    elif operation == "min":
+    elif operation == smpc_min_op:
         return value1 if value1 < value2 else value2
-    elif operation == "max":
+    elif operation == smpc_max_op:
         return value1 if value1 > value2 else value2
     else:
         raise NotImplementedError
@@ -214,18 +249,20 @@ def split_secure_transfer_dict(dict_: dict) -> Tuple[dict, list, list, list]:
     2) flattened lists for each operation, containing the values.
     """
     secure_transfer_template = {}
-    op_flat_data = {"sum": [], "min": [], "max": []}
-    op_indexes = {"sum": 0, "min": 0, "max": 0}
+    op_flat_data = {smpc_sum_op: [], smpc_min_op: [], smpc_max_op: []}
+    op_indexes = {smpc_sum_op: 0, smpc_min_op: 0, smpc_max_op: 0}
     for key, data_transfer in dict_.items():
         _validate_secure_transfer_item(key, data_transfer)
-        cur_op = data_transfer["operation"]
+        cur_op = data_transfer[smpc_transfer_op_key]
         try:
             (
                 data_transfer_tmpl,
                 cur_flat_data,
                 op_indexes[cur_op],
             ) = _flatten_data_and_keep_relative_positions(
-                op_indexes[cur_op], data_transfer["data"], [list, int, float]
+                op_indexes[cur_op],
+                data_transfer[smpc_transfer_data_key],
+                [list, int, float],
             )
         except TypeError as e:
             raise TypeError(
@@ -234,28 +271,36 @@ def split_secure_transfer_dict(dict_: dict) -> Tuple[dict, list, list, list]:
         op_flat_data[cur_op].extend(cur_flat_data)
 
         secure_transfer_template[key] = dict_[key]
-        secure_transfer_template[key]["data"] = data_transfer_tmpl
+        secure_transfer_template[key][smpc_transfer_data_key] = data_transfer_tmpl
 
     return (
         secure_transfer_template,
-        op_flat_data["sum"],
-        op_flat_data["min"],
-        op_flat_data["max"],
+        op_flat_data[smpc_sum_op],
+        op_flat_data[smpc_min_op],
+        op_flat_data[smpc_max_op],
     )
 
 
 def _validate_secure_transfer_item(key: str, data_transfer: dict):
-    if "operation" not in data_transfer.keys():
+    if smpc_transfer_op_key not in data_transfer.keys():
         raise ValueError(
             f"Each Secure Transfer key should contain an operation. Key: {key}"
         )
 
-    if "data" not in data_transfer.keys():
+    if smpc_transfer_val_type_key not in data_transfer.keys():
+        raise ValueError(f"Each Secure Transfer key should contain a type. Key: {key}")
+
+    if smpc_transfer_data_key not in data_transfer.keys():
         raise ValueError(f"Each Secure Transfer key should contain data. Key: {key}")
 
-    if data_transfer["operation"] not in numeric_operations:
+    if data_transfer[smpc_transfer_op_key] not in smpc_numeric_operations:
         raise ValueError(
-            f"Secure Transfer operation is not supported: {data_transfer['operation']}"
+            f"Secure Transfer operation is not supported: {data_transfer[smpc_transfer_op_key]}"
+        )
+
+    if data_transfer[smpc_transfer_val_type_key] not in smpc_numeric_types:
+        raise ValueError(
+            f"Secure Transfer type is not supported: {data_transfer[smpc_transfer_val_type_key]}"
         )
 
 
@@ -270,23 +315,34 @@ def construct_secure_transfer_dict(
     In order to be used from a udf it needs to take it's final key - value form.
     """
     final_dict = {}
-    for key, data_transfer in template.items():
-        if data_transfer["operation"] == "sum":
-            unflattened_data = _unflatten_data_using_relative_positions(
-                data_transfer["data"], sum_op_values, [int, float]
+    for key, data_transfer_tmpl in template.items():
+        if data_transfer_tmpl[smpc_transfer_op_key] == smpc_sum_op:
+            structured_data = _structure_data_using_relative_positions(
+                data_transfer_tmpl[smpc_transfer_data_key],
+                data_transfer_tmpl[smpc_transfer_val_type_key],
+                sum_op_values,
+                [int, float],
             )
-        elif data_transfer["operation"] == "min":
-            unflattened_data = _unflatten_data_using_relative_positions(
-                data_transfer["data"], min_op_values, [int, float]
+        elif data_transfer_tmpl[smpc_transfer_op_key] == smpc_min_op:
+            structured_data = _structure_data_using_relative_positions(
+                data_transfer_tmpl[smpc_transfer_data_key],
+                data_transfer_tmpl[smpc_transfer_val_type_key],
+                min_op_values,
+                [int, float],
             )
-        elif data_transfer["operation"] == "max":
-            unflattened_data = _unflatten_data_using_relative_positions(
-                data_transfer["data"], max_op_values, [int, float]
+        elif data_transfer_tmpl[smpc_transfer_op_key] == smpc_max_op:
+            structured_data = _structure_data_using_relative_positions(
+                data_transfer_tmpl[smpc_transfer_data_key],
+                data_transfer_tmpl[smpc_transfer_val_type_key],
+                max_op_values,
+                [int, float],
             )
         else:
-            raise ValueError(f"Operation not supported: {data_transfer['operation']}")
+            raise ValueError(
+                f"Operation not supported: {data_transfer_tmpl[smpc_transfer_op_key]}"
+            )
 
-        final_dict[key] = unflattened_data
+        final_dict[key] = structured_data
     return final_dict
 
 
@@ -326,8 +382,9 @@ def _flatten_data_and_keep_relative_positions(
     return index, [data], index + 1
 
 
-def _unflatten_data_using_relative_positions(
+def _structure_data_using_relative_positions(
     data_tmpl: Any,
+    data_values_type: str,
     flat_values: List[Any],
     allowed_types: List[Type],
 ):
@@ -338,11 +395,16 @@ def _unflatten_data_using_relative_positions(
     """
     if isinstance(data_tmpl, list):
         return [
-            _unflatten_data_using_relative_positions(elem, flat_values, allowed_types)
+            _structure_data_using_relative_positions(
+                elem, data_values_type, flat_values, allowed_types
+            )
             for elem in data_tmpl
         ]
 
     if type(data_tmpl) not in allowed_types:
         raise TypeError(f"Types allowed: {allowed_types}")
+
+    if data_values_type == smpc_int_type:
+        return int(flat_values[data_tmpl])
 
     return flat_values[data_tmpl]

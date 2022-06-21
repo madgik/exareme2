@@ -106,7 +106,7 @@ T = TypeVar("T")
     y=relation(schema=S),
     x=relation(schema=T),
     covar_enums=literal(),
-    return_type=[secure_transfer(sum_op=True), transfer()],
+    return_type=[secure_transfer(sum_op=True, min_op=True, max_op=True), transfer()],
 )
 def local1(y, x, covar_enums):
     import sys
@@ -159,35 +159,46 @@ def local1(y, x, covar_enums):
         group_stats_df = group_stats.append(diff_df)
 
     sec_transfer_ = {}
-    sec_transfer_["n_obs"] = {"data": n_obs, "operation": "sum"}
+    sec_transfer_["n_obs"] = {"data": n_obs, "operation": "sum", "type": "int"}
     sec_transfer_["overall_stats_sum"] = {
         "data": overall_stats["sum"].tolist(),
         "operation": "sum",
+        "type": "float",
     }
     sec_transfer_["overall_stats_count"] = {
         "data": overall_stats["count"].tolist(),
         "operation": "sum",
+        "type": "float",
     }
-    sec_transfer_["overall_ssq"] = {"data": overall_ssq.item(), "operation": "sum"}
+    sec_transfer_["overall_ssq"] = {
+        "data": overall_ssq.item(),
+        "operation": "sum",
+        "type": "float",
+    }
     sec_transfer_["group_stats_sum"] = {
         "data": group_stats_df["sum"].tolist(),
         "operation": "sum",
+        "type": "float",
     }
     sec_transfer_["group_stats_count"] = {
         "data": group_stats_df["count"].tolist(),
         "operation": "sum",
+        "type": "float",
     }
     sec_transfer_["group_stats_ssq"] = {
         "data": group_stats_df["group_ssq"].tolist(),
         "operation": "sum",
+        "type": "float",
     }
     sec_transfer_["min_per_group"] = {
         "data": group_stats_df["min_per_group"].tolist(),
         "operation": "min",
+        "type": "float",
     }
     sec_transfer_["max_per_group"] = {
         "data": group_stats_df["max_per_group"].tolist(),
         "operation": "max",
+        "type": "float",
     }
     transfer_ = {
         "var_label": var_label,

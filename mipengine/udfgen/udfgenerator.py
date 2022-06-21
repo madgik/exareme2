@@ -184,7 +184,7 @@ Local UDF step Example
 ... def local_step(x, y):
 ...     state["x"] = x["key"]
 ...     state["y"] = y["key"]
-...     transfer["sum"] = {"data": x["key"] + y["key"], "operation": "sum"}
+...     transfer["sum"] = {"data": x["key"] + y["key"], "operation": "sum", "type": "float"}
 ...     return state, transfer
 
 Global UDF step Example

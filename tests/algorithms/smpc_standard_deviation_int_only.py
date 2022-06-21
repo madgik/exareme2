@@ -92,10 +92,10 @@ def smpc_local_step_1(table):
         if element > max_value:
             max_value = element
     secure_transfer_ = {
-        "sum": {"data": int(sum_), "operation": "sum"},
-        "min": {"data": int(min_value), "operation": "min"},
-        "max": {"data": int(max_value), "operation": "max"},
-        "count": {"data": len(table), "operation": "sum"},
+        "sum": {"data": int(sum_), "operation": "sum", "type": "int"},
+        "min": {"data": int(min_value), "operation": "min", "type": "int"},
+        "max": {"data": int(max_value), "operation": "max", "type": "int"},
+        "count": {"data": len(table), "operation": "sum", "type": "int"},
     }
     return state_, secure_transfer_
 
