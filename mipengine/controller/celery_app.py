@@ -115,7 +115,7 @@ class CeleryWrapper:
                 connection_address=self._socket_addr,
                 async_result=async_result,
             )
-        except kombu.exceptions.OperationalError:
+        except (ConnectionResetError, kombu.exceptions.OperationalError):
             tr = traceback.format_exc()
             logger.error(tr)
 
