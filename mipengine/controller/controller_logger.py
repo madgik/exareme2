@@ -16,7 +16,7 @@ def get_request_logger(request_id):
     return logger
 
 
-def init_logger(request_id):
+def init_logger(request_id, log_level=None):
     logger = logging.getLogger(request_id)
 
     formatter = logging.Formatter(
@@ -27,7 +27,10 @@ def init_logger(request_id):
     sh = logging.StreamHandler()
     sh.setFormatter(formatter)
     logger.addHandler(sh)
-    logger.setLevel(ctrl_config.log_level)
+    if log_level:
+        logger.setLevel(log_level)
+    else:
+        logger.setLevel(ctrl_config.log_level)
 
     return logger
 
