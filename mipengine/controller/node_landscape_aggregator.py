@@ -36,7 +36,6 @@ def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
         )
         for node_socket_addr in nodes_socket_addr
     ]
-
     nodes_info = []
     for tasks_handler in node_info_tasks_handlers:
         try:
@@ -55,6 +54,7 @@ def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
         except Exception as exc:
             # just log full traceback exception as error and do not reraise it
             logger.error(traceback.format_exc())
+
     return nodes_info
 
 
@@ -142,15 +142,14 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             try:
                 nodes_addresses = get_nodes_addresses()
                 nodes_info = _get_nodes_info(nodes_addresses)
-
                 with self._update_lock:
                     self._node_registry.nodes = {
                         node_info.id: node_info for node_info in nodes_info
                     }
-
                     local_nodes = [
                         node for node in nodes_info if node.role == NodeRole.LOCALNODE
                     ]
+
                     (
                         dataset_locations,
                         aggregated_datasets,
@@ -162,6 +161,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                     _update_data_models_with_aggregated_datasets(
                         compatible_data_models, aggregated_datasets
                     )
+
                     datasets_locations = (
                         _get_dataset_locations_of_compatible_data_models(
                             compatible_data_models, dataset_locations
@@ -180,6 +180,9 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                     f"NodeLandscapeAggregator caught an exception but will continue to "
                     f"update {exc=}"
                 )
+
+                tr = traceback.format_exc()
+                logger.debug(tr)
             finally:
                 time.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
 
