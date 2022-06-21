@@ -38,15 +38,18 @@ class CeleryTaskTimeoutException(Exception):
     def __init__(
         self, timeout_type: str, connection_address: str, async_result: AsyncResult
     ):
-        message = f"Timeout Exception: {timeout_type=} {connection_address=} while waiting for {async_result.task_id=}"
+        message = (
+            f"Timeout Exception: {timeout_type=} {connection_address=} while waiting "
+            f"for {async_result.task_id=}"
+        )
         super().__init__(message)
 
 
 class CeleryWrapper:
     def __init__(self, socket_addr: str):
         self._socket_addr = socket_addr
-        self._instantiate_new_celery_object_lock = Lock()
-        self._instantiate_new_celery_object()
+        self._check_broker_connection_and_reset_celery_lock = Lock()
+        self._celery_app = self._instantiate_celery_object()
 
     def _close(self):
         self._celery_app.close()
@@ -67,8 +70,7 @@ class CeleryWrapper:
             tr = traceback.format_exc()
             logger.error(tr)
 
-            if not self._instantiate_new_celery_object_lock.locked():
-                self._start_instantiate_new_celery_object_thread()
+            self._start_check_broker_connection_and_reset_celery_thread()
 
             connection_error = CeleryConnectionError(
                 connection_address=self._socket_addr,
@@ -96,12 +98,11 @@ class CeleryWrapper:
 
             try:
                 self._celery_app.control.inspect().ping()
-            except kombu.exceptions.OperationalError as oper_err_inner:
+            except kombu.exceptions.OperationalError:
                 tr = traceback.format_exc()
                 logger.error(tr)
 
-                if not self._instantiate_new_celery_object_lock.locked():
-                    self._start_instantiate_new_celery_object_thread()
+                self._start_check_broker_connection_and_reset_celery_thread()
 
                 connection_error = CeleryConnectionError(
                     connection_address=self._socket_addr,
@@ -114,12 +115,11 @@ class CeleryWrapper:
                 connection_address=self._socket_addr,
                 async_result=async_result,
             )
-        except kombu.exceptions.OperationalError as oper_err:
+        except kombu.exceptions.OperationalError:
             tr = traceback.format_exc()
             logger.error(tr)
 
-            if not self._instantiate_new_celery_object_lock.locked():
-                self._start_instantiate_new_celery_object_thread()
+            self._start_check_broker_connection_and_reset_celery_thread()
 
             connection_error = CeleryConnectionError(
                 connection_address=self._socket_addr,
@@ -127,31 +127,29 @@ class CeleryWrapper:
             )
             raise connection_error
 
-    def _start_instantiate_new_celery_object_thread(self):
-        instantiate_new_celery_object_thread = Thread(
-            target=self._instantiate_new_celery_object, daemon=True
-        )
-        instantiate_new_celery_object_thread.start()
+    def _start_check_broker_connection_and_reset_celery_thread(self):
+        # check if the locked is already acquired so no more than one thread start the
+        # process of
+        if not self._check_broker_connection_and_reset_celery_lock.locked():
+            instantiate_new_celery_object_thread = Thread(
+                target=self._check_broker_connection_and_reset_celery, daemon=True
+            )
+            instantiate_new_celery_object_thread.start()
 
-    def _instantiate_new_celery_object(self):
-        with self._instantiate_new_celery_object_lock:
+    # This will instantiate a new Celery object and check if the broker is accessible
+    # If not it will instantiate a new Celery object and recheck the connection to the broker
+    # after a time interval and so on, until the connection to the broker is functional
+    # This re-instantiation of the Celery object is a workaround for a bug in
+    # Celery implementation.
+    # https://github.com/celery/celery/issues/6912#issuecomment-1107260087
+    # Do not call this from the main thread, it will block it until the broker is accessible
+    def _check_broker_connection_and_reset_celery(self):
+        with self._check_broker_connection_and_reset_celery_lock:
             logger = controller_logger.get_background_service_logger()
             logger.info(
-                f"Instantiating new Celery object for CeleryWrapper with {self._socket_addr=}"
+                f"Instantiating new Celery object for CeleryWrapper with "
+                f"{self._socket_addr=}"
             )
-            print(f"")
-
-            if hasattr(self, "_celery_app"):
-                self._celery_app.close()
-            user = controller_config.rabbitmq.user
-            password = controller_config.rabbitmq.password
-            vhost = controller_config.rabbitmq.vhost
-            broker = f"pyamqp://{user}:{password}@{self._socket_addr}/{vhost}"
-            celery_app = Celery(broker=broker, backend="rpc://")
-
-            # connection pool disabled
-            # connections are established and closed for every use
-            celery_app.conf.broker_pool_limit = None
 
             # check connection
             connection_is_ok = False
@@ -162,16 +160,31 @@ class CeleryWrapper:
                     connection_is_ok = True
                 except kombu.exceptions.OperationalError:
                     logger.debug(
-                        f"Connection to broker ({self._socket_addr=}) is not established. Will retry in {retry_interval} seconds."
+                        f"Connection to broker ({self._socket_addr=}) is not established. "
+                        f"Will retry in {retry_interval} seconds."
                     )
-                    celery_app = Celery(broker=broker, backend="rpc://")
-                    celery_app.conf.broker_pool_limit = None
+
+                    self._celery_app = self._instantiate_celery_object()
 
                 time.sleep(retry_interval)
             logger.info(
                 f"Connection to broker ({self._socket_addr=}) successfully established."
             )
             self._celery_app = celery_app
+
+    # It seems that Celery objects are somewhat expensive, do not have more than one
+    # instance per node at any time
+    def _instantiate_celery_object(self) -> Celery:
+        user = controller_config.rabbitmq.user
+        password = controller_config.rabbitmq.password
+        vhost = controller_config.rabbitmq.vhost
+        broker = f"pyamqp://{user}:{password}@{self._socket_addr}/{vhost}"
+        celery_app = Celery(broker=broker, backend="rpc://")
+
+        # connection pool disabled
+        # connections are established and closed for every use
+        celery_app.conf.broker_pool_limit = None
+        return celery_app
 
 
 class CeleryAppFactory(metaclass=Singleton):
