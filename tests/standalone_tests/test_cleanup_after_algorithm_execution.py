@@ -11,6 +11,7 @@ from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryWrapper
 from mipengine.controller.controller import Controller
 from mipengine.controller.controller import get_a_uniqueid
@@ -77,6 +78,11 @@ def patch_controller(controller_config_dict_mock):
         AttrDict(controller_config_dict_mock),
     ):
         yield
+
+
+@pytest.fixture(autouse=True, scope="session")
+def init_background_controller_logger():
+    ctrl_logger.init_logger("controller_background_service", "DEBUG")
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -382,7 +388,8 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
-                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+                "Exceeded max retries while waiting for the node registry to contain "
+                "the tmplocalnode"
             )
         time.sleep(1)
 
@@ -509,7 +516,8 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
-                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+                "Exceeded max retries while waiting for the node registry to contain "
+                f"the tmplocalnode"
             )
         time.sleep(1)
 
@@ -591,9 +599,13 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
-    localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
-    )
+    localnodetmp_tables_after_cleanup = None
+    try:
+        localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
+            request_id=request_id, context_id=context_id
+        )
+    except CeleryConnectionError:
+        pass
 
     start = time.time()
     while (
@@ -607,9 +619,12 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
-        localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
-        )
+        try:
+            localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
+                request_id=request_id, context_id=context_id
+            )
+        except CeleryConnectionError:
+            pass
 
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:
@@ -665,7 +680,8 @@ async def test_cleanup_node_service_down_algorithm_execution(
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
-                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+                "Exceeded max retries while waiting for the node registry to contain "
+                "the tmplocalnode"
             )
         time.sleep(1)
 
@@ -813,7 +829,8 @@ async def test_cleanup_controller_restart(
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
-                "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
+                "Exceeded max retries while waiting for the node registry to contain "
+                "the tmplocalnode"
             )
         time.sleep(1)
 
