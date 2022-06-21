@@ -28,7 +28,7 @@ def do_post_request():
         "leftamygdala",
         "rightamygdala",
     ]
-    #y = ["alzheimerbroadcategory"]
+    y = ['parkinsonbroadcategory','neurodegenerativescategories','adnicategory']
     filters = {
         "condition": "AND",
         "rules": [
@@ -48,7 +48,7 @@ def do_post_request():
         datasets=datasets,
         filters=filters,
         x=x,
-        #y=y,
+        y=y,
     )
 
     algorithm_request = AlgorithmRequestDTO(
