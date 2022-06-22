@@ -1,15 +1,12 @@
 import json
 from typing import TypeVar
 
+from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.udfgen import (
-    make_unique_func_name,
-    relation,
-    tensor,
-    udf,
-)
-from mipengine.algorithm_result_DTOs import TabularDataResult
+from mipengine.udfgen import relation
+from mipengine.udfgen import tensor
+from mipengine.udfgen import udf
 from mipengine.udfgen.udfgenerator import merge_transfer
 from mipengine.udfgen.udfgenerator import state
 from mipengine.udfgen.udfgenerator import transfer
@@ -19,43 +16,45 @@ def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
     global_run = algo_interface.run_udf_on_global_node
 
-    X_relation = algo_interface.initial_view_tables["x"]
+    Y_relation, *_ = algo_interface.create_primary_data_views(
+        variable_groups=[algo_interface.y_variables],
+    )
 
-    X = local_run(
-        func_name=make_unique_func_name(relation_to_matrix),
-        positional_args=[X_relation],
+    Y = local_run(
+        func=relation_to_matrix,
+        positional_args=[Y_relation],
     )
 
     local_state, local_result = local_run(
-        func_name=make_unique_func_name(local_step_1),
-        keyword_args={"table": X},
+        func=local_step_1,
+        keyword_args={"table": Y},
         share_to_global=[False, True],
     )
 
     global_state, global_result = global_run(
-        func_name=make_unique_func_name(global_step_1),
+        func=global_step_1,
         positional_args=[local_result],
         share_to_locals=[False, True],
     )
 
     local_result = local_run(
-        func_name=make_unique_func_name(local_step_2),
+        func=local_step_2,
         positional_args=[local_state],
         keyword_args={"global_transfer": global_result},
         share_to_global=True,
     )
 
     global_result = global_run(
-        func_name=make_unique_func_name(global_step_2),
+        func=global_step_2,
         positional_args=[global_state],
         keyword_args={"local_transfers": local_result},
     )
     std_deviation = json.loads(global_result.get_table_data()[1][0])["deviation"]
-    x_variables = algo_interface.x_variables
+    y_variables = algo_interface.y_variables
     result = TabularDataResult(
         title="Standard Deviation",
         columns=[
-            ColumnDataStr(name="variable", data=x_variables),
+            ColumnDataStr(name="variable", data=y_variables),
             ColumnDataFloat(name="std_deviation", data=[std_deviation]),
         ],
     )

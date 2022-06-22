@@ -1,209 +1,52 @@
-import asyncio
-import json
-import sys
-from typing import Any
-from typing import List, Dict
+from logging import Logger
+from typing import Dict
 
-from asgiref.sync import sync_to_async
-
-import dns.resolver
-
-from mipengine.controller import DeploymentType
-from mipengine.controller import config as controller_config
-from mipengine.controller.celery_app import get_node_celery_app
-
+from mipengine.controller.federation_info_logs import log_node_joined_federation
+from mipengine.controller.federation_info_logs import log_node_left_federation
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
-from mipengine.controller import controller_logger as ctrl_logger
-
-NODE_REGISTRY_REQUEST_ID = "NODE_REGISTRY"
-# TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
-# so the module can be easily unit tested
-
-logger = ctrl_logger.get_background_service_logger()
-
-GET_NODE_INFO_SIGNATURE = "mipengine.node.tasks.common.get_node_info"
-NODE_REGISTRY_UPDATE_INTERVAL = controller_config.node_registry_update_interval
-
-CELERY_TASKS_TIMEOUT = controller_config.rabbitmq.celery_tasks_timeout
-
-
-def _get_nodes_addresses_from_file() -> List[str]:
-    with open(controller_config.localnodes.config_file) as fp:
-        return json.load(fp)
-
-
-def _get_nodes_addresses_from_dns() -> List[str]:
-    localnodes_ips = dns.resolver.query(controller_config.localnodes.dns, "A")
-    localnodes_addresses = [
-        f"{ip}:{controller_config.localnodes.port}" for ip in localnodes_ips
-    ]
-    return localnodes_addresses
-
-
-def _get_nodes_addresses() -> List[str]:
-    if controller_config.deployment_type == DeploymentType.LOCAL:
-        return _get_nodes_addresses_from_file()
-    elif controller_config.deployment_type == DeploymentType.KUBERNETES:
-        return _get_nodes_addresses_from_dns()
-    else:
-        return []
-
-
-async def _get_nodes_info(nodes_socket_addr) -> List[NodeInfo]:
-    celery_apps = [
-        get_node_celery_app(socket_addr) for socket_addr in nodes_socket_addr
-    ]
-    nodes_task_signature = {
-        celery_app: celery_app.signature(GET_NODE_INFO_SIGNATURE)
-        for celery_app in celery_apps
-    }
-
-    # when broker(rabbitmq) is down, if the existing broker connection is not passed in
-    # apply_async (in _task_to_async::wrapper), celery (or anyway some internal celery
-    # component) will try to create a new connection to the broker until the apply_async
-    # succeeds, which causes the call to apply_async to hang indefinitely until the
-    # broker is back up. This way(passing the existing broker connection to apply_async)
-    # it raises a ConnectionResetError or an OperationalError and it does not hang
-    tasks_coroutines = [
-        _task_to_async(task, connection=app.broker_connection())(
-            request_id=NODE_REGISTRY_REQUEST_ID
-        )
-        for app, task in nodes_task_signature.items()
-    ]
-    results = await asyncio.gather(*tasks_coroutines, return_exceptions=True)
-    nodes_info = [
-        NodeInfo.parse_raw(result)
-        for result in results
-        if not isinstance(result, Exception)
-    ]
-    return nodes_info
-
-
-# Converts a Celery task to an async function
-# Celery doesn't currently support asyncio "await" while "getting" a result
-# Copied from https://github.com/celery/celery/issues/6603
-def _task_to_async(task, connection):
-    async def wrapper(*args, **kwargs):
-        total_delay = 0
-        delay = 0.1
-        # Since apply_async is used instead of delay so that we can pass the connection as an argument,
-        # the args and kwargs need to be passed as named arguments.
-        async_result = await sync_to_async(task.apply_async)(
-            args=args, kwargs=kwargs, connection=connection
-        )
-        while not async_result.ready():
-            total_delay += delay
-            if total_delay > CELERY_TASKS_TIMEOUT:
-                raise TimeoutError(
-                    f"Celery task: {task} didn't respond in {CELERY_TASKS_TIMEOUT}s."
-                )
-            await asyncio.sleep(delay)
-            delay = min(delay * 1.5, 2)  # exponential backoff, max 2 seconds
-        return async_result.get(timeout=CELERY_TASKS_TIMEOUT - total_delay)
-
-    return wrapper
-
-
-def _have_common_elements(a: List[Any], b: List[Any]):
-    return bool(set(a) & set(b))
 
 
 class NodeRegistry:
-    def __init__(self):
-        self.nodes = []
-        self.keep_updating = True
+    def __init__(self, logger: Logger):
+        self._logger = logger
+        self._nodes: Dict[str, NodeInfo] = {}
 
-    async def update(self):
-        while self.keep_updating:
-            nodes_addresses = _get_nodes_addresses()
-            self.nodes: List[NodeInfo] = await _get_nodes_info(nodes_addresses)
+    @property
+    def nodes(self) -> Dict[str, NodeInfo]:
+        return self._nodes
 
-            logger.debug(f"Nodes:{[node.id for node in self.nodes]}")
-            # ..to print full nodes info
-            # from devtools import debug
-            # debug(self.nodes)
-            # DEBUG end
+    @nodes.setter
+    def nodes(self, value):
+        log_node_changes(self._logger, self._nodes, value)
+        self._nodes = value
 
-            sys.stdout.flush()
-            await asyncio.sleep(NODE_REGISTRY_UPDATE_INTERVAL)
-
-    def get_all_global_nodes(self) -> List[NodeInfo]:
-        return [
-            node_info
-            for node_info in self.nodes
+    def _get_all_global_nodes(self) -> Dict[str, NodeInfo]:
+        return {
+            node_id: node_info
+            for node_id, node_info in self.nodes.items()
             if node_info.role == NodeRole.GLOBALNODE
-        ]
+        }
 
-    def get_all_local_nodes(self) -> List[NodeInfo]:
-        return [
-            node_info
-            for node_info in self.nodes
+    def get_global_node(self) -> NodeInfo:
+        return list(self._get_all_global_nodes().values())[0]
+
+    def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
+        return {
+            node_id: node_info
+            for node_id, node_info in self.nodes.items()
             if node_info.role == NodeRole.LOCALNODE
-        ]
+        }
 
-    def get_nodes_with_any_of_datasets(
-        self, schema: str, datasets: List[str]
-    ) -> List[NodeInfo]:
-        all_local_nodes = self.get_all_local_nodes()
-        local_nodes_with_datasets = []
-        for node_info in all_local_nodes:
-            if not node_info.datasets_per_schema:
-                continue
-            if schema not in node_info.datasets_per_schema:
-                continue
-            if not _have_common_elements(
-                node_info.datasets_per_schema[schema], datasets
-            ):
-                continue
-            local_nodes_with_datasets.append(node_info)
-
-        return local_nodes_with_datasets
-
-    # returns a list of all the currently availiable schemas(patholgies) on the system
-    # without duplicates
-    def get_all_available_schemas(self) -> List[str]:
-        all_local_nodes = self.get_all_local_nodes()
-        tmp = [local_node.datasets_per_schema for local_node in all_local_nodes]
-        all_existing_schemas = set().union(*tmp)
-        return list(all_existing_schemas)
-
-    # returns a dictionary with all the currently availiable schemas(patholgies) on the
-    # system as keys and lists of datasets as values. Without duplicates
-    def get_all_available_datasets_per_schema(self) -> Dict[str, List[str]]:
-        all_local_nodes = self.get_all_local_nodes()
-        tmp = [node_info.datasets_per_schema for node_info in all_local_nodes]
-
-        from collections import defaultdict
-        from itertools import chain
-        from operator import methodcaller
-
-        dd = defaultdict(list)
-        dict_items = map(methodcaller("items"), tmp)
-        for k, v in chain.from_iterable(dict_items):
-            dd[k].extend(v)
-        return dict(dd)
-
-    def schema_exists(self, schema: str):
-        for node_info in self.get_all_local_nodes():
-            if not node_info.datasets_per_schema:
-                continue
-            if schema in node_info.datasets_per_schema.keys():
-                return True
-        return False
-
-    def dataset_exists(self, schema: str, dataset: str):
-        for node_info in self.get_all_local_nodes():
-            if not node_info.datasets_per_schema:
-                continue
-            if schema not in node_info.datasets_per_schema:
-                continue
-            if not _have_common_elements(
-                node_info.datasets_per_schema[schema], [dataset]
-            ):
-                continue
-            return True
-        return False
+    def get_node_info(self, node_id: str) -> NodeInfo:
+        return self.nodes[node_id]
 
 
-node_registry = NodeRegistry()
+def log_node_changes(logger, old_nodes, new_nodes):
+    added_nodes = set(new_nodes.keys()) - set(old_nodes.keys())
+    for node in added_nodes:
+        log_node_joined_federation(logger, node)
+
+    removed_nodes = set(old_nodes.keys()) - set(new_nodes.keys())
+    for node in removed_nodes:
+        log_node_left_federation(logger, node)

@@ -11,7 +11,7 @@ repos:
     -   id: debug-statements
 
 -   repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 22.3.0
     hooks:
     -   id: black
 
@@ -19,3 +19,9 @@ repos:
     rev: 0.6.4
     hooks:
     -   id: mdformat
+
+-   repo: https://github.com/pycqa/isort
+    rev: 5.10.1
+    hooks:
+    -   id: isort
+        args: ["--profile", "black", "--force-single-line-imports"]

@@ -15,7 +15,7 @@ app.register_blueprint(error_handlers)
 
 # The initialization of the loggers is inside the app file because we don't want to initialize them
 # from the tests since there is no config available then.
-# We only want to intialize the loggers when the quart app is started.
+# We only want to initialize the loggers when the quart app is started.
 dictConfig(
     {
         "version": 1,

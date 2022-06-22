@@ -1,20 +1,24 @@
+import itertools
+import logging
+from typing import Any
+from typing import Dict
 from typing import List
+from typing import Tuple
 
 from mipengine import DType
+from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 from mipengine.node_exceptions import TablesNotFound
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import CommonDataElement
+from mipengine.node_tasks_DTOs import CommonDataElements
+from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import TableType
+from mipengine.table_data_DTOs import ColumnData
 from mipengine.table_data_DTOs import ColumnDataBinary
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataInt
 from mipengine.table_data_DTOs import ColumnDataJSON
 from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
-
-
-# TODO We need to add the PRIVATE/OPEN table logic
-from mipengine.node_tasks_DTOs import TableType
-from mipengine.table_data_DTOs import ColumnData
 
 
 def create_table_name(
@@ -27,7 +31,20 @@ def create_table_name(
     """
     Creates and returns in lower case a table name with the format
     <nodeId>_<contextId>_<tableType>_<commandId>_<command_subid>
+
+    Underscores are not allowed in any parameter provided.
     """
+    if not node_id.isalnum():
+        raise ValueError(f"'node_id' is not alphanumeric. Value: '{node_id}'")
+    if not context_id.isalnum():
+        raise ValueError(f"'context_id' is not alphanumeric. Value: '{context_id}'")
+    if not command_id.isalnum():
+        raise ValueError(f"'command_id' is not alphanumeric. Value: '{command_id}'")
+    if not command_subid.isalnum():
+        raise ValueError(
+            f"'command_subid' is not alphanumeric. Value: '{command_subid}'"
+        )
+
     if table_type not in {TableType.NORMAL, TableType.VIEW, TableType.MERGE}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
 
@@ -166,7 +183,7 @@ def get_table_data(table_name: str) -> List[ColumnData]:
     """
     schema = get_table_schema(table_name)
 
-    data = MonetDB().execute_and_fetchall(
+    row_stored_data = MonetDB().execute_and_fetchall(
         f"""
         SELECT {table_name}.*
         FROM {table_name}
@@ -175,89 +192,121 @@ def get_table_data(table_name: str) -> List[ColumnData]:
         """
     )
 
-    # TableData contain columns
-    # we need to switch the data given from the database from row-stored to column-stored
-    data = list(zip(*data))
+    column_stored_data = list(zip(*row_stored_data))
+    # In case there are no rows in the table, the `column_stored_data` will be an empty list.
+    # The `column_stored_data` needs to have a value for each column, so we fill it with empty lists.
+    if not column_stored_data:
+        column_stored_data = [[] for _ in schema.columns]
 
-    columns_data = []
-    for current_column, current_values in zip(schema.columns, data):
+    return _convert_column_stored_data_to_column_data_objects(
+        column_stored_data, schema
+    )
+
+
+def _convert_column_stored_data_to_column_data_objects(
+    column_stored_data: List[List[Any]], schema: TableSchema
+):
+    table_data = []
+    for current_column, current_values in zip(schema.columns, column_stored_data):
         if current_column.dtype == DType.INT:
-            columns_data.append(
+            table_data.append(
                 ColumnDataInt(name=current_column.name, data=current_values)
             )
         elif current_column.dtype == DType.STR:
-            columns_data.append(
+            table_data.append(
                 ColumnDataStr(name=current_column.name, data=current_values)
             )
         elif current_column.dtype == DType.FLOAT:
-            columns_data.append(
+            table_data.append(
                 ColumnDataFloat(name=current_column.name, data=current_values)
             )
         elif current_column.dtype == DType.JSON:
-            columns_data.append(
+            table_data.append(
                 ColumnDataJSON(name=current_column.name, data=current_values)
             )
         elif current_column.dtype == DType.BINARY:
-            columns_data.append(
+            table_data.append(
                 ColumnDataBinary(name=current_column.name, data=current_values)
             )
         else:
             raise ValueError("Invalid column type")
-    return columns_data
+    return table_data
 
 
-def get_initial_data_schemas() -> List[str]:
+def get_data_models() -> List[str]:
     """
-    Retrieves all the different schemas that the initial datasets have.
+    Retrieves the enabled data_models from the database.
 
     Returns
     ------
     List[str]
-        The dataset schemas in the database.
+        The data_models.
     """
 
-    schema_table_names = MonetDB().execute_and_fetchall(
-        f'SELECT code FROM "mipdb_metadata"."data_models"'
+    data_models_code_and_version = MonetDB().execute_and_fetchall(
+        f"""SELECT code, version
+            FROM "mipdb_metadata"."data_models"
+            WHERE status = 'ENABLED'
+        """
     )
-
-    # Flatten the list
-    schema_table_names = [
-        schema_table_name
-        for schema_table in schema_table_names
-        for schema_table_name in schema_table
+    data_models = [
+        code + ":" + version for code, version in data_models_code_and_version
     ]
+    return data_models
 
-    return schema_table_names
 
-
-def get_schema_datasets(schema_name) -> List[str]:
+def get_dataset_code_per_dataset_label(data_model) -> Dict[str, str]:
     """
-    Retrieves the datasets with the specific schema.
+    Retrieves the enabled key-value pair of code and label, for a specific data_model.
 
     Returns
     ------
-    List[str]
-        The datasets of the schema.
+    Dict[str, str]
+        The datasets.
     """
+    data_model_code, data_model_version = data_model.split(":")
 
     datasets_rows = MonetDB().execute_and_fetchall(
         f"""
-        SELECT code
+        SELECT code, label
         FROM "mipdb_metadata"."datasets"
         WHERE data_model_id =
         (
             SELECT data_model_id
             FROM "mipdb_metadata"."data_models"
-            WHERE code = '{schema_name}'
+            WHERE code = '{data_model_code}'
+            AND version = '{data_model_version}'
         )
+        AND status = 'ENABLED'
+        """
+    )
+    datasets = {code: label for code, label in datasets_rows}
+    return datasets
+
+
+def get_data_model_cdes(data_model) -> CommonDataElements:
+    """
+    Retrieves the cdes of the specific data_model.
+
+    Returns
+    ------
+    CommonDataElements
+        A CommonDataElements object
+    """
+
+    cdes_rows = MonetDB().execute_and_fetchall(
+        f"""
+        SELECT code, metadata FROM "{data_model}"."variables_metadata"
         """
     )
 
-    # Flatten the list
-    datasets = [
-        dataset_name for dataset_row in datasets_rows for dataset_name in dataset_row
-    ]
-    return datasets
+    cdes = CommonDataElements(
+        values={
+            code: CommonDataElement.parse_raw(metadata) for code, metadata in cdes_rows
+        }
+    )
+
+    return cdes
 
 
 def drop_db_artifacts_by_context_id(context_id: str):
@@ -273,12 +322,13 @@ def drop_db_artifacts_by_context_id(context_id: str):
 
     _drop_udfs_by_context_id(context_id)
     # Order of the table types matter not to have dependencies when dropping the tables
-    for table_type in [
+    table_type_drop_order = (
         TableType.MERGE,
         TableType.REMOTE,
         TableType.VIEW,
         TableType.NORMAL,
-    ]:
+    )
+    for table_type in table_type_drop_order:
         print("Dropping tabletype: " + str(table_type))
         _drop_table_by_type_and_context_id(table_type, context_id)
 

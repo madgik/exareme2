@@ -1,7 +1,7 @@
 import enum
+from typing import List
 
 from pydantic import BaseModel
-from typing import List
 
 
 class SMPCRequestType(enum.Enum):
@@ -28,7 +28,7 @@ class SMPCResponseStatus(enum.Enum):
 
 class SMPCRequestData(BaseModel):
     computationType: SMPCRequestType
-    clients: List[int]
+    clients: List[str]
 
 
 class SMPCResponse(BaseModel):

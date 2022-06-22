@@ -46,7 +46,10 @@ the node service will be called 'localnode1' and should be referenced using that
 Paths are subject to change so in the following documentation the global variables will be used.
 
 """
+import copy
+import itertools
 import json
+import pathlib
 import shutil
 import sys
 from enum import Enum
@@ -63,6 +66,7 @@ from invoke import task
 from termcolor import colored
 
 import tests
+from mipengine.udfgen import udfio
 
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
@@ -79,10 +83,22 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
-DEMO_DATA_FOLDER = Path(tests.__file__).parent / "demo_data"
+TEST_DATA_FOLDER = Path(tests.__file__).parent / "test_data"
 
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
 MIPENGINE_NODE_CONFIG_FILE = "MIPENGINE_NODE_CONFIG_FILE"
+
+SMPC_COORDINATOR_PORT = 12314
+SMPC_COORDINATOR_DB_PORT = 27017
+SMPC_COORDINATOR_QUEUE_PORT = 6379
+SMPC_PLAYER_BASE_PORT = 7000
+SMPC_CLIENT_BASE_PORT = 9000
+SMPC_COORDINATOR_NAME = "smpc_coordinator"
+SMPC_COORDINATOR_DB_NAME = "smpc_coordinator_db"
+SMPC_COORDINATOR_QUEUE_NAME = "smpc_coordinator_queue"
+SMPC_PLAYER_BASE_NAME = "smpc_player"
+SMPC_CLIENT_BASE_NAME = "smpc_client"
+
 
 # TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
 # Right now if we call a task from another task, the "pre"-task is not executed
@@ -109,9 +125,7 @@ def create_configs(c):
         template_node_config = toml.load(fp)
 
     for node in deployment_config["nodes"]:
-        node_config = template_node_config.copy()
-
-        node_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
+        node_config = copy.deepcopy(template_node_config)
 
         node_config["identifier"] = node["id"]
         node_config["role"] = node["role"]
@@ -124,8 +138,22 @@ def create_configs(c):
         node_config["rabbitmq"]["ip"] = deployment_config["ip"]
         node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
 
+        node_config["privacy"]["minimum_row_count"] = deployment_config["privacy"][
+            "minimum_row_count"
+        ]
+
         node_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
-        node_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
+        if node_config["smpc"]["enabled"]:
+            node_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
+            if node["role"] == "GLOBALNODE":
+                node_config["smpc"][
+                    "coordinator_address"
+                ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
+            else:
+                node_config["smpc"]["client_id"] = node["id"]
+                node_config["smpc"][
+                    "client_address"
+                ] = f"http://{deployment_config['ip']}:{node['smpc_client_port']}"
 
         node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
         with open(node_config_file, "w+") as fp:
@@ -134,16 +162,18 @@ def create_configs(c):
     # Create the controller config file
     with open(CONTROLLER_CONFIG_TEMPLATE_FILE) as fp:
         template_controller_config = toml.load(fp)
-    controller_config = template_controller_config.copy()
+    controller_config = copy.deepcopy(template_controller_config)
     controller_config["log_level"] = deployment_config["log_level"]
     controller_config["framework_log_level"] = deployment_config["framework_log_level"]
 
-    controller_config["cdes_metadata_path"] = deployment_config["cdes_metadata_path"]
-    controller_config["node_registry_update_interval"] = deployment_config[
-        "node_registry_update_interval"
+    controller_config["node_landscape_aggregator_update_interval"] = deployment_config[
+        "node_landscape_aggregator_update_interval"
     ]
     controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
         "celery_tasks_timeout"
+    ]
+    controller_config["rabbitmq"]["celery_run_udf_task_timeout"] = deployment_config[
+        "celery_run_udf_task_timeout"
     ]
     controller_config["deployment_type"] = "LOCAL"
 
@@ -153,8 +183,27 @@ def create_configs(c):
     controller_config["localnodes"]["dns"] = ""
     controller_config["localnodes"]["port"] = ""
 
+    controller_config["cleanup"]["contextids_cleanup_folder"] = "/tmp"
+    controller_config["cleanup"]["nodes_cleanup_interval"] = deployment_config[
+        "cleanup"
+    ]["nodes_cleanup_interval"]
+    controller_config["cleanup"]["contextid_release_timelimit"] = deployment_config[
+        "cleanup"
+    ]["contextid_release_timelimit"]
+
     controller_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
-    controller_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
+    if controller_config["smpc"]["enabled"]:
+        controller_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
+        controller_config["smpc"][
+            "coordinator_address"
+        ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
+
+        controller_config["smpc"]["get_result_interval"] = deployment_config["smpc"][
+            "get_result_interval"
+        ]
+        controller_config["smpc"]["get_result_max_retries"] = deployment_config["smpc"][
+            "get_result_max_retries"
+        ]
 
     CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
@@ -179,13 +228,14 @@ def install_dependencies(c):
 
 
 @task
-def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
+def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False, smpc=False):
     """
     Remove the specified docker containers, either by container or relative name.
 
     :param container_name: If set, removes the container with the specified name.
     :param monetdb: If True, it will remove all monetdb containers.
     :param rabbitmq: If True, it will remove all rabbitmq containers.
+    :param smpc: If True, it will remove all smpc related containers.
 
     If nothing is set, nothing is removed.
     """
@@ -194,6 +244,8 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
         names.append("monetdb")
     if rabbitmq:
         names.append("rabbitmq")
+    if smpc:
+        names.append("smpc")
     if container_name:
         names.append(container_name)
     if not names:
@@ -204,20 +256,21 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False):
     for name in names:
         container_ids = run(c, f"docker ps -qa --filter name={name}", show_ok=False)
         if container_ids.stdout:
-            message(f"Removing {name} container...", Level.HEADER)
+            message(f"Removing {name} container(s)...", Level.HEADER)
             cmd = f"docker rm -vf $(docker ps -qa --filter name={name})"
             run(c, cmd)
         else:
-            message(f"No {name} container to remove", level=Level.HEADER)
+            message(f"No {name} container to remove.", level=Level.HEADER)
 
 
 @task(iterable=["node"])
-def create_monetdb(c, node, monetdb_image=None):
+def create_monetdb(c, node, image=None, log_level=None):
     """
     (Re)Create MonetDB container(s) for given node(s). If the container exists, it will remove it and create it again.
 
     :param node: A list of nodes for which it will create the monetdb containers.
-    :param monetdb_image: The image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param image: The image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param log_level: If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
 
     If an image is not provided it will use the 'monetdb_image' field from
     the 'DEPLOYMENT_CONFIG_FILE' ex. monetdb_image = "madgik/mipenginedb:dev1.2"
@@ -228,10 +281,15 @@ def create_monetdb(c, node, monetdb_image=None):
         message("Please specify a node using --node <node>", Level.WARNING)
         sys.exit(1)
 
-    if not monetdb_image:
-        monetdb_image = get_deployment_config("monetdb_image")
+    if not image:
+        image = get_deployment_config("monetdb_image")
 
-    get_docker_image(c, monetdb_image)
+    if not log_level:
+        log_level = get_deployment_config("log_level")
+
+    get_docker_image(c, image)
+
+    udfio_full_path = path.abspath(udfio.__file__)
 
     node_ids = node
     for node_id in node_ids:
@@ -246,20 +304,31 @@ def create_monetdb(c, node, monetdb_image=None):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} --name {container_name} {monetdb_image}"""
+        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} {image}"""
         run(c, cmd)
+
+
+@task(iterable=["port"])
+def init_monetdb(c, port):
+    """
+    Initialize MonetDB container(s) with mipdb.
+
+    :param port: A list of container ports that will be initialized.
+    """
+    ports = port
+    for port in ports:
         message(
-            f"Initializing the {container_name}...",
+            f"Initializing MonetDB with mipdb in port: {port}...",
             Level.HEADER,
         )
-        cmd = f"""poetry run mipdb init --ip 172.17.0.1 --port {node_config['monetdb']['port']}"""
+        cmd = f"""poetry run mipdb init --ip 127.0.0.1 --port {port}"""
         run(c, cmd)
 
 
 @task(iterable=["port"])
 def load_data(c, port=None):
     """
-    Load data into the specified DB from the 'DEMO_DATA_FOLDER'.
+    Load data into the specified DB from the 'TEST_DATA_FOLDER'.
 
     :param port: A list of ports, in which it will load the data. If not set, it will use the `NODES_CONFIG_DIR` files.
     """
@@ -278,15 +347,68 @@ def load_data(c, port=None):
         for node_config_file in config_files:
             with open(node_config_file) as fp:
                 node_config = toml.load(fp)
-            if "local" in node_config["identifier"]:
+            if node_config["role"] == "LOCALNODE":
                 local_node_ports.append(node_config["monetdb"]["port"])
 
-    with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
-        template_node_config = toml.load(fp)
-    for port in local_node_ports:
-        message(f"Loading data on MonetDB at port {port}...", Level.HEADER)
-        cmd = f"poetry run mipdb load-folder {DEMO_DATA_FOLDER}  --ip 172.17.0.1 --port {port} "
-        run(c, cmd)
+    local_node_ports = sorted(local_node_ports)
+
+    # Load the test data folder into the dbs
+    data_model_folders = [
+        TEST_DATA_FOLDER / folder for folder in listdir(TEST_DATA_FOLDER)
+    ]
+    for data_model_folder in data_model_folders:
+
+        # Load all data models in each db
+        with open(data_model_folder / "CDEsMetadata.json") as data_model_metadata_file:
+            data_model_metadata = json.load(data_model_metadata_file)
+            data_model_code = data_model_metadata["code"]
+            data_model_version = data_model_metadata["version"]
+        cdes_file = data_model_folder / "CDEsMetadata.json"
+        for port in local_node_ports:
+            message(
+                f"Loading data model '{data_model_code}:{data_model_version}' metadata in MonetDB at port {port}...",
+                Level.HEADER,
+            )
+            cmd = f"poetry run mipdb add-data-model {cdes_file} --port {port} "
+            run(c, cmd)
+
+        # Load only the 1st csv of each dataset "with 0 suffix" in the 1st node
+        first_node_csvs = sorted(
+            [
+                data_model_folder / file
+                for file in listdir(data_model_folder)
+                if file.endswith("0.csv") and not file.endswith("10.csv")
+            ]
+        )
+        for csv in first_node_csvs:
+            port = local_node_ports[0]
+            message(
+                f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                Level.HEADER,
+            )
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --port {port} "
+            run(c, cmd)
+
+        # Load the data model's remaining csvs in the rest of the nodes with round-robin fashion
+        remaining_csvs = sorted(
+            [
+                data_model_folder / file
+                for file in listdir(data_model_folder)
+                if file.endswith(".csv") and not file.endswith("0.csv")
+            ]
+        )
+        if len(local_node_ports) > 1:
+            local_node_ports_cycle = itertools.cycle(local_node_ports[1:])
+        else:
+            local_node_ports_cycle = itertools.cycle(local_node_ports)
+        for csv in remaining_csvs:
+            port = next(local_node_ports_cycle)
+            message(
+                f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                Level.HEADER,
+            )
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --port {port} "
+            run(c, cmd)
 
 
 @task(iterable=["node"])
@@ -315,12 +437,13 @@ def create_rabbitmq(c, node, rabbitmq_image=None):
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
         with open(node_config_file) as fp:
             node_config = toml.load(fp)
-        container_ports = f"{node_config['rabbitmq']['port']}:5672"
+        queue_port = f"{node_config['rabbitmq']['port']}:5672"
+        api_port = f"{node_config['rabbitmq']['port']+10000}:15672"
         message(
-            f"Starting container {container_name} on ports {container_ports}...",
+            f"Starting container {container_name} on ports {queue_port}...",
             Level.HEADER,
         )
-        cmd = f"docker run -d -p {container_ports} --name {container_name} {rabbitmq_image}"
+        cmd = f"docker run -d -p {queue_port} -p {api_port} --name {container_name} {rabbitmq_image}"
         run(c, cmd)
 
     for node_id in node_ids:
@@ -374,11 +497,17 @@ def kill_node(c, node=None, all_=False):
             f"Killing previous celery instance(s) with pattern '{node_pattern}' ...",
             Level.HEADER,
         )
-        # In order for the node service to be killed, we need to kill the celery worker process with the "node_pattern"
-        # in it's name and it's parent process, the celery main process.
+
+        # We need to kill the celery worker processes with the "node_pattern", if provided.
+        # First we kill the parent process (celery workers' parent) if there is one, when "node_pattern is provided,
+        # and then we kill all the celery worker processes with/without a pattern.
         cmd = (
             f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
             f"&& pgrep -P $pid | xargs kill -9 "
+        )
+        run(c, cmd, warn=True, show_ok=False)
+        cmd = (
+            f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
             f"&& kill -9 $pid "
         )
         run(c, cmd, warn=True)
@@ -418,6 +547,7 @@ def start_node(
         )
 
     node_ids = get_node_ids(all_, node)
+    node_ids.sort()  # Sorting the ids protects removing a similarly named id, localnode1 would remove localnode10.
 
     for node_id in node_ids:
         kill_node(c, node_id)
@@ -481,7 +611,7 @@ def start_controller(c, detached=False, algorithm_folders=None):
             with c.prefix("export QUART_APP=mipengine/controller/api/app:app"):
                 outpath = OUTDIR / "controller.out"
                 if detached:
-                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0>> {outpath} 2>&1"
+                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0 >> {outpath} 2>&1"
                     run(c, cmd, wait=False)
                 else:
                     cmd = (
@@ -497,9 +627,11 @@ def deploy(
     start_all=True,
     start_controller_=False,
     start_nodes=False,
+    log_level=None,
     framework_log_level=None,
     monetdb_image=None,
     algorithm_folders=None,
+    smpc=None,
 ):
     """
     Install dependencies, (re)create all the containers and (re)start all the services.
@@ -508,10 +640,15 @@ def deploy(
     :param start_all: Start all node/controller services flag.
     :param start_controller_: Start controller services flag.
     :param start_nodes: Start all nodes flag.
+    :param log_level: Used for the dev logs. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param framework_log_level: Used for the engine services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_image: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
-    :param algorithm_folders: Used from the services.
+    :param algorithm_folders: Used from the services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc: Deploy the SMPC cluster as well. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     """
+
+    if not log_level:
+        log_level = get_deployment_config("log_level")
 
     if not framework_log_level:
         framework_log_level = get_deployment_config("framework_log_level")
@@ -519,10 +656,16 @@ def deploy(
     if not monetdb_image:
         monetdb_image = get_deployment_config("monetdb_image")
 
+    if not algorithm_folders:
+        algorithm_folders = get_deployment_config("algorithm_folders")
+
+    if smpc is None:
+        smpc = get_deployment_config("smpc", subconfig="enabled")
+
     if install_dep:
         install_dependencies(c)
 
-    # start NODE services
+    # Start NODE services
     config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
     if not config_files:
         message(
@@ -532,13 +675,19 @@ def deploy(
         sys.exit(1)
 
     node_ids = []
+    local_nodes_monetdb_ports = []
     for node_config_file in config_files:
         with open(node_config_file) as fp:
             node_config = toml.load(fp)
         node_ids.append(node_config["identifier"])
+        if node_config["role"] == "LOCALNODE":
+            local_nodes_monetdb_ports.append(node_config["monetdb"]["port"])
 
-    create_monetdb(c, node=node_ids, monetdb_image=monetdb_image)
+    node_ids.sort()  # Sorting the ids protects removing a similarly named id, localnode1 would remove localnode10.
+
+    create_monetdb(c, node=node_ids, image=monetdb_image, log_level=log_level)
     create_rabbitmq(c, node=node_ids)
+    init_monetdb(c, port=local_nodes_monetdb_ports)
 
     if start_nodes or start_all:
         start_node(
@@ -549,9 +698,12 @@ def deploy(
             algorithm_folders=algorithm_folders,
         )
 
-    # start CONTROLLER service
+    # Start CONTROLLER service
     if start_controller_ or start_all:
         start_controller(c, detached=True, algorithm_folders=algorithm_folders)
+
+    if smpc:
+        deploy_smpc(c)
 
 
 @task
@@ -580,7 +732,7 @@ def cleanup(c):
     """Kill all node/controller services and remove all monetdb/rabbitmq containers."""
     kill_controller(c)
     kill_node(c, all_=True)
-    rm_containers(c, monetdb=True, rabbitmq=True)
+    rm_containers(c, monetdb=True, rabbitmq=True, smpc=True)
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
         for outpath in OUTDIR.glob("*.out"):
@@ -603,6 +755,7 @@ def start_flower(c, node=None, all_=False):
     FLOWER_PORT = 5550
 
     node_ids = get_node_ids(all_, node)
+    node_ids.sort()
 
     for node_id in node_ids:
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
@@ -611,18 +764,20 @@ def start_flower(c, node=None, all_=False):
 
         ip = node_config["rabbitmq"]["ip"]
         port = node_config["rabbitmq"]["port"]
+        api_port = port + 10000
         user_and_password = (
             node_config["rabbitmq"]["user"] + ":" + node_config["rabbitmq"]["password"]
         )
         vhost = node_config["rabbitmq"]["vhost"]
         flower_url = ip + ":" + str(port)
-        broker_api = f"amqp://{user_and_password}@{flower_url}/{vhost}"
+        broker = f"amqp://{user_and_password}@{flower_url}/{vhost}"
+        broker_api = f"http://{user_and_password}@{ip + ':' + str(api_port)}/api/"
 
         flower_index = node_ids.index(node_id)
         flower_port = FLOWER_PORT + flower_index
 
         message(f"Starting flower container for node {node_id}...", Level.HEADER)
-        command = f"docker run --name flower-{node_id} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker_api} "
+        command = f"docker run --name flower-{node_id} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker} --broker-api={broker_api}"
         run(c, command)
         cmd = "docker ps | grep '[f]lower'"
         run(c, cmd, warn=True, show_ok=False)
@@ -642,13 +797,235 @@ def kill_all_flowers(c):
         message(f"No flower container to remove", level=Level.HEADER)
 
 
+def start_smpc_coordinator_db(c, image):
+    container_ports = f"{SMPC_COORDINATOR_DB_PORT}:27017"
+    message(
+        f"Starting container {SMPC_COORDINATOR_DB_NAME} on ports {container_ports}...",
+        Level.HEADER,
+    )
+    env_variables = (
+        "-e MONGO_INITDB_ROOT_USERNAME=sysadmin "
+        "-e MONGO_INITDB_ROOT_PASSWORD=123qwe "
+    )
+    cmd = f"docker run -d -p {container_ports} {env_variables} --name {SMPC_COORDINATOR_DB_NAME} {image}"
+    run(c, cmd)
+
+
+def start_smpc_coordinator_queue(c, image):
+    container_ports = f"{SMPC_COORDINATOR_QUEUE_PORT}:6379"
+    message(
+        f"Starting container {SMPC_COORDINATOR_QUEUE_NAME} on ports {container_ports}...",
+        Level.HEADER,
+    )
+    container_cmd = "redis-server --requirepass agora"
+    cmd = f"""docker run -d -p {container_ports} -e REDIS_REPLICATION_MODE=master --name {SMPC_COORDINATOR_QUEUE_NAME} {image} {container_cmd}"""
+    run(c, cmd)
+
+
+def start_smpc_coordinator_container(c, ip, image):
+    container_ports = f"{SMPC_COORDINATOR_PORT}:12314"
+    message(
+        f"Starting container {SMPC_COORDINATOR_NAME} on ports {container_ports}...",
+        Level.HEADER,
+    )
+    container_cmd = "python coordinator.py"
+    env_variables = (
+        f"-e PLAYER_REPO_0=http://{ip}:7000 "
+        f"-e PLAYER_REPO_1=http://{ip}:7001 "
+        f"-e PLAYER_REPO_2=http://{ip}:7002 "
+        f"-e REDIS_HOST={ip} "
+        f"-e REDIS_PORT={SMPC_COORDINATOR_QUEUE_PORT} "
+        "-e REDIS_PSWD=agora "
+        f"-e DB_URL={ip}:{SMPC_COORDINATOR_DB_PORT} "
+        "-e DB_UNAME=sysadmin "
+        "-e DB_PSWD=123qwe "
+    )
+    cmd = f"""docker run -d -p {container_ports} {env_variables} --name {SMPC_COORDINATOR_NAME} {image} {container_cmd}"""
+    run(c, cmd)
+
+
+@task
+def start_smpc_coordinator(
+    c, ip=None, smpc_image=None, smpc_db_image=None, smpc_queue_image=None
+):
+    """
+    (Re)Creates all needed SMPC coordinator containers. If the containers exist, it will remove them and create them again.
+
+    :param ip: The ip to use for container communication. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc_image: The coordinator image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc_db_image: The db image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc_queue_image: The queue image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    """
+
+    if not ip:
+        ip = get_deployment_config("ip")
+    if not smpc_image:
+        smpc_image = get_deployment_config("smpc", subconfig="smpc_image")
+    if not smpc_db_image:
+        smpc_db_image = get_deployment_config("smpc", subconfig="db_image")
+    if not smpc_queue_image:
+        smpc_queue_image = get_deployment_config("smpc", subconfig="queue_image")
+
+    get_docker_image(c, smpc_image)
+    get_docker_image(c, smpc_db_image)
+    get_docker_image(c, smpc_queue_image)
+
+    rm_containers(c, container_name="smpc_coordinator")
+
+    start_smpc_coordinator_db(c, smpc_db_image)
+    start_smpc_coordinator_queue(c, smpc_queue_image)
+    start_smpc_coordinator_container(c, ip, smpc_image)
+
+
+def start_smpc_player(c, ip, id, image):
+    name = f"{SMPC_PLAYER_BASE_NAME}_{id}"
+    message(
+        f"Starting container {name} ...",
+        Level.HEADER,
+    )
+    container_cmd = f"python player.py {id}"  # SMPC player id cannot be alphanumeric
+    env_variables = (
+        f"-e PLAYER_REPO_0=http://{ip}:7000 "
+        f"-e PLAYER_REPO_1=http://{ip}:7001 "
+        f"-e PLAYER_REPO_2=http://{ip}:7002 "
+        f"-e COORDINATOR_URL=http://{ip}:{SMPC_COORDINATOR_PORT} "
+        f"-e DB_URL={ip}:{SMPC_COORDINATOR_DB_PORT} "
+        "-e DB_UNAME=sysadmin "
+        "-e DB_PSWD=123qwe "
+    )
+    container_ports = (
+        f"-p {6000 + id}:{6000 + id} "
+        f"-p {SMPC_PLAYER_BASE_PORT + id}:{7000 + id} "
+        f"-p {14000 + id}:{14000 + id} "
+    )  # SMPC player port is increasing using the player id
+    cmd = f"""docker run -d {container_ports} {env_variables} --name {name} {image} {container_cmd}"""
+    run(c, cmd)
+
+
+@task
+def start_smpc_players(c, ip=None, image=None):
+    """
+    (Re)Creates 3 SMPC player containers. If the containers exist, it will remove them and create them again.
+
+    :param ip: The ip to use for container communication. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param image: The smpc player image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    """
+
+    if not ip:
+        ip = get_deployment_config("ip")
+    if not image:
+        image = get_deployment_config("smpc", subconfig="smpc_image")
+
+    get_docker_image(c, image)
+
+    rm_containers(c, container_name="smpc_player")
+
+    for i in range(3):
+        start_smpc_player(c, ip, i, image)
+
+
+def start_smpc_client(c, node_id, ip, image):
+    node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
+    with open(node_config_file) as fp:
+        node_config = toml.load(fp)
+
+    client_id = node_config["smpc"]["client_id"]
+    client_port = node_config["smpc"]["client_address"].split(":")[
+        2
+    ]  # Get the port from the address e.g. 'http://172.17.0.1:9000'
+
+    name = f"{SMPC_CLIENT_BASE_NAME}_{client_id}"
+    message(
+        f"Starting container {name} ...",
+        Level.HEADER,
+    )
+    container_cmd = f"python client.py"
+    env_variables = (
+        f"-e PLAYER_REPO_0=http://{ip}:7000 "
+        f"-e PLAYER_REPO_1=http://{ip}:7001 "
+        f"-e PLAYER_REPO_2=http://{ip}:7002 "
+        f"-e COORDINATOR_URL=http://{ip}:{SMPC_COORDINATOR_PORT} "
+        f"-e ID={client_id} "
+        f"-e PORT={client_port} "
+    )
+    container_ports = f"-p {client_port}:{client_port} "
+    cmd = f"""docker run -d {container_ports} {env_variables} --name {name} {image} {container_cmd}"""
+    run(c, cmd)
+
+
+@task
+def start_smpc_clients(c, ip=None, image=None):
+    """
+    (Re)Creates 3 SMPC player containers. If the containers exist, it will remove them and create them again.
+
+    :param ip: The ip to use for container communication. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param image: The smpc player image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    """
+
+    if not ip:
+        ip = get_deployment_config("ip")
+    if not image:
+        image = get_deployment_config("smpc", subconfig="smpc_image")
+
+    get_docker_image(c, image)
+
+    rm_containers(c, container_name="smpc_client")
+
+    for node_id in get_localnode_ids():
+        start_smpc_client(c, node_id, ip, image)
+
+
+@task
+def deploy_smpc(c, ip=None, smpc_image=None, smpc_db_image=None, smpc_queue_image=None):
+    """
+    (Re)Creates all needed SMPC containers. If the containers exist, it will remove them and create them again.
+
+    :param ip: The ip to use for container communication. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc_image: The coordinator image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc_db_image: The db image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param smpc_queue_image: The queue image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    """
+    rm_containers(c, smpc=True)
+    start_smpc_coordinator(c, ip, smpc_image, smpc_db_image, smpc_queue_image)
+    start_smpc_players(c, ip, smpc_image)
+    start_smpc_clients(c, ip, smpc_image)
+
+
+@task(iterable=["db"])
+def reload_udfio(c, db):
+    """
+    Used for reloading the udfio module inside the monetdb containers.
+
+    :param db: The names of the monetdb containers.
+    """
+    dbs = db
+    for db in dbs:
+        sql_reload_query = """
+CREATE OR REPLACE FUNCTION
+reload_udfio()
+RETURNS
+INT
+LANGUAGE PYTHON
+{
+    import udfio
+    import importlib
+    importlib.reload(udfio)
+    return 0
+};
+
+SELECT reload_udfio();
+        """
+        command = f'docker exec -t {db} mclient db --statement "{sql_reload_query}"'
+        run(c, command)
+
+
 def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok=True):
     if attach_:
         c.run(cmd, pty=True)
         return
 
     if not wait:
-        # TODO disown=True will make c.run(..) return immediatelly
+        # TODO disown=True will make c.run(..) return immediately
         c.run(cmd, disown=True)
         # TODO wait is False to get in here
         # nevertheless, it will wait (sleep) for 4 seconds here, why??
@@ -715,13 +1092,14 @@ def spin_wheel(promise=None, time=None):
                 break
 
 
-def get_deployment_config(config):
+def get_deployment_config(config, subconfig=None):
     if not Path(DEPLOYMENT_CONFIG_FILE).is_file():
         raise FileNotFoundError(
             f"Please provide a --{config} parameter or create a deployment config file '{DEPLOYMENT_CONFIG_FILE}'"
         )
-
     with open(DEPLOYMENT_CONFIG_FILE) as fp:
+        if subconfig:
+            return toml.load(fp)[config][subconfig]
         return toml.load(fp)[config]
 
 
@@ -748,6 +1126,18 @@ def get_node_ids(all_=False, node=None):
     return node_ids
 
 
+def get_localnode_ids():
+    all_node_ids = get_node_ids(all_=True)
+    local_node_ids = []
+    for node_id in all_node_ids:
+        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
+        with open(node_config_file) as fp:
+            node_config = toml.load(fp)
+        if node_config["role"] == "LOCALNODE":
+            local_node_ids.append(node_id)
+    return local_node_ids
+
+
 def get_docker_image(c, image, always_pull=False):
     """
     Fetches a docker image locally.
@@ -759,7 +1149,7 @@ def get_docker_image(c, image, always_pull=False):
     cmd = f"docker images -q {image}"
     _, image_tag = image.split(":")
     result = run(c, cmd, show_ok=False)
-    if result.stdout != "" and image_tag != "latest":
+    if result.stdout != "" and image_tag != "latest" and image_tag != "dev":
         return
 
     message(f"Pulling image {image} ...", Level.HEADER)

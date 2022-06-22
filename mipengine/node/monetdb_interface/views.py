@@ -4,7 +4,7 @@ from mipengine.filters import build_filter_clause
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
-from mipengine.node_tasks_DTOs import InsufficientDataError
+from mipengine.node_exceptions import InsufficientDataError
 from mipengine.node_tasks_DTOs import TableType
 
 MINIMUM_ROW_COUNT = node_config.privacy.minimum_row_count
@@ -19,7 +19,7 @@ def create_view(
     table_name: str,
     columns: List[str],
     filters: dict,
-    enable_min_rows_threshold=False,
+    check_min_rows=False,
 ):
     filter_clause = ""
     if filters:
@@ -35,7 +35,7 @@ def create_view(
 
     MonetDB().execute(view_creation_query)
 
-    if enable_min_rows_threshold:
+    if check_min_rows:
         view_rows_query_result = MonetDB().execute_and_fetchall(
             f"""
             SELECT COUNT(*)

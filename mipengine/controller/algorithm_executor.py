@@ -1,4 +1,7 @@
+import traceback
+from logging import Logger
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -15,43 +18,40 @@ from mipengine.controller import config as ctrl_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
-from mipengine.controller.algorithm_executor_node_data_objects import AlgoExecData
-from mipengine.controller.algorithm_executor_node_data_objects import GlobalNodeData
-from mipengine.controller.algorithm_executor_node_data_objects import (
-    GlobalNodeSMPCTables,
-)
-from mipengine.controller.algorithm_executor_node_data_objects import GlobalNodeTable
-from mipengine.controller.algorithm_executor_node_data_objects import LocalNodesData
-from mipengine.controller.algorithm_executor_node_data_objects import (
-    LocalNodesSMPCTables,
-)
-from mipengine.controller.algorithm_executor_node_data_objects import LocalNodesTable
 from mipengine.controller.algorithm_executor_node_data_objects import NodeData
-from mipengine.controller.algorithm_executor_node_data_objects import NodeSMPCTables
-from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
-from mipengine.controller.algorithm_executor_node_data_objects import (
-    algoexec_udf_kwargs_to_node_udf_kwargs,
-)
-from mipengine.controller.algorithm_executor_node_data_objects import (
-    algoexec_udf_posargs_to_node_udf_posargs,
-)
+from mipengine.controller.algorithm_executor_node_data_objects import SMPCTableNames
+from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.controller.algorithm_executor_nodes import LocalNode
 from mipengine.controller.algorithm_executor_smpc_helper import get_smpc_results
 from mipengine.controller.algorithm_executor_smpc_helper import (
     load_data_to_smpc_clients,
 )
+from mipengine.controller.algorithm_executor_smpc_helper import trigger_smpc_operations
 from mipengine.controller.algorithm_executor_smpc_helper import (
-    trigger_smpc_computations,
+    wait_for_smpc_results_to_be_ready,
+)
+from mipengine.controller.algorithm_flow_data_objects import AlgoFlowData
+from mipengine.controller.algorithm_flow_data_objects import GlobalNodeData
+from mipengine.controller.algorithm_flow_data_objects import GlobalNodeSMPCTables
+from mipengine.controller.algorithm_flow_data_objects import GlobalNodeTable
+from mipengine.controller.algorithm_flow_data_objects import LocalNodesData
+from mipengine.controller.algorithm_flow_data_objects import LocalNodesSMPCTables
+from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
+from mipengine.controller.algorithm_flow_data_objects import (
+    algoexec_udf_kwargs_to_node_udf_kwargs,
+)
+from mipengine.controller.algorithm_flow_data_objects import (
+    algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
-from mipengine.controller.controller_common_data_elements import (
-    controller_common_data_elements,
-)
 from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
+from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.udfgen import TensorBinaryOp
+from mipengine.udfgen import make_unique_func_name
 
 
 class AlgorithmExecutionException(Exception):
@@ -60,7 +60,7 @@ class AlgorithmExecutionException(Exception):
         self.message = message
 
 
-class NodeDownAlgorithmExecutionException(Exception):
+class NodeUnresponsiveAlgorithmExecutionException(Exception):
     def __init__(self):
         message = (
             "One of the nodes participating in the algorithm execution "
@@ -71,13 +71,13 @@ class NodeDownAlgorithmExecutionException(Exception):
 
 
 class InconsistentTableSchemasException(Exception):
-    def __init__(self, tables_schemas: Dict[NodeTable, TableSchema]):
+    def __init__(self, tables_schemas: Dict[TableName, TableSchema]):
         message = f"Tables: {tables_schemas} do not have a common schema"
         super().__init__(message)
 
 
 class InconsistentUDFResultSizeException(Exception):
-    def __init__(self, result_tables: Dict[int, List[Tuple[LocalNode, NodeTable]]]):
+    def __init__(self, result_tables: Dict[int, List[Tuple[LocalNode, TableName]]]):
         message = (
             f"The following udf execution results on multiple nodes should have "
             f"the same number of results.\nResults:{result_tables}"
@@ -98,6 +98,7 @@ class AlgorithmExecutor:
         self,
         algorithm_execution_dto: AlgorithmExecutionDTO,
         nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
+        common_data_elements: Dict[str, CommonDataElement],
     ):
         self._logger = ctrl_logger.get_request_logger(
             request_id=algorithm_execution_dto.request_id
@@ -108,40 +109,20 @@ class AlgorithmExecutor:
         self._request_id = algorithm_execution_dto.request_id
         self._context_id = algorithm_execution_dto.context_id
         self._algorithm_name = algorithm_execution_dto.algorithm_name
-
-        self._global_node: GlobalNode = None
-        self._local_nodes: List[LocalNode] = []
+        self._common_data_elements = common_data_elements
         self._algorithm_flow_module = None
         self._execution_interface = None
 
-    def _instantiate_nodes(self):
-
-        # instantiate the GLOBAL Node object
-        self._global_node = GlobalNode(
+        self._global_node: GlobalNode = GlobalNode(
             request_id=self._request_id,
             context_id=self._context_id,
             node_tasks_handler=self._nodes_tasks_handlers_dto.global_node_tasks_handler,
         )
-
-        # Parameters for the creation of the view tables in the db. Each of the LOCAL
-        # nodes will have access only to these view tables and not on the primary data
-        # tables
-        initial_view_tables_params = {
-            "commandId": get_next_command_id(),
-            "pathology": self._algorithm_execution_dto.algorithm_request_dto.inputdata.pathology,
-            "datasets": self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
-            "x": self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
-            "y": self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
-            "filters": self._algorithm_execution_dto.algorithm_request_dto.inputdata.filters,
-        }
-
-        # instantiate the LOCAL Node objects
-        self._local_nodes = [
+        self._local_nodes: List[LocalNode] = [
             LocalNode(
                 request_id=self._request_id,
                 context_id=self._context_id,
                 node_tasks_handler=node_tasks_handler,
-                initial_view_tables_params=initial_view_tables_params,
             )
             for node_tasks_handler in self._nodes_tasks_handlers_dto.local_nodes_tasks_handlers
         ]
@@ -153,15 +134,11 @@ class AlgorithmExecutor:
         If the smpc flag exists in the request and smpc usage is optional,
         then it's defined from the request.
         """
-        algo_request = self._algorithm_execution_dto.algorithm_request_dto
+        flags = self._algorithm_execution_dto.algo_flags
 
         use_smpc = ctrl_config.smpc.enabled
-        if (
-            ctrl_config.smpc.optional
-            and algo_request.flags
-            and USE_SMPC_FLAG in algo_request.flags.keys()
-        ):
-            use_smpc = algo_request.flags[USE_SMPC_FLAG]
+        if ctrl_config.smpc.optional and flags and USE_SMPC_FLAG in flags.keys():
+            use_smpc = flags[USE_SMPC_FLAG]
 
         return use_smpc
 
@@ -170,20 +147,22 @@ class AlgorithmExecutor:
             global_node=self._global_node,
             local_nodes=self._local_nodes,
             algorithm_name=self._algorithm_name,
-            algorithm_parameters=self._algorithm_execution_dto.algorithm_request_dto.parameters,
-            x_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.x,
-            y_variables=self._algorithm_execution_dto.algorithm_request_dto.inputdata.y,
-            pathology=self._algorithm_execution_dto.algorithm_request_dto.inputdata.pathology,
-            datasets=self._algorithm_execution_dto.algorithm_request_dto.inputdata.datasets,
+            algorithm_parameters=self._algorithm_execution_dto.algo_parameters,
+            x_variables=self._algorithm_execution_dto.x_vars,
+            y_variables=self._algorithm_execution_dto.y_vars,
+            var_filters=self._algorithm_execution_dto.var_filters,
+            data_model=self._algorithm_execution_dto.data_model,
+            datasets_per_local_node=self._algorithm_execution_dto.datasets_per_local_node,
             use_smpc=self._get_use_smpc_flag(),
+            logger=self._logger,
         )
         if len(self._local_nodes) > 1:
             self._execution_interface = _AlgorithmExecutionInterface(
-                algo_execution_interface_dto
+                algo_execution_interface_dto, self._common_data_elements
             )
         else:
             self._execution_interface = _SingleLocalNodeAlgorithmExecutionInterface(
-                algo_execution_interface_dto
+                algo_execution_interface_dto, self._common_data_elements
             )
 
         # Get algorithm module
@@ -191,7 +170,6 @@ class AlgorithmExecutor:
 
     def run(self):
         try:
-            self._instantiate_nodes()
             self._logger.info(
                 f"executing algorithm:{self._algorithm_name} on "
                 f"local nodes: {self._local_nodes=}"
@@ -208,30 +186,11 @@ class AlgorithmExecutor:
             TimeoutError,
             ClosedBrokerConnectionError,
         ) as err:
-            self._logger.error(f"{err=}")
-
-            raise NodeDownAlgorithmExecutionException()
+            self._logger.error(f"ErrorType: '{type(err)}' and message: '{err}'")
+            raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
-            import traceback
-
             self._logger.error(f"{traceback.format_exc()}")
             raise exc
-        finally:
-            self.clean_up()
-
-    def clean_up(self):
-        self._logger.info("cleaning up global_node")
-        try:
-            self._global_node.clean_up()
-        except Exception as exc:
-            self._logger.error(f"cleaning up global_node FAILED {exc=}")
-        self._logger.info(f"cleaning up local nodes:{self._local_nodes}")
-        for node in self._local_nodes:
-            self._logger.info(f"\tcleaning up {node=}")
-            try:
-                node.clean_up()
-            except Exception as exc:
-                self._logger.error(f"cleaning up {node=} FAILED {exc=}")
 
 
 class _AlgorithmExecutionInterfaceDTO(BaseModel):
@@ -241,54 +200,42 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     algorithm_parameters: Optional[Dict[str, Any]] = None
     x_variables: Optional[List[str]] = None
     y_variables: Optional[List[str]] = None
-    pathology: str
-    datasets: List[str]
+    var_filters: dict = None
+    data_model: str
+    datasets_per_local_node: Dict[str, List[str]]
     use_smpc: bool
+    logger: Logger
 
     class Config:
         arbitrary_types_allowed = True
 
 
 class _AlgorithmExecutionInterface:
-    def __init__(self, algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO):
+    def __init__(
+        self,
+        algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO,
+        common_data_elements: Dict[str, CommonDataElement],
+    ):
         self._global_node: GlobalNode = algo_execution_interface_dto.global_node
         self._local_nodes: List[LocalNode] = algo_execution_interface_dto.local_nodes
         self._algorithm_name = algo_execution_interface_dto.algorithm_name
         self._algorithm_parameters = algo_execution_interface_dto.algorithm_parameters
         self._x_variables = algo_execution_interface_dto.x_variables
         self._y_variables = algo_execution_interface_dto.y_variables
-        pathology = algo_execution_interface_dto.pathology
-        self._datasets = algo_execution_interface_dto.datasets
+        self._var_filters = algo_execution_interface_dto.var_filters
+        self._data_model = algo_execution_interface_dto.data_model
+        self._datasets_per_local_node = (
+            algo_execution_interface_dto.datasets_per_local_node
+        )
         self._use_smpc = algo_execution_interface_dto.use_smpc
-        cdes = controller_common_data_elements.pathologies[pathology]
         varnames = (self._x_variables or []) + (self._y_variables or [])
         self._metadata = {
-            varname: cde.__dict__
-            for varname, cde in cdes.items()
+            varname: cde.dict()
+            for varname, cde in common_data_elements.items()
             if varname in varnames
         }
 
-        # TODO: validate all local nodes have created the base_view_table??
-        self._initial_view_tables = {}
-        tmp_variable_node_table = {}
-
-        # TODO: clean up this mindfuck??
-        # https://github.com/madgik/MIP-Engine/pull/132#discussion_r727076138
-        for node in self._local_nodes:
-            for (variable_name, table_name) in node.initial_view_tables.items():
-                if variable_name in tmp_variable_node_table:
-                    tmp_variable_node_table[variable_name].update({node: table_name})
-                else:
-                    tmp_variable_node_table[variable_name] = {node: table_name}
-
-        self._initial_view_tables = {
-            variable_name: LocalNodesTable(node_table)
-            for (variable_name, node_table) in tmp_variable_node_table.items()
-        }
-
-    @property
-    def initial_view_tables(self) -> Dict[str, LocalNodesTable]:
-        return self._initial_view_tables
+        self._logger = algo_execution_interface_dto.logger
 
     @property
     def algorithm_parameters(self) -> Dict[str, Any]:
@@ -307,21 +254,66 @@ class _AlgorithmExecutionInterface:
         return self._metadata
 
     @property
-    def datasets(self):
-        return self._datasets
+    def datasets_per_local_node(self):
+        return self._datasets_per_local_node
 
     @property
     def use_smpc(self):
         return self._use_smpc
 
+    def create_primary_data_views(
+        self,
+        variable_groups: List[List[str]],
+        dropna: bool = True,
+        check_min_rows: bool = True,
+    ) -> List[LocalNodesTable]:
+        """
+        Creates primary data views, for each variable group provided,
+        using also the algorithm request arguments (data_model, datasets, filters).
+
+        Parameters
+        ----------
+        variable_groups : List[List[str]]
+            A list of variable_groups. The variable group is a list of columns.
+        dropna : bool
+            Remove NAs from the view.
+        check_min_rows : bool
+            Raise an exception if there are not enough rows in the view.
+
+        Returns
+        ------
+        List[LocalNodesTable]
+            A (LocalNodesTable) view for each variable_group provided.
+        """
+
+        command_id = str(get_next_command_id())
+        views_per_localnode = [
+            (
+                local_node,
+                local_node.create_data_model_views(
+                    command_id=command_id,
+                    data_model=self._data_model,
+                    datasets=self.datasets_per_local_node[local_node.node_id],
+                    columns_per_view=variable_groups,
+                    filters=self._var_filters,
+                    dropna=dropna,
+                    check_min_rows=check_min_rows,
+                ),
+            )
+            for local_node in self._local_nodes
+        ]
+
+        return _convert_views_per_localnode_to_local_nodes_tables(views_per_localnode)
+
     # UDFs functionality
     def run_udf_on_local_nodes(
         self,
-        func_name: str,
+        func: Optional[Callable] = None,
+        tensor_op: Optional[TensorBinaryOp] = None,
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_global: Union[None, bool, List[bool]] = None,
-    ) -> Union[AlgoExecData, List[AlgoExecData]]:
+    ) -> Union[AlgoFlowData, List[AlgoFlowData]]:
         # 1. check positional_args and keyword_args tables do not contain _GlobalNodeTable(s)
         # 2. queues run_udf task on all local nodes
         # 3. waits for all nodes to complete the tasks execution
@@ -329,6 +321,7 @@ class _AlgorithmExecutionInterface:
         # 5. create remote tables on global for each of the generated tables
         # 6. create merge table on global node to merge the remote tables
 
+        func_name = get_func_name(func, tensor_op)
         command_id = get_next_command_id()
 
         self._validate_local_run_udf_args(
@@ -373,6 +366,7 @@ class _AlgorithmExecutionInterface:
             for share, local_nodes_data in zip(share_to_global, all_local_nodes_data):
                 if share:
                     result = self._share_local_node_data(local_nodes_data, command_id)
+                    command_id = get_next_command_id()
                 else:
                     result = local_nodes_data
                 results_after_sharing_step.append(result)
@@ -394,9 +388,9 @@ class _AlgorithmExecutionInterface:
         for nodes_result in all_nodes_results:
             # All nodes' results have the same type so only the first_result is needed to define the type
             first_result = nodes_result[0][1]
-            if isinstance(first_result, NodeTable):
+            if isinstance(first_result, TableName):
                 results.append(LocalNodesTable(dict(nodes_result)))
-            elif isinstance(first_result, NodeSMPCTables):
+            elif isinstance(first_result, SMPCTableNames):
                 results.append(LocalNodesSMPCTables(dict(nodes_result)))
             else:
                 raise NotImplementedError
@@ -409,7 +403,7 @@ class _AlgorithmExecutionInterface:
     ) -> GlobalNodeData:
         if isinstance(local_nodes_data, LocalNodesTable):
             return self._share_local_table_to_global(
-                local_node_table=local_nodes_data,
+                local_nodes_table=local_nodes_data,
                 command_id=command_id,
             )
         elif isinstance(local_nodes_data, LocalNodesSMPCTables):
@@ -419,10 +413,10 @@ class _AlgorithmExecutionInterface:
 
     def _share_local_table_to_global(
         self,
-        local_node_table: LocalNodesTable,
+        local_nodes_table: LocalNodesTable,
         command_id: int,
     ) -> GlobalNodeTable:
-        nodes_tables = local_node_table.nodes_tables
+        nodes_tables = local_nodes_table.nodes_tables
 
         # check the tables have the same schema
         common_schema = self._validate_same_schema_tables(nodes_tables)
@@ -444,26 +438,40 @@ class _AlgorithmExecutionInterface:
 
     def _share_local_smpc_tables_to_global(
         self,
-        nodes_smpc_tables: LocalNodesSMPCTables,
+        local_nodes_smpc_tables: LocalNodesSMPCTables,
         command_id: int,
     ) -> GlobalNodeSMPCTables:
         global_template_table = self._share_local_table_to_global(
-            local_node_table=nodes_smpc_tables.template, command_id=command_id
+            local_nodes_table=local_nodes_smpc_tables.template_local_nodes_table,
+            command_id=command_id,
         )
         self._global_node.validate_smpc_templates_match(
             global_template_table.table.full_table_name
         )
 
-        smpc_clients_per_op = load_data_to_smpc_clients(command_id, nodes_smpc_tables)
+        smpc_clients_per_op = load_data_to_smpc_clients(
+            command_id, local_nodes_smpc_tables
+        )
 
-        (add_op, min_op, max_op, union_op,) = trigger_smpc_computations(
+        (sum_op, min_op, max_op, union_op) = trigger_smpc_operations(
+            logger=self._logger,
             context_id=self._global_node.context_id,
             command_id=command_id,
             smpc_clients_per_op=smpc_clients_per_op,
         )
 
+        wait_for_smpc_results_to_be_ready(
+            logger=self._logger,
+            context_id=self._global_node.context_id,
+            command_id=command_id,
+            sum_op=sum_op,
+            min_op=min_op,
+            max_op=max_op,
+            union_op=union_op,
+        )
+
         (
-            add_op_result_table,
+            sum_op_result_table,
             min_op_result_table,
             max_op_result_table,
             union_op_result_table,
@@ -471,33 +479,38 @@ class _AlgorithmExecutionInterface:
             node=self._global_node,
             context_id=self._global_node.context_id,
             command_id=command_id,
-            add_op=add_op,
+            sum_op=sum_op,
             min_op=min_op,
             max_op=max_op,
             union_op=union_op,
         )
 
         return GlobalNodeSMPCTables(
-            template=global_template_table,
-            add_op=add_op_result_table,
-            min_op=min_op_result_table,
-            max_op=max_op_result_table,
-            union_op=union_op_result_table,
+            node=self._global_node,
+            smpc_tables=SMPCTableNames(
+                template=global_template_table.table,
+                sum_op=sum_op_result_table,
+                min_op=min_op_result_table,
+                max_op=max_op_result_table,
+                union_op=union_op_result_table,
+            ),
         )
 
     def run_udf_on_global_node(
         self,
-        func_name: str,
+        func: Optional[Callable] = None,
+        tensor_op: Optional[TensorBinaryOp] = None,
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_locals: Union[None, bool, List[bool]] = None,
-    ) -> Union[AlgoExecData, List[AlgoExecData]]:
+    ) -> Union[AlgoFlowData, List[AlgoFlowData]]:
         # 1. check positional_args and keyword_args tables do not contain _LocalNodeTable(s)
         # 2. queue run_udf on the global node
         # 3. wait for it to complete
         # 4. a(or multiple) new table(s) was generated on global node
         # 5. queue create_remote_table on each of the local nodes to share the generated table
 
+        func_name = get_func_name(func, tensor_op)
         command_id = get_next_command_id()
 
         self._validate_global_run_udf_args(
@@ -537,6 +550,7 @@ class _AlgorithmExecutionInterface:
                     results_after_sharing_step.append(
                         self._share_global_table_to_locals(table)
                     )
+                    command_id = get_next_command_id()
                 else:
                     results_after_sharing_step.append(table)
 
@@ -547,7 +561,7 @@ class _AlgorithmExecutionInterface:
 
     def _convert_global_udf_results_to_global_node_data(
         self,
-        node_tables: List[NodeTable],
+        node_tables: List[TableName],
     ) -> List[GlobalNodeTable]:
         global_tables = [
             GlobalNodeTable(
@@ -660,7 +674,7 @@ class _AlgorithmExecutionInterface:
             raise InconsistentShareTablesValueException(share_to, number_of_results)
 
     def _validate_same_schema_tables(
-        self, tables: Dict[LocalNode, NodeTable]
+        self, tables: Dict[LocalNode, TableName]
     ) -> TableSchema:
         """
         Returns : TableSchema the common TableSchema, if all tables have the same schema
@@ -681,8 +695,12 @@ class _AlgorithmExecutionInterface:
 
 
 class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
-    def __init__(self, algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO):
-        super().__init__(algo_execution_interface_dto)
+    def __init__(
+        self,
+        algo_execution_interface_dto: _AlgorithmExecutionInterfaceDTO,
+        common_data_elements: Dict[str, CommonDataElement],
+    ):
+        super().__init__(algo_execution_interface_dto, common_data_elements)
         self._global_node = self._local_nodes[0]
 
     def _share_local_node_data(
@@ -697,25 +715,17 @@ class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
             )
         elif isinstance(local_nodes_data, LocalNodesSMPCTables):
             return GlobalNodeSMPCTables(
-                template=GlobalNodeTable(
-                    node=self._global_node,
-                    table=local_nodes_data.template.nodes_tables[self._local_nodes[0]],
-                ),
-                add_op=GlobalNodeTable(
-                    node=self._global_node,
-                    table=local_nodes_data.add_op.nodes_tables[self._local_nodes[0]],
-                ),
-                min_op=GlobalNodeTable(
-                    node=self._global_node,
-                    table=local_nodes_data.min_op.nodes_tables[self._local_nodes[0]],
-                ),
-                max_op=GlobalNodeTable(
-                    node=self._global_node,
-                    table=local_nodes_data.max_op.nodes_tables[self._local_nodes[0]],
-                ),
-                union_op=GlobalNodeTable(
-                    node=self._global_node,
-                    table=local_nodes_data.union_op.nodes_tables[self._local_nodes[0]],
+                node=self._global_node,
+                smpc_tables=SMPCTableNames(
+                    template=local_nodes_data.nodes_smpc_tables[
+                        self._global_node
+                    ].template,
+                    sum_op=local_nodes_data.nodes_smpc_tables[self._global_node].sum_op,
+                    min_op=local_nodes_data.nodes_smpc_tables[self._global_node].min_op,
+                    max_op=local_nodes_data.nodes_smpc_tables[self._global_node].max_op,
+                    union_op=local_nodes_data.nodes_smpc_tables[
+                        self._global_node
+                    ].union_op,
                 ),
             )
 
@@ -735,3 +745,68 @@ def get_next_command_id() -> int:
     else:
         get_next_command_id.index = 0
     return get_next_command_id.index
+
+
+def get_func_name(
+    func: Optional[Callable] = None,
+    tensor_op: Optional[TensorBinaryOp] = None,
+) -> str:
+    if func and tensor_op:
+        raise ValueError("'func' and 'tensor_op' cannot be used at the same time.")
+
+    if tensor_op:
+        return tensor_op.name
+
+    if isinstance(func, str):
+        return func
+
+    return make_unique_func_name(func)
+
+
+def _convert_views_per_localnode_to_local_nodes_tables(
+    views_per_localnode: List[Tuple[LocalNode, List[TableName]]]
+) -> List[LocalNodesTable]:
+    """
+    In the views_per_localnode the views are stored per the localnode where they exist.
+    In order to create LocalNodesTable objects we need to store them according to the similar "LocalNodesTable"
+    they belong to. We group together one view from each node, based on the views' order.
+
+    Parameters
+    ----------
+    views_per_localnode: List[Tuple[LocalNode, List[TableName]]]
+        views grouped per the localnode where they exist.
+
+    Returns
+    ------
+    List[LocalNodesTable]
+        One (LocalNodesTable) view for each one existing in the localnodes.
+    """
+    views_count = _get_amount_of_localnodes_views(views_per_localnode)
+
+    local_nodes_tables_dicts: List[Dict[LocalNode, TableName]] = [
+        {} for _ in range(views_count)
+    ]
+    for localnode, local_node_views in views_per_localnode:
+        for view, local_nodes_tables in zip(local_node_views, local_nodes_tables_dicts):
+            local_nodes_tables[localnode] = view
+    local_nodes_tables = [
+        LocalNodesTable(local_nodes_tables_dict)
+        for local_nodes_tables_dict in local_nodes_tables_dicts
+    ]
+    return local_nodes_tables
+
+
+def _get_amount_of_localnodes_views(
+    views_per_localnode: List[Tuple[LocalNode, List[TableName]]]
+) -> int:
+    """
+    Returns the amount of views after validating all localnodes created the same amount of views.
+    """
+    views_count = len(views_per_localnode[0][1])
+    for local_node, local_node_views in views_per_localnode:
+        if len(local_node_views) != views_count:
+            raise ValueError(
+                f"All views from localnodes should have the same length. "
+                f"{local_node} has {len(local_node_views)} instead of {views_count}."
+            )
+    return views_count

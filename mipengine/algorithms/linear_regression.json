@@ -1,0 +1,36 @@
+{
+    "name": "linear_regression",
+    "desc": "Linear Regression",
+    "label": "Linear Regression",
+    "enabled": true,
+    "inputdata": {
+        "x": {
+            "label": "features",
+            "desc": "Features",
+            "types": [
+                "real",
+                "int",
+                "text"
+            ],
+            "stattypes": [
+                "numerical",
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": true
+        },
+        "y": {
+            "label": "target",
+            "desc": "Target variable",
+            "types": [
+                "real"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": false
+        }
+    },
+    "parameters": {}
+}

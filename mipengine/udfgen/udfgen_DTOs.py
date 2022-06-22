@@ -43,7 +43,7 @@ class TableUDFGenResult(UDFGenResult):
 
 class SMPCUDFGenResult(UDFGenResult):
     template: TableUDFGenResult
-    add_op_values: Optional[TableUDFGenResult] = None
+    sum_op_values: Optional[TableUDFGenResult] = None
     min_op_values: Optional[TableUDFGenResult] = None
     max_op_values: Optional[TableUDFGenResult] = None
     union_op_values: Optional[TableUDFGenResult] = None
@@ -51,7 +51,7 @@ class SMPCUDFGenResult(UDFGenResult):
     def __eq__(self, other):
         if self.template != other.template:
             return False
-        if self.add_op_values != other.add_op_values:
+        if self.sum_op_values != other.sum_op_values:
             return False
         if self.min_op_values != other.min_op_values:
             return False
@@ -65,7 +65,7 @@ class SMPCUDFGenResult(UDFGenResult):
         return (
             f"SMPCUDFGenResult("
             f"template={self.template}, "
-            f"add_op_values={self.add_op_values}, "
+            f"sum_op_values={self.sum_op_values}, "
             f"min_op_values={self.min_op_values}, "
             f"max_op_values={self.max_op_values}, "
             f"union_op_values={self.union_op_values}"
@@ -93,7 +93,7 @@ class UDFGenExecutionQueries(UDFGenBaseModel):
 
 class SMPCTablesInfo(UDFGenBaseModel):
     template: TableInfo
-    add_op_values: Optional[TableInfo] = None
+    sum_op_values: Optional[TableInfo] = None
     min_op_values: Optional[TableInfo] = None
     max_op_values: Optional[TableInfo] = None
     union_op_values: Optional[TableInfo] = None
@@ -102,7 +102,7 @@ class SMPCTablesInfo(UDFGenBaseModel):
         return (
             f"SMPCUDFInput("
             f"template={self.template}, "
-            f"add_op_values={self.add_op_values}, "
+            f"sum_op_values={self.sum_op_values}, "
             f"min_op_values={self.min_op_values}, "
             f"max_op_values={self.max_op_values}, "
             f"union_op_values={self.union_op_values}"

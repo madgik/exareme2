@@ -2,17 +2,11 @@ import pydantic
 from quart import Blueprint
 from quart import request
 
-from mipengine.controller.api.algorithm_request_dto import (
-    AlgorithmRequestDTO,
-)
-from mipengine.controller.api.algorithm_specifications_dtos import (
-    AlgorithmSpecificationDTO,
-)
-from mipengine.controller.api.algorithm_specifications_dtos import (
-    algorithm_specificationsDTOs,
-)
+from mipengine.controller.algorithm_specifications import algorithm_specifications
+from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.controller import Controller
+from mipengine.controller.controller import get_a_uniqueid
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 controller = Controller()
@@ -20,30 +14,43 @@ controller = Controller()
 
 @algorithms.before_app_serving
 async def startup():
-    await controller.start_node_registry()
+    controller.start_node_landscape_aggregator()
+    controller.start_cleanup_loop()
 
 
 @algorithms.after_app_serving
 async def shutdown():
-    await controller.stop_node_registry()
+    controller.stop_node_landscape_aggregator()
+    controller.stop_cleanup_loop()
 
 
 @algorithms.route("/datasets", methods=["GET"])
 async def get_datasets() -> dict:
-    return controller.get_all_datasets_per_node()
+    return controller.get_all_available_datasets_per_data_model()
+
+
+@algorithms.route("/datasets_location", methods=["GET"])
+async def get_datasets_location() -> dict:
+    return controller.get_datasets_location()
+
+
+@algorithms.route("/cdes_metadata", methods=["GET"])
+async def get_cdes_metadata() -> dict:
+    return {
+        data_model: cdes.dict()
+        for data_model, cdes in controller.get_cdes_per_data_model().items()
+    }
 
 
 @algorithms.route("/algorithms", methods=["GET"])
 async def get_algorithms() -> str:
-    algorithm_specifications = algorithm_specificationsDTOs.algorithms_list
-
-    return AlgorithmSpecificationDTO.schema().dumps(algorithm_specifications, many=True)
+    return algorithm_specifications.get_enabled_algorithm_dtos().json()
 
 
 @algorithms.route("/algorithms/<algorithm_name>", methods=["POST"])
 async def post_algorithm(algorithm_name: str) -> str:
+    request_body = await request.json
     try:
-        request_body = await request.json
         algorithm_request_dto = AlgorithmRequestDTO.parse_obj(request_body)
     except pydantic.error_wrappers.ValidationError as pydantic_error:
         error_msg = (
@@ -53,12 +60,15 @@ async def post_algorithm(algorithm_name: str) -> str:
         )
         raise BadRequest(error_msg)
 
+    request_id = algorithm_request_dto.request_id or get_a_uniqueid()
     controller.validate_algorithm_execution_request(
         algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
     )
 
     algorithm_result = await controller.exec_algorithm(
-        algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
+        request_id=request_id,
+        algorithm_name=algorithm_name,
+        algorithm_request_dto=algorithm_request_dto,
     )
 
     return algorithm_result

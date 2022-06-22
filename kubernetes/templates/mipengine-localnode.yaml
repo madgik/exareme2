@@ -4,6 +4,7 @@ metadata:
   name: mipengine-localnode-deployment
   labels:
     app: mipengine-node
+    nodeType: localnode
 spec:
   replicas: {{ .Values.localnodes }}
   selector:
@@ -13,6 +14,7 @@ spec:
     metadata:
       labels:
         app: mipengine-node
+        nodeType: localnode
     spec:
       nodeSelector:
         nodeType: worker
@@ -26,15 +28,39 @@ spec:
                 values:
                 - mipengine-node
             topologyKey: "kubernetes.io/hostname"
+      volumes:
+      - name: db-data
+        hostPath:
+          path: {{ .Values.monetdb_storage }}
+      - name: csv-data
+        hostPath:
+          path: {{ .Values.csvs_datapath }}
       containers:
       - name: monetdb
         image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
+        env:
+        - name: LOG_LEVEL
+          value: {{ .Values.log_level }}
         ports:
           - containerPort: 50000
         volumeMounts:
         - mountPath: /home/monetdb
-          name: monetdb-data
+          name: db-data
+
+      - name: db-importer
+        image: {{ .Values.mipengine_images.repository }}/mipengine_mipdb:{{ .Values.mipengine_images.version }}
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DB_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: DB_PORT
+          value: "50000"
+        volumeMounts:
+        - mountPath: /opt/data
+          name: csv-data
 
       - name: rabbitmq
         image: {{ .Values.mipengine_images.repository }}/mipengine_rabbitmq:{{ .Values.mipengine_images.version }}
@@ -79,10 +105,65 @@ spec:
           value: "50000"
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
+        {{ if .Values.smpc.enabled }}
         - name: SMPC_OPTIONAL
           value: {{ quote .Values.smpc.optional }}
+        - name: SMPC_CLIENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: SMPC_CLIENT_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: SMPC_CLIENT_ADDRESS
+          value: "http://$(SMPC_CLIENT_IP)9000"
+        {{ end }}
 
-      volumes:
-      - name: monetdb-data
-        hostPath:
-          path: {{ .Values.monetdb_storage }}
+      {{ if .Values.smpc.enabled }}
+      - name: smpc-client
+        image: {{ .Values.smpc.image }}
+        imagePullPolicy: IfNotPresent
+        command: ["python", "client.py"]
+        ports:
+          - containerPort: 9000
+        env:
+        - name: ID
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: PORT
+          value: "9000"
+        - name: COORDINATOR_IP
+          value: mipengine-smpc-coordinator-service
+        - name: COORDINATOR_URL
+          value: "http://$(COORDINATOR_IP):12314"
+        - name: PLAYER_IP_0
+          value: mipengine-smpc-player0-service
+        - name: PLAYER_REPO_0
+          value: "http://$(PLAYER_IP_0):7000"
+        - name: PLAYER_IP_1
+          value: mipengine-smpc-player1-service
+        - name: PLAYER_REPO_1
+          value: "http://$(PLAYER_IP_1):7001"
+        - name: PLAYER_IP_2
+          value: mipengine-smpc-player2-service
+        - name: PLAYER_REPO_2
+          value: "http://$(PLAYER_IP_2):7002"
+      {{ end }}
+
+#---  # Used for SMPC cluster debugging
+#
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: mipengine-node-service
+#spec:
+#  type: LoadBalancer
+#  selector:
+#    app: mipengine-node
+#  ports:
+#    - protocol: TCP
+#      port: 9000
+#      targetPort: 9000
+#      nodePort: 32000

@@ -22,11 +22,13 @@ ENV PYTHONUNBUFFERED=1 \
 ENV PATH="$POETRY_HOME/bin:$CODE_PATH:$PATH"
 WORKDIR $CODE_PATH
 
+
 #######################################################
-# Creating the metadata folder
+# Creating the cleanup file folder
 #######################################################
-ENV CDES_METADATA_PATH="/opt/data"
-RUN mkdir $CDES_METADATA_PATH
+ENV CLEANUP_FOLDER="/opt/cleanup"
+RUN mkdir -p $CLEANUP_FOLDER
+VOLUME $CLEANUP_FOLDER
 
 #######################################################
 # Installing poetry and dependencies
@@ -42,8 +44,8 @@ COPY mipengine/ ./mipengine/
 RUN rm -rf mipengine/node
 
 #######################################################
-# Define QUART neeeded env variables and start quart
+# Define Hypercorn neeeded env variables and start hypercorn
 #######################################################
-ENV QUART_APP="$CODE_PATH/mipengine/controller/api/app:app"
+ENV FRAMEWORK_LOG_LEVEL="INFO"
 ENV PYTHONPATH=$CODE_PATH
-CMD ["quart", "run", "--host=0.0.0.0"]
+CMD ["sh", "-c", "hypercorn -b 0.0.0.0:5000 -w 1 --log-level $FRAMEWORK_LOG_LEVEL mipengine/controller/api/app:app"]

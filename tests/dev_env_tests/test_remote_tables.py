@@ -2,11 +2,11 @@ import uuid
 
 import pytest
 
-from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.datatypes import DType
+from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
-from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 from tests.dev_env_tests.nodes_communication import get_celery_app
+from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 from tests.dev_env_tests.nodes_communication import get_node_config_by_id
 
 global_node_id = "globalnode"
@@ -26,12 +26,12 @@ global_node_cleanup = get_celery_task_signature(global_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def request_id():
-    return "test_remote_tables_" + uuid.uuid4().hex + "_request"
+    return "testremotetables" + uuid.uuid4().hex + "request"
 
 
 @pytest.fixture(autouse=True)
 def context_id(request_id):
-    context_id = "test_remote_tables_" + uuid.uuid4().hex
+    context_id = "testremotetables" + uuid.uuid4().hex
 
     yield context_id
 

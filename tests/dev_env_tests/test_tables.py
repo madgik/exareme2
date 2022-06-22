@@ -1,13 +1,14 @@
-import pytest
 import uuid as uuid
 
+import pytest
+
+from mipengine.datatypes import DType
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataInt
 from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.datatypes import DType
-from mipengine.node_tasks_DTOs import TableData
-from mipengine.node_tasks_DTOs import TableSchema
 from tests.dev_env_tests.nodes_communication import get_celery_app
 from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 
@@ -25,12 +26,12 @@ local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def request_id():
-    return "test_tables_" + uuid.uuid4().hex + "_request"
+    return "testtables" + uuid.uuid4().hex + "request"
 
 
 @pytest.fixture(autouse=True)
 def context_id(request_id):
-    context_id = "test_tables_" + uuid.uuid4().hex
+    context_id = "testtables" + uuid.uuid4().hex
 
     yield context_id
 

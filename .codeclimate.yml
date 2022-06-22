@@ -7,6 +7,8 @@ checks:
   method-complexity:
     config:
       threshold: 8    # default: 5
+  method-count:
+    enabled: false
   identical-code:
     config:
       threshold: 32  # default: 32

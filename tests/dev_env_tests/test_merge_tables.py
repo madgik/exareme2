@@ -2,13 +2,13 @@ import uuid
 
 import pytest
 
+from mipengine.datatypes import DType
 from mipengine.node_exceptions import IncompatibleSchemasMergeException
 from mipengine.node_exceptions import TablesNotFound
 from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import TableSchema
-from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 from tests.dev_env_tests.nodes_communication import get_celery_app
+from tests.dev_env_tests.nodes_communication import get_celery_task_signature
 
 local_node_id = "localnode1"
 local_node = get_celery_app(local_node_id)
@@ -25,12 +25,12 @@ local_node_cleanup = get_celery_task_signature(local_node, "clean_up")
 
 @pytest.fixture(autouse=True)
 def request_id():
-    return "test_merge_tables_" + uuid.uuid4().hex + "_request"
+    return "testmergetables" + uuid.uuid4().hex + "request"
 
 
 @pytest.fixture(autouse=True)
 def context_id(request_id):
-    context_id = "test_merge_tables_" + uuid.uuid4().hex
+    context_id = "testmergetables" + uuid.uuid4().hex
 
     yield context_id
 
@@ -46,7 +46,7 @@ def create_two_column_table(request_id, context_id, table_id: int):
     )
     table_name = local_node_create_table.delay(
         request_id=request_id,
-        context_id=f"{context_id}_table_{table_id}",
+        context_id=f"{context_id}table{table_id}",
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     ).get()
@@ -63,7 +63,7 @@ def create_three_column_table_with_data(request_id, context_id, table_id: int):
     )
     table_name = local_node_create_table.delay(
         request_id=request_id,
-        context_id=f"{context_id}_table_{table_id}",
+        context_id=f"{context_id}table{table_id}",
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     ).get()

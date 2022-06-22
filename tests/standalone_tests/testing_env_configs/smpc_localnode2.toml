@@ -1,9 +1,8 @@
-identifier = "test_smpc_localnode2"
+identifier = "testsmpclocalnode2"
 log_level = "DEBUG"
 framework_log_level = "INFO"
 
 role = "LOCALNODE"
-cdes_metadata_path = "./tests/demo_data"
 
 [privacy]
 minimum_row_count = 10
@@ -32,8 +31,6 @@ password = "monetdb"
 [smpc]
 enabled = true
 optional = false
-client_id = 2
-client_address = "http://dl058.madgik.di.uoa.gr:9002"
-coordinator_address = "http://dl056.madgik.di.uoa.gr:12314"
-get_result_interval = 0.5
-get_result_max_retries = 120
+client_id = "testsmpclocalnode2"
+client_address = "http://172.17.0.1:9006"
+coordinator_address = "http://172.17.0.1:12314"

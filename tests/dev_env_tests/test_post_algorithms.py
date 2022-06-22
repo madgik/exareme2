@@ -1,8 +1,6 @@
 import json
-import re
 
 import numpy as np
-
 import pytest
 import requests
 
@@ -15,9 +13,20 @@ def get_parametrization_list_success_cases():
     algorithm_name = "smpc_standard_deviation"
     request_dict = {
         "inputdata": {
-            "pathology": "dementia",
-            "datasets": ["edsd"],
-            "x": [
+            "data_model": "dementia:0.1",
+            "datasets": [
+                "edsd0",
+                "edsd1",
+                "edsd2",
+                "edsd3",
+                "edsd4",
+                "edsd5",
+                "edsd6",
+                "edsd7",
+                "edsd8",
+                "edsd9",
+            ],
+            "y": [
                 "lefthippocampus",
             ],
             "filters": {
@@ -26,7 +35,18 @@ def get_parametrization_list_success_cases():
                     {
                         "id": "dataset",
                         "type": "string",
-                        "value": ["edsd"],
+                        "value": [
+                            "edsd0",
+                            "edsd1",
+                            "edsd2",
+                            "edsd3",
+                            "edsd4",
+                            "edsd5",
+                            "edsd6",
+                            "edsd7",
+                            "edsd8",
+                            "edsd9",
+                        ],
                         "operator": "in",
                     },
                     {
@@ -52,7 +72,9 @@ def get_parametrization_list_success_cases():
         "title": "Standard Deviation",
         "columns": [
             {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.3611575592573076], "type": "FLOAT"},
+            {"name": "std_deviation", "data": [0.3634506955662605], "type": "FLOAT"},
+            {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
+            {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
         ],
     }
     parametrization_list.append((algorithm_name, request_dict, expected_response))
@@ -74,7 +96,7 @@ def test_post_testing_algorithms(algorithm_name, request_dict, expected_response
         data=json.dumps(request_dict),
         headers=headers,
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Response message: {response.text}"
 
     response = response.json()
     columns = response["columns"]

@@ -36,14 +36,23 @@ class IQueuedUDFAsyncResult(IAsyncResult, ABC):
 
 
 class INodeTasksHandler(ABC):
-    @property
     @abstractmethod
-    def node_id(self):
+    def close(self):
         pass
 
     @property
     @abstractmethod
-    def node_data_address(self):
+    def node_id(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def node_data_address(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def tasks_timeout(self) -> int:
         pass
 
     # @abstractmethod
@@ -74,18 +83,19 @@ class INodeTasksHandler(ABC):
     def get_views(self, request_id: str, context_id: str) -> List[str]:
         pass
 
-    # TODO: this is very specific to mip, very inconsistent with the rest, has to be
-    # abstracted somehow
     @abstractmethod
-    def create_pathology_view(
+    def create_data_model_views(
         self,
         request_id: str,
         context_id: str,
         command_id: str,
-        pathology: str,
-        columns: List[str],
-        filters: List[str],
-    ) -> str:
+        data_model: str,
+        datasets: List[str],
+        columns_per_view: List[List[str]],
+        filters: dict,
+        dropna: bool = True,
+        check_min_rows: bool = True,
+    ) -> List[str]:
         pass
 
     # MERGE TABLES functionality
@@ -157,22 +167,24 @@ class INodeTasksHandler(ABC):
     @abstractmethod
     def validate_smpc_templates_match(
         self,
-        context_id: str,
+        request_id: str,
         table_name: str,
     ):
         pass
 
     @abstractmethod
     def load_data_to_smpc_client(
-        self, context_id: str, table_name: str, jobid: str
-    ) -> int:
+        self, request_id: str, table_name: str, jobid: str
+    ) -> str:
         pass
 
     @abstractmethod
     def get_smpc_result(
         self,
+        request_id: str,
+        jobid: str,
         context_id: str,
         command_id: str,
-        jobid: str,
+        command_subid: Optional[str] = "0",
     ) -> str:
         pass

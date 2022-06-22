@@ -1,17 +1,14 @@
 import json
-import numpy
-
 from typing import TypeVar
 
+import numpy
 from pydantic import BaseModel
-from mipengine.udfgen.udfgenerator import (
-    udf,
-    transfer,
-    relation,
-    make_unique_func_name,
-    merge_transfer,
-    literal,
-)
+
+from mipengine.udfgen import literal
+from mipengine.udfgen import relation
+from mipengine.udfgen import secure_transfer
+from mipengine.udfgen import transfer
+from mipengine.udfgen import udf
 
 
 class PearsonResult(BaseModel):
@@ -26,13 +23,17 @@ class PearsonResult(BaseModel):
 def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
     global_run = algo_interface.run_udf_on_global_node
-    Y_relation = algo_interface.initial_view_tables["y"]
     alpha = algo_interface.algorithm_parameters["alpha"]
 
-    if "x" in algo_interface.initial_view_tables:
-        X_relation = algo_interface.initial_view_tables["x"]
+    if algo_interface.x_variables:
+        Y_relation, X_relation = algo_interface.create_primary_data_views(
+            variable_groups=[algo_interface.y_variables, algo_interface.x_variables],
+        )
     else:
-        X_relation = algo_interface.initial_view_tables["y"]
+        Y_relation, *_ = algo_interface.create_primary_data_views(
+            variable_groups=[algo_interface.y_variables],
+        )
+        X_relation = Y_relation
 
     column_names = [
         x.__dict__["name"]
@@ -47,13 +48,13 @@ def run(algo_interface):
     ]
 
     local_transfers = local_run(
-        func_name=make_unique_func_name(local1),
+        func=local1,
         keyword_args=dict(y=Y_relation, x=X_relation),
         share_to_global=[True],
     )
 
     result = global_run(
-        func_name=make_unique_func_name(global1),
+        func=global1,
         keyword_args=dict(local_transfers=local_transfers, alpha=alpha),
     )
 
@@ -103,7 +104,11 @@ def create_dicts(global_result, row_names, column_names):
 S = TypeVar("S")
 
 
-@udf(y=relation(schema=S), x=relation(schema=S), return_type=[transfer()])
+@udf(
+    y=relation(schema=S),
+    x=relation(schema=S),
+    return_type=[secure_transfer(sum_op=True)],
+)
 def local1(y, x):
     n_obs = y.shape[0]
     Y = y.to_numpy()
@@ -111,32 +116,36 @@ def local1(y, x):
 
     sx = X.sum(axis=0)
     sy = Y.sum(axis=0)
-    sxx = (X ** 2).sum(axis=0)
+    sxx = (X**2).sum(axis=0)
     sxy = (X * Y.T[:, :, numpy.newaxis]).sum(axis=1)
-    syy = (Y ** 2).sum(axis=0)
+    syy = (Y**2).sum(axis=0)
 
     transfer_ = {}
-    transfer_["n_obs"] = n_obs
-    transfer_["sx"] = sx.tolist()
-    transfer_["sxx"] = sxx.tolist()
-    transfer_["sxy"] = sxy.tolist()
-    transfer_["sy"] = sy.tolist()
-    transfer_["syy"] = syy.tolist()
+    transfer_["n_obs"] = {"data": n_obs, "operation": "sum"}
+    transfer_["sx"] = {"data": sx.tolist(), "operation": "sum"}
+    transfer_["sxx"] = {"data": sxx.tolist(), "operation": "sum"}
+    transfer_["sxy"] = {"data": sxy.tolist(), "operation": "sum"}
+    transfer_["sy"] = {"data": sy.tolist(), "operation": "sum"}
+    transfer_["syy"] = {"data": syy.tolist(), "operation": "sum"}
 
     return transfer_
 
 
-@udf(local_transfers=merge_transfer(), alpha=literal(), return_type=[transfer()])
+@udf(
+    local_transfers=secure_transfer(sum_op=True),
+    alpha=literal(),
+    return_type=[transfer()],
+)
 def global1(local_transfers, alpha):
     import scipy.special as special
     import scipy.stats as st
 
-    n_obs = sum(t["n_obs"] for t in local_transfers)
-    sx = sum(numpy.array(t["sx"]) for t in local_transfers)
-    sy = sum(numpy.array(t["sy"]) for t in local_transfers)
-    sxx = sum(numpy.array(t["sxx"]) for t in local_transfers)
-    sxy = sum(numpy.array(t["sxy"]) for t in local_transfers)
-    syy = sum(numpy.array(t["syy"]) for t in local_transfers)
+    n_obs = local_transfers["n_obs"]
+    sx = numpy.array(local_transfers["sx"])
+    sy = numpy.array(local_transfers["sy"])
+    sxx = numpy.array(local_transfers["sxx"])
+    sxy = numpy.array(local_transfers["sxy"])
+    syy = numpy.array(local_transfers["syy"])
 
     df = n_obs - 2
     d = (
@@ -146,7 +155,7 @@ def global1(local_transfers, alpha):
     correlations = (n_obs * sxy - sx * sy[:, numpy.newaxis]) / d
     correlations[d == 0] = 0
     correlations = correlations.clip(-1, 1)
-    t_squared = correlations ** 2 * (df / ((1.0 - correlations) * (1.0 + correlations)))
+    t_squared = correlations**2 * (df / ((1.0 - correlations) * (1.0 + correlations)))
     p_values = special.betainc(
         0.5 * df, 0.5, numpy.fmin(numpy.asarray(df / (df + t_squared)), 1.0)
     )

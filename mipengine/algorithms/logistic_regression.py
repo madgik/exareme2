@@ -4,21 +4,16 @@ from typing import TypeVar
 import numpy
 import pandas as pd
 
+from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.udfgen import (
-    TensorBinaryOp,
-    TensorUnaryOp,
-    literal,
-    make_unique_func_name,
-    merge_tensor,
-    relation,
-    scalar,
-    tensor,
-    udf,
-)
-from mipengine.algorithm_result_DTOs import TabularDataResult
-
+from mipengine.udfgen import TensorBinaryOp
+from mipengine.udfgen import TensorUnaryOp
+from mipengine.udfgen import literal
+from mipengine.udfgen import merge_tensor
+from mipengine.udfgen import relation
+from mipengine.udfgen import tensor
+from mipengine.udfgen import udf
 
 PREC = 1e-6
 
@@ -30,16 +25,17 @@ def run(algo_interface):
 
     classes = algo_interface.algorithm_parameters["classes"]
 
-    X_relation: "LocalNodeTable" = algo_interface.initial_view_tables["x"]
-    y_relation: "LocalNodeTable" = algo_interface.initial_view_tables["y"]
+    X_relation, y_relation = algo_interface.create_primary_data_views(
+        variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
+    )
 
     X = local_run(
-        func_name=make_unique_func_name(relation_to_matrix),
+        func=relation_to_matrix,
         keyword_args={"rel": X_relation},
     )
 
     y = local_run(
-        func_name=make_unique_func_name(label_binarize),
+        func=label_binarize,
         keyword_args={"y": y_relation, "classes": classes},
     )
 
@@ -47,100 +43,100 @@ def run(algo_interface):
     table_schema = get_table_schema(X)
     ncols = len(table_schema.columns)
     coeff = local_run(
-        func_name=make_unique_func_name(zeros1),
+        func=zeros1,
         keyword_args={"n": ncols},
     )
 
     logloss = 1e6
     while True:
         z = local_run(
-            func_name=TensorBinaryOp.MATMUL.name,
+            tensor_op=TensorBinaryOp.MATMUL,
             positional_args=[X, coeff],
         )
 
         s = local_run(
-            func_name=make_unique_func_name(tensor_expit),
+            func=tensor_expit,
             keyword_args={"t": z},
         )
 
         one_minus_s = local_run(
-            func_name=TensorBinaryOp.SUB.name,
+            tensor_op=TensorBinaryOp.SUB,
             positional_args=[1, s],
         )
 
         d = local_run(
-            func_name=TensorBinaryOp.MUL.name,
+            tensor_op=TensorBinaryOp.MUL,
             positional_args=[s, one_minus_s],
         )
 
         y_minus_s = local_run(
-            func_name=TensorBinaryOp.SUB.name,
+            tensor_op=TensorBinaryOp.SUB,
             positional_args=[y, s],
         )
 
         y_ratio = local_run(
-            func_name=TensorBinaryOp.DIV.name,
+            tensor_op=TensorBinaryOp.DIV,
             positional_args=[y_minus_s, d],
         )
 
         X_transpose = local_run(
-            func_name=TensorUnaryOp.TRANSPOSE.name,
+            tensor_op=TensorUnaryOp.TRANSPOSE,
             positional_args=[X],
         )
 
         d_diag = local_run(
-            func_name=make_unique_func_name(diag),
+            func=diag,
             keyword_args={"vec": d},
         )
 
         Xtranspose_dot_ddiag = local_run(
-            func_name=TensorBinaryOp.MATMUL.name,
+            tensor_op=TensorBinaryOp.MATMUL,
             positional_args=[X_transpose, d_diag],
         )
 
         hessian = local_run(
-            func_name=TensorBinaryOp.MATMUL.name,
+            tensor_op=TensorBinaryOp.MATMUL,
             positional_args=[Xtranspose_dot_ddiag, X],
             share_to_global=True,
         )
 
         z_plus_yratio = local_run(
-            func_name=TensorBinaryOp.ADD.name,
+            tensor_op=TensorBinaryOp.ADD,
             positional_args=[z, y_ratio],
         )
 
         grad = local_run(
-            func_name=TensorBinaryOp.MATMUL.name,
+            tensor_op=TensorBinaryOp.MATMUL,
             positional_args=[Xtranspose_dot_ddiag, z_plus_yratio],
             share_to_global=True,
         )
 
         newlogloss = local_run(
-            func_name=make_unique_func_name(logistic_loss),
+            func=logistic_loss,
             keyword_args={"v1": y, "v2": s},
         )
-
-        newlogloss = sum(newlogloss.get_table_data())
+        # TODO local_run results should not be fetched https://team-1617704806227.atlassian.net/browse/MIP-534
+        newlogloss = sum(newlogloss.get_table_data()[1])
 
         # ~~~~~~~~ Global part ~~~~~~~~ #
         hessian_global = global_run(
-            func_name=make_unique_func_name(sum_tensors),
+            func=sum_tensors,
             keyword_args={"xs": hessian},
         )
 
         hessian_inverse = global_run(
-            func_name=make_unique_func_name(mat_inverse),
+            func=mat_inverse,
             keyword_args={"m": hessian_global},
         )
         coeff = global_run(
-            func_name=TensorBinaryOp.MATMUL.name,
+            tensor_op=TensorBinaryOp.MATMUL,
             positional_args=[hessian_inverse, grad],
             share_to_locals=True,
         )
 
         if abs(newlogloss - logloss) <= PREC:
             coeff = global_run(
-                func_name=TensorBinaryOp.MATMUL.name,
+                tensor_op=TensorBinaryOp.MATMUL,
                 positional_args=[hessian_inverse, grad],
             )
             break
@@ -236,7 +232,7 @@ def diag(vec):
     return result
 
 
-@udf(v1=tensor(T, N), v2=tensor(T, N), return_type=scalar(float))
+@udf(v1=tensor(T, N), v2=tensor(T, N), return_type=relation(schema=[("scalar", float)]))
 def logistic_loss(v1, v2):
     from scipy import special
 
@@ -244,7 +240,7 @@ def logistic_loss(v1, v2):
     return ll
 
 
-@udf(t1=tensor(T, N), t2=tensor(T, N), return_type=scalar(float))
+@udf(t1=tensor(T, N), t2=tensor(T, N), return_type=relation(schema=[("scalar", float)]))
 def tensor_max_abs_diff(t1, t2):
     result = numpy.max(numpy.abs(t1 - t2))
     return result

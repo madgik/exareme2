@@ -1,61 +1,63 @@
 # type: ignore
+import json
+import pickle
 from string import Template
 from typing import TypeVar
-import pickle
-import json
 
 import pytest
 
 from mipengine.datatypes import DType
-from mipengine.node_tasks_DTOs import (
-    ColumnInfo,
-    TableInfo,
-    TableSchema,
-    TableType,
-)
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import TableType
 from mipengine.udfgen import secure_transfer
-from mipengine.udfgen.udfgenerator import (
-    Column,
-    IOType,
-    LiteralArg,
-    MergeTensorType,
-    RelationArg,
-    RelationType,
-    ScalarFunction,
-    Select,
-    StateArg,
-    Table,
-    TableFunction,
-    TensorArg,
-    TensorBinaryOp,
-    TransferArg,
-    UDFBadCall,
-    UDFBadDefinition,
-    convert_udfgenargs_to_udfargs,
-    copy_types_from_udfargs,
-    generate_udf_queries,
-    get_funcparts_from_udf_registry,
-    get_matrix_transpose_template,
-    get_tensor_binary_op_template,
-    get_udf_templates_using_udfregistry,
-    literal,
-    map_unknown_to_known_typeparams,
-    mapping_inverse,
-    mappings_coincide,
-    merge_mappings_consistently,
-    merge_transfer,
-    recursive_repr,
-    relation,
-    scalar,
-    state,
-    tensor,
-    transfer,
-    udf,
-    verify_declared_typeparams_match_passed_type,
-)
 from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
 from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
 from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
+from mipengine.udfgen.udfgenerator import Column
+from mipengine.udfgen.udfgenerator import IOType
+from mipengine.udfgen.udfgenerator import LiteralArg
+from mipengine.udfgen.udfgenerator import MergeTensorType
+from mipengine.udfgen.udfgenerator import RelationArg
+from mipengine.udfgen.udfgenerator import RelationType
+from mipengine.udfgen.udfgenerator import ScalarFunction
+from mipengine.udfgen.udfgenerator import Select
+from mipengine.udfgen.udfgenerator import StateArg
+from mipengine.udfgen.udfgenerator import Table
+from mipengine.udfgen.udfgenerator import TableFunction
+from mipengine.udfgen.udfgenerator import TensorArg
+from mipengine.udfgen.udfgenerator import TensorBinaryOp
+from mipengine.udfgen.udfgenerator import TransferArg
+from mipengine.udfgen.udfgenerator import UDFBadCall
+from mipengine.udfgen.udfgenerator import UDFBadDefinition
+from mipengine.udfgen.udfgenerator import convert_udfgenargs_to_udfargs
+from mipengine.udfgen.udfgenerator import copy_types_from_udfargs
+from mipengine.udfgen.udfgenerator import generate_udf_queries
+from mipengine.udfgen.udfgenerator import (
+    get_create_dummy_encoded_design_matrix_execution_queries,
+)
+from mipengine.udfgen.udfgenerator import get_funcparts_from_udf_registry
+from mipengine.udfgen.udfgenerator import get_matrix_transpose_template
+from mipengine.udfgen.udfgenerator import get_tensor_binary_op_template
+from mipengine.udfgen.udfgenerator import get_udf_templates_using_udfregistry
+from mipengine.udfgen.udfgenerator import literal
+from mipengine.udfgen.udfgenerator import map_unknown_to_known_typeparams
+from mipengine.udfgen.udfgenerator import mapping_inverse
+from mipengine.udfgen.udfgenerator import mappings_coincide
+from mipengine.udfgen.udfgenerator import merge_mappings_consistently
+from mipengine.udfgen.udfgenerator import merge_transfer
+from mipengine.udfgen.udfgenerator import recursive_repr
+from mipengine.udfgen.udfgenerator import relation
+from mipengine.udfgen.udfgenerator import scalar
+from mipengine.udfgen.udfgenerator import state
+from mipengine.udfgen.udfgenerator import tensor
+from mipengine.udfgen.udfgenerator import transfer
+from mipengine.udfgen.udfgenerator import udf
+from mipengine.udfgen.udfgenerator import udf_logger
+from mipengine.udfgen.udfgenerator import verify_declared_typeparams_match_passed_type
+
+REQUEST_ID = "test_udfgenerator"
 
 
 @pytest.fixture(autouse=True)
@@ -84,12 +86,12 @@ class TestUDFRegistry:
 
 def test_copy_types_from_udfargs():
     udfgen_args = {
-        "a": RelationArg(table_name="A", schema=[]),
+        "a": RelationArg(table_name="A", schema=[("a", int)]),
         "b": TensorArg(table_name="B", dtype=int, ndims=2),
     }
     udfparams = copy_types_from_udfargs(udfgen_args)
     assert udfparams == {
-        "a": relation(schema=[]),
+        "a": relation(schema=[("a", int)]),
         "b": tensor(dtype=int, ndims=2),
     }
 
@@ -380,7 +382,7 @@ class TestUDFValidation:
     def test_validate_func_as_valid_udf_with_secure_transfer_output(self):
         @udf(
             y=state(),
-            return_type=secure_transfer(add_op=True),
+            return_type=secure_transfer(sum_op=True),
         )
         def f(y):
             y = {"num": 1}
@@ -390,7 +392,7 @@ class TestUDFValidation:
 
     def test_validate_func_as_valid_udf_with_secure_transfer_input(self):
         @udf(
-            y=secure_transfer(add_op=True),
+            y=secure_transfer(sum_op=True),
             return_type=transfer(),
         )
         def f(y):
@@ -398,6 +400,47 @@ class TestUDFValidation:
             return y
 
         assert udf.registry != {}
+
+    def test_validate_func_as_valid_udf_with_logger_input(self):
+        @udf(
+            y=transfer(),
+            logger=udf_logger(),
+            return_type=transfer(),
+        )
+        def f(y, logger):
+            y = {"num": 1}
+            return y
+
+        assert udf.registry != {}
+
+    def test_validate_func_as_invalid_if_logger_is_not_the_last_input_parameter(self):
+        with pytest.raises(UDFBadDefinition) as exc:
+
+            @udf(
+                logger=udf_logger(),
+                y=transfer(),
+                return_type=transfer(),
+            )
+            def f(logger, y):
+                y = {"num": 1}
+                return y
+
+        assert "'udf_logger' must be the last input parameter" in str(exc)
+
+    def test_validate_func_as_invalid_if_logger_exists_more_than_once(self):
+        with pytest.raises(UDFBadDefinition) as exc:
+
+            @udf(
+                y=transfer(),
+                logger1=udf_logger(),
+                logger2=udf_logger(),
+                return_type=transfer(),
+            )
+            def f(y, logger1, logger2):
+                y = {"num": 1}
+                return y
+
+        assert "Only one 'udf_logger' parameter can exist" in str(exc)
 
 
 class TestMappingsCoincide:
@@ -990,9 +1033,9 @@ class TestUDFGenBase:
             elif isinstance(udf_output, SMPCUDFGenResult):
                 tablename_placeholder = udf_output.template.tablename_placeholder
                 template_mapping[tablename_placeholder] = tablename_placeholder
-                if udf_output.add_op_values:
+                if udf_output.sum_op_values:
                     tablename_placeholder = (
-                        udf_output.add_op_values.tablename_placeholder
+                        udf_output.sum_op_values.tablename_placeholder
                     )
                     template_mapping[tablename_placeholder] = tablename_placeholder
                 if udf_output.min_op_values:
@@ -1034,16 +1077,10 @@ class TestUDFGenBase:
     @pytest.fixture(scope="class")
     def concrete_udf_sel(self, expected_udf_outputs, expected_udfsel):
         """
-                The udf definition could contain more than one tablename placeholders.
-        <<<<<<< HEAD
-                The expected_udf_outputs is used to replace all the necessary fields.
-                Just like in the `concrete_udf_outputs` it replaces the tablename_placeholder
-                in the Templates using the same tablename.
-        =======
-                The expected_udf_output_tables is used to replace all the necessary
-                fields. Just like in the `concrete_udf_output_tables` it replaces the
-                tablename_placeholder in the Templates using the same tablename.
-        >>>>>>> 151afb5134690258046d3cf907d057a6b68371eb
+        The udf definition could contain more than one tablename placeholders.
+        The expected_udf_outputs are used to replace all the necessary fields.
+        Just like in the `concrete_udf_outputs` it replaces the tablename_placeholder
+        in the Templates using the same tablename.
         """
         template_mapping = {
             "udf_name": "udf_test",
@@ -1073,9 +1110,9 @@ class TestUDFGenBase:
                 queries.extend(self._concrete_table_udf_outputs(udf_output))
             elif isinstance(udf_output, SMPCUDFGenResult):
                 queries.extend(self._concrete_table_udf_outputs(udf_output.template))
-                if udf_output.add_op_values:
+                if udf_output.sum_op_values:
                     queries.extend(
-                        self._concrete_table_udf_outputs(udf_output.add_op_values)
+                        self._concrete_table_udf_outputs(udf_output.sum_op_values)
                     )
                 if udf_output.min_op_values:
                     queries.extend(
@@ -1134,31 +1171,50 @@ class TestUDFGenBase:
             "CREATE TABLE test_secure_transfer_table(node_id VARCHAR(500), secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": 1, "type": "int", "operation": "addition"}}\')'
+            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": 1, "operation": "sum"}}\')'
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(2, \'{"sum": {"data": 10, "type": "int", "operation": "addition"}}\')'
+            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(2, \'{"sum": {"data": 10, "operation": "sum"}}\')'
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(3, \'{"sum": {"data": 100, "type": "int", "operation": "addition"}}\')'
+            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(3, \'{"sum": {"data": 100, "operation": "sum"}}\')'
         )
 
     @pytest.fixture(scope="function")
-    def create_smpc_template_table(self, globalnode_db_cursor):
+    def create_smpc_template_table_with_sum(self, globalnode_db_cursor):
         globalnode_db_cursor.execute(
             "CREATE TABLE test_smpc_template_table(node_id VARCHAR(500), secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "type": "int", "operation": "addition"}}\')'
+            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "operation": "sum"}}\')'
         )
 
     @pytest.fixture(scope="function")
-    def create_smpc_add_op_values_table(self, globalnode_db_cursor):
+    def create_smpc_sum_op_values_table(self, globalnode_db_cursor):
         globalnode_db_cursor.execute(
-            "CREATE TABLE test_smpc_add_op_values_table(node_id VARCHAR(500), secure_transfer CLOB)"
+            "CREATE TABLE test_smpc_sum_op_values_table(node_id VARCHAR(500), secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            "INSERT INTO test_smpc_add_op_values_table(node_id, secure_transfer) VALUES(1, '[100,200,300]')"
+            "INSERT INTO test_smpc_sum_op_values_table(node_id, secure_transfer) VALUES(1, '[100,200,300]')"
+        )
+
+    @pytest.fixture(scope="function")
+    def create_smpc_template_table_with_sum_and_max(self, globalnode_db_cursor):
+        globalnode_db_cursor.execute(
+            "CREATE TABLE test_smpc_template_table(node_id VARCHAR(500), secure_transfer CLOB)"
+        )
+        globalnode_db_cursor.execute(
+            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "operation": "sum"}, '
+            '"max": {"data": 0, "operation": "max"}}\')'
+        )
+
+    @pytest.fixture(scope="function")
+    def create_smpc_max_op_values_table(self, globalnode_db_cursor):
+        globalnode_db_cursor.execute(
+            "CREATE TABLE test_smpc_max_op_values_table(node_id VARCHAR(500), secure_transfer CLOB)"
+        )
+        globalnode_db_cursor.execute(
+            "INSERT INTO test_smpc_max_op_values_table(node_id, secure_transfer) VALUES(1, '[58]')"
         )
 
     # TODO Should become more dynamic in the future.
@@ -1198,9 +1254,73 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
         keywordargs = {"z": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
             _, _ = get_udf_templates_using_udfregistry(
-                funcname, posargs, keywordargs, udfregistry, False
+                request_id=REQUEST_ID,
+                funcname=funcname,
+                posargs=posargs,
+                keywordargs=keywordargs,
+                udfregistry=udfregistry,
+                smpc_used=False,
             )
         assert "UDF argument names do not match UDF parameter names" in str(exc)
+
+
+class TestUDFGen_LoggerArgument_provided_in_pos_args(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            x=tensor(dtype=int, ndims=1),
+            logger=udf_logger(),
+            return_type=scalar(int),
+        )
+        def f(x, logger):
+            return x
+
+        return udf.registry
+
+    def test_get_udf_templates(self, udfregistry, funcname):
+        posargs = [TensorArg("table_name", dtype=int, ndims=1), LiteralArg(1)]
+        with pytest.raises(UDFBadCall) as exc:
+            _, _ = get_udf_templates_using_udfregistry(
+                request_id=REQUEST_ID,
+                funcname=funcname,
+                posargs=posargs,
+                keywordargs={},
+                udfregistry=udfregistry,
+                smpc_used=False,
+            )
+        assert "No argument should be provided for 'UDFLoggerType' parameter" in str(
+            exc
+        )
+
+
+class TestUDFGen_LoggerArgument_provided_in_kw_args(TestUDFGenBase):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            x=tensor(dtype=int, ndims=1),
+            logger=udf_logger(),
+            return_type=scalar(int),
+        )
+        def f(x, logger):
+            return x
+
+        return udf.registry
+
+    def test_get_udf_templates(self, udfregistry, funcname):
+        posargs = [TensorArg("table_name", dtype=int, ndims=1)]
+        keywordargs = {"logger": LiteralArg(1)}
+        with pytest.raises(UDFBadCall) as exc:
+            _, _ = get_udf_templates_using_udfregistry(
+                request_id=REQUEST_ID,
+                funcname=funcname,
+                posargs=posargs,
+                keywordargs=keywordargs,
+                udfregistry=udfregistry,
+                smpc_used=False,
+            )
+        assert "No argument should be provided for 'UDFLoggerType' parameter" in str(
+            exc
+        )
 
 
 class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
@@ -1239,7 +1359,13 @@ class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = generate_udf_queries(funcname, posargs, {}, udfregistry, False)
+            _, _ = generate_udf_queries(
+                request_id=REQUEST_ID,
+                func_name=funcname,
+                positional_args=posargs,
+                keyword_args={},
+                smpc_used=False,
+            )
         assert "should be of type" in str(exc)
 
 
@@ -1283,6 +1409,7 @@ class TestUDFGen_InvalidUDFArgs_TensorTableInTransferArgument(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1316,8 +1443,8 @@ class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
                     ),
                     type_=TableType.NORMAL,
                 ),
-                add_op_values=TableInfo(
-                    name="test_smpc_add_op_values_table",
+                sum_op_values=TableInfo(
+                    name="test_smpc_sum_op_values_table",
                     schema_=TableSchema(
                         columns=[
                             ColumnInfo(name="secure_transfer", dtype=DType.JSON),
@@ -1329,6 +1456,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1341,7 +1469,7 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
-            transfer=secure_transfer(add_op=True),
+            transfer=secure_transfer(sum_op=True),
             return_type=transfer(),
         )
         def f(transfer):
@@ -1364,6 +1492,7 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
         ]
         try:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1374,6 +1503,7 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
 
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1386,7 +1516,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
-            transfer=secure_transfer(add_op=True),
+            transfer=secure_transfer(sum_op=True),
             return_type=transfer(),
         )
         def f(transfer):
@@ -1407,8 +1537,8 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
                     ),
                     type_=TableType.NORMAL,
                 ),
-                add_op_values=TableInfo(
-                    name="test_smpc_add_op_values_table",
+                sum_op_values=TableInfo(
+                    name="test_smpc_sum_op_values_table",
                     schema_=TableSchema(
                         columns=[
                             ColumnInfo(name="secure_transfer", dtype=DType.JSON),
@@ -1420,6 +1550,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
+                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1451,6 +1582,7 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         keywordargs = {}
         with pytest.raises(ValueError) as e:
             _, _ = get_udf_templates_using_udfregistry(
+                request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
                 keywordargs=keywordargs,
@@ -1467,7 +1599,13 @@ class TestUDFGen_KW_args_on_tensor_operation:
         posargs = []
         keywordargs = {"Μ": 5, "v": 7}
         with pytest.raises(UDFBadCall) as e:
-            _ = generate_udf_queries(funcname, posargs, keywordargs, False)
+            _ = generate_udf_queries(
+                request_id=REQUEST_ID,
+                func_name=funcname,
+                positional_args=posargs,
+                keyword_args=keywordargs,
+                smpc_used=False,
+            )
         err_msg, *_ = e.value.args
         assert "Keyword args are not supported for tensor operations." in err_msg
 
@@ -1506,6 +1644,10 @@ class _TestGenerateUDFQueries:
     def use_smpc(self):
         return False
 
+    @pytest.fixture(scope="class")
+    def request_id(self):
+        return "test_udfgenerator_base"
+
     def test_generate_udf_queries(
         self,
         funcname,
@@ -1515,8 +1657,10 @@ class _TestGenerateUDFQueries:
         expected_udf_outputs,
         traceback,
         use_smpc,
+        request_id,
     ):
         udf_execution_queries = generate_udf_queries(
+            request_id=request_id,
             func_name=funcname,
             positional_args=positional_args,
             keyword_args={},
@@ -4342,11 +4486,13 @@ class TestUDFGen_SecureTransferOutput_with_SMPC_off(
     def udfregistry(self):
         @udf(
             state=state(),
-            return_type=secure_transfer(add_op=True),
+            return_type=secure_transfer(sum_op=True, min_op=True, max_op=True),
         )
         def f(state):
             result = {
-                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+                "sum": {"data": state["num"], "operation": "sum"},
+                "min": {"data": state["num"], "operation": "min"},
+                "max": {"data": state["num"], "operation": "max"},
             }
             return result
 
@@ -4381,8 +4527,9 @@ LANGUAGE PYTHON
     import json
     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
     state = pickle.loads(__state_str)
-    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
-        }
+    result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'min': {'data':
+        state['num'], 'operation': 'min'}, 'max': {'data': state['num'],
+        'operation': 'max'}}
     return json.dumps(result)
 }"""
 
@@ -4427,7 +4574,11 @@ FROM
             "SELECT secure_transfer FROM main_output_table_name"
         ).fetchone()
         result = json.loads(secure_transfer_)
-        assert result == {"sum": {"data": 5, "type": "int", "operation": "addition"}}
+        assert result == {
+            "sum": {"data": 5, "operation": "sum"},
+            "min": {"data": 5, "operation": "min"},
+            "max": {"data": 5, "operation": "max"},
+        }
 
 
 class TestUDFGen_SecureTransferOutput_with_SMPC_on(
@@ -4437,11 +4588,12 @@ class TestUDFGen_SecureTransferOutput_with_SMPC_on(
     def udfregistry(self):
         @udf(
             state=state(),
-            return_type=secure_transfer(add_op=True),
+            return_type=secure_transfer(sum_op=True, max_op=True),
         )
         def f(state):
             result = {
-                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+                "sum": {"data": state["num"], "operation": "sum"},
+                "max": {"data": state["num"], "operation": "max"},
             }
             return result
 
@@ -4476,10 +4628,11 @@ LANGUAGE PYTHON
     import json
     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
     state = pickle.loads(__state_str)
-    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
-        }
-    template, add_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
-    _conn.execute(f"INSERT INTO $main_output_table_name_add_op VALUES ('$node_id', '{json.dumps(add_op)}');")
+    result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'max': {'data':
+        state['num'], 'operation': 'max'}}
+    template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
+    _conn.execute(f"INSERT INTO $main_output_table_name_sum_op VALUES ('$node_id', '{json.dumps(sum_op)}');")
+    _conn.execute(f"INSERT INTO $main_output_table_name_max_op VALUES ('$node_id', '{json.dumps(max_op)}');")
     return json.dumps(template)
 }"""
 
@@ -4506,13 +4659,22 @@ FROM
                         'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"secure_transfer" CLOB);'
                     ),
                 ),
-                add_op_values=TableUDFGenResult(
-                    tablename_placeholder="main_output_table_name_add_op",
+                sum_op_values=TableUDFGenResult(
+                    tablename_placeholder="main_output_table_name_sum_op",
                     drop_query=Template(
-                        "DROP TABLE IF EXISTS $main_output_table_name_add_op;"
+                        "DROP TABLE IF EXISTS $main_output_table_name_sum_op;"
                     ),
                     create_query=Template(
-                        'CREATE TABLE $main_output_table_name_add_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                        'CREATE TABLE $main_output_table_name_sum_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                    ),
+                ),
+                max_op_values=TableUDFGenResult(
+                    tablename_placeholder="main_output_table_name_max_op",
+                    drop_query=Template(
+                        "DROP TABLE IF EXISTS $main_output_table_name_max_op;"
+                    ),
+                    create_query=Template(
+                        'CREATE TABLE $main_output_table_name_max_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
                     ),
                 ),
             )
@@ -4541,13 +4703,22 @@ FROM
             "SELECT secure_transfer FROM main_output_table_name"
         ).fetchone()
         template = json.loads(template_str)
-        assert template == {"sum": {"data": 0, "type": "int", "operation": "addition"}}
+        assert template == {
+            "max": {"data": 0, "operation": "max"},
+            "sum": {"data": 0, "operation": "sum"},
+        }
 
-        add_op_values_str, *_ = globalnode_db_cursor.execute(
-            "SELECT secure_transfer FROM main_output_table_name_add_op"
+        sum_op_values_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM main_output_table_name_sum_op"
         ).fetchone()
-        add_op_values = json.loads(add_op_values_str)
-        assert add_op_values == [5]
+        sum_op_values = json.loads(sum_op_values_str)
+        assert sum_op_values == [5]
+
+        max_op_values_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM main_output_table_name_max_op"
+        ).fetchone()
+        max_op_values = json.loads(max_op_values_str)
+        assert max_op_values == [5]
 
 
 class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_off(
@@ -4557,11 +4728,16 @@ class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_off(
     def udfregistry(self):
         @udf(
             state=state(),
-            return_type=[state(), secure_transfer(add_op=True)],
+            return_type=[
+                state(),
+                secure_transfer(sum_op=True, min_op=True, max_op=True),
+            ],
         )
         def f(state):
             result = {
-                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+                "sum": {"data": state["num"], "operation": "sum"},
+                "min": {"data": state["num"], "operation": "min"},
+                "max": {"data": state["num"], "operation": "max"},
             }
             return state, result
 
@@ -4596,8 +4772,9 @@ LANGUAGE PYTHON
     import json
     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
     state = pickle.loads(__state_str)
-    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
-        }
+    result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'min': {'data':
+        state['num'], 'operation': 'min'}, 'max': {'data': state['num'],
+        'operation': 'max'}}
     _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(result)}');")
     return pickle.dumps(state)
 }"""
@@ -4651,7 +4828,11 @@ FROM
             "SELECT secure_transfer FROM loopback_table_name_0"
         ).fetchone()
         result = json.loads(secure_transfer_)
-        assert result == {"sum": {"data": 5, "type": "int", "operation": "addition"}}
+        assert result == {
+            "sum": {"data": 5, "operation": "sum"},
+            "min": {"data": 5, "operation": "min"},
+            "max": {"data": 5, "operation": "max"},
+        }
 
 
 class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_on(
@@ -4661,11 +4842,16 @@ class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_on(
     def udfregistry(self):
         @udf(
             state=state(),
-            return_type=[state(), secure_transfer(add_op=True)],
+            return_type=[
+                state(),
+                secure_transfer(sum_op=True, min_op=True, max_op=True),
+            ],
         )
         def f(state):
             result = {
-                "sum": {"data": state["num"], "type": "int", "operation": "addition"}
+                "sum": {"data": state["num"], "operation": "sum"},
+                "min": {"data": state["num"], "operation": "min"},
+                "max": {"data": state["num"], "operation": "max"},
             }
             return state, result
 
@@ -4700,11 +4886,14 @@ LANGUAGE PYTHON
     import json
     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
     state = pickle.loads(__state_str)
-    result = {'sum': {'data': state['num'], 'type': 'int', 'operation': 'addition'}
-        }
-    template, add_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
+    result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'min': {'data':
+        state['num'], 'operation': 'min'}, 'max': {'data': state['num'],
+        'operation': 'max'}}
+    template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
     _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(template)}');")
-    _conn.execute(f"INSERT INTO $loopback_table_name_0_add_op VALUES ('$node_id', '{json.dumps(add_op)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0_sum_op VALUES ('$node_id', '{json.dumps(sum_op)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0_min_op VALUES ('$node_id', '{json.dumps(min_op)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0_max_op VALUES ('$node_id', '{json.dumps(max_op)}');")
     return pickle.dumps(state)
 }"""
 
@@ -4736,13 +4925,31 @@ FROM
                         'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"secure_transfer" CLOB);'
                     ),
                 ),
-                add_op_values=TableUDFGenResult(
-                    tablename_placeholder="loopback_table_name_0_add_op",
+                sum_op_values=TableUDFGenResult(
+                    tablename_placeholder="loopback_table_name_0_sum_op",
                     drop_query=Template(
-                        "DROP TABLE IF EXISTS $loopback_table_name_0_add_op;"
+                        "DROP TABLE IF EXISTS $loopback_table_name_0_sum_op;"
                     ),
                     create_query=Template(
-                        'CREATE TABLE $loopback_table_name_0_add_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                        'CREATE TABLE $loopback_table_name_0_sum_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                    ),
+                ),
+                min_op_values=TableUDFGenResult(
+                    tablename_placeholder="loopback_table_name_0_min_op",
+                    drop_query=Template(
+                        "DROP TABLE IF EXISTS $loopback_table_name_0_min_op;"
+                    ),
+                    create_query=Template(
+                        'CREATE TABLE $loopback_table_name_0_min_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                    ),
+                ),
+                max_op_values=TableUDFGenResult(
+                    tablename_placeholder="loopback_table_name_0_max_op",
+                    drop_query=Template(
+                        "DROP TABLE IF EXISTS $loopback_table_name_0_max_op;"
+                    ),
+                    create_query=Template(
+                        'CREATE TABLE $loopback_table_name_0_max_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
                     ),
                 ),
             ),
@@ -4771,13 +4978,29 @@ FROM
             "SELECT secure_transfer FROM loopback_table_name_0"
         ).fetchone()
         template = json.loads(template_str)
-        assert template == {"sum": {"data": 0, "type": "int", "operation": "addition"}}
+        assert template == {
+            "sum": {"data": 0, "operation": "sum"},
+            "min": {"data": 0, "operation": "min"},
+            "max": {"data": 0, "operation": "max"},
+        }
 
-        add_op_values_str, *_ = globalnode_db_cursor.execute(
-            "SELECT secure_transfer FROM loopback_table_name_0_add_op"
+        sum_op_values_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM loopback_table_name_0_sum_op"
         ).fetchone()
-        add_op_values = json.loads(add_op_values_str)
-        assert add_op_values == [5]
+        sum_op_values = json.loads(sum_op_values_str)
+        assert sum_op_values == [5]
+
+        min_op_values_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM loopback_table_name_0_min_op"
+        ).fetchone()
+        min_op_values = json.loads(min_op_values_str)
+        assert min_op_values == [5]
+
+        max_op_values_str, *_ = globalnode_db_cursor.execute(
+            "SELECT secure_transfer FROM loopback_table_name_0_max_op"
+        ).fetchone()
+        max_op_values = json.loads(max_op_values_str)
+        assert max_op_values == [5]
 
 
 class TestUDFGen_SecureTransferInput_with_SMPC_off(
@@ -4786,7 +5009,7 @@ class TestUDFGen_SecureTransferInput_with_SMPC_off(
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
-            transfer=secure_transfer(add_op=True),
+            transfer=secure_transfer(sum_op=True),
             return_type=transfer(),
         )
         def f(transfer):
@@ -4876,7 +5099,7 @@ class TestUDFGen_SecureTransferInput_with_SMPC_on(
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
-            transfer=secure_transfer(add_op=True),
+            transfer=secure_transfer(sum_op=True, max_op=True),
             return_type=transfer(),
         )
         def f(transfer):
@@ -4897,8 +5120,17 @@ class TestUDFGen_SecureTransferInput_with_SMPC_on(
                     ),
                     type_=TableType.NORMAL,
                 ),
-                add_op_values=TableInfo(
-                    name="test_smpc_add_op_values_table",
+                sum_op_values=TableInfo(
+                    name="test_smpc_sum_op_values_table",
+                    schema_=TableSchema(
+                        columns=[
+                            ColumnInfo(name="secure_transfer", dtype=DType.JSON),
+                        ]
+                    ),
+                    type_=TableType.NORMAL,
+                ),
+                max_op_values=TableInfo(
+                    name="test_smpc_max_op_values_table",
                     schema_=TableSchema(
                         columns=[
                             ColumnInfo(name="secure_transfer", dtype=DType.JSON),
@@ -4923,12 +5155,13 @@ LANGUAGE PYTHON
     import json
     __template_str = _conn.execute("SELECT secure_transfer from test_smpc_template_table;")["secure_transfer"][0]
     __template = json.loads(__template_str)
-    __add_op_values_str = _conn.execute("SELECT secure_transfer from test_smpc_add_op_values_table;")["secure_transfer"][0]
-    __add_op_values = json.loads(__add_op_values_str)
+    __sum_op_values_str = _conn.execute("SELECT secure_transfer from test_smpc_sum_op_values_table;")["secure_transfer"][0]
+    __sum_op_values = json.loads(__sum_op_values_str)
     __min_op_values = None
-    __max_op_values = None
+    __max_op_values_str = _conn.execute("SELECT secure_transfer from test_smpc_max_op_values_table;")["secure_transfer"][0]
+    __max_op_values = json.loads(__max_op_values_str)
     __union_op_values = None
-    transfer = udfio.construct_secure_transfer_dict(__template,__add_op_values,__min_op_values,__max_op_values,__union_op_values)
+    transfer = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values,__union_op_values)
     return json.dumps(transfer)
 }"""
 
@@ -4961,8 +5194,9 @@ FROM
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
-        "create_smpc_template_table",
-        "create_smpc_add_op_values_table",
+        "create_smpc_template_table_with_sum_and_max",
+        "create_smpc_sum_op_values_table",
+        "create_smpc_max_op_values_table",
     )
     def test_udf_with_db(
         self,
@@ -4978,7 +5212,90 @@ FROM
             "SELECT transfer FROM main_output_table_name"
         ).fetchone()
         result = json.loads(transfer)
-        assert result == {"sum": [100, 200, 300]}
+        assert result == {"sum": [100, 200, 300], "max": 58}
+
+
+class TestUDFGen_LoggerArgument(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(
+            t=literal(),
+            logger=udf_logger(),
+            return_type=transfer(),
+        )
+        def f(t, logger):
+            logger.info("Log inside monetdb udf.")
+            result = {"num": t}
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [5]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("transfer" CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import json
+    t = 5
+    logger = udfio.get_logger('f_gb47', 'test_udfgenerator')
+    logger.info('Log inside monetdb udf.')
+    result = {'num': t}
+    return json.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                ),
+            )
+        ]
+
+    @pytest.fixture(scope="class")
+    def request_id(self):
+        return "test_udfgenerator"
+
+    @pytest.mark.database
+    @pytest.mark.usefixtures("use_globalnode_database")
+    def test_udf_with_db(
+        self,
+        concrete_udf_outputs,
+        concrete_udf_def,
+        concrete_udf_sel,
+        globalnode_db_cursor,
+    ):
+        globalnode_db_cursor.execute(concrete_udf_outputs)
+        globalnode_db_cursor.execute(concrete_udf_def)
+        globalnode_db_cursor.execute(concrete_udf_sel)
+        _, transfer = globalnode_db_cursor.execute(
+            "SELECT * FROM main_output_table_name"
+        ).fetchone()
+        result = json.loads(transfer)
+        assert result == {"num": 5}
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~ Test SQL Generator ~~~~~~~~~~~~~~~~~~ #
@@ -5150,3 +5467,141 @@ FROM
     tens1 AS tensor_0"""
     result = get_tensor_binary_op_template(operand_0, operand_1, op)
     assert result == expected
+
+
+class N:
+    ...
+
+
+def test_get_create_design_matrix_select_only_numerical():
+    enums = {}
+    numerical_vars = ["n1", "n2"]
+    design_matrix = N()
+    design_matrix.name = "test_table"
+    args = {
+        "x": design_matrix,
+        "enums": enums,
+        "numerical_vars": numerical_vars,
+        "intercept": True,
+    }
+    expected = """\
+INSERT INTO $main_output_table_name
+SELECT
+    row_id,
+    1 AS "intercept",
+    n1,
+    n2
+FROM
+    test_table;"""
+    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
+    assert result.udf_select_query.template == expected
+
+
+def test_get_create_design_matrix_select_only_categorical():
+    enums = {
+        "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
+    }
+    numerical_vars = []
+    design_matrix = N()
+    design_matrix.name = "test_table"
+    args = {
+        "x": design_matrix,
+        "enums": enums,
+        "numerical_vars": numerical_vars,
+        "intercept": True,
+    }
+    expected = """\
+INSERT INTO $main_output_table_name
+SELECT
+    row_id,
+    1 AS "intercept",
+    CASE WHEN c1 = 'l1' THEN 1 ELSE 0 END AS "c1__1",
+    CASE WHEN c1 = 'l2' THEN 1 ELSE 0 END AS "c1__2"
+FROM
+    test_table;"""
+    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
+    assert result.udf_select_query.template == expected
+
+
+def test_get_create_design_matrix_select_no_intercept():
+    enums = {
+        "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
+    }
+    numerical_vars = []
+    design_matrix = N()
+    design_matrix.name = "test_table"
+    args = {
+        "x": design_matrix,
+        "enums": enums,
+        "numerical_vars": numerical_vars,
+        "intercept": False,
+    }
+    expected = """\
+INSERT INTO $main_output_table_name
+SELECT
+    row_id,
+    CASE WHEN c1 = 'l1' THEN 1 ELSE 0 END AS "c1__1",
+    CASE WHEN c1 = 'l2' THEN 1 ELSE 0 END AS "c1__2"
+FROM
+    test_table;"""
+    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
+    assert result.udf_select_query.template == expected
+
+
+def test_get_create_design_matrix_select_full():
+    enums = {
+        "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
+        "c2": [
+            {"code": "A", "dummy": "c2__1"},
+            {"code": "B", "dummy": "c2__2"},
+            {"code": "C", "dummy": "c2__3"},
+        ],
+    }
+    numerical_vars = ["n1", "n2"]
+    design_matrix = N()
+    design_matrix.name = "test_table"
+    args = {
+        "x": design_matrix,
+        "enums": enums,
+        "numerical_vars": numerical_vars,
+        "intercept": True,
+    }
+    expected = """\
+INSERT INTO $main_output_table_name
+SELECT
+    row_id,
+    1 AS "intercept",
+    CASE WHEN c1 = 'l1' THEN 1 ELSE 0 END AS "c1__1",
+    CASE WHEN c1 = 'l2' THEN 1 ELSE 0 END AS "c1__2",
+    CASE WHEN c2 = 'A' THEN 1 ELSE 0 END AS "c2__1",
+    CASE WHEN c2 = 'B' THEN 1 ELSE 0 END AS "c2__2",
+    CASE WHEN c2 = 'C' THEN 1 ELSE 0 END AS "c2__3",
+    n1,
+    n2
+FROM
+    test_table;"""
+    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
+    assert result.udf_select_query.template == expected
+
+
+def test_get_create_design_matrix_create_query():
+    enums = {
+        "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
+        "c2": [
+            {"code": "A", "dummy": "c2__1"},
+            {"code": "B", "dummy": "c2__2"},
+            {"code": "C", "dummy": "c2__3"},
+        ],
+    }
+    numerical_vars = ["n1", "n2"]
+    design_matrix = N()
+    design_matrix.name = "test_table"
+    args = {
+        "x": design_matrix,
+        "enums": enums,
+        "numerical_vars": numerical_vars,
+        "intercept": True,
+    }
+    expected = 'CREATE TABLE $main_output_table_name("row_id" INT,"intercept" DOUBLE,"c1__1" DOUBLE,"c1__2" DOUBLE,"c2__1" DOUBLE,"c2__2" DOUBLE,"c2__3" DOUBLE,"n1" DOUBLE,"n2" DOUBLE);'
+    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
+    assert result.udf_results[0].create_query.template == expected

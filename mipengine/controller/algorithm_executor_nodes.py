@@ -3,14 +3,12 @@ from abc import abstractmethod
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 from mipengine.controller.algorithm_executor_node_data_objects import NodeData
-from mipengine.controller.algorithm_executor_node_data_objects import NodeSMPCTables
-from mipengine.controller.algorithm_executor_node_data_objects import NodeTable
-from mipengine.controller.algorithm_executor_node_data_objects import (
-    create_node_table_from_node_table_dto,
-)
+from mipengine.controller.algorithm_executor_node_data_objects import SMPCTableNames
+from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
 from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
@@ -24,37 +22,27 @@ from mipengine.node_tasks_DTOs import UDFPosArguments
 
 class _INode(ABC):
     @abstractmethod
-    def get_tables(self) -> List[NodeTable]:
+    def get_tables(self) -> List[TableName]:
         pass
 
     @abstractmethod
-    def get_table_schema(self, table_name: NodeTable) -> TableSchema:
+    def get_table_schema(self, table_name: TableName) -> TableSchema:
         pass
 
     @abstractmethod
-    def get_table_data(self, table_name: NodeTable) -> TableData:
+    def get_table_data(self, table_name: TableName) -> TableData:
         pass
 
     @abstractmethod
-    def create_table(self, command_id: str, schema: TableSchema) -> NodeTable:
+    def create_table(self, command_id: str, schema: TableSchema) -> TableName:
         pass
 
     @abstractmethod
-    def get_views(self) -> List[NodeTable]:
+    def get_views(self) -> List[TableName]:
         pass
 
     @abstractmethod
-    def create_pathology_view(
-        self,
-        command_id: str,
-        pathology: str,
-        columns: List[str],
-        filters: List[str],
-    ) -> NodeTable:
-        pass
-
-    @abstractmethod
-    def get_merge_tables(self) -> List[NodeTable]:
+    def get_merge_tables(self) -> List[TableName]:
         pass
 
     @abstractmethod
@@ -67,7 +55,7 @@ class _INode(ABC):
 
     @abstractmethod
     def create_remote_table(
-        self, table_name: str, table_schema: TableSchema, native_node: "_Node"
+        self, table_name: str, table_schema: TableSchema, native_node: "_INode"
     ):
         pass
 
@@ -84,7 +72,7 @@ class _INode(ABC):
     @abstractmethod
     def get_queued_udf_result(
         self, async_result: IQueuedUDFAsyncResult
-    ) -> List[NodeTable]:
+    ) -> List[TableName]:
         pass
 
     @abstractmethod
@@ -98,68 +86,23 @@ class _Node(_INode, ABC):
         request_id: str,
         context_id: str,
         node_tasks_handler: INodeTasksHandler,
-        initial_view_tables_params: Dict[str, Any] = None,
     ):
-        self._node_tasks_handler = node_tasks_handler
-        self.node_id = self._node_tasks_handler.node_id
-        self.request_id = request_id
-        self.context_id = context_id
-
-        self._initial_view_tables = None
-        if initial_view_tables_params is not None:
-            self._initial_view_tables = self._create_initial_view_tables(
-                initial_view_tables_params
-            )
+        self._node_tasks_handler: INodeTasksHandler = node_tasks_handler
+        self.node_id: str = self._node_tasks_handler.node_id
+        self.request_id: str = request_id
+        self.context_id: str = context_id
 
     def __repr__(self):
         return f"{self.node_id}"
-
-    @property
-    def initial_view_tables(self) -> Dict[str, NodeTable]:
-        return self._initial_view_tables
-
-    def _create_initial_view_tables(
-        self, initial_view_tables_params
-    ) -> Dict[str, NodeTable]:
-        # will contain the views created from the pathology, datasets. Its keys are
-        # the variable sets x, y etc
-        initial_view_tables = {}
-
-        # initial view for variables in X
-        variable = "x"
-        if initial_view_tables_params[variable]:
-            command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_pathology_view(
-                command_id=command_id,
-                pathology=initial_view_tables_params["pathology"],
-                columns=initial_view_tables_params[variable],
-                filters=initial_view_tables_params["filters"],
-            )
-            initial_view_tables["x"] = view_name
-
-        # initial view for variables in Y
-        variable = "y"
-        if initial_view_tables_params[variable]:
-            command_id = str(initial_view_tables_params["commandId"]) + variable
-            view_name = self.create_pathology_view(
-                command_id=command_id,
-                pathology=initial_view_tables_params["pathology"],
-                columns=initial_view_tables_params[variable],
-                filters=initial_view_tables_params["filters"],
-            )
-
-            initial_view_tables["y"] = view_name
-
-        return initial_view_tables
 
     @property
     def node_address(self) -> str:
         return self._node_tasks_handler.node_data_address
 
     # TABLES functionality
-    def get_tables(self) -> List[NodeTable]:
+    def get_tables(self) -> List[TableName]:
         tables = [
-            NodeTable(table_name)
+            TableName(table_name)
             for table_name in self._node_tasks_handler.get_tables(
                 request_id=self.request_id,
                 context_id=self.context_id,
@@ -167,19 +110,19 @@ class _Node(_INode, ABC):
         ]
         return tables
 
-    def get_table_schema(self, table_name: NodeTable) -> TableSchema:
+    def get_table_schema(self, table_name: TableName) -> TableSchema:
         return self._node_tasks_handler.get_table_schema(
             request_id=self.request_id, table_name=table_name.full_table_name
         )
 
-    def get_table_data(self, table_name: NodeTable) -> TableData:
+    def get_table_data(self, table_name: TableName) -> TableData:
         return self._node_tasks_handler.get_table_data(
             request_id=self.request_id,
             table_name=table_name.full_table_name,
         )
 
-    def create_table(self, command_id: str, schema: TableSchema) -> NodeTable:
-        return NodeTable(
+    def create_table(self, command_id: str, schema: TableSchema) -> TableName:
+        return TableName(
             self._node_tasks_handler.create_table(
                 request_id=self.request_id,
                 context_id=self.context_id,
@@ -189,46 +132,27 @@ class _Node(_INode, ABC):
         )
 
     # VIEWS functionality
-    def get_views(self) -> List[NodeTable]:
+    def get_views(self) -> List[TableName]:
         result = self._node_tasks_handler.get_views(
             request_id=self.request_id, context_id=self.context_id
         )
-        return [NodeTable(table_name) for table_name in result]
-
-    # TODO: this is very specific to mip, very inconsistent with the rest, has to
-    # be abstracted somehow
-    def create_pathology_view(
-        self,
-        command_id: str,
-        pathology: str,
-        columns: List[str],
-        filters: List[str],
-    ) -> NodeTable:
-        result = self._node_tasks_handler.create_pathology_view(
-            request_id=self.request_id,
-            context_id=self.context_id,
-            command_id=command_id,
-            pathology=pathology,
-            columns=columns,
-            filters=filters,
-        )
-        return NodeTable(result)
+        return [TableName(table_name) for table_name in result]
 
     # MERGE TABLES functionality
-    def get_merge_tables(self) -> List[NodeTable]:
+    def get_merge_tables(self) -> List[TableName]:
         result = self._node_tasks_handler.get_merge_tables(
             request_id=self.request_id, context_id=self.context_id
         )
-        return [NodeTable(table_name) for table_name in result]
+        return [TableName(table_name) for table_name in result]
 
-    def create_merge_table(self, command_id: str, table_names: List[str]) -> NodeTable:
+    def create_merge_table(self, command_id: str, table_names: List[str]) -> TableName:
         result = self._node_tasks_handler.create_merge_table(
             request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             table_names=table_names,
         )
-        return NodeTable(result)
+        return TableName(result)
 
     # REMOTE TABLES functionality
     def get_remote_tables(self) -> List[str]:
@@ -292,6 +216,54 @@ class _Node(_INode, ABC):
 
 
 class LocalNode(_Node):
+    def create_data_model_views(
+        self,
+        command_id: str,
+        data_model: str,
+        datasets: List[str],
+        columns_per_view: List[List[str]],
+        filters: dict = None,
+        dropna: bool = True,
+        check_min_rows: bool = True,
+    ) -> List[TableName]:
+        """
+        Creates views on a specific data model.
+
+        Parameters
+        ----------
+        command_id : str
+            The id of the command.
+        data_model : str
+            The data model of the view.
+        datasets : str
+            The datasets that will be included in the view.
+        columns_per_view : List[List[str]]
+            A list of column names' for each view to be created.
+        filters : dict
+            A dict representation of a jQuery QueryBuilder json. (https://querybuilder.js.org/)
+        dropna : bool
+            Remove NAs from the view.
+        check_min_rows : bool
+            Raise an exception if there are not enough rows in the view.
+
+        Returns
+        ------
+        List[TableName]
+            A list of views(TableName) created, corresponding to the columns_per_view list.
+        """
+        views = self._node_tasks_handler.create_data_model_views(
+            request_id=self.request_id,
+            context_id=self.context_id,
+            command_id=command_id,
+            data_model=data_model,
+            datasets=datasets,
+            columns_per_view=columns_per_view,
+            filters=filters,
+            dropna=dropna,
+            check_min_rows=check_min_rows,
+        )
+        return [TableName(view) for view in views]
+
     def get_queued_udf_result(
         self, async_result: IQueuedUDFAsyncResult
     ) -> List[NodeData]:
@@ -299,13 +271,13 @@ class LocalNode(_Node):
         udf_results = []
         for result in node_udf_results.results:
             if isinstance(result, NodeTableDTO):
-                udf_results.append(NodeTable(result.value))
+                udf_results.append(TableName(result.value))
             elif isinstance(result, NodeSMPCDTO):
                 udf_results.append(
-                    NodeSMPCTables(
-                        template=NodeTable(result.value.template.value),
-                        add_op=create_node_table_from_node_table_dto(
-                            result.value.add_op_values
+                    SMPCTableNames(
+                        template=TableName(result.value.template.value),
+                        sum_op=create_node_table_from_node_table_dto(
+                            result.value.sum_op_values
                         ),
                         min_op=create_node_table_from_node_table_dto(
                             result.value.min_op_values
@@ -322,21 +294,28 @@ class LocalNode(_Node):
                 raise NotImplementedError
         return udf_results
 
-    def load_data_to_smpc_client(self, table_name: str, jobid: str) -> int:
+    def load_data_to_smpc_client(self, table_name: str, jobid: str) -> str:
         return self._node_tasks_handler.load_data_to_smpc_client(
-            self.context_id, table_name, jobid
+            self.request_id, table_name, jobid
         )
+
+
+def create_node_table_from_node_table_dto(node_table_dto: NodeTableDTO):
+    if not node_table_dto:
+        return None
+
+    return TableName(table_name=node_table_dto.value)
 
 
 class GlobalNode(_Node):
     def get_queued_udf_result(
         self, async_result: IQueuedUDFAsyncResult
-    ) -> List[NodeTable]:
+    ) -> List[TableName]:
         node_udf_results = self._node_tasks_handler.get_queued_udf_result(async_result)
         results = []
         for result in node_udf_results.results:
             if isinstance(result, NodeTableDTO):
-                results.append(NodeTable(result.value))
+                results.append(TableName(result.value))
             elif isinstance(result, NodeSMPCDTO):
                 raise TypeError("A global node should not return an SMPC DTO.")
             else:
@@ -348,14 +327,19 @@ class GlobalNode(_Node):
         table_name: str,
     ):
         self._node_tasks_handler.validate_smpc_templates_match(
-            self.context_id, table_name
+            self.request_id, table_name
         )
 
     def get_smpc_result(
         self,
-        command_id: int,
         jobid: str,
+        command_id: str,
+        command_subid: Optional[str] = "0",
     ) -> str:
         return self._node_tasks_handler.get_smpc_result(
-            self.context_id, str(command_id), jobid
+            request_id=self.request_id,
+            jobid=jobid,
+            context_id=self.context_id,
+            command_id=str(command_id),
+            command_subid=command_subid,
         )

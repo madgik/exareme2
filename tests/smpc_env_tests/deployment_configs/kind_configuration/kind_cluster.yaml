@@ -1,0 +1,34 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30000
+    hostPort: 5000
+  - containerPort: 31000	# Used for debugging smpc cluster
+    hostPort: 12314		# Used for debugging smpc cluster
+  extraMounts:
+  - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/hostname_master
+    containerPath: /etc/hostname
+  - hostPath: ./tests/test_data
+    containerPath: /opt/mipengine/data
+
+- role: worker
+  extraMounts:
+  - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/hostname_worker1
+    containerPath: /etc/hostname
+  - hostPath: ./tests/test_data
+    containerPath: /opt/mipengine/csvs
+  extraPortMappings:
+  - containerPort: 32000	# Used for debugging smpc cluster
+    hostPort: 9000		# Used for debugging smpc cluster
+
+- role: worker
+  extraMounts:
+  - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/hostname_worker2
+    containerPath: /etc/hostname
+  - hostPath: ./tests/test_data
+    containerPath: /opt/mipengine/csvs
+  extraPortMappings:
+  - containerPort: 32000	# Used for debugging smpc cluster
+    hostPort: 9001		# Used for debugging smpc cluster

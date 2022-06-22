@@ -1,21 +1,18 @@
-from unittest import mock
 import io
 import json
+from unittest import mock
 
 import pytest
 
-from tests.testcase_generators.testcase_generator import (
-    EnumFromCDE,
-    EnumFromList,
-    FloatParameter,
-    NumericalInputDataVariables,
-    InputGenerator,
-    TestCaseGenerator,
-    DB,
-    IntegerParameter,
-    make_parameters,
-)
-
+from tests.testcase_generators.testcase_generator import DB
+from tests.testcase_generators.testcase_generator import EnumFromCDE
+from tests.testcase_generators.testcase_generator import EnumFromList
+from tests.testcase_generators.testcase_generator import FloatParameter
+from tests.testcase_generators.testcase_generator import InputGenerator
+from tests.testcase_generators.testcase_generator import IntegerParameter
+from tests.testcase_generators.testcase_generator import NumericalInputDataVariables
+from tests.testcase_generators.testcase_generator import TestCaseGenerator
+from tests.testcase_generators.testcase_generator import make_parameters
 
 TESTCASEGEN_PATH = "tests.testcase_generators.testcase_generator"
 
@@ -100,7 +97,7 @@ def test_get_input_data(specs_file_y_numerical):
     input_ = {
         "inputdata": {
             "y": ("lefthippocampus", "righthippocampus"),
-            "pathology": "dementia",
+            "data_model": "dementia:0.1",
             "datasets": ("desd-synthdata",),
             "filters": "",
         },

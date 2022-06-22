@@ -42,21 +42,32 @@
 
    ```
    ip = "172.17.0.1"
-   log_level = "INFO"
+   log_level = "DEBUG"
    framework_log_level ="INFO"
-   monetdb_image = "madgik/mipenginedb:latest"
-   rabbitmq_image = "madgik/mipengine_rabbitmq:latest"
-
-   cdes_metadata_path = "./tests/demo_data"
+   monetdb_image = "madgik/mipenginedb:dev"
+   rabbitmq_image = "madgik/mipengine_rabbitmq:dev"
 
    algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 
-   node_registry_update_interval = 30
-   celery_tasks_timeout = 10
+   node_landscape_aggregator_update_interval = 30
+   celery_tasks_timeout = 20
+   celery_run_udf_task_timeout = 120
+
+   [privacy]
+   minimum_row_count = 10
+
+   [cleanup]
+   nodes_cleanup_interval=10
+   contextid_release_timelimit=3600 #an hour
 
    [smpc]
    enabled=false
    optional=false
+   get_result_interval = 10
+   get_result_max_retries = 100
+   smpc_image="gpikra/coordinator:v6.0.0"
+   db_image="mongo:5.0.8"
+   queue_image="redis:alpine3.15"
 
    [[nodes]]
    id = "globalnode"
@@ -69,12 +80,14 @@
    role = "LOCALNODE"
    monetdb_port=50001
    rabbitmq_port=5671
+   smpc_client_port=9001
 
    [[nodes]]
    id = "localnode2"
    role = "LOCALNODE"
    monetdb_port=50002
    rabbitmq_port=5672
+   smpc_client_port=9002
 
    ```
 

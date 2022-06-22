@@ -1,27 +1,28 @@
-from abc import ABC, abstractmethod
-import random
 import json
-from functools import partial, cached_property
+import random
 import re
+from abc import ABC
+from abc import abstractmethod
+from functools import cached_property
+from functools import partial
 
-from tqdm import tqdm
 import pandas as pd
 import pymonetdb
+from tqdm import tqdm
 
 from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
 
-
-TESTING_DATAMODEL = "dementia"
-DATA_TABLENAME = f""""{TESTING_DATAMODEL}:0.1".primary_data"""
-METADATA_TABLENAME = f""""{TESTING_DATAMODEL}:0.1".variables_metadata"""
+TESTING_DATAMODEL = "dementia:0.1"
+DATA_TABLENAME = f""""{TESTING_DATAMODEL}".primary_data"""
+METADATA_TABLENAME = f""""{TESTING_DATAMODEL}".variables_metadata"""
 
 MAX_TABLE_SIZE = 60
 MIN_TABLE_SIZE = 1
 TABLE_SIZE_MODE = 10
 
 # XXX Change according to your local setup
-DB_IP = "172.17.0.1"
-DB_PORT = 50001
+DB_IP = "127.0.0.1"
+DB_PORT = 50002
 DB_USER = "monetdb"
 DB_PASS = "monetdb"
 DB_FARM = "db"
@@ -38,13 +39,20 @@ class DB(MonetDB):
         )
 
     def get_numerical_variables(self):
-        query = f"""select code from {METADATA_TABLENAME} """
-        query += """ where metadata LIKE '%"isCategorical": false%' AND (metadata LIKE '%"sql_type": "real"%' OR metadata LIKE '%"sql_type": "int"%'); """
+        query = f"""SELECT code
+                        FROM {METADATA_TABLENAME}
+                        WHERE json.filter(metadata, '$.is_categorical')='[false]'
+                            AND (json.filter(metadata, '$.sql_type')='["real"]'
+                            OR json.filter(metadata, '$.sql_type')='["int"]');"""
         variables = pd.read_sql(query, self._connection)
         return variables["code"].tolist()
 
     def get_nominal_variables(self):
-        query = f"""select code from {METADATA_TABLENAME} where metadata LIKE '%"isCategorical": true%'; """
+
+        query = f"""SELECT code
+                        FROM {METADATA_TABLENAME}
+                        WHERE json.filter(metadata, '$.is_categorical')='[true]';"""
+
         variables = pd.read_sql(query, self._connection)
         return variables["code"].tolist()
 
@@ -107,7 +115,10 @@ class InputDataVariable(ABC):
         if not self._notblank and not coin():
             return
         num = triangular() if self._multiple else 1
-        choice = random_permutation(self.all_variables, r=num)
+        choice = random_permutation(
+            self.all_variables,
+            r=min(num, len(self.all_variables)),
+        )
         return choice
 
 
@@ -119,12 +130,20 @@ class NumericalInputDataVariables(InputDataVariable):
         return numerical_vars
 
 
-class NominalInputDataVariables:
-    pass
+class NominalInputDataVariables(InputDataVariable):
+    @cached_property
+    def all_variables(self):
+        """Gets the names of all nominal variables available."""
+        nominal_vars = self.db.get_nominal_variables()
+        return nominal_vars
 
 
-class MixedInputDataVariables:
-    pass
+class MixedInputDataVariables(InputDataVariable):
+    @cached_property
+    def all_variables(self):
+        """Gets the names of all variables available, both numerical and nominal."""
+        all_vars = self.db.get_nominal_variables() + self.db.get_numerical_variables()
+        return all_vars
 
 
 def make_input_data_variables(properties):
@@ -134,9 +153,15 @@ def make_input_data_variables(properties):
             properties["multiple"],
         )
     elif properties["stattypes"] == ["nominal"]:
-        raise NotImplementedError
+        return NominalInputDataVariables(
+            properties["notblank"],
+            properties["multiple"],
+        )
     elif set(properties["stattypes"]) == {"numerical", "nominal"}:
-        raise NotImplementedError
+        return MixedInputDataVariables(
+            properties["notblank"],
+            properties["multiple"],
+        )
 
 
 class AlgorithmParameter(ABC):
@@ -195,7 +220,7 @@ def make_parameters(properties, y=None, x=None):
     if properties["type"] == "enum_from_cde":
         return make_enum_from_cde_parameter(properties, y, x)
     else:
-        raise TypeError(f"Unknown paremeter type: {properties['type']}.")
+        raise TypeError(f"Unknown parameter type: {properties['type']}.")
 
 
 def make_enum_from_cde_parameter(properties, y=None, x=None):
@@ -216,6 +241,7 @@ def make_enum_from_cde_parameter(properties, y=None, x=None):
 class InputGenerator:
     def __init__(self, specs_file):
         specs = json.load(specs_file)
+
         self.inputdata_gens = {
             name: make_input_data_variables(properties)
             for name, properties in specs["inputdata"].items()
@@ -239,11 +265,11 @@ class InputGenerator:
                 for name, inputdata_vars in self.inputdata_gens.items()
             }
             # removes vars found in both y and x, from x
-            if inputdata["x"] != None:
+            if inputdata.get("x") != None:
                 diff = set(inputdata["y"]) & set(inputdata["x"])
                 inputdata["x"] = tuple(set(inputdata["x"]) - diff)
 
-            inputdata["pathology"] = TESTING_DATAMODEL
+            inputdata["data_model"] = TESTING_DATAMODEL
             inputdata["datasets"] = self.datasets_gen.draw()
             inputdata["filters"] = self.filters_gen.draw()
             parameters = {
@@ -311,7 +337,7 @@ class TestCaseGenerator(ABC):
 
     __test__ = False
 
-    def __init__(self, specs_file, replicas=2):
+    def __init__(self, specs_file, replicas=1):
         self.input_gen = InputGenerator(specs_file)
         self.all_data = DB().get_data_table(replicas)
 
@@ -325,15 +351,19 @@ class TestCaseGenerator(ABC):
     def get_input_data(self, input_):
         inputdata = input_["inputdata"]
         datasets = list(inputdata["datasets"])
-
         y = list(inputdata["y"])
         x = inputdata.get("x", None)
         x = list(x) if x else []
 
         variables = list(set(y + x))
-        full_data = self.all_data[variables + ["dataset"]]
-        full_data = full_data[full_data.dataset.isin(datasets)]
-        del full_data["dataset"]
+        if "dataset" in variables:
+            full_data = self.all_data[variables]
+            full_data = full_data[full_data.dataset.isin(datasets)]
+        else:
+            full_data = self.all_data[variables + ["dataset"]]
+            full_data = full_data[full_data.dataset.isin(datasets)]
+            del full_data["dataset"]
+
         full_data = full_data.dropna()
         if len(full_data) == 0:
             return None
@@ -343,7 +373,7 @@ class TestCaseGenerator(ABC):
         return y_data, x_data
 
     def generate_test_case(self):
-        for _ in range(1000):
+        for _ in range(10_000):
             input_ = self.generate_input()
             input_data = self.get_input_data(input_)
             if input_data is not None:
@@ -352,12 +382,26 @@ class TestCaseGenerator(ABC):
             raise ValueError(
                 "Cannot find inputdata values resulting in non-empty data."
             )
+
         parameters = input_["parameters"]
-        output = self.compute_expected_output(input_data, parameters)
+        try:
+            output = self.compute_expected_output(input_data, parameters)
+        except Exception as err:
+            raise Exception(f"{err}, datasets: {input_['inputdata']['datasets']}")
+
         return {"input": input_, "output": output}
 
     def generate_test_cases(self, num_test_cases=100):
         test_cases = [self.generate_test_case() for _ in tqdm(range(num_test_cases))]
+
+        def append_test_case_number(test_case, num):
+            test_case["test_case_num"] = num
+            return test_case
+
+        test_cases = [
+            append_test_case_number(test_case, i)
+            for i, test_case in enumerate(test_cases)
+        ]
         return {"test_cases": test_cases}
 
     def write_test_cases(self, file, num_test_cases=100):

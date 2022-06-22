@@ -184,7 +184,7 @@ Local UDF step Example
 ... def local_step(x, y):
 ...     state["x"] = x["key"]
 ...     state["y"] = y["key"]
-...     transfer["sum"] = {"data": x["key"] + y["key"], "type": "int", "operation": "addition"}
+...     transfer["sum"] = {"data": x["key"] + y["key"], "operation": "sum"}
 ...     return state, transfer
 
 Global UDF step Example
@@ -206,15 +206,11 @@ So, the secure_transfer dict sent should be of the format:
 
 The data could be an int/float or a list containing other lists or float/int.
 
-The type enumerations are:
-    - "int"
-    - "decimal" (Not yet implemented)
-
 The operation enumerations are:
-    - "addition"
-    - "min" (Not yet implemented)
-    - "max" (Not yet implemented)
-    - "union" (Not yet implemented)
+    - "sum" (Floats not supported when SMPC is enabled)
+    - "min" (Floats not supported when SMPC is enabled)
+    - "max" (Floats not supported when SMPC is enabled)
+    - "union" (Not yet supported)
 
 
 2. Translating and calling UDFs
@@ -289,24 +285,26 @@ from textwrap import indent
 from typing import Dict
 from typing import List
 from typing import NamedTuple
+from typing import Optional
+from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
 import astor
 import numpy
-from typing import Tuple
 
 from mipengine import DType as dt
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType as DBTableType
 from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
 from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
-from mipengine.udfgen.udfgen_DTOs import UDFGenExecutionQueries
 from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
+from mipengine.udfgen.udfgen_DTOs import UDFGenExecutionQueries
 from mipengine.udfgen.udfgen_DTOs import UDFGenResult
 
 __all__ = [
     "udf",
+    "udf_logger",
     "tensor",
     "relation",
     "merge_tensor",
@@ -362,7 +360,9 @@ def get_smpc_build_template(secure_transfer_type):
             stmts.append(
                 f'__{operation_name}_values_str = _conn.execute("SELECT secure_transfer from {{{operation_name}_values_table_name}};")["secure_transfer"][0]'
             )
-            stmts.append(f"__{operation_name}_values = json.loads(__add_op_values_str)")
+            stmts.append(
+                f"__{operation_name}_values = json.loads(__{operation_name}_values_str)"
+            )
         else:
             stmts.append(f"__{operation_name}_values = None")
         return stmts
@@ -372,12 +372,12 @@ def get_smpc_build_template(secure_transfer_type):
         '__template_str = _conn.execute("SELECT secure_transfer from {template_table_name};")["secure_transfer"][0]'
     )
     stmts.append("__template = json.loads(__template_str)")
-    stmts.extend(get_smpc_op_template(secure_transfer_type.add_op, "add_op"))
+    stmts.extend(get_smpc_op_template(secure_transfer_type.sum_op, "sum_op"))
     stmts.extend(get_smpc_op_template(secure_transfer_type.min_op, "min_op"))
     stmts.extend(get_smpc_op_template(secure_transfer_type.max_op, "max_op"))
     stmts.extend(get_smpc_op_template(secure_transfer_type.union_op, "union_op"))
     stmts.append(
-        "{varname} = udfio.construct_secure_transfer_dict(__template,__add_op_values,__min_op_values,__max_op_values,__union_op_values)"
+        "{varname} = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values,__union_op_values)"
     )
     return LN.join(stmts)
 
@@ -437,18 +437,18 @@ def _get_secure_transfer_op_return_stmt_template(op_enabled, table_name_tmpl, op
 def _get_secure_transfer_main_return_stmt_template(output_type, smpc_used):
     if smpc_used:
         return_stmts = [
-            "template, add_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict({return_name})"
+            "template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict({return_name})"
         ]
         (
             _,
-            add_op_tmpl,
+            sum_op_tmpl,
             min_op_tmpl,
             max_op_tmpl,
             union_op_tmpl,
         ) = _get_smpc_table_template_names(_get_main_table_template_name())
         return_stmts.extend(
             _get_secure_transfer_op_return_stmt_template(
-                output_type.add_op, add_op_tmpl, "add_op"
+                output_type.sum_op, sum_op_tmpl, "sum_op"
             )
         )
         return_stmts.extend(
@@ -500,11 +500,11 @@ def _get_secure_transfer_sec_return_stmt_template(
 ):
     if smpc_used:
         return_stmts = [
-            "template, add_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict({return_name})"
+            "template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict({return_name})"
         ]
         (
             template_tmpl,
-            add_op_tmpl,
+            sum_op_tmpl,
             min_op_tmpl,
             max_op_tmpl,
             union_op_tmpl,
@@ -516,7 +516,7 @@ def _get_secure_transfer_sec_return_stmt_template(
         )
         return_stmts.extend(
             _get_secure_transfer_op_return_stmt_template(
-                output_type.add_op, add_op_tmpl, "add_op"
+                output_type.sum_op, sum_op_tmpl, "sum_op"
             )
         )
         return_stmts.extend(
@@ -774,6 +774,14 @@ class LoopbackOutputType(OutputType):
     pass
 
 
+class UDFLoggerType(InputType):
+    pass
+
+
+def udf_logger():
+    return UDFLoggerType()
+
+
 class TableType(ABC):
     @property
     @abstractmethod
@@ -833,16 +841,26 @@ class RelationType(TableType, ParametrizedType, InputType, OutputType):
         return self._schema
 
 
-def relation(schema):
+def relation(schema=None):
+    schema = schema or TypeVar("S")
     return RelationType(schema)
 
 
 class ScalarType(OutputType, ParametrizedType):
+    """
+    @deprecated
+    Use 'RelationType(schema=[("scalar", dtype)])' instead.
+    """
+
     def __init__(self, dtype):
         self.dtype = dt.from_py(dtype) if isinstance(dtype, type) else dtype
 
 
 def scalar(dtype):
+    """
+    @deprecated
+    Use 'relation(schema=[("scalar", dtype)])' instead.
+    """
     return ScalarType(dtype)
 
 
@@ -884,20 +902,20 @@ def merge_transfer():
 class SecureTransferType(DictType, InputType, LoopbackOutputType):
     _data_column_name = "secure_transfer"
     _data_column_type = dt.JSON
-    _add_op: bool
+    _sum_op: bool
     _min_op: bool
     _max_op: bool
     _union_op: bool
 
-    def __init__(self, add_op=False, min_op=False, max_op=False, union_op=False):
-        self._add_op = add_op
+    def __init__(self, sum_op=False, min_op=False, max_op=False, union_op=False):
+        self._sum_op = sum_op
         self._min_op = min_op
         self._max_op = max_op
         self._union_op = union_op
 
     @property
-    def add_op(self):
-        return self._add_op
+    def sum_op(self):
+        return self._sum_op
 
     @property
     def min_op(self):
@@ -912,12 +930,12 @@ class SecureTransferType(DictType, InputType, LoopbackOutputType):
         return self._union_op
 
 
-def secure_transfer(add_op=False, min_op=False, max_op=False, union_op=False):
-    if not add_op and not min_op and not max_op and not union_op:
+def secure_transfer(sum_op=False, min_op=False, max_op=False, union_op=False):
+    if not sum_op and not min_op and not max_op and not union_op:
         raise UDFBadDefinition(
             "In a secure_transfer at least one operation should be enabled."
         )
-    return SecureTransferType(add_op, min_op, max_op, union_op)
+    return SecureTransferType(sum_op, min_op, max_op, union_op)
 
 
 class StateType(DictType, InputType, LoopbackOutputType):
@@ -943,6 +961,16 @@ def literal():
 class UDFArgument:
     __repr__ = recursive_repr
     type: InputType
+
+
+class UDFLoggerArg(UDFArgument):
+    type = UDFLoggerType()
+    request_id: str
+    udf_name: str
+
+    def __init__(self, request_id, udf_name):
+        self.request_id = request_id
+        self.udf_name = udf_name
 
 
 class TableArg(UDFArgument, ABC):
@@ -1037,7 +1065,7 @@ class SecureTransferArg(DictArg):
 class SMPCSecureTransferArg(UDFArgument):
     type: SecureTransferType
     template_table_name: str
-    add_op_values_table_name: str
+    sum_op_values_table_name: str
     min_op_values_table_name: str
     max_op_values_table_name: str
     union_op_values_table_name: str
@@ -1045,26 +1073,26 @@ class SMPCSecureTransferArg(UDFArgument):
     def __init__(
         self,
         template_table_name: str,
-        add_op_values_table_name: str,
+        sum_op_values_table_name: str,
         min_op_values_table_name: str,
         max_op_values_table_name: str,
         union_op_values_table_name: str,
     ):
-        add_op = False
+        sum_op = False
         min_op = False
         max_op = False
         union_op = False
-        if add_op_values_table_name:
-            add_op = True
+        if sum_op_values_table_name:
+            sum_op = True
         if min_op_values_table_name:
             min_op = True
         if max_op_values_table_name:
             max_op = True
         if union_op_values_table_name:
             union_op = True
-        self.type = SecureTransferType(add_op, min_op, max_op, union_op)
+        self.type = SecureTransferType(sum_op, min_op, max_op, union_op)
         self.template_table_name = template_table_name
-        self.add_op_values_table_name = add_op_values_table_name
+        self.sum_op_values_table_name = sum_op_values_table_name
         self.min_op_values_table_name = min_op_values_table_name
         self.max_op_values_table_name = max_op_values_table_name
         self.union_op_values_table_name = union_op_values_table_name
@@ -1222,7 +1250,7 @@ class SMPCBuild(ASTNode):
         return self.template.format(
             varname=self.arg_name,
             template_table_name=self.arg.template_table_name,
-            add_op_values_table_name=self.arg.add_op_values_table_name,
+            sum_op_values_table_name=self.arg.sum_op_values_table_name,
             min_op_values_table_name=self.arg.min_op_values_table_name,
             max_op_values_table_name=self.arg.max_op_values_table_name,
             union_op_values_table_name=self.arg.union_op_values_table_name,
@@ -1276,6 +1304,17 @@ class LiteralAssignments(ASTNode):
         return LN.join(f"{name} = {arg.value}" for name, arg in self.literals.items())
 
 
+class LoggerAssignment(ASTNode):
+    def __init__(self, logger: Optional[Tuple[str, UDFLoggerArg]]):
+        self.logger = logger
+
+    def compile(self) -> str:
+        if not self.logger:
+            return ""
+        name, logger_arg = self.logger
+        return f"{name} = udfio.get_logger('{logger_arg.udf_name}', '{logger_arg.request_id}')"
+
+
 class UDFBodyStatements(ASTNode):
     def __init__(self, statements):
         self.returnless_stmts = [
@@ -1294,6 +1333,7 @@ class UDFBody(ASTNode):
         table_args: Dict[str, TableArg],
         smpc_args: Dict[str, SMPCSecureTransferArg],
         literal_args: Dict[str, LiteralArg],
+        logger_arg: Optional[Tuple[str, UDFLoggerArg]],
         statements: list,
         main_return_name: str,
         main_return_type: OutputType,
@@ -1313,6 +1353,7 @@ class UDFBody(ASTNode):
         self.table_builds = TableBuilds(table_args)
         self.smpc_builds = SMPCBuilds(smpc_args)
         self.literals = LiteralAssignments(literal_args)
+        self.logger = LoggerAssignment(logger_arg)
         all_types = (
             [arg.type for arg in table_args.values()]
             + [main_return_type]
@@ -1336,6 +1377,7 @@ class UDFBody(ASTNode):
                     self.table_builds.compile(),
                     self.smpc_builds.compile(),
                     self.literals.compile(),
+                    self.logger.compile(),
                     self.returnless_stmts.compile(),
                     self.loopback_return_stmts.compile(),
                     self.return_stmt.compile(),
@@ -1389,6 +1431,7 @@ class UDFDefinition(ASTNode):
         table_args: Dict[str, TableArg],
         smpc_args: Dict[str, SMPCSecureTransferArg],
         literal_args: Dict[str, LiteralArg],
+        logger_arg: Optional[Tuple[str, UDFLoggerArg]],
         main_output_type: OutputType,
         sec_output_types: List[OutputType],
         smpc_used: bool,
@@ -1403,6 +1446,7 @@ class UDFDefinition(ASTNode):
             table_args=table_args,
             smpc_args=smpc_args,
             literal_args=literal_args,
+            logger_arg=logger_arg,
             statements=funcparts.body_statements,
             main_return_name=funcparts.main_return_name,
             main_return_type=main_output_type,
@@ -1421,6 +1465,20 @@ class UDFDefinition(ASTNode):
                 END,
             ]
         )
+
+
+class StarColumn(ASTNode):
+    def compile(self, *_, **__):
+        return "*"
+
+
+class ConstColumn(ASTNode):
+    def __init__(self, value, alias):
+        self.name = str(value)
+        self.alias = alias
+
+    def compile(self, use_alias=False):
+        return f"{self.name}" + (f' AS "{self.alias}"' if use_alias else "")
 
 
 class Column(ASTNode):
@@ -1508,6 +1566,17 @@ class Column(ASTNode):
         raise TypeError(f"unsupported operand types for /: {type(other)} and Column")
 
 
+class Cast(ASTNode):
+    def __init__(self, name, type_, alias):
+        self.name = name
+        self.type_ = type_
+        self.alias = alias
+
+    def compile(self, use_alias=False):
+        result = f"CAST('{self.name}' AS {self.type_})"
+        return result + (f" AS {self.alias}" if use_alias else "")
+
+
 class ColumnEqualityClause(ASTNode):
     def __init__(self, column1: Column, column2: Column):
         self.column1 = column1
@@ -1551,9 +1620,12 @@ class TableFunction(ASTNode):
 
 
 class Table(ASTNode):
-    def __init__(self, name: str, columns: List[Column], alias=""):
+    def __init__(self, name: str, columns: List[Union[str, Column]], alias=""):
         self.name = name
-        self.columns = {colname: Column(colname, self) for colname in columns}
+        if columns and isinstance(columns[0], str):
+            self.columns = {colname: Column(colname, self) for colname in columns}
+        else:
+            self.columns = columns
         self.c = self.columns
         self.alias = alias
 
@@ -1720,6 +1792,7 @@ class FunctionParts(NamedTuple):
     sec_return_names: List[str]
     table_input_types: Dict[str, TableType]
     literal_input_types: Dict[str, LiteralType]
+    logger_param_name: Optional[str]
     main_output_type: OutputType
     sec_output_types: List[OutputType]
     sig: Signature
@@ -1730,10 +1803,12 @@ def validate_decorator_parameter_names(parameter_names, decorator_kwargs):
     Validates:
      1) that decorator parameter names and func kwargs names match.
      2) that "return_type" exists as a decorator parameter.
+     3) the udf_logger
     """
+    validate_udf_logger(parameter_names, decorator_kwargs)
+
     if "return_type" not in decorator_kwargs:
         raise UDFBadDefinition("No return_type defined.")
-
     parameter_names = set(parameter_names)
     decorator_parameter_names = set(decorator_kwargs.keys())
     decorator_parameter_names.remove("return_type")  # not a parameter
@@ -1751,6 +1826,28 @@ def validate_decorator_parameter_names(parameter_names, decorator_kwargs):
         raise UDFBadDefinition(
             f"The parameters: {','.join(parameters_not_defined_in_dec)} were not defined in the decorator."
         )
+
+
+def validate_udf_logger(parameter_names, decorator_kwargs):
+    """
+    udf_logger is a special case of a parameter.
+    It won't be provided by the user but from the udfgenerator.
+    1) Only one input of this type can exist.
+    2) It must be the final parameter, so it won't create problems with the positional arguments.
+    """
+    udf_logger_param_name = None
+    for param_name, param_type in decorator_kwargs.items():
+        if isinstance(param_type, UDFLoggerType):
+            if udf_logger_param_name:
+                raise UDFBadDefinition("Only one 'udf_logger' parameter can exist.")
+            udf_logger_param_name = param_name
+
+    if not udf_logger_param_name:
+        return
+
+    all_parameter_names_but_the_last = parameter_names[:-1]
+    if udf_logger_param_name in all_parameter_names_but_the_last:
+        raise UDFBadDefinition("'udf_logger' must be the last input parameter.")
 
 
 def make_udf_signature(parameter_names, decorator_kwargs):
@@ -1830,6 +1927,13 @@ def breakup_function(func, funcsig) -> FunctionParts:
         for name, input_type in funcsig.parameters.items()
         if isinstance(input_type, LiteralType)
     }
+
+    logger_param_name = None
+    for name, input_type in funcsig.parameters.items():
+        if isinstance(input_type, UDFLoggerType):
+            logger_param_name = name
+            break  # Only one logger is allowed
+
     main_output_type = funcsig.main_return_annotation
     sec_output_types = funcsig.sec_return_annotations
     return FunctionParts(
@@ -1839,6 +1943,7 @@ def breakup_function(func, funcsig) -> FunctionParts:
         sec_return_names=sec_return_names,
         table_input_types=table_input_types,
         literal_input_types=literal_input_types,
+        logger_param_name=logger_param_name,
         main_output_type=main_output_type,
         sec_output_types=sec_output_types,
         sig=funcsig,
@@ -1865,6 +1970,7 @@ class UDFBadCall(Exception):
 
 
 def generate_udf_queries(
+    request_id: str,
     func_name: str,
     positional_args: List[UDFGenArgument],
     keyword_args: Dict[str, UDFGenArgument],
@@ -1874,6 +1980,7 @@ def generate_udf_queries(
     """
     Parameters
     ----------
+    request_id: An identifier for logging purposes
     func_name: The name of the udf to run
     positional_args: Positional arguments
     keyword_args: Keyword arguments
@@ -1903,7 +2010,11 @@ def generate_udf_queries(
             udf_select_query=udf_execution_query,
         )
 
+    if func_name == "create_dummy_encoded_design_matrix":
+        return get_create_dummy_encoded_design_matrix_execution_queries(keyword_args)
+
     return get_udf_templates_using_udfregistry(
+        request_id=request_id,
         funcname=func_name,
         posargs=udf_posargs,
         keywordargs=udf_kwargs,
@@ -1941,12 +2052,12 @@ def convert_udfgenarg_to_udfarg(udfgen_arg, smpc_used) -> UDFArgument:
 
 
 def convert_smpc_udf_input_to_udf_arg(smpc_udf_input: SMPCTablesInfo):
-    add_op_table_name = None
+    sum_op_table_name = None
     min_op_table_name = None
     max_op_table_name = None
     union_op_table_name = None
-    if smpc_udf_input.add_op_values:
-        add_op_table_name = smpc_udf_input.add_op_values.name
+    if smpc_udf_input.sum_op_values:
+        sum_op_table_name = smpc_udf_input.sum_op_values.name
     if smpc_udf_input.min_op_values:
         min_op_table_name = smpc_udf_input.min_op_values.name
     if smpc_udf_input.max_op_values:
@@ -1955,7 +2066,7 @@ def convert_smpc_udf_input_to_udf_arg(smpc_udf_input: SMPCTablesInfo):
         union_op_table_name = smpc_udf_input.union_op_values.name
     return SMPCSecureTransferArg(
         template_table_name=smpc_udf_input.template.name,
-        add_op_values_table_name=add_op_table_name,
+        sum_op_values_table_name=sum_op_table_name,
         min_op_values_table_name=min_op_table_name,
         max_op_values_table_name=max_op_table_name,
         union_op_values_table_name=union_op_table_name,
@@ -2020,6 +2131,7 @@ def convert_table_schema_to_relation_schema(table_schema):
 
 
 def get_udf_templates_using_udfregistry(
+    request_id: str,
     funcname: str,
     posargs: List[UDFArgument],
     keywordargs: Dict[str, UDFArgument],
@@ -2028,7 +2140,7 @@ def get_udf_templates_using_udfregistry(
     traceback=False,
 ) -> UDFGenExecutionQueries:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
-    udf_args = get_udf_args(funcparts, posargs, keywordargs)
+    udf_args = get_udf_args(request_id, funcparts, posargs, keywordargs)
     udf_args = resolve_merge_table_args(
         udf_args=udf_args,
         expected_table_types=funcparts.table_input_types,
@@ -2086,12 +2198,23 @@ def get_output_type_for_sql_tensor_operation(funcname, posargs):
     return output_type
 
 
-def get_udf_args(funcparts, posargs, keywordargs) -> Dict[str, UDFArgument]:
+def get_udf_args(request_id, funcparts, posargs, keywordargs) -> Dict[str, UDFArgument]:
     udf_args = merge_args_and_kwargs(
         param_names=funcparts.sig.parameters.keys(),
         args=posargs,
         kwargs=keywordargs,
     )
+
+    # Check logger_param_name argument is not given and if not, create it.
+    if funcparts.logger_param_name:
+        if funcparts.logger_param_name in udf_args.keys():
+            raise UDFBadCall(
+                f"No argument should be provided for 'UDFLoggerType' parameter: '{funcparts.logger_param_name}'"
+            )
+        udf_args[funcparts.logger_param_name] = UDFLoggerArg(
+            request_id=request_id,
+            udf_name=funcparts.qualname,
+        )
     return udf_args
 
 
@@ -2193,6 +2316,10 @@ def get_udf_definition_template(
     literal_args: Dict[str, LiteralArg] = get_items_of_type(
         LiteralArg, mapping=input_args
     )
+    logger_arg: Optional[str, UDFLoggerArg] = None
+    logger_param = funcparts.logger_param_name
+    if logger_param:
+        logger_arg = (logger_param, input_args[logger_param])
 
     verify_declared_and_passed_param_types_match(
         funcparts.table_input_types, table_args
@@ -2202,6 +2329,7 @@ def get_udf_definition_template(
         table_args=table_args,
         smpc_args=smpc_args,
         literal_args=literal_args,
+        logger_arg=logger_arg,
         main_output_type=main_output_type,
         sec_output_types=sec_output_types,
         smpc_used=smpc_used,
@@ -2331,7 +2459,7 @@ def get_udf_select_template(output_type: OutputType, table_args: Dict[str, Table
     if isinstance(output_type, TableType):
         subquery = Select(columns, tables, where_clause) if tables else None
         func = TableFunction(name="$udf_name", subquery=subquery)
-        select_stmt = Select([nodeid_column(), Column("*")], [func])
+        select_stmt = Select([nodeid_column(), StarColumn()], [func])
         return select_stmt.compile()
     raise TypeError(f"Got {output_type} as output. Expected ScalarType or TableType")
 
@@ -2384,11 +2512,7 @@ def convert_table_arg_to_table_ast_node(table_arg, alias=None):
 
 
 def nodeid_column():
-    return ScalarFunction(
-        name="CAST",
-        columns=[Column("'$node_id'", alias=dt.STR.to_sql())],
-        alias="node_id",
-    )
+    return Cast(name="$node_id", type_=dt.STR.to_sql(), alias="node_id")
 
 
 # ~~~~~~~~~~~~~~~~~ CREATE TABLE and INSERT query generator ~~~~~~~~~ #
@@ -2417,18 +2541,25 @@ def _get_smpc_table_template_names(prefix: str):
     """
     return (
         prefix,
-        prefix + "_add_op",
+        prefix + "_sum_op",
         prefix + "_min_op",
         prefix + "_max_op",
         prefix + "_union_op",
     )
 
 
-def _create_table_udf_output(output_type: OutputType, table_name: str) -> UDFGenResult:
+def _create_table_udf_output(
+    output_type: OutputType,
+    table_name: str,
+    nodeid=True,
+) -> UDFGenResult:
     drop_table = DROP_TABLE_IF_EXISTS + " $" + table_name + SCOLON
-    output_schema = f'"node_id" {dt.STR.to_sql()},' + iotype_to_sql_schema(output_type)
-    if isinstance(output_type, ScalarType):
+    if isinstance(output_type, ScalarType) or not nodeid:
         output_schema = iotype_to_sql_schema(output_type)
+    else:
+        output_schema = f'"node_id" {dt.STR.to_sql()},' + iotype_to_sql_schema(
+            output_type
+        )
     create_table = CREATE_TABLE + " $" + table_name + f"({output_schema})" + SCOLON
     return TableUDFGenResult(
         tablename_placeholder=table_name,
@@ -2440,18 +2571,18 @@ def _create_table_udf_output(output_type: OutputType, table_name: str) -> UDFGen
 def _create_smpc_udf_output(output_type: SecureTransferType, table_name_prefix: str):
     (
         template_tmpl,
-        add_op_tmpl,
+        sum_op_tmpl,
         min_op_tmpl,
         max_op_tmpl,
         union_op_tmpl,
     ) = _get_smpc_table_template_names(table_name_prefix)
     template = _create_table_udf_output(output_type, template_tmpl)
-    add_op = None
+    sum_op = None
     min_op = None
     max_op = None
     union_op = None
-    if output_type.add_op:
-        add_op = _create_table_udf_output(output_type, add_op_tmpl)
+    if output_type.sum_op:
+        sum_op = _create_table_udf_output(output_type, sum_op_tmpl)
     if output_type.min_op:
         min_op = _create_table_udf_output(output_type, min_op_tmpl)
     if output_type.max_op:
@@ -2460,7 +2591,7 @@ def _create_smpc_udf_output(output_type: SecureTransferType, table_name_prefix: 
         union_op = _create_table_udf_output(output_type, union_op_tmpl)
     return SMPCUDFGenResult(
         template=template,
-        add_op_values=add_op,
+        sum_op_values=sum_op,
         min_op_values=min_op,
         max_op_values=max_op,
         union_op_values=union_op,
@@ -2468,21 +2599,25 @@ def _create_smpc_udf_output(output_type: SecureTransferType, table_name_prefix: 
 
 
 def _create_udf_output(
-    output_type: OutputType, table_name: str, smpc_used: bool
+    output_type: OutputType,
+    table_name: str,
+    smpc_used: bool,
+    nodeid=True,
 ) -> UDFGenResult:
     if isinstance(output_type, SecureTransferType) and smpc_used:
         return _create_smpc_udf_output(output_type, table_name)
     else:
-        return _create_table_udf_output(output_type, table_name)
+        return _create_table_udf_output(output_type, table_name, nodeid)
 
 
 def get_udf_outputs(
     main_output_type: OutputType,
     sec_output_types: List[LoopbackOutputType],
     smpc_used: bool,
+    nodeid=True,
 ) -> List[UDFGenResult]:
     table_name = _get_main_table_template_name()
-    udf_outputs = [_create_udf_output(main_output_type, table_name, smpc_used)]
+    udf_outputs = [_create_udf_output(main_output_type, table_name, smpc_used, nodeid)]
 
     if sec_output_types:
         for table_name, sec_output_type in _get_loopback_tables_template_names(
@@ -2728,3 +2863,57 @@ def get_matrix_transpose_template(matrix):
         [table],
     )
     return select_stmt.compile()
+
+
+# ~~~~~~~~~~~~~~ SQL special queries ~~~~~~~~~~~~~~ #
+def get_create_dummy_encoded_design_matrix_execution_queries(keyword_args):
+    dm_table = get_dummy_encoded_design_matrix_table(keyword_args)
+    udf_select = get_dummy_encoded_design_matrix_select_stmt(dm_table)
+    output_schema = get_dummy_encoded_design_matrix_schema(dm_table)
+    output_type = relation(schema=output_schema)
+    udf_outputs = get_udf_outputs(
+        output_type,
+        sec_output_types=None,
+        smpc_used=False,
+        nodeid=False,
+    )
+    udf_execution_query = get_udf_execution_template(udf_select)
+    return UDFGenExecutionQueries(
+        udf_results=udf_outputs,
+        udf_select_query=udf_execution_query,
+    )
+
+
+def get_dummy_encoded_design_matrix_table(keyword_args):
+    enums = keyword_args["enums"]
+    numerical_vars = keyword_args["numerical_vars"]
+    intercept = keyword_args["intercept"]
+    table_name = keyword_args["x"].name
+    rowid_column = [Column(name="row_id")]
+    intercept_column = [ConstColumn(value=1, alias="intercept")] if intercept else []
+    numerical_columns = [Column(name=varname) for varname in numerical_vars]
+    dummy_columns = [
+        ConstColumn(
+            value=f"CASE WHEN {varname} = '{enum['code']}' THEN 1 ELSE 0 END",
+            alias=enum["dummy"],
+        )
+        for varname in enums.keys()
+        for enum in enums[varname]
+    ]
+    columns = rowid_column + intercept_column + dummy_columns + numerical_columns
+    table = Table(name=table_name, columns=columns)
+    return table
+
+
+def get_dummy_encoded_design_matrix_select_stmt(design_matrix_table):
+    sel = Select(columns=design_matrix_table.columns, tables=[design_matrix_table])
+    return sel.compile()
+
+
+def get_dummy_encoded_design_matrix_schema(design_matrix_table):
+    assert design_matrix_table.columns[0].name == "row_id"
+    schema = [("row_id", int)]
+    for column in design_matrix_table.columns[1:]:
+        colname = column.alias or column.name
+        schema.append((colname, float))
+    return schema

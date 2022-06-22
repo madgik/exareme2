@@ -29,18 +29,16 @@ def local_step(table: DataFrame):
     return state_, transfer_
 
 
-@udf(table=relation(S), return_type=secure_transfer(add_op=True))
+@udf(table=relation(S), return_type=secure_transfer(sum_op=True))
 def smpc_local_step(table: DataFrame):
     sum_ = 0
     for element, *_ in table.values:
         sum_ += element
-    secure_transfer_ = {
-        "sum": {"data": int(sum_), "type": "int", "operation": "addition"}
-    }
+    secure_transfer_ = {"sum": {"data": int(sum_), "operation": "sum"}}
     return secure_transfer_
 
 
-@udf(locals_result=secure_transfer(add_op=True), return_type=transfer())
+@udf(locals_result=secure_transfer(sum_op=True), return_type=transfer())
 def smpc_global_step(locals_result):
     result = {"total_sum": locals_result["sum"]}
     return result

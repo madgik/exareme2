@@ -1,68 +1,43 @@
 import json
 import uuid
-
-import pytest
+from time import sleep
 from typing import Tuple
 
+import pytest
 import requests
 
 from mipengine import DType
 from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import NodeSMPCValueDTO
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
+from mipengine.node_tasks_DTOs import NodeSMPCValueDTO
+from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import UDFKeyArguments
 from mipengine.node_tasks_DTOs import UDFPosArguments
 from mipengine.node_tasks_DTOs import UDFResults
-from mipengine.smpc_DTOs import SMPCRequestData
-from mipengine.smpc_DTOs import SMPCRequestType
 from mipengine.smpc_cluster_comm_helpers import ADD_DATASET_ENDPOINT
 from mipengine.smpc_cluster_comm_helpers import TRIGGER_COMPUTATION_ENDPOINT
+from mipengine.smpc_cluster_comm_helpers import get_smpc_result
+from mipengine.smpc_DTOs import SMPCRequestData
+from mipengine.smpc_DTOs import SMPCRequestType
+from mipengine.smpc_DTOs import SMPCResponse
+from mipengine.smpc_DTOs import SMPCResponseStatus
 from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import smpc_global_step
 from tests.algorithms.orphan_udfs import smpc_local_step
-from tests.standalone_tests.conftest import GLOBALNODE_SMPC_CONFIG_FILE
-from tests.standalone_tests.conftest import LOCALNODE2_SMPC_CONFIG_FILE
-from tests.standalone_tests.conftest import LOCALNODE_1_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE1_SMPC_CONFIG_FILE
-from tests.standalone_tests.nodes_communication_helper import get_celery_app
+from tests.standalone_tests.conftest import LOCALNODE2_SMPC_CONFIG_FILE
+from tests.standalone_tests.conftest import get_node_config_by_id
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
-from tests.standalone_tests.nodes_communication_helper import get_node_config_by_id
 from tests.standalone_tests.test_udfs import create_table_with_one_column_and_ten_rows
 
-
-request_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10] + "_request"
-context_id = "test_smpc_udfs_" + str(uuid.uuid4().hex)[:10]
+request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
+context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 command_id = "command123"
 smpc_job_id = "testKey123"
 SMPC_GET_DATASET_ENDPOINT = "/api/update-dataset/"
-SMPC_COORDINATOR_ADDRESS = "http://dl056.madgik.di.uoa.gr:12314"
-
-
-@pytest.fixture(scope="session")
-def localnode_1_celery_app():
-    config = get_node_config_by_id(LOCALNODE_1_CONFIG_FILE)
-    yield get_celery_app(config)
-
-
-@pytest.fixture(scope="session")
-def smpc_globalnode_celery_app():
-    config = get_node_config_by_id(GLOBALNODE_SMPC_CONFIG_FILE)
-    yield get_celery_app(config)
-
-
-@pytest.fixture(scope="session")
-def smpc_localnode1_celery_app():
-    config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
-    yield get_celery_app(config)
-
-
-@pytest.fixture(scope="session")
-def smpc_localnode2_celery_app():
-    config = get_node_config_by_id(LOCALNODE2_SMPC_CONFIG_FILE)
-    yield get_celery_app(config)
+SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
 
 
 def create_secure_transfer_table(celery_app) -> str:
@@ -97,12 +72,8 @@ def create_table_with_secure_transfer_results_with_smpc_off(
     secure_transfer_1_value = 100
     secure_transfer_2_value = 11
 
-    secure_transfer_1 = {
-        "sum": {"data": secure_transfer_1_value, "type": "int", "operation": "addition"}
-    }
-    secure_transfer_2 = {
-        "sum": {"data": secure_transfer_2_value, "type": "int", "operation": "addition"}
-    }
+    secure_transfer_1 = {"sum": {"data": secure_transfer_1_value, "operation": "sum"}}
+    secure_transfer_2 = {"sum": {"data": secure_transfer_2_value, "operation": "sum"}}
     values = [
         ["localnode1", json.dumps(secure_transfer_1)],
         ["localnode2", json.dumps(secure_transfer_2)],
@@ -123,12 +94,8 @@ def create_table_with_multiple_secure_transfer_templates(
 
     table_name = create_secure_transfer_table(celery_app)
 
-    secure_transfer_template = {
-        "sum": {"data": [0, 1, 2, 3], "type": "int", "operation": "addition"}
-    }
-    different_secure_transfer_template = {
-        "sum": {"data": 0, "type": "int", "operation": "addition"}
-    }
+    secure_transfer_template = {"sum": {"data": [0, 1, 2, 3], "operation": "sum"}}
+    different_secure_transfer_template = {"sum": {"data": 0, "operation": "sum"}}
 
     if similar:
         values = [
@@ -148,22 +115,22 @@ def create_table_with_multiple_secure_transfer_templates(
     return table_name
 
 
-def create_table_with_smpc_add_op_values(celery_app) -> Tuple[str, str]:
+def create_table_with_smpc_sum_op_values(celery_app) -> Tuple[str, str]:
     insert_data_to_table_task = get_celery_task_signature(
         celery_app, "insert_data_to_table"
     )
     table_name = create_secure_transfer_table(celery_app)
 
-    add_op_values = [0, 1, 2, 3, 4, 5]
+    sum_op_values = [0, 1, 2, 3, 4, 5]
     values = [
-        ["localnode1", json.dumps(add_op_values)],
+        ["localnode1", json.dumps(sum_op_values)],
     ]
 
     insert_data_to_table_task.delay(
         request_id=request_id, table_name=table_name, values=values
     ).get()
 
-    return table_name, json.dumps(add_op_values)
+    return table_name, json.dumps(sum_op_values)
 
 
 def validate_dict_table_data_match_expected(
@@ -180,15 +147,15 @@ def validate_dict_table_data_match_expected(
 
 
 def test_secure_transfer_output_with_smpc_off(
-    localnode_1_node_service, use_localnode_1_database, localnode_1_celery_app
+    localnode1_node_service, use_localnode1_database, localnode1_celery_app
 ):
-    run_udf_task = get_celery_task_signature(localnode_1_celery_app, "run_udf")
+    run_udf_task = get_celery_task_signature(localnode1_celery_app, "run_udf")
     get_table_data_task = get_celery_task_signature(
-        localnode_1_celery_app, "get_table_data"
+        localnode1_celery_app, "get_table_data"
     )
 
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode_1_celery_app
+        localnode1_celery_app
     )
 
     pos_args_str = UDFPosArguments(args=[NodeTableDTO(value=input_table_name)]).json()
@@ -208,9 +175,7 @@ def test_secure_transfer_output_with_smpc_off(
     secure_transfer_result = results[0]
     assert isinstance(secure_transfer_result, NodeTableDTO)
 
-    expected_result = {
-        "sum": {"data": input_table_name_sum, "type": "int", "operation": "addition"}
-    }
+    expected_result = {"sum": {"data": input_table_name_sum, "operation": "sum"}}
     validate_dict_table_data_match_expected(
         get_table_data_task,
         secure_transfer_result.value,
@@ -219,17 +184,17 @@ def test_secure_transfer_output_with_smpc_off(
 
 
 def test_secure_transfer_input_with_smpc_off(
-    localnode_1_node_service, use_localnode_1_database, localnode_1_celery_app
+    localnode1_node_service, use_localnode1_database, localnode1_celery_app
 ):
-    run_udf_task = get_celery_task_signature(localnode_1_celery_app, "run_udf")
+    run_udf_task = get_celery_task_signature(localnode1_celery_app, "run_udf")
     get_table_data_task = get_celery_task_signature(
-        localnode_1_celery_app, "get_table_data"
+        localnode1_celery_app, "get_table_data"
     )
 
     (
         secure_transfer_results_tablename,
         secure_transfer_results_values_sum,
-    ) = create_table_with_secure_transfer_results_with_smpc_off(localnode_1_celery_app)
+    ) = create_table_with_secure_transfer_results_with_smpc_off(localnode1_celery_app)
 
     pos_args_str = UDFPosArguments(
         args=[NodeTableDTO(value=secure_transfer_results_tablename)]
@@ -258,6 +223,7 @@ def test_secure_transfer_input_with_smpc_off(
     )
 
 
+@pytest.mark.smpc
 def test_validate_smpc_templates_match(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -279,6 +245,7 @@ def test_validate_smpc_templates_match(
         pytest.fail(f"No exception should be raised. Exception: {exc}")
 
 
+@pytest.mark.smpc
 def test_validate_smpc_templates_dont_match(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -299,6 +266,7 @@ def test_validate_smpc_templates_dont_match(
     assert "SMPC templates dont match." in str(exc)
 
 
+@pytest.mark.smpc
 def test_secure_transfer_run_udf_flow_with_smpc_on(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -334,19 +302,19 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     assert isinstance(smpc_result, NodeSMPCDTO)
 
     assert smpc_result.value.template is not None
-    expected_template = {"sum": {"data": 0, "type": "int", "operation": "addition"}}
+    expected_template = {"sum": {"data": 0, "operation": "sum"}}
     validate_dict_table_data_match_expected(
         get_table_data_task,
         smpc_result.value.template.value,
         expected_template,
     )
 
-    assert smpc_result.value.add_op_values is not None
-    expected_add_op_values = [input_table_name_sum]
+    assert smpc_result.value.sum_op_values is not None
+    expected_sum_op_values = [input_table_name_sum]
     validate_dict_table_data_match_expected(
         get_table_data_task,
-        smpc_result.value.add_op_values.value,
-        expected_add_op_values,
+        smpc_result.value.sum_op_values.value,
+        expected_sum_op_values,
     )
 
     # ----------------------- SECURE TRANSFER INPUT----------------------
@@ -355,7 +323,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     smpc_arg = NodeSMPCDTO(
         value=NodeSMPCValueDTO(
             template=NodeTableDTO(value=smpc_result.value.template.value),
-            add_op_values=NodeTableDTO(value=smpc_result.value.add_op_values.value),
+            sum_op_values=NodeTableDTO(value=smpc_result.value.sum_op_values.value),
         )
     )
 
@@ -385,6 +353,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     )
 
 
+@pytest.mark.smpc
 def test_load_data_to_smpc_client_from_globalnode_fails(
     smpc_globalnode_node_service,
     smpc_globalnode_celery_app,
@@ -402,15 +371,15 @@ def test_load_data_to_smpc_client_from_globalnode_fails(
     assert "load_data_to_smpc_client is allowed only for a LOCALNODE." in str(exc)
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
+@pytest.mark.smpc
 def test_load_data_to_smpc_client(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
     smpc_localnode1_celery_app,
+    smpc_cluster,
 ):
-    table_name, add_op_values_str = create_table_with_smpc_add_op_values(
+    table_name, sum_op_values_str = create_table_with_smpc_sum_op_values(
         smpc_localnode1_celery_app
     )
 
@@ -420,9 +389,8 @@ def test_load_data_to_smpc_client(
 
     load_data_to_smpc_client_task.delay(
         request_id=request_id,
-        context_id=context_id,
         table_name=table_name,
-        jobid="testKey123",
+        jobid=smpc_job_id,
     ).get()
 
     node_config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
@@ -439,12 +407,13 @@ def test_load_data_to_smpc_client(
 
     # TODO Remove when smpc cluster call is fixed
     # The problem is that the call returns the integers as string
-    # assert response.text == add_op_values_str
+    # assert response.text == sum_op_values_str
     result = json.loads(response.text)
     result = [int(elem) for elem in result]
-    assert json.dumps(result) == add_op_values_str
+    assert json.dumps(result) == sum_op_values_str
 
 
+@pytest.mark.smpc
 def test_get_smpc_result_from_localnode_fails(
     smpc_localnode1_node_service,
     smpc_localnode1_celery_app,
@@ -463,13 +432,13 @@ def test_get_smpc_result_from_localnode_fails(
     assert "get_smpc_result is allowed only for a GLOBALNODE." in str(exc)
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
+@pytest.mark.smpc
 def test_get_smpc_result(
     smpc_globalnode_node_service,
     use_smpc_globalnode_database,
     smpc_globalnode_celery_app,
+    smpc_cluster,
 ):
     get_smpc_result_task = get_celery_task_signature(
         smpc_globalnode_celery_app, "get_smpc_result"
@@ -485,7 +454,7 @@ def test_get_smpc_result(
     smpc_computation_data = [100]
     response = requests.post(
         request_url,
-        data=json.dumps(smpc_computation_data),
+        data=json.dumps({"type": "int", "data": smpc_computation_data}),
         headers=request_headers,
     )
     assert response.status_code == 200
@@ -503,6 +472,24 @@ def test_get_smpc_result(
     )
     assert response.status_code == 200
 
+    # --------------- Wait for SMPC result to be ready ------------------------
+    for _ in range(1, 100):
+        response = get_smpc_result(
+            coordinator_address=SMPC_COORDINATOR_ADDRESS,
+            jobid=smpc_job_id,
+        )
+        smpc_response = SMPCResponse.parse_raw(response)
+
+        if smpc_response.status == SMPCResponseStatus.FAILED:
+            raise ValueError(
+                f"The SMPC returned a {SMPCResponseStatus.FAILED} status. Body: {response}"
+            )
+        elif smpc_response.status == SMPCResponseStatus.COMPLETED:
+            break
+        sleep(1)
+    else:
+        raise TimeoutError("SMPC did not finish in 100 tries.")
+
     # --------------- GET SMPC RESULT IN GLOBALNODE ------------------------
     result_tablename = get_smpc_result_task.delay(
         request_id=request_id,
@@ -516,9 +503,8 @@ def test_get_smpc_result(
     )
 
 
-@pytest.mark.skip(
-    reason="SMPC is not deployed in the CI yet. https://team-1617704806227.atlassian.net/browse/MIP-344"
-)
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
+@pytest.mark.smpc
 def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_node_service,
     smpc_localnode1_node_service,
@@ -529,6 +515,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_celery_app,
     smpc_localnode1_celery_app,
     smpc_localnode2_celery_app,
+    smpc_cluster,
 ):
     run_udf_task_globalnode = get_celery_task_signature(
         smpc_globalnode_celery_app, "run_udf"
@@ -651,14 +638,12 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     # --------- LOAD LOCALNODE ADD OP DATA TO SMPC CLIENTS -----------------
     smpc_client_1 = load_data_to_smpc_client_task_localnode1.delay(
         request_id=request_id,
-        context_id=context_id,
-        table_name=local_1_smpc_result.value.add_op_values.value,
+        table_name=local_1_smpc_result.value.sum_op_values.value,
         jobid=smpc_job_id,
     ).get()
     smpc_client_2 = load_data_to_smpc_client_task_localnode2.delay(
         request_id=request_id,
-        context_id=context_id,
-        table_name=local_2_smpc_result.value.add_op_values.value,
+        table_name=local_2_smpc_result.value.sum_op_values.value,
         jobid=smpc_job_id,
     ).get()
 
@@ -681,8 +666,26 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     )
     assert response.status_code == 200
 
-    # --------- Get Results of SMPC in globalnode -----------------
-    add_op_values_tablename = get_smpc_result_task_globalnode.delay(
+    # --------------- Wait for SMPC result to be ready ------------------------
+    for _ in range(1, 100):
+        response = get_smpc_result(
+            coordinator_address=SMPC_COORDINATOR_ADDRESS,
+            jobid=smpc_job_id,
+        )
+        smpc_response = SMPCResponse.parse_raw(response)
+
+        if smpc_response.status == SMPCResponseStatus.FAILED:
+            raise ValueError(
+                f"The SMPC returned a {SMPCResponseStatus.FAILED} status. Body: {response}"
+            )
+        elif smpc_response.status == SMPCResponseStatus.COMPLETED:
+            break
+        sleep(1)
+    else:
+        raise TimeoutError("SMPC did not finish in 100 tries.")
+
+    # --------- Get SMPC result in globalnode -----------------
+    sum_op_values_tablename = get_smpc_result_task_globalnode.delay(
         request_id=request_id,
         context_id=context_id,
         command_id="4",
@@ -693,7 +696,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_arg = NodeSMPCDTO(
         value=NodeSMPCValueDTO(
             template=NodeTableDTO(value=globalnode_template_tablename),
-            add_op_values=NodeTableDTO(value=add_op_values_tablename),
+            sum_op_values=NodeTableDTO(value=sum_op_values_tablename),
         )
     )
     pos_args_str = UDFPosArguments(args=[smpc_arg]).json()

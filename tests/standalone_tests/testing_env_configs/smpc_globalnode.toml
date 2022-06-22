@@ -1,9 +1,8 @@
-identifier = "test_smpc_globalnode"
+identifier = "testsmpcglobalnode"
 log_level = "DEBUG"
 framework_log_level = "INFO"
 
 role = "GLOBALNODE"
-cdes_metadata_path = "./tests/demo_data"
 
 [privacy]
 minimum_row_count = 10
@@ -34,6 +33,4 @@ enabled = true
 optional = false
 client_id = ""
 client_address = ""
-coordinator_address = "http://dl056.madgik.di.uoa.gr:12314"
-get_result_interval = 0.5
-get_result_max_retries = 120
+coordinator_address = "http://172.17.0.1:12314"
