@@ -156,7 +156,7 @@ class CeleryWrapper:
             retry_interval = 1
             while not connection_is_ok:
                 try:
-                    celery_app.control.inspect().ping()
+                    self._celery_app.control.inspect().ping()
                     connection_is_ok = True
                 except kombu.exceptions.OperationalError:
                     logger.debug(
