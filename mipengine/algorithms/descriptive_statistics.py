@@ -59,9 +59,12 @@ def run(algo_interface):
     global_run = algo_interface.run_udf_on_global_node
 
     #X_relation = algo_interface.initial_view_tables["x"]
+    x_list = algo_interface.x_variables if algo_interface.x_variables != None else []
+    y_list = algo_interface.y_variables if algo_interface.y_variables != None else []
 
-    X_relation, Y_relation = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.x_variables,algo_interface.y_variables],dropna=False
+    X_relation, *_ = algo_interface.create_primary_data_views(
+        #variable_groups=[x_list+y_list],dropna=False
+        variable_groups=[x_list+y_list],dropna=False
     )
 
     metadata_dict = algo_interface.metadata
@@ -76,9 +79,16 @@ def run(algo_interface):
     print(categorical_columns)
     print(numerical_columns)
 
+    #categorical_relation = local_run(
+    #    func=filter_categorical,
+    #    positional_args=[X_relation,categorical_columns],
+    #    share_to_global=[True],
+    #)
+
+
     local_result_categorical = local_run(
         func=count_locals,
-        positional_args=[Y_relation,categorical_columns],
+        positional_args=[X_relation,categorical_columns],
         share_to_global=[True],
     )
 
@@ -92,11 +102,20 @@ def run(algo_interface):
     categorical_counts_list = []
     for curr_column in categorical_columns:
         categorical_counts_list.append(global_categorical_res[curr_column])
-
-
+    """
+    X_numeric = local_run(
+        func=filter_numerical,
+        positional_args=[X_relation,numerical_columns],
+    )
     X = local_run(
         func=relation_to_matrix,
-        positional_args=[X_relation],
+        positional_args=[X_numeric],
+    )
+    """
+
+    X = local_run(
+        func=relation_to_matrix_num,
+        positional_args=[X_relation,numerical_columns],
     )
 
     local_result = local_run(
@@ -135,7 +154,7 @@ def run(algo_interface):
     q2_final = q2_array.tolist()
     q3_final = q3_array.tolist()
 
-    x_variables = algo_interface.x_variables
+    x_variables = x_list
 
 
 
@@ -263,6 +282,26 @@ def global_counts(local_transfers,columns_list):
 @udf(rel=relation(S), return_type=tensor(float, 2))
 def relation_to_matrix(rel):
     return rel
+
+@udf(input_df=relation(S),categorical_columns=literal(), return_type=relation(S))
+def filter_categorical(input_df,categorical_columns):
+    raise ValueError(input_df.head(5))
+    ret_categorical = ['input_df_'+ curr_cat for curr_cat in categorical_columns]
+    ret_rel = input_df[ret_categorical]
+    return ret_rel
+
+@udf(input_df=relation(S),numerical_columns=literal(), return_type=relation(S))
+def filter_numerical(input_df,numerical_columns):
+    raise ValueError(input_df.head(5))
+    ret_numerical = ['input_df_'+ curr_num for curr_num in numerical_columns]
+    ret_rel = input_df[ret_numerical]
+    return ret_rel
+
+@udf(rel=relation(S),numerical_columns=literal(), return_type=tensor(float, 2))
+def relation_to_matrix_num(rel,numerical_columns):
+    ret_numerical = ['rel_'+ curr_num for curr_num in numerical_columns]
+    ret_rel = rel[ret_numerical]
+    return ret_rel
 
 @udf(a=tensor(T, 2), return_type=tensor(T, 2))
 def remove_nulls(a):

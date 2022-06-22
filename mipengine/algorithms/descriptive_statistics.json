@@ -11,7 +11,7 @@
 				"int", "real", "text"
 			],
 			"stattypes": [
-				"numerical"
+				"numerical","nominal"
 			],
 			"notblank": false,
 			"multiple": true
@@ -23,7 +23,7 @@
 				"int", "real", "text"
 			],
 			"stattypes": [
-				"nominal"
+				"nominal","numerical"
 			],
 			"notblank": true,
 			"multiple": true
