@@ -14,6 +14,7 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.controller import Controller
 from mipengine.controller.controller import get_a_uniqueid
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+from tests.standalone_tests.conftest import CONTROLLER_LOCALNODES_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_NAME
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_PORT
@@ -21,7 +22,7 @@ from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 from tests.standalone_tests.conftest import _create_node_service
 from tests.standalone_tests.conftest import _create_rabbitmq_container
 from tests.standalone_tests.conftest import create_node_tasks_handler_celery
-from tests.standalone_tests.conftest import kill_node_service
+from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
 WAIT_CLEANUP_TIME_LIMIT = 40
@@ -43,7 +44,8 @@ def controller_config_dict_mock():
             "contextid_release_timelimit": 3600,  # 1hour
         },
         "localnodes": {
-            "config_file": "./tests/standalone_tests/testing_env_configs/test_localnodes_addresses.json",
+            "config_file": "./tests/standalone_tests/testing_env_configs/"
+            + CONTROLLER_LOCALNODES_CONFIG_FILE,
             "dns": "",
             "port": "",
         },
@@ -52,6 +54,7 @@ def controller_config_dict_mock():
             "password": "password",
             "vhost": "user_vhost",
             "celery_tasks_timeout": 40,
+            "celery_run_udf_task_timeout": 40,
             "celery_tasks_max_retries": 3,
             "celery_tasks_interval_start": 0,
             "celery_tasks_interval_step": 0.2,
@@ -604,7 +607,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     )
 
     remove_localnodetmp_rabbitmq()
-    kill_node_service(localnodetmp_node_service)
+    kill_service(localnodetmp_node_service)
 
     controller._cleaner.release_contextid_for_cleanup(context_id=context_id)
 
@@ -660,7 +663,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # the node service was started in here so it must manually killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
     # where teh node service is supposedly down
-    kill_node_service(localnodetmp_node_service_proc)
+    kill_service(localnodetmp_node_service_proc)
 
     if (
         globalnode_tables_before_cleanup
@@ -775,7 +778,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
-    kill_node_service(localnodetmp_node_service)
+    kill_service(localnodetmp_node_service)
 
     controller._cleaner.release_contextid_for_cleanup(context_id=context_id)
 
@@ -825,7 +828,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     # the node service was started in here so it must manually killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
     # where teh node service is supposedly down
-    kill_node_service(localnodetmp_node_service_proc)
+    kill_service(localnodetmp_node_service_proc)
 
     if (
         globalnode_tables_before_cleanup

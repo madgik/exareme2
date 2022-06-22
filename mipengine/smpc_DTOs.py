@@ -28,7 +28,7 @@ class SMPCResponseStatus(enum.Enum):
 
 class SMPCRequestData(BaseModel):
     computationType: SMPCRequestType
-    clients: List[int]
+    clients: List[str]
 
 
 class SMPCResponse(BaseModel):

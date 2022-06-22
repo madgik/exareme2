@@ -13,7 +13,7 @@ from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFPosArguments
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_NAME
 from tests.standalone_tests.conftest import _remove_rabbitmq_container
-from tests.standalone_tests.conftest import kill_node_service
+from tests.standalone_tests.conftest import kill_service
 
 COMMON_TASKS_REQUEST_ID = "rqst1"
 
@@ -173,7 +173,7 @@ def test_time_limit_exceeded_exception(
     )
 
     # Stop the nodes (NOT the task queue of the node, only the celery app)
-    kill_node_service(localnodetmp_node_service)
+    kill_service(localnodetmp_node_service)
 
     # Queue a task which will raise the exception
     with pytest.raises(TimeoutError):

@@ -294,9 +294,9 @@ class LocalNode(_Node):
                 raise NotImplementedError
         return udf_results
 
-    def load_data_to_smpc_client(self, table_name: str, jobid: str) -> int:
+    def load_data_to_smpc_client(self, table_name: str, jobid: str) -> str:
         return self._node_tasks_handler.load_data_to_smpc_client(
-            self.context_id, table_name, jobid
+            self.request_id, table_name, jobid
         )
 
 
@@ -327,7 +327,7 @@ class GlobalNode(_Node):
         table_name: str,
     ):
         self._node_tasks_handler.validate_smpc_templates_match(
-            self.context_id, table_name
+            self.request_id, table_name
         )
 
     def get_smpc_result(
@@ -337,6 +337,7 @@ class GlobalNode(_Node):
         command_subid: Optional[str] = "0",
     ) -> str:
         return self._node_tasks_handler.get_smpc_result(
+            request_id=self.request_id,
             jobid=jobid,
             context_id=self.context_id,
             command_id=str(command_id),

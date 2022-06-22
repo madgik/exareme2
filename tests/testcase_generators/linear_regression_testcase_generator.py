@@ -1,4 +1,7 @@
-import statsmodels.api as sm
+import re
+
+import pandas as pd
+import statsmodels.formula.api as smf
 
 from mipengine.algorithms.linear_regression import LinearRegressionResult
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
@@ -7,26 +10,40 @@ from tests.testcase_generators.testcase_generator import TestCaseGenerator
 class LinearRegressionTestCaseGenerator(TestCaseGenerator):
     def compute_expected_output(self, input_data, _):
         y, X = input_data
-        X.insert(0, "Intercept", [1] * len(X))
 
-        model = sm.OLS(y, X, missing="drop")
-        fitted = model.fit()
+        [yname] = y.columns
+        xnames = X.columns
+        formula = f"{yname}~{'+'.join(xnames)}"
+        data = pd.concat([y, X], axis=1)
+
+        model = smf.ols(formula, data=data, missing="drop").fit()
+
+        # NOTE: Statsmodels uses patsy to parse formula which names dummy variables
+        # using a "T" to signify "Treatment" (another name for dummy coding).
+        # The line below removes the "T" to match the dummy variable names from
+        # MIP-Engine. E.g. gender[T.F] -> gender[F]
+        dummy_xnames = [
+            re.sub(r"(\w+)\[T\.([\w\d-]+)\]", r"\1[\2]", name)
+            for name in model.model.exog_names
+        ]
 
         result = LinearRegressionResult(
-            n_obs=fitted.nobs,
-            df_resid=fitted.df_resid,
-            df_model=fitted.df_model,
-            coefficients=fitted.params.tolist(),
-            std_err=fitted.bse.tolist(),
-            t_stat=fitted.tvalues.tolist(),
-            t_p_values=fitted.pvalues.tolist(),
-            lower_ci=fitted.conf_int().to_numpy().T.tolist()[0],
-            upper_ci=fitted.conf_int().to_numpy().T.tolist()[1],
-            rse=fitted.mse_resid**0.5,
-            r_squared=fitted.rsquared,
-            r_squared_adjusted=fitted.rsquared_adj,
-            f_stat=fitted.fvalue,
-            f_p_value=fitted.f_pvalue,
+            dependent_var=model.model.endog_names,
+            n_obs=model.nobs,
+            df_resid=model.df_resid,
+            df_model=model.df_model,
+            rse=model.mse_resid**0.5,
+            r_squared=model.rsquared,
+            r_squared_adjusted=model.rsquared_adj,
+            f_stat=model.fvalue,
+            f_pvalue=model.f_pvalue,
+            indep_vars=dummy_xnames,
+            coefficients=model.params.tolist(),
+            std_err=model.bse.tolist(),
+            t_stats=model.tvalues.tolist(),
+            pvalues=model.pvalues.tolist(),
+            lower_ci=model.conf_int().to_numpy().T.tolist()[0],
+            upper_ci=model.conf_int().to_numpy().T.tolist()[1],
         )
         return result.dict()
 

@@ -2,11 +2,11 @@ from unittest.mock import patch
 
 import pytest
 
-from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
-from mipengine.controller.algorithms_specifications import AlgorithmsSpecifications
-from mipengine.controller.algorithms_specifications import InputDataSpecification
-from mipengine.controller.algorithms_specifications import InputDataSpecifications
-from mipengine.controller.algorithms_specifications import ParameterSpecification
+from mipengine.controller.algorithm_specifications import AlgorithmSpecification
+from mipengine.controller.algorithm_specifications import AlgorithmSpecifications
+from mipengine.controller.algorithm_specifications import InputDataSpecification
+from mipengine.controller.algorithm_specifications import InputDataSpecifications
+from mipengine.controller.algorithm_specifications import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
@@ -134,9 +134,9 @@ def available_datasets_per_data_model():
 
 @pytest.fixture(scope="module", autouse=True)
 def mock_algorithms_specs():
-    algorithms_specifications = AlgorithmsSpecifications()
+    algorithms_specifications = AlgorithmSpecifications()
     algorithms_specifications.enabled_algorithms = {
-        "test_algorithm1": AlgorithmSpecifications(
+        "test_algorithm1": AlgorithmSpecification(
             name="test algorithm1",
             desc="test algorithm1",
             label="test algorithm1",
@@ -200,24 +200,7 @@ def mock_algorithms_specs():
             },
             flags={"formula": False},
         ),
-        "algorithm_without_y": AlgorithmSpecifications(
-            name="algorithm_without_y",
-            desc="algorithm_without_y",
-            label="algorithm_without_y",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="features",
-                    desc="Features",
-                    types=["real"],
-                    stattypes=["numerical"],
-                    notblank=True,
-                    multiple=True,
-                    enumslen=None,
-                ),
-            ),
-        ),
-        "algorithm_without_x": AlgorithmSpecifications(
+        "algorithm_without_x": AlgorithmSpecification(
             name="algorithm_without_x",
             desc="algorithm_without_x",
             label="algorithm_without_x",
@@ -237,7 +220,7 @@ def mock_algorithms_specs():
     }
 
     with patch(
-        "mipengine.controller.api.validator.algorithms_specifications",
+        "mipengine.controller.api.validator.algorithm_specifications",
         algorithms_specifications,
     ):
         yield
@@ -276,16 +259,6 @@ def get_parametrization_list_success_cases():
                     data_model="test_data_model2:0.1",
                     datasets=["test_dataset2", "test_dataset3"],
                     y=["test_cde1"],
-                ),
-            ),
-        ),
-        (
-            "algorithm_without_y",
-            AlgorithmRequestDTO(
-                inputdata=AlgorithmInputDataDTO(
-                    data_model="test_data_model2:0.1",
-                    datasets=["test_dataset2", "test_dataset3"],
-                    x=["test_cde1"],
                 ),
             ),
         ),
@@ -556,7 +529,6 @@ def get_parametrization_list_exception_cases():
                 inputdata=AlgorithmInputDataDTO(
                     data_model="test_data_model2:0.1",
                     datasets=["test_dataset2", "test_dataset3"],
-                    x=["test_cde1"],
                 ),
             ),
             (BadUserInput, "Inputdata .* should be provided."),

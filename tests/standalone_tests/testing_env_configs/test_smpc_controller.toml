@@ -1,0 +1,32 @@
+log_level = "DEBUG"
+framework_log_level = "INFO"
+deployment_type = "LOCAL"
+node_landscape_aggregator_update_interval = 30
+
+[cleanup]
+contextids_cleanup_folder = "/tmp"
+nodes_cleanup_interval = 10
+contextid_release_timelimit = 3600
+
+[localnodes]
+config_file = "$LOCALNODES_CONFIG_FILE"
+dns = ""
+port = ""
+
+[rabbitmq]
+user = "user"
+password = "password"
+vhost = "user_vhost"
+celery_tasks_timeout = 20
+celery_run_udf_task_timeout = 120
+celery_tasks_max_retries = 3
+celery_tasks_interval_start = 0
+celery_tasks_interval_step = 0.2
+celery_tasks_interval_max = 0.5
+
+[smpc]
+enabled = true
+optional = false
+coordinator_address = "http://172.17.0.1:12314"
+get_result_interval = 2
+get_result_max_retries = 100

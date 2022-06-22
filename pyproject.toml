@@ -11,7 +11,6 @@ Quart = "^0.17.0"
 celery = "^5.2"
 asgiref = "^3.5.0"
 pymonetdb = "<1.5"
-dataclasses-json = "^0.5.2"
 astor = "^0.8.1"
 numpy = "^1.20.2"
 scipy = "^1.6.2"
@@ -52,6 +51,7 @@ psutil = "^5.9.0"
 markers = [
     "database: these tests depend on an external dockerized MonetDB service running (deselect with '-m \"not database\"')",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "smpc: marks the tests that need smpc deployment (deselect with '-m \"not smpc\"')",
 ]
 filterwarnings = ["ignore::DeprecationWarning"]
 norecursedirs = ["tests/testcase_generators"]

@@ -33,7 +33,7 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
-COMMON_IP = "127.0.0.1"
+COMMON_IP = "172.17.0.1"
 RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
 RABBITMQ_LOCALNODE1_NAME = "rabbitmq_test_localnode1"
 RABBITMQ_LOCALNODE2_NAME = "rabbitmq_test_localnode2"
@@ -65,6 +65,8 @@ MONETDB_LOCALNODETMP_PORT = 61003
 MONETDB_SMPC_GLOBALNODE_PORT = 61004
 MONETDB_SMPC_LOCALNODE1_PORT = 61005
 MONETDB_SMPC_LOCALNODE2_PORT = 61006
+CONTROLLER_PORT = 4500
+CONTROLLER_SMPC_PORT = 4501
 
 GLOBALNODE_CONFIG_FILE = "testglobalnode.toml"
 LOCALNODE1_CONFIG_FILE = "testlocalnode1.toml"
@@ -73,6 +75,69 @@ LOCALNODETMP_CONFIG_FILE = "testlocalnodetmp.toml"
 GLOBALNODE_SMPC_CONFIG_FILE = "smpc_globalnode.toml"
 LOCALNODE1_SMPC_CONFIG_FILE = "smpc_localnode1.toml"
 LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
+CONTROLLER_CONFIG_FILE = "testcontroller.toml"
+CONTROLLER_SMPC_CONFIG_FILE = "test_smpc_controller.toml"
+CONTROLLER_LOCALNODES_CONFIG_FILE = "test_localnodes_addresses.json"
+CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE = "test_smpc_localnodes_addresses.json"
+CONTROLLER_OUTPUT_FILE = "test_controller.out"
+SMPC_CONTROLLER_OUTPUT_FILE = "test_smpc_controller.out"
+
+TASKS_TIMEOUT = 10
+RUN_UDF_TASK_TIMEOUT = 120
+SMPC_CLUSTER_SLEEP_TIME = 60
+
+########### SMPC Cluster ############
+SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v6.0.0"
+SMPC_COORD_DB_IMAGE = "mongo:5.0.8"
+SMPC_COORD_QUEUE_IMAGE = "redis:alpine3.15"
+
+SMPC_COORD_CONT_NAME = "smpc_test_coordinator"
+SMPC_COORD_DB_CONT_NAME = "smpc_test_coordinator_db"
+SMPC_COORD_QUEUE_CONT_NAME = "smpc_test_coordinator_queue"
+SMPC_PLAYER1_CONT_NAME = "smpc_test_player1"
+SMPC_PLAYER2_CONT_NAME = "smpc_test_player2"
+SMPC_PLAYER3_CONT_NAME = "smpc_test_player3"
+SMPC_CLIENT1_CONT_NAME = "smpc_test_client1"
+SMPC_CLIENT2_CONT_NAME = "smpc_test_client2"
+
+SMPC_COORD_PORT = 12314
+SMPC_COORD_DB_PORT = 27017
+SMPC_COORD_QUEUE_PORT = 6379
+SMPC_PLAYER1_PORT1 = 6000
+SMPC_PLAYER1_PORT2 = 7000
+SMPC_PLAYER1_PORT3 = 14000
+SMPC_PLAYER2_PORT1 = 6001
+SMPC_PLAYER2_PORT2 = 7001
+SMPC_PLAYER2_PORT3 = 14001
+SMPC_PLAYER3_PORT1 = 6002
+SMPC_PLAYER3_PORT2 = 7002
+SMPC_PLAYER3_PORT3 = 14002
+SMPC_CLIENT1_PORT = 9005
+SMPC_CLIENT2_PORT = 9006
+#####################################
+
+
+# TODO Instead of the fixtures having scope session, it could be function,
+# but when the fixture start, it should check if it already exists, thus
+# not creating it again (fast). This could solve the problem of some
+# tests destroying some containers to test things.
+
+
+def _search_for_string_in_logfile(
+    log_to_search_for: str, logspath: Path, retries: int = 100
+):
+    for _ in range(retries):
+        try:
+            with open(logspath) as logfile:
+                if bool(re.search(log_to_search_for, logfile.read())):
+                    return
+        except FileNotFoundError:
+            pass
+        time.sleep(0.5)
+
+    raise TimeoutError(
+        f"Could not find the log '{log_to_search_for}' after '{retries}' tries.  Logs available at: '{logspath}'."
+    )
 
 
 class MonetDBSetupError(Exception):
@@ -225,6 +290,7 @@ def _load_data_monetdb_container(db_ip, db_port):
         cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     print(f"\nData loaded to database ({db_ip}:{db_port})")
+    time.sleep(2)  # Needed to avoid db crash while loading
 
 
 def _remove_data_model_from_localnodetmp_monetdb(data_model_code, data_model_version):
@@ -260,6 +326,20 @@ def load_data_localnodetmp(monetdb_localnodetmp):
     yield
 
 
+@pytest.fixture(scope="session")
+def load_data_smpc_localnode1(monetdb_smpc_localnode1):
+    _init_database_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT)
+    _load_data_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT)
+    yield
+
+
+@pytest.fixture(scope="session")
+def load_data_smpc_localnode2(monetdb_smpc_localnode2):
+    _init_database_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT)
+    _load_data_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT)
+    yield
+
+
 def _create_db_cursor(db_port):
     class MonetDBTesting:
         """MonetDB class used for testing."""
@@ -272,7 +352,7 @@ def _create_db_cursor(db_port):
             url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}:"
             self._executor = sql.create_engine(url, echo=True)
 
-        def execute(self, query, *args, **kwargs) -> list:
+        def execute(self, query, *args, **kwargs):
             return self._executor.execute(query, *args, **kwargs)
 
     return MonetDBTesting()
@@ -543,28 +623,14 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     )
 
     # Check that celery started
-    for _ in range(100):
-        try:
-            with open(logpath) as logfile:
-                if bool(
-                    re.search("CELERY - FRAMEWORK - celery@.* ready.", logfile.read())
-                ):
-                    break
-        except FileNotFoundError:
-            pass
-        time.sleep(0.5)
-    else:
-        with open(logpath) as logfile:
-            raise TimeoutError(
-                f"The node service '{node_id}' didn't manage to start in the designated time. Logs: \n{logfile.read()}"
-            )
+    _search_for_string_in_logfile("CELERY - FRAMEWORK - celery@.* ready.", logpath)
 
     print(f"Created node service with id '{node_id}' and process id '{proc.pid}'.")
     return proc
 
 
-def kill_node_service(proc):
-    print(f"\nKilling node service with process id '{proc.pid}'...")
+def kill_service(proc):
+    print(f"\nKilling service with process id '{proc.pid}'...")
     psutil_proc = psutil.Process(proc.pid)
     proc.kill()
     for _ in range(100):
@@ -573,9 +639,9 @@ def kill_node_service(proc):
         time.sleep(0.1)
     else:
         raise TimeoutError(
-            f"Node service is still running, status: '{psutil_proc.status()}'."
+            f"Service is still running, status: '{psutil_proc.status()}'."
         )
-    print(f"Killed node service with process id '{proc.pid}'.")
+    print(f"Killed service with process id '{proc.pid}'.")
 
 
 @pytest.fixture(scope="session")
@@ -585,7 +651,7 @@ def globalnode_node_service(rabbitmq_globalnode, monetdb_globalnode):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 @pytest.fixture(scope="session")
@@ -595,7 +661,7 @@ def localnode1_node_service(rabbitmq_localnode1, monetdb_localnode1):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 @pytest.fixture(scope="session")
@@ -605,7 +671,7 @@ def localnode2_node_service(rabbitmq_localnode2, monetdb_localnode2):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 @pytest.fixture(scope="session")
@@ -615,7 +681,7 @@ def smpc_globalnode_node_service(rabbitmq_smpc_globalnode, monetdb_smpc_globalno
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 @pytest.fixture(scope="session")
@@ -625,7 +691,7 @@ def smpc_localnode1_node_service(rabbitmq_smpc_localnode1, monetdb_smpc_localnod
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 @pytest.fixture(scope="session")
@@ -635,24 +701,24 @@ def smpc_localnode2_node_service(rabbitmq_smpc_localnode2, monetdb_smpc_localnod
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 @pytest.fixture(scope="function")
 def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     """
     ATTENTION!
-    This node service fixture is the only one returning the process so it can be killed.
-    The scope of the fixture is function so it won't break tests if the node service is killed.
-    The rabbitmq and monetdb containers have also function scope so this is VERY slow.
-    This should be used only when the service should be killed etc for testing.
+    This node service fixture is the only one returning the process, so it can be killed.
+    The scope of the fixture is function, so it won't break tests if the node service is killed.
+    The rabbitmq and monetdb containers have also 'function' scope so this is VERY slow.
+    This should be used only when the service should be killed e.g. for testing.
     """
     node_config_file = LOCALNODETMP_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
     proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
     yield proc
-    kill_node_service(proc)
+    kill_service(proc)
 
 
 def create_node_tasks_handler_celery(node_config_filepath):
@@ -663,7 +729,6 @@ def create_node_tasks_handler_celery(node_config_filepath):
         queue_port = tmp["rabbitmq"]["port"]
         db_domain = tmp["monetdb"]["ip"]
         db_port = tmp["monetdb"]["port"]
-        tasks_timeout = tmp["celery"]["task_time_limit"]
     queue_address = ":".join([str(queue_domain), str(queue_port)])
     db_address = ":".join([str(db_domain), str(db_port)])
 
@@ -671,7 +736,8 @@ def create_node_tasks_handler_celery(node_config_filepath):
         node_id=node_id,
         node_queue_addr=queue_address,
         node_db_addr=db_address,
-        tasks_timeout=tasks_timeout,
+        tasks_timeout=TASKS_TIMEOUT,
+        run_udf_task_timeout=RUN_UDF_TASK_TIMEOUT,
     )
 
 
@@ -777,4 +843,334 @@ def reset_node_landscape_aggregator():
     nla._data_model_registry = DataModelRegistry(
         get_request_logger("DATA-MODEL-REGISTRY")
     )
+
+
+@pytest.fixture(scope="session")
+def controller_service():
+    service_port = CONTROLLER_PORT
+    controller_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE
+    )
+    localnodes_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODES_CONFIG_FILE
+    )
+
+    proc = _create_controller_service(
+        service_port,
+        controller_config_filepath,
+        localnodes_config_filepath,
+        CONTROLLER_OUTPUT_FILE,
+    )
+    yield
+    kill_service(proc)
+
+
+@pytest.fixture(scope="session")
+def smpc_controller_service():
+    service_port = CONTROLLER_SMPC_PORT
+    controller_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_CONFIG_FILE
+    )
+    localnodes_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE
+    )
+
+    proc = _create_controller_service(
+        service_port,
+        controller_config_filepath,
+        localnodes_config_filepath,
+        SMPC_CONTROLLER_OUTPUT_FILE,
+    )
+    yield
+    kill_service(proc)
+
+
+def _create_controller_service(
+    service_port: int,
+    controller_config_filepath: str,
+    localnodes_config_filepath: str,
+    logs_filename: str,
+):
+    print(f"\nCreating controller service on port '{service_port}'...")
+
+    logpath = OUTDIR / logs_filename
+    if os.path.isfile(logpath):
+        os.remove(logpath)
+
+    env = os.environ.copy()
+    env["ALGORITHM_FOLDERS"] = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    env["LOCALNODES_CONFIG_FILE"] = localnodes_config_filepath
+    env["MIPENGINE_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
+    env["QUART_APP"] = "mipengine/controller/api/app:app"
+    env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)
+
+    cmd = (
+        f"poetry run quart run --host=0.0.0.0 --port {service_port} >> {logpath} 2>&1 "
+    )
+
+    # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
+    # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
+    proc = subprocess.Popen(
+        "exec " + cmd,
+        shell=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        env=env,
+    )
+
+    # Check that quart started
+    _search_for_string_in_logfile("CONTROLLER - WEBAPI - Running on ", logpath)
+
+    # Check that nodes were loaded
+    _search_for_string_in_logfile(
+        "INFO - CONTROLLER - BACKGROUND - federation_info_logs", logpath
+    )
+    print(f"\nCreated controller service on port '{service_port}'.")
+    return proc
+
+
+@pytest.fixture(scope="session")
+def smpc_coordinator():
+    docker_cli = docker.from_env()
+
+    print(f"\nWaiting for smpc coordinator db to be ready...")
+    # Start coordinator db
+    try:
+        docker_cli.containers.get(SMPC_COORD_DB_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_COORD_DB_IMAGE,
+            name=SMPC_COORD_DB_CONT_NAME,
+            detach=True,
+            ports={27017: SMPC_COORD_DB_PORT},
+            environment={
+                "MONGO_INITDB_ROOT_USERNAME": "sysadmin",
+                "MONGO_INITDB_ROOT_PASSWORD": "123qwe",
+            },
+        )
+    print("Created controller db service.")
+
+    # Start coordinator queue
+    print(f"\nWaiting for smpc coordinator queue to be ready...")
+    try:
+        docker_cli.containers.get(SMPC_COORD_QUEUE_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_COORD_QUEUE_IMAGE,
+            name=SMPC_COORD_QUEUE_CONT_NAME,
+            detach=True,
+            ports={6379: SMPC_COORD_QUEUE_PORT},
+            environment={
+                "REDIS_REPLICATION_MODE": "master",
+            },
+            command="redis-server --requirepass agora",
+        )
+    print("Created controller queue service.")
+
+    # Start coordinator
+    print(f"\nWaiting for smpc coordinator to be ready...")
+    try:
+        docker_cli.containers.get(SMPC_COORD_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_CLUSTER_IMAGE,
+            name=SMPC_COORD_CONT_NAME,
+            detach=True,
+            ports={12314: SMPC_COORD_PORT},
+            environment={
+                "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
+                "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
+                "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
+                "REDIS_HOST": f"{COMMON_IP}",
+                "REDIS_PORT": f"{SMPC_COORD_QUEUE_PORT}",
+                "REDIS_PSWD": "agora",
+                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
+                "DB_UNAME": "sysadmin",
+                "DB_PSWD": "123qwe",
+            },
+            command="python coordinator.py",
+        )
+    print("Created controller service.")
+
+    yield
+
+    # TODO Very slow development if containers are always removed afterwards
+    # db_cont = docker_cli.containers.get(SMPC_COORD_DB_CONT_NAME)
+    # db_cont.remove(v=True, force=True)
+    # queue_cont = docker_cli.containers.get(SMPC_COORD_QUEUE_CONT_NAME)
+    # queue_cont.remove(v=True, force=True)
+    # coord_cont = docker_cli.containers.get(SMPC_COORD_CONT_NAME)
+    # coord_cont.remove(v=True, force=True)
+
+
+@pytest.fixture(scope="session")
+def smpc_players():
+    docker_cli = docker.from_env()
+
+    # Start player 1
+    print(f"\nWaiting for smpc player 1 to be ready...")
+    try:
+        docker_cli.containers.get(SMPC_PLAYER1_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_CLUSTER_IMAGE,
+            name=SMPC_PLAYER1_CONT_NAME,
+            detach=True,
+            ports={
+                6000: SMPC_PLAYER1_PORT1,
+                7000: SMPC_PLAYER1_PORT2,
+                14000: SMPC_PLAYER1_PORT3,
+            },
+            environment={
+                "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
+                "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
+                "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
+                "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
+                "DB_UNAME": "sysadmin",
+                "DB_PSWD": "123qwe",
+            },
+            command="python player.py 0",
+        )
+    print("Created smpc player 1 service.")
+
+    # Start player 2
+    print(f"\nWaiting for smpc player 2 to be ready...")
+    try:
+        docker_cli.containers.get(SMPC_PLAYER2_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_CLUSTER_IMAGE,
+            name=SMPC_PLAYER2_CONT_NAME,
+            detach=True,
+            ports={
+                6001: SMPC_PLAYER2_PORT1,
+                7001: SMPC_PLAYER2_PORT2,
+                14001: SMPC_PLAYER2_PORT3,
+            },
+            environment={
+                "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
+                "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
+                "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
+                "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
+                "DB_UNAME": "sysadmin",
+                "DB_PSWD": "123qwe",
+            },
+            command="python player.py 1",
+        )
+    print("Created smpc player 2 service.")
+
+    # Start player 3
+    print(f"\nWaiting for smpc player 3 to be ready...")
+    try:
+        docker_cli.containers.get(SMPC_PLAYER3_CONT_NAME)
+    except docker.errors.NotFound:
+        docker_cli.containers.run(
+            image=SMPC_CLUSTER_IMAGE,
+            name=SMPC_PLAYER3_CONT_NAME,
+            detach=True,
+            ports={
+                6002: SMPC_PLAYER3_PORT1,
+                7002: SMPC_PLAYER3_PORT2,
+                14002: SMPC_PLAYER3_PORT3,
+            },
+            environment={
+                "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
+                "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
+                "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
+                "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+                "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
+                "DB_UNAME": "sysadmin",
+                "DB_PSWD": "123qwe",
+            },
+            command="python player.py 2",
+        )
+    print("Created smpc player 3 service.")
+
+    yield
+
+    # TODO Very slow development if containers are always removed afterwards
+    # player1_cont = docker_cli.containers.get(SMPC_PLAYER1_CONT_NAME)
+    # player1_cont.remove(v=True, force=True)
+    # player2_cont = docker_cli.containers.get(SMPC_PLAYER2_CONT_NAME)
+    # player2_cont.remove(v=True, force=True)
+    # player3_cont = docker_cli.containers.get(SMPC_PLAYER3_CONT_NAME)
+    # player3_cont.remove(v=True, force=True)
+
+
+@pytest.fixture(scope="session")
+def smpc_clients():
+    docker_cli = docker.from_env()
+
+    # Start client 1
+    print(f"\nWaiting for smpc client 1 to be ready...")
+    try:
+        docker_cli.containers.get(SMPC_CLIENT1_CONT_NAME)
+    except docker.errors.NotFound:
+        with open(path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_SMPC_CONFIG_FILE)) as fp:
+            tmp = toml.load(fp)
+            client_id = tmp["smpc"]["client_id"]
+        docker_cli.containers.run(
+            image=SMPC_CLUSTER_IMAGE,
+            name=SMPC_CLIENT1_CONT_NAME,
+            detach=True,
+            ports={
+                SMPC_CLIENT1_PORT: SMPC_CLIENT1_PORT,
+            },
+            environment={
+                "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
+                "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
+                "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
+                "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+                "ID": client_id,
+                "PORT": f"{SMPC_CLIENT1_PORT}",
+            },
+            command=f"python client.py",
+        )
+    print("Created smpc client 1 service.")
+
+    # Start client 2
+    print(f"\nWaiting for smpc client 2 to be ready...")
+    try:
+        docker_cli.containers.get(SMPC_CLIENT2_CONT_NAME)
+    except docker.errors.NotFound:
+        with open(path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE2_SMPC_CONFIG_FILE)) as fp:
+            tmp = toml.load(fp)
+            client_id = tmp["smpc"]["client_id"]
+        docker_cli.containers.run(
+            image=SMPC_CLUSTER_IMAGE,
+            name=SMPC_CLIENT2_CONT_NAME,
+            detach=True,
+            ports={
+                SMPC_CLIENT2_PORT: SMPC_CLIENT2_PORT,
+            },
+            environment={
+                "PLAYER_REPO_0": f"http://{COMMON_IP}:{SMPC_PLAYER1_PORT2}",
+                "PLAYER_REPO_1": f"http://{COMMON_IP}:{SMPC_PLAYER2_PORT2}",
+                "PLAYER_REPO_2": f"http://{COMMON_IP}:{SMPC_PLAYER3_PORT2}",
+                "COORDINATOR_URL": f"http://{COMMON_IP}:{SMPC_COORD_PORT}",
+                "ID": client_id,
+                "PORT": f"{SMPC_CLIENT2_PORT}",
+            },
+            command="python client.py",
+        )
+    print("Created smpc client 2 service.")
+
+    yield
+
+    # TODO Very slow development if containers are always removed afterwards
+    # client1_cont = docker_cli.containers.get(SMPC_CLIENT1_CONT_NAME)
+    # client1_cont.remove(v=True, force=True)
+    # client2_cont = docker_cli.containers.get(SMPC_CLIENT2_CONT_NAME)
+    # client2_cont.remove(v=True, force=True)
+
+
+@pytest.fixture(scope="session")
+def smpc_cluster(smpc_coordinator, smpc_players, smpc_clients):
+    print(f"\nWaiting for smpc cluster to be ready...")
+    time.sleep(
+        SMPC_CLUSTER_SLEEP_TIME
+    )  # TODO Check when the smpc cluster is actually ready
+    print(f"\nFinished waiting '{SMPC_CLUSTER_SLEEP_TIME}' secs for SMPC cluster.")
     yield
