@@ -159,6 +159,7 @@ class CeleryWrapper:
                     self._celery_app.control.inspect().ping()
                     connection_is_ok = True
                 except (
+                    amqp.exceptions.NotAllowed,
                     amqp.exceptions.AccessRefused,
                     kombu.exceptions.OperationalError,
                 ):
