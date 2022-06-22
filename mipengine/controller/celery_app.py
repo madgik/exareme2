@@ -158,7 +158,10 @@ class CeleryWrapper:
                 try:
                     self._celery_app.control.inspect().ping()
                     connection_is_ok = True
-                except kombu.exceptions.OperationalError:
+                except (
+                    amqp.exceptions.AccessRefused,
+                    kombu.exceptions.OperationalError,
+                ):
                     logger.debug(
                         f"Connection to broker ({self._socket_addr=}) is not established. "
                         f"Will retry in {retry_interval} seconds."
@@ -170,7 +173,6 @@ class CeleryWrapper:
             logger.info(
                 f"Connection to broker ({self._socket_addr=}) successfully established."
             )
-            self._celery_app = celery_app
 
     # It seems that Celery objects are somewhat expensive, do not have more than one
     # instance per node at any time
