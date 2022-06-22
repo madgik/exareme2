@@ -261,10 +261,6 @@ def test_update_loop_data_models_removed(
     )
 
     remove_data_model_from_localnodetmp_monetdb("dementia:0.1")
-    print(
-        f"just after remove 'dementia:0.1' {('dementia:0.1'in data_models)=} "
-        f"{('tbi:0.1'in data_models)=}"
-    )
 
     # Wait until data model registry no longer contains 'dementia:0.1' and that the tmp node is there.
     # If NLA updates when the data model is being removed from the db it will crash and remove the node completely.
