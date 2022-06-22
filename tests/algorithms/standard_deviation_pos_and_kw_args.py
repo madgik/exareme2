@@ -16,18 +16,18 @@ def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
     global_run = algo_interface.run_udf_on_global_node
 
-    X_relation, *_ = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.x_variables],
+    Y_relation, *_ = algo_interface.create_primary_data_views(
+        variable_groups=[algo_interface.y_variables],
     )
 
-    X = local_run(
+    Y = local_run(
         func=relation_to_matrix,
-        positional_args=[X_relation],
+        positional_args=[Y_relation],
     )
 
     local_state, local_result = local_run(
         func=local_step_1,
-        keyword_args={"table": X},
+        keyword_args={"table": Y},
         share_to_global=[False, True],
     )
 
@@ -50,11 +50,11 @@ def run(algo_interface):
         keyword_args={"local_transfers": local_result},
     )
     std_deviation = json.loads(global_result.get_table_data()[1][0])["deviation"]
-    x_variables = algo_interface.x_variables
+    y_variables = algo_interface.y_variables
     result = TabularDataResult(
         title="Standard Deviation",
         columns=[
-            ColumnDataStr(name="variable", data=x_variables),
+            ColumnDataStr(name="variable", data=y_variables),
             ColumnDataFloat(name="std_deviation", data=[std_deviation]),
         ],
     )

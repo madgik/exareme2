@@ -5,13 +5,13 @@ from typing import List
 from typing import Optional
 
 from mipengine.controller import config as ctrl_config
-from mipengine.controller.algorithms_specifications import AlgorithmSpecifications
-from mipengine.controller.algorithms_specifications import InputDataSpecification
-from mipengine.controller.algorithms_specifications import InputDataSpecifications
-from mipengine.controller.algorithms_specifications import InputDataStatType
-from mipengine.controller.algorithms_specifications import InputDataType
-from mipengine.controller.algorithms_specifications import ParameterSpecification
-from mipengine.controller.algorithms_specifications import algorithms_specifications
+from mipengine.controller.algorithm_specifications import AlgorithmSpecification
+from mipengine.controller.algorithm_specifications import InputDataSpecification
+from mipengine.controller.algorithm_specifications import InputDataSpecifications
+from mipengine.controller.algorithm_specifications import InputDataStatType
+from mipengine.controller.algorithm_specifications import InputDataType
+from mipengine.controller.algorithm_specifications import ParameterSpecification
+from mipengine.controller.algorithm_specifications import algorithm_specifications
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
@@ -39,14 +39,14 @@ def validate_algorithm_request(
 
 
 def _get_algorithm_specs(algorithm_name):
-    if algorithm_name not in algorithms_specifications.enabled_algorithms.keys():
+    if algorithm_name not in algorithm_specifications.enabled_algorithms.keys():
         raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
-    return algorithms_specifications.enabled_algorithms[algorithm_name]
+    return algorithm_specifications.enabled_algorithms[algorithm_name]
 
 
 def _validate_algorithm_request_body(
     algorithm_request_dto: AlgorithmRequestDTO,
-    algorithm_specs: AlgorithmSpecifications,
+    algorithm_specs: AlgorithmSpecification,
     available_datasets_per_data_model: Dict[str, List[str]],
 ):
     _validate_inputdata(
@@ -187,7 +187,7 @@ def _validate_inputdata_types(
     inputdata_specs: InputDataSpecification,
     inputdata_value_metadata: CommonDataElement,
 ):
-    dtype = inputdata_value_metadata.sql_type
+    dtype = InputDataType(inputdata_value_metadata.sql_type)
     dtypes = inputdata_specs.types
     if dtype in dtypes:
         return
@@ -287,8 +287,12 @@ def _validate_parameter_type(
         "text": str,
         "int": int,
         "real": numbers.Real,
+        "boolean": bool,
     }
-    if not isinstance(parameter_value, mip_types_to_python_types[parameter_spec.type]):
+
+    if not isinstance(
+        parameter_value, mip_types_to_python_types[parameter_spec.type.value]
+    ):
         raise BadUserInput(
             f"Parameter '{parameter_spec.label}' values should be of type '{parameter_spec.type}'."
         )
