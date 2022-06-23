@@ -121,11 +121,11 @@ jobs:
         with:
           run: docker logs smpc_test_player3
 
-      - name: Run all standalone tests except the SMPC
-        run: poetry run pytest -s -m "not smpc" --cov=mipengine --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
+#       - name: Run all standalone tests except the SMPC
+#         run: poetry run pytest -s -m "not smpc" --cov=mipengine --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
 
-      - name: Cleanup running containers to have resources for the SMPC tests
-        run: poetry run inv cleanup
+#       - name: Cleanup running containers to have resources for the SMPC tests
+#         run: poetry run inv cleanup
 
       - name: Run SMPC specific standalone tests
         run: poetry run pytest -x -s -m "smpc" --cov=mipengine --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4
