@@ -6,6 +6,7 @@ import pytest
 import toml
 
 from mipengine import AttrDict
+from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
 from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
@@ -69,6 +70,11 @@ def patch_node_landscape_aggregator(controller_config_mock):
         controller_config_mock.rabbitmq.celery_tasks_timeout,
     ):
         yield
+
+
+@pytest.fixture(autouse=True, scope="session")
+def init_background_controller_logger():
+    ctrl_logger.set_background_service_logger("DEBUG")
 
 
 @pytest.fixture(autouse=True, scope="session")

@@ -2,6 +2,8 @@ import logging
 
 from mipengine.controller import config as ctrl_config
 
+BACKGROUND_LOGGER_NAME = "controller_background_service"
+
 
 def get_request_logger(request_id):
     """
@@ -12,13 +14,11 @@ def get_request_logger(request_id):
         if not logging.getLogger(request_id).hasHandlers()
         else logging.getLogger(request_id)
     )
-
     return logger
 
 
 def init_logger(request_id, log_level=None):
     logger = logging.getLogger(request_id)
-
     formatter = logging.Formatter(
         f"%(asctime)s - %(levelname)s - CONTROLLER - %(module)s - %(funcName)s(%(lineno)d) - {request_id} - %(message)s"
     )
@@ -39,4 +39,11 @@ def get_background_service_logger():
     """
     Used for logging information produced by any background service.
     """
-    return logging.getLogger("controller_background_service")
+    return logging.getLogger(BACKGROUND_LOGGER_NAME)
+
+
+# this is only used by some tests.
+# a better implementation needed when logger gets refactored
+def set_background_service_logger(log_level):
+    logger = logging.getLogger(BACKGROUND_LOGGER_NAME)
+    logger.setLevel(log_level)

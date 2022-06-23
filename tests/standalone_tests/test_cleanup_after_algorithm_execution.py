@@ -82,7 +82,7 @@ def patch_controller(controller_config_dict_mock):
 
 @pytest.fixture(autouse=True, scope="session")
 def init_background_controller_logger():
-    ctrl_logger.init_logger("controller_background_service", "DEBUG")
+    ctrl_logger.set_background_service_logger("DEBUG")
 
 
 @pytest.fixture(autouse=True, scope="session")
