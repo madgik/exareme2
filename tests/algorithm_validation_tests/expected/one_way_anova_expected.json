@@ -178,40 +178,63 @@
             "input": {
                 "inputdata": {
                     "x": [
-                        "gender"
+                        "parkinsonbroadcategory"
                     ],
                     "y": [
-                        "lefttmptemporalpole"
+                        "rightprgprecentralgyrus"
                     ],
                     "data_model": "dementia:0.1",
                     "datasets": [
                         "ppmi7",
-                        "edsd8"
+                        "edsd8",
+                        "desd-synthdata9",
+                        "desd-synthdata1",
+                        "ppmi3"
                     ],
                     "filters": ""
                 },
                 "parameters": {}
             },
             "output": {
-                "n_obs": 133,
-                "df_residual": 131.0,
-                "df_explained": 1.0,
-                "ss_residual": 106.88010850411885,
-                "ss_explained": 14.688312750317175,
-                "ms_residual": 0.8158786908711363,
-                "ms_explained": 14.688312750317175,
-                "p_value": 4.141886079235253e-05,
-                "f_stat": 18.00305966397291,
+                "n_obs": 160,
+                "df_residual": 157.0,
+                "df_explained": 2.0,
+                "ss_residual": 397.01107274054056,
+                "ss_explained": 2.4379603292095298,
+                "ms_residual": 2.528732947391978,
+                "ms_explained": 1.2189801646047649,
+                "p_value": 0.6184260228301997,
+                "f_stat": 0.48205175871258626,
                 "tuckey_test": [
                     {
-                        "groupA": "F",
-                        "groupB": "M",
-                        "meanA": 7.094383636363635,
-                        "meanB": 7.769196153846153,
-                        "diff": -0.6748125174825175,
-                        "se": 0.15904131926054774,
-                        "t_stat": -4.24300125665465,
-                        "p_tuckey": 0.001
+                        "groupA": "CN",
+                        "groupB": "Other",
+                        "meanA": 12.714410869565214,
+                        "meanB": 12.192818181818181,
+                        "diff": 0.5215926877470327,
+                        "se": 0.5337202158222577,
+                        "t_stat": 0.9772773679622738,
+                        "p_tuckey": 0.5857052681303301
+                    },
+                    {
+                        "groupA": "CN",
+                        "groupB": "PD",
+                        "meanA": 12.714410869565214,
+                        "meanB": 12.638701941747575,
+                        "diff": 0.07570892781763838,
+                        "se": 0.2819986891681799,
+                        "t_stat": 0.2684726231918287,
+                        "p_tuckey": 0.9
+                    },
+                    {
+                        "groupA": "Other",
+                        "groupB": "PD",
+                        "meanA": 12.192818181818181,
+                        "meanB": 12.638701941747575,
+                        "diff": -0.44588375992939433,
+                        "se": 0.5044161166276867,
+                        "t_stat": -0.8839601773836748,
+                        "p_tuckey": 0.6390531206247535
                     }
                 ]
             }
@@ -496,63 +519,40 @@
             "input": {
                 "inputdata": {
                     "x": [
-                        "parkinsonbroadcategory"
+                        "gender"
                     ],
                     "y": [
-                        "rightprgprecentralgyrus"
+                        "lefttmptemporalpole"
                     ],
                     "data_model": "dementia:0.1",
                     "datasets": [
                         "ppmi7",
-                        "edsd8",
-                        "desd-synthdata9",
-                        "desd-synthdata1",
-                        "ppmi3"
+                        "edsd8"
                     ],
                     "filters": ""
                 },
                 "parameters": {}
             },
             "output": {
-                "n_obs": 160,
-                "df_residual": 157.0,
-                "df_explained": 2.0,
-                "ss_residual": 397.01107274054056,
-                "ss_explained": 2.4379603292095298,
-                "ms_residual": 2.528732947391978,
-                "ms_explained": 1.2189801646047649,
-                "p_value": 0.6184260228301997,
-                "f_stat": 0.48205175871258626,
+                "n_obs": 133,
+                "df_residual": 131.0,
+                "df_explained": 1.0,
+                "ss_residual": 106.88010850411885,
+                "ss_explained": 14.688312750317175,
+                "ms_residual": 0.8158786908711363,
+                "ms_explained": 14.688312750317175,
+                "p_value": 4.141886079235253e-05,
+                "f_stat": 18.00305966397291,
                 "tuckey_test": [
                     {
-                        "groupA": "CN",
-                        "groupB": "Other",
-                        "meanA": 12.714410869565214,
-                        "meanB": 12.192818181818181,
-                        "diff": 0.5215926877470327,
-                        "se": 0.5337202158222577,
-                        "t_stat": 0.9772773679622738,
-                        "p_tuckey": 0.5857052681303301
-                    },
-                    {
-                        "groupA": "CN",
-                        "groupB": "PD",
-                        "meanA": 12.714410869565214,
-                        "meanB": 12.638701941747575,
-                        "diff": 0.07570892781763838,
-                        "se": 0.2819986891681799,
-                        "t_stat": 0.2684726231918287,
-                        "p_tuckey": 0.9
-                    },
-                    {
-                        "groupA": "Other",
-                        "groupB": "PD",
-                        "meanA": 12.192818181818181,
-                        "meanB": 12.638701941747575,
-                        "diff": -0.44588375992939433,
-                        "se": 0.5044161166276867,
-                        "t_stat": -0.8839601773836748,
-                        "p_tuckey": 0.6390531206247535
+                        "groupA": "F",
+                        "groupB": "M",
+                        "meanA": 7.094383636363635,
+                        "meanB": 7.769196153846153,
+                        "diff": -0.6748125174825175,
+                        "se": 0.15904131926054774,
+                        "t_stat": -4.24300125665465,
+                        "p_tuckey": 0.001
                     }
                 ]
             }
