@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from tests.testcase_generators.testcase_generator import DB
+from tests.testcase_generators.testcase_generator import DBConnection
 from tests.testcase_generators.testcase_generator import EnumFromCDE
 from tests.testcase_generators.testcase_generator import EnumFromList
 from tests.testcase_generators.testcase_generator import FloatParameter
@@ -150,33 +150,33 @@ def test_testcase_generator_write_to_file(specs_file_xy_numerical):
 
 
 def test_db_get_numerical_variables():
-    numerical_vars = DB().get_numerical_variables()
+    numerical_vars = DBConnection().get_numerical_variables()
     assert numerical_vars != []
 
 
 def test_db_get_nominal_variables():
-    nominal_vars = DB().get_nominal_variables()
+    nominal_vars = DBConnection().get_nominal_variables()
     assert nominal_vars != []
 
 
 def test_db_get_datasets():
-    datasets = DB().get_datasets()
+    datasets = DBConnection().get_datasets()
     assert datasets != []
 
 
 def test_db_get_data_table():
-    data_table = DB().get_data_table()
+    data_table = DBConnection().get_data_table()
     assert data_table is not None
 
 
 def test_db_get_enumerations():
-    enums = DB().get_enumerations("gender")
+    enums = DBConnection().get_enumerations("gender")
     assert set(enums) == {"F", "M"}
 
 
 def test_db_get_data_table_replicas():
-    data_table_once = DB().get_data_table(replicas=1)
-    data_table_twice = DB().get_data_table(replicas=2)
+    data_table_once = DBConnection().get_data_table(replicas=1)
+    data_table_twice = DBConnection().get_data_table(replicas=2)
     assert len(data_table_once) != 0
     assert len(data_table_once) * 2 == len(data_table_twice)
 

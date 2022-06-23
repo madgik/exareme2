@@ -10,7 +10,7 @@ import pandas as pd
 import pymonetdb
 from tqdm import tqdm
 
-from mipengine.node.monetdb_interface.monet_db_connection import MonetDBPool
+from mipengine.node.monetdb_interface.monet_db_facade import _MonetDBConnectionPool
 
 TESTING_DATAMODEL = "dementia:0.1"
 DATA_TABLENAME = f""""{TESTING_DATAMODEL}".primary_data"""
@@ -28,7 +28,7 @@ DB_PASS = "monetdb"
 DB_FARM = "db"
 
 
-class DB(MonetDBPool):
+class DBConnection(_MonetDBConnectionPool):
     def refresh_connection(self):
         self._connection = pymonetdb.connect(
             hostname=DB_IP,
@@ -100,7 +100,7 @@ def triangular():
 
 
 class InputDataVariable(ABC):
-    db = DB()
+    db = DBConnection()
 
     def __init__(self, notblank, multiple):
         self._notblank = notblank
@@ -197,7 +197,7 @@ class EnumFromList(AlgorithmParameter):
 
 
 class EnumFromCDE(AlgorithmParameter):
-    db = DB()
+    db = DBConnection()
 
     def __init__(self, varname):
         self.varname = varname
@@ -285,7 +285,7 @@ class InputGenerator:
 
 
 class DatasetsGenerator:
-    db = DB()
+    db = DBConnection()
 
     @cached_property
     def all_datasets(self):
@@ -339,7 +339,7 @@ class TestCaseGenerator(ABC):
 
     def __init__(self, specs_file, replicas=1):
         self.input_gen = InputGenerator(specs_file)
-        self.all_data = DB().get_data_table(replicas)
+        self.all_data = DBConnection().get_data_table(replicas)
 
     def generate_input(self):
         return self.input_gen.draw()
