@@ -60,7 +60,7 @@ class NodeInfoTasksHandler:
                 logger=logger,
             )
             return NodeInfo.parse_raw(result)
-        except (CeleryTaskTimeoutException, ConnectionError) as exc:
+        except (CeleryTaskTimeoutException, CeleryConnectionError) as exc:
             logger.error(exc)
             raise exc
 
