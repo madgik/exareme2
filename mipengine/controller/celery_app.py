@@ -62,14 +62,15 @@ class CeleryWrapper:
             task_signature = self._celery_app.signature(task_signature)
             async_result = task_signature.apply_async(args, kwargs)
             return async_result
-        except (
-            kombu.exceptions.OperationalError,
-            amqp.exceptions.AccessRefused,
-            amqp.exceptions.NotAllowed,
-        ) as exc:
-            tr = traceback.format_exc()
-            logger.error(tr)
-
+        # Known exception raised by apply_async() include(but are not limited to):
+        # kombu.exceptions.OperationalError, amqp.exceptions.AccessRefused,
+        # amqp.exceptions.NotAllowed
+        except Exception as exc:
+            logger.error(
+                f"Exception: {exc=} was raised. Most likely this means the broker "
+                f"is not acccessible. Queuing of {task_signature=} with {args=} and {kwargs=} "
+                f"FAILED."
+            )
             self._start_check_broker_connection_and_reset_celery_thread()
 
             connection_error = CeleryConnectionError(
@@ -92,16 +93,18 @@ class CeleryWrapper:
             billiard.exceptions.SoftTimeLimitExceeded,
             billiard.exceptions.TimeLimitExceeded,
         ) as timeout_error:
-
-            tr = traceback.format_exc()
-            logger.error(tr)
+            logger.error(timeout_error)
 
             try:
                 self._celery_app.control.inspect().ping()
-            except kombu.exceptions.OperationalError:
-                tr = traceback.format_exc()
-                logger.error(tr)
-
+            # Known exceptions raised by ping, include(but are not limited to):
+            # amqp.exceptions.NotAllowed, amqp.exceptions.AccessRefused,
+            # kombu.exceptions.OperationalError
+            except Exception as exc:
+                logger.error(
+                    f"Exception: {exc=} was raised. Most likely this means the broker "
+                    f"is not acccessible. Getting the result of {async_result.id=} FAILED."
+                )
                 self._start_check_broker_connection_and_reset_celery_thread()
 
                 connection_error = CeleryConnectionError(
@@ -115,10 +118,13 @@ class CeleryWrapper:
                 connection_address=self._socket_addr,
                 async_result=async_result,
             )
-        except (ConnectionResetError, kombu.exceptions.OperationalError):
-            tr = traceback.format_exc()
-            logger.error(tr)
-
+        # Known exceptions raised by AsyncResult.get() include(but not limited to):
+        # ConnectionResetError, kombu.exceptions.OperationalError
+        except Exception as exc:
+            logger.error(
+                f"Exception: {exc=} was raised. Most likely this means the broker "
+                f"is not acccessible. Getting the result of {async_result.id=} FAILED."
+            )
             self._start_check_broker_connection_and_reset_celery_thread()
 
             connection_error = CeleryConnectionError(
@@ -158,16 +164,15 @@ class CeleryWrapper:
                 try:
                     self._celery_app.control.inspect().ping()
                     connection_is_ok = True
-                except (
-                    amqp.exceptions.NotAllowed,
-                    amqp.exceptions.AccessRefused,
-                    kombu.exceptions.OperationalError,
-                ):
+                # Known exceptions raised by ping() include(but not limited to):
+                # amqp.exceptions.NotAllowed, amqp.exceptions.AccessRefused,
+                # kombu.exceptions.OperationalError,
+                except Exception as exc:
                     logger.debug(
-                        f"Connection to broker ({self._socket_addr=}) is not established. "
-                        f"Will retry in {retry_interval} seconds."
+                        f"Exception: {exc=} was raised. This most likely means the broker "
+                        f"is not acccessible for some reason. Will retry to check connection "
+                        f"to broker in {retry_interval} seconds."
                     )
-
                     self._celery_app = self._instantiate_celery_object()
 
                 time.sleep(retry_interval)
