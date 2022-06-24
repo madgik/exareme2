@@ -308,8 +308,9 @@ def test_update_loop_data_models_removed(
     # wait until data models are re-loaded in the data model registry
     start = time.time()
     while (
-        "dementia:0.1" or "tbi:0.1"
-    ) not in node_landscape_aggregator.get_cdes_per_data_model():
+        "dementia:0.1" not in node_landscape_aggregator.get_cdes_per_data_model()
+        or "tbi:0.1" not in node_landscape_aggregator.get_cdes_per_data_model()
+    ):
         if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(
                 f"NLA did not contain the data models 'tbi:0.1' and 'dementia:0.1' during {WAIT_TIME_LIMIT=}"
@@ -317,7 +318,7 @@ def test_update_loop_data_models_removed(
         time.sleep(1)
 
     data_models = node_landscape_aggregator.get_cdes_per_data_model()
-    assert "tbi:0.1" and "dementia:0.1" in data_models
+    assert "tbi:0.1" in data_models and "dementia:0.1" in data_models
     assert (
         len(data_models["tbi:0.1"].values) == 21
         and len(data_models["dementia:0.1"].values) == 186
