@@ -22,7 +22,7 @@ TABLE_SIZE_MODE = 10
 
 # XXX Change according to your local setup
 DB_IP = "127.0.0.1"
-DB_PORT = 50002
+DB_PORT = 50001
 DB_USER = "monetdb"
 DB_PASS = "monetdb"
 DB_FARM = "db"
