@@ -427,68 +427,74 @@ def _clean_db(cursor):
 
 
 @pytest.fixture(scope="function")
-def clean_globalnode_db(globalnode_db_cursor):
+def schedule_clean_globalnode_db(globalnode_db_cursor):
     yield
     _clean_db(globalnode_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def clean_localnode1_db(localnode1_db_cursor):
+def schedule_clean_localnode1_db(localnode1_db_cursor):
     yield
     _clean_db(localnode1_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def clean_smpc_globalnode_db(globalnode_smpc_db_cursor):
+def schedule_clean_smpc_globalnode_db(globalnode_smpc_db_cursor):
     yield
     _clean_db(globalnode_smpc_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def clean_smpc_localnode1_db(localnode1_smpc_db_cursor):
+def schedule_clean_smpc_localnode1_db(localnode1_smpc_db_cursor):
     yield
     _clean_db(localnode1_smpc_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def clean_smpc_localnode2_db(localnode2_smpc_db_cursor):
+def schedule_clean_smpc_localnode2_db(localnode2_smpc_db_cursor):
     yield
     _clean_db(localnode2_smpc_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def clean_localnode2_db(localnode2_db_cursor):
+def schedule_clean_localnode2_db(localnode2_db_cursor):
     yield
     _clean_db(localnode2_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def use_globalnode_database(monetdb_globalnode, clean_globalnode_db):
+def use_globalnode_database(monetdb_globalnode, schedule_clean_globalnode_db):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_localnode1_database(monetdb_localnode1, clean_localnode1_db):
+def use_localnode1_database(monetdb_localnode1, schedule_clean_localnode1_db):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_localnode2_database(monetdb_localnode2, clean_localnode2_db):
+def use_localnode2_database(monetdb_localnode2, schedule_clean_localnode2_db):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_smpc_globalnode_database(monetdb_smpc_globalnode, clean_smpc_globalnode_db):
+def use_smpc_globalnode_database(
+    monetdb_smpc_globalnode, schedule_clean_smpc_globalnode_db
+):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_smpc_localnode1_database(monetdb_smpc_localnode1, clean_smpc_localnode1_db):
+def use_smpc_localnode1_database(
+    monetdb_smpc_localnode1, schedule_clean_smpc_localnode1_db
+):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_smpc_localnode2_database(monetdb_smpc_localnode2, clean_smpc_localnode2_db):
+def use_smpc_localnode2_database(
+    monetdb_smpc_localnode2, schedule_clean_smpc_localnode2_db
+):
     pass
 
 
