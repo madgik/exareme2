@@ -352,6 +352,7 @@ SPC4 = " " * 4
 SCOLON = ";"
 ROWID = "row_id"
 NODEID = "node_id"
+DEFERRED = "deferred"
 
 
 def get_smpc_build_template(secure_transfer_type):
@@ -816,13 +817,40 @@ def merge_tensor(dtype, ndims):
 
 class RelationType(TableType, ParametrizedType, InputType, OutputType):
     def __init__(self, schema):
+        error_msg = (
+            "Expected schema of type TypeVar, DEFFERED or List[Tuple]. "
+            f"Got {schema}."
+        )
         if isinstance(schema, TypeVar):
             self._schema = schema
-        else:
+        elif schema == DEFERRED:
+            self._schema = DEFERRED
+        elif isinstance(schema, list):
+            # Subscripted generics cannot be used with class and instance
+            # checks. This means that we have to check if the list has the
+            # correct structure. The only acceptable structure is an empty list
+            # or a list of pairs.
+            if schema == []:
+                pass
+            elif isinstance(schema[0], tuple) and len(schema[0]) == 2:
+                pass
+            else:
+                raise TypeError(error_msg)
             self._schema = [
-                (name, dt.from_py(dtype) if isinstance(dtype, type) else dtype)
-                for name, dtype in schema
+                (name, self._convert_dtype(dtype)) for name, dtype in schema
             ]
+        else:
+            raise TypeError(error_msg)
+
+    @staticmethod
+    def _convert_dtype(dtype):
+        if isinstance(dtype, type):
+            return dt.from_py(dtype)
+        if isinstance(dtype, str):
+            return dt(dtype)
+        if isinstance(dtype, dt):
+            return dtype
+        raise TypeError(f"Expected dtype of type type, str or DType. Got {dtype}.")
 
     @property
     def schema(self):
@@ -1953,6 +1981,7 @@ def generate_udf_queries(
     keyword_args: Dict[str, UDFGenArgument],
     smpc_used: bool,
     traceback=False,
+    output_schema=None,
 ) -> UDFGenExecutionQueries:
     """
     Parameters
@@ -1998,6 +2027,7 @@ def generate_udf_queries(
         udfregistry=udf.registry,
         smpc_used=smpc_used,
         traceback=traceback,
+        output_schema=output_schema,
     )
 
 
@@ -2111,6 +2141,7 @@ def get_udf_templates_using_udfregistry(
     udfregistry: dict,
     smpc_used: bool,
     traceback=False,
+    output_schema=None,
 ) -> UDFGenExecutionQueries:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
     udf_args = get_udf_args(request_id, funcparts, posargs, keywordargs)
@@ -2125,7 +2156,10 @@ def get_udf_templates_using_udfregistry(
         expected_literal_types=funcparts.literal_input_types,
     )
     main_output_type, sec_output_types = get_output_types(
-        funcparts, udf_args, traceback
+        funcparts,
+        udf_args,
+        traceback,
+        output_schema,
     )
     udf_outputs = get_udf_outputs(
         main_output_type=main_output_type,
@@ -2312,7 +2346,10 @@ def get_udf_definition_template(
 
 
 def get_output_types(
-    funcparts, udf_args, traceback
+    funcparts,
+    udf_args,
+    traceback,
+    output_schema,
 ) -> Tuple[OutputType, List[LoopbackOutputType]]:
     """Computes the UDF output type. If `traceback` is true the type is str
     since the traceback will be returned as a string. If the output type is
@@ -2322,6 +2359,9 @@ def get_output_types(
 
     if traceback:
         return scalar(str), []
+    if output_schema:
+        main_output_type = relation(schema=output_schema)
+        return main_output_type, []
     if (
         isinstance(funcparts.main_output_type, ParametrizedType)
         and funcparts.main_output_type.is_generic

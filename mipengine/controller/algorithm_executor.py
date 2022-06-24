@@ -310,6 +310,7 @@ class _AlgorithmExecutionInterface:
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_global: Union[None, bool, List[bool]] = None,
+        output_schema: Optional[TableSchema] = None,
     ) -> Union[AlgoFlowData, List[AlgoFlowData]]:
         # 1. check positional_args and keyword_args tables do not contain _GlobalNodeTable(s)
         # 2. queues run_udf task on all local nodes
@@ -325,6 +326,14 @@ class _AlgorithmExecutionInterface:
             positional_args=positional_args,
             keyword_args=keyword_args,
         )
+
+        if share_to_global is not None and not isinstance(share_to_global, list):
+            share_to_global = [share_to_global]
+
+        if output_schema and len(share_to_global) != 1:
+            raise ValueError(
+                "output_schema cannot be used with multiple output UDFs for now."
+            )
 
         # Queue the udf on all local nodes
         tasks = {}
@@ -342,6 +351,7 @@ class _AlgorithmExecutionInterface:
                 positional_args=positional_udf_args,
                 keyword_args=keyword_udf_args,
                 use_smpc=self.use_smpc,
+                output_schema=output_schema,
             )
             tasks[node] = task
 
@@ -352,9 +362,7 @@ class _AlgorithmExecutionInterface:
 
         results_after_sharing_step = all_local_nodes_data
         if share_to_global is not None:
-            # validate and transform share_to_global variable
-            if not isinstance(share_to_global, list):
-                share_to_global = [share_to_global]
+            # validate length of share_to_global
             number_of_results = len(all_nodes_results)
             self._validate_share_to(share_to_global, number_of_results)
 
@@ -496,6 +504,7 @@ class _AlgorithmExecutionInterface:
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_locals: Union[None, bool, List[bool]] = None,
+        output_schema: Optional[TableSchema] = None,
     ) -> Union[AlgoFlowData, List[AlgoFlowData]]:
         # 1. check positional_args and keyword_args tables do not contain _LocalNodeTable(s)
         # 2. queue run_udf on the global node
@@ -514,6 +523,14 @@ class _AlgorithmExecutionInterface:
         positional_udf_args = algoexec_udf_posargs_to_node_udf_posargs(positional_args)
         keyword_udf_args = algoexec_udf_kwargs_to_node_udf_kwargs(keyword_args)
 
+        if share_to_locals is not None and not isinstance(share_to_locals, list):
+            share_to_locals = [share_to_locals]
+
+        if output_schema and len(share_to_locals) != 1:
+            raise ValueError(
+                "output_schema cannot be used with multiple output UDFs for now."
+            )
+
         # Queue the udf on global node
         task = self._global_node.queue_run_udf(
             command_id=str(command_id),
@@ -521,6 +538,7 @@ class _AlgorithmExecutionInterface:
             positional_args=positional_udf_args,
             keyword_args=keyword_udf_args,
             use_smpc=self.use_smpc,
+            output_schema=output_schema,
         )
 
         node_tables = self._global_node.get_queued_udf_result(task)
@@ -530,9 +548,7 @@ class _AlgorithmExecutionInterface:
 
         results_after_sharing_step = global_node_tables
         if share_to_locals is not None:
-            # validate and transform share_to_locals variable
-            if not isinstance(share_to_locals, list):
-                share_to_locals = [share_to_locals]
+            # validate length of share_to_locals
             number_of_results = len(global_node_tables)
             self._validate_share_to(share_to_locals, number_of_results)
 
