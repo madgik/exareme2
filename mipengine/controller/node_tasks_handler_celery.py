@@ -319,6 +319,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
         positional_args: UDFPosArguments,
         keyword_args: UDFKeyArguments,
         use_smpc: bool = False,
+        output_schema: Optional[TableSchema] = None,
     ) -> QueuedUDFAsyncResult:
 
         task_signature = self._celery_app.signature(TASK_SIGNATURES["run_udf"])
@@ -331,6 +332,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             positional_args_json=positional_args.json(),
             keyword_args_json=keyword_args.json(),
             use_smpc=use_smpc,
+            output_schema=output_schema.json() if output_schema else None,
         )
         return QueuedUDFAsyncResult(
             node_id=self.node_id,
@@ -342,6 +344,7 @@ class NodeTasksHandlerCelery(INodeTasksHandler):
             keyword_args=keyword_args,
             use_smpc=use_smpc,
             async_result=async_result,
+            output_schema=output_schema,
         )
 
     @time_limit_exceeded_handler

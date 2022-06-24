@@ -33,6 +33,7 @@ class IQueuedUDFAsyncResult(IAsyncResult, ABC):
     positional_args: Optional[UDFPosArguments] = None
     keyword_args: Optional[UDFKeyArguments] = None
     use_smpc: bool = False
+    output_schema: Optional[TableSchema]
 
 
 class INodeTasksHandler(ABC):
@@ -135,6 +136,7 @@ class INodeTasksHandler(ABC):
         positional_args: Optional[UDFPosArguments] = None,
         keyword_args: Optional[UDFKeyArguments] = None,
         use_smpc: bool = False,
+        output_schema: Optional[TableSchema] = None,
     ) -> IQueuedUDFAsyncResult:
         pass
 

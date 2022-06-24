@@ -7,6 +7,7 @@ import pytest
 from billiard.exceptions import TimeLimitExceeded
 
 from mipengine import DType
+from mipengine.node.tasks.udfs import _parse_output_schema
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import TableData
@@ -177,3 +178,14 @@ def test_slow_udf_exception(
             positional_args_json=UDFPosArguments(args=[]).json(),
             keyword_args_json=kw_args_str,
         ).get()
+
+
+def test_parse_output_schema():
+    output_schema = TableSchema(
+        columns=[
+            ColumnInfo(name="a", dtype=DType.INT),
+            ColumnInfo(name="b", dtype=DType.FLOAT),
+        ]
+    ).json()
+    result = _parse_output_schema(output_schema)
+    assert result == [("a", DType.INT), ("b", DType.FLOAT)]
