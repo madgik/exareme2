@@ -6,8 +6,8 @@ from typing import List
 from typing import Tuple
 
 from mipengine import DType
-from mipengine.node.monetdb_interface.monet_db_facade import execute
-from mipengine.node.monetdb_interface.monet_db_facade import execute_and_fetchall
+from mipengine.node.monetdb_interface.monet_db_facade import db_execute
+from mipengine.node.monetdb_interface.monet_db_facade import db_execute_and_fetchall
 from mipengine.node_exceptions import TablesNotFound
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import CommonDataElement
@@ -86,7 +86,7 @@ def get_table_schema(table_name: str) -> TableSchema:
     TableSchema
         A schema which is TableSchema object.
     """
-    schema = execute_and_fetchall(
+    schema = db_execute_and_fetchall(
         f"""
         SELECT columns.name, columns.type
         FROM columns
@@ -125,7 +125,7 @@ def get_table_type(table_name: str) -> TableType:
         The type of the table.
     """
 
-    monetdb_table_type_result = execute_and_fetchall(
+    monetdb_table_type_result = db_execute_and_fetchall(
         f"""
         SELECT type
         FROM
@@ -156,7 +156,7 @@ def get_table_names(table_type: TableType, context_id: str) -> List[str]:
     List[str]
         A list of table names.
     """
-    table_names = execute_and_fetchall(
+    table_names = db_execute_and_fetchall(
         f"""
         SELECT name FROM tables
         WHERE
@@ -184,7 +184,7 @@ def get_table_data(table_name: str) -> List[ColumnData]:
     """
     schema = get_table_schema(table_name)
 
-    row_stored_data = execute_and_fetchall(
+    row_stored_data = db_execute_and_fetchall(
         f"""
         SELECT {table_name}.*
         FROM {table_name}
@@ -244,7 +244,7 @@ def get_data_models() -> List[str]:
         The data_models.
     """
 
-    data_models_code_and_version = execute_and_fetchall(
+    data_models_code_and_version = db_execute_and_fetchall(
         f"""SELECT code, version
             FROM "mipdb_metadata"."data_models"
             WHERE status = 'ENABLED'
@@ -267,7 +267,7 @@ def get_dataset_code_per_dataset_label(data_model) -> Dict[str, str]:
     """
     data_model_code, data_model_version = data_model.split(":")
 
-    datasets_rows = execute_and_fetchall(
+    datasets_rows = db_execute_and_fetchall(
         f"""
         SELECT code, label
         FROM "mipdb_metadata"."datasets"
@@ -295,7 +295,7 @@ def get_data_model_cdes(data_model) -> CommonDataElements:
         A CommonDataElements object
     """
 
-    cdes_rows = execute_and_fetchall(
+    cdes_rows = db_execute_and_fetchall(
         f"""
         SELECT code, metadata FROM "{data_model}"."variables_metadata"
         """
@@ -382,7 +382,7 @@ def _drop_table_by_type_and_context_id(table_type: TableType, context_id: str):
     context_id : str
         The id of the experiment
     """
-    table_names_and_types = execute_and_fetchall(
+    table_names_and_types = db_execute_and_fetchall(
         f"""
         SELECT name, type FROM tables
         WHERE name LIKE '%{context_id.lower()}%'
@@ -392,9 +392,9 @@ def _drop_table_by_type_and_context_id(table_type: TableType, context_id: str):
     )
     for name, table_type in table_names_and_types:
         if table_type == _convert_mip2monet_table_type(TableType.VIEW):
-            execute(f"DROP VIEW {name}")
+            db_execute(f"DROP VIEW {name}")
         else:
-            execute(f"DROP TABLE {name}")
+            db_execute(f"DROP TABLE {name}")
 
 
 def _drop_udfs_by_context_id(context_id: str):
@@ -406,7 +406,7 @@ def _drop_udfs_by_context_id(context_id: str):
     context_id : str
         The id of the experiment
     """
-    function_names = execute_and_fetchall(
+    function_names = db_execute_and_fetchall(
         f"""
         SELECT name FROM functions
         WHERE name LIKE '%{context_id.lower()}%'
@@ -414,4 +414,4 @@ def _drop_udfs_by_context_id(context_id: str):
         """
     )
     for name in function_names:
-        execute(f"DROP FUNCTION {name[0]}")
+        db_execute(f"DROP FUNCTION {name[0]}")

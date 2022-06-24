@@ -88,7 +88,7 @@ def _lock(query_lock, timeout):
     query_lock.release()
 
 
-def execute_and_fetchall(query: str, parameters=None, many=False) -> List:
+def db_execute_and_fetchall(query: str, parameters=None, many=False) -> List:
     return execute_queries_with_connection_handling(
         func=_execute_and_fetchall,
         query=query,
@@ -97,7 +97,7 @@ def execute_and_fetchall(query: str, parameters=None, many=False) -> List:
     )
 
 
-def execute(query: str, parameters=None, many=False) -> List:
+def db_execute(query: str, parameters=None, many=False) -> List:
 
     return execute_queries_with_connection_handling(
         func=_execute, query=query, parameters=parameters, many=many

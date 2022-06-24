@@ -28,7 +28,7 @@ DB_PASS = "monetdb"
 DB_FARM = "db"
 
 
-class DBConnection(_MonetDBConnectionPool):
+class DB(_MonetDBConnectionPool):
     def refresh_connection(self):
         self._connection = pymonetdb.connect(
             hostname=DB_IP,
@@ -100,7 +100,7 @@ def triangular():
 
 
 class InputDataVariable(ABC):
-    db = DBConnection()
+    db = DB()
 
     def __init__(self, notblank, multiple):
         self._notblank = notblank
@@ -197,7 +197,7 @@ class EnumFromList(AlgorithmParameter):
 
 
 class EnumFromCDE(AlgorithmParameter):
-    db = DBConnection()
+    db = DB()
 
     def __init__(self, varname):
         self.varname = varname
@@ -285,7 +285,7 @@ class InputGenerator:
 
 
 class DatasetsGenerator:
-    db = DBConnection()
+    db = DB()
 
     @cached_property
     def all_datasets(self):
@@ -339,7 +339,7 @@ class TestCaseGenerator(ABC):
 
     def __init__(self, specs_file, replicas=1):
         self.input_gen = InputGenerator(specs_file)
-        self.all_data = DBConnection().get_data_table(replicas)
+        self.all_data = DB().get_data_table(replicas)
 
     def generate_input(self):
         return self.input_gen.draw()

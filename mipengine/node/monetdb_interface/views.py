@@ -3,8 +3,8 @@ from typing import List
 from mipengine.filters import build_filter_clause
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface.common_actions import get_table_names
-from mipengine.node.monetdb_interface.monet_db_facade import execute
-from mipengine.node.monetdb_interface.monet_db_facade import execute_and_fetchall
+from mipengine.node.monetdb_interface.monet_db_facade import db_execute
+from mipengine.node.monetdb_interface.monet_db_facade import db_execute_and_fetchall
 from mipengine.node_exceptions import InsufficientDataError
 from mipengine.node_tasks_DTOs import TableType
 
@@ -34,10 +34,10 @@ def create_view(
         {filter_clause}
         """
 
-    execute(view_creation_query)
+    db_execute(view_creation_query)
 
     if check_min_rows:
-        view_rows_query_result = execute_and_fetchall(
+        view_rows_query_result = db_execute_and_fetchall(
             f"""
             SELECT COUNT(*)
             FROM {view_name}
@@ -47,7 +47,7 @@ def create_view(
         view_rows_count = view_rows_result_row[0]
 
         if view_rows_count < MINIMUM_ROW_COUNT:
-            execute(f"""DROP VIEW {view_name}""")
+            db_execute(f"""DROP VIEW {view_name}""")
             raise InsufficientDataError(
                 f"The following view has less rows than the PRIVACY_THRESHOLD({MINIMUM_ROW_COUNT}):  {view_creation_query}"
             )
