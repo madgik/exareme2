@@ -62,12 +62,13 @@ class CeleryWrapper:
             task_signature = self._celery_app.signature(task_signature)
             async_result = task_signature.apply_async(args, kwargs)
             return async_result
-        # Known exception raised by apply_async() include(but are not limited to):
-        # kombu.exceptions.OperationalError, amqp.exceptions.AccessRefused,
-        # amqp.exceptions.NotAllowed
-        except Exception as exc:
+        except (
+            kombu.exceptions.OperationalError,
+            amqp.exceptions.AccessRefused,
+            amqp.exceptions.NotAllowed,
+        ) as exc:
             logger.error(
-                f"Exception: {exc=} was raised. Most likely this means the broker "
+                f"Exception: {exc=} was caught. Most likely this means the broker "
                 f"is not acccessible. Queuing of {task_signature=} with {args=} and {kwargs=} "
                 f"FAILED."
             )
@@ -79,6 +80,9 @@ class CeleryWrapper:
             )
 
             raise connection_error
+        except Exception as exc:
+            logger.error(traceback.format_exc())
+            raise exc
 
     # get_result() is blocking, because celery.result.AsyncResult.get() is blocking
     def get_result(
@@ -118,9 +122,7 @@ class CeleryWrapper:
                 connection_address=self._socket_addr,
                 async_result=async_result,
             )
-        # Known exceptions raised by AsyncResult.get() include(but not limited to):
-        # ConnectionResetError, kombu.exceptions.OperationalError
-        except Exception as exc:
+        except (ConnectionResetError, kombu.exceptions.OperationalError) as exc:
             logger.error(
                 f"Exception: {exc=} was raised. Most likely this means the broker "
                 f"is not acccessible. Getting the result of {async_result.id=} FAILED."
@@ -132,6 +134,9 @@ class CeleryWrapper:
                 error_details=f"while getting {async_result.id=}",
             )
             raise connection_error
+        except Exception as exc:
+            logger.error(traceback.format_exc())
+            raise exc
 
     def _start_check_broker_connection_and_reset_celery_thread(self):
         # check if the locked is already acquired so no more than one thread start the
