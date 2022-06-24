@@ -168,7 +168,7 @@ class CeleryWrapper:
                 # amqp.exceptions.NotAllowed, amqp.exceptions.AccessRefused,
                 # kombu.exceptions.OperationalError,
                 except Exception as exc:
-                    logger.debug(
+                    logger.error(
                         f"Exception: {exc=} was raised. This most likely means the broker "
                         f"is not acccessible for some reason. Will retry to check connection "
                         f"to broker in {retry_interval} seconds."

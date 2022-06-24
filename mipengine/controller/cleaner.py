@@ -91,7 +91,7 @@ class Cleaner(metaclass=Singleton):
                     f"clean_up task succeeded for {node_id=} for {context_id=}"
                 )
             except Exception as exc:
-                self._logger.debug(
+                self._logger.error(
                     f"clean_up task FAILED for {node_id=} "
                     f"for {context_id=}. Will retry in {self._clean_up_interval=} secs. Fail "
                     f"reason: {type(exc)}:{exc}"
@@ -239,8 +239,8 @@ class CleanupFileProcessor:
                     parsed_toml[context_id]["nodes"].remove(node_id)
                 except ValueError:
                     self._logger.warning(
-                        f"(Cleaner::remove_from_cleanup_file) Tried to remove {node_id=} for {context_id=} "
-                        f"but this context_id.node_id is not in the "
+                        f"(Cleaner::remove_from_cleanup_file) Tried to remove {node_id=} "
+                        f"for {context_id=} but this context_id.node_id is not in the "
                         f"clean_up file.This should not happen."
                     )
                     pass
@@ -248,8 +248,8 @@ class CleanupFileProcessor:
                 parsed_toml.pop(context_id)
         else:
             self._logger.warning(
-                f"(Cleaner::remove_from_cleanup_file) Tried to remove {context_id=} but this context_id is "
-                f"not in the clean_up file.This should not happen."
+                f"(Cleaner::remove_from_cleanup_file) Tried to remove {context_id=} but "
+                f"this context_id is not in the clean_up file.This should not happen."
             )
             pass
 
@@ -259,7 +259,8 @@ class CleanupFileProcessor:
         with self._file_lock:
             if not os.path.isfile(self._cleanup_file_path):
                 self._logger.warning(
-                    f"(Cleaner::read_cleanup_file) {self._cleanup_file_path=} does not exist. This should not happen"
+                    f"(Cleaner::read_cleanup_file) {self._cleanup_file_path=} does not "
+                    f"exist. This should not happen"
                 )
                 return {}
             with open(self._cleanup_file_path, "r") as f:

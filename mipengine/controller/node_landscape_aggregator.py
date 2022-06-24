@@ -182,7 +182,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 )
 
                 tr = traceback.format_exc()
-                logger.debug(tr)
+                logger.error(tr)
             finally:
                 time.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
 
