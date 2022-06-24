@@ -30,7 +30,7 @@ def test_view_without_filters(
     request_id,
     context_id,
     load_data_localnode1,
-    rabbitmq_localnode1,
+    localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
 ):
@@ -142,7 +142,7 @@ def test_view_with_filters(
     request_id,
     context_id,
     load_data_localnode1,
-    rabbitmq_localnode1,
+    localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
 ):
@@ -265,7 +265,7 @@ def test_data_model_view_without_filters(
     request_id,
     context_id,
     load_data_localnode1,
-    rabbitmq_localnode1,
+    localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
 ):
@@ -342,7 +342,7 @@ def test_data_model_view_with_filters(
     request_id,
     context_id,
     load_data_localnode1,
-    rabbitmq_localnode1,
+    localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
 ):
@@ -442,7 +442,7 @@ def test_data_model_view_dataset_constraint(
     request_id,
     context_id,
     load_data_localnode1,
-    rabbitmq_localnode1,
+    localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
 ):
@@ -485,7 +485,7 @@ def test_data_model_view_null_constraints(
     request_id,
     context_id,
     load_data_localnode1,
-    rabbitmq_localnode1,
+    localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
 ):
@@ -559,7 +559,7 @@ def test_data_model_view_min_rows_checks(
     request_id,
     context_id,
     load_data_localnode1,
-    rabbitmq_localnode1,
+    localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
 ):
@@ -631,7 +631,7 @@ def test_data_model_view_with_data_model_unavailable_exception(
     request_id,
     context_id,
     load_data_localnode1,
-    rabbitmq_localnode1,
+    localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
 ):
@@ -665,7 +665,7 @@ def test_data_model_view_with_dataset_unavailable_exception(
     request_id,
     context_id,
     load_data_localnode1,
-    rabbitmq_localnode1,
+    localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
 ):
@@ -699,7 +699,7 @@ def test_multiple_data_model_views(
     request_id,
     context_id,
     load_data_localnode1,
-    rabbitmq_localnode1,
+    localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
 ):
@@ -784,7 +784,7 @@ def test_multiple_data_model_views_null_constraints(
     request_id,
     context_id,
     load_data_localnode1,
-    rabbitmq_localnode1,
+    localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
 ):
