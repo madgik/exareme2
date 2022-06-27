@@ -159,7 +159,8 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                         data_model_cdes_per_node
                     )
                     _update_data_models_with_aggregated_datasets(
-                        compatible_data_models, aggregated_datasets
+                        data_models=compatible_data_models,
+                        aggregated_datasets=aggregated_datasets,
                     )
 
                     datasets_locations = (
@@ -352,8 +353,8 @@ def _get_compatible_data_models(
         for node, cdes in cdes_from_all_nodes[1:]:
             if not first_cdes == cdes:
                 logger.info(
-                    f"Node '{first_node}' and node '{node}' on data model '{data_model}' have incompatibility on the "
-                    f"following cdes: {first_cdes} and {cdes} "
+                    f"Node '{first_node}' and node '{node}' on data model '{data_model}' "
+                    f"have incompatibility on the following cdes: {first_cdes} and {cdes} "
                 )
                 break
         else:
@@ -370,14 +371,15 @@ def _update_data_models_with_aggregated_datasets(
     Updates each data_model's 'dataset' enumerations with the aggregated datasets
     """
     for data_model in data_models:
-        dataset_cde = data_models[data_model].values["dataset"]
-        new_dataset_cde = CommonDataElement(
-            code=dataset_cde.code,
-            label=dataset_cde.label,
-            sql_type=dataset_cde.sql_type,
-            is_categorical=dataset_cde.is_categorical,
-            enumerations=aggregated_datasets[data_model],
-            min=dataset_cde.min,
-            max=dataset_cde.max,
-        )
-        data_models[data_model].values["dataset"] = new_dataset_cde
+        if data_models[data_model]:
+            dataset_cde = data_models[data_model].values["dataset"]
+            new_dataset_cde = CommonDataElement(
+                code=dataset_cde.code,
+                label=dataset_cde.label,
+                sql_type=dataset_cde.sql_type,
+                is_categorical=dataset_cde.is_categorical,
+                enumerations=aggregated_datasets[data_model],
+                min=dataset_cde.min,
+                max=dataset_cde.max,
+            )
+            data_models[data_model].values["dataset"] = new_dataset_cde
