@@ -80,9 +80,11 @@ def _get_node_datasets_per_data_model(
     except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
         # just log the exception do not reraise it
         logger.warning(exc)
+        return {}
     except Exception as exc:
         # just log full traceback exception as error and do not reraise it
         logger.error(traceback.format_exc())
+        return {}
 
     return datasets_per_data_model
 
