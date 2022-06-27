@@ -158,18 +158,5 @@ def test_get_result_node_down(localnodetmp_node_service, task_signatures):
         )
 
 
-# test CeleryAppFactory
-def test_celery_app_factory_reset(localnode1_node_service):
-    socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALNODE1_PORT}"
-    celery_app_id = id(
-        CeleryAppFactory().get_celery_app(socket_addr=socket_addr)._celery_app
-    )
-    CeleryAppFactory().reset()
-    celery_app_id_after_reset = id(
-        CeleryAppFactory().get_celery_app(socket_addr=socket_addr)._celery_app
-    )
-    assert celery_app_id != celery_app_id_after_reset
-
-
 def get_a_random_context_id() -> str:
     return str(random.randint(1, 99999))

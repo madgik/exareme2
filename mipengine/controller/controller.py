@@ -39,8 +39,6 @@ class _NodeInfoDTO(BaseModel):
 
 class Controller:
     def __init__(self):
-        CeleryAppFactory().reset()
-
         self._controller_logger = ctrl_logger.get_background_service_logger()
 
         self._node_landscape_aggregator = NodeLandscapeAggregator()

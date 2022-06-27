@@ -210,8 +210,3 @@ class CeleryAppFactory(metaclass=Singleton):
         else:
             self._celery_apps[socket_addr] = CeleryWrapper(socket_addr)
             return self._celery_apps[socket_addr]
-
-    def reset(self):
-        for celery_app in self._celery_apps.values():
-            celery_app._close()
-        self._celery_apps = {}
