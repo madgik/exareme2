@@ -373,15 +373,14 @@ def _update_data_models_with_aggregated_datasets(
     Updates each data_model's 'dataset' enumerations with the aggregated datasets
     """
     for data_model in data_models:
-        if data_models[data_model]:
-            dataset_cde = data_models[data_model].values["dataset"]
-            new_dataset_cde = CommonDataElement(
-                code=dataset_cde.code,
-                label=dataset_cde.label,
-                sql_type=dataset_cde.sql_type,
-                is_categorical=dataset_cde.is_categorical,
-                enumerations=aggregated_datasets[data_model],
-                min=dataset_cde.min,
-                max=dataset_cde.max,
-            )
-            data_models[data_model].values["dataset"] = new_dataset_cde
+        dataset_cde = data_models[data_model].values["dataset"]
+        new_dataset_cde = CommonDataElement(
+            code=dataset_cde.code,
+            label=dataset_cde.label,
+            sql_type=dataset_cde.sql_type,
+            is_categorical=dataset_cde.is_categorical,
+            enumerations=aggregated_datasets[data_model],
+            min=dataset_cde.min,
+            max=dataset_cde.max,
+        )
+        data_models[data_model].values["dataset"] = new_dataset_cde
