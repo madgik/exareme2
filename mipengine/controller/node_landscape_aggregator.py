@@ -4,6 +4,7 @@ from typing import List
 from typing import Tuple
 
 from asgiref.sync import sync_to_async
+from pydantic import BaseModel
 
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
@@ -129,12 +130,23 @@ def _get_node_socket_addr(node_info: NodeInfo):
     return f"{node_info.ip}:{node_info.port}"
 
 
+class _NLARegistries(BaseModel):
+    node_registry: NodeRegistry
+    data_model_registry: DataModelRegistry
+
+    class Config:
+        allow_mutation = False
+        arbitrary_types_allowed = True
+
+
 class NodeLandscapeAggregator(metaclass=Singleton):
     def __init__(self):
         self._logger = logger
         self.keep_updating = True
-        self._node_registry = NodeRegistry(self._logger)
-        self._data_model_registry = DataModelRegistry(self._logger)
+        self._nla_registries = _NLARegistries(
+            node_registry=NodeRegistry(self._logger),
+            data_model_registry=DataModelRegistry(self._logger),
+        )
 
     async def update(self):
         """
@@ -157,9 +169,9 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         while self.keep_updating:
             try:
                 nodes_addresses = get_nodes_addresses()
-                nodes_info = await _get_nodes_info(nodes_addresses)
+                node_infos = await _get_nodes_info(nodes_addresses)
                 local_nodes = [
-                    node for node in nodes_info if node.role == NodeRole.LOCALNODE
+                    node for node in node_infos if node.role == NodeRole.LOCALNODE
                 ]
                 (
                     dataset_locations,
@@ -172,18 +184,17 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 _update_data_models_with_aggregated_datasets(
                     compatible_data_models, aggregated_datasets
                 )
-                datasets_locations = _get_dataset_locations_of_compatible_data_models(
+
+                dataset_locations = _get_dataset_locations_of_compatible_data_models(
                     compatible_data_models, dataset_locations
                 )
 
-                self._node_registry.nodes = {
-                    node_info.id: node_info for node_info in nodes_info
-                }
+                nodes = {node_info.id: node_info for node_info in node_infos}
 
-                self._data_model_registry.data_models = compatible_data_models
-                self._data_model_registry.datasets_location = datasets_locations
+                self.set_registries(nodes, compatible_data_models, dataset_locations)
+
                 self._logger.debug(
-                    f"Nodes:{[node for node in self._node_registry.nodes]}"
+                    f"Nodes:{[node for node in self._nla_registries.node_registry.nodes]}"
                 )
             except Exception as exc:
                 self._logger.error(
@@ -199,47 +210,63 @@ class NodeLandscapeAggregator(metaclass=Singleton):
     def stop(self):
         self.keep_updating = False
 
+    def set_registries(self, nodes, data_models, dataset_locations):
+        _node_registry = NodeRegistry(self._logger)
+        _node_registry.nodes = nodes
+        _data_model_registry = DataModelRegistry(self._logger)
+        _data_model_registry.data_models = data_models
+        _data_model_registry.dataset_locations = dataset_locations
+        self._nla_registries = _NLARegistries(
+            node_registry=_node_registry, data_model_registry=_data_model_registry
+        )
+
     def get_nodes(self) -> Dict[str, NodeInfo]:
-        return self._node_registry.nodes
+        return self._nla_registries.node_registry.nodes
 
     def get_global_node(self) -> NodeInfo:
-        return self._node_registry.get_global_node()
+        return self._nla_registries.node_registry.get_global_node()
 
     def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
-        return self._node_registry.get_all_local_nodes()
+        return self._nla_registries.node_registry.get_all_local_nodes()
 
     def get_node_info(self, node_id: str) -> NodeInfo:
-        return self._node_registry.get_node_info(node_id)
+        return self._nla_registries.node_registry.get_node_info(node_id)
 
     def get_cdes(self, data_model: str) -> Dict[str, CommonDataElement]:
-        return self._data_model_registry.get_cdes(data_model)
+        return self._nla_registries.data_model_registry.get_cdes(data_model)
 
     def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
-        return self._data_model_registry.data_models
+        return self._nla_registries.data_model_registry.data_models
 
     def get_datasets_location(self) -> Dict[str, Dict[str, List[str]]]:
-        return self._data_model_registry.datasets_location
+        return self._nla_registries.data_model_registry.dataset_locations
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
-        return self._data_model_registry.get_all_available_datasets_per_data_model()
+        return (
+            self._nla_registries.data_model_registry.get_all_available_datasets_per_data_model()
+        )
 
     def data_model_exists(self, data_model: str) -> bool:
-        return self._data_model_registry.data_model_exists(data_model)
+        return self._nla_registries.data_model_registry.data_model_exists(data_model)
 
     def dataset_exists(self, data_model: str, dataset: str) -> bool:
-        return self._data_model_registry.dataset_exists(data_model, dataset)
+        return self._nla_registries.data_model_registry.dataset_exists(
+            data_model, dataset
+        )
 
     def get_node_ids_with_any_of_datasets(
         self, data_model: str, datasets: List[str]
     ) -> List[str]:
-        return self._data_model_registry.get_node_ids_with_any_of_datasets(
-            data_model, datasets
+        return (
+            self._nla_registries.data_model_registry.get_node_ids_with_any_of_datasets(
+                data_model, datasets
+            )
         )
 
     def get_node_specific_datasets(
         self, node_id: str, data_model: str, wanted_datasets: List[str]
     ) -> List[str]:
-        return self._data_model_registry.get_node_specific_datasets(
+        return self._nla_registries.data_model_registry.get_node_specific_datasets(
             node_id, data_model, wanted_datasets
         )
 

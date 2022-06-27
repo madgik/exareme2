@@ -17,6 +17,7 @@ from mipengine.controller.celery_app import get_node_celery_app
 from mipengine.controller.controller_logger import get_request_logger
 from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.node_landscape_aggregator import _NLARegistries
 from mipengine.controller.node_registry import NodeRegistry
 from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.udfgen import udfio
@@ -839,9 +840,10 @@ def smpc_localnode2_celery_app(smpc_localnode2_node_service):
 def reset_node_landscape_aggregator():
     nla = NodeLandscapeAggregator()
     nla.keep_updating = False
-    nla._node_registry = NodeRegistry(get_request_logger("NODE-REGISTRY"))
-    nla._data_model_registry = DataModelRegistry(
-        get_request_logger("DATA-MODEL-REGISTRY")
+    _node_registry = NodeRegistry(get_request_logger("NODE-REGISTRY"))
+    _data_model_registry = DataModelRegistry(get_request_logger("DATA-MODEL-REGISTRY"))
+    nla._nla_registries = _NLARegistries(
+        node_registry=_node_registry, data_model_registry=_data_model_registry
     )
 
 

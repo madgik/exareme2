@@ -26,7 +26,7 @@ class DataModelRegistry:
         return self._data_models
 
     @property
-    def datasets_location(self):
+    def dataset_locations(self):
         return self._datasets_location
 
     @data_models.setter
@@ -34,8 +34,8 @@ class DataModelRegistry:
         _log_data_model_changes(self._logger, self._data_models, value)
         self._data_models = value
 
-    @datasets_location.setter
-    def datasets_location(self, value):
+    @dataset_locations.setter
+    def dataset_locations(self, value):
         _log_dataset_changes(self._logger, self._datasets_location, value)
         self._datasets_location = value
 
@@ -48,17 +48,17 @@ class DataModelRegistry:
         system as keys and lists of datasets as values. Without duplicates
         """
         return {
-            data_model: list(self.datasets_location[data_model].keys())
+            data_model: list(self.dataset_locations[data_model].keys())
             for data_model in self.data_models
         }
 
     def data_model_exists(self, data_model: str) -> bool:
-        return data_model in self.datasets_location
+        return data_model in self.dataset_locations
 
     def dataset_exists(self, data_model: str, dataset: str) -> bool:
         return (
-            data_model in self.datasets_location
-            and dataset in self.datasets_location[data_model]
+            data_model in self.dataset_locations
+            and dataset in self.dataset_locations[data_model]
         )
 
     def get_node_ids_with_any_of_datasets(
@@ -69,9 +69,9 @@ class DataModelRegistry:
 
         local_nodes_with_datasets = [
             node
-            for dataset in self.datasets_location[data_model]
+            for dataset in self.dataset_locations[data_model]
             if dataset in datasets
-            for node in self.datasets_location[data_model][dataset]
+            for node in self.dataset_locations[data_model][dataset]
         ]
         return list(set(local_nodes_with_datasets))
 
@@ -98,9 +98,9 @@ class DataModelRegistry:
 
         datasets_in_node = [
             dataset
-            for dataset in self.datasets_location[data_model]
+            for dataset in self.dataset_locations[data_model]
             if dataset in wanted_datasets
-            if node_id in self.datasets_location[data_model][dataset]
+            if node_id in self.dataset_locations[data_model][dataset]
         ]
         return datasets_in_node
 

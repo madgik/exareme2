@@ -229,7 +229,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     controller.start_node_landscape_aggregator()
     # wait until node registry gets the nodes info
     start = time.time()
-    while not controller._node_landscape_aggregator._node_registry._nodes:
+    while not controller._node_landscape_aggregator.get_nodes():
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
@@ -379,7 +379,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
     controller.start_node_landscape_aggregator()
     # wait until node registry gets the nodes info
     start = time.time()
-    while not controller._node_landscape_aggregator._node_registry._nodes:
+    while not controller._node_landscape_aggregator.get_nodes():
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
@@ -525,7 +525,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     controller.start_node_landscape_aggregator()
     # wait until node registry gets the nodes info
     start = time.time()
-    while not controller._node_landscape_aggregator._node_registry._nodes:
+    while not controller._node_landscape_aggregator.get_nodes():
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
@@ -697,7 +697,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     controller.start_node_landscape_aggregator()
     # wait until node registry gets the nodes info
     start = time.time()
-    while not controller._node_landscape_aggregator._node_registry._nodes:
+    while not controller._node_landscape_aggregator.get_nodes():
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"
@@ -861,7 +861,7 @@ async def test_cleanup_controller_restart(
     controller.start_node_landscape_aggregator()
     # wait until node registry gets the nodes info
     start = time.time()
-    while not controller._node_landscape_aggregator._node_registry._nodes:
+    while not controller._node_landscape_aggregator.get_nodes():
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node registry to contain the tmplocalnode"

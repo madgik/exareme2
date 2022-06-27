@@ -12,14 +12,18 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.api.validator import validate_algorithm_request
+from mipengine.controller.controller_logger import get_request_logger
+from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.node_landscape_aggregator import _NLARegistries
+from mipengine.controller.node_registry import NodeRegistry
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 
 
 @pytest.fixture(scope="module", autouse=True)
 def mock_cdes():
-    node_landscape_aggregator = NodeLandscapeAggregator()
+    nla = NodeLandscapeAggregator()
     data_models = {
         "test_data_model1:0.1": CommonDataElements(
             values={
@@ -113,12 +117,16 @@ def mock_cdes():
             }
         ),
     }
-
-    node_landscape_aggregator._data_model_registry.data_models = data_models
+    _node_registry = NodeRegistry(get_request_logger("NODE-REGISTRY"))
+    _data_model_registry = DataModelRegistry(get_request_logger("DATA-MODEL-REGISTRY"))
+    _data_model_registry.data_models = data_models
+    nla._nla_registries = _NLARegistries(
+        node_registry=_node_registry, data_model_registry=_data_model_registry
+    )
 
     with patch(
         "mipengine.controller.api.validator.node_landscape_aggregator",
-        node_landscape_aggregator,
+        nla,
     ):
         yield
 
