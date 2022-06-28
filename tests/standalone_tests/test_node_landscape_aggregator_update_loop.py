@@ -128,7 +128,7 @@ def test_update_loop_node_service_down(
 
     # wait until node registry removes tmplocalnode
     start = time.time()
-    while localnodetmp_node_id not in node_landscape_aggregator.get_all_local_nodes():
+    while localnodetmp_node_id in node_landscape_aggregator.get_all_local_nodes():
         if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(
                 f"Node registry did not remove the tmplocalnode during {WAIT_TIME_LIMIT=}"
@@ -174,7 +174,7 @@ def test_update_loop_rabbitmq_down(
     node_landscape_aggregator = NodeLandscapeAggregator()
     node_landscape_aggregator.start()
 
-    # wait until node registry and data model registry is up-to-date
+    # wait until node registry and data model registry get the localnodetmp info
     start = time.time()
     while (
         not localnodetmp_node_id in node_landscape_aggregator.get_all_local_nodes()
@@ -197,7 +197,7 @@ def test_update_loop_rabbitmq_down(
     remove_localnodetmp_rabbitmq()
 
     # wait until node registry no longer contains tmplocalnode
-    while localnodetmp_node_id not in node_landscape_aggregator.get_all_local_nodes():
+    while localnodetmp_node_id in node_landscape_aggregator.get_all_local_nodes():
         if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(
                 f"Node registry did not remove the tmplocalnode during {WAIT_TIME_LIMIT=}"
@@ -245,7 +245,7 @@ def test_update_loop_data_models_removed(
     node_landscape_aggregator = NodeLandscapeAggregator()
     node_landscape_aggregator.start()
 
-    # wait until node registry and data model registry is up-to-date
+    # wait until node registry and data model registry get the localnodetmp info
     start = time.time()
     while (
         not localnodetmp_node_id in node_landscape_aggregator.get_all_local_nodes()
