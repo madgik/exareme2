@@ -1,4 +1,5 @@
 import asyncio
+from collections import Counter
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -170,17 +171,28 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             try:
                 nodes_addresses = get_nodes_addresses()
                 node_infos = await _get_nodes_info(nodes_addresses)
-                local_nodes = [
-                    node for node in node_infos if node.role == NodeRole.LOCALNODE
-                ]
-                (
-                    dataset_locations,
-                    aggregated_datasets,
-                ) = await _gather_all_dataset_infos(local_nodes)
-                data_model_cdes_per_node = await _get_cdes_across_nodes(local_nodes)
+                local_node_infos = {
+                    node_info.id: node_info
+                    for node_info in node_infos
+                    if node_info.role == NodeRole.LOCALNODE
+                }
+
+                datasets_per_node = await _get_datasets_per_node(local_node_infos)
+                remove_duplicated_datasets(datasets_per_node)
+
+                data_model_cdes_per_node = await _get_cdes_across_nodes(
+                    local_node_infos, datasets_per_node
+                )
+
                 compatible_data_models = _get_compatible_data_models(
                     data_model_cdes_per_node
                 )
+
+                (
+                    dataset_locations,
+                    aggregated_datasets,
+                ) = _gather_all_dataset_infos(datasets_per_node)
+
                 _update_data_models_with_aggregated_datasets(
                     compatible_data_models, aggregated_datasets
                 )
@@ -271,13 +283,47 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         )
 
 
-async def _gather_all_dataset_infos(
-    nodes: List[NodeInfo],
+async def _get_datasets_per_node(
+    nodes: Dict[str, NodeInfo],
+) -> Dict[str, Dict[str, Dict[str, str]]]:
+    datasets_per_node = {}
+    for node_id, node_info in nodes.items():
+        node_socket_addr = _get_node_socket_addr(node_info)
+        datasets_per_data_model = await _get_node_datasets_per_data_model(
+            node_socket_addr
+        )
+        if datasets_per_data_model:
+            datasets_per_node[node_info.id] = datasets_per_data_model
+
+    return datasets_per_node
+
+
+def remove_duplicated_datasets(datasets_per_node):
+    aggregated_datasets = [
+        dataset
+        for datasets_per_data_model in datasets_per_node.values()
+        for datasets in datasets_per_data_model.values()
+        for dataset in datasets
+    ]
+    duplicated = [
+        item for item, count in Counter(aggregated_datasets).items() if count > 1
+    ]
+    for node, datasets_per_data_model in datasets_per_node.items():
+        for data_model, datasets in datasets_per_data_model.items():
+            datasets_per_node[node][data_model] = {
+                dataset_name: dataset_label
+                for dataset_name, dataset_label in datasets.items()
+                if dataset_name not in duplicated
+            }
+
+
+def _gather_all_dataset_infos(
+    datasets_per_node: Dict[str, Dict[str, Dict[str, str]]],
 ) -> Tuple[Dict[str, Dict[str, str]], Dict[str, Dict[str, str]]]:
     """
 
     Args:
-        nodes: The nodes available in the system
+        datasets_per_node: The datasets for each node available in the system
 
     Returns:
         A tuple with:
@@ -287,11 +333,8 @@ async def _gather_all_dataset_infos(
     dataset_locations = {}
     aggregated_datasets = {}
 
-    for node_info in nodes:
-        node_socket_addr = _get_node_socket_addr(node_info)
-        datasets_per_data_model = await _get_node_datasets_per_data_model(
-            node_socket_addr
-        )
+    for node_id, datasets_per_data_model in datasets_per_node.items():
+
         for data_model, datasets in datasets_per_data_model.items():
             current_labels = (
                 aggregated_datasets[data_model]
@@ -304,11 +347,7 @@ async def _gather_all_dataset_infos(
 
             for dataset in datasets:
                 current_labels[dataset] = datasets[dataset]
-
-                if dataset in current_datasets:
-                    current_datasets[dataset].append(node_info.id)
-                else:
-                    current_datasets[dataset] = [node_info.id]
+                current_datasets[dataset] = node_id
 
             aggregated_datasets[data_model] = current_labels
             dataset_locations[data_model] = current_datasets
@@ -317,19 +356,20 @@ async def _gather_all_dataset_infos(
 
 
 async def _get_cdes_across_nodes(
-    nodes: List[NodeInfo],
+    nodes: Dict[str, NodeInfo],
+    datasets_per_node: Dict[str, Dict[str, Dict[str, str]]],
 ) -> Dict[str, List[Tuple[str, CommonDataElements]]]:
     nodes_cdes = {}
-    for node_info in nodes:
-        node_socket_addr = _get_node_socket_addr(node_info)
-        datasets_per_data_model = await _get_node_datasets_per_data_model(
-            node_socket_addr
-        )
+    for node_id, datasets_per_data_model in datasets_per_node.items():
+        node_socket_addr = _get_node_socket_addr(nodes[node_id])
         for data_model in datasets_per_data_model:
             cdes = await _get_node_cdes(node_socket_addr, data_model)
+            if not cdes:
+                del datasets_per_node[node_id][data_model]
+                continue
             if data_model not in nodes_cdes:
                 nodes_cdes[data_model] = []
-            nodes_cdes[data_model].append((node_info.id, cdes))
+            nodes_cdes[data_model].append((node_id, cdes))
     return nodes_cdes
 
 

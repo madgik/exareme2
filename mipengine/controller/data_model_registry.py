@@ -19,7 +19,7 @@ class DataModelRegistry:
     def __init__(self, logger: Logger):
         self._logger = logger
         self._data_models: Dict[str, CommonDataElements] = {}
-        self._datasets_location: Dict[str, Dict[str, List[str]]] = {}
+        self._datasets_location: Dict[str, Dict[str, str]] = {}
 
     @property
     def data_models(self):
@@ -68,10 +68,9 @@ class DataModelRegistry:
             return []
 
         local_nodes_with_datasets = [
-            node
+            self.dataset_locations[data_model][dataset]
             for dataset in self.dataset_locations[data_model]
             if dataset in datasets
-            for node in self.dataset_locations[data_model][dataset]
         ]
         return list(set(local_nodes_with_datasets))
 
@@ -100,7 +99,7 @@ class DataModelRegistry:
             dataset
             for dataset in self.dataset_locations[data_model]
             if dataset in wanted_datasets
-            if node_id in self.dataset_locations[data_model][dataset]
+            and node_id == self.dataset_locations[data_model][dataset]
         ]
         return datasets_in_node
 

@@ -1,6 +1,7 @@
 import pytest
 
 from mipengine.controller.node_landscape_aggregator import _get_compatible_data_models
+from mipengine.controller.node_landscape_aggregator import remove_duplicated_datasets
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 
@@ -728,3 +729,155 @@ def get_parametrization_fail_cases():
 )
 def test_get_data_models_fail(nodes_cdes, expected_result):
     assert _get_compatible_data_models(nodes_cdes) == expected_result
+
+
+parametrization_cases = [
+    (
+        {
+            "localnode1": {
+                "dementia:0.1": {
+                    "desd-synthdata0": "DESD-synthdata_0",
+                    "edsd0": "EDSD_0",
+                },
+            },
+            "localnode2": {
+                "dementia:0.1": {
+                    "desd-synthdata1": "DESD-synthdata_1",
+                    "desd-synthdata2": "DESD-synthdata_2",
+                    "edsd1": "EDSD_1",
+                    "edsd2": "EDSD_2",
+                },
+            },
+        },
+        {
+            "localnode1": {
+                "dementia:0.1": {
+                    "desd-synthdata0": "DESD-synthdata_0",
+                    "edsd0": "EDSD_0",
+                },
+            },
+            "localnode2": {
+                "dementia:0.1": {
+                    "desd-synthdata1": "DESD-synthdata_1",
+                    "desd-synthdata2": "DESD-synthdata_2",
+                    "edsd1": "EDSD_1",
+                    "edsd2": "EDSD_2",
+                },
+            },
+        },
+    ),
+    (
+        {
+            "localnode1": {
+                "dementia:0.1": {
+                    "desd-synthdata0": "DESD-synthdata_0",
+                    "desd-synthdata1": "DESD-synthdata_1",
+                    "edsd0": "EDSD_0",
+                },
+            },
+            "localnode2": {
+                "dementia:0.1": {
+                    "desd-synthdata1": "DESD-synthdata_1",
+                    "desd-synthdata2": "DESD-synthdata_2",
+                    "edsd1": "EDSD_1",
+                    "edsd2": "EDSD_2",
+                },
+            },
+        },
+        {
+            "localnode1": {
+                "dementia:0.1": {
+                    "desd-synthdata0": "DESD-synthdata_0",
+                    "edsd0": "EDSD_0",
+                },
+            },
+            "localnode2": {
+                "dementia:0.1": {
+                    "desd-synthdata2": "DESD-synthdata_2",
+                    "edsd1": "EDSD_1",
+                    "edsd2": "EDSD_2",
+                },
+            },
+        },
+    ),
+    (
+        {
+            "localnode1": {
+                "dementia:0.1": {
+                    "desd-synthdata0": "DESD-synthdata_0",
+                    "edsd0": "EDSD_0",
+                },
+            },
+            "localnode2": {
+                "dementia:0.1": {
+                    "desd-synthdata0": "DESD-synthdata_0",
+                    "desd-synthdata1": "DESD-synthdata_1",
+                    "desd-synthdata2": "DESD-synthdata_2",
+                    "edsd1": "EDSD_1",
+                    "edsd2": "EDSD_2",
+                },
+            },
+        },
+        {
+            "localnode1": {
+                "dementia:0.1": {
+                    "edsd0": "EDSD_0",
+                },
+            },
+            "localnode2": {
+                "dementia:0.1": {
+                    "desd-synthdata2": "DESD-synthdata_2",
+                    "edsd1": "EDSD_1",
+                    "edsd2": "EDSD_2",
+                },
+            },
+        },
+    ),
+    (
+        {
+            "localnode1": {
+                "dementia:0.1": {
+                    "desd-synthdata0": "DESD-synthdata_0",
+                    "desd-synthdata1": "DESD-synthdata_1",
+                    "desd-synthdata2": "DESD-synthdata_2",
+                    "edsd0": "EDSD_0",
+                    "edsd1": "EDSD_1",
+                    "edsd2": "EDSD_2",
+                },
+            },
+            "localnode2": {
+                "dementia:0.1": {
+                    "desd-synthdata0": "DESD-synthdata_0",
+                    "desd-synthdata1": "DESD-synthdata_1",
+                    "desd-synthdata2": "DESD-synthdata_2",
+                    "edsd0": "EDSD_0",
+                    "edsd1": "EDSD_1",
+                    "edsd2": "EDSD_2",
+                },
+            },
+        },
+        {
+            "localnode1": {
+                "dementia:0.1": {},
+            },
+            "localnode2": {
+                "dementia:0.1": {},
+            },
+        },
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "datasets_per_node, expected_result",
+    parametrization_cases,
+)
+def test_remove_duplicated_datasets(datasets_per_node, expected_result):
+    remove_duplicated_datasets(datasets_per_node)
+    for node_id, datasets_per_data_model in expected_result.items():
+        for data_model, datasets in datasets_per_data_model.items():
+            for dataset_name, dataset_label in datasets.items():
+                assert (
+                    datasets_per_node[node_id][data_model][dataset_name]
+                    == expected_result[node_id][data_model][dataset_name]
+                )

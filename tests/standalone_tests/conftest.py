@@ -1,5 +1,7 @@
 import enum
+import json
 import os
+import pathlib
 import re
 import subprocess
 import time
@@ -285,13 +287,94 @@ def _load_data_monetdb_container(db_ip, db_port):
         print(f"\nDatabase ({db_ip}:{db_port}) already loaded, continuing.")
         return
 
-    print(f"\nLoading data to database ({db_ip}:{db_port})")
-    cmd = f"mipdb load-folder {TEST_DATA_FOLDER}  --ip {db_ip} --port {db_port} "
-    subprocess.run(
-        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    # Load the test data folder into the dbs
+    data_model_folders = [
+        TEST_DATA_FOLDER / folder for folder in os.listdir(TEST_DATA_FOLDER)
+    ]
+    for data_model_folder in data_model_folders:
+        with open(data_model_folder / "CDEsMetadata.json") as data_model_metadata_file:
+            data_model_metadata = json.load(data_model_metadata_file)
+            data_model_code = data_model_metadata["code"]
+            data_model_version = data_model_metadata["version"]
+        cdes_file = data_model_folder / "CDEsMetadata.json"
+
+        print(
+            f"\nLoading data model '{data_model_code}:{data_model_version}' metadata to database ({db_ip}:{db_port})"
+        )
+        cmd = f"mipdb add-data-model {cdes_file} --ip {db_ip} --port {db_port} "
+        subprocess.run(
+            cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+        port_prefixes = {
+            MONETDB_LOCALNODE1_PORT: [0, 1, 2, 3],
+            MONETDB_LOCALNODE2_PORT: [4, 5, 6],
+            MONETDB_LOCALNODETMP_PORT: [7, 8, 9],
+            MONETDB_SMPC_LOCALNODE1_PORT: [0, 1, 2, 3, 4],
+            MONETDB_SMPC_LOCALNODE2_PORT: [5, 6, 7, 8, 9],
+        }
+        # Load only the 1st csv of each dataset "with 0 suffix" in the 1st node
+        csvs = sorted(
+            [
+                data_model_folder / file
+                for file in os.listdir(data_model_folder)
+                for prefix in port_prefixes[db_port]
+                if file.endswith(".csv") and str(prefix) in file
+            ]
+        )
+
+        for csv in csvs:
+            cmd = f"mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --ip {db_ip} --port {db_port} "
+            subprocess.run(
+                cmd,
+                shell=True,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            print(
+                f"\nLoading dataset {pathlib.PurePath(csv).name} to database ({db_ip}:{db_port})"
+            )
+
     print(f"\nData loaded to database ({db_ip}:{db_port})")
     time.sleep(2)  # Needed to avoid db crash while loading
+
+
+def get_edsd_datasets_for_specific_node(node_id: str):
+    datasets_per_node = {
+        "testlocalnode1": [
+            "edsd0",
+            "edsd1",
+            "edsd2",
+            "edsd3",
+        ],
+        "testlocalnode2": [
+            "edsd4",
+            "edsd5",
+            "edsd6",
+        ],
+        "testlocalnodetmp": [
+            "edsd7",
+            "edsd8",
+            "edsd9",
+        ],
+        "smpc_testlocalnode1": [
+            "edsd0",
+            "edsd1",
+            "edsd2",
+            "edsd3",
+            "edsd4",
+        ],
+        "smpc_testlocalnode2": [
+            "edsd5",
+            "edsd6",
+            "edsd7",
+            "edsd8",
+            "edsd9",
+        ],
+    }
+
+    return datasets_per_node[node_id]
 
 
 def _remove_data_model_from_localnodetmp_monetdb(data_model_code, data_model_version):

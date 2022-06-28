@@ -2,6 +2,7 @@ import asyncio
 import time
 from copy import deepcopy
 from os import path
+from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -22,6 +23,7 @@ from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 from tests.standalone_tests.conftest import _create_node_service
 from tests.standalone_tests.conftest import _create_rabbitmq_container
 from tests.standalone_tests.conftest import create_node_tasks_handler_celery
+from tests.standalone_tests.conftest import get_edsd_datasets_for_specific_node
 from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
@@ -141,74 +143,54 @@ def patch_celery_app(controller_config_dict_mock):
         yield
 
 
-algorithm_request_dto = AlgorithmRequestDTO(
-    inputdata=AlgorithmInputDataDTO(
-        data_model="dementia:0.1",
-        datasets=[
-            "edsd0",
-            "edsd1",
-            "edsd2",
-            "edsd3",
-            "edsd4",
-            "edsd5",
-            "edsd6",
-            "edsd7",
-            "edsd8",
-            "edsd9",
-        ],
-        filters={
-            "condition": "AND",
-            "rules": [
-                {
-                    "id": "dataset",
-                    "type": "string",
-                    "value": [
-                        "edsd0",
-                        "edsd1",
-                        "edsd2",
-                        "edsd3",
-                        "edsd4",
-                        "edsd5",
-                        "edsd6",
-                        "edsd7",
-                        "edsd8",
-                        "edsd9",
-                    ],
-                    "operator": "in",
-                },
-                {
-                    "condition": "AND",
-                    "rules": [
-                        {
-                            "id": variable,
-                            "type": "string",
-                            "operator": "is_not_null",
-                            "value": None,
-                        }
-                        for variable in [
-                            "lefthippocampus",
-                            "righthippocampus",
-                            "rightppplanumpolare",
-                            "leftamygdala",
-                            "rightamygdala",
-                            "alzheimerbroadcategory",
-                        ]
-                    ],
-                },
+def get_algorithm_request_dto(datasets):
+
+    return AlgorithmRequestDTO(
+        inputdata=AlgorithmInputDataDTO(
+            data_model="dementia:0.1",
+            datasets=datasets,
+            filters={
+                "condition": "AND",
+                "rules": [
+                    {
+                        "id": "dataset",
+                        "type": "string",
+                        "value": datasets,
+                        "operator": "in",
+                    },
+                    {
+                        "condition": "AND",
+                        "rules": [
+                            {
+                                "id": variable,
+                                "type": "string",
+                                "operator": "is_not_null",
+                                "value": None,
+                            }
+                            for variable in [
+                                "lefthippocampus",
+                                "righthippocampus",
+                                "rightppplanumpolare",
+                                "leftamygdala",
+                                "rightamygdala",
+                                "alzheimerbroadcategory",
+                            ]
+                        ],
+                    },
+                ],
+                "valid": True,
+            },
+            x=[
+                "lefthippocampus",
+                "righthippocampus",
+                "rightppplanumpolare",
+                "leftamygdala",
+                "rightamygdala",
             ],
-            "valid": True,
-        },
-        x=[
-            "lefthippocampus",
-            "righthippocampus",
-            "rightppplanumpolare",
-            "leftamygdala",
-            "rightamygdala",
-        ],
-        y=["alzheimerbroadcategory"],
-    ),
-    parameters={"classes": ["AD", "CN"]},
-)
+            y=["alzheimerbroadcategory"],
+        ),
+        parameters={"classes": ["AD", "CN"]},
+    )
 
 
 @pytest.mark.slow
@@ -243,6 +225,8 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
+    testlocalnode1_datasets = get_edsd_datasets_for_specific_node("testlocalnode1")
+    testlocalnode2_datasets = get_edsd_datasets_for_specific_node("testlocalnode2")
 
     controller._cleaner.add_contextid_for_cleanup(
         context_id,
@@ -258,32 +242,12 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
             request_id=request_id,
             context_id=context_id,
             algorithm_name=algorithm_name,
-            algorithm_request_dto=algorithm_request_dto,
+            algorithm_request_dto=get_algorithm_request_dto(
+                testlocalnode1_datasets + testlocalnode2_datasets
+            ),
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: [
-                    "edsd0",
-                    "edsd1",
-                    "edsd2",
-                    "edsd3",
-                    "edsd4",
-                    "edsd5",
-                    "edsd6",
-                    "edsd7",
-                    "edsd8",
-                    "edsd9",
-                ],
-                localnode2_tasks_handler.node_id: [
-                    "edsd0",
-                    "edsd1",
-                    "edsd2",
-                    "edsd3",
-                    "edsd4",
-                    "edsd5",
-                    "edsd6",
-                    "edsd7",
-                    "edsd8",
-                    "edsd9",
-                ],
+                localnode1_tasks_handler.node_id: testlocalnode1_datasets,
+                localnode2_tasks_handler.node_id: testlocalnode2_datasets,
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -394,38 +358,21 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_without_releasing
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
+    testlocalnode1_datasets = get_edsd_datasets_for_specific_node("testlocalnode1")
+    testlocalnode2_datasets = get_edsd_datasets_for_specific_node("testlocalnode2")
+    testlocalnodetmp_datasets = get_edsd_datasets_for_specific_node("testlocalnodetmp")
 
     try:
         await controller._exec_algorithm_with_task_handlers(
             request_id=request_id,
             context_id=context_id,
             algorithm_name=algorithm_name,
-            algorithm_request_dto=algorithm_request_dto,
+            algorithm_request_dto=get_algorithm_request_dto(
+                testlocalnode1_datasets + testlocalnode2_datasets
+            ),
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: [
-                    "edsd0",
-                    "edsd1",
-                    "edsd2",
-                    "edsd3",
-                    "edsd4",
-                    "edsd5",
-                    "edsd6",
-                    "edsd7",
-                    "edsd8",
-                    "edsd9",
-                ],
-                localnode2_tasks_handler.node_id: [
-                    "edsd0",
-                    "edsd1",
-                    "edsd2",
-                    "edsd3",
-                    "edsd4",
-                    "edsd5",
-                    "edsd6",
-                    "edsd7",
-                    "edsd8",
-                    "edsd9",
-                ],
+                localnode1_tasks_handler.node_id: testlocalnode1_datasets,
+                localnode2_tasks_handler.node_id: testlocalnode2_datasets,
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -540,6 +487,9 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
+    testlocalnode1_datasets = get_edsd_datasets_for_specific_node("testlocalnode1")
+    testlocalnode2_datasets = get_edsd_datasets_for_specific_node("testlocalnode2")
+    testlocalnodetmp_datasets = get_edsd_datasets_for_specific_node("testlocalnodetmp")
 
     controller._cleaner.add_contextid_for_cleanup(
         context_id,
@@ -556,32 +506,12 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
             request_id=request_id,
             context_id=context_id,
             algorithm_name=algorithm_name,
-            algorithm_request_dto=algorithm_request_dto,
+            algorithm_request_dto=get_algorithm_request_dto(
+                testlocalnode1_datasets + testlocalnodetmp_datasets
+            ),
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: [
-                    "edsd0",
-                    "edsd1",
-                    "edsd2",
-                    "edsd3",
-                    "edsd4",
-                    "edsd5",
-                    "edsd6",
-                    "edsd7",
-                    "edsd8",
-                    "edsd9",
-                ],
-                localnodetmp_tasks_handler.node_id: [
-                    "edsd0",
-                    "edsd1",
-                    "edsd2",
-                    "edsd3",
-                    "edsd4",
-                    "edsd5",
-                    "edsd6",
-                    "edsd7",
-                    "edsd8",
-                    "edsd9",
-                ],
+                localnode1_tasks_handler.node_id: testlocalnode1_datasets,
+                localnodetmp_tasks_handler.node_id: testlocalnodetmp_datasets,
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -712,6 +642,9 @@ async def test_cleanup_node_service_down_algorithm_execution(
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
+    testlocalnode1_datasets = get_edsd_datasets_for_specific_node("testlocalnode1")
+    testlocalnode2_datasets = get_edsd_datasets_for_specific_node("testlocalnode2")
+    testlocalnodetmp_datasets = get_edsd_datasets_for_specific_node("testlocalnodetmp")
 
     controller._cleaner.add_contextid_for_cleanup(
         context_id,
@@ -728,32 +661,12 @@ async def test_cleanup_node_service_down_algorithm_execution(
             request_id=request_id,
             context_id=context_id,
             algorithm_name=algorithm_name,
-            algorithm_request_dto=algorithm_request_dto,
+            algorithm_request_dto=get_algorithm_request_dto(
+                testlocalnode1_datasets + testlocalnodetmp_datasets
+            ),
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: [
-                    "edsd0",
-                    "edsd1",
-                    "edsd2",
-                    "edsd3",
-                    "edsd4",
-                    "edsd5",
-                    "edsd6",
-                    "edsd7",
-                    "edsd8",
-                    "edsd9",
-                ],
-                localnodetmp_tasks_handler.node_id: [
-                    "edsd0",
-                    "edsd1",
-                    "edsd2",
-                    "edsd3",
-                    "edsd4",
-                    "edsd5",
-                    "edsd6",
-                    "edsd7",
-                    "edsd8",
-                    "edsd9",
-                ],
+                localnode1_tasks_handler.node_id: testlocalnode1_datasets,
+                localnodetmp_tasks_handler.node_id: testlocalnodetmp_datasets,
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -876,6 +789,9 @@ async def test_cleanup_controller_restart(
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
+    testlocalnode1_datasets = get_edsd_datasets_for_specific_node("testlocalnode1")
+    testlocalnode2_datasets = get_edsd_datasets_for_specific_node("testlocalnode2")
+    testlocalnodetmp_datasets = get_edsd_datasets_for_specific_node("testlocalnodetmp")
 
     controller._cleaner.add_contextid_for_cleanup(
         context_id,
@@ -891,32 +807,12 @@ async def test_cleanup_controller_restart(
             request_id=request_id,
             context_id=context_id,
             algorithm_name=algorithm_name,
-            algorithm_request_dto=algorithm_request_dto,
+            algorithm_request_dto=get_algorithm_request_dto(
+                testlocalnode1_datasets + testlocalnodetmp_datasets
+            ),
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: [
-                    "edsd0",
-                    "edsd1",
-                    "edsd2",
-                    "edsd3",
-                    "edsd4",
-                    "edsd5",
-                    "edsd6",
-                    "edsd7",
-                    "edsd8",
-                    "edsd9",
-                ],
-                localnodetmp_tasks_handler.node_id: [
-                    "edsd0",
-                    "edsd1",
-                    "edsd2",
-                    "edsd3",
-                    "edsd4",
-                    "edsd5",
-                    "edsd6",
-                    "edsd7",
-                    "edsd8",
-                    "edsd9",
-                ],
+                localnode1_tasks_handler.node_id: testlocalnode1_datasets,
+                localnodetmp_tasks_handler.node_id: testlocalnodetmp_datasets,
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
