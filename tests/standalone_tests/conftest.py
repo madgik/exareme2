@@ -610,7 +610,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     env["ALGORITHM_FOLDERS"] = algo_folders_env_variable_val
     env["MIPENGINE_NODE_CONFIG_FILE"] = node_config_filepath
 
-    cmd = f"poetry run celery -A mipengine.node.node worker -l DEBUG >> {logpath} --purge 2>&1 "
+    cmd = f"poetry run celery -A mipengine.node.node worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
