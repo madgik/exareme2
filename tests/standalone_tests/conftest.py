@@ -840,10 +840,9 @@ def smpc_localnode2_celery_app(smpc_localnode2_node_service):
 def reset_node_landscape_aggregator():
     nla = NodeLandscapeAggregator()
     nla.keep_updating = False
-    _node_registry = NodeRegistry(get_request_logger("NODE-REGISTRY"))
-    _data_model_registry = DataModelRegistry(get_request_logger("DATA-MODEL-REGISTRY"))
     nla._nla_registries = _NLARegistries(
-        node_registry=_node_registry, data_model_registry=_data_model_registry
+        node_registry=NodeRegistry(nodes={}),
+        data_model_registry=DataModelRegistry(data_models={}, datasets_location={}),
     )
 
 

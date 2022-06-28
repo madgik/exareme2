@@ -6,10 +6,10 @@ import pytest
 
 from mipengine import AttrDict
 from mipengine.controller.controller_logger import init_logger
-from mipengine.controller.data_model_registry import _log_data_model_changes
-from mipengine.controller.data_model_registry import _log_dataset_changes
 from mipengine.controller.federation_info_logs import log_experiment_execution
-from mipengine.controller.node_registry import log_node_changes
+from mipengine.controller.node_landscape_aggregator import log_data_model_changes
+from mipengine.controller.node_landscape_aggregator import log_dataset_changes
+from mipengine.controller.node_landscape_aggregator import log_node_changes
 from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_PORT
 
 LOGFILE_NAME = "test_show_controller_audit_entries.out"
@@ -57,15 +57,15 @@ def patch_controller_logger_config(controller_config_dict_mock):
 def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
     logger = init_logger("BACKGROUND")
     log_node_changes(
-        logger=logger, old_nodes={"localnode1": ""}, new_nodes={"localnode2": ""}
+        _logger=logger, old_nodes={"localnode1": ""}, new_nodes={"localnode2": ""}
     )
-    _log_data_model_changes(
-        logger=logger,
+    log_data_model_changes(
+        _logger=logger,
         old_data_models={"dementia:0.1": ""},
         new_data_models={"tbi:0.1": ""},
     )
-    _log_dataset_changes(
-        logger=logger,
+    log_dataset_changes(
+        _logger=logger,
         old_datasets_per_data_model={"dementia:0.1": {"edsd": ["localnode1"]}},
         new_datasets_per_data_model={"tbi:0.1": {"dummy_tbi": ["localnode2"]}},
     )
@@ -84,6 +84,7 @@ def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
     )
 
     output = str(res.stdout)
+    print(output)
     assert re.match(r".* - NODE_JOINED - localnode2\\n.*", output)
     assert re.match(r".*\\n.* - NODE_LEFT - localnode1\\n.*", output)
     assert re.match(r".*\\n.* - DATAMODEL_ADDED - tbi:0.1\\n.*", output)
