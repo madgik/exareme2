@@ -26,7 +26,7 @@ def get_parametrization_list_success_cases():
                 "edsd8",
                 "edsd9",
             ],
-            "x": [
+            "y": [
                 "lefthippocampus",
             ],
             "filters": {

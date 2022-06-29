@@ -193,7 +193,7 @@ def get_parametrization_list_success_cases():
                 "edsd9",
             ]
         },
-        x_vars=[
+        y_vars=[
             "lefthippocampus",
         ],
         var_filters={
