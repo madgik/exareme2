@@ -68,9 +68,9 @@ class CeleryWrapper:
             amqp.exceptions.NotAllowed,
         ) as exc:
             logger.error(
-                f"Exception: {exc=} was caught. Most likely this means the broker "
-                f"is not acccessible. Queuing of {task_signature=} with {args=} and {kwargs=} "
-                f"FAILED."
+                f"{self._socket_addr=} Exception: {exc=} was caught. Most likely this "
+                f"means the broker is not acccessible. Queuing of {task_signature=} with "
+                f"{args=} and {kwargs=} FAILED."
             )
             self._start_check_broker_connection_and_reset_celery_thread()
 
@@ -106,8 +106,9 @@ class CeleryWrapper:
             # kombu.exceptions.OperationalError
             except Exception as exc:
                 logger.error(
-                    f"Exception: {exc=} was raised. Most likely this means the broker "
-                    f"is not acccessible. Getting the result of {async_result.id=} FAILED."
+                    f"{self._socket_addr=} Exception: {exc=} was raised. Most likely this "
+                    f"means the broker is not acccessible. Getting the result of "
+                    f"{async_result.id=} FAILED."
                 )
                 self._start_check_broker_connection_and_reset_celery_thread()
 
@@ -124,8 +125,9 @@ class CeleryWrapper:
             )
         except (ConnectionResetError, kombu.exceptions.OperationalError) as exc:
             logger.error(
-                f"Exception: {exc=} was raised. Most likely this means the broker "
-                f"is not acccessible. Getting the result of {async_result.id=} FAILED."
+                f"{self._socket_addr=} Exception: {exc=} was raised. Most likely this "
+                f"means the broker is not acccessible. Getting the result of "
+                f"{async_result.id=} FAILED."
             )
             self._start_check_broker_connection_and_reset_celery_thread()
 
@@ -174,8 +176,8 @@ class CeleryWrapper:
                 # kombu.exceptions.OperationalError,
                 except Exception as exc:
                     logger.error(
-                        f"Exception: {exc=} was raised. This most likely means the broker "
-                        f"is not acccessible for some reason. Will retry to check connection "
+                        f"{self._socket_addr=} Exception: {exc=} was raised. Most likely this "
+                        f"means the broker is not acccessible.Will retry to check connection "
                         f"to broker in {retry_interval} seconds."
                     )
                     self._celery_app = self._instantiate_celery_object()
