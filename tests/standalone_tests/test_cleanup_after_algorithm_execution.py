@@ -364,6 +364,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         assert False
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_timelimit(
@@ -493,6 +494,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
         assert False
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_rabbitmq_down_algorithm_execution(
@@ -655,6 +657,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         assert False
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_node_service_down_algorithm_execution(
@@ -815,6 +818,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
         assert False
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_controller_restart(

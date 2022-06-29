@@ -93,6 +93,7 @@ def patch_celery_app(controller_config_mock):
         yield
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 def test_update_loop_node_service_down(
     load_data_localnodetmp,
@@ -162,6 +163,7 @@ def test_update_loop_node_service_down(
     kill_service(localnodetmp_node_service_proc)
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 def test_update_loop_rabbitmq_down(
     load_data_localnodetmp,
@@ -232,6 +234,7 @@ def test_update_loop_rabbitmq_down(
     kill_service(localnodetmp_node_service)
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 def test_update_loop_data_models_removed(
     load_data_localnodetmp,
