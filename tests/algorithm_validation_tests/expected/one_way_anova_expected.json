@@ -4,92 +4,6 @@
             "input": {
                 "inputdata": {
                     "x": [
-                        "alzheimerbroadcategory"
-                    ],
-                    "y": [
-                        "subjectage"
-                    ],
-                    "data_model": "dementia:0.1",
-                    "datasets": [
-                        "ppmi1",
-                        "ppmi0",
-                        "ppmi8",
-                        "edsd0",
-                        "desd-synthdata9",
-                        "desd-synthdata5",
-                        "ppmi4",
-                        "ppmi6",
-                        "edsd5",
-                        "edsd3",
-                        "ppmi5",
-                        "edsd1",
-                        "desd-synthdata4",
-                        "ppmi3",
-                        "ppmi2",
-                        "edsd2",
-                        "ppmi7",
-                        "edsd7",
-                        "edsd8",
-                        "desd-synthdata8",
-                        "edsd9",
-                        "desd-synthdata2",
-                        "desd-synthdata1",
-                        "desd-synthdata6",
-                        "edsd6"
-                    ],
-                    "filters": ""
-                },
-                "parameters": {}
-            },
-            "output": {
-                "n_obs": 588,
-                "df_residual": 585.0,
-                "df_explained": 2.0,
-                "ss_residual": 42956.33530568945,
-                "ss_explained": 801.7650344466016,
-                "ms_residual": 73.42963300117854,
-                "ms_explained": 400.8825172233008,
-                "p_value": 0.004475725456485117,
-                "f_stat": 5.459410606299321,
-                "tuckey_test": [
-                    {
-                        "groupA": "AD",
-                        "groupB": "CN",
-                        "meanA": 71.34677419354838,
-                        "meanB": 68.85775862068965,
-                        "diff": 2.489015572858733,
-                        "se": 0.7826840158337497,
-                        "t_stat": 3.18010272665058,
-                        "p_tuckey": 0.004415371382239464
-                    },
-                    {
-                        "groupA": "AD",
-                        "groupB": "Other",
-                        "meanA": 71.34677419354838,
-                        "meanB": 70.96296296296296,
-                        "diff": 0.38381123058542244,
-                        "se": 0.9879226888343206,
-                        "t_stat": 0.38850330589966786,
-                        "p_tuckey": 0.9
-                    },
-                    {
-                        "groupA": "CN",
-                        "groupB": "Other",
-                        "meanA": 68.85775862068965,
-                        "meanB": 70.96296296296296,
-                        "diff": -2.1052043422733107,
-                        "se": 0.998203911066449,
-                        "t_stat": -2.108992279968306,
-                        "p_tuckey": 0.0888319976793378
-                    }
-                ]
-            },
-            "test_case_num": 0
-        },
-        {
-            "input": {
-                "inputdata": {
-                    "x": [
                         "ppmicategory"
                     ],
                     "y": [
@@ -146,7 +60,7 @@
                     }
                 ]
             },
-            "test_case_num": 1
+            "test_case_num": 0
         },
         {
             "input": {
@@ -4266,7 +4180,7 @@
                     }
                 ]
             },
-            "test_case_num": 2
+            "test_case_num": 1
         },
         {
             "input": {
@@ -4310,7 +4224,7 @@
                     }
                 ]
             },
-            "test_case_num": 3
+            "test_case_num": 2
         },
         {
             "input": {
@@ -5013,7 +4927,7 @@
                     }
                 ]
             },
-            "test_case_num": 4
+            "test_case_num": 3
         },
         {
             "input": {
@@ -5092,8 +5006,94 @@
                     }
                 ]
             },
-            "test_case_num": 5
+            "test_case_num": 4
         },
+        {
+            "input": {
+                "inputdata": {
+                    "x": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "y": [
+                        "subjectage"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi1",
+                        "ppmi0",
+                        "ppmi8",
+                        "edsd0",
+                        "desd-synthdata9",
+                        "desd-synthdata5",
+                        "ppmi4",
+                        "ppmi6",
+                        "edsd5",
+                        "edsd3",
+                        "ppmi5",
+                        "edsd1",
+                        "desd-synthdata4",
+                        "ppmi3",
+                        "ppmi2",
+                        "edsd2",
+                        "ppmi7",
+                        "edsd7",
+                        "edsd8",
+                        "desd-synthdata8",
+                        "edsd9",
+                        "desd-synthdata2",
+                        "desd-synthdata1",
+                        "desd-synthdata6",
+                        "edsd6"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {}
+            },
+            "output": {
+                "n_obs": 588,
+                "df_residual": 585.0,
+                "df_explained": 2.0,
+                "ss_residual": 42956.33530568945,
+                "ss_explained": 801.7650344466016,
+                "ms_residual": 73.42963300117854,
+                "ms_explained": 400.8825172233008,
+                "p_value": 0.004475725456485117,
+                "f_stat": 5.459410606299321,
+                "tuckey_test": [
+                    {
+                        "groupA": "AD",
+                        "groupB": "CN",
+                        "meanA": 71.34677419354838,
+                        "meanB": 68.85775862068965,
+                        "diff": 2.489015572858733,
+                        "se": 0.7826840158337497,
+                        "t_stat": 3.18010272665058,
+                        "p_tuckey": 0.004415371382239464
+                    },
+                    {
+                        "groupA": "AD",
+                        "groupB": "Other",
+                        "meanA": 71.34677419354838,
+                        "meanB": 70.96296296296296,
+                        "diff": 0.38381123058542244,
+                        "se": 0.9879226888343206,
+                        "t_stat": 0.38850330589966786,
+                        "p_tuckey": 0.9
+                    },
+                    {
+                        "groupA": "CN",
+                        "groupB": "Other",
+                        "meanA": 68.85775862068965,
+                        "meanB": 70.96296296296296,
+                        "diff": -2.1052043422733107,
+                        "se": 0.998203911066449,
+                        "t_stat": -2.108992279968306,
+                        "p_tuckey": 0.0888319976793378
+                    }
+                ]
+            },
+            "test_case_num": 5
+      },
         {
             "input": {
                 "inputdata": {
