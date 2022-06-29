@@ -5,7 +5,9 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
+from mipengine.controller.algorithm_execution_tasks_handler import (
+    INodeAlgorithmTasksHandler,
+)
 
 
 # One of the two expected data object for the AlgorithmExecutor layer.
@@ -29,8 +31,8 @@ class AlgorithmExecutionDTO(BaseModel):
 # It contains the handler objects(essentially the celery objects) on which the
 # AlgorithmExecutor will request tasks execution
 class NodesTasksHandlersDTO(BaseModel):
-    global_node_tasks_handler: INodeTasksHandler
-    local_nodes_tasks_handlers: List[INodeTasksHandler]
+    global_node_tasks_handler: INodeAlgorithmTasksHandler
+    local_nodes_tasks_handlers: List[INodeAlgorithmTasksHandler]
 
     class Config:
         arbitrary_types_allowed = True

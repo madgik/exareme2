@@ -21,19 +21,19 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Build and Push MONETDB_base docker image to dockerhub
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: monetdb/DockerfileBaseImage
+          push: true
+          tags: madgik/mipenginedb_base:latest
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
           images: madgik/mipenginedb
-
-      - name: Load MONETDB cached image
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles( 'monetdb/**' )}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-monetdb-
 
       - name: Build and Push MONETDB docker image to dockerhub
         uses: docker/build-push-action@v2
@@ -43,16 +43,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache/monetdb
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
-
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   build_and_push_mipdb:
     name: Build MIPDB container image and push to dockerhub

@@ -128,7 +128,7 @@ jobs:
           run: tail -n 1000 /tmp/mipengine/localnode1.out
 
       - name: Run algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests --verbosity=4
+        run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16
 
   run_tests_in_five_nodes:
     runs-on: ubuntu-latest
@@ -249,4 +249,4 @@ jobs:
           run: tail -n 1000 /tmp/mipengine/localnode1.out
 
       - name: Run algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests --verbosity=4
+        run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16

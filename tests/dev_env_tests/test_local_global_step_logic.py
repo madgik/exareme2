@@ -12,7 +12,7 @@ def get_parametrization_list_success_cases():
         "inputdata": {
             "data_model": "dementia:0.1",
             "datasets": ["edsd0"],
-            "x": [
+            "y": [
                 "lefthippocampus",
             ],
             "filters": {
