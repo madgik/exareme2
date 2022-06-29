@@ -1,5 +1,6 @@
 import time
 import traceback
+from abc import abstractmethod
 from threading import Lock
 from threading import Thread
 from typing import Union
@@ -18,13 +19,24 @@ from mipengine.singleton import Singleton
 
 
 class Logger:
-    def info(msg: str, *args, **kwargs):
+    @abstractmethod
+    def info(self, msg: str, *args, **kwargs):
         pass
 
-    def debug(msg: str, *args, **kwargs):
+    @abstractmethod
+    def debug(self, msg: str, *args, **kwargs):
         pass
 
-    def error(msg: str, *args, **kwargs):
+    @abstractmethod
+    def warning(self, msg: str, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def error(self, msg: str, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def critical(self, msg: str, *args, **kwargs):
         pass
 
 
