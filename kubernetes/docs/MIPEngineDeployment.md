@@ -11,6 +11,8 @@
 helm install mipengine kubernetes
 ```
 
+**For a deployment with microk8s use `microk8s helm3` in the commands.**
+
 ### Change the MIP-Engine version running
 
 1. Modify the `mipengine_images -> version` value in the [helm chart values](../values.yaml) accordingly.
