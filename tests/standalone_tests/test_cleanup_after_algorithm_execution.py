@@ -758,9 +758,14 @@ async def test_cleanup_node_service_down_algorithm_execution(
     localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
     )
-    localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
-    )
+
+    localnodetmp_tables_after_cleanup = None
+    try:
+        localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
+            request_id=request_id, context_id=context_id
+        )
+    except CeleryConnectionError:
+        pass
 
     start = time.time()
     while (
@@ -774,9 +779,14 @@ async def test_cleanup_node_service_down_algorithm_execution(
         localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
             request_id=request_id, context_id=context_id
         )
-        localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
-        )
+
+        localnodetmp_tables_after_cleanup = None
+        try:
+            localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
+                request_id=request_id, context_id=context_id
+            )
+        except CeleryConnectionError:
+            pass
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:
             pytest.fail(
