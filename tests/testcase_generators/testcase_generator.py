@@ -10,7 +10,7 @@ import pandas as pd
 import pymonetdb
 from tqdm import tqdm
 
-from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
+from mipengine.node.monetdb_interface.monet_db_facade import _MonetDBConnectionPool
 
 TESTING_DATAMODEL = "dementia:0.1"
 DATA_TABLENAME = f""""{TESTING_DATAMODEL}".primary_data"""
@@ -28,7 +28,7 @@ DB_PASS = "monetdb"
 DB_FARM = "db"
 
 
-class DB(MonetDB):
+class DB(_MonetDBConnectionPool):
     def refresh_connection(self):
         self._connection = pymonetdb.connect(
             hostname=DB_IP,

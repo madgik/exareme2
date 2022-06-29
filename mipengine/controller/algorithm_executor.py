@@ -8,9 +8,6 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
-from billiard.exceptions import SoftTimeLimitExceeded
-from billiard.exceptions import TimeLimitExceeded
-from celery.exceptions import TimeoutError
 from pydantic import BaseModel
 
 from mipengine import algorithm_modules
@@ -45,13 +42,18 @@ from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
-from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
-from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
+from mipengine.controller.celery_app import CeleryConnectionError
+from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.udfgen import TensorBinaryOp
 from mipengine.udfgen import make_unique_func_name
+
+
+class AsyncResult:
+    def get(self, timeout=None):
+        pass
 
 
 class AlgorithmExecutionException(Exception):
@@ -180,16 +182,11 @@ class AlgorithmExecutor:
             )
             self._logger.info(f"finished execution of algorithm:{self._algorithm_name}")
             return algorithm_result
-        except (
-            SoftTimeLimitExceeded,
-            TimeLimitExceeded,
-            TimeoutError,
-            ClosedBrokerConnectionError,
-        ) as err:
-            self._logger.error(f"ErrorType: '{type(err)}' and message: '{err}'")
+        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+            self._logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
             raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
-            self._logger.error(f"{traceback.format_exc()}")
+            self._logger.error(traceback.format_exc())
             raise exc
 
 
@@ -635,7 +632,7 @@ class _AlgorithmExecutionInterface:
                     return True
 
     def _get_local_run_udfs_results(
-        self, tasks: Dict[LocalNode, IQueuedUDFAsyncResult]
+        self, tasks: Dict[LocalNode, AsyncResult]
     ) -> List[List[Tuple[LocalNode, NodeData]]]:
         all_nodes_results = {}
         for node, task in tasks.items():
