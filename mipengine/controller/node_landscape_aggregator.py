@@ -224,13 +224,13 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             self._update_loop_thread.join()
 
     def set_new_registy_values(self, nodes, data_models, datasets_location):
-        log_node_changes(logger, self._registries.node_registry.nodes, nodes)
-        log_data_model_changes(
+        _log_node_changes(logger, self._registries.node_registry.nodes, nodes)
+        _log_data_model_changes(
             logger,
             self._registries.data_model_registry.data_models,
             data_models,
         )
-        log_dataset_changes(
+        _log_dataset_changes(
             logger,
             self._registries.data_model_registry.datasets_location,
             datasets_location,
@@ -427,7 +427,7 @@ def _update_data_models_with_aggregated_datasets(
             data_models[data_model].values["dataset"] = new_dataset_cde
 
 
-def log_node_changes(_logger, old_nodes, new_nodes):
+def _log_node_changes(_logger, old_nodes, new_nodes):
     added_nodes = set(new_nodes.keys()) - set(old_nodes.keys())
     for node in added_nodes:
         log_node_joined_federation(_logger, node)
@@ -437,7 +437,7 @@ def log_node_changes(_logger, old_nodes, new_nodes):
         log_node_left_federation(_logger, node)
 
 
-def log_data_model_changes(_logger, old_data_models, new_data_models):
+def _log_data_model_changes(_logger, old_data_models, new_data_models):
     added_data_models = new_data_models.keys() - old_data_models.keys()
     for data_model in added_data_models:
         log_datamodel_added(data_model, _logger)
@@ -447,7 +447,7 @@ def log_data_model_changes(_logger, old_data_models, new_data_models):
         log_datamodel_removed(data_model, _logger)
 
 
-def log_dataset_changes(
+def _log_dataset_changes(
     _logger, old_datasets_per_data_model, new_datasets_per_data_model
 ):
     _log_datasets_added(
