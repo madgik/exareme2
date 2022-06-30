@@ -158,6 +158,11 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
 
+      - name: Log disk space status
+        run: df -hx squashfs --total
+      - name: Log memory status
+        run: free -mh
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
@@ -179,6 +184,11 @@ jobs:
           tags: madgik/mipenginedb:testing
           cache-from: type=local,src=/tmp/.buildx-cache/monetdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
+
+      - name: Log disk space status
+        run: df -hx squashfs --total
+      - name: Log memory status
+        run: free -mh
 
       - name: Load RABBITMQ cached image
         uses: actions/cache@v2
@@ -207,6 +217,11 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
+      - name: Log disk space status
+        run: df -hx squashfs --total
+      - name: Log memory status
+        run: free -mh
+
       - name: Copy .deployment.toml file
         run: cp ./tests/algorithm_validation_tests/ten_node_deployment_template.toml .deployment.toml
 
@@ -216,8 +231,18 @@ jobs:
       - name: Deploy all services
         run: poetry run inv deploy --no-install-dep --no-start-all
 
+      - name: Log disk space status
+        run: df -hx squashfs --total
+      - name: Log memory status
+        run: free -mh
+
       - name: Load data into DBs
         run: poetry run inv load-data
+
+      - name: Log disk space status
+        run: df -hx squashfs --total
+      - name: Log memory status
+        run: free -mh
 
       - name: Start services after data loading
         run: |
@@ -248,5 +273,15 @@ jobs:
         with:
           run: tail -n 1000 /tmp/mipengine/localnode1.out
 
+      - name: Log disk space status
+        run: df -hx squashfs --total
+      - name: Log memory status
+        run: free -mh
+
       - name: Run algorithm validation tests
         run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16
+
+      - name: Log disk space status
+        run: df -hx squashfs --total
+      - name: Log memory status
+        run: free -mh
