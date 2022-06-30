@@ -1,16 +1,23 @@
 import threading
 import time
 import traceback
-from threading import Lock
 from typing import Dict
 from typing import List
 from typing import Tuple
+
+from pydantic import BaseModel
 
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.controller.data_model_registry import DataModelRegistry
+from mipengine.controller.federation_info_logs import log_datamodel_added
+from mipengine.controller.federation_info_logs import log_datamodel_removed
+from mipengine.controller.federation_info_logs import log_dataset_added
+from mipengine.controller.federation_info_logs import log_dataset_removed
+from mipengine.controller.federation_info_logs import log_node_joined_federation
+from mipengine.controller.federation_info_logs import log_node_left_federation
 from mipengine.controller.node_info_tasks_handler import NodeInfoTasksHandler
 from mipengine.controller.node_registry import NodeRegistry
 from mipengine.controller.nodes_addresses import get_nodes_addresses
@@ -65,7 +72,6 @@ def _get_node_datasets_per_data_model(
         node_queue_addr=node_socket_addr, tasks_timeout=CELERY_TASKS_TIMEOUT
     )
 
-    datasets_per_data_model = {}
     try:
         async_result = tasks_handler.queue_node_datasets_per_data_model_task(
             request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
@@ -113,13 +119,24 @@ def _get_node_socket_addr(node_info: NodeInfo):
     return f"{node_info.ip}:{node_info.port}"
 
 
+class _NLARegistries(BaseModel):
+    node_registry: NodeRegistry
+    data_model_registry: DataModelRegistry
+
+    class Config:
+        allow_mutation = False
+        arbitrary_types_allowed = True
+
+
 class NodeLandscapeAggregator(metaclass=Singleton):
     def __init__(self):
-        self._initialize()
+        self._registries = _NLARegistries(
+            node_registry=NodeRegistry(nodes={}),
+            data_model_registry=DataModelRegistry(data_models={}, datasets_location={}),
+        )
 
         self._keep_updating = True
         self._update_loop_thread = None
-        self._update_lock = Lock()
 
     def _update(self):
 
@@ -144,39 +161,43 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             try:
                 nodes_addresses = get_nodes_addresses()
                 nodes_info = _get_nodes_info(nodes_addresses)
-                with self._update_lock:
-                    self._node_registry.nodes = {
-                        node_info.id: node_info for node_info in nodes_info
-                    }
-                    local_nodes = [
-                        node for node in nodes_info if node.role == NodeRole.LOCALNODE
-                    ]
+                local_nodes = {
+                    node_info.id: node_info
+                    for node_info in nodes_info
+                    if node_info.role == NodeRole.LOCALNODE
+                }
 
-                    (
-                        dataset_locations,
-                        aggregated_datasets,
-                    ) = _gather_all_dataset_info(local_nodes)
-                    data_model_cdes_per_node = _get_cdes_across_nodes(local_nodes)
-                    compatible_data_models = _get_compatible_data_models(
-                        data_model_cdes_per_node
-                    )
-                    _update_data_models_with_aggregated_datasets(
-                        data_models=compatible_data_models,
-                        aggregated_datasets=aggregated_datasets,
-                    )
+                datasets_per_node = _get_datasets_per_node(local_nodes)
 
-                    datasets_locations = (
-                        _get_dataset_locations_of_compatible_data_models(
-                            compatible_data_models, dataset_locations
-                        )
-                    )
+                data_model_cdes_per_node = _get_cdes_across_nodes(
+                    local_nodes, datasets_per_node
+                )
+                compatible_data_models = _get_compatible_data_models(
+                    data_model_cdes_per_node
+                )
 
-                    self._data_model_registry.data_models = compatible_data_models
-                    self._data_model_registry.datasets_location = datasets_locations
+                (
+                    dataset_locations,
+                    aggregated_datasets,
+                ) = _gather_all_dataset_info(datasets_per_node)
+                _update_data_models_with_aggregated_datasets(
+                    data_models=compatible_data_models,
+                    aggregated_datasets=aggregated_datasets,
+                )
 
-                    logger.info(
-                        f"Online nodes:{[node for node in self._node_registry.nodes]}"
-                    )
+                datasets_locations = _get_dataset_locations_of_compatible_data_models(
+                    compatible_data_models, dataset_locations
+                )
+
+                nodes = {node_info.id: node_info for node_info in nodes_info}
+
+                self.set_new_registy_values(
+                    nodes, compatible_data_models, datasets_locations
+                )
+
+                logger.debug(
+                    f"Nodes:{[node for node in self._registries.node_registry.nodes]}"
+                )
 
             except Exception as exc:
                 logger.warning(
@@ -189,14 +210,9 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             finally:
                 time.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
 
-    def _initialize(self):
-        self._node_registry = NodeRegistry(logger)
-        self._data_model_registry = DataModelRegistry(logger)
-
     def start(self):
         self.stop()
 
-        self._initialize()
         self._keep_updating = True
 
         self._update_loop_thread = threading.Thread(target=self._update, daemon=True)
@@ -207,70 +223,95 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             self._keep_updating = False
             self._update_loop_thread.join()
 
+    def set_new_registy_values(self, nodes, data_models, datasets_location):
+        _log_node_changes(logger, self._registries.node_registry.nodes, nodes)
+        _log_data_model_changes(
+            logger,
+            self._registries.data_model_registry.data_models,
+            data_models,
+        )
+        _log_dataset_changes(
+            logger,
+            self._registries.data_model_registry.datasets_location,
+            datasets_location,
+        )
+        _node_registry = NodeRegistry(nodes=nodes)
+        _data_model_registry = DataModelRegistry(
+            data_models=data_models,
+            datasets_location=datasets_location,
+        )
+
+        self._registries = _NLARegistries(
+            node_registry=_node_registry, data_model_registry=_data_model_registry
+        )
+
     def get_nodes(self) -> Dict[str, NodeInfo]:
-        with self._update_lock:
-            return self._node_registry.nodes
+        return self._registries.node_registry.nodes
 
     def get_global_node(self) -> NodeInfo:
-        with self._update_lock:
-            return self._node_registry.get_global_node()
+        return self._registries.node_registry.get_global_node()
 
     def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
-        with self._update_lock:
-            return self._node_registry.get_all_local_nodes()
+        return self._registries.node_registry.get_all_local_nodes()
 
     def get_node_info(self, node_id: str) -> NodeInfo:
-        with self._update_lock:
-            return self._node_registry.get_node_info(node_id)
+        return self._registries.node_registry.get_node_info(node_id)
 
     def get_cdes(self, data_model: str) -> Dict[str, CommonDataElement]:
-        with self._update_lock:
-            return self._data_model_registry.get_cdes(data_model)
+        return self._registries.data_model_registry.get_cdes(data_model)
 
     def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
-        with self._update_lock:
-            return self._data_model_registry.data_models
+        return self._registries.data_model_registry.data_models
 
     def get_datasets_location(self) -> Dict[str, Dict[str, List[str]]]:
-        with self._update_lock:
-            return self._data_model_registry.datasets_location
+        return self._registries.data_model_registry.datasets_location
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
-        with self._update_lock:
-            return self._data_model_registry.get_all_available_datasets_per_data_model()
+        return (
+            self._registries.data_model_registry.get_all_available_datasets_per_data_model()
+        )
 
     def data_model_exists(self, data_model: str) -> bool:
-        with self._update_lock:
-            return self._data_model_registry.data_model_exists(data_model)
+        return self._registries.data_model_registry.data_model_exists(data_model)
 
     def dataset_exists(self, data_model: str, dataset: str) -> bool:
-        with self._update_lock:
-            return self._data_model_registry.dataset_exists(data_model, dataset)
+        return self._registries.data_model_registry.dataset_exists(data_model, dataset)
 
     def get_node_ids_with_any_of_datasets(
         self, data_model: str, datasets: List[str]
     ) -> List[str]:
-        with self._update_lock:
-            return self._data_model_registry.get_node_ids_with_any_of_datasets(
-                data_model, datasets
-            )
+        return self._registries.data_model_registry.get_node_ids_with_any_of_datasets(
+            data_model, datasets
+        )
 
     def get_node_specific_datasets(
         self, node_id: str, data_model: str, wanted_datasets: List[str]
     ) -> List[str]:
-        with self._update_lock:
-            return self._data_model_registry.get_node_specific_datasets(
-                node_id, data_model, wanted_datasets
-            )
+        return self._registries.data_model_registry.get_node_specific_datasets(
+            node_id, data_model, wanted_datasets
+        )
+
+
+def _get_datasets_per_node(
+    nodes: Dict[str, NodeInfo],
+) -> Dict[str, Dict[str, Dict[str, str]]]:
+    datasets_per_node = {}
+    for node_id, node_info in nodes.items():
+        node_socket_addr = _get_node_socket_addr(node_info)
+        datasets_per_data_model = _get_node_datasets_per_data_model(node_socket_addr)
+        if datasets_per_data_model:
+            datasets_per_node[node_info.id] = datasets_per_data_model
+
+    return datasets_per_node
 
 
 def _gather_all_dataset_info(
-    nodes: List[NodeInfo],
+    datasets_per_node: Dict[str, Dict[str, Dict[str, str]]],
 ) -> Tuple[Dict[str, Dict[str, str]], Dict[str, Dict[str, str]]]:
     """
 
     Args:
-        nodes: The nodes available in the system
+        datasets_per_node: The datasets for each node available in the system
 
     Returns:
         A tuple with:
@@ -280,9 +321,8 @@ def _gather_all_dataset_info(
     dataset_locations = {}
     aggregated_datasets = {}
 
-    for node_info in nodes:
-        node_socket_addr = _get_node_socket_addr(node_info)
-        datasets_per_data_model = _get_node_datasets_per_data_model(node_socket_addr)
+    for node_id, datasets_per_data_model in datasets_per_node.items():
+
         for data_model, datasets in datasets_per_data_model.items():
             current_labels = (
                 aggregated_datasets[data_model]
@@ -297,9 +337,9 @@ def _gather_all_dataset_info(
                 current_labels[dataset] = datasets[dataset]
 
                 if dataset in current_datasets:
-                    current_datasets[dataset].append(node_info.id)
+                    current_datasets[dataset].append(node_id)
                 else:
-                    current_datasets[dataset] = [node_info.id]
+                    current_datasets[dataset] = [node_id]
 
             aggregated_datasets[data_model] = current_labels
             dataset_locations[data_model] = current_datasets
@@ -307,17 +347,17 @@ def _gather_all_dataset_info(
 
 
 def _get_cdes_across_nodes(
-    nodes: List[NodeInfo],
+    nodes: Dict[str, NodeInfo],
+    datasets_per_node: Dict[str, Dict[str, Dict[str, str]]],
 ) -> Dict[str, List[Tuple[str, CommonDataElements]]]:
     nodes_cdes = {}
-    for node_info in nodes:
-        node_socket_addr = _get_node_socket_addr(node_info)
-        datasets_per_data_model = _get_node_datasets_per_data_model(node_socket_addr)
+    for node_id, datasets_per_data_model in datasets_per_node.items():
+        node_socket_addr = _get_node_socket_addr(nodes[node_id])
         for data_model in datasets_per_data_model:
             cdes = _get_node_cdes(node_socket_addr, data_model)
             if data_model not in nodes_cdes:
                 nodes_cdes[data_model] = []
-            nodes_cdes[data_model].append((node_info.id, cdes))
+            nodes_cdes[data_model].append((node_id, cdes))
     return nodes_cdes
 
 
@@ -385,3 +425,58 @@ def _update_data_models_with_aggregated_datasets(
                 max=dataset_cde.max,
             )
             data_models[data_model].values["dataset"] = new_dataset_cde
+
+
+def _log_node_changes(_logger, old_nodes, new_nodes):
+    added_nodes = set(new_nodes.keys()) - set(old_nodes.keys())
+    for node in added_nodes:
+        log_node_joined_federation(_logger, node)
+
+    removed_nodes = set(old_nodes.keys()) - set(new_nodes.keys())
+    for node in removed_nodes:
+        log_node_left_federation(_logger, node)
+
+
+def _log_data_model_changes(_logger, old_data_models, new_data_models):
+    added_data_models = new_data_models.keys() - old_data_models.keys()
+    for data_model in added_data_models:
+        log_datamodel_added(data_model, _logger)
+
+    removed_data_models = old_data_models.keys() - new_data_models.keys()
+    for data_model in removed_data_models:
+        log_datamodel_removed(data_model, _logger)
+
+
+def _log_dataset_changes(
+    _logger, old_datasets_per_data_model, new_datasets_per_data_model
+):
+    _log_datasets_added(
+        _logger, old_datasets_per_data_model, new_datasets_per_data_model
+    )
+    _log_datasets_removed(
+        _logger, old_datasets_per_data_model, new_datasets_per_data_model
+    )
+
+
+def _log_datasets_added(
+    _logger, old_datasets_per_data_model, new_datasets_per_data_model
+):
+    for data_model in new_datasets_per_data_model:
+        added_datasets = new_datasets_per_data_model[data_model].keys()
+        if data_model in old_datasets_per_data_model:
+            added_datasets -= old_datasets_per_data_model[data_model].keys()
+        for dataset in added_datasets:
+            log_dataset_added(data_model, dataset, _logger, new_datasets_per_data_model)
+
+
+def _log_datasets_removed(
+    _logger, old_datasets_per_data_model, new_datasets_per_data_model
+):
+    for data_model in old_datasets_per_data_model:
+        removed_datasets = old_datasets_per_data_model[data_model].keys()
+        if data_model in new_datasets_per_data_model:
+            removed_datasets -= new_datasets_per_data_model[data_model].keys()
+        for dataset in removed_datasets:
+            log_dataset_removed(
+                data_model, dataset, _logger, old_datasets_per_data_model
+            )

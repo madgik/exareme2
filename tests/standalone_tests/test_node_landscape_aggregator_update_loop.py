@@ -99,6 +99,7 @@ def test_update_loop_node_service_down(
     load_data_localnodetmp,
     globalnode_node_service,
     localnodetmp_node_service,
+    reset_node_landscape_aggregator,
 ):
     localnodetmp_node_id = get_localnodetmp_node_id()
 
@@ -169,6 +170,7 @@ def test_update_loop_rabbitmq_down(
     load_data_localnodetmp,
     globalnode_node_service,
     localnodetmp_node_service,
+    reset_node_landscape_aggregator,
 ):
     # get tmp localnode node_id from config file
     localnodetmp_node_id = get_localnodetmp_node_id()
@@ -240,6 +242,7 @@ def test_update_loop_data_models_removed(
     load_data_localnodetmp,
     globalnode_node_service,
     localnodetmp_node_service,
+    reset_node_landscape_aggregator,
 ):
 
     # get tmp localnode node_id from config file
