@@ -60,7 +60,6 @@ role="LOCALNODE"
 monetdb_port=50005
 rabbitmq_port=5675
 
-------
 [[nodes]]
 id = "localnode6"
 role="LOCALNODE"
