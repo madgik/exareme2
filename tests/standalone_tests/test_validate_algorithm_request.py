@@ -121,7 +121,7 @@ def mock_cdes():
     _data_model_registry = DataModelRegistry(
         data_models=data_models, datasets_location={}
     )
-    nla._nla_registries = _NLARegistries(
+    nla._registries = _NLARegistries(
         node_registry=_node_registry, data_model_registry=_data_model_registry
     )
 

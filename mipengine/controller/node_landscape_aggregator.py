@@ -130,7 +130,10 @@ class _NLARegistries(BaseModel):
 
 class NodeLandscapeAggregator(metaclass=Singleton):
     def __init__(self):
-        self._initialize()
+        self._registries = _NLARegistries(
+            node_registry=NodeRegistry(nodes={}),
+            data_model_registry=DataModelRegistry(data_models={}, datasets_location={}),
+        )
 
         self._keep_updating = True
         self._update_loop_thread = None
@@ -188,10 +191,12 @@ class NodeLandscapeAggregator(metaclass=Singleton):
 
                 nodes = {node_info.id: node_info for node_info in nodes_info}
 
-                self.set_registries(nodes, compatible_data_models, datasets_locations)
+                self.set_new_registy_values(
+                    nodes, compatible_data_models, datasets_locations
+                )
 
                 logger.debug(
-                    f"Nodes:{[node for node in self._nla_registries.node_registry.nodes]}"
+                    f"Nodes:{[node for node in self._registries.node_registry.nodes]}"
                 )
 
             except Exception as exc:
@@ -205,16 +210,9 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             finally:
                 time.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
 
-    def _initialize(self):
-        self._nla_registries = _NLARegistries(
-            node_registry=NodeRegistry(nodes={}),
-            data_model_registry=DataModelRegistry(data_models={}, datasets_location={}),
-        )
-
     def start(self):
         self.stop()
 
-        self._initialize()
         self._keep_updating = True
 
         self._update_loop_thread = threading.Thread(target=self._update, daemon=True)
@@ -225,16 +223,16 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             self._keep_updating = False
             self._update_loop_thread.join()
 
-    def set_registries(self, nodes, data_models, datasets_location):
-        log_node_changes(logger, self._nla_registries.node_registry.nodes, nodes)
+    def set_new_registy_values(self, nodes, data_models, datasets_location):
+        log_node_changes(logger, self._registries.node_registry.nodes, nodes)
         log_data_model_changes(
             logger,
-            self._nla_registries.data_model_registry.data_models,
+            self._registries.data_model_registry.data_models,
             data_models,
         )
         log_dataset_changes(
             logger,
-            self._nla_registries.data_model_registry.datasets_location,
+            self._registries.data_model_registry.datasets_location,
             datasets_location,
         )
         _node_registry = NodeRegistry(nodes=nodes)
@@ -243,57 +241,53 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             datasets_location=datasets_location,
         )
 
-        self._nla_registries = _NLARegistries(
+        self._registries = _NLARegistries(
             node_registry=_node_registry, data_model_registry=_data_model_registry
         )
 
     def get_nodes(self) -> Dict[str, NodeInfo]:
-        return self._nla_registries.node_registry.nodes
+        return self._registries.node_registry.nodes
 
     def get_global_node(self) -> NodeInfo:
-        return self._nla_registries.node_registry.get_global_node()
+        return self._registries.node_registry.get_global_node()
 
     def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
-        return self._nla_registries.node_registry.get_all_local_nodes()
+        return self._registries.node_registry.get_all_local_nodes()
 
     def get_node_info(self, node_id: str) -> NodeInfo:
-        return self._nla_registries.node_registry.get_node_info(node_id)
+        return self._registries.node_registry.get_node_info(node_id)
 
     def get_cdes(self, data_model: str) -> Dict[str, CommonDataElement]:
-        return self._nla_registries.data_model_registry.get_cdes(data_model)
+        return self._registries.data_model_registry.get_cdes(data_model)
 
     def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
-        return self._nla_registries.data_model_registry.data_models
+        return self._registries.data_model_registry.data_models
 
     def get_datasets_location(self) -> Dict[str, Dict[str, List[str]]]:
-        return self._nla_registries.data_model_registry.datasets_location
+        return self._registries.data_model_registry.datasets_location
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         return (
-            self._nla_registries.data_model_registry.get_all_available_datasets_per_data_model()
+            self._registries.data_model_registry.get_all_available_datasets_per_data_model()
         )
 
     def data_model_exists(self, data_model: str) -> bool:
-        return self._nla_registries.data_model_registry.data_model_exists(data_model)
+        return self._registries.data_model_registry.data_model_exists(data_model)
 
     def dataset_exists(self, data_model: str, dataset: str) -> bool:
-        return self._nla_registries.data_model_registry.dataset_exists(
-            data_model, dataset
-        )
+        return self._registries.data_model_registry.dataset_exists(data_model, dataset)
 
     def get_node_ids_with_any_of_datasets(
         self, data_model: str, datasets: List[str]
     ) -> List[str]:
-        return (
-            self._nla_registries.data_model_registry.get_node_ids_with_any_of_datasets(
-                data_model, datasets
-            )
+        return self._registries.data_model_registry.get_node_ids_with_any_of_datasets(
+            data_model, datasets
         )
 
     def get_node_specific_datasets(
         self, node_id: str, data_model: str, wanted_datasets: List[str]
     ) -> List[str]:
-        return self._nla_registries.data_model_registry.get_node_specific_datasets(
+        return self._registries.data_model_registry.get_node_specific_datasets(
             node_id, data_model, wanted_datasets
         )
 
@@ -361,9 +355,6 @@ def _get_cdes_across_nodes(
         node_socket_addr = _get_node_socket_addr(nodes[node_id])
         for data_model in datasets_per_data_model:
             cdes = _get_node_cdes(node_socket_addr, data_model)
-            if not cdes:
-                del datasets_per_node[node_id][data_model]
-                continue
             if data_model not in nodes_cdes:
                 nodes_cdes[data_model] = []
             nodes_cdes[data_model].append((node_id, cdes))
@@ -422,17 +413,18 @@ def _update_data_models_with_aggregated_datasets(
     Updates each data_model's 'dataset' enumerations with the aggregated datasets
     """
     for data_model in data_models:
-        dataset_cde = data_models[data_model].values["dataset"]
-        new_dataset_cde = CommonDataElement(
-            code=dataset_cde.code,
-            label=dataset_cde.label,
-            sql_type=dataset_cde.sql_type,
-            is_categorical=dataset_cde.is_categorical,
-            enumerations=aggregated_datasets[data_model],
-            min=dataset_cde.min,
-            max=dataset_cde.max,
-        )
-        data_models[data_model].values["dataset"] = new_dataset_cde
+        if data_models[data_model]:
+            dataset_cde = data_models[data_model].values["dataset"]
+            new_dataset_cde = CommonDataElement(
+                code=dataset_cde.code,
+                label=dataset_cde.label,
+                sql_type=dataset_cde.sql_type,
+                is_categorical=dataset_cde.is_categorical,
+                enumerations=aggregated_datasets[data_model],
+                min=dataset_cde.min,
+                max=dataset_cde.max,
+            )
+            data_models[data_model].values["dataset"] = new_dataset_cde
 
 
 def log_node_changes(_logger, old_nodes, new_nodes):

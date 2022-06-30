@@ -17,9 +17,9 @@ from mipengine.controller.algorithm_execution_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
 from mipengine.controller.celery_app import CeleryAppFactory
-from mipengine.controller.controller_logger import get_request_logger
 from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.node_landscape_aggregator import _NLARegistries
 from mipengine.controller.node_registry import NodeRegistry
 from mipengine.udfgen import udfio
 
@@ -827,6 +827,17 @@ def smpc_localnode1_celery_app(smpc_localnode1_node_service):
 @pytest.fixture(scope="session")
 def smpc_localnode2_celery_app(smpc_localnode2_node_service):
     return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_SMPC_LOCALNODE2_ADDR)
+
+
+@pytest.fixture(scope="function")
+def reset_node_landscape_aggregator():
+    nla = NodeLandscapeAggregator()
+    nla.stop()
+    nla.keep_updating = False
+    nla._nla_registries = _NLARegistries(
+        node_registry=NodeRegistry(nodes={}),
+        data_model_registry=DataModelRegistry(data_models={}, datasets_location={}),
+    )
 
 
 @pytest.fixture(scope="session")

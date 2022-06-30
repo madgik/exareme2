@@ -84,7 +84,6 @@ def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
     )
 
     output = str(res.stdout)
-    print(output)
     assert re.match(r".* - NODE_JOINED - localnode2\\n.*", output)
     assert re.match(r".*\\n.* - NODE_LEFT - localnode1\\n.*", output)
     assert re.match(r".*\\n.* - DATAMODEL_ADDED - tbi:0.1\\n.*", output)
