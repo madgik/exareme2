@@ -3,7 +3,7 @@ import json
 import pytest
 import requests
 
-from tests.prod_env_tests import datasets_location_url
+from tests.prod_env_tests import dataset_location_url
 
 
 @pytest.fixture
@@ -56,8 +56,8 @@ def expected_datasets_per_data_model():
     }
 
 
-def test_get_datasets_location(expected_datasets_per_data_model):
-    request = requests.get(datasets_location_url)
+def test_get_dataset_location(expected_datasets_per_data_model):
+    request = requests.get(dataset_location_url)
     response = json.loads(request.text)
     for data_model in response:
         assert data_model in expected_datasets_per_data_model

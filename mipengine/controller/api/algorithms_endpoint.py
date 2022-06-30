@@ -18,20 +18,14 @@ async def startup():
     controller.start_cleanup_loop()
 
 
-@algorithms.after_app_serving
-async def shutdown():
-    controller.stop_node_landscape_aggregator()
-    controller.stop_cleanup_loop()
-
-
 @algorithms.route("/datasets", methods=["GET"])
 async def get_datasets() -> dict:
     return controller.get_all_available_datasets_per_data_model()
 
 
-@algorithms.route("/datasets_location", methods=["GET"])
-async def get_datasets_location() -> dict:
-    return controller.get_datasets_location()
+@algorithms.route("/dataset_location", methods=["GET"])
+async def get_dataset_location() -> dict:
+    return controller.get_dataset_location()
 
 
 @algorithms.route("/cdes_metadata", methods=["GET"])

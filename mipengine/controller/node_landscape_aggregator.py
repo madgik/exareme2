@@ -1,19 +1,25 @@
-import asyncio
+import threading
+import time
+import traceback
 from collections import Counter
 from typing import Dict
 from typing import List
 from typing import Tuple
 
-from asgiref.sync import sync_to_async
 from pydantic import BaseModel
 
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
-
-# TODO remove import get_node_celery_app, pass the celery app  (inverse dependency)
-# so the module can be easily unit tested
-from mipengine.controller.celery_app import get_node_celery_app
+from mipengine.controller.celery_app import CeleryConnectionError
+from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.controller.data_model_registry import DataModelRegistry
+from mipengine.controller.federation_info_logs import log_datamodel_added
+from mipengine.controller.federation_info_logs import log_datamodel_removed
+from mipengine.controller.federation_info_logs import log_dataset_added
+from mipengine.controller.federation_info_logs import log_dataset_removed
+from mipengine.controller.federation_info_logs import log_node_joined_federation
+from mipengine.controller.federation_info_logs import log_node_left_federation
+from mipengine.controller.node_info_tasks_handler import NodeInfoTasksHandler
 from mipengine.controller.node_registry import NodeRegistry
 from mipengine.controller.nodes_addresses import get_nodes_addresses
 from mipengine.node_info_DTOs import NodeInfo
@@ -25,106 +31,89 @@ from mipengine.singleton import Singleton
 logger = ctrl_logger.get_background_service_logger()
 
 NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
-GET_NODE_INFO_SIGNATURE = "mipengine.node.tasks.common.get_node_info"
-GET_NODE_DATASETS_PER_DATA_MODEL_SIGNATURE = (
-    "mipengine.node.tasks.common.get_node_datasets_per_data_model"
-)
-GET_DATA_MODEL_CDES_SIGNATURE = "mipengine.node.tasks.common.get_data_model_cdes"
 NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL = (
     controller_config.node_landscape_aggregator_update_interval
 )
 CELERY_TASKS_TIMEOUT = controller_config.rabbitmq.celery_tasks_timeout
 
 
-async def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
-    celery_apps = [
-        get_node_celery_app(socket_addr) for socket_addr in nodes_socket_addr
+def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
+    node_info_tasks_handlers = [
+        NodeInfoTasksHandler(
+            node_queue_addr=node_socket_addr, tasks_timeout=CELERY_TASKS_TIMEOUT
+        )
+        for node_socket_addr in nodes_socket_addr
     ]
-    nodes_task_signature = {
-        celery_app: celery_app.signature(GET_NODE_INFO_SIGNATURE)
-        for celery_app in celery_apps
-    }
-    tasks_coroutines = [
-        _task_to_async(task, app=app)(request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID)
-        for app, task in nodes_task_signature.items()
-    ]
-    results = await asyncio.gather(*tasks_coroutines, return_exceptions=True)
-    nodes_info = [
-        NodeInfo.parse_raw(result)
-        for result in results
-        if not isinstance(result, Exception)
-    ]
+    nodes_info = []
+    for tasks_handler in node_info_tasks_handlers:
+        try:
+            async_result = tasks_handler.queue_node_info_task(
+                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+            )
+            result = tasks_handler.result_node_info_task(
+                async_result=async_result,
+                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+            )
+            nodes_info.append(result)
 
-    for app in celery_apps:
-        app.close()
+        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+            # just log the exception do not reraise it
+            logger.warning(exc)
+        except Exception as exc:
+            # just log full traceback exception as error and do not reraise it
+            logger.error(traceback.format_exc())
 
     return nodes_info
 
 
-async def _get_node_datasets_per_data_model(
+def _get_node_datasets_per_data_model(
     node_socket_addr: str,
 ) -> Dict[str, Dict[str, str]]:
-    celery_app = get_node_celery_app(node_socket_addr)
-    task_signature = celery_app.signature(GET_NODE_DATASETS_PER_DATA_MODEL_SIGNATURE)
+    tasks_handler = NodeInfoTasksHandler(
+        node_queue_addr=node_socket_addr, tasks_timeout=CELERY_TASKS_TIMEOUT
+    )
 
     try:
-        datasets_per_data_model = await _task_to_async(task_signature, app=celery_app)(
+        async_result = tasks_handler.queue_node_datasets_per_data_model_task(
             request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
         )
-    except Exception as exc:
-        logger.error(
-            f"Error at 'get_node_datasets_per_data_model' in node '{node_socket_addr}': {type(exc)}:{exc}"
+        datasets_per_data_model = (
+            tasks_handler.result_node_datasets_per_data_model_task(
+                async_result=async_result,
+                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+            )
         )
-        datasets_per_data_model = {}
+
+    except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+        # just log the exception do not reraise it
+        logger.warning(exc)
+        return {}
+    except Exception as exc:
+        # just log full traceback exception as error and do not reraise it
+        logger.error(traceback.format_exc())
+        return {}
 
     return datasets_per_data_model
 
 
-async def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements:
-    celery_app = get_node_celery_app(node_socket_addr)
-    task_signature = celery_app.signature(GET_DATA_MODEL_CDES_SIGNATURE)
-
-    result = await _task_to_async(task_signature, app=celery_app)(
-        data_model=data_model, request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements:
+    tasks_handler = NodeInfoTasksHandler(
+        node_queue_addr=node_socket_addr, tasks_timeout=CELERY_TASKS_TIMEOUT
     )
-
-    if not isinstance(result, Exception):
-        return CommonDataElements.parse_raw(result)
-
-
-def _task_to_async(task, app):
-    """ex
-    Converts a Celery task to an async function
-    Celery doesn't currently support asyncio "await" while "getting" a result
-    Copied from https://github.com/celery/celery/issues/6603
-    when broker(rabbitmq) is down, if the existing broker connection is not passed in
-    apply_async (in _task_to_async::wrapper), celery (or anyway some internal celery
-    component) will try to create a new connection to the broker until the apply_async
-    succeeds, which causes the call to apply_async to hang indefinitely until the
-    broker is back up. This way(passing the existing broker connection to apply_async)
-    it raises a ConnectionResetError or an OperationalError, and it does not hang
-    """
-
-    async def wrapper(*args, **kwargs):
-        total_delay = 0
-        delay = 0.1
-        # Since apply_async is used instead of delay so that we can pass the connection as an argument,
-        # the args and kwargs need to be passed as named arguments.
-        with app.broker_connection() as conn:
-            async_result = await sync_to_async(task.apply_async)(
-                args=args, kwargs=kwargs, connection=conn
-            )
-            while not async_result.ready():
-                total_delay += delay
-                if total_delay > CELERY_TASKS_TIMEOUT:
-                    raise TimeoutError(
-                        f"Celery task: {task} didn't respond in {CELERY_TASKS_TIMEOUT}s."
-                    )
-                await asyncio.sleep(delay)
-                delay = min(delay * 1.5, 2)  # exponential backoff, max 2 seconds
-            return async_result.get(timeout=CELERY_TASKS_TIMEOUT - total_delay)
-
-    return wrapper
+    try:
+        async_result = tasks_handler.queue_data_model_cdes_task(
+            request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
+        )
+        datasets_per_data_model = tasks_handler.result_data_model_cdes_task(
+            async_result=async_result, request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+        )
+        return datasets_per_data_model
+    except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+        # just log the exception do not reraise it
+        logger.warning(exc)
+    except Exception as exc:
+        # just log full traceback exception as error and do not reraise it
+        logger.error(traceback.format_exc())
 
 
 def _get_node_socket_addr(node_info: NodeInfo):
@@ -142,21 +131,23 @@ class _NLARegistries(BaseModel):
 
 class NodeLandscapeAggregator(metaclass=Singleton):
     def __init__(self):
-        self._logger = logger
-        self.keep_updating = True
-        self._nla_registries = _NLARegistries(
-            node_registry=NodeRegistry(self._logger),
-            data_model_registry=DataModelRegistry(self._logger),
+        self._registries = _NLARegistries(
+            node_registry=NodeRegistry(nodes={}),
+            data_model_registry=DataModelRegistry(data_models={}, dataset_location={}),
         )
 
-    async def update(self):
+        self._keep_updating = True
+        self._update_loop_thread = None
+
+    def _update(self):
+
         """
         Node Landscape Aggregator(NLA) is a module that handles the aggregation of necessary information,
         to keep up-to-date and in sync the Node Registry and the Data Model Registry.
         The Node Registry contains information about the node such as id, ip, port etc.
-        The Data Model Registry contains two types of information, data_models and datasets_location.
+        The Data Model Registry contains two types of information, data_models and dataset_location.
         data_models contains information about the data models and their corresponding cdes.
-        datasets_location contains information about datasets and their locations(nodes).
+        dataset_location contains information about datasets and their locations(nodes).
         NLA periodically will send requests (get_node_info, get_node_datasets_per_data_model, get_data_model_cdes),
         to the nodes to retrieve the current information that they contain.
         Once all information about data models and cdes is aggregated,
@@ -167,23 +158,21 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         For each data model the 'enumerations' field in the cde with code 'dataset' is updated with all datasets across nodes.
         Once all the information is aggregated and validated the NLA will provide the information to the Node Registry and to the Data Model Registry.
         """
-        while self.keep_updating:
+        while self._keep_updating:
             try:
                 nodes_addresses = get_nodes_addresses()
-                node_infos = await _get_nodes_info(nodes_addresses)
-                local_node_infos = {
+                nodes_info = _get_nodes_info(nodes_addresses)
+                local_nodes = {
                     node_info.id: node_info
-                    for node_info in node_infos
+                    for node_info in nodes_info
                     if node_info.role == NodeRole.LOCALNODE
                 }
 
-                datasets_per_node = await _get_datasets_per_node(local_node_infos)
-                remove_duplicated_datasets(datasets_per_node)
+                datasets_per_node = _get_datasets_per_node(local_nodes)
 
-                data_model_cdes_per_node = await _get_cdes_across_nodes(
-                    local_node_infos, datasets_per_node
+                data_model_cdes_per_node = _get_cdes_across_nodes(
+                    local_nodes, datasets_per_node
                 )
-
                 compatible_data_models = _get_compatible_data_models(
                     data_model_cdes_per_node
                 )
@@ -191,107 +180,126 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 (
                     dataset_locations,
                     aggregated_datasets,
-                ) = _gather_all_dataset_infos(datasets_per_node)
-
+                ) = _gather_all_dataset_info(datasets_per_node)
                 _update_data_models_with_aggregated_datasets(
-                    compatible_data_models, aggregated_datasets
+                    data_models=compatible_data_models,
+                    aggregated_datasets=aggregated_datasets,
                 )
 
                 dataset_locations = _get_dataset_locations_of_compatible_data_models(
                     compatible_data_models, dataset_locations
                 )
 
-                nodes = {node_info.id: node_info for node_info in node_infos}
+                nodes = {node_info.id: node_info for node_info in nodes_info}
 
-                self.set_registries(nodes, compatible_data_models, dataset_locations)
-
-                self._logger.debug(
-                    f"Nodes:{[node for node in self._nla_registries.node_registry.nodes]}"
+                self.set_new_registy_values(
+                    nodes, compatible_data_models, dataset_locations
                 )
+
+                logger.debug(
+                    f"Nodes:{[node for node in self._registries.node_registry.nodes]}"
+                )
+
             except Exception as exc:
-                self._logger.error(
-                    f"Node Landscape Aggregator exception: {type(exc)}:{exc}"
+                logger.warning(
+                    f"NodeLandscapeAggregator caught an exception but will continue to "
+                    f"update {exc=}"
                 )
+
+                tr = traceback.format_exc()
+                logger.error(tr)
             finally:
-                await asyncio.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
+                time.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
 
     def start(self):
-        self.keep_updating = True
-        asyncio.create_task(self.update())
+        self.stop()
+
+        self._keep_updating = True
+
+        self._update_loop_thread = threading.Thread(target=self._update, daemon=True)
+        self._update_loop_thread.start()
 
     def stop(self):
-        self.keep_updating = False
+        if self._update_loop_thread and self._update_loop_thread.is_alive():
+            self._keep_updating = False
+            self._update_loop_thread.join()
 
-    def set_registries(self, nodes, data_models, dataset_locations):
-        _node_registry = NodeRegistry(self._logger)
-        _node_registry.nodes = nodes
-        _data_model_registry = DataModelRegistry(self._logger)
-        _data_model_registry.data_models = data_models
-        _data_model_registry.dataset_locations = dataset_locations
-        self._nla_registries = _NLARegistries(
+    def set_new_registy_values(self, nodes, data_models, dataset_location):
+        log_node_changes(logger, self._registries.node_registry.nodes, nodes)
+        log_data_model_changes(
+            logger,
+            self._registries.data_model_registry.data_models,
+            data_models,
+        )
+        log_dataset_changes(
+            logger,
+            self._registries.data_model_registry.dataset_location,
+            dataset_location,
+        )
+        _node_registry = NodeRegistry(nodes=nodes)
+        _data_model_registry = DataModelRegistry(
+            data_models=data_models,
+            dataset_location=dataset_location,
+        )
+
+        self._registries = _NLARegistries(
             node_registry=_node_registry, data_model_registry=_data_model_registry
         )
 
     def get_nodes(self) -> Dict[str, NodeInfo]:
-        return self._nla_registries.node_registry.nodes
+        return self._registries.node_registry.nodes
 
     def get_global_node(self) -> NodeInfo:
-        return self._nla_registries.node_registry.get_global_node()
+        return self._registries.node_registry.get_global_node()
 
     def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
-        return self._nla_registries.node_registry.get_all_local_nodes()
+        return self._registries.node_registry.get_all_local_nodes()
 
     def get_node_info(self, node_id: str) -> NodeInfo:
-        return self._nla_registries.node_registry.get_node_info(node_id)
+        return self._registries.node_registry.get_node_info(node_id)
 
     def get_cdes(self, data_model: str) -> Dict[str, CommonDataElement]:
-        return self._nla_registries.data_model_registry.get_cdes(data_model)
+        return self._registries.data_model_registry.get_cdes(data_model)
 
     def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
-        return self._nla_registries.data_model_registry.data_models
+        return self._registries.data_model_registry.data_models
 
-    def get_datasets_location(self) -> Dict[str, Dict[str, List[str]]]:
-        return self._nla_registries.data_model_registry.dataset_locations
+    def get_dataset_location(self) -> Dict[str, Dict[str, List[str]]]:
+        return self._registries.data_model_registry.dataset_location
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         return (
-            self._nla_registries.data_model_registry.get_all_available_datasets_per_data_model()
+            self._registries.data_model_registry.get_all_available_datasets_per_data_model()
         )
 
     def data_model_exists(self, data_model: str) -> bool:
-        return self._nla_registries.data_model_registry.data_model_exists(data_model)
+        return self._registries.data_model_registry.data_model_exists(data_model)
 
     def dataset_exists(self, data_model: str, dataset: str) -> bool:
-        return self._nla_registries.data_model_registry.dataset_exists(
-            data_model, dataset
-        )
+        return self._registries.data_model_registry.dataset_exists(data_model, dataset)
 
     def get_node_ids_with_any_of_datasets(
         self, data_model: str, datasets: List[str]
     ) -> List[str]:
-        return (
-            self._nla_registries.data_model_registry.get_node_ids_with_any_of_datasets(
-                data_model, datasets
-            )
+        return self._registries.data_model_registry.get_node_ids_with_any_of_datasets(
+            data_model, datasets
         )
 
     def get_node_specific_datasets(
         self, node_id: str, data_model: str, wanted_datasets: List[str]
     ) -> List[str]:
-        return self._nla_registries.data_model_registry.get_node_specific_datasets(
+        return self._registries.data_model_registry.get_node_specific_datasets(
             node_id, data_model, wanted_datasets
         )
 
 
-async def _get_datasets_per_node(
+def _get_datasets_per_node(
     nodes: Dict[str, NodeInfo],
 ) -> Dict[str, Dict[str, Dict[str, str]]]:
     datasets_per_node = {}
     for node_id, node_info in nodes.items():
         node_socket_addr = _get_node_socket_addr(node_info)
-        datasets_per_data_model = await _get_node_datasets_per_data_model(
-            node_socket_addr
-        )
+        datasets_per_data_model = _get_node_datasets_per_data_model(node_socket_addr)
         if datasets_per_data_model:
             datasets_per_node[node_info.id] = datasets_per_data_model
 
@@ -317,7 +325,7 @@ def remove_duplicated_datasets(datasets_per_node):
             }
 
 
-def _gather_all_dataset_infos(
+def _gather_all_dataset_info(
     datasets_per_node: Dict[str, Dict[str, Dict[str, str]]],
 ) -> Tuple[Dict[str, Dict[str, str]], Dict[str, Dict[str, str]]]:
     """
@@ -351,11 +359,10 @@ def _gather_all_dataset_infos(
 
             aggregated_datasets[data_model] = current_labels
             dataset_locations[data_model] = current_datasets
-
     return dataset_locations, aggregated_datasets
 
 
-async def _get_cdes_across_nodes(
+def _get_cdes_across_nodes(
     nodes: Dict[str, NodeInfo],
     datasets_per_node: Dict[str, Dict[str, Dict[str, str]]],
 ) -> Dict[str, List[Tuple[str, CommonDataElements]]]:
@@ -363,10 +370,11 @@ async def _get_cdes_across_nodes(
     for node_id, datasets_per_data_model in datasets_per_node.items():
         node_socket_addr = _get_node_socket_addr(nodes[node_id])
         for data_model in datasets_per_data_model:
-            cdes = await _get_node_cdes(node_socket_addr, data_model)
+            cdes = _get_node_cdes(node_socket_addr, data_model)
             if not cdes:
                 del datasets_per_node[node_id][data_model]
                 continue
+            cdes = _get_node_cdes(node_socket_addr, data_model)
             if data_model not in nodes_cdes:
                 nodes_cdes[data_model] = []
             nodes_cdes[data_model].append((node_id, cdes))
@@ -407,8 +415,8 @@ def _get_compatible_data_models(
         for node, cdes in cdes_from_all_nodes[1:]:
             if not first_cdes == cdes:
                 logger.info(
-                    f"Node '{first_node}' and node '{node}' on data model '{data_model}' have incompatibility on the "
-                    f"following cdes: {first_cdes} and {cdes} "
+                    f"Node '{first_node}' and node '{node}' on data model '{data_model}' "
+                    f"have incompatibility on the following cdes: {first_cdes} and {cdes} "
                 )
                 break
         else:
@@ -425,14 +433,70 @@ def _update_data_models_with_aggregated_datasets(
     Updates each data_model's 'dataset' enumerations with the aggregated datasets
     """
     for data_model in data_models:
-        dataset_cde = data_models[data_model].values["dataset"]
-        new_dataset_cde = CommonDataElement(
-            code=dataset_cde.code,
-            label=dataset_cde.label,
-            sql_type=dataset_cde.sql_type,
-            is_categorical=dataset_cde.is_categorical,
-            enumerations=aggregated_datasets[data_model],
-            min=dataset_cde.min,
-            max=dataset_cde.max,
-        )
-        data_models[data_model].values["dataset"] = new_dataset_cde
+        if data_models[data_model]:
+            dataset_cde = data_models[data_model].values["dataset"]
+            new_dataset_cde = CommonDataElement(
+                code=dataset_cde.code,
+                label=dataset_cde.label,
+                sql_type=dataset_cde.sql_type,
+                is_categorical=dataset_cde.is_categorical,
+                enumerations=aggregated_datasets[data_model],
+                min=dataset_cde.min,
+                max=dataset_cde.max,
+            )
+            data_models[data_model].values["dataset"] = new_dataset_cde
+
+
+def log_node_changes(_logger, old_nodes, new_nodes):
+    added_nodes = set(new_nodes.keys()) - set(old_nodes.keys())
+    for node in added_nodes:
+        log_node_joined_federation(_logger, node)
+
+    removed_nodes = set(old_nodes.keys()) - set(new_nodes.keys())
+    for node in removed_nodes:
+        log_node_left_federation(_logger, node)
+
+
+def log_data_model_changes(_logger, old_data_models, new_data_models):
+    added_data_models = new_data_models.keys() - old_data_models.keys()
+    for data_model in added_data_models:
+        log_datamodel_added(data_model, _logger)
+
+    removed_data_models = old_data_models.keys() - new_data_models.keys()
+    for data_model in removed_data_models:
+        log_datamodel_removed(data_model, _logger)
+
+
+def log_dataset_changes(
+    _logger, old_datasets_per_data_model, new_datasets_per_data_model
+):
+    _log_datasets_added(
+        _logger, old_datasets_per_data_model, new_datasets_per_data_model
+    )
+    _log_datasets_removed(
+        _logger, old_datasets_per_data_model, new_datasets_per_data_model
+    )
+
+
+def _log_datasets_added(
+    _logger, old_datasets_per_data_model, new_datasets_per_data_model
+):
+    for data_model in new_datasets_per_data_model:
+        added_datasets = new_datasets_per_data_model[data_model].keys()
+        if data_model in old_datasets_per_data_model:
+            added_datasets -= old_datasets_per_data_model[data_model].keys()
+        for dataset in added_datasets:
+            log_dataset_added(data_model, dataset, _logger, new_datasets_per_data_model)
+
+
+def _log_datasets_removed(
+    _logger, old_datasets_per_data_model, new_datasets_per_data_model
+):
+    for data_model in old_datasets_per_data_model:
+        removed_datasets = old_datasets_per_data_model[data_model].keys()
+        if data_model in new_datasets_per_data_model:
+            removed_datasets -= new_datasets_per_data_model[data_model].keys()
+        for dataset in removed_datasets:
+            log_dataset_removed(
+                data_model, dataset, _logger, old_datasets_per_data_model
+            )

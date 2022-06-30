@@ -8,7 +8,7 @@ from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 
 
-def get_datasets_location():
+def get_dataset_location():
     return {
         "tbi:0.1": {
             "dummy_tbi0": "localnode1",
@@ -94,9 +94,9 @@ def get_data_model_cdes():
 
 @pytest.fixture
 def mocked_data_model_registry():
-    data_model_registry = DataModelRegistry(get_request_logger("DATA-MODEL-REGISTRY"))
-    data_model_registry.data_models = get_data_model_cdes()
-    data_model_registry.dataset_locations = get_datasets_location()
+    data_model_registry = DataModelRegistry(
+        data_models=get_data_model_cdes(), dataset_location=get_dataset_location()
+    )
     return data_model_registry
 
 
