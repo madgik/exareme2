@@ -371,10 +371,6 @@ def _get_cdes_across_nodes(
         node_socket_addr = _get_node_socket_addr(nodes[node_id])
         for data_model in datasets_per_data_model:
             cdes = _get_node_cdes(node_socket_addr, data_model)
-            if not cdes:
-                del datasets_per_node[node_id][data_model]
-                continue
-            cdes = _get_node_cdes(node_socket_addr, data_model)
             if data_model not in nodes_cdes:
                 nodes_cdes[data_model] = []
             nodes_cdes[data_model].append((node_id, cdes))
