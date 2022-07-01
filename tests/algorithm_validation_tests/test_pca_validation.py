@@ -31,6 +31,15 @@ def get_test_params(expected_file, slc=None):
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_pca_algorithm(test_input, expected):
+    # -------------------------------------------------------
+    import os
+
+    print("\n------------------ $df -hx squashfs --total -----------------")
+    os.system("df -hx squashfs --total")
+    print("------------------ $free -mh -----------------")
+    os.system("free -mh")
+    print("\n")
+    # -------------------------------------------------------
     response = pca_request(test_input)
     result = json.loads(response.content)
 
