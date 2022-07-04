@@ -104,4 +104,4 @@ jobs:
           poetry run inv start-controller --detached
 
       - name: Run development env tests
-        run: poetry run pytest tests/dev_env_tests --verbosity=2
+        run: poetry run pytest tests/dev_env_tests --verbosity=4

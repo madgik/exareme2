@@ -10,7 +10,7 @@ import pandas as pd
 import pymonetdb
 from tqdm import tqdm
 
-from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
+from mipengine.node.monetdb_interface.monet_db_facade import _MonetDBConnectionPool
 
 TESTING_DATAMODEL = "dementia:0.1"
 DATA_TABLENAME = f""""{TESTING_DATAMODEL}".primary_data"""
@@ -22,13 +22,13 @@ TABLE_SIZE_MODE = 10
 
 # XXX Change according to your local setup
 DB_IP = "127.0.0.1"
-DB_PORT = 50002
+DB_PORT = 50001
 DB_USER = "monetdb"
 DB_PASS = "monetdb"
 DB_FARM = "db"
 
 
-class DB(MonetDB):
+class DB(_MonetDBConnectionPool):
     def refresh_connection(self):
         self._connection = pymonetdb.connect(
             hostname=DB_IP,
@@ -115,7 +115,10 @@ class InputDataVariable(ABC):
         if not self._notblank and not coin():
             return
         num = triangular() if self._multiple else 1
-        choice = random_permutation(self.all_variables, r=num)
+        choice = random_permutation(
+            self.all_variables,
+            r=min(num, len(self.all_variables)),
+        )
         return choice
 
 
@@ -135,8 +138,12 @@ class NominalInputDataVariables(InputDataVariable):
         return nominal_vars
 
 
-class MixedInputDataVariables:
-    pass
+class MixedInputDataVariables(InputDataVariable):
+    @cached_property
+    def all_variables(self):
+        """Gets the names of all variables available, both numerical and nominal."""
+        all_vars = self.db.get_nominal_variables() + self.db.get_numerical_variables()
+        return all_vars
 
 
 def make_input_data_variables(properties):
@@ -151,7 +158,10 @@ def make_input_data_variables(properties):
             properties["multiple"],
         )
     elif set(properties["stattypes"]) == {"numerical", "nominal"}:
-        raise NotImplementedError
+        return MixedInputDataVariables(
+            properties["notblank"],
+            properties["multiple"],
+        )
 
 
 class AlgorithmParameter(ABC):
@@ -329,13 +339,14 @@ class TestCaseGenerator(ABC):
 
     def __init__(self, specs_file, replicas=1):
         self.input_gen = InputGenerator(specs_file)
-        self.all_data = DB().get_data_table(replicas)
+        self._db = DB()
+        self.all_data =self._db.get_data_table(replicas)
 
     def generate_input(self):
         return self.input_gen.draw()
 
     @abstractmethod
-    def compute_expected_output(self, input_data, input_parameters=None):
+    def compute_expected_output(self, input_data, input_parameters=None,datatypes = None):
         pass
 
     def get_input_data(self, input_):
@@ -363,7 +374,7 @@ class TestCaseGenerator(ABC):
         return y_data, x_data
 
     def generate_test_case(self):
-        for _ in range(1000):
+        for _ in range(10_000):
             input_ = self.generate_input()
             input_data = self.get_input_data(input_)
             if input_data is not None:
@@ -375,22 +386,26 @@ class TestCaseGenerator(ABC):
 
         parameters = input_["parameters"]
         try:
-            output = self.compute_expected_output(input_data, parameters)
+            datatypes = {}
+            datatypes['numerical'] = self._db.get_numerical_variables()
+            datatypes['nominal'] = self._db.get_nominal_variables()
+            output = self.compute_expected_output(input_data, parameters,datatypes)
         except Exception as err:
             raise Exception(f"{err}, datasets: {input_['inputdata']['datasets']}")
 
         return {"input": input_, "output": output}
 
     def generate_test_cases(self, num_test_cases=100):
-        test_cases = []
-        while len(test_cases) < num_test_cases:
-            print(f"Generating test case #{len(test_cases) + 1}.")
-            try:
-                item = self.generate_test_case()
-                test_cases.append(item)
-            except Exception as err:
-                print(f"An error occurred: {err}")
+        test_cases = [self.generate_test_case() for _ in tqdm(range(num_test_cases))]
 
+        def append_test_case_number(test_case, num):
+            test_case["test_case_num"] = num
+            return test_case
+
+        test_cases = [
+            append_test_case_number(test_case, i)
+            for i, test_case in enumerate(test_cases)
+        ]
         return {"test_cases": test_cases}
 
     def write_test_cases(self, file, num_test_cases=100):

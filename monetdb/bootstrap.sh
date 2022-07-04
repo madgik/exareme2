@@ -8,6 +8,7 @@ monetdbd start $MONETDB_STORAGE
 
 # Create the database instance
 monetdb create db
+monetdb set nclients=128 db
 monetdb set embedpy3=true db
 monetdb release db
 

@@ -4,13 +4,11 @@ role = "$NODE_ROLE"
 log_level = "$LOG_LEVEL"
 framework_log_level = "$FRAMEWORK_LOG_LEVEL"
 
-cdes_metadata_path = "./tests/test_data"
-
 [privacy]
 minimum_row_count = 10
 
 [celery]
-worker_concurrency = 1
+worker_concurrency = 16
 task_soft_time_limit = 30
 task_time_limit = 60
 run_udf_soft_time_limit = 30
@@ -36,5 +34,3 @@ optional = "$SMPC_OPTIONAL"
 client_id = "$SMPC_CLIENT_ID"
 client_address = "$SMPC_CLIENT_ADDRESS"
 coordinator_address = "$SMPC_COORDINATOR_ADDRESS"
-get_result_interval = "$SMPC_GET_RESULT_INTERVAL"
-get_result_max_retries = "$SMPC_GET_RESULT_MAX_RETRIES"

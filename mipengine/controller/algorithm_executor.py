@@ -1,4 +1,5 @@
 import traceback
+from logging import Logger
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -7,9 +8,6 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
-from billiard.exceptions import SoftTimeLimitExceeded
-from billiard.exceptions import TimeLimitExceeded
-from celery.exceptions import TimeoutError
 from pydantic import BaseModel
 
 from mipengine import algorithm_modules
@@ -26,8 +24,9 @@ from mipengine.controller.algorithm_executor_smpc_helper import get_smpc_results
 from mipengine.controller.algorithm_executor_smpc_helper import (
     load_data_to_smpc_clients,
 )
+from mipengine.controller.algorithm_executor_smpc_helper import trigger_smpc_operations
 from mipengine.controller.algorithm_executor_smpc_helper import (
-    trigger_smpc_computations,
+    wait_for_smpc_results_to_be_ready,
 )
 from mipengine.controller.algorithm_flow_data_objects import AlgoFlowData
 from mipengine.controller.algorithm_flow_data_objects import GlobalNodeData
@@ -43,13 +42,18 @@ from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
-from mipengine.controller.node_tasks_handler_celery import ClosedBrokerConnectionError
-from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
+from mipengine.controller.celery_app import CeleryConnectionError
+from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.udfgen import TensorBinaryOp
 from mipengine.udfgen import make_unique_func_name
+
+
+class AsyncResult:
+    def get(self, timeout=None):
+        pass
 
 
 class AlgorithmExecutionException(Exception):
@@ -152,6 +156,7 @@ class AlgorithmExecutor:
             data_model=self._algorithm_execution_dto.data_model,
             datasets_per_local_node=self._algorithm_execution_dto.datasets_per_local_node,
             use_smpc=self._get_use_smpc_flag(),
+            logger=self._logger,
         )
         if len(self._local_nodes) > 1:
             self._execution_interface = _AlgorithmExecutionInterface(
@@ -177,16 +182,11 @@ class AlgorithmExecutor:
             )
             self._logger.info(f"finished execution of algorithm:{self._algorithm_name}")
             return algorithm_result
-        except (
-            SoftTimeLimitExceeded,
-            TimeLimitExceeded,
-            TimeoutError,
-            ClosedBrokerConnectionError,
-        ) as err:
-            self._logger.error(f"ErrorType: '{type(err)}' and message: '{err}'")
+        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+            self._logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
             raise NodeUnresponsiveAlgorithmExecutionException()
         except Exception as exc:
-            self._logger.error(f"{traceback.format_exc()}")
+            self._logger.error(traceback.format_exc())
             raise exc
 
 
@@ -201,6 +201,7 @@ class _AlgorithmExecutionInterfaceDTO(BaseModel):
     data_model: str
     datasets_per_local_node: Dict[str, List[str]]
     use_smpc: bool
+    logger: Logger
 
     class Config:
         arbitrary_types_allowed = True
@@ -230,6 +231,8 @@ class _AlgorithmExecutionInterface:
             for varname, cde in common_data_elements.items()
             if varname in varnames
         }
+
+        self._logger = algo_execution_interface_dto.logger
 
     @property
     def algorithm_parameters(self) -> Dict[str, Any]:
@@ -447,10 +450,21 @@ class _AlgorithmExecutionInterface:
             command_id, local_nodes_smpc_tables
         )
 
-        (sum_op, min_op, max_op, union_op,) = trigger_smpc_computations(
+        (sum_op, min_op, max_op, union_op) = trigger_smpc_operations(
+            logger=self._logger,
             context_id=self._global_node.context_id,
             command_id=command_id,
             smpc_clients_per_op=smpc_clients_per_op,
+        )
+
+        wait_for_smpc_results_to_be_ready(
+            logger=self._logger,
+            context_id=self._global_node.context_id,
+            command_id=command_id,
+            sum_op=sum_op,
+            min_op=min_op,
+            max_op=max_op,
+            union_op=union_op,
         )
 
         (
@@ -618,7 +632,7 @@ class _AlgorithmExecutionInterface:
                     return True
 
     def _get_local_run_udfs_results(
-        self, tasks: Dict[LocalNode, IQueuedUDFAsyncResult]
+        self, tasks: Dict[LocalNode, AsyncResult]
     ) -> List[List[Tuple[LocalNode, NodeData]]]:
         all_nodes_results = {}
         for node, task in tasks.items():
@@ -739,6 +753,9 @@ def get_func_name(
 
     if tensor_op:
         return tensor_op.name
+
+    if isinstance(func, str):
+        return func
 
     return make_unique_func_name(func)
 

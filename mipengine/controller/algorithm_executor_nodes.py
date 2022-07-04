@@ -6,11 +6,12 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from mipengine.controller.algorithm_execution_tasks_handler import (
+    INodeAlgorithmTasksHandler,
+)
 from mipengine.controller.algorithm_executor_node_data_objects import NodeData
 from mipengine.controller.algorithm_executor_node_data_objects import SMPCTableNames
 from mipengine.controller.algorithm_executor_node_data_objects import TableName
-from mipengine.controller.node_tasks_handler_interface import INodeTasksHandler
-from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
 from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import NodeUDFDTO
@@ -18,6 +19,11 @@ from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import UDFKeyArguments
 from mipengine.node_tasks_DTOs import UDFPosArguments
+
+
+class AsyncResult:
+    def get(self, timeout=None):
+        pass
 
 
 class _INode(ABC):
@@ -66,13 +72,11 @@ class _INode(ABC):
         func_name: str,
         positional_args: UDFPosArguments,
         keyword_args: UDFKeyArguments,
-    ) -> IQueuedUDFAsyncResult:
+    ) -> AsyncResult:
         pass
 
     @abstractmethod
-    def get_queued_udf_result(
-        self, async_result: IQueuedUDFAsyncResult
-    ) -> List[TableName]:
+    def get_queued_udf_result(self, async_result: AsyncResult) -> List[TableName]:
         pass
 
     @abstractmethod
@@ -85,9 +89,9 @@ class _Node(_INode, ABC):
         self,
         request_id: str,
         context_id: str,
-        node_tasks_handler: INodeTasksHandler,
+        node_tasks_handler: INodeAlgorithmTasksHandler,
     ):
-        self._node_tasks_handler: INodeTasksHandler = node_tasks_handler
+        self._node_tasks_handler: INodeAlgorithmTasksHandler = node_tasks_handler
         self.node_id: str = self._node_tasks_handler.node_id
         self.request_id: str = request_id
         self.context_id: str = context_id
@@ -182,7 +186,7 @@ class _Node(_INode, ABC):
         positional_args: UDFPosArguments,
         keyword_args: UDFKeyArguments,
         use_smpc: bool = False,
-    ) -> IQueuedUDFAsyncResult:
+    ) -> AsyncResult:
         return self._node_tasks_handler.queue_run_udf(
             request_id=self.request_id,
             context_id=self.context_id,
@@ -264,10 +268,10 @@ class LocalNode(_Node):
         )
         return [TableName(view) for view in views]
 
-    def get_queued_udf_result(
-        self, async_result: IQueuedUDFAsyncResult
-    ) -> List[NodeData]:
-        node_udf_results = self._node_tasks_handler.get_queued_udf_result(async_result)
+    def get_queued_udf_result(self, async_result: AsyncResult) -> List[NodeData]:
+        node_udf_results = self._node_tasks_handler.get_queued_udf_result(
+            async_result=async_result, request_id=self.request_id
+        )
         udf_results = []
         for result in node_udf_results.results:
             if isinstance(result, NodeTableDTO):
@@ -294,9 +298,9 @@ class LocalNode(_Node):
                 raise NotImplementedError
         return udf_results
 
-    def load_data_to_smpc_client(self, table_name: str, jobid: str) -> int:
+    def load_data_to_smpc_client(self, table_name: str, jobid: str) -> str:
         return self._node_tasks_handler.load_data_to_smpc_client(
-            self.context_id, table_name, jobid
+            self.request_id, table_name, jobid
         )
 
 
@@ -308,10 +312,10 @@ def create_node_table_from_node_table_dto(node_table_dto: NodeTableDTO):
 
 
 class GlobalNode(_Node):
-    def get_queued_udf_result(
-        self, async_result: IQueuedUDFAsyncResult
-    ) -> List[TableName]:
-        node_udf_results = self._node_tasks_handler.get_queued_udf_result(async_result)
+    def get_queued_udf_result(self, async_result: AsyncResult) -> List[TableName]:
+        node_udf_results = self._node_tasks_handler.get_queued_udf_result(
+            async_result=async_result, request_id=self.request_id
+        )
         results = []
         for result in node_udf_results.results:
             if isinstance(result, NodeTableDTO):
@@ -327,7 +331,7 @@ class GlobalNode(_Node):
         table_name: str,
     ):
         self._node_tasks_handler.validate_smpc_templates_match(
-            self.context_id, table_name
+            self.request_id, table_name
         )
 
     def get_smpc_result(
@@ -337,6 +341,7 @@ class GlobalNode(_Node):
         command_subid: Optional[str] = "0",
     ) -> str:
         return self._node_tasks_handler.get_smpc_result(
+            request_id=self.request_id,
             jobid=jobid,
             context_id=self.context_id,
             command_id=str(command_id),

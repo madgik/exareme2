@@ -36,26 +36,12 @@ def do_post_request():
         "ppmi8",
     ]
     x = [
-        "rightttgtransversetemporalgyrus",
-        "subjectageyears",
-        "subjectage",
-        "rightventraldc",
-        "rightpallidum",
-        "leftaorganteriororbitalgyrus",
-        "minimentalstate",
-        "leftcerebralwhitematter",
-        "rightcuncuneus",
-        "lefttmptemporalpole",
-        "leftioginferioroccipitalgyrus",
-        "leftcalccalcarinecortex",
-        "rightscasubcallosalarea",
-        "righttmptemporalpole",
-        "rightioginferioroccipitalgyrus",
-        "righttrifgtriangularpartoftheinferiorfrontalgyrus",
-        "leftsmcsupplementarymotorcortex",
+        "righthippocampus",
+        "alzheimerbroadcategory",
+        "agegroup",
     ]
     y = [
-        "csfglobal",
+        "lefthippocampus",
     ]
     filters = {
         "condition": "AND",
@@ -75,7 +61,7 @@ def do_post_request():
                         "operator": "is_not_null",
                         "value": None,
                     }
-                    for variable in x
+                    for variable in x + y
                 ],
             },
         ],

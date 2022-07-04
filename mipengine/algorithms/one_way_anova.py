@@ -26,12 +26,11 @@ def run(algo_interface):
     X_relation, Y_relation = algo_interface.create_primary_data_views(
         variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
     )
-
-    x_var_name = algo_interface.__dict__["_x_variables"].pop()
+    [x_var_name] = algo_interface.x_variables
+    [y_var_name] = algo_interface.y_variables
 
     covar_enums = list(algo_interface.metadata[x_var_name]["enumerations"])
 
-    y_var_name = algo_interface.__dict__["_y_variables"].pop()
     sec_local_transfers, local_transfers = local_run(
         func=local1,
         keyword_args=dict(y=Y_relation, x=X_relation, covar_enums=covar_enums),
@@ -48,6 +47,7 @@ def run(algo_interface):
     result = json.loads(result.get_table_data()[1][0])
     n_obs = result["n_obs"]
     anova_result = {
+        "n_obs": n_obs,
         "y_label": y_var_name,
         "x_label": x_var_name,
         "df_residual": result["df_residual"],
@@ -263,7 +263,6 @@ def global1(sec_local_transfers, local_transfers):
     df_residual = n_obs - len(group_stats_index)
     ss_residual = overall_ssq - sum(group_stats_sum**2 / group_stats_count)
     overall_mean = overall_stats_sum / overall_stats_count
-    # ss_total = overall_ssq - overall_stats_sum ** 2 / overall_stats_count # exists in Exareme I but is not used
 
     ss_explained = sum(
         (overall_mean - group_stats_sum / group_stats_count) ** 2 * group_stats_count
@@ -362,11 +361,6 @@ def global1(sec_local_transfers, local_transfers):
     thsd["Pr(>|t|)"] = pval
 
     tukey_data = thsd
-    tukey_hsd_table = {
-        "fields": list(tukey_data.columns),
-        "data": list([list(row) for row in tukey_data.values]),
-        "title": "Tuckey Honest Significant Differences",
-    }
 
     tukey_dict = []
     for _, row in tukey_data.iterrows():

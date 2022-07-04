@@ -3,6 +3,7 @@ from abc import ABC
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Union
 
 from mipengine.controller.algorithm_executor_node_data_objects import SMPCTableNames
@@ -159,6 +160,42 @@ class LocalNodesSMPCTables(LocalNodesData):
         return LocalNodesTable(
             {node: tables.template for node, tables in self.nodes_smpc_tables.items()}
         )
+
+    @property
+    def sum_op_local_nodes_table(self) -> Optional[LocalNodesTable]:
+        nodes_tables = {}
+        for node, tables in self.nodes_smpc_tables.items():
+            if not tables.sum_op:
+                return None
+            nodes_tables[node] = tables.sum_op
+        return LocalNodesTable(nodes_tables)
+
+    @property
+    def min_op_local_nodes_table(self) -> Optional[LocalNodesTable]:
+        nodes_tables = {}
+        for node, tables in self.nodes_smpc_tables.items():
+            if not tables.min_op:
+                return None
+            nodes_tables[node] = tables.min_op
+        return LocalNodesTable(nodes_tables)
+
+    @property
+    def max_op_local_nodes_table(self) -> Optional[LocalNodesTable]:
+        nodes_tables = {}
+        for node, tables in self.nodes_smpc_tables.items():
+            if not tables.max_op:
+                return None
+            nodes_tables[node] = tables.max_op
+        return LocalNodesTable(nodes_tables)
+
+    @property
+    def union_op_local_nodes_table(self) -> Optional[LocalNodesTable]:
+        nodes_tables = {}
+        for node, tables in self.nodes_smpc_tables.items():
+            if not tables.union_op:
+                return None
+            nodes_tables[node] = tables.union_op
+        return LocalNodesTable(nodes_tables)
 
 
 class GlobalNodeSMPCTables(GlobalNodeData):
