@@ -15,6 +15,7 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
 from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
 from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
+from mipengine.udfgen.udfgenerator import DEFERRED
 from mipengine.udfgen.udfgenerator import Column
 from mipengine.udfgen.udfgenerator import IOType
 from mipengine.udfgen.udfgenerator import LiteralArg
@@ -492,6 +493,27 @@ def test_relation_generic():
 def test_relation_specific():
     r = relation(schema=[("c1", int), ("c2", float)])
     assert isinstance(r, RelationType)
+
+
+def test_relation_valid_schema_types():
+    assert relation(schema=TypeVar("S"))
+    assert relation(schema=DEFERRED)
+    assert relation(schema=[("c1", int), ("c2", float)])
+    with pytest.raises(TypeError):
+        relation(schema=1)
+
+
+def test_relation_valid_dtype_types():
+    assert relation(schema=[("c1", int)])
+    assert relation(schema=[("c1", "INT")])
+    assert relation(schema=[("c1", DType.INT)])
+    with pytest.raises(TypeError):
+        relation(schema=[("c1", 1)])
+
+
+def test_relation_invalid_schema_structure():
+    with pytest.raises(TypeError):
+        relation(schema=[1])
 
 
 def test_literal():
@@ -1020,7 +1042,7 @@ ORDER BY
 class TestUDFGenBase:
     @pytest.fixture(scope="class")
     def funcname(self, udfregistry):
-        # assert len(udfregistry) == 1
+        assert len(udfregistry) == 1
         return next(iter(udfregistry.keys()))
 
     @staticmethod
@@ -5393,6 +5415,83 @@ FROM
         ).fetchone()
         result = json.loads(transfer)
         assert result == {"num": 5}
+
+
+class TestUDFGen_DeferredOutputSchema(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(return_type=relation(schema=DEFERRED))
+        def f():
+            result = {"a": [1, 2, 3], "b": [4.0, 5.0, 6.0]}
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("a" INT,"b" DOUBLE)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    result = {'a': [1, 2, 3], 'b': [4.0, 5.0, 6.0]}
+    return udfio.as_relational_table(result, 'row_id')
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"a" INT,"b" DOUBLE);'
+                ),
+            )
+        ]
+
+    @pytest.fixture(scope="class")
+    def request_id(self):
+        return "test_udfgenerator"
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        output_schema = [("a", DType.INT), ("b", DType.FLOAT)]
+        udf_execution_queries = generate_udf_queries(
+            request_id="",
+            func_name=funcname,
+            positional_args=[],
+            keyword_args={},
+            smpc_used=False,
+            traceback=False,
+            output_schema=output_schema,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results,
+            expected_udf_outputs,
+        ):
+            assert udf_output == expected_udf_output
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~ Test SQL Generator ~~~~~~~~~~~~~~~~~~ #

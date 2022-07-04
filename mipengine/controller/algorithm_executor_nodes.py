@@ -186,6 +186,7 @@ class _Node(_INode, ABC):
         positional_args: UDFPosArguments,
         keyword_args: UDFKeyArguments,
         use_smpc: bool = False,
+        output_schema: Optional[TableSchema] = None,
     ) -> AsyncResult:
         return self._node_tasks_handler.queue_run_udf(
             request_id=self.request_id,
@@ -195,6 +196,7 @@ class _Node(_INode, ABC):
             positional_args=positional_args,
             keyword_args=keyword_args,
             use_smpc=use_smpc,
+            output_schema=output_schema,
         )
 
     def get_udfs(self, algorithm_name) -> List[str]:
