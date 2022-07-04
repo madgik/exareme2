@@ -37,7 +37,15 @@ def get_cached_response(algorithm_name, test_input, cache):
     return response
 
 
-@pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
+@pytest.mark.parametrize(
+    "test_input, expected",
+    get_test_params(
+        expected_file,
+        skip_indices=[4, 27, 39, 40],
+        skip_reason="Run on five nodes in CI results in empty tables,"
+        " see https://team-1617704806227.atlassian.net/browse/MIP-634",
+    ),
+)
 def test_linearregression_cv_non_inferiority_msre(test_input, expected, cache):
     response = get_cached_response("linear_regression_cv", test_input, cache)
     try:
@@ -61,7 +69,15 @@ def test_linearregression_cv_non_inferiority_msre(test_input, expected, cache):
     assert ttest.pvalue >= 0.01
 
 
-@pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
+@pytest.mark.parametrize(
+    "test_input, expected",
+    get_test_params(
+        expected_file,
+        skip_indices=[4, 27, 39, 40],
+        skip_reason="Run on five nodes in CI results in empty tables,"
+        " see https://team-1617704806227.atlassian.net/browse/MIP-634",
+    ),
+)
 def test_linearregression_cv_non_inferiority_mae(test_input, expected, cache):
     response = get_cached_response("linear_regression_cv", test_input, cache)
     try:
@@ -85,7 +101,15 @@ def test_linearregression_cv_non_inferiority_mae(test_input, expected, cache):
     assert ttest.pvalue >= 0.01
 
 
-@pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
+@pytest.mark.parametrize(
+    "test_input, expected",
+    get_test_params(
+        expected_file,
+        skip_indices=[4, 27, 39, 40],
+        skip_reason="Run on five nodes in CI results in empty tables,"
+        " see https://team-1617704806227.atlassian.net/browse/MIP-634",
+    ),
+)
 def test_linearregression_cv_non_inferiority_r2(test_input, expected, cache):
     response = get_cached_response("linear_regression_cv", test_input, cache)
     try:
