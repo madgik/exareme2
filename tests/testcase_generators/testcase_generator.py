@@ -28,8 +28,8 @@ DB_PASS = "monetdb"
 DB_FARM = "db"
 
 
-class DB(_MonetDBConnectionPool):
-    def refresh_connection(self):
+class DB:
+    def __init__(self):
         self._connection = pymonetdb.connect(
             hostname=DB_IP,
             port=DB_PORT,

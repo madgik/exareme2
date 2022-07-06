@@ -3,7 +3,6 @@ import pandas as pd
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
-
 class DesciptiveStatisticsTestCaseGenerator(TestCaseGenerator):
     def compute_expected_output(self, input_data, input_parameters=None,datatypes=None):
         X_dataset, Y_dataset = input_data
