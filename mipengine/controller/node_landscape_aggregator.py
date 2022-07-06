@@ -169,6 +169,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 }
 
                 datasets_per_node = _get_datasets_per_node(local_nodes)
+                remove_duplicated_datasets(datasets_per_node)
 
                 data_model_cdes_per_node = _get_cdes_across_nodes(
                     local_nodes, datasets_per_node

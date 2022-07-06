@@ -62,6 +62,12 @@ RABBITMQ_SMPC_LOCALNODE1_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_LOCALNODE1_PORT
 RABBITMQ_SMPC_LOCALNODE2_PORT = 60006
 RABBITMQ_SMPC_LOCALNODE2_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_LOCALNODE2_PORT)}"
 
+
+DATASET_PREFIXES_LOCALNODE1 = [0, 1, 2, 3]
+DATASET_PREFIXES_LOCALNODE2 = [4, 5, 6]
+DATASET_PREFIXES_LOCALNODETMP = [7, 8, 9]
+DATASET_PREFIXES_SMPC_LOCALNODE1 = [0, 1, 2, 3, 4]
+DATASET_PREFIXES_SMPC_LOCALNODE2 = [5, 6, 7, 8, 9]
 MONETDB_GLOBALNODE_NAME = "monetdb_test_globalnode"
 MONETDB_LOCALNODE1_NAME = "monetdb_test_localnode1"
 MONETDB_LOCALNODE2_NAME = "monetdb_test_localnode2"
@@ -275,7 +281,7 @@ def _init_database_monetdb_container(db_ip, db_port):
     print(f"\nDatabase ({db_ip}:{db_port}) initialized.")
 
 
-def _load_data_monetdb_container(db_ip, db_port):
+def _load_data_monetdb_container(db_ip, db_port, dataset_prefixes):
     # Check if the database is already loaded
     cmd = f"mipdb list-datasets --ip {db_ip} --port {db_port} "
     res = subprocess.run(
@@ -285,6 +291,7 @@ def _load_data_monetdb_container(db_ip, db_port):
         print(f"\nDatabase ({db_ip}:{db_port}) already loaded, continuing.")
         return
 
+    datasets_per_data_model = {}
     # Load the test data folder into the dbs
     data_model_folders = [
         TEST_DATA_FOLDER / folder for folder in os.listdir(TEST_DATA_FOLDER)
@@ -294,6 +301,7 @@ def _load_data_monetdb_container(db_ip, db_port):
             data_model_metadata = json.load(data_model_metadata_file)
             data_model_code = data_model_metadata["code"]
             data_model_version = data_model_metadata["version"]
+            data_model = f"{data_model_code}:{data_model_version}"
         cdes_file = data_model_folder / "CDEsMetadata.json"
 
         print(
@@ -304,19 +312,11 @@ def _load_data_monetdb_container(db_ip, db_port):
             cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
 
-        port_prefixes = {
-            MONETDB_LOCALNODE1_PORT: [0, 1, 2, 3],
-            MONETDB_LOCALNODE2_PORT: [4, 5, 6],
-            MONETDB_LOCALNODETMP_PORT: [7, 8, 9],
-            MONETDB_SMPC_LOCALNODE1_PORT: [0, 1, 2, 3, 4],
-            MONETDB_SMPC_LOCALNODE2_PORT: [5, 6, 7, 8, 9],
-        }
-        # Load only the 1st csv of each dataset "with 0 suffix" in the 1st node
         csvs = sorted(
             [
                 data_model_folder / file
                 for file in os.listdir(data_model_folder)
-                for prefix in port_prefixes[db_port]
+                for prefix in dataset_prefixes
                 if file.endswith(".csv") and str(prefix) in file
             ]
         )
@@ -333,46 +333,11 @@ def _load_data_monetdb_container(db_ip, db_port):
             print(
                 f"\nLoading dataset {pathlib.PurePath(csv).name} to database ({db_ip}:{db_port})"
             )
+            datasets_per_data_model[data_model] = pathlib.PurePath(csv).name
 
     print(f"\nData loaded to database ({db_ip}:{db_port})")
     time.sleep(2)  # Needed to avoid db crash while loading
-
-
-def get_edsd_datasets_for_specific_node(node_id: str):
-    datasets_per_node = {
-        "testlocalnode1": [
-            "edsd0",
-            "edsd1",
-            "edsd2",
-            "edsd3",
-        ],
-        "testlocalnode2": [
-            "edsd4",
-            "edsd5",
-            "edsd6",
-        ],
-        "testlocalnodetmp": [
-            "edsd7",
-            "edsd8",
-            "edsd9",
-        ],
-        "smpc_testlocalnode1": [
-            "edsd0",
-            "edsd1",
-            "edsd2",
-            "edsd3",
-            "edsd4",
-        ],
-        "smpc_testlocalnode2": [
-            "edsd5",
-            "edsd6",
-            "edsd7",
-            "edsd8",
-            "edsd9",
-        ],
-    }
-
-    return datasets_per_node[node_id]
+    return datasets_per_data_model
 
 
 def _remove_data_model_from_localnodetmp_monetdb(data_model_code, data_model_version):
@@ -392,36 +357,46 @@ def init_data_globalnode(monetdb_globalnode):
 @pytest.fixture(scope="session")
 def load_data_localnode1(monetdb_localnode1):
     _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODE1_PORT)
-    _load_data_monetdb_container(COMMON_IP, MONETDB_LOCALNODE1_PORT)
-    yield
+    loaded_datasets_per_data_model = _load_data_monetdb_container(
+        COMMON_IP, MONETDB_LOCALNODE1_PORT, DATASET_PREFIXES_LOCALNODE1
+    )
+    yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="session")
 def load_data_localnode2(monetdb_localnode2):
     _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODE2_PORT)
-    _load_data_monetdb_container(COMMON_IP, MONETDB_LOCALNODE2_PORT)
-    yield
+    loaded_datasets_per_data_model = _load_data_monetdb_container(
+        COMMON_IP, MONETDB_LOCALNODE2_PORT, DATASET_PREFIXES_LOCALNODE2
+    )
+    yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="function")
 def load_data_localnodetmp(monetdb_localnodetmp):
     _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODETMP_PORT)
-    _load_data_monetdb_container(COMMON_IP, MONETDB_LOCALNODETMP_PORT)
-    yield
+    loaded_datasets_per_data_model = _load_data_monetdb_container(
+        COMMON_IP, MONETDB_LOCALNODETMP_PORT, DATASET_PREFIXES_LOCALNODETMP
+    )
+    yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="session")
 def load_data_smpc_localnode1(monetdb_smpc_localnode1):
     _init_database_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT)
-    _load_data_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT)
-    yield
+    loaded_datasets_per_data_model = _load_data_monetdb_container(
+        COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT, DATASET_PREFIXES_SMPC_LOCALNODE1
+    )
+    yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="session")
 def load_data_smpc_localnode2(monetdb_smpc_localnode2):
     _init_database_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT)
-    _load_data_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT)
-    yield
+    loaded_datasets_per_data_model = _load_data_monetdb_container(
+        COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT, DATASET_PREFIXES_SMPC_LOCALNODE2
+    )
+    yield loaded_datasets_per_data_model
 
 
 def _create_db_cursor(db_port):

@@ -2,7 +2,6 @@ import asyncio
 import time
 from copy import deepcopy
 from os import path
-from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -25,14 +24,12 @@ from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 from tests.standalone_tests.conftest import _create_node_service
 from tests.standalone_tests.conftest import _create_rabbitmq_container
 from tests.standalone_tests.conftest import create_node_tasks_handler_celery
-from tests.standalone_tests.conftest import get_edsd_datasets_for_specific_node
 from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
 WAIT_CLEANUP_TIME_LIMIT = 60
 WAIT_BEFORE_BRING_TMPNODE_DOWN = 20
-WAIT_BACKGROUND_TASKS_TO_FINISH = 30
-NLA_WAIT_TIME_LIMIT = 60
+NLA_WAIT_TIME_LIMIT = 120
 
 
 @pytest.fixture(scope="session")
@@ -152,54 +149,88 @@ def patch_celery_app(controller_config_dict_mock):
 
 # why do the datasets need to be passed twice in
 # the controller._exec_algorithm_with_task_handlers??
-def get_algorithm_request_dto(datasets):
+datasets = [
+    "edsd0",
+    "edsd1",
+    "edsd2",
+    "edsd3",
+    "edsd4",
+    "edsd5",
+    "edsd6",
+    "edsd7",
+    "edsd8",
+    "edsd9",
+]
 
-    return AlgorithmRequestDTO(
-        inputdata=AlgorithmInputDataDTO(
-            data_model="dementia:0.1",
-            datasets=datasets,
-            filters={
-                "condition": "AND",
-                "rules": [
-                    {
-                        "id": "dataset",
-                        "type": "string",
-                        "value": datasets,
-                        "operator": "in",
-                    },
-                    {
-                        "condition": "AND",
-                        "rules": [
-                            {
-                                "id": variable,
-                                "type": "string",
-                                "operator": "is_not_null",
-                                "value": None,
-                            }
-                            for variable in [
-                                "lefthippocampus",
-                                "righthippocampus",
-                                "rightppplanumpolare",
-                                "leftamygdala",
-                                "rightamygdala",
-                                "alzheimerbroadcategory",
-                            ]
-                        ],
-                    },
-                ],
-                "valid": True,
-            },
-            x=[
-                "lefthippocampus",
-                "righthippocampus",
-                "rightppplanumpolare",
-                "leftamygdala",
-                "rightamygdala",
+
+algorithm_request_dto = AlgorithmRequestDTO(
+    inputdata=AlgorithmInputDataDTO(
+        data_model="dementia:0.1",
+        datasets=[
+            "edsd0",
+            "edsd1",
+            "edsd2",
+            "edsd3",
+            "edsd4",
+            "edsd5",
+            "edsd6",
+            "edsd7",
+            "edsd8",
+            "edsd9",
+        ],
+        filters={
+            "condition": "AND",
+            "rules": [
+                {
+                    "id": "dataset",
+                    "type": "string",
+                    "value": [
+                        "edsd0",
+                        "edsd1",
+                        "edsd2",
+                        "edsd3",
+                        "edsd4",
+                        "edsd5",
+                        "edsd6",
+                        "edsd7",
+                        "edsd8",
+                        "edsd9",
+                    ],
+                    "operator": "in",
+                },
+                {
+                    "condition": "AND",
+                    "rules": [
+                        {
+                            "id": variable,
+                            "type": "string",
+                            "operator": "is_not_null",
+                            "value": None,
+                        }
+                        for variable in [
+                            "lefthippocampus",
+                            "righthippocampus",
+                            "rightppplanumpolare",
+                            "leftamygdala",
+                            "rightamygdala",
+                            "alzheimerbroadcategory",
+                        ]
+                    ],
+                },
             ],
-            y=["alzheimerbroadcategory"],
-        ),
-        parameters={"classes": ["AD", "CN"]},
-    )
+            "valid": True,
+        },
+        x=[
+            "lefthippocampus",
+            "righthippocampus",
+            "rightppplanumpolare",
+            "leftamygdala",
+            "rightamygdala",
+        ],
+        y=["alzheimerbroadcategory"],
+    ),
+    parameters={"classes": ["AD", "CN"]},
+)
 
 
 @pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
@@ -222,7 +253,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_dataset_locations()
+        or not controller._node_landscape_aggregator.get_datasets_location()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -239,8 +270,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     request_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-    testlocalnode1_datasets = get_edsd_datasets_for_specific_node("testlocalnode1")
-    testlocalnode2_datasets = get_edsd_datasets_for_specific_node("testlocalnode2")
 
     # Add contextid to Cleaner but is not yet released
     controller._cleaner.add_contextid_for_cleanup(
@@ -258,12 +287,10 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
             request_id=request_id,
             context_id=context_id,
             algorithm_name=algorithm_name,
-            algorithm_request_dto=get_algorithm_request_dto(
-                testlocalnode1_datasets + testlocalnode2_datasets
-            ),
+            algorithm_request_dto=algorithm_request_dto,
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: testlocalnode1_datasets,
-                localnode2_tasks_handler.node_id: testlocalnode2_datasets,
+                localnode1_tasks_handler.node_id: datasets,
+                localnode2_tasks_handler.node_id: datasets,
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -361,7 +388,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_dataset_locations()
+        or not controller._node_landscape_aggregator.get_datasets_location()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -378,21 +405,16 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-    testlocalnode1_datasets = get_edsd_datasets_for_specific_node("testlocalnode1")
-    testlocalnode2_datasets = get_edsd_datasets_for_specific_node("testlocalnode2")
-    testlocalnodetmp_datasets = get_edsd_datasets_for_specific_node("testlocalnodetmp")
 
     try:
         await controller._exec_algorithm_with_task_handlers(
             request_id=request_id,
             context_id=context_id,
             algorithm_name=algorithm_name,
-            algorithm_request_dto=get_algorithm_request_dto(
-                testlocalnode1_datasets + testlocalnode2_datasets
-            ),
+            algorithm_request_dto=algorithm_request_dto,
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: testlocalnode1_datasets,
-                localnode2_tasks_handler.node_id: testlocalnode2_datasets,
+                localnode1_tasks_handler.node_id: datasets,
+                localnode2_tasks_handler.node_id: datasets,
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -496,7 +518,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_dataset_locations()
+        or not controller._node_landscape_aggregator.get_datasets_location()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -513,8 +535,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-    testlocalnode1_datasets = get_edsd_datasets_for_specific_node("testlocalnode1")
-    testlocalnodetmp_datasets = get_edsd_datasets_for_specific_node("testlocalnodetmp")
 
     # Add contextid to Cleaner but is not yet released
     controller._cleaner.add_contextid_for_cleanup(
@@ -533,12 +553,10 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
                 request_id=request_id,
                 context_id=context_id,
                 algorithm_name=algorithm_name,
-                algorithm_request_dto=get_algorithm_request_dto(
-                    testlocalnode1_datasets + testlocalnodetmp_datasets
-                ),
+                algorithm_request_dto=algorithm_request_dto,
                 datasets_per_local_node={
-                    localnode1_tasks_handler.node_id: testlocalnode1_datasets,
-                    localnodetmp_tasks_handler.node_id: testlocalnodetmp_datasets,
+                    localnode1_tasks_handler.node_id: datasets,
+                    localnodetmp_tasks_handler.node_id: datasets,
                 },
                 tasks_handlers=NodesTasksHandlersDTO(
                     global_node_tasks_handler=globalnode_tasks_handler,
@@ -627,7 +645,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     # the node service was started in here so it must manually killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
-    # where the node service is supposedly down
+    # where theh node service is supposedly down
     kill_service(localnodetmp_node_service_proc)
 
     if (
@@ -666,7 +684,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_dataset_locations()
+        or not controller._node_landscape_aggregator.get_datasets_location()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -683,9 +701,6 @@ async def test_cleanup_node_service_down_algorithm_execution(
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-    testlocalnode1_datasets = get_edsd_datasets_for_specific_node("testlocalnode1")
-    testlocalnode2_datasets = get_edsd_datasets_for_specific_node("testlocalnode2")
-    testlocalnodetmp_datasets = get_edsd_datasets_for_specific_node("testlocalnodetmp")
 
     # Add contextid to Cleaner but is not yet released
     controller._cleaner.add_contextid_for_cleanup(
@@ -704,12 +719,10 @@ async def test_cleanup_node_service_down_algorithm_execution(
                 request_id=request_id,
                 context_id=context_id,
                 algorithm_name=algorithm_name,
-                algorithm_request_dto=get_algorithm_request_dto(
-                    testlocalnode1_datasets + testlocalnodetmp_datasets
-                ),
+                algorithm_request_dto=algorithm_request_dto,
                 datasets_per_local_node={
-                    localnode1_tasks_handler.node_id: testlocalnode1_datasets,
-                    localnodetmp_tasks_handler.node_id: testlocalnodetmp_datasets,
+                    localnode1_tasks_handler.node_id: datasets,
+                    localnodetmp_tasks_handler.node_id: datasets,
                 },
                 tasks_handlers=NodesTasksHandlersDTO(
                     global_node_tasks_handler=globalnode_tasks_handler,
@@ -822,6 +835,7 @@ async def test_cleanup_controller_restart(
     localnodetmp_tasks_handler,
     reset_node_landscape_aggregator,
 ):
+
     controller = Controller()
 
     # NodeLandscapeAggregator needs to be running because it is used by the Cleaner
@@ -831,7 +845,7 @@ async def test_cleanup_controller_restart(
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_dataset_locations()
+        or not controller._node_landscape_aggregator.get_datasets_location()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -848,9 +862,6 @@ async def test_cleanup_controller_restart(
     context_id = get_a_uniqueid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-    testlocalnode1_datasets = get_edsd_datasets_for_specific_node("testlocalnode1")
-    testlocalnode2_datasets = get_edsd_datasets_for_specific_node("testlocalnode2")
-    testlocalnodetmp_datasets = get_edsd_datasets_for_specific_node("testlocalnodetmp")
 
     # Add contextid to Cleaner but is not yet released
     controller._cleaner.add_contextid_for_cleanup(
@@ -869,12 +880,10 @@ async def test_cleanup_controller_restart(
                 request_id=request_id,
                 context_id=context_id,
                 algorithm_name=algorithm_name,
-                algorithm_request_dto=get_algorithm_request_dto(
-                    testlocalnode1_datasets + testlocalnodetmp_datasets
-                ),
+                algorithm_request_dto=algorithm_request_dto,
                 datasets_per_local_node={
-                    localnode1_tasks_handler.node_id: testlocalnode1_datasets,
-                    localnodetmp_tasks_handler.node_id: testlocalnodetmp_datasets,
+                    localnode1_tasks_handler.node_id: datasets,
+                    localnodetmp_tasks_handler.node_id: datasets,
                 },
                 tasks_handlers=NodesTasksHandlersDTO(
                     global_node_tasks_handler=globalnode_tasks_handler,
