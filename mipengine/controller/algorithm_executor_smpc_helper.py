@@ -52,14 +52,10 @@ def load_data_to_smpc_clients(
     max_op_smpc_clients = load_operation_data_to_smpc_clients(
         command_id, smpc_tables.max_op_local_nodes_table, SMPCRequestType.MAX
     )
-    union_op_smpc_clients = load_operation_data_to_smpc_clients(
-        command_id, smpc_tables.union_op_local_nodes_table, SMPCRequestType.UNION
-    )
     return (
         sum_op_smpc_clients,
         min_op_smpc_clients,
         max_op_smpc_clients,
-        union_op_smpc_clients,
     )
 
 
@@ -89,13 +85,12 @@ def trigger_smpc_operations(
     logger: Logger,
     context_id: str,
     command_id: int,
-    smpc_clients_per_op: Tuple[List[str], List[str], List[str], List[str]],
-) -> Tuple[bool, bool, bool, bool]:
+    smpc_clients_per_op: Tuple[List[str], List[str], List[str]],
+) -> Tuple[bool, bool, bool]:
     (
         sum_op_smpc_clients,
         min_op_smpc_clients,
         max_op_smpc_clients,
-        union_op_smpc_clients,
     ) = smpc_clients_per_op
     sum_op = trigger_smpc_operation(
         logger, context_id, command_id, SMPCRequestType.SUM, sum_op_smpc_clients
@@ -106,10 +101,7 @@ def trigger_smpc_operations(
     max_op = trigger_smpc_operation(
         logger, context_id, command_id, SMPCRequestType.MAX, max_op_smpc_clients
     )
-    union_op = trigger_smpc_operation(
-        logger, context_id, command_id, SMPCRequestType.UNION, union_op_smpc_clients
-    )
-    return sum_op, min_op, max_op, union_op
+    return sum_op, min_op, max_op
 
 
 def wait_for_smpc_result_to_be_ready(
@@ -163,7 +155,6 @@ def wait_for_smpc_results_to_be_ready(
     sum_op: bool,
     min_op: bool,
     max_op: bool,
-    union_op: bool,
 ):
     wait_for_smpc_result_to_be_ready(
         logger, context_id, command_id, SMPCRequestType.SUM
@@ -174,9 +165,6 @@ def wait_for_smpc_results_to_be_ready(
     wait_for_smpc_result_to_be_ready(
         logger, context_id, command_id, SMPCRequestType.MAX
     ) if max_op else None
-    wait_for_smpc_result_to_be_ready(
-        logger, context_id, command_id, SMPCRequestType.UNION
-    ) if union_op else None
 
 
 def get_smpc_results(
@@ -186,8 +174,7 @@ def get_smpc_results(
     sum_op: bool,
     min_op: bool,
     max_op: bool,
-    union_op: bool,
-) -> Tuple[TableName, TableName, TableName, TableName]:
+) -> Tuple[TableName, TableName, TableName]:
     sum_op_result_table = (
         TableName(
             table_name=node.get_smpc_result(
@@ -233,25 +220,9 @@ def get_smpc_results(
         if max_op
         else None
     )
-    union_op_result_table = (
-        TableName(
-            table_name=node.get_smpc_result(
-                jobid=get_smpc_job_id(
-                    context_id=context_id,
-                    command_id=command_id,
-                    operation=SMPCRequestType.UNION,
-                ),
-                command_id=str(command_id),
-                command_subid="3",
-            )
-        )
-        if union_op
-        else None
-    )
 
     return (
         sum_op_result_table,
         min_op_result_table,
         max_op_result_table,
-        union_op_result_table,
     )

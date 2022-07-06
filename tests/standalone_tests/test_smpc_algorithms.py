@@ -1,6 +1,5 @@
 import json
 import re
-import time
 
 import pytest
 import requests
@@ -79,7 +78,14 @@ def get_parametrization_list_success_cases():
             {"name": "max_value", "data": [4.0], "type": "FLOAT"},
         ],
     }
-    parametrization_list.append((algorithm_name, request_dict, expected_response))
+    parametrization_list.append(
+        pytest.param(
+            algorithm_name,
+            request_dict,
+            expected_response,
+            id="smpc std dev ints only without smpc flag",
+        )
+    )
     # END ~~~~~~~~~~success case 1~~~~~~~~~~
 
     # ~~~~~~~~~~success case 2~~~~~~~~~~
@@ -153,109 +159,174 @@ def get_parametrization_list_success_cases():
             {"name": "max_value", "data": [4.0], "type": "FLOAT"},
         ],
     }
-    parametrization_list.append((algorithm_name, request_dict, expected_response))
+    parametrization_list.append(
+        pytest.param(
+            algorithm_name,
+            request_dict,
+            expected_response,
+            id="smpc std dev ints only with smpc flag",
+        )
+    )
     # END ~~~~~~~~~~success case 2~~~~~~~~~~
-    #
-    # # ~~~~~~~~~~success case 3~~~~~~~~~~
-    # algorithm_name = "smpc_standard_deviation"
-    # request_dict = {
-    #     "inputdata": {
-    #         "data_model": "dementia:0.1",
-    #         "datasets": ["edsd"],
-    #         "x": [
-    #             "lefthippocampus",
-    #         ],
-    #         "filters": {
-    #             "condition": "AND",
-    #             "rules": [
-    #                 {
-    #                     "id": "dataset",
-    #                     "type": "string",
-    #                     "value": ["edsd"],
-    #                     "operator": "in",
-    #                 },
-    #                 {
-    #                     "condition": "AND",
-    #                     "rules": [
-    #                         {
-    #                             "id": variable,
-    #                             "type": "string",
-    #                             "operator": "is_not_null",
-    #                             "value": None,
-    #                         }
-    #                         for variable in [
-    #                             "lefthippocampus",
-    #                         ]
-    #                     ],
-    #                 },
-    #             ],
-    #             "valid": True,
-    #         },
-    #     },
-    # }
-    # expected_response = {
-    #     "title": "Standard Deviation",
-    #     "columns": [
-    #         {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-    #         {"name": "std_deviation", "data": [0.3634506955662605], "type": "FLOAT"},
-    #         {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
-    #         {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
-    #     ],
-    # }
-    # parametrization_list.append((algorithm_name, request_dict, expected_response))
-    # # END ~~~~~~~~~~success case 3~~~~~~~~~~
-    #
-    # # ~~~~~~~~~~success case 4~~~~~~~~~~
-    # algorithm_name = "smpc_standard_deviation"
-    # request_dict = {
-    #     "inputdata": {
-    #         "data_model": "dementia:0.1",
-    #         "datasets": ["edsd"],
-    #         "x": [
-    #             "lefthippocampus",
-    #         ],
-    #         "filters": {
-    #             "condition": "AND",
-    #             "rules": [
-    #                 {
-    #                     "id": "dataset",
-    #                     "type": "string",
-    #                     "value": ["edsd"],
-    #                     "operator": "in",
-    #                 },
-    #                 {
-    #                     "condition": "AND",
-    #                     "rules": [
-    #                         {
-    #                             "id": variable,
-    #                             "type": "string",
-    #                             "operator": "is_not_null",
-    #                             "value": None,
-    #                         }
-    #                         for variable in [
-    #                             "lefthippocampus",
-    #                         ]
-    #                     ],
-    #                 },
-    #             ],
-    #             "valid": True,
-    #         },
-    #     },
-    #     "flags": {
-    #         "smpc": True,
-    #     },
-    # }
-    # expected_response = {
-    #     "title": "Standard Deviation",
-    #     "columns": [
-    #         {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-    #         {"name": "std_deviation", "data": [0.3634506955662605], "type": "FLOAT"},
-    #         {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
-    #         {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
-    #     ],
-    # }
-    # parametrization_list.append((algorithm_name, request_dict, expected_response))
-    # # END ~~~~~~~~~~success case 4~~~~~~~~~~
+
+    # ~~~~~~~~~~success case 3~~~~~~~~~~
+    algorithm_name = "smpc_standard_deviation"
+    request_dict = {
+        "inputdata": {
+            "data_model": "dementia:0.1",
+            "datasets": [
+                "edsd0",
+                "edsd1",
+                "edsd2",
+                "edsd3",
+                "edsd4",
+                "edsd5",
+                "edsd6",
+                "edsd7",
+                "edsd8",
+                "edsd9",
+            ],
+            "x": [
+                "lefthippocampus",
+            ],
+            "filters": {
+                "condition": "AND",
+                "rules": [
+                    {
+                        "id": "dataset",
+                        "type": "string",
+                        "value": [
+                            "edsd0",
+                            "edsd1",
+                            "edsd2",
+                            "edsd3",
+                            "edsd4",
+                            "edsd5",
+                            "edsd6",
+                            "edsd7",
+                            "edsd8",
+                            "edsd9",
+                        ],
+                        "operator": "in",
+                    },
+                    {
+                        "condition": "AND",
+                        "rules": [
+                            {
+                                "id": variable,
+                                "type": "string",
+                                "operator": "is_not_null",
+                                "value": None,
+                            }
+                            for variable in [
+                                "lefthippocampus",
+                            ]
+                        ],
+                    },
+                ],
+                "valid": True,
+            },
+        },
+    }
+    expected_response = {
+        "title": "Standard Deviation",
+        "columns": [
+            {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
+            {"name": "std_deviation", "data": [0.3634506955662605], "type": "FLOAT"},
+            {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
+            {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
+        ],
+    }
+    parametrization_list.append(
+        pytest.param(
+            algorithm_name,
+            request_dict,
+            expected_response,
+            id="smpc std dev floats/ints without smpc flag",
+        )
+    )
+    # END ~~~~~~~~~~success case 3~~~~~~~~~~
+
+    # ~~~~~~~~~~success case 4~~~~~~~~~~
+    algorithm_name = "smpc_standard_deviation"
+    request_dict = {
+        "inputdata": {
+            "data_model": "dementia:0.1",
+            "datasets": [
+                "edsd0",
+                "edsd1",
+                "edsd2",
+                "edsd3",
+                "edsd4",
+                "edsd5",
+                "edsd6",
+                "edsd7",
+                "edsd8",
+                "edsd9",
+            ],
+            "x": [
+                "lefthippocampus",
+            ],
+            "filters": {
+                "condition": "AND",
+                "rules": [
+                    {
+                        "id": "dataset",
+                        "type": "string",
+                        "value": [
+                            "edsd0",
+                            "edsd1",
+                            "edsd2",
+                            "edsd3",
+                            "edsd4",
+                            "edsd5",
+                            "edsd6",
+                            "edsd7",
+                            "edsd8",
+                            "edsd9",
+                        ],
+                        "operator": "in",
+                    },
+                    {
+                        "condition": "AND",
+                        "rules": [
+                            {
+                                "id": variable,
+                                "type": "string",
+                                "operator": "is_not_null",
+                                "value": None,
+                            }
+                            for variable in [
+                                "lefthippocampus",
+                            ]
+                        ],
+                    },
+                ],
+                "valid": True,
+            },
+        },
+        "flags": {
+            "smpc": True,
+        },
+    }
+    expected_response = {
+        "title": "Standard Deviation",
+        "columns": [
+            {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
+            {"name": "std_deviation", "data": [0.3634506955662605], "type": "FLOAT"},
+            {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
+            {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
+        ],
+    }
+    parametrization_list.append(
+        pytest.param(
+            algorithm_name,
+            request_dict,
+            expected_response,
+            id="smpc std dev floats/ints with smpc flag",
+        )
+    )
+    # END ~~~~~~~~~~success case 4~~~~~~~~~~
     return parametrization_list
 
 

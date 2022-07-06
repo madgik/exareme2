@@ -188,15 +188,6 @@ class LocalNodesSMPCTables(LocalNodesData):
             nodes_tables[node] = tables.max_op
         return LocalNodesTable(nodes_tables)
 
-    @property
-    def union_op_local_nodes_table(self) -> Optional[LocalNodesTable]:
-        nodes_tables = {}
-        for node, tables in self.nodes_smpc_tables.items():
-            if not tables.union_op:
-                return None
-            nodes_tables[node] = tables.union_op
-        return LocalNodesTable(nodes_tables)
-
 
 class GlobalNodeSMPCTables(GlobalNodeData):
     _node: GlobalNode
@@ -285,9 +276,6 @@ def _algoexec_udf_arg_to_node_udf_arg(
                 ),
                 max_op_values=create_node_table_dto_from_global_node_table(
                     algoexec_arg.smpc_tables.max_op
-                ),
-                union_op_values=create_node_table_dto_from_global_node_table(
-                    algoexec_arg.smpc_tables.union_op
                 ),
             )
         )

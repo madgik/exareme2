@@ -186,17 +186,11 @@ def _convert_smpc_udf2udfgen_arg(udf_argument: NodeSMPCDTO):
         if udf_argument.value.max_op_values
         else None
     )
-    union_op = (
-        _create_table_info_from_tablename(udf_argument.value.union_op_values.value)
-        if udf_argument.value.union_op_values
-        else None
-    )
     return SMPCTablesInfo(
         template=template,
         sum_op_values=sum_op,
         min_op_values=min_op,
         max_op_values=max_op,
-        union_op_values=union_op,
     )
 
 
@@ -274,10 +268,6 @@ def _get_all_table_results_from_smpc_result(
     table_results.append(
         smpc_result.max_op_values
     ) if smpc_result.max_op_values else None
-    table_results.append(
-        smpc_result.union_op_values
-    ) if smpc_result.union_op_values else None
-
     return table_results
 
 
@@ -375,21 +365,12 @@ def _convert_udfgen2udf_smpc_result_and_mapping(
     else:
         max_op_udf_result = None
 
-    if udfgen_result.union_op_values:
-        (union_op_udf_result, mapping,) = _convert_udfgen2udf_table_result_and_mapping(
-            udfgen_result.union_op_values, context_id, command_id, command_subid + 4
-        )
-        table_names_tmpl_mapping.update(mapping)
-    else:
-        union_op_udf_result = None
-
     result = NodeSMPCDTO(
         value=NodeSMPCValueDTO(
             template=template_udf_result,
             sum_op_values=sum_op_udf_result,
             min_op_values=min_op_udf_result,
             max_op_values=max_op_udf_result,
-            union_op_values=union_op_udf_result,
         )
     )
     return result, table_names_tmpl_mapping
