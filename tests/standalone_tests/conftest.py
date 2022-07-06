@@ -267,16 +267,6 @@ def monetdb_localnodetmp():
 
 
 def _init_database_monetdb_container(db_ip, db_port):
-    # Check if the database is already initialized
-    cmd = f"mipdb list-data-models --ip {db_ip} --port {db_port} "
-    res = subprocess.run(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    if res.returncode == 0:
-        print(f"\nDatabase ({db_ip}:{db_port}) already initialized, continuing.")
-
-        return
-
     print(f"\nInitializing database ({db_ip}:{db_port})")
     cmd = f"mipdb init --ip {db_ip} --port {db_port} "
     subprocess.run(
@@ -289,7 +279,7 @@ def _load_data_monetdb_container(db_ip, db_port):
     # Check if the database is already loaded
     cmd = f"mipdb list-datasets --ip {db_ip} --port {db_port} "
     res = subprocess.run(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     if "There are no datasets" not in str(res.stdout):
         print(f"\nDatabase ({db_ip}:{db_port}) already loaded, continuing.")
@@ -388,7 +378,9 @@ def get_edsd_datasets_for_specific_node(node_id: str):
 def _remove_data_model_from_localnodetmp_monetdb(data_model_code, data_model_version):
     # Remove data_model
     cmd = f"mipdb delete-data-model {data_model_code} -v {data_model_version} -f  --ip {COMMON_IP} --port {MONETDB_LOCALNODETMP_PORT} "
-    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+    subprocess.run(
+        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
 
 
 @pytest.fixture(scope="session")
