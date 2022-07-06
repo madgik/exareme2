@@ -225,28 +225,28 @@ jobs:
           poetry run inv start-controller --detached
 
       - name: Controller logs
-        run: tail -n 1000 /tmp/mipengine/controller.out
+        run: cat /tmp/mipengine/controller.out
 
       - name: Globalnode logs
-        run: tail -n 1000 /tmp/mipengine/globalnode.out
+        run: cat /tmp/mipengine/globalnode.out
 
       - name: Localnode logs
-        run: tail -n 1000 /tmp/mipengine/localnode1.out
+        run: cat /tmp/mipengine/localnode1.out
 
       - name: Controller logs (post run)
         uses: webiny/action-post-run@2.0.1
         with:
-          run: tail -n 1000 /tmp/mipengine/controller.out
+          run: cat /tmp/mipengine/controller.out
 
       - name: Globalnode logs (post run)
         uses: webiny/action-post-run@2.0.1
         with:
-          run: tail -n 1000 /tmp/mipengine/globalnode.out
+          run: cat /tmp/mipengine/globalnode.out
 
       - name: Localnode logs (post run)
         uses: webiny/action-post-run@2.0.1
         with:
-          run: tail -n 1000 /tmp/mipengine/localnode1.out
+          run: cat /tmp/mipengine/localnode1.out
 
       - name: Run algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16
+        run: poetry run pytest -vv tests/algorithm_validation_tests -k "input1 and not input1-" -n 16  # run tests 10-19
