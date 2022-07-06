@@ -132,8 +132,8 @@ class _NLARegistries(BaseModel):
 class NodeLandscapeAggregator(metaclass=Singleton):
     def __init__(self):
         self._registries = _NLARegistries(
-            node_registry=NodeRegistry(nodes={}),
-            data_model_registry=DataModelRegistry(data_models={}, dataset_locations={}),
+            node_registry=NodeRegistry(),
+            data_model_registry=DataModelRegistry(),
         )
 
         self._keep_updating = True
@@ -178,7 +178,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 )
 
                 (
-                    dataset_locationss,
+                    dataset_locations,
                     aggregated_datasets,
                 ) = _gather_all_dataset_info(datasets_per_node)
                 _update_data_models_with_aggregated_datasets(
@@ -186,14 +186,14 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                     aggregated_datasets=aggregated_datasets,
                 )
 
-                dataset_locationss = _get_dataset_locationss_of_compatible_data_models(
-                    compatible_data_models, dataset_locationss
+                dataset_locations = _get_dataset_locations_of_compatible_data_models(
+                    compatible_data_models, dataset_locations
                 )
 
                 nodes = {node_info.id: node_info for node_info in nodes_info}
 
                 self.set_new_registy_values(
-                    nodes, compatible_data_models, dataset_locationss
+                    nodes, compatible_data_models, dataset_locations
                 )
 
                 logger.debug(
@@ -338,7 +338,7 @@ def _gather_all_dataset_info(
          1. The location of each dataset.
          2. The aggregated datasets, existing in all nodes
     """
-    dataset_locationss = {}
+    dataset_locations = {}
     aggregated_datasets = {}
 
     for node_id, datasets_per_data_model in datasets_per_node.items():
@@ -350,9 +350,7 @@ def _gather_all_dataset_info(
                 else {}
             )
             current_datasets = (
-                dataset_locationss[data_model]
-                if data_model in dataset_locationss
-                else {}
+                dataset_locations[data_model] if data_model in dataset_locations else {}
             )
 
             for dataset in datasets:
@@ -360,8 +358,8 @@ def _gather_all_dataset_info(
                 current_datasets[dataset] = node_id
 
             aggregated_datasets[data_model] = current_labels
-            dataset_locationss[data_model] = current_datasets
-    return dataset_locationss, aggregated_datasets
+            dataset_locations[data_model] = current_datasets
+    return dataset_locations, aggregated_datasets
 
 
 def _get_cdes_across_nodes(
@@ -379,11 +377,11 @@ def _get_cdes_across_nodes(
     return nodes_cdes
 
 
-def _get_dataset_locationss_of_compatible_data_models(
-    compatible_data_models, dataset_locationss
+def _get_dataset_locations_of_compatible_data_models(
+    compatible_data_models, dataset_locations
 ):
     return {
-        compatible_data_model: dataset_locationss[compatible_data_model]
+        compatible_data_model: dataset_locations[compatible_data_model]
         for compatible_data_model in compatible_data_models
     }
 

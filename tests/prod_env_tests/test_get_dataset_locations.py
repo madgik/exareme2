@@ -7,7 +7,7 @@ from tests.prod_env_tests import dataset_locations_url
 
 
 @pytest.fixture
-def expected_dataset_location():
+def expected_dataset_locations():
     return {
         "tbi:0.1": {
             "dummy_tbi0": "localnode1",
@@ -56,12 +56,12 @@ def expected_dataset_location():
     }
 
 
-def test_get_dataset_location(expected_dataset_location):
+def test_get_dataset_location(expected_dataset_locations):
     request = requests.get(dataset_locations_url)
     response = json.loads(request.text)
     for node_id in response:
-        assert node_id in expected_dataset_location
+        assert node_id in expected_dataset_locations
         for data_model in response[node_id]:
-            assert data_model in expected_dataset_location[node_id]
+            assert data_model in expected_dataset_locations[node_id]
             for dataset in response[node_id][data_model]:
                 assert dataset in response[node_id][data_model]

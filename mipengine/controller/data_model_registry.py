@@ -14,8 +14,8 @@ def _have_common_elements(a: List[Any], b: List[Any]):
 
 
 class DataModelRegistry(BaseModel):
-    data_models: Dict[str, CommonDataElements]
-    dataset_locations: Dict[str, Dict[str, str]]
+    data_models: Dict[str, CommonDataElements] = {}
+    dataset_locations: Dict[str, Dict[str, str]] = {}
 
     class Config:
         allow_mutation = False

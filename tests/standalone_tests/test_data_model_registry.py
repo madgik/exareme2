@@ -128,3 +128,9 @@ def test_get_node_specific_datasets(mocked_data_model_registry):
             "localnode1", "dementia:0.1", ["edsd0", "ppmi0"]
         )
     ) == {"edsd0", "ppmi0"}
+
+
+def test_empty_initialization():
+    dmr = DataModelRegistry()
+    assert not dmr.data_models
+    assert not dmr.dataset_locations

@@ -910,8 +910,8 @@ def reset_node_landscape_aggregator():
     nla.stop()
     nla.keep_updating = False
     nla._nla_registries = _NLARegistries(
-        node_registry=NodeRegistry(nodes={}),
-        data_model_registry=DataModelRegistry(data_models={}, dataset_locations={}),
+        node_registry=NodeRegistry(),
+        data_model_registry=DataModelRegistry(),
     )
 
 
