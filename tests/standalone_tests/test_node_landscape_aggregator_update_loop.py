@@ -111,7 +111,7 @@ def test_update_loop_node_service_down(
     while (
         not localnodetmp_node_id in node_landscape_aggregator.get_all_local_nodes()
         or not node_landscape_aggregator.get_cdes_per_data_model()
-        or not node_landscape_aggregator.get_dataset_location()
+        or not node_landscape_aggregator.get_dataset_locations()
     ):
         if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(
@@ -183,7 +183,7 @@ def test_update_loop_rabbitmq_down(
     while (
         not localnodetmp_node_id in node_landscape_aggregator.get_all_local_nodes()
         or not node_landscape_aggregator.get_cdes_per_data_model()
-        or not node_landscape_aggregator.get_dataset_location()
+        or not node_landscape_aggregator.get_dataset_locations()
     ):
         if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(
@@ -256,7 +256,7 @@ def test_update_loop_data_models_removed(
     while (
         not localnodetmp_node_id in node_landscape_aggregator.get_all_local_nodes()
         or not node_landscape_aggregator.get_cdes_per_data_model()
-        or not node_landscape_aggregator.get_dataset_location()
+        or not node_landscape_aggregator.get_dataset_locations()
     ):
         if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(

@@ -222,7 +222,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_dataset_location()
+        or not controller._node_landscape_aggregator.get_dataset_locations()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -361,7 +361,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_dataset_location()
+        or not controller._node_landscape_aggregator.get_dataset_locations()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -496,7 +496,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_dataset_location()
+        or not controller._node_landscape_aggregator.get_dataset_locations()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -666,7 +666,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_dataset_location()
+        or not controller._node_landscape_aggregator.get_dataset_locations()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -831,7 +831,7 @@ async def test_cleanup_controller_restart(
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_dataset_location()
+        or not controller._node_landscape_aggregator.get_dataset_locations()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
