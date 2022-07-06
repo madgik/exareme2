@@ -73,7 +73,7 @@ def test_merge_tensor_to_list_no_nodeid():
 
 def get_secure_transfers_to_merged_dict_success_cases():
     secure_transfers_cases = [
-        (
+        pytest.param(
             [
                 {
                     "a": {"data": 2, "operation": "sum", "type": "int"},
@@ -83,8 +83,9 @@ def get_secure_transfers_to_merged_dict_success_cases():
                 },
             ],
             {"a": 5},
+            id="sum operation with ints",
         ),
-        (
+        pytest.param(
             [
                 {
                     "a": {"data": 2.5, "operation": "sum", "type": "float"},
@@ -94,8 +95,9 @@ def get_secure_transfers_to_merged_dict_success_cases():
                 },
             ],
             {"a": 6.1},
+            id="sum operation with floats",
         ),
-        (
+        pytest.param(
             [
                 {
                     "a": {"data": 2, "operation": "sum", "type": "int"},
@@ -109,8 +111,9 @@ def get_secure_transfers_to_merged_dict_success_cases():
                 },
             ],
             {"a": 5, "b": 12, "c": 10.579},
+            id="multiple sum operations with ints/floats",
         ),
-        (
+        pytest.param(
             [
                 {
                     "a": {"data": [1, 2, 3], "operation": "sum", "type": "int"},
@@ -122,8 +125,9 @@ def get_secure_transfers_to_merged_dict_success_cases():
             {
                 "a": [10, 10, 10],
             },
+            id="sum operation with list of ints",
         ),
-        (
+        pytest.param(
             [
                 {
                     "a": {"data": 10, "operation": "sum", "type": "int"},
@@ -157,8 +161,9 @@ def get_secure_transfers_to_merged_dict_success_cases():
                 "b": [110, 220, 330, 440, 550, 660],
                 "c": [[110, 220, 330, 440, 550, 660], [770, 880, 990]],
             },
+            id="complex sum operations with nested lists",
         ),
-        (
+        pytest.param(
             [
                 {
                     "sum": {"data": 10, "operation": "sum", "type": "int"},
@@ -192,8 +197,9 @@ def get_secure_transfers_to_merged_dict_success_cases():
                 "min": [10, 20, 30, 40, 50, 60],
                 "max": [[100, 200, 300, 400, 500, 600], [700, 800, 900]],
             },
+            id="mixed sum/min/max operations with nested lists",
         ),
-        (
+        pytest.param(
             [
                 {
                     "sum": {"data": 10, "operation": "sum", "type": "int"},
@@ -250,6 +256,7 @@ def get_secure_transfers_to_merged_dict_success_cases():
                     [72, 8000.8, 90.9],
                 ],
             },
+            id="mixed sum/min/max operations with ints/floats and nested lists",
         ),
     ]
     return secure_transfers_cases
@@ -328,7 +335,7 @@ def get_secure_transfers_merged_to_dict_fail_cases():
             ],
             (
                 ValueError,
-                "All secure transfer keys should have the same operation .*",
+                "Similar secure transfer keys should have the same operation .*",
             ),
         ),
         (
@@ -342,7 +349,7 @@ def get_secure_transfers_merged_to_dict_fail_cases():
             ],
             (
                 ValueError,
-                "All secure transfer keys should have the same type .*",
+                "Similar secure transfer keys should have the same type .*",
             ),
         ),
         (
@@ -385,7 +392,7 @@ def test_secure_transfers_to_merged_dict_fail_cases(transfers, exception):
 
 def get_secure_transfer_dict_success_cases():
     secure_transfer_cases = [
-        (
+        pytest.param(
             {
                 "a": {"data": 2, "operation": "sum", "type": "int"},
             },
@@ -400,8 +407,9 @@ def get_secure_transfer_dict_success_cases():
             {
                 "a": 2,
             },
+            id="sum operation with int",
         ),
-        (
+        pytest.param(
             {
                 "a": {"data": 2.5, "operation": "sum", "type": "float"},
             },
@@ -416,8 +424,9 @@ def get_secure_transfer_dict_success_cases():
             {
                 "a": 2.5,
             },
+            id="sum operation with float",
         ),
-        (
+        pytest.param(
             {
                 "a": {"data": 2, "operation": "sum", "type": "int"},
                 "b": {"data": 5, "operation": "sum", "type": "int"},
@@ -432,8 +441,9 @@ def get_secure_transfer_dict_success_cases():
                 [],
             ),
             {"a": 2, "b": 5},
+            id="sum operation with ints",
         ),
-        (
+        pytest.param(
             {
                 "a": {"data": 2, "operation": "sum", "type": "int"},
                 "b": {"data": 5.5, "operation": "sum", "type": "float"},
@@ -448,8 +458,9 @@ def get_secure_transfer_dict_success_cases():
                 [],
             ),
             {"a": 2, "b": 5.5},
+            id="sum operation with int/float",
         ),
-        (
+        pytest.param(
             {
                 "a": {"data": [1, 2, 3], "operation": "sum", "type": "int"},
             },
@@ -464,8 +475,9 @@ def get_secure_transfer_dict_success_cases():
             {
                 "a": [1, 2, 3],
             },
+            id="sum operation with list of ints",
         ),
-        (
+        pytest.param(
             {
                 "a": {"data": 10, "operation": "sum", "type": "int"},
                 "b": {
@@ -502,8 +514,9 @@ def get_secure_transfer_dict_success_cases():
                 "b": [10, 20, 30, 40, 50, 60],
                 "c": [[10, 20, 30, 40, 50, 60], [70, 80, 90]],
             },
+            id="sum operation with nested lists of ints",
         ),
-        (
+        pytest.param(
             {
                 "min": {"data": [2, 5.6], "operation": "min", "type": "float"},
             },
@@ -518,8 +531,9 @@ def get_secure_transfer_dict_success_cases():
             {
                 "min": [2, 5.6],
             },
+            id="min operation with int/float",
         ),
-        (
+        pytest.param(
             {
                 "max": {"data": [2, 5.6], "operation": "max", "type": "float"},
             },
@@ -534,8 +548,9 @@ def get_secure_transfer_dict_success_cases():
             {
                 "max": [2, 5.6],
             },
+            id="max operation with int/float",
         ),
-        (
+        pytest.param(
             {
                 "sum1": {"data": [1, 2, 3, 4.5], "operation": "sum", "type": "float"},
                 "sum2": {"data": [6, 7.8], "operation": "sum", "type": "float"},
@@ -565,8 +580,9 @@ def get_secure_transfer_dict_success_cases():
                 "max1": [6.8, 7],
                 "max2": [1.5, 2],
             },
+            id="mixed sum/min/max operation with mixed ints/floats",
         ),
-        (
+        pytest.param(
             {
                 "sum": {"data": [100, 200, 300], "operation": "sum", "type": "int"},
                 "sumfloat": {
@@ -595,6 +611,7 @@ def get_secure_transfer_dict_success_cases():
                 "sumfloat": [1.2, 2.3, 3.4],
                 "max": 58,
             },
+            id="sum operations with ints/floats in separate keys",
         ),
     ]
     return secure_transfer_cases

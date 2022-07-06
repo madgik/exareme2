@@ -5,6 +5,7 @@ from functools import partial
 from functools import reduce
 from typing import Any
 from typing import List
+from typing import Set
 from typing import Tuple
 from typing import Type
 
@@ -144,19 +145,43 @@ def secure_transfers_to_merged_dict(transfers: List[dict]):
 
     # Get all keys from a list of dicts
     all_keys = set().union(*(d.keys() for d in transfers))
+    _validate_transfers_have_all_keys(transfers, all_keys)
     for key in all_keys:
-        _validate_transfer_value_operation(transfers[0][key])
-        _validate_transfer_value_type(transfers[0][key])
+        _validate_transfers_operation(transfers, key)
+        _validate_transfers_type(transfers, key)
         result[key] = _operation_on_secure_transfer_key_data(
             key,
             transfers,
             transfers[0][key][smpc_transfer_op_key],
-            transfers[0][key][smpc_transfer_val_type_key],
         )
     return result
 
 
-def _validate_transfer_value_operation(transfer_value: dict):
+def _validate_transfers_have_all_keys(transfers: List[dict], all_keys: Set[str]):
+    for key in all_keys:
+        for transfer in transfers:
+            if key not in transfer.keys():
+                raise ValueError(
+                    f"All secure transfer dicts should have the same keys. Transfer: {transfer} doesn't have key: {key}"
+                )
+
+
+def _validate_transfers_operation(transfers: List[dict], key: str):
+    """
+    Validates that all transfer dicts have proper 'operation' values for the 'key' provided.
+    """
+    _validate_transfer_key_operation(transfers[0][key])
+    first_transfer_operation = transfers[0][key][smpc_transfer_op_key]
+    for transfer in transfers[1:]:
+        _validate_transfer_key_operation(transfer[key])
+        if transfer[key][smpc_transfer_op_key] != first_transfer_operation:
+            raise ValueError(
+                f"Similar secure transfer keys should have the same operation value. "
+                f"'{first_transfer_operation}' != {transfer[key][smpc_transfer_op_key]}"
+            )
+
+
+def _validate_transfer_key_operation(transfer_value: dict):
     try:
         operation = transfer_value[smpc_transfer_op_key]
     except KeyError:
@@ -167,7 +192,22 @@ def _validate_transfer_value_operation(transfer_value: dict):
         raise ValueError(f"Secure Transfer operation is not supported: '{operation}'.")
 
 
-def _validate_transfer_value_type(transfer_value: dict):
+def _validate_transfers_type(transfers: List[dict], key: str):
+    """
+    Validates that all transfer dicts have proper 'type' values for the 'key' provided.
+    """
+    _validate_transfer_key_type(transfers[0][key])
+    first_transfer_value_type = transfers[0][key][smpc_transfer_val_type_key]
+    for transfer in transfers[1:]:
+        _validate_transfer_key_type(transfer[key])
+        if transfer[key][smpc_transfer_val_type_key] != first_transfer_value_type:
+            raise ValueError(
+                f"Similar secure transfer keys should have the same type value. "
+                f"'{first_transfer_value_type}' != {transfer[key][smpc_transfer_val_type_key]}"
+            )
+
+
+def _validate_transfer_key_type(transfer_value: dict):
     try:
         values_type = transfer_value[smpc_transfer_val_type_key]
     except KeyError:
@@ -178,26 +218,12 @@ def _validate_transfer_value_type(transfer_value: dict):
         raise ValueError(f"Secure Transfer type is not supported: '{values_type}'.")
 
 
-def _operation_on_secure_transfer_key_data(
-    key, transfers: List[dict], operation: str, values_type: str
-):
+def _operation_on_secure_transfer_key_data(key, transfers: List[dict], operation: str):
     """
     Given a list of secure_transfer dicts, it makes the appropriate operation on the data of the key provided.
     """
     result = transfers[0][key][smpc_transfer_data_key]
     for transfer in transfers[1:]:
-        _validate_transfer_value_operation(transfer[key])
-        _validate_transfer_value_type(transfer[key])
-        if transfer[key][smpc_transfer_op_key] != operation:
-            raise ValueError(
-                f"All secure transfer keys should have the same operation value. "
-                f"'{operation}' != {transfer[key][smpc_transfer_op_key]}"
-            )
-        if transfer[key][smpc_transfer_val_type_key] != values_type:
-            raise ValueError(
-                f"All secure transfer keys should have the same type value. "
-                f"'{values_type}' != {transfer[key][smpc_transfer_val_type_key]}"
-            )
         result = _calc_values(result, transfer[key][smpc_transfer_data_key], operation)
     return result
 
@@ -235,14 +261,14 @@ def _calc_numeric_values(value1: Any, value2: Any, operation: str):
     if operation == smpc_sum_op:
         return value1 + value2
     elif operation == smpc_min_op:
-        return value1 if value1 < value2 else value2
+        return min(value1, value2)
     elif operation == smpc_max_op:
-        return value1 if value1 > value2 else value2
+        return max(value1, value2)
     else:
         raise NotImplementedError
 
 
-def split_secure_transfer_dict(dict_: dict) -> Tuple[dict, list, list, list]:
+def split_secure_transfer_dict(secure_transfer: dict) -> Tuple[dict, list, list, list]:
     """
     When SMPC is used, a secure transfer dict should be split in different parts:
     1) The template of the dict with relative positions instead of values,
@@ -251,7 +277,7 @@ def split_secure_transfer_dict(dict_: dict) -> Tuple[dict, list, list, list]:
     secure_transfer_template = {}
     op_flat_data = {smpc_sum_op: [], smpc_min_op: [], smpc_max_op: []}
     op_indexes = {smpc_sum_op: 0, smpc_min_op: 0, smpc_max_op: 0}
-    for key, data_transfer in dict_.items():
+    for key, data_transfer in secure_transfer.items():
         _validate_secure_transfer_item(key, data_transfer)
         cur_op = data_transfer[smpc_transfer_op_key]
         try:
@@ -270,9 +296,14 @@ def split_secure_transfer_dict(dict_: dict) -> Tuple[dict, list, list, list]:
             )
         op_flat_data[cur_op].extend(cur_flat_data)
 
-        secure_transfer_template[key] = dict_[key]
-        secure_transfer_template[key][smpc_transfer_data_key] = data_transfer_tmpl
-
+        secure_transfer_key_template = {
+            smpc_transfer_op_key: secure_transfer[key][smpc_transfer_op_key],
+            smpc_transfer_val_type_key: secure_transfer[key][
+                smpc_transfer_val_type_key
+            ],
+            smpc_transfer_data_key: data_transfer_tmpl,
+        }
+        secure_transfer_template[key] = secure_transfer_key_template
     return (
         secure_transfer_template,
         op_flat_data[smpc_sum_op],
