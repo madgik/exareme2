@@ -1,12 +1,30 @@
-from sklearn.decomposition import PCA
 import numpy
+import pandas as pd
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 
 class DesciptiveStatisticsTestCaseGenerator(TestCaseGenerator):
-    def compute_expected_output(self, input_data, input_parameters=None):
-        X, _ = input_data
+    def compute_expected_output(self, input_data, input_parameters=None,datatypes=None):
+        X_dataset, Y_dataset = input_data
+
+        full_dataset = pd.concat([X_dataset,Y_dataset],axis=1)
+        all_columns_dataset = list(full_dataset.columns.values)
+
+        numerical_columns = datatypes['numerical']
+        categorical_columns = datatypes['nominal']
+
+        numerical_columns_dataset = sorted(list(set(all_columns_dataset).intersection(set(numerical_columns))))
+        categorical_columns_dataset = sorted(list(set(all_columns_dataset).intersection(set(categorical_columns))))
+
+        X = full_dataset[numerical_columns_dataset].values
+        categoricals_df = full_dataset[categorical_columns_dataset]
+
+        categorical_counts = []
+
+        for curr_categorical_column in categorical_columns_dataset:
+            filled_values1 = categoricals_df[curr_categorical_column].fillna("NaN")
+            categorical_counts.append(filled_values1.value_counts(dropna=False).to_dict())
 
         X_mean = numpy.nanmean(X,axis=0)
         X_max = numpy.nanmax(X,axis=0)
@@ -29,7 +47,8 @@ class DesciptiveStatisticsTestCaseGenerator(TestCaseGenerator):
             'max_model' : model_max.tolist(),
             'min_model' : model_min.tolist(),
             "mean_model": model_mean.tolist(),
-            'std_model' : model_std.tolist()
+            'std_model' : model_std.tolist(),
+            'categorical_counts': categorical_counts
 
         }
         return output
@@ -37,6 +56,6 @@ class DesciptiveStatisticsTestCaseGenerator(TestCaseGenerator):
 
 if __name__ == "__main__":
     with open("mipengine/algorithms/descriptive_statistics.json") as specs_file:
-        pcagen = DesciptiveStatisticsTestCaseGenerator(specs_file)
+        descgen = DesciptiveStatisticsTestCaseGenerator(specs_file)
     with open("tmp.json", "w") as expected_file:
-        pcagen.write_test_cases(expected_file)
+        descgen.write_test_cases(expected_file)
