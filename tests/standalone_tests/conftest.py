@@ -63,11 +63,11 @@ RABBITMQ_SMPC_LOCALNODE2_PORT = 60006
 RABBITMQ_SMPC_LOCALNODE2_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_LOCALNODE2_PORT)}"
 
 
-DATASET_PREFIXES_LOCALNODE1 = [0, 1, 2, 3]
-DATASET_PREFIXES_LOCALNODE2 = [4, 5, 6]
-DATASET_PREFIXES_LOCALNODETMP = [7, 8, 9]
-DATASET_PREFIXES_SMPC_LOCALNODE1 = [0, 1, 2, 3, 4]
-DATASET_PREFIXES_SMPC_LOCALNODE2 = [5, 6, 7, 8, 9]
+DATASET_SUFFIXES_LOCALNODE1 = [0, 1, 2, 3]
+DATASET_SUFFIXES_LOCALNODE2 = [4, 5, 6]
+DATASET_SUFFIXES_LOCALNODETMP = [7, 8, 9]
+DATASET_SUFFIXES_SMPC_LOCALNODE1 = [0, 1, 2, 3, 4]
+DATASET_SUFFIXES_SMPC_LOCALNODE2 = [5, 6, 7, 8, 9]
 MONETDB_GLOBALNODE_NAME = "monetdb_test_globalnode"
 MONETDB_LOCALNODE1_NAME = "monetdb_test_localnode1"
 MONETDB_LOCALNODE2_NAME = "monetdb_test_localnode2"
@@ -281,7 +281,7 @@ def _init_database_monetdb_container(db_ip, db_port):
     print(f"\nDatabase ({db_ip}:{db_port}) initialized.")
 
 
-def _load_data_monetdb_container(db_ip, db_port, dataset_prefixes):
+def _load_data_monetdb_container(db_ip, db_port, dataset_suffixes):
     # Check if the database is already loaded
     cmd = f"mipdb list-datasets --ip {db_ip} --port {db_port} "
     res = subprocess.run(
@@ -316,8 +316,8 @@ def _load_data_monetdb_container(db_ip, db_port, dataset_prefixes):
             [
                 data_model_folder / file
                 for file in os.listdir(data_model_folder)
-                for prefix in dataset_prefixes
-                if file.endswith(".csv") and str(prefix) in file
+                for suffix in dataset_suffixes
+                if file.endswith(".csv") and str(suffix) in file
             ]
         )
 
@@ -358,7 +358,7 @@ def init_data_globalnode(monetdb_globalnode):
 def load_data_localnode1(monetdb_localnode1):
     _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODE1_PORT)
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        COMMON_IP, MONETDB_LOCALNODE1_PORT, DATASET_PREFIXES_LOCALNODE1
+        COMMON_IP, MONETDB_LOCALNODE1_PORT, DATASET_SUFFIXES_LOCALNODE1
     )
     yield loaded_datasets_per_data_model
 
@@ -367,7 +367,7 @@ def load_data_localnode1(monetdb_localnode1):
 def load_data_localnode2(monetdb_localnode2):
     _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODE2_PORT)
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        COMMON_IP, MONETDB_LOCALNODE2_PORT, DATASET_PREFIXES_LOCALNODE2
+        COMMON_IP, MONETDB_LOCALNODE2_PORT, DATASET_SUFFIXES_LOCALNODE2
     )
     yield loaded_datasets_per_data_model
 
@@ -376,7 +376,7 @@ def load_data_localnode2(monetdb_localnode2):
 def load_data_localnodetmp(monetdb_localnodetmp):
     _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODETMP_PORT)
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        COMMON_IP, MONETDB_LOCALNODETMP_PORT, DATASET_PREFIXES_LOCALNODETMP
+        COMMON_IP, MONETDB_LOCALNODETMP_PORT, DATASET_SUFFIXES_LOCALNODETMP
     )
     yield loaded_datasets_per_data_model
 
@@ -385,7 +385,7 @@ def load_data_localnodetmp(monetdb_localnodetmp):
 def load_data_smpc_localnode1(monetdb_smpc_localnode1):
     _init_database_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT)
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT, DATASET_PREFIXES_SMPC_LOCALNODE1
+        COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT, DATASET_SUFFIXES_SMPC_LOCALNODE1
     )
     yield loaded_datasets_per_data_model
 
@@ -394,7 +394,7 @@ def load_data_smpc_localnode1(monetdb_smpc_localnode1):
 def load_data_smpc_localnode2(monetdb_smpc_localnode2):
     _init_database_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT)
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT, DATASET_PREFIXES_SMPC_LOCALNODE2
+        COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT, DATASET_SUFFIXES_SMPC_LOCALNODE2
     )
     yield loaded_datasets_per_data_model
 

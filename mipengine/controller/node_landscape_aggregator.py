@@ -16,6 +16,7 @@ from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.federation_info_logs import log_datamodel_added
 from mipengine.controller.federation_info_logs import log_datamodel_removed
 from mipengine.controller.federation_info_logs import log_dataset_added
+from mipengine.controller.federation_info_logs import log_dataset_dropped
 from mipengine.controller.federation_info_logs import log_dataset_removed
 from mipengine.controller.federation_info_logs import log_node_joined_federation
 from mipengine.controller.federation_info_logs import log_node_left_federation
@@ -169,10 +170,12 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 }
 
                 datasets_per_node = _get_datasets_per_node(local_nodes)
-                remove_duplicated_datasets(datasets_per_node)
+                datasets_per_node_without_duplicates = remove_duplicated_datasets(
+                    datasets_per_node
+                )
 
                 data_model_cdes_per_node = _get_cdes_across_nodes(
-                    local_nodes, datasets_per_node
+                    local_nodes, datasets_per_node_without_duplicates
                 )
                 compatible_data_models = _get_compatible_data_models(
                     data_model_cdes_per_node
@@ -181,7 +184,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 (
                     dataset_locations,
                     aggregated_datasets,
-                ) = _gather_all_dataset_info(datasets_per_node)
+                ) = _gather_all_dataset_info(datasets_per_node_without_duplicates)
                 _update_data_models_with_aggregated_datasets(
                     data_models=compatible_data_models,
                     aggregated_datasets=aggregated_datasets,
@@ -195,6 +198,9 @@ class NodeLandscapeAggregator(metaclass=Singleton):
 
                 self.set_new_registy_values(
                     nodes, compatible_data_models, dataset_locations
+                )
+                logger.info(
+                    f"{[data_model.__str__() + ':' + datasets.__str__() for data_model, datasets in self._registries.data_model_registry.dataset_locations.items()]}"
                 )
 
                 logger.debug(
@@ -308,22 +314,37 @@ def _get_datasets_per_node(
 
 
 def remove_duplicated_datasets(datasets_per_node):
-    aggregated_datasets = [
-        dataset
-        for datasets_per_data_model in datasets_per_node.values()
-        for datasets in datasets_per_data_model.values()
-        for dataset in datasets
-    ]
-    duplicated = [
-        item for item, count in Counter(aggregated_datasets).items() if count > 1
-    ]
-    for node, datasets_per_data_model in datasets_per_node.items():
+    aggregated_datasets = {}
+    for node_id, datasets_per_data_model in datasets_per_node.items():
         for data_model, datasets in datasets_per_data_model.items():
-            datasets_per_node[node][data_model] = {
-                dataset_name: dataset_label
-                for dataset_name, dataset_label in datasets.items()
-                if dataset_name not in duplicated
-            }
+            if data_model not in aggregated_datasets:
+                aggregated_datasets[data_model] = []
+            aggregated_datasets[data_model].extend(datasets.keys())
+
+    duplicated = {
+        data_model: [
+            item for item, count in Counter(dataset_names).items() if count > 1
+        ]
+        for data_model, dataset_names in aggregated_datasets.items()
+    }
+
+    for node_id, datasets_per_data_model in datasets_per_node.items():
+        for data_model, datasets in datasets_per_data_model.items():
+            if data_model in duplicated:
+                for dataset in duplicated[data_model]:
+                    if dataset in datasets:
+                        log_dataset_dropped(
+                            data_model=data_model,
+                            dataset=dataset,
+                            logger=logger,
+                            node_id=node_id,
+                        )
+                datasets_per_node[node_id][data_model] = {
+                    dataset_name: dataset_label
+                    for dataset_name, dataset_label in datasets.items()
+                    if dataset_name not in duplicated[data_model]
+                }
+    return datasets_per_node
 
 
 def _gather_all_dataset_info(
@@ -464,36 +485,28 @@ def _log_data_model_changes(_logger, old_data_models, new_data_models):
         log_datamodel_removed(data_model, _logger)
 
 
-def _log_dataset_changes(
-    _logger, old_datasets_per_data_model, new_datasets_per_data_model
-):
-    _log_datasets_added(
-        _logger, old_datasets_per_data_model, new_datasets_per_data_model
-    )
-    _log_datasets_removed(
-        _logger, old_datasets_per_data_model, new_datasets_per_data_model
-    )
+def _log_dataset_changes(_logger, old_dataset_locations, new_dataset_locations):
+    _log_datasets_added(_logger, old_dataset_locations, new_dataset_locations)
+    _log_datasets_removed(_logger, old_dataset_locations, new_dataset_locations)
 
 
-def _log_datasets_added(
-    _logger, old_datasets_per_data_model, new_datasets_per_data_model
-):
-    for data_model in new_datasets_per_data_model:
-        added_datasets = new_datasets_per_data_model[data_model].keys()
-        if data_model in old_datasets_per_data_model:
-            added_datasets -= old_datasets_per_data_model[data_model].keys()
+def _log_datasets_added(_logger, old_dataset_locations, new_dataset_locations):
+    for data_model in new_dataset_locations:
+        added_datasets = new_dataset_locations[data_model].keys()
+        if data_model in old_dataset_locations:
+            added_datasets -= old_dataset_locations[data_model].keys()
         for dataset in added_datasets:
-            log_dataset_added(data_model, dataset, _logger, new_datasets_per_data_model)
+            log_dataset_added(
+                data_model, dataset, _logger, new_dataset_locations[data_model][dataset]
+            )
 
 
-def _log_datasets_removed(
-    _logger, old_datasets_per_data_model, new_datasets_per_data_model
-):
-    for data_model in old_datasets_per_data_model:
-        removed_datasets = old_datasets_per_data_model[data_model].keys()
-        if data_model in new_datasets_per_data_model:
-            removed_datasets -= new_datasets_per_data_model[data_model].keys()
+def _log_datasets_removed(_logger, old_dataset_locations, new_dataset_locations):
+    for data_model in old_dataset_locations:
+        removed_datasets = old_dataset_locations[data_model].keys()
+        if data_model in new_dataset_locations:
+            removed_datasets -= new_dataset_locations[data_model].keys()
         for dataset in removed_datasets:
             log_dataset_removed(
-                data_model, dataset, _logger, old_datasets_per_data_model
+                data_model, dataset, _logger, old_dataset_locations[data_model][dataset]
             )

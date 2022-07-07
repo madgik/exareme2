@@ -11,7 +11,7 @@ from mipengine.controller.algorithm_execution_tasks_handler import (
 )
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.node_tasks_DTOs import CommonDataElement
-from tests.standalone_tests.conftest import DATASET_PREFIXES_LOCALNODE1
+from tests.standalone_tests.conftest import DATASET_SUFFIXES_LOCALNODE1
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
 
@@ -100,7 +100,7 @@ def mock_algorithms_modules():
 def get_parametrization_list_success_cases():
     parametrization_list = []
     testlocalnode1_datasets = [
-        f"edsd{dataset_prefix}" for dataset_prefix in DATASET_PREFIXES_LOCALNODE1
+        f"edsd{dataset_suffix}" for dataset_suffix in DATASET_SUFFIXES_LOCALNODE1
     ]
 
     # ~~~~~~~~~~success case 1~~~~~~~~~~

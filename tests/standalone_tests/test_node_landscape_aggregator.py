@@ -747,6 +747,50 @@ parametrization_cases = [
                     "edsd1": "EDSD_1",
                     "edsd2": "EDSD_2",
                 },
+                "tbi:0.1": {
+                    "dummy_tbi0": "Dummy TBI0",
+                    "edsd0": "EDSD_0",
+                    "desd-synthdata0": "DESD-synthdata_0",
+                },
+            },
+        },
+        {
+            "localnode1": {
+                "dementia:0.1": {
+                    "desd-synthdata0": "DESD-synthdata_0",
+                    "edsd0": "EDSD_0",
+                },
+            },
+            "localnode2": {
+                "dementia:0.1": {
+                    "desd-synthdata1": "DESD-synthdata_1",
+                    "desd-synthdata2": "DESD-synthdata_2",
+                    "edsd1": "EDSD_1",
+                    "edsd2": "EDSD_2",
+                },
+                "tbi:0.1": {
+                    "dummy_tbi0": "Dummy TBI0",
+                    "edsd0": "EDSD_0",
+                    "desd-synthdata0": "DESD-synthdata_0",
+                },
+            },
+        },
+    ),
+    (
+        {
+            "localnode1": {
+                "dementia:0.1": {
+                    "desd-synthdata0": "DESD-synthdata_0",
+                    "edsd0": "EDSD_0",
+                },
+            },
+            "localnode2": {
+                "dementia:0.1": {
+                    "desd-synthdata1": "DESD-synthdata_1",
+                    "desd-synthdata2": "DESD-synthdata_2",
+                    "edsd1": "EDSD_1",
+                    "edsd2": "EDSD_2",
+                },
             },
         },
         {
@@ -873,11 +917,15 @@ parametrization_cases = [
     parametrization_cases,
 )
 def test_remove_duplicated_datasets(datasets_per_node, expected_result):
-    remove_duplicated_datasets(datasets_per_node)
-    for node_id, datasets_per_data_model in expected_result.items():
-        for data_model, datasets in datasets_per_data_model.items():
-            for dataset_name, dataset_label in datasets.items():
-                assert (
-                    datasets_per_node[node_id][data_model][dataset_name]
-                    == expected_result[node_id][data_model][dataset_name]
-                )
+    datasets_per_node_without_duplicates = remove_duplicated_datasets(datasets_per_node)
+    print("\n")
+    print(datasets_per_node_without_duplicates)
+    assert all(
+        [
+            datasets_per_node_without_duplicates[node_id][data_model][dataset_name]
+            == expected_result[node_id][data_model][dataset_name]
+            for node_id, datasets_per_data_model in expected_result.items()
+            for data_model, datasets in datasets_per_data_model.items()
+            for dataset_name, dataset_label in datasets.items()
+        ]
+    )
