@@ -53,7 +53,7 @@ def run(executor):
     lr.fit(X=X, y=y)
     y_pred: RealVector = lr.predict(X)
     lr.compute_summary(
-        y=relation_to_vector(y, executor),
+        y_true=relation_to_vector(y, executor),
         y_pred=y_pred,
         y_mean=lr.y_mean,
         p=p,
@@ -140,7 +140,6 @@ class LinearRegression:
 
         state_ = {}
         state_["xTx_inv"] = xTx_inv  # Needed for SE(β) calculation
-        state_["n_obs"] = n_obs
 
         transfer_ = {}
         transfer_["coefficients"] = coefficients.tolist()
@@ -163,10 +162,10 @@ class LinearRegression:
         y_pred = x @ coefficients
         return y_pred
 
-    def compute_summary(self, y, y_pred, y_mean, p):
+    def compute_summary(self, y_true, y_pred, y_mean, p):
         local_transfers = self.local_run(
             func=self._compute_summary_local,
-            keyword_args=dict(y=y, y_pred=y_pred, y_mean=y_mean),
+            keyword_args=dict(y_true=y_true, y_pred=y_pred, y_mean=y_mean),
             share_to_global=[True],
         )
         global_transfer = self.global_run(
@@ -199,18 +198,20 @@ class LinearRegression:
 
     @staticmethod
     @udf(
-        y=RealVector,
+        y_true=RealVector,
         y_pred=RealVector,
         y_mean=literal(),
         return_type=secure_transfer(sum_op=True),
     )
-    def _compute_summary_local(y, y_pred, y_mean):
-        rss = float(sum((y - y_pred) ** 2))
-        tss = float(sum((y - y_mean) ** 2))
+    def _compute_summary_local(y_true, y_pred, y_mean):
+        rss = float(sum((y_true - y_pred) ** 2))
+        tss = float(sum((y_true - y_mean) ** 2))
+        n_obs = len(y_true)
 
         stransfer = {}
         stransfer["rss"] = {"data": rss, "operation": "sum", "type": "float"}
         stransfer["tss"] = {"data": tss, "operation": "sum", "type": "float"}
+        stransfer["n_obs"] = {"data": n_obs, "operation": "sum", "type": "int"}
         return stransfer
 
     @staticmethod
@@ -221,7 +222,7 @@ class LinearRegression:
     )
     def _compute_summary_global(fit_gstate, local_transfers):
         xTx_inv = fit_gstate["xTx_inv"]
-        n_obs = fit_gstate["n_obs"]
+        n_obs = local_transfers["n_obs"]
         rss = local_transfers["rss"]
         tss = local_transfers["tss"]
 
