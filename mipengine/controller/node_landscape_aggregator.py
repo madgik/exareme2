@@ -168,14 +168,13 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                     for node_info in nodes_info
                     if node_info.role == NodeRole.LOCALNODE
                 }
-
                 datasets_per_node = _get_datasets_per_node(local_nodes)
-                datasets_per_node_without_duplicates = remove_duplicated_datasets(
-                    datasets_per_node
+                data_model_cdes_per_node = _get_cdes_across_nodes(
+                    local_nodes, datasets_per_node
                 )
 
-                data_model_cdes_per_node = _get_cdes_across_nodes(
-                    local_nodes, datasets_per_node_without_duplicates
+                datasets_per_node_without_duplicates = remove_duplicated_datasets(
+                    datasets_per_node
                 )
                 compatible_data_models = _get_compatible_data_models(
                     data_model_cdes_per_node
@@ -198,9 +197,6 @@ class NodeLandscapeAggregator(metaclass=Singleton):
 
                 self.set_new_registy_values(
                     nodes, compatible_data_models, dataset_locations
-                )
-                logger.info(
-                    f"{[data_model.__str__() + ':' + datasets.__str__() for data_model, datasets in self._registries.data_model_registry.dataset_locations.items()]}"
                 )
 
                 logger.debug(
