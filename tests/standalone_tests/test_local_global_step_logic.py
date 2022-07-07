@@ -3,11 +3,11 @@ import json
 import pytest
 import requests
 
-from tests.prod_env_tests import algorithms_url
+from tests.standalone_tests.conftest import ALGORITHMS_URL
 
 
 def get_parametrization_list_success_cases():
-    algorithm_name = "standard_deviation_pos_and_kw_args"
+    algorithm_name = "standard_deviation"
     request_dict = {
         "inputdata": {
             "data_model": "dementia:0.1",
@@ -29,19 +29,26 @@ def get_parametrization_list_success_cases():
             },
         },
     }
-
-    parametrization_list = []
-    parametrization_list.append((algorithm_name, request_dict))
-
-    return parametrization_list
+    return [(algorithm_name, request_dict)]
 
 
 @pytest.mark.parametrize(
     "algorithm_name, request_dict",
     get_parametrization_list_success_cases(),
 )
-def test_pos_and_kw_args_in_algorithm_flow(algorithm_name, request_dict):
-    algorithm_url = algorithms_url + "/" + algorithm_name
+def test_local_global_step_algorithms(
+    algorithm_name,
+    request_dict,
+    localnode1_node_service,
+    load_data_localnode1,
+    localnode2_node_service,
+    load_data_localnode2,
+    localnodetmp_node_service,
+    load_data_localnodetmp,
+    globalnode_node_service,
+    controller_service,
+):
+    algorithm_url = ALGORITHMS_URL + "/" + algorithm_name
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
     response = requests.post(
@@ -49,4 +56,4 @@ def test_pos_and_kw_args_in_algorithm_flow(algorithm_name, request_dict):
         data=json.dumps(request_dict),
         headers=headers,
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Response message: {response.text}"

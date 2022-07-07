@@ -35,6 +35,10 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
+ALGORITHMS_URL = "http://172.17.0.1:4500/algorithms"
+SMPC_ALGORITHMS_URL = "http://172.17.0.1:4501/algorithms"
+
+
 COMMON_IP = "172.17.0.1"
 RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
 RABBITMQ_LOCALNODE1_NAME = "rabbitmq_test_localnode1"
@@ -135,10 +139,15 @@ SMPC_CLIENT2_PORT = 9006
 def _search_for_string_in_logfile(
     log_to_search_for: str, logspath: Path, retries: int = 100
 ):
-    for _ in range(retries):
+    for retry in range(retries):
         try:
             with open(logspath) as logfile:
-                if bool(re.search(log_to_search_for, logfile.read())):
+                content = logfile.read()
+                if retry > 99:
+                    print(f"{content=}")
+                    print(f"{log_to_search_for=}")
+                    print(f"{bool(re.search(log_to_search_for, content))=}")
+                if bool(re.search(log_to_search_for, content)):
                     return
         except FileNotFoundError:
             pass
@@ -274,15 +283,6 @@ def _init_database_monetdb_container(db_ip, db_port):
 
 
 def _load_data_monetdb_container(db_ip, db_port):
-    # Check if the database is already loaded
-    cmd = f"mipdb list-datasets --ip {db_ip} --port {db_port} "
-    res = subprocess.run(
-        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    if "There are no datasets" not in str(res.stdout):
-        print(f"\nDatabase ({db_ip}:{db_port}) already loaded, continuing.")
-        return
-
     print(f"\nLoading data to database ({db_ip}:{db_port})")
     cmd = f"mipdb load-folder {TEST_DATA_FOLDER}  --ip {db_ip} --port {db_port} "
     subprocess.run(
@@ -633,7 +633,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
         env=env,
     )
 
-    # Check that celery started
+    # Check that celdery started
     _search_for_string_in_logfile("CELERY - FRAMEWORK - celery@.* ready.", logpath)
 
     print(f"Created node service with id '{node_id}' and process id '{proc.pid}'.")
@@ -888,12 +888,9 @@ def _create_controller_service(
     env["ALGORITHM_FOLDERS"] = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     env["LOCALNODES_CONFIG_FILE"] = localnodes_config_filepath
     env["MIPENGINE_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
-    env["QUART_APP"] = "mipengine/controller/api/app:app"
     env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)
 
-    cmd = (
-        f"poetry run quart run --host=0.0.0.0 --port {service_port} >> {logpath} 2>&1 "
-    )
+    cmd = f"poetry run hypercorn -b 0.0.0.0:{service_port} -w 1 --log-level DEBUG mipengine/controller/api/app:app >> {logpath} 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
@@ -905,8 +902,8 @@ def _create_controller_service(
         env=env,
     )
 
-    # Check that quart started
-    _search_for_string_in_logfile("CONTROLLER - WEBAPI - Running on ", logpath)
+    # Check that hypercorn started
+    _search_for_string_in_logfile("Running on", logpath)
 
     # Check that nodes were loaded
     _search_for_string_in_logfile(
