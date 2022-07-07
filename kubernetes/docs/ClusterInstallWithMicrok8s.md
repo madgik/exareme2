@@ -69,3 +69,30 @@ On the **worker** node execute the following command:
 ```
 microk8s leave
 ```
+
+## Firewall Configuration
+
+Using firewalld the following rules should apply,
+
+in the **master** node, to expose the controller api, if it's used outside the cluster:
+
+```
+firewall-cmd --permanent --add-port=30000/tcp      # MIPEngine Controller port
+```
+
+on all nodes:
+
+```
+sudo firewall-cmd --permanent --add-port={10255,12379,25000,16443,10250,10257,10259,32000}/tcp
+sudo firewall-cmd --reload
+```
+
+If there are node to node communication problems we also need to add on all nodes:
+
+```
+SUBNET=`cat /var/snap/microk8s/current/args/cni-network/cni.yaml | grep CALICO_IPV4POOL_CIDR -a1 | tail -n1 | grep -oP '[\d\./]+'`
+sudo firewall-cmd --permanent --new-zone=microk8s-cluster
+sudo firewall-cmd --permanent --zone=microk8s-cluster --set-target=ACCEPT
+sudo firewall-cmd --permanent --zone=microk8s-cluster --add-source=$SUBNET
+sudo firewall-cmd --reload
+```
