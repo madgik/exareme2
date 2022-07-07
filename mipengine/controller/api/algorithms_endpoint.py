@@ -23,9 +23,9 @@ async def get_datasets() -> dict:
     return controller.get_all_available_datasets_per_data_model()
 
 
-@algorithms.route("/dataset_locations", methods=["GET"])
-async def get_dataset_locations() -> dict:
-    return controller.get_dataset_locations()
+@algorithms.route("/datasets_locations", methods=["GET"])
+async def get_datasets_locations() -> dict:
+    return controller.get_datasets_locations()
 
 
 @algorithms.route("/cdes_metadata", methods=["GET"])

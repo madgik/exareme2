@@ -3,11 +3,11 @@ import json
 import pytest
 import requests
 
-from tests.prod_env_tests import dataset_locations_url
+from tests.prod_env_tests import datasets_locations_url
 
 
 @pytest.fixture
-def expected_dataset_locations():
+def expected_datasets_locations():
     return {
         "tbi:0.1": {
             "dummy_tbi0": "localnode1",
@@ -56,12 +56,12 @@ def expected_dataset_locations():
     }
 
 
-def test_get_dataset_location(expected_dataset_locations):
-    request = requests.get(dataset_locations_url)
+def test_get_dataset_location(expected_datasets_locations):
+    request = requests.get(datasets_locations_url)
     response = json.loads(request.text)
     for node_id in response:
-        assert node_id in expected_dataset_locations
+        assert node_id in expected_datasets_locations
         for data_model in response[node_id]:
-            assert data_model in expected_dataset_locations[node_id]
+            assert data_model in expected_datasets_locations[node_id]
             for dataset in response[node_id][data_model]:
                 assert dataset in response[node_id][data_model]

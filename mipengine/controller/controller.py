@@ -174,8 +174,8 @@ class Controller:
             available_datasets_per_data_model=available_datasets_per_data_model,
         )
 
-    def get_dataset_locations(self) -> Dict[str, Dict[str, str]]:
-        return self._node_landscape_aggregator.get_dataset_locations()
+    def get_datasets_locations(self) -> Dict[str, Dict[str, str]]:
+        return self._node_landscape_aggregator.get_datasets_locations()
 
     def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
         return self._node_landscape_aggregator.get_cdes_per_data_model()

@@ -66,8 +66,8 @@ def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
     )
     _log_dataset_changes(
         _logger=logger,
-        old_dataset_locations={"dementia:0.1": {"edsd": "localnode1"}},
-        new_dataset_locations={"tbi:0.1": {"dummy_tbi": "localnode2"}},
+        old_datasets_locations={"dementia:0.1": {"edsd": "localnode1"}},
+        new_datasets_locations={"tbi:0.1": {"dummy_tbi": "localnode2"}},
     )
     log_experiment_execution(logger, "test", "test_algorithm", ["edsd"], "parameters")
 
