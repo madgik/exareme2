@@ -66,7 +66,7 @@ def handle_privacy_error(error: InsufficientDataError):
 
 
 @error_handlers.app_errorhandler(SMPCUsageError)
-def handle_privacy_error(error: SMPCUsageError):
+def handle_smpc_error(error: SMPCUsageError):
     return error.message, HTTPStatusCode.SMPC_USAGE_ERROR
 
 

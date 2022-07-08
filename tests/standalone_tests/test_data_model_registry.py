@@ -8,13 +8,23 @@ from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 
 
-def get_datasets_location():
+def get_datasets_locations():
     return {
-        "tbi:0.1": {"dummy_tbi": ["localnode1", "localnode2"]},
+        "tbi:0.1": {
+            "dummy_tbi0": "localnode1",
+            "dummy_tbi1": "localnode2",
+            "dummy_tbi3": "localnode2",
+        },
         "dementia:0.1": {
-            "ppmi": ["localnode1", "localnode2"],
-            "edsd": ["localnode1", "localnode2"],
-            "desd-synthdata": ["localnode1", "localnode2"],
+            "ppmi0": "localnode1",
+            "ppmi1": "localnode2",
+            "ppmi3": "localnode2",
+            "edsd0": "localnode1",
+            "edsd1": "localnode2",
+            "edsd3": "localnode2",
+            "desd-synthdata0": "localnode1",
+            "desd-synthdata1": "localnode2",
+            "desd-synthdata3": "localnode2",
         },
     }
 
@@ -84,9 +94,9 @@ def get_data_model_cdes():
 
 @pytest.fixture
 def mocked_data_model_registry():
-    data_model_registry = DataModelRegistry(get_request_logger("DATA-MODEL-REGISTRY"))
-    data_model_registry.data_models = get_data_model_cdes()
-    data_model_registry.datasets_location = get_datasets_location()
+    data_model_registry = DataModelRegistry(
+        data_models=get_data_model_cdes(), datasets_locations=get_datasets_locations()
+    )
     return data_model_registry
 
 
@@ -100,14 +110,14 @@ def test_data_model_exists(mocked_data_model_registry):
 
 
 def test_dataset_exists(mocked_data_model_registry):
-    assert mocked_data_model_registry.dataset_exists("tbi:0.1", "dummy_tbi")
+    assert mocked_data_model_registry.dataset_exists("tbi:0.1", "dummy_tbi0")
     assert not mocked_data_model_registry.dataset_exists("tbi:0.1", "non-existing")
 
 
 def test_get_nodes_with_any_of_datasets(mocked_data_model_registry):
     assert set(
         mocked_data_model_registry.get_node_ids_with_any_of_datasets(
-            "tbi:0.1", ["dummy_tbi"]
+            "tbi:0.1", ["dummy_tbi0", "dummy_tbi1"]
         )
     ) == {"localnode1", "localnode2"}
 
@@ -115,6 +125,12 @@ def test_get_nodes_with_any_of_datasets(mocked_data_model_registry):
 def test_get_node_specific_datasets(mocked_data_model_registry):
     assert set(
         mocked_data_model_registry.get_node_specific_datasets(
-            "localnode1", "dementia:0.1", ["edsd", "ppmi"]
+            "localnode1", "dementia:0.1", ["edsd0", "ppmi0"]
         )
-    ) == {"edsd", "ppmi"}
+    ) == {"edsd0", "ppmi0"}
+
+
+def test_empty_initialization():
+    dmr = DataModelRegistry()
+    assert not dmr.data_models
+    assert not dmr.datasets_locations

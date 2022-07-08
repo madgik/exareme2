@@ -36,4 +36,4 @@ COPY mipengine/ ./mipengine/
 RUN rm -rf mipengine/controller
 
 
-CMD ["celery", "-A", "mipengine.node.node", "worker", "-l", "INFO"]
+CMD ["celery", "-A", "mipengine.node.node", "worker", "-l", "INFO", "--pool", "eventlet"]

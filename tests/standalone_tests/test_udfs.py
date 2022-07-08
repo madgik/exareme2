@@ -18,7 +18,9 @@ from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import get_column_rows
 from tests.algorithms.orphan_udfs import local_step
 from tests.algorithms.orphan_udfs import very_slow_udf
+from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
+from tests.standalone_tests.std_output_logger import StdOutputLogger
 
 command_id = "command123"
 request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
@@ -26,47 +28,63 @@ context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 
 
 def create_table_with_one_column_and_ten_rows(celery_app) -> Tuple[str, int]:
-    create_table_task = get_celery_task_signature(celery_app, "create_table")
-    insert_data_to_table_task = get_celery_task_signature(
-        celery_app, "insert_data_to_table"
-    )
+    create_table_task = get_celery_task_signature("create_table")
+    insert_data_to_table_task = get_celery_task_signature("insert_data_to_table")
 
     table_schema = TableSchema(
         columns=[
             ColumnInfo(name="col1", dtype=DType.INT),
         ]
     )
-    table_name = create_table_task.delay(
+    async_result = celery_app.queue_task(
+        task_signature=create_table_task,
+        logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
-    ).get()
+    )
+    table_name = celery_app.get_result(
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    )
+
     values = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
-    insert_data_to_table_task.delay(
-        request_id=request_id, table_name=table_name, values=values
-    ).get()
+    async_result = celery_app.queue_task(
+        task_signature=insert_data_to_table_task,
+        logger=StdOutputLogger(),
+        request_id=request_id,
+        table_name=table_name,
+        values=values,
+    )
+    celery_app.get_result(
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    )
 
     return table_name, 55
 
 
 def test_get_udf(localnode1_node_service, localnode1_celery_app):
-    get_udf_task = get_celery_task_signature(localnode1_celery_app, "get_udf")
+    get_udf_task = get_celery_task_signature("get_udf")
 
-    fetched_udf = get_udf_task.delay(
-        request_id=request_id, func_name=make_unique_func_name(get_column_rows)
-    ).get()
-
+    async_result = localnode1_celery_app.queue_task(
+        task_signature=get_udf_task,
+        logger=StdOutputLogger(),
+        request_id=request_id,
+        func_name=make_unique_func_name(get_column_rows),
+    )
+    fetched_udf = localnode1_celery_app.get_result(
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    )
     assert get_column_rows.__name__ in fetched_udf
 
 
 def test_run_udf_relation_to_scalar(
     localnode1_node_service, use_localnode1_database, localnode1_celery_app
 ):
-    run_udf_task = get_celery_task_signature(localnode1_celery_app, "run_udf")
-    local_node_get_table_data = get_celery_task_signature(
-        localnode1_celery_app, "get_table_data"
-    )
+    run_udf_task = get_celery_task_signature("run_udf")
+
+    local_node_get_table_data = get_celery_task_signature("get_table_data")
+
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
         localnode1_celery_app
     )
@@ -74,25 +92,34 @@ def test_run_udf_relation_to_scalar(
         args={"table": NodeTableDTO(value=input_table_name)}
     ).json()
 
-    udf_results_str = run_udf_task.delay(
+    async_result = localnode1_celery_app.queue_task(
+        task_signature=run_udf_task,
+        logger=StdOutputLogger(),
         command_id="1",
         request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(get_column_rows),
         positional_args_json=UDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
-    ).get()
-
+    )
+    udf_results_str = localnode1_celery_app.get_result(
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    )
     results = UDFResults.parse_raw(udf_results_str).results
     assert len(results) == 1
 
     result = results[0]
     assert isinstance(result, NodeTableDTO)
 
-    table_data_json = local_node_get_table_data.delay(
-        request_id=request_id, table_name=result.value
-    ).get()
-
+    async_result = localnode1_celery_app.queue_task(
+        task_signature=local_node_get_table_data,
+        logger=StdOutputLogger(),
+        request_id=request_id,
+        table_name=result.value,
+    )
+    table_data_json = localnode1_celery_app.get_result(
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    )
     table_data = TableData.parse_raw(table_data_json)
 
     assert table_data.columns[0].data[0] == 10
@@ -104,10 +131,10 @@ def test_run_udf_state_and_transfer_output(
     localnode1_db_cursor,
     localnode1_celery_app,
 ):
-    run_udf_task = get_celery_task_signature(localnode1_celery_app, "run_udf")
-    local_node_get_table_data = get_celery_task_signature(
-        localnode1_celery_app, "get_table_data"
-    )
+    run_udf_task = get_celery_task_signature("run_udf")
+
+    local_node_get_table_data = get_celery_task_signature("get_table_data")
+
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
         localnode1_celery_app
     )
@@ -116,14 +143,21 @@ def test_run_udf_state_and_transfer_output(
         args={"table": NodeTableDTO(value=input_table_name)}
     ).json()
 
-    udf_results_str = run_udf_task.delay(
+    async_result = localnode1_celery_app.queue_task(
+        task_signature=run_udf_task,
+        logger=StdOutputLogger(),
         command_id="1",
         request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(local_step),
         positional_args_json=UDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
-    ).get()
+    )
+    udf_results_str = localnode1_celery_app.get_result(
+        async_result=async_result,
+        logger=StdOutputLogger(),
+        timeout=TASKS_TIMEOUT,
+    )
 
     results = UDFResults.parse_raw(udf_results_str).results
     assert len(results) == 2
@@ -134,9 +168,16 @@ def test_run_udf_state_and_transfer_output(
     transfer_result = results[1]
     assert isinstance(transfer_result, NodeTableDTO)
 
-    transfer_table_data_json = local_node_get_table_data.delay(
-        request_id=request_id, table_name=transfer_result.value
-    ).get()
+    async_result = localnode1_celery_app.queue_task(
+        task_signature=local_node_get_table_data,
+        logger=StdOutputLogger(),
+        request_id=request_id,
+        table_name=transfer_result.value,
+    )
+    transfer_table_data_json = localnode1_celery_app.get_result(
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    )
+
     table_data = TableData.parse_raw(transfer_table_data_json)
     transfer_result_str, *_ = table_data.columns[1].data
     transfer_result = json.loads(transfer_result_str)
@@ -160,7 +201,8 @@ def test_run_udf_state_and_transfer_output(
 def test_slow_udf_exception(
     localnode1_node_service, use_localnode1_database, localnode1_celery_app
 ):
-    run_udf_task = get_celery_task_signature(localnode1_celery_app, "run_udf")
+    run_udf_task = get_celery_task_signature("run_udf")
+
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
         localnode1_celery_app
     )
@@ -170,10 +212,15 @@ def test_slow_udf_exception(
     ).json()
 
     with pytest.raises(TimeLimitExceeded):
-        run_udf_task.delay(
+        async_result = localnode1_celery_app.queue_task(
+            task_signature=run_udf_task,
+            logger=StdOutputLogger(),
             command_id="1",
             context_id=context_id,
             func_name=make_unique_func_name(very_slow_udf),
             positional_args_json=UDFPosArguments(args=[]).json(),
             keyword_args_json=kw_args_str,
-        ).get()
+        )
+        localnode1_celery_app.get_result(
+            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+        )

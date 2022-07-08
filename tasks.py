@@ -560,14 +560,14 @@ def start_node(
                 if detached or all_:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
-                        f"-A mipengine.node.node worker -l {framework_log_level} >> {outpath} "
-                        f"--purge 2>&1"
+                        f"-A mipengine.node.node worker -l {framework_log_level} > {outpath} "
+                        f"--pool=eventlet --purge 2>&1"
                     )
                     run(c, cmd, wait=False)
                 else:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
-                        f"mipengine.node.node worker -l {framework_log_level} --purge"
+                        f"mipengine.node.node worker -l {framework_log_level} --pool=eventlet --purge"
                     )
                     run(c, cmd, attach_=True)
 
@@ -575,13 +575,15 @@ def start_node(
 @task
 def kill_controller(c):
     """Kill the controller service."""
-    res = run(c, "ps aux | grep '[q]uart'", warn=True, show_ok=False)
+    res = run(c, "ps aux | grep '[h]ypercorn'", warn=True, show_ok=False)
     if res.ok:
-        message("Killing previous Quart instances...", Level.HEADER)
-        cmd = "ps aux | grep '[q]uart' | awk '{ print $2}' | xargs kill -9 && sleep 5"
+        message("Killing previous Hypercorn instances...", Level.HEADER)
+        cmd = (
+            "ps aux | grep '[h]ypercorn' | awk '{ print $2}' | xargs kill -9 && sleep 5"
+        )
         run(c, cmd)
     else:
-        message("No quart instance found", Level.HEADER)
+        message("No hypercorn instance found", Level.HEADER)
 
 
 @task
@@ -608,16 +610,13 @@ def start_controller(c, detached=False, algorithm_folders=None):
         with c.prefix(
             f"export MIPENGINE_CONTROLLER_CONFIG_FILE={controller_config_file}"
         ):
-            with c.prefix("export QUART_APP=mipengine/controller/api/app:app"):
-                outpath = OUTDIR / "controller.out"
-                if detached:
-                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0 >> {outpath} 2>&1"
-                    run(c, cmd, wait=False)
-                else:
-                    cmd = (
-                        f"PYTHONPATH={PROJECT_ROOT} poetry run quart run --host=0.0.0.0"
-                    )
-                    run(c, cmd, attach_=True)
+            outpath = OUTDIR / "controller.out"
+            if detached:
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn -b 0.0.0.0:5000 -w 1 --log-level DEBUG mipengine/controller/api/app:app>> {outpath} 2>&1"
+                run(c, cmd, wait=False)
+            else:
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn -b 0.0.0.0:5000 -w 1 --log-level DEBUG mipengine/controller/api/app:app"
+                run(c, cmd, attach_=True)
 
 
 @task

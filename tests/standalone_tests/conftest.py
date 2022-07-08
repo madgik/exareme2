@@ -1,5 +1,7 @@
 import enum
+import json
 import os
+import pathlib
 import re
 import subprocess
 import time
@@ -13,12 +15,14 @@ import sqlalchemy as sql
 import toml
 
 from mipengine import AttrDict
-from mipengine.controller.celery_app import get_node_celery_app
-from mipengine.controller.controller_logger import get_request_logger
+from mipengine.controller.algorithm_execution_tasks_handler import (
+    NodeAlgorithmTasksHandler,
+)
+from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.node_landscape_aggregator import _NLARegistries
 from mipengine.controller.node_registry import NodeRegistry
-from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.udfgen import udfio
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
@@ -34,6 +38,11 @@ if not OUTDIR.exists():
     OUTDIR.mkdir()
 
 COMMON_IP = "172.17.0.1"
+
+ALGORITHMS_URL = f"http://{COMMON_IP}:4500/algorithms"
+SMPC_ALGORITHMS_URL = f"http://{COMMON_IP}::4501/algorithms"
+
+
 RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
 RABBITMQ_LOCALNODE1_NAME = "rabbitmq_test_localnode1"
 RABBITMQ_LOCALNODE2_NAME = "rabbitmq_test_localnode2"
@@ -44,13 +53,26 @@ RABBITMQ_SMPC_LOCALNODE1_NAME = "rabbitmq_test_smpc_localnode1"
 RABBITMQ_SMPC_LOCALNODE2_NAME = "rabbitmq_test_smpc_localnode2"
 
 RABBITMQ_GLOBALNODE_PORT = 60000
+RABBITMQ_GLOBALNODE_ADDR = f"{COMMON_IP}:{str(RABBITMQ_GLOBALNODE_PORT)}"
 RABBITMQ_LOCALNODE1_PORT = 60001
+RABBITMQ_LOCALNODE1_ADDR = f"{COMMON_IP}:{str(RABBITMQ_LOCALNODE1_PORT)}"
 RABBITMQ_LOCALNODE2_PORT = 60002
+RABBITMQ_LOCALNODE2_ADDR = f"{COMMON_IP}:{str(RABBITMQ_LOCALNODE2_PORT)}"
 RABBITMQ_LOCALNODETMP_PORT = 60003
+RABBITMQ_LOCALNODETMP_ADDR = f"{COMMON_IP}:{str(RABBITMQ_LOCALNODETMP_PORT)}"
 RABBITMQ_SMPC_GLOBALNODE_PORT = 60004
+RABBITMQ_SMPC_GLOBALNODE_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_GLOBALNODE_PORT)}"
 RABBITMQ_SMPC_LOCALNODE1_PORT = 60005
+RABBITMQ_SMPC_LOCALNODE1_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_LOCALNODE1_PORT)}"
 RABBITMQ_SMPC_LOCALNODE2_PORT = 60006
+RABBITMQ_SMPC_LOCALNODE2_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_LOCALNODE2_PORT)}"
 
+
+DATASET_SUFFIXES_LOCALNODE1 = [0, 1, 2, 3]
+DATASET_SUFFIXES_LOCALNODE2 = [4, 5, 6]
+DATASET_SUFFIXES_LOCALNODETMP = [7, 8, 9]
+DATASET_SUFFIXES_SMPC_LOCALNODE1 = [0, 1, 2, 3, 4]
+DATASET_SUFFIXES_SMPC_LOCALNODE2 = [5, 6, 7, 8, 9]
 MONETDB_GLOBALNODE_NAME = "monetdb_test_globalnode"
 MONETDB_LOCALNODE1_NAME = "monetdb_test_localnode1"
 MONETDB_LOCALNODE2_NAME = "monetdb_test_localnode2"
@@ -256,16 +278,6 @@ def monetdb_localnodetmp():
 
 
 def _init_database_monetdb_container(db_ip, db_port):
-    # Check if the database is already initialized
-    cmd = f"mipdb list-data-models --ip {db_ip} --port {db_port} "
-    res = subprocess.run(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    if res.returncode == 0:
-        print(f"\nDatabase ({db_ip}:{db_port}) already initialized, continuing.")
-
-        return
-
     print(f"\nInitializing database ({db_ip}:{db_port})")
     cmd = f"mipdb init --ip {db_ip} --port {db_port} "
     subprocess.run(
@@ -274,29 +286,71 @@ def _init_database_monetdb_container(db_ip, db_port):
     print(f"\nDatabase ({db_ip}:{db_port}) initialized.")
 
 
-def _load_data_monetdb_container(db_ip, db_port):
+def _load_data_monetdb_container(db_ip, db_port, dataset_suffixes):
     # Check if the database is already loaded
     cmd = f"mipdb list-datasets --ip {db_ip} --port {db_port} "
     res = subprocess.run(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     if "There are no datasets" not in str(res.stdout):
         print(f"\nDatabase ({db_ip}:{db_port}) already loaded, continuing.")
         return
 
-    print(f"\nLoading data to database ({db_ip}:{db_port})")
-    cmd = f"mipdb load-folder {TEST_DATA_FOLDER}  --ip {db_ip} --port {db_port} "
-    subprocess.run(
-        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    datasets_per_data_model = {}
+    # Load the test data folder into the dbs
+    data_model_folders = [
+        TEST_DATA_FOLDER / folder for folder in os.listdir(TEST_DATA_FOLDER)
+    ]
+    for data_model_folder in data_model_folders:
+        with open(data_model_folder / "CDEsMetadata.json") as data_model_metadata_file:
+            data_model_metadata = json.load(data_model_metadata_file)
+            data_model_code = data_model_metadata["code"]
+            data_model_version = data_model_metadata["version"]
+            data_model = f"{data_model_code}:{data_model_version}"
+        cdes_file = data_model_folder / "CDEsMetadata.json"
+
+        print(
+            f"\nLoading data model '{data_model_code}:{data_model_version}' metadata to database ({db_ip}:{db_port})"
+        )
+        cmd = f"mipdb add-data-model {cdes_file} --ip {db_ip} --port {db_port} "
+        subprocess.run(
+            cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+        csvs = sorted(
+            [
+                data_model_folder / file
+                for file in os.listdir(data_model_folder)
+                for suffix in dataset_suffixes
+                if file.endswith(".csv") and str(suffix) in file
+            ]
+        )
+
+        for csv in csvs:
+            cmd = f"mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --ip {db_ip} --port {db_port} "
+            subprocess.run(
+                cmd,
+                shell=True,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            print(
+                f"\nLoading dataset {pathlib.PurePath(csv).name} to database ({db_ip}:{db_port})"
+            )
+            datasets_per_data_model[data_model] = pathlib.PurePath(csv).name
+
     print(f"\nData loaded to database ({db_ip}:{db_port})")
     time.sleep(2)  # Needed to avoid db crash while loading
+    return datasets_per_data_model
 
 
 def _remove_data_model_from_localnodetmp_monetdb(data_model_code, data_model_version):
     # Remove data_model
     cmd = f"mipdb delete-data-model {data_model_code} -v {data_model_version} -f  --ip {COMMON_IP} --port {MONETDB_LOCALNODETMP_PORT} "
-    subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+    subprocess.run(
+        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
 
 
 @pytest.fixture(scope="session")
@@ -308,36 +362,46 @@ def init_data_globalnode(monetdb_globalnode):
 @pytest.fixture(scope="session")
 def load_data_localnode1(monetdb_localnode1):
     _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODE1_PORT)
-    _load_data_monetdb_container(COMMON_IP, MONETDB_LOCALNODE1_PORT)
-    yield
+    loaded_datasets_per_data_model = _load_data_monetdb_container(
+        COMMON_IP, MONETDB_LOCALNODE1_PORT, DATASET_SUFFIXES_LOCALNODE1
+    )
+    yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="session")
 def load_data_localnode2(monetdb_localnode2):
     _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODE2_PORT)
-    _load_data_monetdb_container(COMMON_IP, MONETDB_LOCALNODE2_PORT)
-    yield
+    loaded_datasets_per_data_model = _load_data_monetdb_container(
+        COMMON_IP, MONETDB_LOCALNODE2_PORT, DATASET_SUFFIXES_LOCALNODE2
+    )
+    yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="function")
 def load_data_localnodetmp(monetdb_localnodetmp):
     _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODETMP_PORT)
-    _load_data_monetdb_container(COMMON_IP, MONETDB_LOCALNODETMP_PORT)
-    yield
+    loaded_datasets_per_data_model = _load_data_monetdb_container(
+        COMMON_IP, MONETDB_LOCALNODETMP_PORT, DATASET_SUFFIXES_LOCALNODETMP
+    )
+    yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="session")
 def load_data_smpc_localnode1(monetdb_smpc_localnode1):
     _init_database_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT)
-    _load_data_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT)
-    yield
+    loaded_datasets_per_data_model = _load_data_monetdb_container(
+        COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT, DATASET_SUFFIXES_SMPC_LOCALNODE1
+    )
+    yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="session")
 def load_data_smpc_localnode2(monetdb_smpc_localnode2):
     _init_database_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT)
-    _load_data_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT)
-    yield
+    loaded_datasets_per_data_model = _load_data_monetdb_container(
+        COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT, DATASET_SUFFIXES_SMPC_LOCALNODE2
+    )
+    yield loaded_datasets_per_data_model
 
 
 def _create_db_cursor(db_port):
@@ -418,68 +482,74 @@ def _clean_db(cursor):
 
 
 @pytest.fixture(scope="function")
-def clean_globalnode_db(globalnode_db_cursor):
+def schedule_clean_globalnode_db(globalnode_db_cursor):
     yield
     _clean_db(globalnode_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def clean_localnode1_db(localnode1_db_cursor):
+def schedule_clean_localnode1_db(localnode1_db_cursor):
     yield
     _clean_db(localnode1_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def clean_smpc_globalnode_db(globalnode_smpc_db_cursor):
+def schedule_clean_smpc_globalnode_db(globalnode_smpc_db_cursor):
     yield
     _clean_db(globalnode_smpc_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def clean_smpc_localnode1_db(localnode1_smpc_db_cursor):
+def schedule_clean_smpc_localnode1_db(localnode1_smpc_db_cursor):
     yield
     _clean_db(localnode1_smpc_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def clean_smpc_localnode2_db(localnode2_smpc_db_cursor):
+def schedule_clean_smpc_localnode2_db(localnode2_smpc_db_cursor):
     yield
     _clean_db(localnode2_smpc_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def clean_localnode2_db(localnode2_db_cursor):
+def schedule_clean_localnode2_db(localnode2_db_cursor):
     yield
     _clean_db(localnode2_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def use_globalnode_database(monetdb_globalnode, clean_globalnode_db):
+def use_globalnode_database(monetdb_globalnode, schedule_clean_globalnode_db):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_localnode1_database(monetdb_localnode1, clean_localnode1_db):
+def use_localnode1_database(monetdb_localnode1, schedule_clean_localnode1_db):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_localnode2_database(monetdb_localnode2, clean_localnode2_db):
+def use_localnode2_database(monetdb_localnode2, schedule_clean_localnode2_db):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_smpc_globalnode_database(monetdb_smpc_globalnode, clean_smpc_globalnode_db):
+def use_smpc_globalnode_database(
+    monetdb_smpc_globalnode, schedule_clean_smpc_globalnode_db
+):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_smpc_localnode1_database(monetdb_smpc_localnode1, clean_smpc_localnode1_db):
+def use_smpc_localnode1_database(
+    monetdb_smpc_localnode1, schedule_clean_smpc_localnode1_db
+):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_smpc_localnode2_database(monetdb_smpc_localnode2, clean_smpc_localnode2_db):
+def use_smpc_localnode2_database(
+    monetdb_smpc_localnode2, schedule_clean_smpc_localnode2_db
+):
     pass
 
 
@@ -517,6 +587,10 @@ def _remove_rabbitmq_container(cont_name):
         container = client.containers.get(cont_name)
         container.remove(v=True, force=True)
     except docker.errors.NotFound:
+        print(
+            f"(conftest.py::_remove_rabbitmq_container) container {cont_name=} was not "
+            f"found, probably already removed"
+        )
         pass  # container was removed by other means...
     print(f"Removed rabbitmq container '{cont_name}'.")
 
@@ -610,7 +684,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     env["ALGORITHM_FOLDERS"] = algo_folders_env_variable_val
     env["MIPENGINE_NODE_CONFIG_FILE"] = node_config_filepath
 
-    cmd = f"poetry run celery -A mipengine.node.node worker -l DEBUG >> {logpath} --purge 2>&1 "
+    cmd = f"poetry run celery -A mipengine.node.node worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
@@ -732,7 +806,7 @@ def create_node_tasks_handler_celery(node_config_filepath):
     queue_address = ":".join([str(queue_domain), str(queue_port)])
     db_address = ":".join([str(db_domain), str(db_port)])
 
-    return NodeTasksHandlerCelery(
+    return NodeAlgorithmTasksHandler(
         node_id=node_id,
         node_queue_addr=queue_address,
         node_db_addr=db_address,
@@ -741,36 +815,32 @@ def create_node_tasks_handler_celery(node_config_filepath):
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def globalnode_tasks_handler(globalnode_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
     tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
-    yield tasks_handler
-    tasks_handler.close()
+    return tasks_handler
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def localnode1_tasks_handler(localnode1_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
     tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
-    yield tasks_handler
-    tasks_handler.close()
+    return tasks_handler
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def localnode2_tasks_handler(localnode2_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE2_CONFIG_FILE)
     tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
-    yield tasks_handler
-    tasks_handler.close()
+    return tasks_handler
 
 
 @pytest.fixture(scope="function")
 def localnodetmp_tasks_handler(localnodetmp_node_service):
     node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
     tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
-    yield tasks_handler
-    tasks_handler.close()
+    return tasks_handler
 
 
 def get_node_config_by_id(node_config_file: str):
@@ -779,69 +849,49 @@ def get_node_config_by_id(node_config_file: str):
     return node_config
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def globalnode_celery_app(globalnode_node_service):
-    config = get_node_config_by_id(GLOBALNODE_CONFIG_FILE)
-    yield get_node_celery_app(
-        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
-    )
+    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_GLOBALNODE_ADDR)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def localnode1_celery_app(localnode1_node_service):
-    config = get_node_config_by_id(LOCALNODE1_CONFIG_FILE)
-    yield get_node_celery_app(
-        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
-    )
+    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_LOCALNODE1_ADDR)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def localnode2_celery_app(localnode2_node_service):
-    config = get_node_config_by_id(LOCALNODE2_CONFIG_FILE)
-    yield get_node_celery_app(
-        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
-    )
+    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_LOCALNODE2_ADDR)
 
 
 @pytest.fixture(scope="function")
 def localnodetmp_celery_app(localnodetmp_node_service):
-    config = get_node_config_by_id(LOCALNODETMP_CONFIG_FILE)
-    yield get_node_celery_app(
-        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
-    )
+    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_LOCALNODETMP_ADDR)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def smpc_globalnode_celery_app(smpc_globalnode_node_service):
-    config = get_node_config_by_id(GLOBALNODE_SMPC_CONFIG_FILE)
-    yield get_node_celery_app(
-        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
-    )
+    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_SMPC_GLOBALNODE_ADDR)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def smpc_localnode1_celery_app(smpc_localnode1_node_service):
-    config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
-    yield get_node_celery_app(
-        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
-    )
+    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_SMPC_LOCALNODE1_ADDR)
 
 
 @pytest.fixture(scope="session")
 def smpc_localnode2_celery_app(smpc_localnode2_node_service):
-    config = get_node_config_by_id(LOCALNODE2_SMPC_CONFIG_FILE)
-    yield get_node_celery_app(
-        f"{config['rabbitmq']['ip']}:{config['rabbitmq']['port']}"
-    )
+    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_SMPC_LOCALNODE2_ADDR)
 
 
 @pytest.fixture(scope="function")
 def reset_node_landscape_aggregator():
     nla = NodeLandscapeAggregator()
+    nla.stop()
     nla.keep_updating = False
-    nla._node_registry = NodeRegistry(get_request_logger("NODE-REGISTRY"))
-    nla._data_model_registry = DataModelRegistry(
-        get_request_logger("DATA-MODEL-REGISTRY")
+    nla._nla_registries = _NLARegistries(
+        node_registry=NodeRegistry(nodes={}),
+        data_model_registry=DataModelRegistry(data_models={}, datasets_location={}),
     )
 
 
@@ -901,12 +951,9 @@ def _create_controller_service(
     env["ALGORITHM_FOLDERS"] = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     env["LOCALNODES_CONFIG_FILE"] = localnodes_config_filepath
     env["MIPENGINE_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
-    env["QUART_APP"] = "mipengine/controller/api/app:app"
     env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)
 
-    cmd = (
-        f"poetry run quart run --host=0.0.0.0 --port {service_port} >> {logpath} 2>&1 "
-    )
+    cmd = f"poetry run hypercorn -b 0.0.0.0:{service_port} -w 1 --log-level DEBUG mipengine/controller/api/app:app >> {logpath} 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
@@ -918,8 +965,8 @@ def _create_controller_service(
         env=env,
     )
 
-    # Check that quart started
-    _search_for_string_in_logfile("CONTROLLER - WEBAPI - Running on ", logpath)
+    # Check that hypercorn started
+    _search_for_string_in_logfile("Running on", logpath)
 
     # Check that nodes were loaded
     _search_for_string_in_logfile(

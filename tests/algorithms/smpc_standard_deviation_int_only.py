@@ -16,18 +16,18 @@ def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
     global_run = algo_interface.run_udf_on_global_node
 
-    X_relation, *_ = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.x_variables],
+    Y_relation, *_ = algo_interface.create_primary_data_views(
+        variable_groups=[algo_interface.y_variables],
     )
 
-    X = local_run(
+    Y = local_run(
         func=relation_to_matrix,
-        positional_args=[X_relation],
+        positional_args=[Y_relation],
     )
 
     local_state, local_result = local_run(
         func=smpc_local_step_1,
-        positional_args=[X],
+        positional_args=[Y],
         share_to_global=[False, True],
     )
 
@@ -51,12 +51,12 @@ def run(algo_interface):
     std_deviation = json.loads(global_result.get_table_data()[1][0])["deviation"]
     min_value = json.loads(global_result.get_table_data()[1][0])["min_value"]
     max_value = json.loads(global_result.get_table_data()[1][0])["max_value"]
-    x_variables = algo_interface.x_variables
+    y_variables = algo_interface.y_variables
 
     result = TabularDataResult(
         title="Standard Deviation",
         columns=[
-            ColumnDataStr(name="variable", data=x_variables),
+            ColumnDataStr(name="variable", data=y_variables),
             ColumnDataFloat(name="std_deviation", data=[std_deviation]),
             ColumnDataFloat(name="min_value", data=[min_value]),
             ColumnDataFloat(name="max_value", data=[max_value]),
@@ -92,10 +92,10 @@ def smpc_local_step_1(table):
         if element > max_value:
             max_value = element
     secure_transfer_ = {
-        "sum": {"data": int(sum_), "operation": "sum"},
-        "min": {"data": int(min_value), "operation": "min"},
-        "max": {"data": int(max_value), "operation": "max"},
-        "count": {"data": len(table), "operation": "sum"},
+        "sum": {"data": int(sum_), "operation": "sum", "type": "int"},
+        "min": {"data": int(min_value), "operation": "min", "type": "int"},
+        "max": {"data": int(max_value), "operation": "max", "type": "int"},
+        "count": {"data": len(table), "operation": "sum", "type": "int"},
     }
     return state_, secure_transfer_
 
