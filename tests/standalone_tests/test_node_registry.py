@@ -8,10 +8,10 @@ from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 
 mocked_node_addresses = [
-    "127.0.0.1:5672",
-    "127.0.0.2:5672",
+    "127.0.0.1:5670",
+    "127.0.0.2:5671",
     "127.0.0.3:5672",
-    "127.0.0.4:5672",
+    "127.0.0.4:5673",
 ]
 
 
@@ -44,8 +44,8 @@ def get_mocked_node_info() -> Dict[str, NodeInfo]:
         "localnode3": NodeInfo(
             id="localnode3",
             role=NodeRole.LOCALNODE,
-            ip=mocked_node_addresses[2].split(":")[0],
-            port=mocked_node_addresses[2].split(":")[1],
+            ip=mocked_node_addresses[3].split(":")[0],
+            port=mocked_node_addresses[3].split(":")[1],
             db_ip="127.0.0.1",
             db_port=50003,
         ),

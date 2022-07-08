@@ -360,13 +360,24 @@ def _get_cdes_across_nodes(
     datasets_per_node: Dict[str, Dict[str, Dict[str, str]]],
 ) -> Dict[str, List[Tuple[str, CommonDataElements]]]:
     nodes_cdes = {}
+    invalid_data_model_per_node = []
+
     for node_id, datasets_per_data_model in datasets_per_node.items():
         node_socket_addr = _get_node_socket_addr(nodes[node_id])
         for data_model in datasets_per_data_model:
             cdes = _get_node_cdes(node_socket_addr, data_model)
+            if not cdes:
+                invalid_data_model_per_node.append((node_id, data_model))
+                continue
+
             if data_model not in nodes_cdes:
                 nodes_cdes[data_model] = []
             nodes_cdes[data_model].append((node_id, cdes))
+
+    if invalid_data_model_per_node:
+        for node_id, data_model in invalid_data_model_per_node:
+            del datasets_per_node[node_id][data_model]
+
     return nodes_cdes
 
 
