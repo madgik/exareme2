@@ -29,6 +29,7 @@ from tests.algorithms.orphan_udfs import smpc_global_step
 from tests.algorithms.orphan_udfs import smpc_local_step
 from tests.standalone_tests.conftest import LOCALNODE1_SMPC_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE2_SMPC_CONFIG_FILE
+from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import get_node_config_by_id
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.test_udfs import create_table_with_one_column_and_ten_rows
@@ -39,8 +40,6 @@ command_id = "command123"
 smpc_job_id = "testKey123"
 SMPC_GET_DATASET_ENDPOINT = "/api/update-dataset/"
 SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
-
-TASKS_TIMEOUT = 60
 
 
 class StdOutputLogger:

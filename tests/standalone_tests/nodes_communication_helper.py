@@ -1,5 +1,7 @@
 signature_mapping = {
     "get_node_info": "mipengine.node.tasks.common.get_node_info",
+    "get_data_model_cdes": "mipengine.node.tasks.common.get_data_model_cdes",
+    "get_node_datasets_per_data_model": "mipengine.node.tasks.common.get_node_datasets_per_data_model",
     "create_table": "mipengine.node.tasks.tables.create_table",
     "get_tables": "mipengine.node.tasks.tables.get_tables",
     "insert_data_to_table": "mipengine.node.tasks.tables.insert_data_to_table",

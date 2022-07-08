@@ -11,6 +11,7 @@ from mipengine.controller.algorithm_execution_tasks_handler import (
 )
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.node_tasks_DTOs import CommonDataElement
+from tests.standalone_tests.conftest import DATASET_SUFFIXES_LOCALNODE1
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
 
@@ -98,6 +99,9 @@ def mock_algorithms_modules():
 
 def get_parametrization_list_success_cases():
     parametrization_list = []
+    testlocalnode1_datasets = [
+        f"edsd{dataset_suffix}" for dataset_suffix in DATASET_SUFFIXES_LOCALNODE1
+    ]
 
     # ~~~~~~~~~~success case 1~~~~~~~~~~
     algo_execution_dto = AlgorithmExecutionDTO(
@@ -105,20 +109,7 @@ def get_parametrization_list_success_cases():
         context_id="123",
         algorithm_name="logistic_regression",
         data_model="dementia:0.1",
-        datasets_per_local_node={
-            "localnode1": [
-                "edsd0",
-                "edsd1",
-                "edsd2",
-                "edsd3",
-                "edsd4",
-                "edsd5",
-                "edsd6",
-                "edsd7",
-                "edsd8",
-                "edsd9",
-            ]
-        },
+        datasets_per_local_node={"localnode1": testlocalnode1_datasets},
         x_vars=[
             "lefthippocampus",
             "righthippocampus",
@@ -133,18 +124,7 @@ def get_parametrization_list_success_cases():
                 {
                     "id": "dataset",
                     "type": "string",
-                    "value": [
-                        "edsd0",
-                        "edsd1",
-                        "edsd2",
-                        "edsd3",
-                        "edsd4",
-                        "edsd5",
-                        "edsd6",
-                        "edsd7",
-                        "edsd8",
-                        "edsd9",
-                    ],
+                    "value": testlocalnode1_datasets,
                     "operator": "in",
                 },
                 {
@@ -179,20 +159,7 @@ def get_parametrization_list_success_cases():
         context_id="1234",
         algorithm_name="smpc_standard_deviation",
         data_model="dementia:0.1",
-        datasets_per_local_node={
-            "localnode1": [
-                "edsd0",
-                "edsd1",
-                "edsd2",
-                "edsd3",
-                "edsd4",
-                "edsd5",
-                "edsd6",
-                "edsd7",
-                "edsd8",
-                "edsd9",
-            ]
-        },
+        datasets_per_local_node={"localnode1": testlocalnode1_datasets},
         y_vars=[
             "lefthippocampus",
         ],
@@ -202,18 +169,7 @@ def get_parametrization_list_success_cases():
                 {
                     "id": "dataset",
                     "type": "string",
-                    "value": [
-                        "edsd0",
-                        "edsd1",
-                        "edsd2",
-                        "edsd3",
-                        "edsd4",
-                        "edsd5",
-                        "edsd6",
-                        "edsd7",
-                        "edsd8",
-                        "edsd9",
-                    ],
+                    "value": testlocalnode1_datasets,
                     "operator": "in",
                 },
                 {
