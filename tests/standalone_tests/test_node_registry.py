@@ -2,7 +2,6 @@ from typing import Dict
 
 import pytest
 
-from mipengine.controller.controller_logger import get_request_logger
 from mipengine.controller.node_registry import NodeRegistry
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole

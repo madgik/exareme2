@@ -38,6 +38,11 @@ if not OUTDIR.exists():
     OUTDIR.mkdir()
 
 COMMON_IP = "172.17.0.1"
+
+ALGORITHMS_URL = f"http://{COMMON_IP}:4500/algorithms"
+SMPC_ALGORITHMS_URL = f"http://{COMMON_IP}::4501/algorithms"
+
+
 RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
 RABBITMQ_LOCALNODE1_NAME = "rabbitmq_test_localnode1"
 RABBITMQ_LOCALNODE2_NAME = "rabbitmq_test_localnode2"
@@ -885,8 +890,8 @@ def reset_node_landscape_aggregator():
     nla.stop()
     nla.keep_updating = False
     nla._nla_registries = _NLARegistries(
-        node_registry=NodeRegistry(),
-        data_model_registry=DataModelRegistry(),
+        node_registry=NodeRegistry(nodes={}),
+        data_model_registry=DataModelRegistry(data_models={}, datasets_location={}),
     )
 
 
@@ -946,12 +951,9 @@ def _create_controller_service(
     env["ALGORITHM_FOLDERS"] = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     env["LOCALNODES_CONFIG_FILE"] = localnodes_config_filepath
     env["MIPENGINE_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
-    env["QUART_APP"] = "mipengine/controller/api/app:app"
     env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)
 
-    cmd = (
-        f"poetry run quart run --host=0.0.0.0 --port {service_port} >> {logpath} 2>&1 "
-    )
+    cmd = f"poetry run hypercorn -b 0.0.0.0:{service_port} -w 1 --log-level DEBUG mipengine/controller/api/app:app >> {logpath} 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
@@ -963,8 +965,8 @@ def _create_controller_service(
         env=env,
     )
 
-    # Check that quart started
-    _search_for_string_in_logfile("CONTROLLER - WEBAPI - Running on ", logpath)
+    # Check that hypercorn started
+    _search_for_string_in_logfile("Running on", logpath)
 
     # Check that nodes were loaded
     _search_for_string_in_logfile(
