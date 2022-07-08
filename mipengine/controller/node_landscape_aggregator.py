@@ -163,11 +163,15 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 data_model_cdes_per_node = _get_cdes_across_nodes(
                     local_nodes, datasets_per_node
                 )
+
+                data_model_cdes_per_node_without_corrupted = (
+                    remove_corrupted_data_models_per_node(data_model_cdes_per_node)
+                )
                 datasets_per_node_without_duplicates = remove_duplicated_datasets(
                     datasets_per_node
                 )
                 compatible_data_models = _get_compatible_data_models(
-                    data_model_cdes_per_node
+                    data_model_cdes_per_node_without_corrupted
                 )
                 (
                     datasets_locations,
@@ -322,6 +326,17 @@ def remove_duplicated_datasets(datasets_per_node):
     return datasets_per_node
 
 
+def remove_corrupted_data_models_per_node(data_model_cdes_per_node):
+    return {
+        data_model: [
+            (node_id, data_model_cdes)
+            for node_id, data_model_cdes in node_cdes
+            if data_model_cdes
+        ]
+        for data_model, node_cdes in data_model_cdes_per_node.items()
+    }
+
+
 def _gather_all_dataset_info(
     datasets_per_node: Dict[str, Dict[str, Dict[str, str]]],
 ) -> Tuple[Dict[str, Dict[str, str]], Dict[str, Dict[str, str]]]:
@@ -360,23 +375,18 @@ def _get_cdes_across_nodes(
     datasets_per_node: Dict[str, Dict[str, Dict[str, str]]],
 ) -> Dict[str, List[Tuple[str, CommonDataElements]]]:
     nodes_cdes = {}
-    invalid_data_model_per_node = []
 
     for node_id, datasets_per_data_model in datasets_per_node.items():
         node_socket_addr = _get_node_socket_addr(nodes[node_id])
         for data_model in datasets_per_data_model:
             cdes = _get_node_cdes(node_socket_addr, data_model)
-            if not cdes:
-                invalid_data_model_per_node.append((node_id, data_model))
-                continue
 
             if data_model not in nodes_cdes:
                 nodes_cdes[data_model] = []
-            nodes_cdes[data_model].append((node_id, cdes))
 
-    if invalid_data_model_per_node:
-        for node_id, data_model in invalid_data_model_per_node:
-            del datasets_per_node[node_id][data_model]
+            if not cdes:
+                nodes_cdes[data_model].append((node_id, None))
+            nodes_cdes[data_model].append((node_id, cdes))
 
     return nodes_cdes
 
