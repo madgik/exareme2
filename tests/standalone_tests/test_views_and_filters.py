@@ -1,6 +1,8 @@
+import json
 import uuid
 
 import pytest
+import requests
 
 from mipengine.datatypes import DType
 from mipengine.node_exceptions import DataModelUnavailable
@@ -9,11 +11,10 @@ from mipengine.node_exceptions import InsufficientDataError
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
-from tests.standalone_tests import algorithms_url
+from tests.standalone_tests.conftest import ALGORITHMS_URL
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
-
-TASKS_TIMEOUT = 60
+from tests.standalone_tests.test_smpc_node_tasks import TASKS_TIMEOUT
 
 
 @pytest.fixture
@@ -848,3 +849,28 @@ def test_multiple_data_model_views_null_constraints(
         view_name_with_values_data_json
     ).columns
     assert len(gcs_eye_response_scale_column.data) == 0
+
+
+def test_bad_filters_exception(controller_service):
+    algorithm_name = "standard_deviation"
+    request_params = {
+        "inputdata": {
+            "data_model": "dementia:0.1",
+            "datasets": ["edsd0"],
+            "x": [
+                "lefthippocampus",
+            ],
+            "filters": {"whateveeeeeer": "!!!"},
+        },
+    }
+
+    algorithm_url = ALGORITHMS_URL + "/" + algorithm_name
+    headers = {"Content-type": "application/json", "Accept": "text/plain"}
+    response = requests.post(
+        algorithm_url,
+        data=json.dumps(request_params),
+        headers=headers,
+    )
+
+    assert "Invalid filters format." in response.text
+    assert response.status_code == 400

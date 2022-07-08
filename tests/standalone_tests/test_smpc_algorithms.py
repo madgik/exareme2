@@ -4,7 +4,7 @@ import re
 import pytest
 import requests
 
-algorithms_url = "http://127.0.0.1:4501/algorithms"
+from tests.standalone_tests.conftest import SMPC_ALGORITHMS_URL
 
 
 def get_parametrization_list_success_cases():
@@ -348,7 +348,7 @@ def test_post_smpc_algorithm(
     request_dict,
     expected_response,
 ):
-    algorithm_url = algorithms_url + "/" + algorithm_name
+    algorithm_url = SMPC_ALGORITHMS_URL + "/" + algorithm_name
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
     response = requests.post(
@@ -451,7 +451,7 @@ def test_post_smpc_algorithm_exception(
     request_dict,
     expected_response,
 ):
-    algorithm_url = algorithms_url + "/" + algorithm_name
+    algorithm_url = SMPC_ALGORITHMS_URL + "/" + algorithm_name
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
     response = requests.post(
