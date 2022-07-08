@@ -44,9 +44,3 @@ def log_dataset_removed(data_model, dataset, logger, node_id):
     logger.info(
         f"Dataset '{dataset}' of datamodel '{data_model}' was removed from node '{node_id}'."
     )
-
-
-def log_dataset_dropped(data_model, dataset, logger, node_id):
-    logger.info(
-        f"Dataset '{dataset}' of datamodel '{data_model}' was dropped from node '{node_id}'."
-    )

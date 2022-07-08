@@ -16,7 +16,6 @@ from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.federation_info_logs import log_datamodel_added
 from mipengine.controller.federation_info_logs import log_datamodel_removed
 from mipengine.controller.federation_info_logs import log_dataset_added
-from mipengine.controller.federation_info_logs import log_dataset_dropped
 from mipengine.controller.federation_info_logs import log_dataset_removed
 from mipengine.controller.federation_info_logs import log_node_joined_federation
 from mipengine.controller.federation_info_logs import log_node_left_federation
@@ -30,7 +29,6 @@ from mipengine.node_tasks_DTOs import CommonDataElements
 from mipengine.singleton import Singleton
 
 logger = ctrl_logger.get_background_service_logger()
-
 NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
 NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL = (
     controller_config.node_landscape_aggregator_update_interval
@@ -56,14 +54,12 @@ def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
                 request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
             )
             nodes_info.append(result)
-
         except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
             # just log the exception do not reraise it
             logger.warning(exc)
         except Exception as exc:
             # just log full traceback exception as error and do not reraise it
             logger.error(traceback.format_exc())
-
     return nodes_info
 
 
@@ -73,7 +69,6 @@ def _get_node_datasets_per_data_model(
     tasks_handler = NodeInfoTasksHandler(
         node_queue_addr=node_socket_addr, tasks_timeout=CELERY_TASKS_TIMEOUT
     )
-
     try:
         async_result = tasks_handler.queue_node_datasets_per_data_model_task(
             request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
@@ -84,7 +79,6 @@ def _get_node_datasets_per_data_model(
                 request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
             )
         )
-
     except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
         # just log the exception do not reraise it
         logger.warning(exc)
@@ -93,7 +87,6 @@ def _get_node_datasets_per_data_model(
         # just log full traceback exception as error and do not reraise it
         logger.error(traceback.format_exc())
         return {}
-
     return datasets_per_data_model
 
 
@@ -136,12 +129,10 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             node_registry=NodeRegistry(),
             data_model_registry=DataModelRegistry(),
         )
-
         self._keep_updating = True
         self._update_loop_thread = None
 
     def _update(self):
-
         """
         Node Landscape Aggregator(NLA) is a module that handles the aggregation of necessary information,
         to keep up-to-date and in sync the Node Registry and the Data Model Registry.
@@ -172,14 +163,12 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 data_model_cdes_per_node = _get_cdes_across_nodes(
                     local_nodes, datasets_per_node
                 )
-
                 datasets_per_node_without_duplicates = remove_duplicated_datasets(
                     datasets_per_node
                 )
                 compatible_data_models = _get_compatible_data_models(
                     data_model_cdes_per_node
                 )
-
                 (
                     datasets_locations,
                     aggregated_datasets,
@@ -188,27 +177,21 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                     data_models=compatible_data_models,
                     aggregated_datasets=aggregated_datasets,
                 )
-
                 datasets_locations = _get_datasets_locations_of_compatible_data_models(
                     compatible_data_models, datasets_locations
                 )
-
                 nodes = {node_info.id: node_info for node_info in nodes_info}
-
                 self.set_new_registy_values(
                     nodes, compatible_data_models, datasets_locations
                 )
-
                 logger.debug(
                     f"Nodes:{[node for node in self._registries.node_registry.nodes]}"
                 )
-
             except Exception as exc:
                 logger.warning(
                     f"NodeLandscapeAggregator caught an exception but will continue to "
                     f"update {exc=}"
                 )
-
                 tr = traceback.format_exc()
                 logger.error(tr)
             finally:
@@ -216,9 +199,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
 
     def start(self):
         self.stop()
-
         self._keep_updating = True
-
         self._update_loop_thread = threading.Thread(target=self._update, daemon=True)
         self._update_loop_thread.start()
 
@@ -244,7 +225,6 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             data_models=data_models,
             datasets_locations=datasets_locations,
         )
-
         self._registries = _NLARegistries(
             node_registry=_node_registry, data_model_registry=_data_model_registry
         )
@@ -305,7 +285,6 @@ def _get_datasets_per_node(
         datasets_per_data_model = _get_node_datasets_per_data_model(node_socket_addr)
         if datasets_per_data_model:
             datasets_per_node[node_info.id] = datasets_per_data_model
-
     return datasets_per_node
 
 
@@ -316,30 +295,30 @@ def remove_duplicated_datasets(datasets_per_node):
             if data_model not in aggregated_datasets:
                 aggregated_datasets[data_model] = []
             aggregated_datasets[data_model].extend(datasets.keys())
-
-    duplicated = {
+    duplicated_datasets = {
         data_model: [
             item for item, count in Counter(dataset_names).items() if count > 1
         ]
         for data_model, dataset_names in aggregated_datasets.items()
     }
-
     for node_id, datasets_per_data_model in datasets_per_node.items():
         for data_model, datasets in datasets_per_data_model.items():
-            if data_model in duplicated:
-                for dataset in duplicated[data_model]:
-                    if dataset in datasets:
-                        log_dataset_dropped(
-                            data_model=data_model,
-                            dataset=dataset,
-                            logger=logger,
-                            node_id=node_id,
-                        )
-                datasets_per_node[node_id][data_model] = {
-                    dataset_name: dataset_label
-                    for dataset_name, dataset_label in datasets.items()
-                    if dataset_name not in duplicated[data_model]
-                }
+            duplicated_datasets_of_node = [
+                dataset
+                for dataset in datasets
+                if dataset in duplicated_datasets[data_model]
+            ]
+            log_duplicated_datasets_in_node(
+                data_model=data_model,
+                datasets=duplicated_datasets_of_node,
+                logger=logger,
+                node_id=node_id,
+            )
+            datasets_per_node[node_id][data_model] = {
+                dataset_name: dataset_label
+                for dataset_name, dataset_label in datasets.items()
+                if dataset_name not in duplicated_datasets[data_model]
+            }
     return datasets_per_node
 
 
@@ -347,10 +326,8 @@ def _gather_all_dataset_info(
     datasets_per_node: Dict[str, Dict[str, Dict[str, str]]],
 ) -> Tuple[Dict[str, Dict[str, str]], Dict[str, Dict[str, str]]]:
     """
-
     Args:
         datasets_per_node: The datasets for each node available in the system
-
     Returns:
         A tuple with:
          1. The location of each dataset.
@@ -358,9 +335,7 @@ def _gather_all_dataset_info(
     """
     datasets_locations = {}
     aggregated_datasets = {}
-
     for node_id, datasets_per_data_model in datasets_per_node.items():
-
         for data_model, datasets in datasets_per_data_model.items():
             current_labels = (
                 aggregated_datasets[data_model]
@@ -372,11 +347,9 @@ def _gather_all_dataset_info(
                 if data_model in datasets_locations
                 else {}
             )
-
             for dataset in datasets:
                 current_labels[dataset] = datasets[dataset]
                 current_datasets[dataset] = node_id
-
             aggregated_datasets[data_model] = current_labels
             datasets_locations[data_model] = current_datasets
     return datasets_locations, aggregated_datasets
@@ -414,16 +387,13 @@ def _get_compatible_data_models(
     We need to check for each data model if the definitions across all nodes is the same.
     If the data model is not the same across all nodes containing it, we log the incompatibility.
     The data models with similar definitions across all nodes are returned.
-
     Parameters
     ----------
         data_model_cdes_across_nodes: the data_models each node has
-
     Returns
     ----------
         Dict[str, CommonDataElements]
             the data models with similar definitions across all nodes
-
     """
     data_models = {}
     for data_model, cdes_from_all_nodes in data_model_cdes_across_nodes.items():
@@ -437,7 +407,6 @@ def _get_compatible_data_models(
                 break
         else:
             data_models[data_model] = first_cdes
-
     return data_models
 
 
@@ -467,7 +436,6 @@ def _log_node_changes(_logger, old_nodes, new_nodes):
     added_nodes = set(new_nodes.keys()) - set(old_nodes.keys())
     for node in added_nodes:
         log_node_joined_federation(_logger, node)
-
     removed_nodes = set(old_nodes.keys()) - set(new_nodes.keys())
     for node in removed_nodes:
         log_node_left_federation(_logger, node)
@@ -477,7 +445,6 @@ def _log_data_model_changes(_logger, old_data_models, new_data_models):
     added_data_models = new_data_models.keys() - old_data_models.keys()
     for data_model in added_data_models:
         log_datamodel_added(data_model, _logger)
-
     removed_data_models = old_data_models.keys() - new_data_models.keys()
     for data_model in removed_data_models:
         log_datamodel_removed(data_model, _logger)
@@ -514,3 +481,9 @@ def _log_datasets_removed(_logger, old_datasets_locations, new_datasets_location
                 _logger,
                 old_datasets_locations[data_model][dataset],
             )
+
+
+def log_duplicated_datasets_in_node(data_model, datasets, logger, node_id):
+    logger.info(
+        f"Node '{node_id}' has dataset(s) that are not unique in the federation. Data model '{data_model}', datasets: '{datasets}'."
+    )
