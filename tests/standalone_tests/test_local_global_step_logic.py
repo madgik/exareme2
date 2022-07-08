@@ -41,10 +41,6 @@ def test_local_global_step_algorithms(
     request_dict,
     localnode1_node_service,
     load_data_localnode1,
-    localnode2_node_service,
-    load_data_localnode2,
-    localnodetmp_node_service,
-    load_data_localnodetmp,
     globalnode_node_service,
     controller_service,
 ):

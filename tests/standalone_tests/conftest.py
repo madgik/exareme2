@@ -35,11 +35,12 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
-ALGORITHMS_URL = "http://172.17.0.1:4500/algorithms"
-SMPC_ALGORITHMS_URL = "http://172.17.0.1:4501/algorithms"
-
-
 COMMON_IP = "172.17.0.1"
+
+ALGORITHMS_URL = f"http://{COMMON_IP}:4500/algorithms"
+SMPC_ALGORITHMS_URL = f"http://{COMMON_IP}::4501/algorithms"
+
+
 RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
 RABBITMQ_LOCALNODE1_NAME = "rabbitmq_test_localnode1"
 RABBITMQ_LOCALNODE2_NAME = "rabbitmq_test_localnode2"
@@ -142,12 +143,8 @@ def _search_for_string_in_logfile(
     for retry in range(retries):
         try:
             with open(logspath) as logfile:
-                content = logfile.read()
-                if retry > 99:
-                    print(f"{content=}")
-                    print(f"{log_to_search_for=}")
-                    print(f"{bool(re.search(log_to_search_for, content))=}")
-                if bool(re.search(log_to_search_for, content)):
+
+                if bool(re.search(log_to_search_for, logfile.read())):
                     return
         except FileNotFoundError:
             pass
@@ -633,7 +630,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
         env=env,
     )
 
-    # Check that celdery started
+    # Check that celery started
     _search_for_string_in_logfile("CELERY - FRAMEWORK - celery@.* ready.", logpath)
 
     print(f"Created node service with id '{node_id}' and process id '{proc.pid}'.")

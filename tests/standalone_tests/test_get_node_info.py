@@ -1,20 +1,9 @@
-import subprocess
 import uuid
-
-import fasteners
-import pytest
 
 from mipengine.node_info_DTOs import NodeInfo
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
-
-
-@pytest.fixture(autouse=True)
-def run_tests_sequentially():
-    with fasteners.InterProcessLock("semaphore.lock"):
-        yield
-
 
 node_info_per_node = {
     "testglobalnode": NodeInfo(
