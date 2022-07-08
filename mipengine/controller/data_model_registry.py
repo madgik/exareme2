@@ -1,3 +1,4 @@
+from logging import Logger
 from typing import Any
 from typing import Dict
 from typing import List
@@ -13,8 +14,8 @@ def _have_common_elements(a: List[Any], b: List[Any]):
 
 
 class DataModelRegistry(BaseModel):
-    data_models: Dict[str, CommonDataElements]
-    datasets_location: Dict[str, Dict[str, List[str]]]
+    data_models: Dict[str, CommonDataElements] = {}
+    datasets_locations: Dict[str, Dict[str, str]] = {}
 
     class Config:
         allow_mutation = False
@@ -29,17 +30,17 @@ class DataModelRegistry(BaseModel):
         system as keys and lists of datasets as values. Without duplicates
         """
         return {
-            data_model: list(self.datasets_location[data_model].keys())
+            data_model: list(self.datasets_locations[data_model].keys())
             for data_model in self.data_models
         }
 
     def data_model_exists(self, data_model: str) -> bool:
-        return data_model in self.datasets_location
+        return data_model in self.datasets_locations
 
     def dataset_exists(self, data_model: str, dataset: str) -> bool:
         return (
-            data_model in self.datasets_location
-            and dataset in self.datasets_location[data_model]
+            data_model in self.datasets_locations
+            and dataset in self.datasets_locations[data_model]
         )
 
     def get_node_ids_with_any_of_datasets(
@@ -49,10 +50,9 @@ class DataModelRegistry(BaseModel):
             return []
 
         local_nodes_with_datasets = [
-            node
-            for dataset in self.datasets_location[data_model]
+            self.datasets_locations[data_model][dataset]
+            for dataset in self.datasets_locations[data_model]
             if dataset in datasets
-            for node in self.datasets_location[data_model][dataset]
         ]
         return list(set(local_nodes_with_datasets))
 
@@ -79,8 +79,8 @@ class DataModelRegistry(BaseModel):
 
         datasets_in_node = [
             dataset
-            for dataset in self.datasets_location[data_model]
+            for dataset in self.datasets_locations[data_model]
             if dataset in wanted_datasets
-            if node_id in self.datasets_location[data_model][dataset]
+            and node_id == self.datasets_locations[data_model][dataset]
         ]
         return datasets_in_node

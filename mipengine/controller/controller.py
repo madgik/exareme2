@@ -18,7 +18,6 @@ from mipengine.controller.algorithm_execution_tasks_handler import (
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
-from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.federation_info_logs import log_experiment_execution
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
@@ -175,8 +174,8 @@ class Controller:
             available_datasets_per_data_model=available_datasets_per_data_model,
         )
 
-    def get_datasets_location(self) -> Dict[str, Dict[str, List[str]]]:
-        return self._node_landscape_aggregator.get_datasets_location()
+    def get_datasets_locations(self) -> Dict[str, Dict[str, str]]:
+        return self._node_landscape_aggregator.get_datasets_locations()
 
     def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
         return self._node_landscape_aggregator.get_cdes_per_data_model()
