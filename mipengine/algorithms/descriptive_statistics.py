@@ -30,7 +30,6 @@ S = TypeVar("S")
 
 class DescriptiveResult(BaseModel):
     title: str
-    variable: List[str]
     numerical_variables: List[str]
     categorical_variables: List[str]
     categorical_counts: List[Dict]
@@ -79,29 +78,36 @@ def run(algo_interface):
     print(categorical_columns)
     print(numerical_columns)
 
+    categorical_columns = sorted(categorical_columns)
+    numerical_columns = sorted(numerical_columns)
+
     #categorical_relation = local_run(
     #    func=filter_categorical,
     #    positional_args=[X_relation,categorical_columns],
     #    share_to_global=[True],
     #)
-
-
-    local_result_categorical = local_run(
-        func=count_locals,
-        positional_args=[X_relation,categorical_columns],
-        share_to_global=[True],
-    )
-
-    global_categorical = global_run(
-        func=global_counts,
-        positional_args=[local_result_categorical,categorical_columns],
-        share_to_locals=[False]
-    )
-
-    global_categorical_res = json.loads(global_categorical.get_table_data()[1][0])
     categorical_counts_list = []
-    for curr_column in categorical_columns:
-        categorical_counts_list.append(global_categorical_res[curr_column])
+
+    if categorical_columns:
+        local_result_categorical = local_run(
+            func=count_locals,
+            positional_args=[X_relation,categorical_columns],
+            share_to_global=[True],
+        )
+
+        global_categorical = global_run(
+            func=global_counts,
+            positional_args=[local_result_categorical,categorical_columns],
+            share_to_locals=[False]
+        )
+
+        global_categorical_res = json.loads(global_categorical.get_table_data()[1][0])
+
+        for curr_column in categorical_columns:
+            categorical_counts_list.append(global_categorical_res[curr_column])
+
+
+
     """
     X_numeric = local_run(
         func=filter_numerical,
@@ -227,7 +233,6 @@ def run(algo_interface):
 
     result = DescriptiveResult(
         title="Descriptive Statistics",
-        variable= x_variables,
         numerical_variables= numerical_columns,
         categorical_variables= categorical_columns,
         categorical_counts = categorical_counts_list,
