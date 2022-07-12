@@ -10,6 +10,7 @@ from mipengine.udfgen.udfgenerator import merge_transfer
 from mipengine.udfgen.udfgenerator import relation
 from mipengine.udfgen.udfgenerator import transfer
 from mipengine.udfgen.udfgenerator import udf
+from mipengine.udfgen.udfgenerator import udf_logger
 
 
 class AnovaResult(BaseModel):
@@ -31,7 +32,7 @@ def run(algo_interface):
 
     covar_enums = list(algo_interface.metadata[x_var_name]["enumerations"])
 
-    sec_local_transfers, local_transfers = local_run(
+    sec_local_transfer, local_transfers = local_run(
         func=local1,
         keyword_args=dict(y=Y_relation, x=X_relation, covar_enums=covar_enums),
         share_to_global=[True, True],
@@ -40,7 +41,7 @@ def run(algo_interface):
     result = global_run(
         func=global1,
         keyword_args=dict(
-            sec_local_transfers=sec_local_transfers, local_transfers=local_transfers
+            sec_local_transfer=sec_local_transfer, local_transfers=local_transfers
         ),
     )
 
@@ -158,6 +159,11 @@ def local1(y, x, covar_enums):
         diff_df["max_per_group"] = sys.float_info.min
         group_stats_df = group_stats.append(diff_df)
 
+    group_stats_df["groups"] = pd.Categorical(
+        group_stats_df.index, categories=covar_enums.tolist(), ordered=True
+    )
+    group_stats_df.sort_values("groups", inplace=True)
+
     sec_transfer_ = {}
     sec_transfer_["n_obs"] = {"data": n_obs, "operation": "sum", "type": "int"}
     sec_transfer_["overall_stats_sum"] = {
@@ -211,35 +217,33 @@ def local1(y, x, covar_enums):
 
 
 @udf(
-    sec_local_transfers=secure_transfer(sum_op=True, min_op=True, max_op=True),
+    sec_local_transfer=secure_transfer(sum_op=True, min_op=True, max_op=True),
     local_transfers=merge_transfer(),
     return_type=[transfer()],
 )
-def global1(sec_local_transfers, local_transfers):
+def global1(sec_local_transfer, local_transfers):
     import itertools
 
     import numpy as np
     import scipy.stats as st
     from statsmodels.stats.libqsturng import psturng
 
-    n_obs = sec_local_transfers["n_obs"]
+    n_obs = sec_local_transfer["n_obs"]
     var_label = [t["var_label"] for t in local_transfers][0]
     covar_label = [t["covar_label"] for t in local_transfers][0]
-    var_min_per_group = np.array(sec_local_transfers["min_per_group"])
-    var_max_per_group = np.array(sec_local_transfers["max_per_group"])
-    overall_stats_sum = np.array(sec_local_transfers["overall_stats_sum"])
-    overall_stats_count = np.array(sec_local_transfers["overall_stats_count"])
-    overall_ssq = np.array(sec_local_transfers["overall_ssq"])
-    group_stats_sum = np.array(sec_local_transfers["group_stats_sum"])
-    group_stats_count = np.array(sec_local_transfers["group_stats_count"])
-    group_ssq = np.array(sec_local_transfers["group_stats_ssq"])
+    var_min_per_group = np.array(sec_local_transfer["min_per_group"])
+    var_max_per_group = np.array(sec_local_transfer["max_per_group"])
+    overall_stats_sum = np.array(sec_local_transfer["overall_stats_sum"])
+    overall_stats_count = np.array(sec_local_transfer["overall_stats_count"])
+    overall_ssq = np.array(sec_local_transfer["overall_ssq"])
+    group_stats_sum = np.array(sec_local_transfer["group_stats_sum"])
+    group_stats_count = np.array(sec_local_transfer["group_stats_count"])
+    group_ssq = np.array(sec_local_transfer["group_stats_ssq"])
     group_stats_index_all = [t["group_stats_df_index"] for t in local_transfers]
 
     group_stats_index = group_stats_index_all[0]
     if len(group_stats_index_all) > 1:
-        for x, y in itertools.combinations(
-            group_stats_index_all, len(group_stats_index_all)
-        ):
+        for x, y in itertools.combinations(group_stats_index_all, 2):
             group_stats_index = x
             diff = list(set(x) - set(y))
             if diff != []:
