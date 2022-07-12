@@ -12,15 +12,11 @@ from mipengine.singleton import Singleton
 INTEGRITY_ERROR_RETRY_INTERVAL = 1
 BROKEN_PIPE_MAX_ATTEMPTS = 50
 BROKEN_PIPE_ERROR_RETRY = 0.2
-CREATE_OR_REPLACE_QUERY_TIMEOUT = 1
-CREATE_REMOTE_TABLE_QUERY_TIMEOUT = 1
-INSERT_INTO_QUERY_TIMEOUT = (
+QUERY_EXECUTION_LOCK_TIMEOUT = (
     node_config.celery.worker_concurrency * node_config.celery.run_udf_time_limit
 )
 
-create_remote_table_query_lock = Semaphore()
-create_function_query_lock = Semaphore()
-insert_query_lock = Semaphore()
+query_execution_lock = Semaphore()
 
 
 class DBExecutionDTO:
@@ -176,14 +172,8 @@ def _execute(query: str, parameters=None, many=False, conn=None):
         f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
     )
 
-    if "CREATE OR REPLACE FUNCTION" in db_execution_dto.query:
-        with _lock(create_function_query_lock, CREATE_OR_REPLACE_QUERY_TIMEOUT):
-            _execute_and_commit(conn, db_execution_dto)
-    elif "CREATE REMOTE" in db_execution_dto.query:
-        with _lock(create_remote_table_query_lock, CREATE_REMOTE_TABLE_QUERY_TIMEOUT):
-            _execute_and_commit(conn, db_execution_dto)
-    elif "INSERT INTO" in db_execution_dto.query:
-        with _lock(insert_query_lock, INSERT_INTO_QUERY_TIMEOUT):
+    if "CREATE" or "INSERT" or "DROP" in db_execution_dto.query:
+        with _lock(query_execution_lock, QUERY_EXECUTION_LOCK_TIMEOUT):
             _execute_and_commit(conn, db_execution_dto)
     else:
         _execute_and_commit(conn, db_execution_dto)
