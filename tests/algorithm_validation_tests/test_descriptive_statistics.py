@@ -36,6 +36,8 @@ def test_descriptive_algorithm(test_input, expected):
 
     assert response.status_code == 200
     assert result["categorical_counts"] == expected["categorical_counts"]
+    assert result["categorical_variables"] == expected["categorical_columns"]
+    assert result["numerical_variables"] == expected["numerical_columns"]
     np.testing.assert_allclose(
         result["max_model"],
         expected["max_model"],

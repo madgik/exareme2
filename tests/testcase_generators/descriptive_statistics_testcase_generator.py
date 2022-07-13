@@ -47,7 +47,9 @@ class DesciptiveStatisticsTestCaseGenerator(TestCaseGenerator):
             'min_model' : model_min.tolist(),
             "mean_model": model_mean.tolist(),
             'std_model' : model_std.tolist(),
-            'categorical_counts': categorical_counts
+            'categorical_counts': categorical_counts,
+            'numerical_columns' : numerical_columns_dataset,
+            'categorical_columns' : categorical_columns_dataset
 
         }
         return output
