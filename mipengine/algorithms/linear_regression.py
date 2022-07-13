@@ -108,10 +108,18 @@ class LinearRegression:
         sy = float(y.sum())
         n_obs = len(y)
         stransfer = {}
-        stransfer["xTx"] = {"data": xTx.to_numpy().tolist(), "operation": "sum"}
-        stransfer["xTy"] = {"data": xTy.to_numpy().tolist(), "operation": "sum"}
-        stransfer["sy"] = {"data": sy, "operation": "sum"}
-        stransfer["n_obs"] = {"data": n_obs, "operation": "sum"}
+        stransfer["xTx"] = {
+            "data": xTx.to_numpy().tolist(),
+            "operation": "sum",
+            "type": "float",
+        }
+        stransfer["xTy"] = {
+            "data": xTy.to_numpy().tolist(),
+            "operation": "sum",
+            "type": "float",
+        }
+        stransfer["sy"] = {"data": sy, "operation": "sum", "type": "float"}
+        stransfer["n_obs"] = {"data": n_obs, "operation": "sum", "type": "int"}
         return stransfer
 
     @staticmethod
@@ -201,8 +209,8 @@ class LinearRegression:
         tss = float(sum((y - y_mean) ** 2))
 
         stransfer = {}
-        stransfer["rss"] = {"data": rss, "operation": "sum"}
-        stransfer["tss"] = {"data": tss, "operation": "sum"}
+        stransfer["rss"] = {"data": rss, "operation": "sum", "type": "float"}
+        stransfer["tss"] = {"data": tss, "operation": "sum", "type": "float"}
         return stransfer
 
     @staticmethod

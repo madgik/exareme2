@@ -34,7 +34,7 @@ def smpc_local_step(table: DataFrame):
     sum_ = 0
     for element, *_ in table.values:
         sum_ += element
-    secure_transfer_ = {"sum": {"data": int(sum_), "operation": "sum"}}
+    secure_transfer_ = {"sum": {"data": int(sum_), "operation": "sum", "type": "int"}}
     return secure_transfer_
 
 

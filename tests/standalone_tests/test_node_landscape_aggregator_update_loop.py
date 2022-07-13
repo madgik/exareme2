@@ -99,6 +99,7 @@ def test_update_loop_node_service_down(
     load_data_localnodetmp,
     globalnode_node_service,
     localnodetmp_node_service,
+    reset_node_landscape_aggregator,
 ):
     localnodetmp_node_id = get_localnodetmp_node_id()
 
@@ -110,7 +111,7 @@ def test_update_loop_node_service_down(
     while (
         not localnodetmp_node_id in node_landscape_aggregator.get_all_local_nodes()
         or not node_landscape_aggregator.get_cdes_per_data_model()
-        or not node_landscape_aggregator.get_datasets_location()
+        or not node_landscape_aggregator.get_datasets_locations()
     ):
         if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(
@@ -169,6 +170,7 @@ def test_update_loop_rabbitmq_down(
     load_data_localnodetmp,
     globalnode_node_service,
     localnodetmp_node_service,
+    reset_node_landscape_aggregator,
 ):
     # get tmp localnode node_id from config file
     localnodetmp_node_id = get_localnodetmp_node_id()
@@ -181,7 +183,7 @@ def test_update_loop_rabbitmq_down(
     while (
         not localnodetmp_node_id in node_landscape_aggregator.get_all_local_nodes()
         or not node_landscape_aggregator.get_cdes_per_data_model()
-        or not node_landscape_aggregator.get_datasets_location()
+        or not node_landscape_aggregator.get_datasets_locations()
     ):
         if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(
@@ -240,6 +242,7 @@ def test_update_loop_data_models_removed(
     load_data_localnodetmp,
     globalnode_node_service,
     localnodetmp_node_service,
+    reset_node_landscape_aggregator,
 ):
 
     # get tmp localnode node_id from config file
@@ -253,7 +256,7 @@ def test_update_loop_data_models_removed(
     while (
         not localnodetmp_node_id in node_landscape_aggregator.get_all_local_nodes()
         or not node_landscape_aggregator.get_cdes_per_data_model()
-        or not node_landscape_aggregator.get_datasets_location()
+        or not node_landscape_aggregator.get_datasets_locations()
     ):
         if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(
