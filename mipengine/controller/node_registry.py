@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import List
 
 from pydantic import BaseModel
 
@@ -7,28 +7,19 @@ from mipengine.node_info_DTOs import NodeRole
 
 
 class NodeRegistry(BaseModel):
-    nodes: Dict[str, NodeInfo] = {}
+    global_node: NodeInfo = None
+    local_nodes: List[NodeInfo] = []
 
     class Config:
         allow_mutation = False
         arbitrary_types_allowed = True
 
-    def _get_all_global_nodes(self) -> Dict[str, NodeInfo]:
-        return {
-            node_id: node_info
-            for node_id, node_info in self.nodes.items()
-            if node_info.role == NodeRole.GLOBALNODE
-        }
-
-    def get_global_node(self) -> NodeInfo:
-        return list(self._get_all_global_nodes().values())[0]
-
-    def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
-        return {
-            node_id: node_info
-            for node_id, node_info in self.nodes.items()
-            if node_info.role == NodeRole.LOCALNODE
-        }
+    def get_nodes(self) -> List[NodeInfo]:
+        return (
+            self.local_nodes + [self.global_node]
+            if self.global_node and self.local_nodes
+            else []
+        )
 
     def get_node_info(self, node_id: str) -> NodeInfo:
-        return self.nodes[node_id]
+        return {node_info.id: node_info for node_info in self.get_nodes()}[node_id]

@@ -188,7 +188,7 @@ class Controller:
             self._node_landscape_aggregator.get_all_available_datasets_per_data_model()
         )
 
-    def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
+    def get_all_local_nodes(self) -> List[NodeInfo]:
         return self._node_landscape_aggregator.get_all_local_nodes()
 
     def get_global_node(self) -> NodeInfo:
