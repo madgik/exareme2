@@ -10,6 +10,8 @@ import pandas as pd
 import pymonetdb
 from tqdm import tqdm
 
+import traceback
+
 from mipengine.node.monetdb_interface.monet_db_facade import _MonetDBConnectionPool
 
 TESTING_DATAMODEL = "dementia:0.1"
@@ -365,8 +367,8 @@ class TestCaseGenerator(ABC):
             full_data = full_data[full_data.dataset.isin(datasets)]
             del full_data["dataset"]
 
-        full_data = full_data.dropna()
-        if len(full_data) == 0:
+        full_data_nn = full_data.dropna()
+        if len(full_data_nn) == 0:
             return None
 
         y_data = full_data[y]
@@ -391,6 +393,8 @@ class TestCaseGenerator(ABC):
             datatypes['nominal'] = self._db.get_nominal_variables()
             output = self.compute_expected_output(input_data, parameters,datatypes)
         except Exception as err:
+
+            traceback.print_exc()
             raise Exception(f"{err}, datasets: {input_['inputdata']['datasets']}")
 
         return {"input": input_, "output": output}

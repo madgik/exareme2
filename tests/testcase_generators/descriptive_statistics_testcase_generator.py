@@ -16,7 +16,8 @@ class DesciptiveStatisticsTestCaseGenerator(TestCaseGenerator):
         numerical_columns_dataset = sorted(list(set(all_columns_dataset).intersection(set(numerical_columns))))
         categorical_columns_dataset = sorted(list(set(all_columns_dataset).intersection(set(categorical_columns))))
 
-        X = full_dataset[numerical_columns_dataset].values
+        #X = full_dataset[numerical_columns_dataset].dropna().values
+        X = full_dataset[numerical_columns_dataset].fillna(numpy.nan).values
         categoricals_df = full_dataset[categorical_columns_dataset]
 
         categorical_counts = []
