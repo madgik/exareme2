@@ -1,13 +1,14 @@
 import json
 import uuid
 from time import sleep
+from typing import Any
 from typing import Tuple
 
 import pytest
 import requests
+from celery import Celery
 
 from mipengine import DType
-from mipengine.controller.celery_app import CeleryWrapper
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
 from mipengine.node_tasks_DTOs import NodeSMPCValueDTO
@@ -32,7 +33,6 @@ from tests.standalone_tests.conftest import LOCALNODE2_SMPC_CONFIG_FILE
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import get_node_config_by_id
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
-from tests.standalone_tests.test_udfs import create_table_with_one_column_and_ten_rows
 
 request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
 context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
@@ -42,18 +42,38 @@ SMPC_GET_DATASET_ENDPOINT = "/api/update-dataset/"
 SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
 
 
-class StdOutputLogger:
-    def info(msg: str, *args, **kwargs):
-        print(msg)
+def create_table_with_one_column_and_ten_rows(celery_app: Celery) -> Tuple[str, int]:
+    create_table_task = get_celery_task_signature("create_table")
+    insert_data_to_table_task = get_celery_task_signature("insert_data_to_table")
 
-    def debug(msg: str, *args, **kwargs):
-        print(msg)
+    table_schema = TableSchema(
+        columns=[
+            ColumnInfo(name="col1", dtype=DType.INT),
+        ]
+    )
+    table_name = (
+        celery_app.signature(create_table_task)
+        .delay(
+            request_id=request_id,
+            context_id=context_id,
+            command_id=uuid.uuid4().hex,
+            schema_json=table_schema.json(),
+        )
+        .get(timeout=TASKS_TIMEOUT)
+    )
 
-    def error(msg: str, *args, **kwargs):
-        print(msg)
+    values = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
+
+    celery_app.signature(insert_data_to_table_task).delay(
+        request_id=request_id,
+        table_name=table_name,
+        values=values,
+    ).get(timeout=TASKS_TIMEOUT)
+
+    return table_name, 55
 
 
-def create_secure_transfer_table(celery_app) -> str:
+def create_secure_transfer_table(celery_app: Celery) -> str:
     task_signature = get_celery_task_signature("create_table")
 
     table_schema = TableSchema(
@@ -62,23 +82,22 @@ def create_secure_transfer_table(celery_app) -> str:
             ColumnInfo(name="secure_transfer", dtype=DType.JSON),
         ]
     )
-    async_result = celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        context_id=context_id,
-        command_id=uuid.uuid4().hex,
-        schema_json=table_schema.json(),
-    )
-    table_name = celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    table_name = (
+        celery_app.signature(task_signature)
+        .delay(
+            request_id=request_id,
+            context_id=context_id,
+            command_id=uuid.uuid4().hex,
+            schema_json=table_schema.json(),
+        )
+        .get(timeout=TASKS_TIMEOUT)
     )
     return table_name
 
 
 # TODO More dynamic so it can receive any secure_transfer values
 def create_table_with_secure_transfer_results_with_smpc_off(
-    celery_app,
+    celery_app: Celery,
 ) -> Tuple[str, int]:
     task_signature = get_celery_task_signature("insert_data_to_table")
 
@@ -98,22 +117,17 @@ def create_table_with_secure_transfer_results_with_smpc_off(
         ["localnode2", json.dumps(secure_transfer_2)],
     ]
 
-    async_result = celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
+    celery_app.signature(task_signature).delay(
         request_id=request_id,
         table_name=table_name,
         values=values,
-    )
-    celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+    ).get(timeout=TASKS_TIMEOUT)
 
     return table_name, secure_transfer_1_value + secure_transfer_2_value
 
 
 def create_table_with_multiple_secure_transfer_templates(
-    celery_app, similar: bool
+    celery_app: Celery, similar: bool
 ) -> str:
     task_signature = get_celery_task_signature("insert_data_to_table")
 
@@ -137,21 +151,16 @@ def create_table_with_multiple_secure_transfer_templates(
             ["localnode2", json.dumps(different_secure_transfer_template)],
         ]
 
-    async_result = celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
+    celery_app.signature(task_signature).delay(
         request_id=request_id,
         table_name=table_name,
         values=values,
-    )
-    celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+    ).get(timeout=TASKS_TIMEOUT)
 
     return table_name
 
 
-def create_table_with_smpc_sum_op_values(celery_app) -> Tuple[str, str]:
+def create_table_with_smpc_sum_op_values(celery_app: Celery) -> Tuple[str, str]:
     task_signature = get_celery_task_signature("insert_data_to_table")
 
     table_name = create_secure_transfer_table(celery_app)
@@ -161,36 +170,28 @@ def create_table_with_smpc_sum_op_values(celery_app) -> Tuple[str, str]:
         ["localnode1", json.dumps(sum_op_values)],
     ]
 
-    async_result = celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
+    celery_app.signature(task_signature).delay(
         request_id=request_id,
         table_name=table_name,
         values=values,
-    )
-    celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+    ).get(timeout=TASKS_TIMEOUT)
 
     return table_name, json.dumps(sum_op_values)
 
 
-def validate_dict_table_data_match_expected(
-    celery_app: CeleryWrapper,
+def validate_table_data_match_expected(
+    celery_app: Celery,
     get_table_data_task_signature: str,
     table_name: str,
-    expected_values: dict,
+    expected_values: Any,
 ):
     assert table_name is not None
-    async_result = celery_app.queue_task(
-        task_signature=get_table_data_task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=table_name,
+    table_data_str = (
+        celery_app.signature(get_table_data_task_signature)
+        .delay(request_id=request_id, table_name=table_name)
+        .get()
     )
-    table_data_str = celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+
     table_data: TableData = TableData.parse_raw(table_data_str)
     result_str, *_ = table_data.columns[1].data
     result = json.loads(result_str)
@@ -200,27 +201,26 @@ def validate_dict_table_data_match_expected(
 def test_secure_transfer_output_with_smpc_off(
     localnode1_node_service, use_localnode1_database, localnode1_celery_app
 ):
+    localnode1_celery_app = localnode1_celery_app._celery_app
     run_udf_task = get_celery_task_signature("run_udf")
-
     get_table_data_task = get_celery_task_signature("get_table_data")
+
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
         localnode1_celery_app
     )
 
     pos_args_str = UDFPosArguments(args=[NodeTableDTO(value=input_table_name)]).json()
-
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=run_udf_task,
-        logger=StdOutputLogger(),
-        command_id="1",
-        request_id=request_id,
-        context_id=context_id,
-        func_name=make_unique_func_name(smpc_local_step),
-        positional_args_json=pos_args_str,
-        keyword_args_json=UDFKeyArguments(args={}).json(),
-    )
-    udf_results_str = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    udf_results_str = (
+        localnode1_celery_app._celery_app.signature(run_udf_task)
+        .delay(
+            command_id="1",
+            request_id=request_id,
+            context_id=context_id,
+            func_name=make_unique_func_name(smpc_local_step),
+            positional_args_json=pos_args_str,
+            keyword_args_json=UDFKeyArguments(args={}).json(),
+        )
+        .get(timeout=TASKS_TIMEOUT)
     )
 
     results = UDFResults.parse_raw(udf_results_str).results
@@ -232,7 +232,7 @@ def test_secure_transfer_output_with_smpc_off(
     expected_result = {
         "sum": {"data": input_table_name_sum, "operation": "sum", "type": "int"}
     }
-    validate_dict_table_data_match_expected(
+    validate_table_data_match_expected(
         celery_app=localnode1_celery_app,
         get_table_data_task_signature=get_table_data_task,
         table_name=secure_transfer_result.value,
@@ -243,9 +243,10 @@ def test_secure_transfer_output_with_smpc_off(
 def test_secure_transfer_input_with_smpc_off(
     localnode1_node_service, use_localnode1_database, localnode1_celery_app
 ):
+    localnode1_celery_app = localnode1_celery_app._celery_app
     run_udf_task = get_celery_task_signature("run_udf")
-
     get_table_data_task = get_celery_task_signature("get_table_data")
+
     (
         secure_transfer_results_tablename,
         secure_transfer_results_values_sum,
@@ -255,18 +256,17 @@ def test_secure_transfer_input_with_smpc_off(
         args=[NodeTableDTO(value=secure_transfer_results_tablename)]
     ).json()
 
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=run_udf_task,
-        logger=StdOutputLogger(),
-        command_id="1",
-        request_id=request_id,
-        context_id=context_id,
-        func_name=make_unique_func_name(smpc_global_step),
-        positional_args_json=pos_args_str,
-        keyword_args_json=UDFKeyArguments(args={}).json(),
-    )
-    udf_results_str = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    udf_results_str = (
+        localnode1_celery_app.signature(run_udf_task)
+        .delay(
+            command_id="1",
+            request_id=request_id,
+            context_id=context_id,
+            func_name=make_unique_func_name(smpc_global_step),
+            positional_args_json=pos_args_str,
+            keyword_args_json=UDFKeyArguments(args={}).json(),
+        )
+        .get(timeout=TASKS_TIMEOUT)
     )
 
     results = UDFResults.parse_raw(udf_results_str).results
@@ -276,7 +276,7 @@ def test_secure_transfer_input_with_smpc_off(
     assert isinstance(transfer_result, NodeTableDTO)
 
     expected_result = {"total_sum": secure_transfer_results_values_sum}
-    validate_dict_table_data_match_expected(
+    validate_table_data_match_expected(
         celery_app=localnode1_celery_app,
         get_table_data_task_signature=get_table_data_task,
         table_name=transfer_result.value,
@@ -290,6 +290,7 @@ def test_validate_smpc_templates_match(
     use_smpc_localnode1_database,
     smpc_localnode1_celery_app,
 ):
+    smpc_localnode1_celery_app = smpc_localnode1_celery_app._celery_app
     validate_smpc_templates_match_task = get_celery_task_signature(
         "validate_smpc_templates_match"
     )
@@ -299,15 +300,10 @@ def test_validate_smpc_templates_match(
     )
 
     try:
-        async_result = smpc_localnode1_celery_app.queue_task(
-            task_signature=validate_smpc_templates_match_task,
-            logger=StdOutputLogger(),
+        smpc_localnode1_celery_app.signature(validate_smpc_templates_match_task).delay(
             request_id=request_id,
             table_name=table_name,
-        )
-        smpc_localnode1_celery_app.get_result(
-            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-        )
+        ).get(timeout=TASKS_TIMEOUT)
     except Exception as exc:
         pytest.fail(f"No exception should be raised. Exception: {exc}")
 
@@ -318,6 +314,7 @@ def test_validate_smpc_templates_dont_match(
     use_smpc_localnode1_database,
     smpc_localnode1_celery_app,
 ):
+    smpc_localnode1_celery_app = smpc_localnode1_celery_app._celery_app
     validate_smpc_templates_match_task = get_celery_task_signature(
         "validate_smpc_templates_match"
     )
@@ -327,15 +324,10 @@ def test_validate_smpc_templates_dont_match(
     )
 
     with pytest.raises(ValueError) as exc:
-        async_result = smpc_localnode1_celery_app.queue_task(
-            task_signature=validate_smpc_templates_match_task,
-            logger=StdOutputLogger(),
+        smpc_localnode1_celery_app.signature(validate_smpc_templates_match_task).delay(
             request_id=request_id,
             table_name=table_name,
-        )
-        smpc_localnode1_celery_app.get_result(
-            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-        )
+        ).get(timeout=TASKS_TIMEOUT)
     assert "SMPC templates dont match." in str(exc)
 
 
@@ -345,8 +337,8 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     use_smpc_localnode1_database,
     smpc_localnode1_celery_app,
 ):
+    smpc_localnode1_celery_app = smpc_localnode1_celery_app._celery_app
     run_udf_task = get_celery_task_signature("run_udf")
-
     get_table_data_task = get_celery_task_signature("get_table_data")
 
     # ----------------------- SECURE TRANSFER OUTPUT ----------------------
@@ -356,19 +348,18 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
 
     pos_args_str = UDFPosArguments(args=[NodeTableDTO(value=input_table_name)]).json()
 
-    async_result = smpc_localnode1_celery_app.queue_task(
-        task_signature=run_udf_task,
-        logger=StdOutputLogger(),
-        command_id="1",
-        request_id=request_id,
-        context_id=context_id,
-        func_name=make_unique_func_name(smpc_local_step),
-        positional_args_json=pos_args_str,
-        keyword_args_json=UDFKeyArguments(args={}).json(),
-        use_smpc=True,
-    )
-    udf_results_str = smpc_localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    udf_results_str = (
+        smpc_localnode1_celery_app.signature(run_udf_task)
+        .delay(
+            command_id="1",
+            request_id=request_id,
+            context_id=context_id,
+            func_name=make_unique_func_name(smpc_local_step),
+            positional_args_json=pos_args_str,
+            keyword_args_json=UDFKeyArguments(args={}).json(),
+            use_smpc=True,
+        )
+        .get(timeout=TASKS_TIMEOUT)
     )
 
     local_step_results = UDFResults.parse_raw(udf_results_str).results
@@ -379,7 +370,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
 
     assert smpc_result.value.template is not None
     expected_template = {"sum": {"data": 0, "operation": "sum", "type": "int"}}
-    validate_dict_table_data_match_expected(
+    validate_table_data_match_expected(
         celery_app=smpc_localnode1_celery_app,
         get_table_data_task_signature=get_table_data_task,
         table_name=smpc_result.value.template.value,
@@ -388,7 +379,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
 
     assert smpc_result.value.sum_op_values is not None
     expected_sum_op_values = [input_table_name_sum]
-    validate_dict_table_data_match_expected(
+    validate_table_data_match_expected(
         celery_app=smpc_localnode1_celery_app,
         get_table_data_task_signature=get_table_data_task,
         table_name=smpc_result.value.sum_op_values.value,
@@ -407,19 +398,18 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
 
     pos_args_str = UDFPosArguments(args=[smpc_arg]).json()
 
-    async_result = smpc_localnode1_celery_app.queue_task(
-        task_signature=run_udf_task,
-        logger=StdOutputLogger(),
-        command_id="2",
-        request_id=request_id,
-        context_id=context_id,
-        func_name=make_unique_func_name(smpc_global_step),
-        positional_args_json=pos_args_str,
-        keyword_args_json=UDFKeyArguments(args={}).json(),
-        use_smpc=True,
-    )
-    udf_results_str = smpc_localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    udf_results_str = (
+        smpc_localnode1_celery_app.signature(run_udf_task)
+        .delay(
+            command_id="2",
+            request_id=request_id,
+            context_id=context_id,
+            func_name=make_unique_func_name(smpc_global_step),
+            positional_args_json=pos_args_str,
+            keyword_args_json=UDFKeyArguments(args={}).json(),
+            use_smpc=True,
+        )
+        .get(timeout=TASKS_TIMEOUT)
     )
 
     global_step_results = UDFResults.parse_raw(udf_results_str).results
@@ -429,7 +419,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     assert isinstance(global_step_result, NodeTableDTO)
 
     expected_result = {"total_sum": input_table_name_sum}
-    validate_dict_table_data_match_expected(
+    validate_table_data_match_expected(
         celery_app=smpc_localnode1_celery_app,
         get_table_data_task_signature=get_table_data_task,
         table_name=global_step_result.value,
@@ -442,21 +432,17 @@ def test_load_data_to_smpc_client_from_globalnode_fails(
     smpc_globalnode_node_service,
     smpc_globalnode_celery_app,
 ):
+    smpc_globalnode_celery_app = smpc_globalnode_celery_app._celery_app
     load_data_to_smpc_client_task = get_celery_task_signature(
         "load_data_to_smpc_client"
     )
 
     with pytest.raises(PermissionError) as exc:
-        async_result = smpc_globalnode_celery_app.queue_task(
-            task_signature=load_data_to_smpc_client_task,
-            logger=StdOutputLogger(),
+        smpc_globalnode_celery_app.signature(load_data_to_smpc_client_task).delay(
             request_id=request_id,
             table_name="whatever",
             jobid="whatever",
-        )
-        smpc_globalnode_celery_app.get_result(
-            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-        )
+        ).get(timeout=TASKS_TIMEOUT)
     assert "load_data_to_smpc_client is allowed only for a LOCALNODE." in str(exc)
 
 
@@ -467,24 +453,19 @@ def test_load_data_to_smpc_client(
     smpc_localnode1_celery_app,
     smpc_cluster,
 ):
+    smpc_localnode1_celery_app = smpc_localnode1_celery_app._celery_app
     table_name, sum_op_values_str = create_table_with_smpc_sum_op_values(
         smpc_localnode1_celery_app
     )
-
     load_data_to_smpc_client_task = get_celery_task_signature(
         "load_data_to_smpc_client"
     )
 
-    async_result = smpc_localnode1_celery_app.queue_task(
-        task_signature=load_data_to_smpc_client_task,
-        logger=StdOutputLogger(),
+    smpc_localnode1_celery_app.signature(load_data_to_smpc_client_task).delay(
         request_id=request_id,
         table_name=table_name,
         jobid=smpc_job_id,
-    )
-    smpc_localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+    ).get(timeout=TASKS_TIMEOUT)
 
     node_config = get_node_config_by_id(LOCALNODE1_SMPC_CONFIG_FILE)
     request_url = (
@@ -498,11 +479,14 @@ def test_load_data_to_smpc_client(
 
     assert response.status_code == 200
 
-    # TODO Remove when smpc cluster call is fixed
-    # The problem is that the call returns the integers as string
-    # assert response.text == sum_op_values_str
-    result = json.loads(response.text)
-    result = [int(elem) for elem in result]
+    # This debugging call returns the values as strings
+    str_result = json.loads(response.text)
+    result = []
+    for i in range(0, len(str_result), 2):
+        result.append(int(str_result[i]))
+        assert (
+            str_result[i + 1] == 0
+        )  # The even elements are the decimal parts, that should be zero
     assert json.dumps(result) == sum_op_values_str
 
 
@@ -511,20 +495,16 @@ def test_get_smpc_result_from_localnode_fails(
     smpc_localnode1_node_service,
     smpc_localnode1_celery_app,
 ):
+    smpc_localnode1_celery_app = smpc_localnode1_celery_app._celery_app
     get_smpc_result_task = get_celery_task_signature("get_smpc_result")
 
     with pytest.raises(PermissionError) as exc:
-        async_result = smpc_localnode1_celery_app.queue_task(
-            task_signature=get_smpc_result_task,
-            logger=StdOutputLogger(),
+        smpc_localnode1_celery_app.signature(get_smpc_result_task).delay(
             request_id="whatever",
             context_id="whatever",
             command_id="whatever",
             jobid="whatever",
-        )
-        smpc_localnode1_celery_app.get_result(
-            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-        )
+        ).get(timeout=TASKS_TIMEOUT)
     assert "get_smpc_result is allowed only for a GLOBALNODE." in str(exc)
 
 
@@ -535,8 +515,8 @@ def test_get_smpc_result(
     smpc_globalnode_celery_app,
     smpc_cluster,
 ):
+    smpc_globalnode_celery_app = smpc_globalnode_celery_app._celery_app
     get_smpc_result_task = get_celery_task_signature("get_smpc_result")
-
     get_table_data_task = get_celery_task_signature("get_table_data")
 
     # --------------- LOAD Dataset to SMPC --------------------
@@ -583,18 +563,18 @@ def test_get_smpc_result(
         raise TimeoutError("SMPC did not finish in 100 tries.")
 
     # --------------- GET SMPC RESULT IN GLOBALNODE ------------------------
-    async_result = smpc_globalnode_celery_app.queue_task(
-        task_signature=get_smpc_result_task,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        context_id=context_id,
-        command_id=command_id,
-        jobid=smpc_job_id,
+    result_tablename = (
+        smpc_globalnode_celery_app.signature(get_smpc_result_task)
+        .delay(
+            request_id=request_id,
+            context_id=context_id,
+            command_id=command_id,
+            jobid=smpc_job_id,
+        )
+        .get(timeout=TASKS_TIMEOUT)
     )
-    result_tablename = smpc_globalnode_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    validate_dict_table_data_match_expected(
+
+    validate_table_data_match_expected(
         celery_app=smpc_globalnode_celery_app,
         get_table_data_task_signature=get_table_data_task,
         table_name=result_tablename,
@@ -615,38 +595,41 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_localnode2_celery_app,
     smpc_cluster,
 ):
-    run_udf_task_globalnode = get_celery_task_signature(
-        smpc_globalnode_celery_app, "run_udf"
+    smpc_globalnode_celery_app = smpc_globalnode_celery_app._celery_app
+    smpc_localnode1_celery_app = smpc_localnode1_celery_app._celery_app
+    smpc_localnode2_celery_app = smpc_localnode2_celery_app._celery_app
+
+    run_udf_task_globalnode = smpc_globalnode_celery_app.signature(
+        get_celery_task_signature("run_udf")
     )
-    run_udf_task_localnode1 = get_celery_task_signature(
-        smpc_localnode1_celery_app, "run_udf"
+    run_udf_task_localnode1 = smpc_localnode1_celery_app.signature(
+        get_celery_task_signature("run_udf")
     )
-    run_udf_task_localnode2 = get_celery_task_signature(
-        smpc_localnode2_celery_app, "run_udf"
+    run_udf_task_localnode2 = smpc_localnode2_celery_app.signature(
+        get_celery_task_signature("run_udf")
     )
-    get_table_schema_task_localnode1 = get_celery_task_signature(
-        smpc_localnode1_celery_app, "get_table_schema"
+    get_table_schema_task_localnode1 = smpc_localnode1_celery_app.signature(
+        get_celery_task_signature("get_table_schema")
     )
-    create_remote_table_task_globalnode = get_celery_task_signature(
-        smpc_globalnode_celery_app, "create_remote_table"
+    create_remote_table_task_globalnode = smpc_globalnode_celery_app.signature(
+        get_celery_task_signature("create_remote_table")
     )
-    create_merge_table_task_globalnode = get_celery_task_signature(
-        smpc_globalnode_celery_app, "create_merge_table"
+    create_merge_table_task_globalnode = smpc_globalnode_celery_app.signature(
+        get_celery_task_signature("create_merge_table")
     )
-    get_table_data_task_globalnode = get_celery_task_signature(
-        smpc_globalnode_celery_app, "get_table_data"
+    validate_smpc_templates_match_task_globalnode = (
+        smpc_globalnode_celery_app.signature(
+            get_celery_task_signature("validate_smpc_templates_match")
+        )
     )
-    validate_smpc_templates_match_task_globalnode = get_celery_task_signature(
-        smpc_globalnode_celery_app, "validate_smpc_templates_match"
+    load_data_to_smpc_client_task_localnode1 = smpc_localnode1_celery_app.signature(
+        get_celery_task_signature("load_data_to_smpc_client")
     )
-    load_data_to_smpc_client_task_localnode1 = get_celery_task_signature(
-        smpc_localnode1_celery_app, "load_data_to_smpc_client"
+    load_data_to_smpc_client_task_localnode2 = smpc_localnode2_celery_app.signature(
+        get_celery_task_signature("load_data_to_smpc_client")
     )
-    load_data_to_smpc_client_task_localnode2 = get_celery_task_signature(
-        smpc_localnode2_celery_app, "load_data_to_smpc_client"
-    )
-    get_smpc_result_task_globalnode = get_celery_task_signature(
-        smpc_globalnode_celery_app, "get_smpc_result"
+    get_smpc_result_task_globalnode = smpc_globalnode_celery_app.signature(
+        get_celery_task_signature("get_smpc_result")
     )
 
     # ---------------- CREATE LOCAL TABLES WITH INITIAL DATA ----------------------
@@ -812,8 +795,9 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     assert isinstance(global_step_result, NodeTableDTO)
 
     expected_result = {"total_sum": input_table_1_name_sum + input_table_2_name_sum}
-    validate_dict_table_data_match_expected(
-        get_table_data_task_globalnode,
-        global_step_result.value,
-        expected_result,
+    validate_table_data_match_expected(
+        celery_app=smpc_globalnode_celery_app,
+        get_table_data_task_signature=get_celery_task_signature("get_table_data"),
+        table_name=global_step_result.value,
+        expected_values=expected_result,
     )
