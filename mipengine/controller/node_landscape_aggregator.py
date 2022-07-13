@@ -113,16 +113,16 @@ def _get_node_socket_addr(node_info: NodeInfo):
     return f"{node_info.ip}:{node_info.port}"
 
 
-class DatasetInfos(BaseModel):
+class DatasetInfo(BaseModel):
     values: Dict[str, str]
 
 
-class DatamodelInfos(BaseModel):
-    values: Dict[str, Tuple[DatasetInfos, CommonDataElements]]
+class DatamodelInfo(BaseModel):
+    values: Dict[str, Tuple[DatasetInfo, CommonDataElements]]
 
 
 class FederationInfo(BaseModel):
-    values: Dict[str, DatamodelInfos]
+    values: Dict[str, DatamodelInfo]
 
 
 class _NLARegistries(BaseModel):
@@ -169,9 +169,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 dmr = data_model_registry_data_cruncing(federated_node_infos)
 
                 self.set_new_registries(node_registry, dmr)
-                logger.info(
-                    f"{dmr.data_models.keys()=}\n--------------------------------\n{dmr.datasets_locations=}"
-                )
+
                 logger.debug(
                     f"Nodes:{[node for node in self._registries.node_registry.get_nodes()]}"
                 )
@@ -314,8 +312,8 @@ def _get_federated_node_infos(
                 cdes = _get_node_cdes(node_socket_addr, data_model)
                 if not cdes:
                     continue
-                fdmi[data_model] = (DatasetInfos(values=datasets), cdes)
-        fni[node_info.id] = DatamodelInfos(values=fdmi)
+                fdmi[data_model] = (DatasetInfo(values=datasets), cdes)
+        fni[node_info.id] = DatamodelInfo(values=fdmi)
 
     return FederationInfo(values=fni)
 
@@ -327,26 +325,40 @@ def _gather_all_dataset_info(federated_node_infos):
         for data_model, datasets_and_cdes in fdmi.values.items():
             datasets, _ = datasets_and_cdes
 
-            if data_model not in datasets_locations:
-                datasets_locations[data_model] = {}
-
-            if data_model not in aggregated_datasets:
-                aggregated_datasets[data_model] = {}
+            current_labels = (
+                aggregated_datasets[data_model]
+                if data_model in aggregated_datasets
+                else {}
+            )
+            current_datasets = (
+                datasets_locations[data_model]
+                if data_model in datasets_locations
+                else {}
+            )
 
             for dataset_name, dataset_label in datasets.values.items():
-                if dataset_name in datasets_locations[data_model]:
-                    nodes = [
-                        node_id,
-                        datasets_locations[data_model][dataset_name],
-                    ]
-                    del datasets_locations[data_model][dataset_name]
-                    del aggregated_datasets[data_model][dataset_name]
+                current_labels[dataset_name] = dataset_label
 
-                    _log_duplicated_dataset(nodes, data_model, dataset_name)
-                    continue
-                datasets_locations[data_model][dataset_name] = node_id
-                aggregated_datasets[data_model][dataset_name] = dataset_label
-    return datasets_locations, aggregated_datasets
+                if dataset_name in current_datasets:
+                    current_datasets[dataset_name].append(node_id)
+                else:
+                    current_datasets[dataset_name] = [node_id]
+
+            aggregated_datasets[data_model] = current_labels
+            datasets_locations[data_model] = current_datasets
+
+    datasets_locations_without_duplicates = {}
+    for data_model, dataset_locations in datasets_locations.items():
+        datasets_locations_without_duplicates[data_model] = {}
+
+        for dataset, node_ids in dataset_locations.items():
+            if len(node_ids) == 1:
+                datasets_locations_without_duplicates[data_model][dataset] = node_ids[0]
+            else:
+                del aggregated_datasets[data_model][dataset]
+                _log_duplicated_dataset(node_ids, data_model, dataset)
+
+    return datasets_locations_without_duplicates, aggregated_datasets
 
 
 def _get_data_models(federated_node_infos, aggregated_datasets):
@@ -392,7 +404,7 @@ def _remove_incompatible_data_models(
                 validation_dictionary[data_model] = (node_id, cdes)
 
     compatible_federated_node_infos = {
-        node_id: DatamodelInfos(
+        node_id: DatamodelInfo(
             values={
                 data_model: datasets_and_cdes
                 for data_model, datasets_and_cdes in fdmi.values.items()
@@ -461,7 +473,7 @@ def _log_datasets_removed(old_datasets_locations, new_datasets_locations):
 
 def _log_incompatible_data_models(nodes, data_model, conflicting_cdes):
     logger.info(
-        f"""Nodes: ''[{", ".join(nodes)}]'' on data model '{data_model}' have incompatibility on the following cdes: '[{", ".join(conflicting_cdes)}]' """
+        f"""Nodes: '[{", ".join(nodes)}]' on data model '{data_model}' have incompatibility on the following cdes: '[{", ".join([cdes.__str__() for cdes in conflicting_cdes])}]' """
     )
 
 
