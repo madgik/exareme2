@@ -172,8 +172,5 @@ def _execute(query: str, parameters=None, many=False, conn=None):
         f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
     )
 
-    if "CREATE" or "INSERT" or "DROP" in db_execution_dto.query:
-        with _lock(query_execution_lock, QUERY_EXECUTION_LOCK_TIMEOUT):
-            _execute_and_commit(conn, db_execution_dto)
-    else:
+    with _lock(query_execution_lock, QUERY_EXECUTION_LOCK_TIMEOUT):
         _execute_and_commit(conn, db_execution_dto)
