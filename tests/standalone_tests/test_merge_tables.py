@@ -133,6 +133,7 @@ def test_create_and_get_merge_table(
     assert merge_table_1_name in merge_tables
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-649")
 def test_incompatible_schemas_merge(
     request_id,
     context_id,
