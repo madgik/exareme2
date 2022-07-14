@@ -27,7 +27,7 @@ def get_parametrization_list_success_cases():
                 "edsd8",
                 "edsd9",
             ],
-            "x": [
+            "y": [
                 "lefthippocampus",
             ],
             "filters": {
@@ -73,7 +73,7 @@ def get_parametrization_list_success_cases():
         "title": "Standard Deviation",
         "columns": [
             {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.3611575592573076], "type": "FLOAT"},
+            {"name": "std_deviation", "data": [0.35797549230253856], "type": "FLOAT"},
             {"name": "min_value", "data": [1.0], "type": "FLOAT"},
             {"name": "max_value", "data": [4.0], "type": "FLOAT"},
         ],
@@ -105,7 +105,7 @@ def get_parametrization_list_success_cases():
                 "edsd8",
                 "edsd9",
             ],
-            "x": [
+            "y": [
                 "lefthippocampus",
             ],
             "filters": {
@@ -154,7 +154,7 @@ def get_parametrization_list_success_cases():
         "title": "Standard Deviation",
         "columns": [
             {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.3611575592573076], "type": "FLOAT"},
+            {"name": "std_deviation", "data": [0.35797549230253856], "type": "FLOAT"},
             {"name": "min_value", "data": [1.0], "type": "FLOAT"},
             {"name": "max_value", "data": [4.0], "type": "FLOAT"},
         ],
@@ -186,7 +186,7 @@ def get_parametrization_list_success_cases():
                 "edsd8",
                 "edsd9",
             ],
-            "x": [
+            "y": [
                 "lefthippocampus",
             ],
             "filters": {
@@ -232,7 +232,7 @@ def get_parametrization_list_success_cases():
         "title": "Standard Deviation",
         "columns": [
             {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.3634506955662605], "type": "FLOAT"},
+            {"name": "std_deviation", "data": [0.36345069556304765], "type": "FLOAT"},
             {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
             {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
         ],
@@ -264,7 +264,7 @@ def get_parametrization_list_success_cases():
                 "edsd8",
                 "edsd9",
             ],
-            "x": [
+            "y": [
                 "lefthippocampus",
             ],
             "filters": {
@@ -313,7 +313,7 @@ def get_parametrization_list_success_cases():
         "title": "Standard Deviation",
         "columns": [
             {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.3634506955662605], "type": "FLOAT"},
+            {"name": "std_deviation", "data": [0.36345069556304765], "type": "FLOAT"},
             {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
             {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
         ],
@@ -330,7 +330,6 @@ def get_parametrization_list_success_cases():
     return parametrization_list
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
 @pytest.mark.smpc
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
@@ -378,7 +377,7 @@ def get_parametrization_list_exception_cases():
                 "edsd8",
                 "edsd9",
             ],
-            "x": [
+            "y": [
                 "lefthippocampus",
             ],
             "filters": {
@@ -434,7 +433,6 @@ def get_parametrization_list_exception_cases():
     return parametrization_list
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-608")
 @pytest.mark.smpc
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",

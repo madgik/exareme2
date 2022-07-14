@@ -40,7 +40,7 @@ if not OUTDIR.exists():
 COMMON_IP = "172.17.0.1"
 
 ALGORITHMS_URL = f"http://{COMMON_IP}:4500/algorithms"
-SMPC_ALGORITHMS_URL = f"http://{COMMON_IP}::4501/algorithms"
+SMPC_ALGORITHMS_URL = f"http://{COMMON_IP}:4501/algorithms"
 
 
 RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
@@ -109,7 +109,7 @@ RUN_UDF_TASK_TIMEOUT = 120
 SMPC_CLUSTER_SLEEP_TIME = 60
 
 ########### SMPC Cluster ############
-SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v6.0.0"
+SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v7.0.0"
 SMPC_COORD_DB_IMAGE = "mongo:5.0.8"
 SMPC_COORD_QUEUE_IMAGE = "redis:alpine3.15"
 
@@ -995,7 +995,7 @@ def smpc_coordinator():
                 "MONGO_INITDB_ROOT_PASSWORD": "123qwe",
             },
         )
-    print("Created controller db service.")
+    print("Created coordinator db service.")
 
     # Start coordinator queue
     print(f"\nWaiting for smpc coordinator queue to be ready...")
@@ -1012,7 +1012,7 @@ def smpc_coordinator():
             },
             command="redis-server --requirepass agora",
         )
-    print("Created controller queue service.")
+    print("Created coordinator queue service.")
 
     # Start coordinator
     print(f"\nWaiting for smpc coordinator to be ready...")
@@ -1037,7 +1037,7 @@ def smpc_coordinator():
             },
             command="python coordinator.py",
         )
-    print("Created controller service.")
+    print("Created coordinator service.")
 
     yield
 

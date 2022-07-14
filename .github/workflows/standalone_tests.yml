@@ -46,7 +46,7 @@ jobs:
           path: /tmp/.buildx-cache/monetdb
           key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
           restore-keys: |
-            ${{ runner.os }}-buildx-monetdb-
+            ${{ runner.os }}-buildx-3-monetdb-
 
       - name: Build MONETDB docker image
         uses: docker/build-push-action@v2
@@ -101,10 +101,25 @@ jobs:
         with:
           run: docker logs smpc_test_client1
 
+      - name: SMPC Client 2 logs (post run)
+        uses: webiny/action-post-run@2.0.1
+        with:
+          run: docker logs smpc_test_client2
+
       - name: SMPC Player 1 logs (post run)
         uses: webiny/action-post-run@2.0.1
         with:
           run: docker logs smpc_test_player1
+
+      - name: SMPC Player 2 logs (post run)
+        uses: webiny/action-post-run@2.0.1
+        with:
+          run: docker logs smpc_test_player2
+
+      - name: SMPC Player 3 logs (post run)
+        uses: webiny/action-post-run@2.0.1
+        with:
+          run: docker logs smpc_test_player3
 
       - name: Run all standalone tests except the SMPC
         run: poetry run pytest -s -m "not smpc" --cov=mipengine --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
@@ -113,7 +128,7 @@ jobs:
         run: poetry run inv cleanup
 
       - name: Run SMPC specific standalone tests
-        run: poetry run pytest -s -m "smpc" --cov=mipengine --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4
+        run: poetry run pytest -x -s -m "smpc" --cov=mipengine --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4
 
       - name: Publish coverage on codeclimate
         uses: paambaati/codeclimate-action@v2.7.5

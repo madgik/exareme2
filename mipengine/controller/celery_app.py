@@ -1,6 +1,6 @@
 import time
 import traceback
-from abc import abstractmethod
+from logging import Logger
 from threading import Lock
 from threading import Thread
 from typing import Union
@@ -10,34 +10,11 @@ import billiard
 import celery
 import kombu
 from celery import Celery
-from celery.canvas import Signature
 from celery.result import AsyncResult
 
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger
 from mipengine.singleton import Singleton
-
-
-class Logger:
-    @abstractmethod
-    def info(self, msg: str, *args, **kwargs):
-        pass
-
-    @abstractmethod
-    def debug(self, msg: str, *args, **kwargs):
-        pass
-
-    @abstractmethod
-    def warning(self, msg: str, *args, **kwargs):
-        pass
-
-    @abstractmethod
-    def error(self, msg: str, *args, **kwargs):
-        pass
-
-    @abstractmethod
-    def critical(self, msg: str, *args, **kwargs):
-        pass
 
 
 class CeleryConnectionError(Exception):
