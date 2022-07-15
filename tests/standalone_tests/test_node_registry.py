@@ -1,4 +1,3 @@
-from typing import Dict
 from typing import List
 
 import pytest
@@ -15,19 +14,16 @@ mocked_node_addresses = [
 ]
 
 
-def get_mocked_global_node() -> NodeInfo:
-    return NodeInfo(
+def get_mocked_nodes() -> List[NodeInfo]:
+    return [
+        NodeInfo(
         id="globalnode",
         role=NodeRole.GLOBALNODE,
         ip=mocked_node_addresses[0].split(":")[0],
         port=mocked_node_addresses[0].split(":")[1],
         db_ip="127.0.0.1",
         db_port=50000,
-    )
-
-
-def get_mocked_local_nodes() -> List[NodeInfo]:
-    return [
+        ),
         NodeInfo(
             id="localnode1",
             role=NodeRole.LOCALNODE,
@@ -58,7 +54,7 @@ def get_mocked_local_nodes() -> List[NodeInfo]:
 @pytest.fixture
 def mocked_node_registry():
     node_registry = NodeRegistry(
-        global_node=get_mocked_global_node(), local_nodes=get_mocked_local_nodes()
+        nodes_info=get_mocked_nodes()
     )
     return node_registry
 

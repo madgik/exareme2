@@ -197,6 +197,181 @@ def get_parametrization_cases():
     )
     parametrization_list.append((normal_case, expected))
 
+    no_data_model_or_dataset_case = FederationInfo(
+        values={
+            "localnode1": DatamodelInfo(
+                values={
+                    "data_model:1": (
+                        DatasetInfo(
+                            values={}
+                        ),
+                        CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    },
+                                    min=None,
+                                    max=None,
+                                ),
+                            }
+                        ),
+                    ),
+                    "data_model:2": (
+                        DatasetInfo(
+                            values={}
+                        ),
+                        CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                    },
+                                    min=None,
+                                    max=None,
+                                ),
+                            }
+                        ),
+                    ),
+                }
+            ),
+            "localnode2": DatamodelInfo(
+                values={
+                    "data_model:1": (
+                        DatasetInfo(
+                            values={}
+                        ),
+                        CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                    },
+                                    min=None,
+                                    max=None,
+                                ),
+                            }
+                        ),
+                    ),
+                }
+            ),
+            "localnode3": DatamodelInfo(
+                values={
+                    "data_model:1": (
+                        DatasetInfo(
+                            values={}
+                        ),
+                        CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    },
+                                    min=None,
+                                    max=None,
+                                ),
+                            }
+                        ),
+                    ),
+                    "data_model:2": (
+                        DatasetInfo(
+                            values={}
+                        ),
+                        CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset2": "DATASET2",
+                                    },
+                                    min=None,
+                                    max=None,
+                                ),
+                            }
+                        ),
+                    ),
+                }
+            ),
+        }
+    )
+
+    expected = DataModelRegistry(
+        data_models={
+            "data_model:1": CommonDataElements(
+                values={
+                    "dataset": CommonDataElement(
+                        code="dataset",
+                        label="Dataset",
+                        sql_type="text",
+                        is_categorical=True,
+                        enumerations={},
+                        min=None,
+                        max=None,
+                    )
+                }
+            ),
+            "data_model:2": CommonDataElements(
+                values={
+                    "dataset": CommonDataElement(
+                        code="dataset",
+                        label="Dataset",
+                        sql_type="text",
+                        is_categorical=True,
+                        enumerations={},
+                        min=None,
+                        max=None,
+                    )
+                }
+            ),
+        },
+        datasets_locations={
+            "data_model:1": {},
+            "data_model:2": {},
+        },
+    )
+    parametrization_list.append((no_data_model_or_dataset_case, expected))
+
+    no_data_model_or_dataset_case = FederationInfo(
+        values={
+            "localnode1": DatamodelInfo(
+                values={}
+            ),
+            "localnode2": DatamodelInfo(
+                values={}
+            ),
+        }
+    )
+
+    expected = DataModelRegistry(
+        data_models={
+        },
+        datasets_locations={
+        },
+    )
+    parametrization_list.append((no_data_model_or_dataset_case, expected))
+
     same_data_models_and_datasets_on_all_nodes = FederationInfo(
         values={
             "localnode1": DatamodelInfo(
@@ -790,6 +965,6 @@ def get_parametrization_cases():
     get_parametrization_cases(),
 )
 def test_data_model_registry(federated_node_infos, expected):
-    print(data_model_registry_data_cruncing(federated_node_infos))
-    print(expected)
+    print(f"{data_model_registry_data_cruncing(federated_node_infos)=}")
+    print(f"{expected=}")
     assert data_model_registry_data_cruncing(federated_node_infos) == expected

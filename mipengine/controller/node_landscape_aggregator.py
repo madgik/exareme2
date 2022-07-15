@@ -164,15 +164,21 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         while self._keep_updating:
             try:
                 (nodes_info, federated_node_infos) = data_fetching()
-
-                node_registry = node_registry_data_cruncing(nodes_info)
+                logger.info(federated_node_infos.__str__())
+                for node_id, fdmi in federated_node_infos.values.items():
+                    for data_model, datasets_and_cdes in fdmi.values.items():
+                        logger.info(f"{node_id=}\n")
+                        logger.info(f"{data_model=}\n")
+                        logger.info(f"{datasets_and_cdes[0]=}\n")
+                node_registry = NodeRegistry(nodes_info=nodes_info)
                 dmr = data_model_registry_data_cruncing(federated_node_infos)
 
                 self.set_new_registries(node_registry, dmr)
 
                 logger.debug(
-                    f"Nodes:{[node for node in self._registries.node_registry.get_nodes()]}"
+                    f"Nodes:{[node_info.id for node_info in self._registries.node_registry.get_nodes()]}"
                 )
+
             except Exception as exc:
                 logger.warning(
                     f"NodeLandscapeAggregator caught an exception but will continue to "
@@ -269,12 +275,6 @@ def data_fetching() -> Tuple[
     ]
     federated_node_infos = _get_federated_node_infos(local_nodes)
     return nodes_info, federated_node_infos
-
-
-def node_registry_data_cruncing(nodes: List[NodeInfo]) -> NodeRegistry:
-    local_nodes = [node for node in nodes if node.role == NodeRole.LOCALNODE]
-    global_node = [node for node in nodes if node.role == NodeRole.GLOBALNODE][0]
-    return NodeRegistry(global_node=global_node, local_nodes=local_nodes)
 
 
 def data_model_registry_data_cruncing(
