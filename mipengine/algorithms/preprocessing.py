@@ -37,7 +37,6 @@ class DummyEncoder:
             global_transfer = self._global_run(
                 func=self._gather_enums_global,
                 keyword_args=dict(local_transfers=local_transfers),
-                share_to_locals=[True],
             )
             enums = json.loads(global_transfer.get_table_data()[1][0])
             enums = {varname: sorted(e)[1:] for varname, e in enums.items()}
