@@ -128,6 +128,7 @@ class INodeAlgorithmTasksHandler(ABC):
         positional_args: Optional[UDFPosArguments] = None,
         keyword_args: Optional[UDFKeyArguments] = None,
         use_smpc: bool = False,
+        output_schema: Optional[TableSchema] = None,
     ) -> AsyncResult:
         pass
 
@@ -435,6 +436,7 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         positional_args: UDFPosArguments,
         keyword_args: UDFKeyArguments,
         use_smpc: bool = False,
+        output_schema: Optional[TableSchema] = None,
     ) -> AsyncResult:
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         celery_app = self._get_node_celery_app()
@@ -449,6 +451,7 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             positional_args_json=positional_args.json(),
             keyword_args_json=keyword_args.json(),
             use_smpc=use_smpc,
+            output_schema=output_schema.json() if output_schema else None,
         )
         return async_result
 
