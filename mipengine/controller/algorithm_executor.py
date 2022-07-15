@@ -89,9 +89,7 @@ class InconsistentUDFResultSizeException(Exception):
 
 
 class InconsistentShareTablesValueException(Exception):
-    def __init__(
-        self, share_list: Union[bool, List[bool]], number_of_result_tables: int
-    ):
+    def __init__(self, share_list: Sequence[bool], number_of_result_tables: int):
         message = f"The size of the {share_list=} does not match the {number_of_result_tables=}"
         super().__init__(message)
 
@@ -526,7 +524,7 @@ class _AlgorithmExecutionInterface:
             share_to_locals = (share_to_locals,)
 
         if output_schema and len(share_to_locals) != 1:
-            raise ValueError(
+            raise NotImplementedError(
                 "output_schema cannot be used with multiple output UDFs for now."
             )
 
@@ -669,8 +667,8 @@ class _AlgorithmExecutionInterface:
     @staticmethod
     def _validate_share_to(share_to: Sequence[bool], number_of_results: int):
         if not all(isinstance(elem, bool) for elem in share_to):
-            raise Exception(
-                f"share_to_locals must be of type bool or List[bool] but "
+            raise TypeError(
+                f"share_to_locals must be of type Sequence[bool] but "
                 f"{type(share_to)=} was passed"
             )
         if len(share_to) != number_of_results:
