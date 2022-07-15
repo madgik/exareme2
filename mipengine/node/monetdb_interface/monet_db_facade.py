@@ -12,11 +12,13 @@ from mipengine.singleton import Singleton
 INTEGRITY_ERROR_RETRY_INTERVAL = 1
 BROKEN_PIPE_MAX_ATTEMPTS = 50
 BROKEN_PIPE_ERROR_RETRY = 0.2
-QUERY_EXECUTION_LOCK_TIMEOUT = (
+QUERY_EXECUTION_LOCK_TIMEOUT = 1
+UDF_EXECUTION_LOCK_TIMEOUT = (
     node_config.celery.worker_concurrency * node_config.celery.run_udf_time_limit
 )
 
 query_execution_lock = Semaphore()
+udf_execution_lock = Semaphore()
 
 
 class DBExecutionDTO:
@@ -171,6 +173,16 @@ def _execute(query: str, parameters=None, many=False, conn=None):
     logger.info(
         f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
     )
-
-    with _lock(query_execution_lock, QUERY_EXECUTION_LOCK_TIMEOUT):
-        _execute_and_commit(conn, db_execution_dto)
+    if db_execution_dto.query.startswith("INSERT INTO"):
+        logger.info(
+            "-----------------------------------------------------------------\n"
+        )
+        logger.info(query)
+        logger.info(
+            "-----------------------------------------------------------------\n"
+        )
+        with _lock(udf_execution_lock, UDF_EXECUTION_LOCK_TIMEOUT):
+            _execute_and_commit(conn, db_execution_dto)
+    else:
+        with _lock(query_execution_lock, QUERY_EXECUTION_LOCK_TIMEOUT):
+            _execute_and_commit(conn, db_execution_dto)

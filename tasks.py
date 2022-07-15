@@ -332,6 +332,10 @@ def load_data(c, port=None):
 
     :param port: A list of ports, in which it will load the data. If not set, it will use the `NODES_CONFIG_DIR` files.
     """
+    if len(port) == 1:
+        cmd = f"poetry run mipdb load_folder {TEST_DATA_FOLDER} --port {port[0]} "
+        run(c, cmd)
+        return
 
     local_node_ports = port
     if not local_node_ports:

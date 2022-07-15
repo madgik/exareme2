@@ -100,11 +100,12 @@ LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
 CONTROLLER_CONFIG_FILE = "testcontroller.toml"
 CONTROLLER_SMPC_CONFIG_FILE = "test_smpc_controller.toml"
 CONTROLLER_LOCALNODES_CONFIG_FILE = "test_localnodes_addresses.json"
+CONTROLLER_LOCALNODE1_CONFIG_FILE = "test_localnode1_globalnode_addresses.json"
 CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE = "test_smpc_localnodes_addresses.json"
 CONTROLLER_OUTPUT_FILE = "test_controller.out"
 SMPC_CONTROLLER_OUTPUT_FILE = "test_smpc_controller.out"
 
-TASKS_TIMEOUT = 60
+TASKS_TIMEOUT = 120
 RUN_UDF_TASK_TIMEOUT = 120
 SMPC_CLUSTER_SLEEP_TIME = 60
 
@@ -895,14 +896,14 @@ def reset_node_landscape_aggregator():
     )
 
 
-@pytest.fixture(scope="session")
-def controller_service():
+@pytest.fixture(scope="function")
+def controller_service_with_localnode1():
     service_port = CONTROLLER_PORT
     controller_config_filepath = path.join(
         TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE
     )
     localnodes_config_filepath = path.join(
-        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODES_CONFIG_FILE
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODE1_CONFIG_FILE
     )
 
     proc = _create_controller_service(
