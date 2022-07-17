@@ -339,10 +339,11 @@ class TestCaseGenerator(ABC):
 
     __test__ = False
 
-    def __init__(self, specs_file, replicas=1):
+    def __init__(self, specs_file, replicas=1,dropna=True):
         self.input_gen = InputGenerator(specs_file)
         self._db = DB()
         self.all_data =self._db.get_data_table(replicas)
+        self.dropna = dropna
 
     def generate_input(self):
         return self.input_gen.draw()
@@ -368,6 +369,8 @@ class TestCaseGenerator(ABC):
             del full_data["dataset"]
 
         full_data_nn = full_data.dropna()
+        if self.dropna == True:
+            full_data = full_data_nn
         if len(full_data_nn) == 0:
             return None
 

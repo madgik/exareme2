@@ -58,6 +58,6 @@ class DesciptiveStatisticsTestCaseGenerator(TestCaseGenerator):
 
 if __name__ == "__main__":
     with open("mipengine/algorithms/descriptive_statistics.json") as specs_file:
-        descgen = DesciptiveStatisticsTestCaseGenerator(specs_file)
+        descgen = DesciptiveStatisticsTestCaseGenerator(specs_file,dropna=False)
     with open("tmp.json", "w") as expected_file:
         descgen.write_test_cases(expected_file)
