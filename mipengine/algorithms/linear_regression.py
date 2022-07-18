@@ -53,9 +53,8 @@ def run(executor):
     lr.fit(X=X, y=y)
     y_pred: RealVector = lr.predict(X)
     lr.compute_summary(
-        y=relation_to_vector(y, executor),
+        y_test=relation_to_vector(y, executor),
         y_pred=y_pred,
-        y_mean=lr.y_mean,
         p=p,
     )
 
@@ -98,15 +97,14 @@ class LinearRegression:
         )
         global_transfer_data = json.loads(self.global_transfer.get_table_data()[1][0])
         self.coefficients = global_transfer_data["coefficients"]
-        self.y_mean = global_transfer_data["y_mean"]
 
     @staticmethod
     @udf(x=relation(), y=relation(), return_type=[secure_transfer(sum_op=True)])
     def _fit_local(x, y):
         xTx = x.T @ x
         xTy = x.T @ y
-        sy = float(y.sum())
-        n_obs = len(y)
+        n_obs_train = len(y)
+
         stransfer = {}
         stransfer["xTx"] = {
             "data": xTx.to_numpy().tolist(),
@@ -118,8 +116,11 @@ class LinearRegression:
             "operation": "sum",
             "type": "float",
         }
-        stransfer["sy"] = {"data": sy, "operation": "sum", "type": "float"}
-        stransfer["n_obs"] = {"data": n_obs, "operation": "sum", "type": "int"}
+        stransfer["n_obs_train"] = {
+            "data": n_obs_train,
+            "operation": "sum",
+            "type": "int",
+        }
         return stransfer
 
     @staticmethod
@@ -130,21 +131,17 @@ class LinearRegression:
     def _fit_global(local_transfers):
         xTx = numpy.array(local_transfers["xTx"])
         xTy = numpy.array(local_transfers["xTy"])
-        sy = local_transfers["sy"]
-        n_obs = local_transfers["n_obs"]
+        n_obs_train = local_transfers["n_obs_train"]
 
         xTx_inv = numpy.linalg.pinv(xTx)
         coefficients = xTx_inv @ xTy
 
-        y_mean = sy / n_obs
-
         state_ = {}
         state_["xTx_inv"] = xTx_inv  # Needed for SE(β) calculation
-        state_["n_obs"] = n_obs
+        state_["n_obs_train"] = n_obs_train
 
         transfer_ = {}
         transfer_["coefficients"] = coefficients.tolist()
-        transfer_["y_mean"] = y_mean
         return state_, transfer_
 
     def predict(self, X):
@@ -163,10 +160,10 @@ class LinearRegression:
         y_pred = x @ coefficients
         return y_pred
 
-    def compute_summary(self, y, y_pred, y_mean, p):
+    def compute_summary(self, y_test, y_pred, p):
         local_transfers = self.local_run(
             func=self._compute_summary_local,
-            keyword_args=dict(y=y, y_pred=y_pred, y_mean=y_mean),
+            keyword_args=dict(y_test=y_test, y_pred=y_pred),
             share_to_global=[True],
         )
         global_transfer = self.global_run(
@@ -178,11 +175,13 @@ class LinearRegression:
         global_transfer_data = json.loads(global_transfer.get_table_data()[1][0])
         rss = global_transfer_data["rss"]
         tss = global_transfer_data["tss"]
+        sum_abs_resid = global_transfer_data["sum_abs_resid"]
         xTx_inv = numpy.array(global_transfer_data["xTx_inv"])
         coefficients = numpy.array(self.coefficients)
-        n_obs = global_transfer_data["n_obs"]
-        df = n_obs - p - 1
-        self.n_obs = n_obs
+        n_obs_train = global_transfer_data["n_obs_train"]
+        n_obs_test = global_transfer_data["n_obs_test"]
+        df = n_obs_train - p - 1
+        self.n_obs = n_obs_train
         self.df = df
         self.rse = (rss / df) ** 0.5
         self.std_err = ((self.rse**2) * numpy.diag(xTx_inv)) ** 0.5
@@ -192,25 +191,49 @@ class LinearRegression:
             coefficients.T[0] + stats.t.ppf(1 - ALPHA / 2, df) * self.std_err,
         )
         self.r_squared = 1.0 - rss / tss
-        self.r_squared_adjusted = 1 - (1 - self.r_squared) * (n_obs - 1) / df
+        self.r_squared_adjusted = 1 - (1 - self.r_squared) * (n_obs_train - 1) / df
         self.f_stat = (tss - rss) * df / (p * rss)
         self.t_p_values = stats.t.sf(abs(self.t_stat), df=df) * 2
         self.f_p_value = stats.f.sf(self.f_stat, dfn=p, dfd=df)
+        # Quanities below are only used in cross validation
+        self.rmse = (rss / n_obs_test) ** 0.5
+        self.mae = sum_abs_resid / n_obs_test
 
     @staticmethod
     @udf(
-        y=RealVector,
+        y_test=RealVector,
         y_pred=RealVector,
-        y_mean=literal(),
         return_type=secure_transfer(sum_op=True),
     )
-    def _compute_summary_local(y, y_pred, y_mean):
-        rss = float(sum((y - y_pred) ** 2))
-        tss = float(sum((y - y_mean) ** 2))
+    def _compute_summary_local(y_test, y_pred):
+        rss = sum((y_test - y_pred) ** 2)
+        sum_y_test = sum(y_test)
+        sum_sq_y_test = sum(y_test**2)
+        sum_abs_resid = sum(abs(y_test - y_pred))
+        n_obs_test = len(y_test)
 
         stransfer = {}
-        stransfer["rss"] = {"data": rss, "operation": "sum", "type": "float"}
-        stransfer["tss"] = {"data": tss, "operation": "sum", "type": "float"}
+        stransfer["rss"] = {"data": float(rss), "operation": "sum", "type": "float"}
+        stransfer["sum_y_test"] = {
+            "data": float(sum_y_test),
+            "operation": "sum",
+            "type": "float",
+        }
+        stransfer["sum_sq_y_test"] = {
+            "data": float(sum_sq_y_test),
+            "operation": "sum",
+            "type": "float",
+        }
+        stransfer["sum_abs_resid"] = {
+            "data": float(sum_abs_resid),
+            "operation": "sum",
+            "type": "float",
+        }
+        stransfer["n_obs_test"] = {
+            "data": n_obs_test,
+            "operation": "sum",
+            "type": "int",
+        }
         return stransfer
 
     @staticmethod
@@ -221,13 +244,26 @@ class LinearRegression:
     )
     def _compute_summary_global(fit_gstate, local_transfers):
         xTx_inv = fit_gstate["xTx_inv"]
-        n_obs = fit_gstate["n_obs"]
+        n_obs_train = fit_gstate["n_obs_train"]
+        n_obs_test = local_transfers["n_obs_test"]
         rss = local_transfers["rss"]
-        tss = local_transfers["tss"]
+        sum_abs_resid = local_transfers["sum_abs_resid"]
+        sum_y_test = local_transfers["sum_y_test"]
+        sum_sq_y_test = local_transfers["sum_sq_y_test"]
+
+        y_mean_test = sum_y_test / n_obs_test
+
+        # Federated computation of TSS in a single round
+        # \sum_i (y_i - ymean)^2 = \sum_i yi^2 - 2 ymean \sum_i yi + n ymean^2
+        tss = (
+            sum_sq_y_test - 2 * y_mean_test * sum_y_test + n_obs_test * y_mean_test**2
+        )
 
         transfer_ = {}
         transfer_["rss"] = rss
         transfer_["tss"] = tss
-        transfer_["n_obs"] = n_obs
+        transfer_["sum_abs_resid"] = sum_abs_resid
+        transfer_["n_obs_train"] = n_obs_train
+        transfer_["n_obs_test"] = n_obs_test
         transfer_["xTx_inv"] = xTx_inv.tolist()
         return transfer_
