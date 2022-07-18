@@ -735,7 +735,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "mipdb"
-version = "0.4.0"
+version = "0.4.1"
 description = ""
 category = "dev"
 optional = false
@@ -1546,7 +1546,7 @@ h11 = ">=0.9.0,<1"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "b4e123deddf5f4479a13e888746346c6cb8534bdb5bace20c3ce3ab2588320f3"
+content-hash = "50f22cbb2b867b4143d941eab1d7568b8eda792dfda4613ffb9da3adfb5ea514"
 
 [metadata.files]
 aiofiles = [
@@ -1985,8 +1985,8 @@ mccabe = [
     {file = "mccabe-0.7.0.tar.gz", hash = "sha256:348e0240c33b60bbdf4e523192ef919f28cb2c3d7d5c7794f74009290f236325"},
 ]
 mipdb = [
-    {file = "mipdb-0.4.0-py3-none-any.whl", hash = "sha256:eccffecbb5d690a589e79b07f80f46cfa4e23c27ead8eec9c176892af26359ae"},
-    {file = "mipdb-0.4.0.tar.gz", hash = "sha256:fd90b5bc96ca4cbd944e06222478f7e9860104c6f9fd78c5cd4fc1279eae4b6e"},
+    {file = "mipdb-0.4.1-py3-none-any.whl", hash = "sha256:375e58b2864a436e4e756471678171e772358a692d2148ba1ebea83c8a7c1437"},
+    {file = "mipdb-0.4.1.tar.gz", hash = "sha256:70a196ad962643e8df490e678dd7c1ca6fc18a958d39900b20a9a1127cf49248"},
 ]
 mypy-extensions = [
     {file = "mypy_extensions-0.4.3-py2.py3-none-any.whl", hash = "sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d"},

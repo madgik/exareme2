@@ -328,7 +328,7 @@ def _validate_parameter_inside_min_max(
     if parameter_spec.max is not None and parameter_value > parameter_spec.max:
         raise BadUserInput(
             f"Parameter '{parameter_spec.label}' values "
-            f"should be less than {parameter_spec.max} ."
+            f"should be at most equal to {parameter_spec.max} ."
         )
 
 

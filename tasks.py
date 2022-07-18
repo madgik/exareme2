@@ -332,6 +332,10 @@ def load_data(c, port=None):
 
     :param port: A list of ports, in which it will load the data. If not set, it will use the `NODES_CONFIG_DIR` files.
     """
+    if len(port) == 1:
+        cmd = f"poetry run mipdb load_folder {TEST_DATA_FOLDER} --port {port[0]} "
+        run(c, cmd)
+        return
 
     local_node_ports = port
     if not local_node_ports:
@@ -577,7 +581,7 @@ def kill_controller(c):
     """Kill the controller service."""
     res = run(c, "ps aux | grep '[h]ypercorn'", warn=True, show_ok=False)
     if res.ok:
-        message("Killing previous Quart instances...", Level.HEADER)
+        message("Killing previous Hypercorn instances...", Level.HEADER)
         cmd = (
             "ps aux | grep '[h]ypercorn' | awk '{ print $2}' | xargs kill -9 && sleep 5"
         )

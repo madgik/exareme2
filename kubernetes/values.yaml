@@ -1,4 +1,4 @@
-localnodes: 3
+localnodes: 2
 
 mipengine_images:
   repository: madgik
@@ -18,8 +18,10 @@ controller:
   cleanup_file_folder: /opt/cleanup
 
 smpc:
-  enabled: false
+  enabled: true
   optional: false
   image: gpikra/coordinator:v6.0.0
   db_image: mongo:5.0.8
   queue_image: redis:alpine3.15
+  get_result_interval: 5
+  get_result_max_retries: 100

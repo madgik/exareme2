@@ -70,9 +70,9 @@ def local1(x):
     sxx = (x**2).sum(axis=0)
 
     transfer_ = {}
-    transfer_["n_obs"] = {"data": n_obs, "operation": "sum"}
-    transfer_["sx"] = {"data": sx.tolist(), "operation": "sum"}
-    transfer_["sxx"] = {"data": sxx.tolist(), "operation": "sum"}
+    transfer_["n_obs"] = {"data": n_obs, "operation": "sum", "type": "int"}
+    transfer_["sx"] = {"data": sx.tolist(), "operation": "sum", "type": "float"}
+    transfer_["sxx"] = {"data": sxx.tolist(), "operation": "sum", "type": "float"}
     return transfer_
 
 
@@ -103,7 +103,13 @@ def local2(x, global_transfer):
     x /= sigmas
     gramian = x.T @ x
 
-    transfer_ = {"gramian": {"data": gramian.values.tolist(), "operation": "sum"}}
+    transfer_ = {
+        "gramian": {
+            "data": gramian.values.tolist(),
+            "operation": "sum",
+            "type": "float",
+        }
+    }
     return transfer_
 
 

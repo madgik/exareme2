@@ -184,7 +184,7 @@ Local UDF step Example
 ... def local_step(x, y):
 ...     state["x"] = x["key"]
 ...     state["y"] = y["key"]
-...     transfer["sum"] = {"data": x["key"] + y["key"], "operation": "sum"}
+...     transfer["sum"] = {"data": x["key"] + y["key"], "operation": "sum", "type": "float"}
 ...     return state, transfer
 
 Global UDF step Example
@@ -351,6 +351,8 @@ ANDLN = " " + AND + LN
 SPC4 = " " * 4
 SCOLON = ";"
 ROWID = "row_id"
+NODEID = "node_id"
+DEFERRED = "deferred"
 
 
 def get_smpc_build_template(secure_transfer_type):
@@ -375,9 +377,8 @@ def get_smpc_build_template(secure_transfer_type):
     stmts.extend(get_smpc_op_template(secure_transfer_type.sum_op, "sum_op"))
     stmts.extend(get_smpc_op_template(secure_transfer_type.min_op, "min_op"))
     stmts.extend(get_smpc_op_template(secure_transfer_type.max_op, "max_op"))
-    stmts.extend(get_smpc_op_template(secure_transfer_type.union_op, "union_op"))
     stmts.append(
-        "{varname} = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values,__union_op_values)"
+        "{varname} = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values)"
     )
     return LN.join(stmts)
 
@@ -389,9 +390,9 @@ def get_table_build_template(input_type: "TableType"):
         raise TypeError(
             f"Build template only for InputTypes. Type provided: {input_type}"
         )
-    COLUMNS_COMPREHENSION_TMPL = "{{n: _columns[n] for n in {colnames}}}"
+    COLUMNS_COMPREHENSION_TMPL = "{{name: _columns[name_w_prefix] for name, name_w_prefix in zip({colnames}, {colnames_w_prefix})}}"
     if isinstance(input_type, RelationType):
-        return f"{{varname}} = pd.DataFrame({COLUMNS_COMPREHENSION_TMPL})"
+        return f"{{varname}} = udfio.from_relational_table({COLUMNS_COMPREHENSION_TMPL}, '{ROWID}')"
     if isinstance(input_type, TensorType):
         return f"{{varname}} = udfio.from_tensor_table({COLUMNS_COMPREHENSION_TMPL})"
     if isinstance(input_type, MergeTensorType):
@@ -437,14 +438,13 @@ def _get_secure_transfer_op_return_stmt_template(op_enabled, table_name_tmpl, op
 def _get_secure_transfer_main_return_stmt_template(output_type, smpc_used):
     if smpc_used:
         return_stmts = [
-            "template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict({return_name})"
+            "template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict({return_name})"
         ]
         (
             _,
             sum_op_tmpl,
             min_op_tmpl,
             max_op_tmpl,
-            union_op_tmpl,
         ) = _get_smpc_table_template_names(_get_main_table_template_name())
         return_stmts.extend(
             _get_secure_transfer_op_return_stmt_template(
@@ -461,11 +461,6 @@ def _get_secure_transfer_main_return_stmt_template(output_type, smpc_used):
                 output_type.max_op, max_op_tmpl, "max_op"
             )
         )
-        return_stmts.extend(
-            _get_secure_transfer_op_return_stmt_template(
-                output_type.union_op, union_op_tmpl, "union_op"
-            )
-        )
         return_stmts.append("return json.dumps(template)")
         return LN.join(return_stmts)
     else:
@@ -479,7 +474,7 @@ def get_main_return_stmt_template(output_type: "OutputType", smpc_used: bool):
             f"Return statement template only for OutputTypes. Type provided: {output_type}"
         )
     if isinstance(output_type, RelationType):
-        return "return udfio.as_relational_table(numpy.array({return_name}))"
+        return f"return udfio.as_relational_table({{return_name}}, '{ROWID}')"
     if isinstance(output_type, TensorType):
         return "return udfio.as_tensor_table(numpy.array({return_name}))"
     if isinstance(output_type, ScalarType):
@@ -500,14 +495,13 @@ def _get_secure_transfer_sec_return_stmt_template(
 ):
     if smpc_used:
         return_stmts = [
-            "template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict({return_name})"
+            "template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict({return_name})"
         ]
         (
             template_tmpl,
             sum_op_tmpl,
             min_op_tmpl,
             max_op_tmpl,
-            union_op_tmpl,
         ) = _get_smpc_table_template_names(tablename_placeholder)
         return_stmts.append(
             '_conn.execute(f"INSERT INTO $'
@@ -527,11 +521,6 @@ def _get_secure_transfer_sec_return_stmt_template(
         return_stmts.extend(
             _get_secure_transfer_op_return_stmt_template(
                 output_type.max_op, max_op_tmpl, "max_op"
-            )
-        )
-        return_stmts.extend(
-            _get_secure_transfer_op_return_stmt_template(
-                output_type.union_op, union_op_tmpl, "union_op"
             )
         )
         return LN.join(return_stmts)
@@ -816,7 +805,7 @@ class MergeTensorType(TableType, ParametrizedType, InputType, OutputType):
 
     @property
     def schema(self):
-        nodeid_column = [("node_id", dt.STR)]
+        nodeid_column = [(NODEID, dt.STR)]
         dimcolumns = [(f"dim{i}", dt.INT) for i in range(self.ndims)]
         valcolumn = [("val", self.dtype)]
         return nodeid_column + dimcolumns + valcolumn  # type: ignore
@@ -828,13 +817,40 @@ def merge_tensor(dtype, ndims):
 
 class RelationType(TableType, ParametrizedType, InputType, OutputType):
     def __init__(self, schema):
+        error_msg = (
+            "Expected schema of type TypeVar, DEFFERED or List[Tuple]. "
+            f"Got {schema}."
+        )
         if isinstance(schema, TypeVar):
             self._schema = schema
-        else:
+        elif schema == DEFERRED:
+            self._schema = DEFERRED
+        elif isinstance(schema, list):
+            # Subscripted generics cannot be used with class and instance
+            # checks. This means that we have to check if the list has the
+            # correct structure. The only acceptable structure is an empty list
+            # or a list of pairs.
+            if schema == []:
+                pass
+            elif isinstance(schema[0], tuple) and len(schema[0]) == 2:
+                pass
+            else:
+                raise TypeError(error_msg)
             self._schema = [
-                (name, dt.from_py(dtype) if isinstance(dtype, type) else dtype)
-                for name, dtype in schema
+                (name, self._convert_dtype(dtype)) for name, dtype in schema
             ]
+        else:
+            raise TypeError(error_msg)
+
+    @staticmethod
+    def _convert_dtype(dtype):
+        if isinstance(dtype, type):
+            return dt.from_py(dtype)
+        if isinstance(dtype, str):
+            return dt(dtype)
+        if isinstance(dtype, dt):
+            return dtype
+        raise TypeError(f"Expected dtype of type type, str or DType. Got {dtype}.")
 
     @property
     def schema(self):
@@ -905,13 +921,11 @@ class SecureTransferType(DictType, InputType, LoopbackOutputType):
     _sum_op: bool
     _min_op: bool
     _max_op: bool
-    _union_op: bool
 
-    def __init__(self, sum_op=False, min_op=False, max_op=False, union_op=False):
+    def __init__(self, sum_op=False, min_op=False, max_op=False):
         self._sum_op = sum_op
         self._min_op = min_op
         self._max_op = max_op
-        self._union_op = union_op
 
     @property
     def sum_op(self):
@@ -925,17 +939,13 @@ class SecureTransferType(DictType, InputType, LoopbackOutputType):
     def max_op(self):
         return self._max_op
 
-    @property
-    def union_op(self):
-        return self._union_op
 
-
-def secure_transfer(sum_op=False, min_op=False, max_op=False, union_op=False):
-    if not sum_op and not min_op and not max_op and not union_op:
+def secure_transfer(sum_op=False, min_op=False, max_op=False):
+    if not sum_op and not min_op and not max_op:
         raise UDFBadDefinition(
             "In a secure_transfer at least one operation should be enabled."
         )
-    return SecureTransferType(sum_op, min_op, max_op, union_op)
+    return SecureTransferType(sum_op, min_op, max_op)
 
 
 class StateType(DictType, InputType, LoopbackOutputType):
@@ -1068,7 +1078,6 @@ class SMPCSecureTransferArg(UDFArgument):
     sum_op_values_table_name: str
     min_op_values_table_name: str
     max_op_values_table_name: str
-    union_op_values_table_name: str
 
     def __init__(
         self,
@@ -1076,26 +1085,21 @@ class SMPCSecureTransferArg(UDFArgument):
         sum_op_values_table_name: str,
         min_op_values_table_name: str,
         max_op_values_table_name: str,
-        union_op_values_table_name: str,
     ):
         sum_op = False
         min_op = False
         max_op = False
-        union_op = False
         if sum_op_values_table_name:
             sum_op = True
         if min_op_values_table_name:
             min_op = True
         if max_op_values_table_name:
             max_op = True
-        if union_op_values_table_name:
-            union_op = True
-        self.type = SecureTransferType(sum_op, min_op, max_op, union_op)
+        self.type = SecureTransferType(sum_op, min_op, max_op)
         self.template_table_name = template_table_name
         self.sum_op_values_table_name = sum_op_values_table_name
         self.min_op_values_table_name = min_op_values_table_name
         self.max_op_values_table_name = max_op_values_table_name
-        self.union_op_values_table_name = union_op_values_table_name
 
 
 class LiteralArg(UDFArgument):
@@ -1221,10 +1225,12 @@ class TableBuild(ASTNode):
         self.template = template
 
     def compile(self) -> str:
-        colnames = self.arg.type.column_names(prefix=self.arg_name)
+        colnames = self.arg.type.column_names()
+        colnames_w_prefix = self.arg.type.column_names(prefix=self.arg_name)
         return self.template.format(
             varname=self.arg_name,
             colnames=colnames,
+            colnames_w_prefix=colnames_w_prefix,
             table_name=self.arg.table_name,
         )
 
@@ -1253,7 +1259,6 @@ class SMPCBuild(ASTNode):
             sum_op_values_table_name=self.arg.sum_op_values_table_name,
             min_op_values_table_name=self.arg.min_op_values_table_name,
             max_op_values_table_name=self.arg.max_op_values_table_name,
-            union_op_values_table_name=self.arg.union_op_values_table_name,
         )
 
 
@@ -1301,7 +1306,9 @@ class LiteralAssignments(ASTNode):
         self.literals = literals
 
     def compile(self) -> str:
-        return LN.join(f"{name} = {arg.value}" for name, arg in self.literals.items())
+        return LN.join(
+            f"{name} = {repr(arg.value)}" for name, arg in self.literals.items()
+        )
 
 
 class LoggerAssignment(ASTNode):
@@ -1976,6 +1983,7 @@ def generate_udf_queries(
     keyword_args: Dict[str, UDFGenArgument],
     smpc_used: bool,
     traceback=False,
+    output_schema=None,
 ) -> UDFGenExecutionQueries:
     """
     Parameters
@@ -2021,6 +2029,7 @@ def generate_udf_queries(
         udfregistry=udf.registry,
         smpc_used=smpc_used,
         traceback=traceback,
+        output_schema=output_schema,
     )
 
 
@@ -2055,21 +2064,17 @@ def convert_smpc_udf_input_to_udf_arg(smpc_udf_input: SMPCTablesInfo):
     sum_op_table_name = None
     min_op_table_name = None
     max_op_table_name = None
-    union_op_table_name = None
     if smpc_udf_input.sum_op_values:
         sum_op_table_name = smpc_udf_input.sum_op_values.name
     if smpc_udf_input.min_op_values:
         min_op_table_name = smpc_udf_input.min_op_values.name
     if smpc_udf_input.max_op_values:
         max_op_table_name = smpc_udf_input.max_op_values.name
-    if smpc_udf_input.union_op_values:
-        union_op_table_name = smpc_udf_input.union_op_values.name
     return SMPCSecureTransferArg(
         template_table_name=smpc_udf_input.template.name,
         sum_op_values_table_name=sum_op_table_name,
         min_op_values_table_name=min_op_table_name,
         max_op_values_table_name=max_op_table_name,
-        union_op_values_table_name=union_op_table_name,
     )
 
 
@@ -2124,7 +2129,7 @@ def is_statetype_schema(schema):
 
 
 def convert_table_schema_to_relation_schema(table_schema):
-    return [(c.name, c.dtype) for c in table_schema if c.name != ROWID]
+    return [(c.name, c.dtype) for c in table_schema if c.name != NODEID]
 
 
 # <--
@@ -2138,6 +2143,7 @@ def get_udf_templates_using_udfregistry(
     udfregistry: dict,
     smpc_used: bool,
     traceback=False,
+    output_schema=None,
 ) -> UDFGenExecutionQueries:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
     udf_args = get_udf_args(request_id, funcparts, posargs, keywordargs)
@@ -2152,7 +2158,10 @@ def get_udf_templates_using_udfregistry(
         expected_literal_types=funcparts.literal_input_types,
     )
     main_output_type, sec_output_types = get_output_types(
-        funcparts, udf_args, traceback
+        funcparts,
+        udf_args,
+        traceback,
+        output_schema,
     )
     udf_outputs = get_udf_outputs(
         main_output_type=main_output_type,
@@ -2339,7 +2348,10 @@ def get_udf_definition_template(
 
 
 def get_output_types(
-    funcparts, udf_args, traceback
+    funcparts,
+    udf_args,
+    traceback,
+    output_schema,
 ) -> Tuple[OutputType, List[LoopbackOutputType]]:
     """Computes the UDF output type. If `traceback` is true the type is str
     since the traceback will be returned as a string. If the output type is
@@ -2349,6 +2361,9 @@ def get_output_types(
 
     if traceback:
         return scalar(str), []
+    if output_schema:
+        main_output_type = relation(schema=output_schema)
+        return main_output_type, []
     if (
         isinstance(funcparts.main_output_type, ParametrizedType)
         and funcparts.main_output_type.is_generic
@@ -2441,10 +2456,7 @@ def map_unknown_to_known_typeparams(
 
 
 def get_udf_select_template(output_type: OutputType, table_args: Dict[str, TableArg]):
-    tensors = get_table_ast_nodes_from_table_args(
-        table_args,
-        arg_type=(TensorArg),
-    )
+    tensors = get_table_ast_nodes_from_table_args(table_args, arg_type=TensorArg)
     relations = get_table_ast_nodes_from_table_args(table_args, arg_type=RelationArg)
     tables = tensors or relations
     columns = [column for table in tables for column in table.columns.values()]
@@ -2512,7 +2524,7 @@ def convert_table_arg_to_table_ast_node(table_arg, alias=None):
 
 
 def nodeid_column():
-    return Cast(name="$node_id", type_=dt.STR.to_sql(), alias="node_id")
+    return Cast(name="$node_id", type_=dt.STR.to_sql(), alias=NODEID)
 
 
 # ~~~~~~~~~~~~~~~~~ CREATE TABLE and INSERT query generator ~~~~~~~~~ #
@@ -2544,7 +2556,6 @@ def _get_smpc_table_template_names(prefix: str):
         prefix + "_sum_op",
         prefix + "_min_op",
         prefix + "_max_op",
-        prefix + "_union_op",
     )
 
 
@@ -2557,7 +2568,7 @@ def _create_table_udf_output(
     if isinstance(output_type, ScalarType) or not nodeid:
         output_schema = iotype_to_sql_schema(output_type)
     else:
-        output_schema = f'"node_id" {dt.STR.to_sql()},' + iotype_to_sql_schema(
+        output_schema = f'"{NODEID}" {dt.STR.to_sql()},' + iotype_to_sql_schema(
             output_type
         )
     create_table = CREATE_TABLE + " $" + table_name + f"({output_schema})" + SCOLON
@@ -2574,27 +2585,22 @@ def _create_smpc_udf_output(output_type: SecureTransferType, table_name_prefix: 
         sum_op_tmpl,
         min_op_tmpl,
         max_op_tmpl,
-        union_op_tmpl,
     ) = _get_smpc_table_template_names(table_name_prefix)
     template = _create_table_udf_output(output_type, template_tmpl)
     sum_op = None
     min_op = None
     max_op = None
-    union_op = None
     if output_type.sum_op:
         sum_op = _create_table_udf_output(output_type, sum_op_tmpl)
     if output_type.min_op:
         min_op = _create_table_udf_output(output_type, min_op_tmpl)
     if output_type.max_op:
         max_op = _create_table_udf_output(output_type, max_op_tmpl)
-    if output_type.union_op:
-        union_op = _create_table_udf_output(output_type, union_op_tmpl)
     return SMPCUDFGenResult(
         template=template,
         sum_op_values=sum_op,
         min_op_values=min_op,
         max_op_values=max_op,
-        union_op_values=union_op,
     )
 
 

@@ -44,7 +44,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
+          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
           restore-keys: |
             ${{ runner.os }}-buildx-monetdb-
 
@@ -158,11 +158,6 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
 
-      - name: Log disk space status
-        run: df -hx squashfs --total
-      - name: Log memory status
-        run: free -mh
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
@@ -184,11 +179,6 @@ jobs:
           tags: madgik/mipenginedb:testing
           cache-from: type=local,src=/tmp/.buildx-cache/monetdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
-
-      - name: Log disk space status
-        run: df -hx squashfs --total
-      - name: Log memory status
-        run: free -mh
 
       - name: Load RABBITMQ cached image
         uses: actions/cache@v2
@@ -217,11 +207,6 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-      - name: Log disk space status
-        run: df -hx squashfs --total
-      - name: Log memory status
-        run: free -mh
-
       - name: Copy .deployment.toml file
         run: cp ./tests/algorithm_validation_tests/ten_node_deployment_template.toml .deployment.toml
 
@@ -231,18 +216,8 @@ jobs:
       - name: Deploy all services
         run: poetry run inv deploy --no-install-dep --no-start-all
 
-      - name: Log disk space status
-        run: df -hx squashfs --total
-      - name: Log memory status
-        run: free -mh
-
       - name: Load data into DBs
         run: poetry run inv load-data
-
-      - name: Log disk space status
-        run: df -hx squashfs --total
-      - name: Log memory status
-        run: free -mh
 
       - name: Start services after data loading
         run: |
@@ -250,39 +225,28 @@ jobs:
           poetry run inv start-controller --detached
 
       - name: Controller logs
-        run: tail -n 1000 /tmp/mipengine/controller.out
+        run: cat /tmp/mipengine/controller.out
 
       - name: Globalnode logs
-        run: tail -n 1000 /tmp/mipengine/globalnode.out
+        run: cat /tmp/mipengine/globalnode.out
 
       - name: Localnode logs
-        run: tail -n 1000 /tmp/mipengine/localnode1.out
+        run: cat /tmp/mipengine/localnode1.out
 
       - name: Controller logs (post run)
         uses: webiny/action-post-run@2.0.1
         with:
-          run: tail -n 1000 /tmp/mipengine/controller.out
+          run: cat /tmp/mipengine/controller.out
 
       - name: Globalnode logs (post run)
         uses: webiny/action-post-run@2.0.1
         with:
-          run: tail -n 1000 /tmp/mipengine/globalnode.out
+          run: cat /tmp/mipengine/globalnode.out
 
       - name: Localnode logs (post run)
         uses: webiny/action-post-run@2.0.1
         with:
-          run: tail -n 1000 /tmp/mipengine/localnode1.out
-
-      - name: Log disk space status
-        run: df -hx squashfs --total
-      - name: Log memory status
-        run: free -mh
+          run: cat /tmp/mipengine/localnode1.out
 
       - name: Run algorithm validation tests
-        # run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16
-        run: poetry run pytest -s -x -n 16 tests/algorithm_validation_tests/ -k "input0- or input1- or input2- or input3- or input4-"
-
-      - name: Log disk space status
-        run: df -hx squashfs --total
-      - name: Log memory status
-        run: free -mh
+        run: poetry run pytest -vv tests/algorithm_validation_tests -k "input0- or input1- or input2- or input3- or input4-" -n 16  # run tests 10-19

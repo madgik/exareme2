@@ -7,6 +7,7 @@ import pytest
 from billiard.exceptions import TimeLimitExceeded
 
 from mipengine import DType
+from mipengine.node.tasks.udfs import _parse_output_schema
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import TableData
@@ -18,14 +19,13 @@ from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import get_column_rows
 from tests.algorithms.orphan_udfs import local_step
 from tests.algorithms.orphan_udfs import very_slow_udf
+from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
 
 command_id = "command123"
 request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
 context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
-
-TASKS_TIMEOUT = 60
 
 
 def create_table_with_one_column_and_ten_rows(celery_app) -> Tuple[str, int]:
@@ -225,3 +225,14 @@ def test_slow_udf_exception(
         localnode1_celery_app.get_result(
             async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
         )
+
+
+def test_parse_output_schema():
+    output_schema = TableSchema(
+        columns=[
+            ColumnInfo(name="a", dtype=DType.INT),
+            ColumnInfo(name="b", dtype=DType.FLOAT),
+        ]
+    ).json()
+    result = _parse_output_schema(output_schema)
+    assert result == [("a", DType.INT), ("b", DType.FLOAT)]

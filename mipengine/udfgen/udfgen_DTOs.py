@@ -46,7 +46,6 @@ class SMPCUDFGenResult(UDFGenResult):
     sum_op_values: Optional[TableUDFGenResult] = None
     min_op_values: Optional[TableUDFGenResult] = None
     max_op_values: Optional[TableUDFGenResult] = None
-    union_op_values: Optional[TableUDFGenResult] = None
 
     def __eq__(self, other):
         if self.template != other.template:
@@ -57,8 +56,6 @@ class SMPCUDFGenResult(UDFGenResult):
             return False
         if self.max_op_values != other.max_op_values:
             return False
-        if self.union_op_values != other.union_op_values:
-            return False
         return True
 
     def __repr__(self):
@@ -68,7 +65,6 @@ class SMPCUDFGenResult(UDFGenResult):
             f"sum_op_values={self.sum_op_values}, "
             f"min_op_values={self.min_op_values}, "
             f"max_op_values={self.max_op_values}, "
-            f"union_op_values={self.union_op_values}"
             f")"
         )
 
@@ -96,7 +92,6 @@ class SMPCTablesInfo(UDFGenBaseModel):
     sum_op_values: Optional[TableInfo] = None
     min_op_values: Optional[TableInfo] = None
     max_op_values: Optional[TableInfo] = None
-    union_op_values: Optional[TableInfo] = None
 
     def __repr__(self):
         return (
@@ -105,6 +100,5 @@ class SMPCTablesInfo(UDFGenBaseModel):
             f"sum_op_values={self.sum_op_values}, "
             f"min_op_values={self.min_op_values}, "
             f"max_op_values={self.max_op_values}, "
-            f"union_op_values={self.union_op_values}"
             f")"
         )
