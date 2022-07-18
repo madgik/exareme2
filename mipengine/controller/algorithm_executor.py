@@ -174,7 +174,8 @@ class AlgorithmExecutor:
         try:
             self._logger.info(
                 f"executing algorithm:{self._algorithm_name} on "
-                f"local nodes: {self._local_nodes=}"
+                f"local nodes: {self._local_nodes=} with {self._request_id=} and "
+                f"{self._context_id=}"
             )
             self._instantiate_algorithm_execution_interface()
             algorithm_result = self._algorithm_flow_module.run(
