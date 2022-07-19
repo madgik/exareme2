@@ -262,7 +262,7 @@ def count_locals(input_df,columns_list):
     values_list1 = []
     #raise(ValueError(input_df.head(5)))
     for curr_column in columns_list:
-        filled_values1 = input_df['input_df_'+curr_column].fillna("NaN")
+        filled_values1 = input_df[curr_column].fillna("NaN")
         values_list1.append(filled_values1.value_counts(dropna=False).to_dict())
     ret_dict1 = {}
     for curr_column,curr_dict in zip(columns_list,values_list1):
@@ -288,24 +288,10 @@ def global_counts(local_transfers,columns_list):
 def relation_to_matrix(rel):
     return rel
 
-@udf(input_df=relation(S),categorical_columns=literal(), return_type=relation(S))
-def filter_categorical(input_df,categorical_columns):
-    raise ValueError(input_df.head(5))
-    ret_categorical = ['input_df_'+ curr_cat for curr_cat in categorical_columns]
-    ret_rel = input_df[ret_categorical]
-    return ret_rel
-
-@udf(input_df=relation(S),numerical_columns=literal(), return_type=relation(S))
-def filter_numerical(input_df,numerical_columns):
-    raise ValueError(input_df.head(5))
-    ret_numerical = ['input_df_'+ curr_num for curr_num in numerical_columns]
-    ret_rel = input_df[ret_numerical]
-    return ret_rel
-
 @udf(rel=relation(S),numerical_columns=literal(), return_type=tensor(float, 2))
 def relation_to_matrix_num(rel,numerical_columns):
-    ret_numerical = ['rel_'+ curr_num for curr_num in numerical_columns]
-    ret_rel = rel[ret_numerical]
+    #ret_numerical = ['rel_'+ curr_num for curr_num in numerical_columns]
+    ret_rel = rel[numerical_columns]
     return ret_rel
 
 @udf(a=tensor(T, 2), return_type=tensor(T, 2))
