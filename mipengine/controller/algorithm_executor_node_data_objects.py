@@ -65,14 +65,12 @@ class SMPCTableNames(NodeData):
     sum_op: TableName
     min_op: TableName
     max_op: TableName
-    union_op: TableName
 
-    def __init__(self, template, sum_op, min_op, max_op, union_op):
+    def __init__(self, template, sum_op, min_op, max_op):
         self.template = template
         self.sum_op = sum_op
         self.min_op = min_op
         self.max_op = max_op
-        self.union_op = union_op
 
     def __repr__(self):
         return self.full_table_name

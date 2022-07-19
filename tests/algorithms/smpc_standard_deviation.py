@@ -92,10 +92,10 @@ def smpc_local_step_1(table):
         if element > max_value:
             max_value = element
     secure_transfer_ = {
-        "sum": {"data": float(sum_), "operation": "sum"},
-        "min": {"data": float(min_value), "operation": "min"},
-        "max": {"data": float(max_value), "operation": "max"},
-        "count": {"data": len(table), "operation": "sum"},
+        "sum": {"data": float(sum_), "operation": "sum", "type": "float"},
+        "min": {"data": float(min_value), "operation": "min", "type": "float"},
+        "max": {"data": float(max_value), "operation": "max", "type": "float"},
+        "count": {"data": len(table), "operation": "sum", "type": "float"},
     }
     return state_, secure_transfer_
 
@@ -129,7 +129,7 @@ def smpc_local_step_2(prev_state, global_transfer):
     secure_transfer_ = {
         "deviation_sum": {
             "data": float(deviation_sum),
-            "type": "int",
+            "type": "float",
             "operation": "sum",
         }
     }

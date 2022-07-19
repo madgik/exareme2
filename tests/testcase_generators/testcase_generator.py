@@ -350,6 +350,30 @@ class TestCaseGenerator(ABC):
 
     @abstractmethod
     def compute_expected_output(self, input_data, input_parameters=None,datatypes = None):
+        """Computes the expected output for specific algorithm
+
+        This method has to be implemented by subclasses. The user should use
+        some state-of-the-art implementation (e.g. sklearn, statsmodels, ...)
+        of the algorithm in question to compute the expected results.
+
+        Parameters
+        ----------
+        input_data: tuple
+            A pair of design matrices. Either (y, x) or (y, None) depending on
+            the algorithm specs.
+        input_parameters: dict or None
+            A dict mapping algorithm parameters to values or None if the
+            algorithm doesn't have any parameters.
+
+        Returns
+        -------
+        dict or None
+            A dict containing the algorithm output. If no output can be
+            computed for the given input the implementer can return None, in
+            which case the test case is discarded. Use this for cases where the
+            test case generator generates seamingly valid inputs which do not
+            make sense for some reason.
+        """
         pass
 
     def get_input_data(self, input_):
@@ -388,7 +412,6 @@ class TestCaseGenerator(ABC):
             raise ValueError(
                 "Cannot find inputdata values resulting in non-empty data."
             )
-
         parameters = input_["parameters"]
         try:
             datatypes = {}
@@ -403,10 +426,16 @@ class TestCaseGenerator(ABC):
         return {"input": input_, "output": output}
 
     def generate_test_cases(self, num_test_cases=100):
-        test_cases = [self.generate_test_case() for _ in tqdm(range(num_test_cases))]
+        test_cases = []
+        with tqdm(total=num_test_cases) as pbar:
+            while len(test_cases) < num_test_cases:
+                test_case = self.generate_test_case()
+                if test_case["output"]:
+                    test_cases.append(test_case)
+                    pbar.update(1)
 
         def append_test_case_number(test_case, num):
-            test_case["test_case_num"] = num
+            test_case["input"]["test_case_num"] = num
             return test_case
 
         test_cases = [

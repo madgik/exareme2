@@ -577,7 +577,7 @@ def kill_controller(c):
     """Kill the controller service."""
     res = run(c, "ps aux | grep '[h]ypercorn'", warn=True, show_ok=False)
     if res.ok:
-        message("Killing previous Quart instances...", Level.HEADER)
+        message("Killing previous Hypercorn instances...", Level.HEADER)
         cmd = (
             "ps aux | grep '[h]ypercorn' | awk '{ print $2}' | xargs kill -9 && sleep 5"
         )

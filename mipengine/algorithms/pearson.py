@@ -121,12 +121,12 @@ def local1(y, x):
     syy = (Y**2).sum(axis=0)
 
     transfer_ = {}
-    transfer_["n_obs"] = {"data": n_obs, "operation": "sum"}
-    transfer_["sx"] = {"data": sx.tolist(), "operation": "sum"}
-    transfer_["sxx"] = {"data": sxx.tolist(), "operation": "sum"}
-    transfer_["sxy"] = {"data": sxy.tolist(), "operation": "sum"}
-    transfer_["sy"] = {"data": sy.tolist(), "operation": "sum"}
-    transfer_["syy"] = {"data": syy.tolist(), "operation": "sum"}
+    transfer_["n_obs"] = {"data": n_obs, "operation": "sum", "type": "int"}
+    transfer_["sx"] = {"data": sx.tolist(), "operation": "sum", "type": "float"}
+    transfer_["sxx"] = {"data": sxx.tolist(), "operation": "sum", "type": "float"}
+    transfer_["sxy"] = {"data": sxy.tolist(), "operation": "sum", "type": "float"}
+    transfer_["sy"] = {"data": sy.tolist(), "operation": "sum", "type": "float"}
+    transfer_["syy"] = {"data": syy.tolist(), "operation": "sum", "type": "float"}
 
     return transfer_
 

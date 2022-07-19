@@ -1,9 +1,11 @@
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 from celery import shared_task
 
+from mipengine.datatypes import DType
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
@@ -16,6 +18,7 @@ from mipengine.node_tasks_DTOs import NodeSMPCValueDTO
 from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import NodeUDFDTO
 from mipengine.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.node_tasks_DTOs import UDFKeyArguments
 from mipengine.node_tasks_DTOs import UDFPosArguments
@@ -53,6 +56,7 @@ def run_udf(
     positional_args_json: str,
     keyword_args_json: str,
     use_smpc: bool = False,
+    output_schema: Optional[TableSchema] = None,
 ) -> str:
     """
     Creates the UDF, if provided, and adds it in the database.
@@ -74,6 +78,8 @@ def run_udf(
             Keyword arguments of the udf call.
         use_smpc: bool
             Should SMPC be used?
+        output_schema: Optional[TableSchema]
+            Schema of main UDF output when deferred mechanism is used.
     Returns
     -------
         str(UDFResults)
@@ -84,6 +90,9 @@ def run_udf(
     positional_args = UDFPosArguments.parse_raw(positional_args_json)
     keyword_args = UDFKeyArguments.parse_raw(keyword_args_json)
 
+    if output_schema:
+        output_schema = _parse_output_schema(output_schema)
+
     udf_statements, udf_results = _generate_udf_statements(
         request_id=request_id,
         command_id=command_id,
@@ -92,11 +101,17 @@ def run_udf(
         positional_args=positional_args,
         keyword_args=keyword_args,
         use_smpc=use_smpc,
+        output_schema=output_schema,
     )
 
     udfs.run_udf(udf_statements)
 
     return udf_results.json()
+
+
+def _parse_output_schema(output_schema: TableSchema) -> List[Tuple[str, DType]]:
+    output_schema = TableSchema.parse_raw(output_schema)
+    return [(col.name, col.dtype) for col in output_schema.columns]
 
 
 @shared_task
@@ -186,17 +201,11 @@ def _convert_smpc_udf2udfgen_arg(udf_argument: NodeSMPCDTO):
         if udf_argument.value.max_op_values
         else None
     )
-    union_op = (
-        _create_table_info_from_tablename(udf_argument.value.union_op_values.value)
-        if udf_argument.value.union_op_values
-        else None
-    )
     return SMPCTablesInfo(
         template=template,
         sum_op_values=sum_op,
         min_op_values=min_op,
         max_op_values=max_op,
-        union_op_values=union_op,
     )
 
 
@@ -274,10 +283,6 @@ def _get_all_table_results_from_smpc_result(
     table_results.append(
         smpc_result.max_op_values
     ) if smpc_result.max_op_values else None
-    table_results.append(
-        smpc_result.union_op_values
-    ) if smpc_result.union_op_values else None
-
     return table_results
 
 
@@ -375,21 +380,12 @@ def _convert_udfgen2udf_smpc_result_and_mapping(
     else:
         max_op_udf_result = None
 
-    if udfgen_result.union_op_values:
-        (union_op_udf_result, mapping,) = _convert_udfgen2udf_table_result_and_mapping(
-            udfgen_result.union_op_values, context_id, command_id, command_subid + 4
-        )
-        table_names_tmpl_mapping.update(mapping)
-    else:
-        union_op_udf_result = None
-
     result = NodeSMPCDTO(
         value=NodeSMPCValueDTO(
             template=template_udf_result,
             sum_op_values=sum_op_udf_result,
             min_op_values=min_op_udf_result,
             max_op_values=max_op_udf_result,
-            union_op_values=union_op_udf_result,
         )
     )
     return result, table_names_tmpl_mapping
@@ -460,6 +456,7 @@ def _generate_udf_statements(
     positional_args: UDFPosArguments,
     keyword_args: UDFKeyArguments,
     use_smpc: bool,
+    output_schema,
 ) -> Tuple[List[str], UDFResults]:
     allowed_func_name = func_name.replace(".", "_")  # A dot is not an allowed character
     udf_name = _create_udf_name(allowed_func_name, command_id, context_id)
@@ -472,6 +469,7 @@ def _generate_udf_statements(
         positional_args=gen_pos_args,
         keyword_args=gen_kw_args,
         smpc_used=use_smpc,
+        output_schema=output_schema,
     )
 
     (udf_results, templates_mapping,) = convert_udfgen2udf_results_and_mapping(

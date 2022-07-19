@@ -233,6 +233,7 @@ algorithm_request_dto = AlgorithmRequestDTO(
 )
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(

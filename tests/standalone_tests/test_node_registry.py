@@ -2,7 +2,6 @@ from typing import Dict
 
 import pytest
 
-from mipengine.controller.controller_logger import get_request_logger
 from mipengine.controller.node_registry import NodeRegistry
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
@@ -76,3 +75,8 @@ def test_get_node_info(mocked_node_registry):
     assert node_info.id == expected_id
     assert node_info.role == NodeRole.LOCALNODE
     assert node_info.db_port == 50001
+
+
+def test_empty_initialization():
+    nr = NodeRegistry()
+    assert not nr.nodes

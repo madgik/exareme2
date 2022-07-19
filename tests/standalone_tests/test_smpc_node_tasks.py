@@ -29,6 +29,7 @@ from tests.algorithms.orphan_udfs import smpc_global_step
 from tests.algorithms.orphan_udfs import smpc_local_step
 from tests.standalone_tests.conftest import LOCALNODE1_SMPC_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE2_SMPC_CONFIG_FILE
+from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import get_node_config_by_id
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.test_udfs import create_table_with_one_column_and_ten_rows
@@ -39,8 +40,6 @@ command_id = "command123"
 smpc_job_id = "testKey123"
 SMPC_GET_DATASET_ENDPOINT = "/api/update-dataset/"
 SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
-
-TASKS_TIMEOUT = 60
 
 
 class StdOutputLogger:
@@ -88,8 +87,12 @@ def create_table_with_secure_transfer_results_with_smpc_off(
     secure_transfer_1_value = 100
     secure_transfer_2_value = 11
 
-    secure_transfer_1 = {"sum": {"data": secure_transfer_1_value, "operation": "sum"}}
-    secure_transfer_2 = {"sum": {"data": secure_transfer_2_value, "operation": "sum"}}
+    secure_transfer_1 = {
+        "sum": {"data": secure_transfer_1_value, "operation": "sum", "type": "int"}
+    }
+    secure_transfer_2 = {
+        "sum": {"data": secure_transfer_2_value, "operation": "sum", "type": "int"}
+    }
     values = [
         ["localnode1", json.dumps(secure_transfer_1)],
         ["localnode2", json.dumps(secure_transfer_2)],
@@ -116,8 +119,12 @@ def create_table_with_multiple_secure_transfer_templates(
 
     table_name = create_secure_transfer_table(celery_app)
 
-    secure_transfer_template = {"sum": {"data": [0, 1, 2, 3], "operation": "sum"}}
-    different_secure_transfer_template = {"sum": {"data": 0, "operation": "sum"}}
+    secure_transfer_template = {
+        "sum": {"data": [0, 1, 2, 3], "operation": "sum", "type": "int"}
+    }
+    different_secure_transfer_template = {
+        "sum": {"data": 0, "operation": "sum", "type": "int"}
+    }
 
     if similar:
         values = [
@@ -222,7 +229,9 @@ def test_secure_transfer_output_with_smpc_off(
     secure_transfer_result = results[0]
     assert isinstance(secure_transfer_result, NodeTableDTO)
 
-    expected_result = {"sum": {"data": input_table_name_sum, "operation": "sum"}}
+    expected_result = {
+        "sum": {"data": input_table_name_sum, "operation": "sum", "type": "int"}
+    }
     validate_dict_table_data_match_expected(
         celery_app=localnode1_celery_app,
         get_table_data_task_signature=get_table_data_task,
@@ -369,7 +378,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     assert isinstance(smpc_result, NodeSMPCDTO)
 
     assert smpc_result.value.template is not None
-    expected_template = {"sum": {"data": 0, "operation": "sum"}}
+    expected_template = {"sum": {"data": 0, "operation": "sum", "type": "int"}}
     validate_dict_table_data_match_expected(
         celery_app=smpc_localnode1_celery_app,
         get_table_data_task_signature=get_table_data_task,

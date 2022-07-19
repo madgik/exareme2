@@ -7,7 +7,7 @@ from mipengine.node_info_DTOs import NodeRole
 
 
 class NodeRegistry(BaseModel):
-    nodes: Dict[str, NodeInfo]
+    nodes: Dict[str, NodeInfo] = {}
 
     class Config:
         allow_mutation = False
