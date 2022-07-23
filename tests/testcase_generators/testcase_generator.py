@@ -1,86 +1,85 @@
 import json
 import random
-import re
 from abc import ABC
 from abc import abstractmethod
 from functools import cached_property
+from functools import lru_cache
 from functools import partial
+from pathlib import Path
 
 import pandas as pd
-import pymonetdb
 from tqdm import tqdm
 
-from mipengine.node.monetdb_interface.monet_db_facade import _MonetDBConnectionPool
-
 TESTING_DATAMODEL = "dementia:0.1"
-DATA_TABLENAME = f""""{TESTING_DATAMODEL}".primary_data"""
-METADATA_TABLENAME = f""""{TESTING_DATAMODEL}".variables_metadata"""
-
-MAX_TABLE_SIZE = 60
-MIN_TABLE_SIZE = 1
-TABLE_SIZE_MODE = 10
-
-# XXX Change according to your local setup
-DB_IP = "127.0.0.1"
-DB_PORT = 50001
-DB_USER = "monetdb"
-DB_PASS = "monetdb"
-DB_FARM = "db"
+DATAMODEL_BASEPATH = Path("tests/test_data/dementia_v_0_1/")
+DATAMODEL_CDESPATH = DATAMODEL_BASEPATH / "CDEsMetadata.json"
 
 
-class DB(_MonetDBConnectionPool):
-    def refresh_connection(self):
-        self._connection = pymonetdb.connect(
-            hostname=DB_IP,
-            port=DB_PORT,
-            username=DB_USER,
-            password=DB_PASS,
-            database=DB_FARM,
-        )
-
+class _DB:
+    @lru_cache
     def get_numerical_variables(self):
-        query = f"""SELECT code
-                        FROM {METADATA_TABLENAME}
-                        WHERE json.filter(metadata, '$.is_categorical')='[false]'
-                            AND (json.filter(metadata, '$.sql_type')='["real"]'
-                            OR json.filter(metadata, '$.sql_type')='["int"]');"""
-        variables = pd.read_sql(query, self._connection)
-        return variables["code"].tolist()
+        cdes = self._get_cdes()
+        return [
+            cde["code"]
+            for cde in cdes
+            if not cde["isCategorical"] and cde["sql_type"] in ("int", "real")
+        ]
 
+    @lru_cache
     def get_nominal_variables(self):
+        cdes = self._get_cdes()
+        return [cde["code"] for cde in cdes if cde["isCategorical"]]
 
-        query = f"""SELECT code
-                        FROM {METADATA_TABLENAME}
-                        WHERE json.filter(metadata, '$.is_categorical')='[true]';"""
+    @lru_cache
+    def get_data_table(self):
+        """Loads all csv into a single DataFrame"""
+        dataset_prefix = ["edsd", "ppmi", "desd-synthdata"]
 
-        variables = pd.read_sql(query, self._connection)
-        return variables["code"].tolist()
+        datasets = []
+        for prefix in dataset_prefix:
+            for i in range(10):
+                filepath = DATAMODEL_BASEPATH / f"{prefix}{i}.csv"
+                datasets.append(pd.read_csv(filepath))
 
-    def get_data_table(self, replicas=2):
-        """Loads the whole data table from the DB.
+        return pd.concat(datasets)
 
-        Parameters
-        ----------
-        replicas: int
-            Number of times the data will be replicated. Useful for testing in
-            federated environment with an equal number of local nodes.
-
-        """
-        query = f"SELECT * FROM {DATA_TABLENAME}"
-        data_table = pd.read_sql(query, self._connection)
-        data_table = pd.concat([data_table for _ in range(replicas)])
-        return data_table
-
+    @lru_cache
     def get_datasets(self):
-        query = f"SELECT DISTINCT dataset FROM {DATA_TABLENAME}"
-        datasets = pd.read_sql(query, self._connection)
-        return datasets["dataset"].tolist()
+        data = self.get_data_table()
+        return data["dataset"].unique().tolist()
 
+    @lru_cache
     def get_enumerations(self, varname):
-        query = f"SELECT enumerations FROM {METADATA_TABLENAME} WHERE code='{varname}'"
-        result = self.execute_and_fetchall(query)
-        enums = re.split(r"\s*,\s*", result[0][0])
-        return enums
+        cdes = self._get_cdes()
+        assert varname in self.get_nominal_variables(), f"{varname} is not nominal"
+        enums = next(cde["enumerations"] for cde in cdes if cde["code"] == varname)
+        return [enum["code"] for enum in enums]
+
+    @lru_cache
+    def _get_cdes(self):
+        with open(DATAMODEL_CDESPATH) as file:
+            cdes = json.load(file)
+
+        def flatten_cdes(cdes: dict, flat_cdes: list):
+            if "isCategorical" in cdes:  # isCategorical indicates that we reached a var
+                flat_cdes.append(cdes)
+            elif "variables" in cdes or "groups" in cdes:
+                for elm in cdes.get("variables", []) + cdes.get("groups", []):
+                    flatten_cdes(elm, flat_cdes)
+
+        flat_cdes = []
+        flatten_cdes(cdes, flat_cdes)
+
+        # some variables found in CDEs are not found in any csv file, remove them
+        all_vars = list(self.get_data_table().columns)
+        return [cde for cde in flat_cdes if cde["code"] in all_vars]
+
+
+def DB():
+    # Dead simple singleton pattern. Not great but we don't need anything fancier here.
+    if not hasattr(DB, "instance"):
+        DB.instance = _DB()
+    return DB.instance
 
 
 def random_permutation(iterable, r=None):
@@ -317,10 +316,6 @@ class TestCaseGenerator(ABC):
     ----------
     specs_file
         Pointer to algorithm specs file in json format
-    replicas: int
-        Number of times the data used in the expected output will be
-        replicated. Useful for testing in federated environment with an equal
-        number of local nodes.
 
     Examples
     --------
@@ -329,7 +324,7 @@ class TestCaseGenerator(ABC):
                 ...  # SOA computation
                 return {"some_result": 42, "other_result": 24}
     >>> with open('my_algoritm.json') as file:
-            tcg = MyAlgorithmTCG(file, replicas=2)
+            tcg = MyAlgorithmTCG(file)
     >>> with open('my_algoritm_expected.json') as file:
             tcg.write_test_cases(file)
 
@@ -337,9 +332,9 @@ class TestCaseGenerator(ABC):
 
     __test__ = False
 
-    def __init__(self, specs_file, replicas=1):
+    def __init__(self, specs_file):
         self.input_gen = InputGenerator(specs_file)
-        self.all_data = DB().get_data_table(replicas)
+        self.all_data = DB().get_data_table()
 
     def generate_input(self):
         return self.input_gen.draw()

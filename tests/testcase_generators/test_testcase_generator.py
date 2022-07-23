@@ -167,18 +167,12 @@ def test_db_get_datasets():
 def test_db_get_data_table():
     data_table = DB().get_data_table()
     assert data_table is not None
+    assert len(data_table) > 0
 
 
 def test_db_get_enumerations():
     enums = DB().get_enumerations("gender")
     assert set(enums) == {"F", "M"}
-
-
-def test_db_get_data_table_replicas():
-    data_table_once = DB().get_data_table(replicas=1)
-    data_table_twice = DB().get_data_table(replicas=2)
-    assert len(data_table_once) != 0
-    assert len(data_table_once) * 2 == len(data_table_twice)
 
 
 def test_int_parameter():
