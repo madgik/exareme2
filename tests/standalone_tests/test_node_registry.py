@@ -17,12 +17,12 @@ mocked_node_addresses = [
 def get_mocked_nodes() -> List[NodeInfo]:
     return [
         NodeInfo(
-        id="globalnode",
-        role=NodeRole.GLOBALNODE,
-        ip=mocked_node_addresses[0].split(":")[0],
-        port=mocked_node_addresses[0].split(":")[1],
-        db_ip="127.0.0.1",
-        db_port=50000,
+            id="globalnode",
+            role=NodeRole.GLOBALNODE,
+            ip=mocked_node_addresses[0].split(":")[0],
+            port=mocked_node_addresses[0].split(":")[1],
+            db_ip="127.0.0.1",
+            db_port=50000,
         ),
         NodeInfo(
             id="localnode1",
@@ -53,9 +53,7 @@ def get_mocked_nodes() -> List[NodeInfo]:
 
 @pytest.fixture
 def mocked_node_registry():
-    node_registry = NodeRegistry(
-        nodes_info=get_mocked_nodes()
-    )
+    node_registry = NodeRegistry(nodes_info=get_mocked_nodes())
     return node_registry
 
 

@@ -9,8 +9,16 @@ from mipengine.node_info_DTOs import NodeRole
 class NodeRegistry(BaseModel):
     def __init__(self, nodes_info=None):
         if nodes_info:
-            global_node = [node_info for node_info in nodes_info if node_info.role == NodeRole.GLOBALNODE][0]
-            local_nodes = [node_info for node_info in nodes_info if node_info.role == NodeRole.LOCALNODE]
+            global_node = [
+                node_info
+                for node_info in nodes_info
+                if node_info.role == NodeRole.GLOBALNODE
+            ][0]
+            local_nodes = [
+                node_info
+                for node_info in nodes_info
+                if node_info.role == NodeRole.LOCALNODE
+            ]
             super().__init__(global_node=global_node, local_nodes=local_nodes)
         else:
             super().__init__()

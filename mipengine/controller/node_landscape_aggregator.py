@@ -113,16 +113,34 @@ def _get_node_socket_addr(node_info: NodeInfo):
     return f"{node_info.ip}:{node_info.port}"
 
 
-class DatasetInfo(BaseModel):
+class DatasetsInfo(BaseModel):
+    """
+    A dictionary representation of a dataset's information.
+    Key values are the names of the datasets.
+    Values are the labels of the datasets.
+    """
+
     values: Dict[str, str]
 
 
-class DatamodelInfo(BaseModel):
-    values: Dict[str, Tuple[DatasetInfo, CommonDataElements]]
+class DataModelsInfo(BaseModel):
+    """
+    A dictionary representation of a data_model's information.
+    Key values are data models.
+    Values are tuples that contain datasets info and cdes for a specific data model.
+    """
+
+    values: Dict[str, Tuple[DatasetsInfo, CommonDataElements]]
 
 
 class FederationInfo(BaseModel):
-    values: Dict[str, DatamodelInfo]
+    """
+    A dictionary representation of all information for the federation.
+    Key values are nodes.
+    Values are data models information.
+    """
+
+    values: Dict[str, DataModelsInfo]
 
 
 class _NLARegistries(BaseModel):
@@ -163,15 +181,9 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         """
         while self._keep_updating:
             try:
-                (nodes_info, federated_node_infos) = data_fetching()
-                logger.info(federated_node_infos.__str__())
-                for node_id, fdmi in federated_node_infos.values.items():
-                    for data_model, datasets_and_cdes in fdmi.values.items():
-                        logger.info(f"{node_id=}\n")
-                        logger.info(f"{data_model=}\n")
-                        logger.info(f"{datasets_and_cdes[0]=}\n")
+                (nodes_info, federation_info) = data_fetching()
                 node_registry = NodeRegistry(nodes_info=nodes_info)
-                dmr = data_model_registry_data_cruncing(federated_node_infos)
+                dmr = data_model_registry_data_cruncing(federation_info)
 
                 self.set_new_registries(node_registry, dmr)
 
@@ -268,26 +280,29 @@ def data_fetching() -> Tuple[
     List[NodeInfo],
     FederationInfo,
 ]:
+    """
+    Returns a list of all the nodes in the federation and the whole information for the federation(data_models, datasets).
+    """
     nodes_addresses = get_nodes_addresses()
     nodes_info = _get_nodes_info(nodes_addresses)
     local_nodes = [
         node_info for node_info in nodes_info if node_info.role == NodeRole.LOCALNODE
     ]
-    federated_node_infos = _get_federated_node_infos(local_nodes)
-    return nodes_info, federated_node_infos
+    federation_info = _get_federation_info(local_nodes)
+    return nodes_info, federation_info
 
 
 def data_model_registry_data_cruncing(
-    federated_node_infos: FederationInfo,
+    federation_info: FederationInfo,
 ) -> DataModelRegistry:
-    federated_node_infos_with_compatible_data_models = _remove_incompatible_data_models(
-        federated_node_infos
+    federation_info_with_compatible_data_models = _remove_incompatible_data_models(
+        federation_info
     )
     datasets_locations, aggregated_datasets = _gather_all_dataset_info(
-        federated_node_infos_with_compatible_data_models
+        federation_info_with_compatible_data_models
     )
     data_models = _get_data_models(
-        federated_node_infos_with_compatible_data_models, aggregated_datasets
+        federation_info_with_compatible_data_models, aggregated_datasets
     )
 
     return DataModelRegistry(
@@ -295,13 +310,13 @@ def data_model_registry_data_cruncing(
     )
 
 
-def _get_federated_node_infos(
+def _get_federation_info(
     nodes: List[NodeInfo],
 ) -> FederationInfo:
-    fni = {}
+    federation_info = {}
 
     for node_info in nodes:
-        fdmi = {}
+        dmi = {}
 
         node_socket_addr = _get_node_socket_addr(node_info)
         datasets_per_data_model = _get_node_datasets_per_data_model(node_socket_addr)
@@ -312,17 +327,25 @@ def _get_federated_node_infos(
                 cdes = _get_node_cdes(node_socket_addr, data_model)
                 if not cdes:
                     continue
-                fdmi[data_model] = (DatasetInfo(values=datasets), cdes)
-        fni[node_info.id] = DatamodelInfo(values=fdmi)
+                dmi[data_model] = (DatasetsInfo(values=datasets), cdes)
+        federation_info[node_info.id] = DataModelsInfo(values=dmi)
 
-    return FederationInfo(values=fni)
+    return FederationInfo(values=federation_info)
 
 
-def _gather_all_dataset_info(federated_node_infos):
+def _gather_all_dataset_info(federation_info):
+    """
+    Args:
+        federation_info
+    Returns:
+        A tuple with:
+         1. The location of each dataset.
+         2. The aggregated datasets, existing in all nodes
+    """
     datasets_locations = {}
     aggregated_datasets = {}
-    for node_id, fdmi in federated_node_infos.values.items():
-        for data_model, datasets_and_cdes in fdmi.values.items():
+    for node_id, dmi in federation_info.values.items():
+        for data_model, datasets_and_cdes in dmi.values.items():
             datasets, _ = datasets_and_cdes
 
             current_labels = (
@@ -361,10 +384,10 @@ def _gather_all_dataset_info(federated_node_infos):
     return datasets_locations_without_duplicates, aggregated_datasets
 
 
-def _get_data_models(federated_node_infos, aggregated_datasets):
+def _get_data_models(federation_info, aggregated_datasets):
     data_models = {}
-    for node_id, fdmi in federated_node_infos.values.items():
-        for data_model, datasets_and_cdes in fdmi.values.items():
+    for node_id, dmi in federation_info.values.items():
+        for data_model, datasets_and_cdes in dmi.values.items():
             _, cdes = datasets_and_cdes
             data_models[data_model] = cdes
             dataset_cde = cdes.values["dataset"]
@@ -382,13 +405,26 @@ def _get_data_models(federated_node_infos, aggregated_datasets):
 
 
 def _remove_incompatible_data_models(
-    federated_node_infos: FederationInfo,
+    federation_info: FederationInfo,
 ) -> FederationInfo:
+    """
+    Each node has its own data models definition.
+    We need to check for each data model if the definitions across all nodes is the same.
+    If the data model is not the same across all nodes containing it, we log the incompatibility.
+    The data models with similar definitions across all nodes are returned.
+    Parameters
+    ----------
+        federation_info: FederationInfo
+    Returns
+    ----------
+        FederationInfo
+            The federation info without the incompatible data models
+    """
     validation_dictionary = {}
 
     incompatible_data_models = []
-    for node_id, fdmi in federated_node_infos.values.items():
-        for data_model, datasets_and_cdes in fdmi.values.items():
+    for node_id, dmi in federation_info.values.items():
+        for data_model, datasets_and_cdes in dmi.values.items():
             if data_model in incompatible_data_models:
                 continue
 
@@ -403,17 +439,17 @@ def _remove_incompatible_data_models(
             else:
                 validation_dictionary[data_model] = (node_id, cdes)
 
-    compatible_federated_node_infos = {
-        node_id: DatamodelInfo(
+    compatible_federation_info = {
+        node_id: DataModelsInfo(
             values={
                 data_model: datasets_and_cdes
-                for data_model, datasets_and_cdes in fdmi.values.items()
+                for data_model, datasets_and_cdes in dmi.values.items()
                 if data_model not in incompatible_data_models
             }
         )
-        for node_id, fdmi in federated_node_infos.values.items()
+        for node_id, dmi in federation_info.values.items()
     }
-    return FederationInfo(values=compatible_federated_node_infos)
+    return FederationInfo(values=compatible_federation_info)
 
 
 def _log_node_changes(old_nodes, new_nodes):
