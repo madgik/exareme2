@@ -1,6 +1,5 @@
 import io
 import json
-from unittest import mock
 
 import pytest
 
@@ -10,7 +9,10 @@ from tests.testcase_generators.testcase_generator import EnumFromList
 from tests.testcase_generators.testcase_generator import FloatParameter
 from tests.testcase_generators.testcase_generator import InputGenerator
 from tests.testcase_generators.testcase_generator import IntegerParameter
-from tests.testcase_generators.testcase_generator import NumericalInputDataVariables
+from tests.testcase_generators.testcase_generator import MixedTypeMultipleVar
+from tests.testcase_generators.testcase_generator import MixedTypeSingleVar
+from tests.testcase_generators.testcase_generator import SingleTypeMultipleVar
+from tests.testcase_generators.testcase_generator import SingleTypeSingleVar
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 from tests.testcase_generators.testcase_generator import make_parameters
 
@@ -61,56 +63,127 @@ def specs_file_y_numerical():
     )
 
 
-def test_numerical_vars_draw_single_required():
-    var = NumericalInputDataVariables(notblank=True, multiple=False)
-    assert var.draw()
+@pytest.fixture
+def specs_file_xy_mixed():
+    return io.StringIO(
+        """
+        {
+            "inputdata": {
+                "y": {
+                    "types": ["text", "int"],
+                    "stattypes": ["nominal"],
+                    "notblank": true,
+                    "multiple": false
+                },
+                "x": {
+                    "types": ["real", "text", "int"],
+                    "stattypes": ["numerical", "nominal"],
+                    "notblank": true,
+                    "multiple": true
+                }
+            },
+            "parameters": {}
+        }
+        """
+    )
 
 
-def test_numerical_vars_draw_single_not_required():
-    var = NumericalInputDataVariables(notblank=False, multiple=False)
-
-    with mock.patch(f"{TESTCASEGEN_PATH}.coin", lambda: True):
-        assert var.draw()
-
-    with mock.patch(f"{TESTCASEGEN_PATH}.coin", lambda: False):
-        assert not var.draw()
+def test_single_type_singe_var():
+    pool = ["x1", "x2", "x3"]
+    var = SingleTypeSingleVar(notblank=True, pool=pool)
+    result = var.draw()
+    assert result == ("x3",)
 
 
-def test_numerical_vars_draw_multiple_required():
-    var = NumericalInputDataVariables(notblank=True, multiple=True)
+# Since the classes SingleTypeMultipleVar, MixedTypeSingleVar and
+# MixedTypeMultipleVar implement a non-deterministic draw method, I test them
+# using property-based testing. This means that I run 100 draws and verify that
+# some property holds, rather than comparing with some known expected result.
 
-    with mock.patch(f"{TESTCASEGEN_PATH}.triangular", lambda: 2):
-        assert len(var.draw()) == 2
+
+def test_single_type_singe_var_notblank_is_false():
+    results = []
+    for _ in range(100):
+        pool = ["x1", "x2", "x3"]
+        var = SingleTypeSingleVar(notblank=False, pool=pool)
+        result = var.draw()
+        results.append(result == ("x3",))
+
+    assert len(set(results)) == 2  # this has probability 2^(-99) to fail
+
+
+def test_single_type_multi_var():
+    for _ in range(100):
+        pool = ["x1", "x2", "x3"]
+        var = SingleTypeMultipleVar(notblank=True, pool=pool)
+        result = var.draw()
+        assert list(result) + pool == ["x1", "x2", "x3"]
+
+
+def test_mixed_type_single_var():
+    for _ in range(100):
+        pool1 = ["x1", "x2", "x3"]
+        pool2 = ["y1", "y2", "y3"]
+        var = MixedTypeSingleVar(notblank=True, pool1=pool1, pool2=pool2)
+        result = var.draw()
+        assert result == ("x3",) or result == ("y3",)
+
+
+def test_mixed_type_multi_var():
+    for _ in range(100):
+        pool1 = ["x1", "x2", "x3"]
+        pool2 = ["y1", "y2", "y3"]
+        all_vars = set(pool1) | set(pool2)
+
+        var = MixedTypeMultipleVar(notblank=True, pool1=pool1, pool2=pool2)
+        result = var.draw()
+        assert len(result) + len(pool1) + len(pool2) == len(all_vars)
+        assert set(result) | set(pool1) | set(pool2) == all_vars
+        assert set(result) & {"x1", "x2", "x3"}  # assert pool1 is always used
 
 
 def test_algorithm_specs_numerical_vars(specs_file_xy_numerical):
+    numericals = set(DB().get_numerical_variables())
     input_gen = InputGenerator(specs_file_xy_numerical)
-    input_ = input_gen.draw()
-    inputdata = input_["inputdata"]
-    parameters = input_["parameters"]
-    assert "x" in inputdata.keys() and "y" in inputdata
-    assert inputdata["y"] is not None
-    assert not parameters
+
+    for _ in range(100):
+        input_ = input_gen.draw()
+        y, x = input_["inputdata"]["y"], input_["inputdata"]["x"]
+
+        assert len(y) >= 1
+        assert set(x) <= numericals
+        assert set(y) <= numericals
+        assert not set(x) & set(y)
+
+
+def test_algorithm_specs_mixed_vars(specs_file_xy_mixed):
+    nominals = set(DB().get_nominal_variables())
+    numericals = set(DB().get_numerical_variables())
+    input_gen = InputGenerator(specs_file_xy_mixed)
+
+    for _ in range(100):
+        input_ = input_gen.draw()
+        y, x = input_["inputdata"]["y"], input_["inputdata"]["x"]
+
+        assert len(y) == 1
+        assert len(x) >= 1
+        assert set(y) <= nominals
+        assert set(x) <= numericals | nominals
+        assert not set(x) & set(y)
 
 
 def test_get_input_data(specs_file_y_numerical):
-    input_ = {
-        "inputdata": {
-            "y": ("lefthippocampus", "righthippocampus"),
-            "data_model": "dementia:0.1",
-            "datasets": ("desd-synthdata",),
-            "filters": "",
-        },
-        "para meters": {},
-    }
-
     class ConcreteTestCaseGenerator(TestCaseGenerator):
         def compute_expected_output(self, input_data, parameters):
             return "Result"
 
     testcase_gen = ConcreteTestCaseGenerator(specs_file_y_numerical)
-    y_data, _ = testcase_gen.get_input_data(input_)
-    assert set(y_data.columns) == set(input_["inputdata"]["y"])
+
+    for _ in range(100):
+        testcase = testcase_gen.generate_test_case()
+        input_ = testcase["input"]
+        y_data, _ = testcase_gen.get_input_data(input_)
+        assert set(y_data.columns) == set(input_["inputdata"]["y"])
 
 
 def test_testcase_generator_single_testcase(specs_file_xy_numerical):
@@ -119,11 +192,13 @@ def test_testcase_generator_single_testcase(specs_file_xy_numerical):
             return "Result"
 
     testcase_gen = ConcreteTestCaseGenerator(specs_file_xy_numerical)
-    testcase = testcase_gen.generate_test_case()
-    assert testcase["input"]
-    assert testcase["output"]
-    assert testcase["input"]["parameters"] == {}
-    assert testcase["input"]["inputdata"]["y"] is not None
+
+    for _ in range(100):
+        testcase = testcase_gen.generate_test_case()
+        assert testcase["input"]
+        assert testcase["output"]
+        assert testcase["input"]["parameters"] == {}
+        assert testcase["input"]["inputdata"]["y"] is not None
 
 
 def test_testcase_generator_multiple_testcases(specs_file_xy_numerical):
@@ -194,20 +269,20 @@ def test_enum_from_cde_parameter():
 
 
 def test_make_enum_from_cde_parameter():
-    properties = {"type": "enum_from_cde", "variable_name": "y"}
-    y = ["a_variable"]
-    enum = make_parameters(properties, y)
+    properties = {"type": "enum_from_cde", "variable_group": "y"}
+    variable_groups = {"y": ["a_variable"], "x": []}
+    enum = make_parameters(properties, variable_groups)
     assert enum.varname == "a_variable"
 
 
 def test_make_enum_from_cde_parameter__error_multiple_vars():
-    properties = {"type": "enum_from_cde", "variable_name": "y"}
-    y = ["a_variable", "another_one"]
+    properties = {"type": "enum_from_cde", "variable_group": "y"}
+    variable_groups = {"y": ["a_variable", "another_one"], "x": []}
     with pytest.raises(AssertionError):
-        make_parameters(properties, y)
+        make_parameters(properties, variable_groups)
 
 
 def test_make_enum_from_cde_parameter__error_unknown_type():
     properties = {"type": "unknown"}
     with pytest.raises(TypeError):
-        make_parameters(properties)
+        make_parameters(properties, variable_groups={})
