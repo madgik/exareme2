@@ -323,6 +323,8 @@ def test_celery_app_parallel_submit_task_after_rabbitmq_restart(
     cel_app_wrapper = CeleryAppFactory().get_celery_app(RABBITMQ_LOCALNODETMP_ADDR)
     initial_cel_app = cel_app_wrapper._celery_app
 
+    concurrent_requests = 20
+
     # Initialize celery app to open channels
     send_get_node_info_task_and_assert_response(
         cel_app_wrapper, controller_testing_logger
@@ -334,7 +336,7 @@ def test_celery_app_parallel_submit_task_after_rabbitmq_restart(
             logger=controller_testing_logger,
             request_id=request_id,
         )
-        for _ in range(20)
+        for _ in range(concurrent_requests)
     ]
 
     # Restart the rabbitmq
@@ -368,7 +370,7 @@ def test_celery_app_parallel_submit_task_after_rabbitmq_restart(
             except (CeleryConnectionError, CeleryTaskTimeoutException):
                 pass
 
-    assert 1 <= instantiate_celery_app_mock.call_count < 5, (
+    assert 1 <= instantiate_celery_app_mock.call_count < concurrent_requests / 2, (
         "A new celery app should be created, at least once. "
         "A new celery app is created upon OSError to reset the app after the rabbitmq restart."
         "The celery app should not be instantiated as many times as the requests. Only ypon OSError."
