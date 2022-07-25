@@ -288,6 +288,8 @@ def _validate_parameter_type(
         "int": int,
         "real": numbers.Real,
         "boolean": bool,
+        "enum_from_list": (str, int),
+        "enum_from_cde": (str, int),
     }
 
     if not isinstance(
