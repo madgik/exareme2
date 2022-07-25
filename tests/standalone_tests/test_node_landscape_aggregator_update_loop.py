@@ -17,6 +17,7 @@ from tests.standalone_tests.conftest import _create_node_service
 from tests.standalone_tests.conftest import _create_rabbitmq_container
 from tests.standalone_tests.conftest import _load_data_monetdb_container
 from tests.standalone_tests.conftest import _remove_data_model_from_localnodetmp_monetdb
+from tests.standalone_tests.conftest import create_localnodetmp_node_service
 from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
@@ -130,7 +131,7 @@ def test_update_loop_node_service_down(
         time.sleep(1)
 
     # restart tmplocalnode node service (the celery app)
-    localnodetmp_node_service_proc = start_localnodetmp_node_service()
+    localnodetmp_node_service_proc = create_localnodetmp_node_service()
 
     # wait until node registry re-added tmplocalnode
     start = time.time()
@@ -202,7 +203,7 @@ def test_update_loop_rabbitmq_down(
 
     # restart tmplocalnode rabbitmq container
     _create_rabbitmq_container(RABBITMQ_LOCALNODETMP_NAME, RABBITMQ_LOCALNODETMP_PORT)
-    localnodetmp_node_service_proc = start_localnodetmp_node_service()
+    localnodetmp_node_service_proc = create_localnodetmp_node_service()
 
     # wait until node registry contains tmplocalnode
     start = time.time()
@@ -344,11 +345,3 @@ def get_localnodetmp_node_id():
         tmp = toml.load(fp)
         node_id = tmp["identifier"]
     return node_id
-
-
-def start_localnodetmp_node_service():
-    node_config_file = LOCALNODETMP_CONFIG_FILE
-    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
-    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
-    return proc

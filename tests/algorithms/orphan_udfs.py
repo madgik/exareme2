@@ -48,6 +48,6 @@ def smpc_global_step(locals_result):
 def very_slow_udf(table):
     from time import sleep
 
-    sleep(1000)
+    sleep(5)
     rows = [len(table)]
     return rows

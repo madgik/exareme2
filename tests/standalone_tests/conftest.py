@@ -19,6 +19,7 @@ from mipengine.controller.algorithm_execution_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
 from mipengine.controller.celery_app import CeleryAppFactory
+from mipengine.controller.controller_logger import init_logger
 from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_landscape_aggregator import _NLARegistries
@@ -572,7 +573,7 @@ def _create_rabbitmq_container(cont_name, cont_port):
         container = client.containers.run(
             TESTING_RABBITMQ_CONT_IMAGE,
             detach=True,
-            ports={"5672/tcp": cont_port},
+            ports={"5672/tcp": cont_port, "15672/tcp": cont_port + 100},
             name=cont_name,
         )
     else:
@@ -789,6 +790,13 @@ def smpc_localnode2_node_service(rabbitmq_smpc_localnode2, monetdb_smpc_localnod
     kill_service(proc)
 
 
+def create_localnodetmp_node_service():
+    node_config_file = LOCALNODETMP_CONFIG_FILE
+    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
+    return _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+
+
 @pytest.fixture(scope="function")
 def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     """
@@ -798,12 +806,29 @@ def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     The rabbitmq and monetdb containers have also 'function' scope so this is VERY slow.
     This should be used only when the service should be killed e.g. for testing.
     """
-    node_config_file = LOCALNODETMP_CONFIG_FILE
-    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
-    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    proc = create_localnodetmp_node_service()
     yield proc
     kill_service(proc)
+
+
+def ensure_localnodetmp_node_service_is_running(node_process):
+    """
+    This is used when the rabbitmq is restarted. The node service could potentially
+    be closed if it calls the rabbitmq when it's being initialized.
+
+    This is normal and wouldn't cause a problem in production but in the tests
+    we need to restart it manually.
+
+    ATTENTION!
+    When this method is called the service should be killed manually inside the test.
+    """
+    psutil_proc = psutil.Process(node_process.pid)
+    if psutil_proc.status() == "zombie" or psutil_proc.status() == "sleeping":
+        print("Localnodetmp node service is down. Creating again.")
+        return create_localnodetmp_node_service()
+    else:
+        print("Localnodetmp node service is up and running.")
+        return node_process
 
 
 def create_node_tasks_handler_celery(node_config_filepath):
@@ -893,6 +918,11 @@ def smpc_localnode1_celery_app(smpc_localnode1_node_service):
 @pytest.fixture(scope="session")
 def smpc_localnode2_celery_app(smpc_localnode2_node_service):
     return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_SMPC_LOCALNODE2_ADDR)
+
+
+@pytest.fixture(scope="function")
+def reset_celery_app_factory():
+    CeleryAppFactory()._celery_apps = {}
 
 
 @pytest.fixture(scope="function")
@@ -1252,3 +1282,8 @@ def smpc_cluster(smpc_coordinator, smpc_players, smpc_clients):
     )  # TODO Check when the smpc cluster is actually ready
     print(f"\nFinished waiting '{SMPC_CLUSTER_SLEEP_TIME}' secs for SMPC cluster.")
     yield
+
+
+@pytest.fixture(scope="session")
+def controller_testing_logger():
+    return init_logger("TESTING", "DEBUG")
