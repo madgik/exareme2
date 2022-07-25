@@ -110,10 +110,6 @@ def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements
         logger.error(traceback.format_exc())
 
 
-def _get_node_socket_addr(node_info: NodeInfo):
-    return f"{node_info.ip}:{node_info.port}"
-
-
 class _NLARegistries(BaseModel):
     node_registry: NodeRegistry
     data_model_registry: DataModelRegistry
@@ -280,7 +276,7 @@ def _get_datasets_per_node(
 ) -> Dict[str, Dict[str, Dict[str, str]]]:
     datasets_per_node = {}
     for node_id, node_info in nodes.items():
-        node_socket_addr = _get_node_socket_addr(node_info)
+        node_socket_addr = node_info.socket_addr
         datasets_per_data_model = _get_node_datasets_per_data_model(node_socket_addr)
         if datasets_per_data_model:
             datasets_per_node[node_info.id] = datasets_per_data_model
@@ -360,7 +356,7 @@ def _get_cdes_across_nodes(
 ) -> Dict[str, List[Tuple[str, CommonDataElements]]]:
     nodes_cdes = {}
     for node_id, datasets_per_data_model in datasets_per_node.items():
-        node_socket_addr = _get_node_socket_addr(nodes[node_id])
+        node_socket_addr = nodes[node_id].socket_addr
         for data_model in datasets_per_data_model:
             cdes = _get_node_cdes(node_socket_addr, data_model)
             if data_model not in nodes_cdes:
