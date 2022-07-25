@@ -57,7 +57,7 @@ def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
         except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
             # just log the exception do not reraise it
             logger.warning(exc)
-        except Exception as exc:
+        except Exception:
             # just log full traceback exception as error and do not reraise it
             logger.error(traceback.format_exc())
     return nodes_info
@@ -83,7 +83,7 @@ def _get_node_datasets_per_data_model(
         # just log the exception do not reraise it
         logger.warning(exc)
         return {}
-    except Exception as exc:
+    except Exception:
         # just log full traceback exception as error and do not reraise it
         logger.error(traceback.format_exc())
         return {}
@@ -105,7 +105,7 @@ def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements
     except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
         # just log the exception do not reraise it
         logger.warning(exc)
-    except Exception as exc:
+    except Exception:
         # just log full traceback exception as error and do not reraise it
         logger.error(traceback.format_exc())
 
