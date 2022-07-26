@@ -20,6 +20,13 @@ class CeleryConnectionError(Exception):
         super().__init__(message)
 
 
+BAD_APP_OS_ERROR_MESSAGE = "Server unexpectedly closed connection"
+
+
+class _CeleryWrapperBadAppError(Exception):
+    pass
+
+
 class CeleryTaskTimeoutException(Exception):
     def __init__(
         self, timeout_type: str, connection_address: str, async_result: AsyncResult
@@ -60,6 +67,12 @@ class CeleryWrapper:
                 f"means the broker is not accessible or it's being started. Queuing of {task_signature=} with "
                 f"{args=} and {kwargs=} FAILED."
             )
+
+            # The celery app needs to be recreated due to a bug:
+            # https://github.com/celery/celery/issues/6912#issuecomment-1107260087
+            # Create a new celery app since the current one is corrupted.
+            self._set_new_cel_app(self._instantiate_celery_object())
+
             raise CeleryConnectionError(
                 connection_address=self._socket_addr,
                 error_details=f"While queuing {task_signature=} with {args=} and {kwargs=} on {self._socket_addr=}.",
@@ -68,12 +81,29 @@ class CeleryWrapper:
             logger.error(traceback.format_exc())
             raise exc
 
+    @staticmethod
+    def _get_result_with_os_error_handler(async_result, timeout):
+        """
+        When the consumer of a celery app gets corrupted due to a rabbitmq restart,
+        the error thrown is an OSError. The problem with that is that this error is
+        a generic one and many other (e.g. PermissionError) inherit from it.
+        We need to make sure that it's the OSError we expect, it includes the
+        BAD_APP_OS_ERROR_MESSAGE, in order to reset the celery_app.
+        """
+        try:
+            return async_result.get(timeout)
+        except OSError as exc:
+            if BAD_APP_OS_ERROR_MESSAGE == str(exc):
+                raise _CeleryWrapperBadAppError()
+            else:
+                raise exc
+
     # get_result() is blocking, because celery.result.AsyncResult.get() is blocking
     def get_result(self, async_result: AsyncResult, timeout: int, logger: Logger):
         try:
-            return async_result.get(timeout)
+            return self._get_result_with_os_error_handler(async_result, timeout)
         except (
-            OSError,
+            _CeleryWrapperBadAppError,
             UnexpectedFrame,
             ConnectionResetError,
             ConnectionRefusedError,

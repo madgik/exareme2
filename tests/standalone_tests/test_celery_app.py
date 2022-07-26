@@ -144,8 +144,8 @@ def test_celery_app_queue_task_with_rabbitmq_down(
 
     assert (
         initial_cel_app
-        == CeleryAppFactory().get_celery_app(RABBITMQ_LOCALNODETMP_ADDR)._celery_app
-    ), "The celery apps should be the same, the rabbitmq is still unreachable."
+        != CeleryAppFactory().get_celery_app(RABBITMQ_LOCALNODETMP_ADDR)._celery_app
+    ), "The celery apps should NOT be the same, the rabbitmq is down causing a reset."
 
 
 @pytest.mark.integration
@@ -367,8 +367,9 @@ def test_celery_app_parallel_submit_task_after_rabbitmq_restart(
             # if the result was fetched before the rabbitmq restarted.
             try:
                 future.result()
-            except (CeleryConnectionError, CeleryTaskTimeoutException):
-                pass
+                print("No exception!")
+            except Exception as exc:
+                print(f"Exception {type(exc)}")
 
     assert 1 <= instantiate_celery_app_mock.call_count < concurrent_requests / 2, (
         "A new celery app should be created, at least once. "
