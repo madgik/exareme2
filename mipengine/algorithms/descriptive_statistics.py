@@ -36,8 +36,14 @@ class DescriptiveResult(BaseModel):
     max: List[float]
     min: List[float]
     mean: List[float]
+    max_dataset: List[List[float]]
+    min_dataset: List[List[float]]
+    mean_dataset: List[List[float]]
+    std_dataset: List[List[float]]
     count_not_null: List[float]
     count_num_null: List[float]
+    count_not_null_dataset: List[List[float]]
+    count_num_null_dataset: List[List[float]]
     std: List[float]
     q1: List[List[float]]
     q2: List[List[float]]
@@ -45,8 +51,14 @@ class DescriptiveResult(BaseModel):
     max_model: List[float]
     min_model: List[float]
     mean_model: List[float]
+    max_dataset_model: List[List[float]]
+    min_dataset_model: List[List[float]]
+    mean_dataset_model: List[List[float]]
+    std_dataset_model: List[List[float]]
     count_not_null_model: List[float]
     count_num_null_model: List[float]
+    count_not_null_dataset_model: List[List[float]]
+    count_num_null_dataset_model: List[List[float]]
     std_model: List[float]
     q1_model: List[List[float]]
     q2_model: List[List[float]]
@@ -147,7 +159,13 @@ def run(algo_interface):
     count_num_null = json.loads(global_result.get_table_data()[1][0])["count_num_null"]
     #print(new_max)
     new_quartiles = json.loads(global_result.get_table_data()[1][0])["quartiles"]
+    dataset_max = json.loads(global_result.get_table_data()[1][0])["maximum_dataset"]
+    dataset_min = json.loads(global_result.get_table_data()[1][0])["minimum_dataset"]
+    dataset_std = json.loads(global_result.get_table_data()[1][0])["std_dataset"]
+    dataset_mean = json.loads(global_result.get_table_data()[1][0])["mean_dataset"]
 
+    not_null_dataset = json.loads(global_result.get_table_data()[1][0])['count_not_null_dataset']
+    num_null_dataset = json.loads(global_result.get_table_data()[1][0])['num_null_dataset']
     #print(new_quartiles)
     quartiles_array = numpy.array(new_quartiles)
     #print(quartiles_array.shape)
@@ -207,6 +225,14 @@ def run(algo_interface):
     count_num_null_nn = json.loads(global_result_not_null.get_table_data()[1][0])["count_num_null"]
     new_quartiles_nn = json.loads(global_result_not_null.get_table_data()[1][0])["quartiles"]
 
+    maximum_dataset_nn = json.loads(global_result_not_null.get_table_data()[1][0])["maximum_dataset"]
+    minimum_dataset_nn = json.loads(global_result_not_null.get_table_data()[1][0])["minimum_dataset"]
+    std_dataset_nn = json.loads(global_result_not_null.get_table_data()[1][0])["std_dataset"]
+    mean_dataset_nn = json.loads(global_result_not_null.get_table_data()[1][0])["mean_dataset"]
+
+    not_null_dataset_nn = json.loads(global_result_not_null.get_table_data()[1][0])['count_not_null_dataset']
+    num_null_dataset_nn = json.loads(global_result_not_null.get_table_data()[1][0])['num_null_dataset']
+
     quartiles_array_nn = numpy.array(new_quartiles_nn)
     #print(quartiles_array.shape)
     q1_array_nn = quartiles_array_nn[:,0,:]
@@ -239,8 +265,14 @@ def run(algo_interface):
         max=new_max,
         min=new_min,
         mean=new_mean,
+        max_dataset= dataset_max,
+        min_dataset = dataset_min,
+        mean_dataset = dataset_mean,
+        std_dataset= dataset_std,
         count_not_null= count_not_null,
         count_num_null= count_num_null,
+        count_not_null_dataset= not_null_dataset,
+        count_num_null_dataset= num_null_dataset,
         std=new_std,
         q1= q1_final,
         q2= q2_final,
@@ -248,8 +280,14 @@ def run(algo_interface):
         max_model=new_max_nn,
         min_model= new_min_nn,
         mean_model= new_mean_nn,
+        max_dataset_model= maximum_dataset_nn,
+        min_dataset_model= minimum_dataset_nn,
+        mean_dataset_model=  mean_dataset_nn,
+        std_dataset_model = std_dataset_nn,
         count_not_null_model=count_not_null_nn,
         count_num_null_model=count_num_null_nn,
+        count_not_null_dataset_model = not_null_dataset_nn,
+        count_num_null_dataset_model = num_null_dataset_nn,
         std_model=new_std_nn,
         q1_model=q1_final_nn,
         q2_model=q2_final_nn,
@@ -305,6 +343,8 @@ def local_stats(input_array):
     local_max = numpy.nanmax(input_array,axis=0)
     local_min = numpy.nanmin(input_array,axis=0)
     local_sum = numpy.nansum(input_array,axis=0)
+    local_std = numpy.nanstd(input_array,axis=0)
+    local_mean = numpy.nanmean(input_array,axis=0)
     quartiles = numpy.nanpercentile(input_array, [25, 50, 75],axis =0)
     num_null = numpy.isnan(input_array).sum(axis= 0)
     local_count = input_array.shape[0]
@@ -318,6 +358,8 @@ def local_stats(input_array):
     transfer['count_not_null'] = local_count_not_null.tolist()
     transfer['num_null'] = num_null.tolist()
     transfer['quartiles'] = quartiles.tolist()
+    transfer['std'] = local_std.tolist()
+    transfer['local_mean'] = local_mean.tolist()
 
     return transfer
 
@@ -332,6 +374,12 @@ def global_stats(local_transfers):
     curr_count_not_null = numpy.zeros(ncols)
     curr_count_null = numpy.zeros(ncols)
     quartiles_list = []
+    maximum_list = []
+    minimum_list = []
+    std_list = []
+    mean_list = []
+    num_null_list = []
+    count_not_null_list = []
 
     for curr_transfer in local_transfers:
         curr_max = numpy.maximum(curr_max,curr_transfer["max"])
@@ -342,11 +390,22 @@ def global_stats(local_transfers):
         curr_count_null += curr_transfer['num_null']
         quartiles_list.append(curr_transfer['quartiles'])
 
+        maximum_list.append(curr_transfer["max"])
+        minimum_list.append(curr_transfer['min'])
+        std_list.append(curr_transfer['std'])
+        mean_list.append(curr_transfer['local_mean'])
+
+        num_null_list.append(curr_transfer['num_null'])
+        count_not_null_list.append(curr_transfer['count_not_null'])
+
     total_mean = curr_sum/curr_count_not_null
     state_ = {}
     final_result = {'max':curr_max.tolist(),'min':curr_min.tolist(),
                  'mean':total_mean.tolist(),'count_not_null':curr_count_not_null.tolist(),
-                 'count_num_null': curr_count_null.tolist(),'quartiles':quartiles_list}
+                 'count_num_null': curr_count_null.tolist(),'quartiles':quartiles_list,
+                 'maximum_dataset':maximum_list,'minimum_dataset':minimum_list,'std_dataset':std_list,
+                 'mean_dataset':mean_list,'num_null_dataset':num_null_list,
+                 'count_not_null_dataset':count_not_null_list}
     state_['count_not_null'] = curr_count_not_null.tolist()
     return state_,final_result
 
