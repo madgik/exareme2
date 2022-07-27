@@ -4,6 +4,7 @@ from typing import TypeVar
 import numpy
 import numpy as np
 from pydantic import BaseModel
+from scipy.stats import stats
 
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen.udfgenerator import literal
@@ -104,6 +105,7 @@ def local_paired(x, y):
     return_type=[transfer()],
 )
 def global_paired(sec_local_transfer, alpha, alternative):
+    import scipy.stats as st
     from scipy.stats import t
 
     n_obs = sec_local_transfer["n_obs"]
@@ -144,6 +146,7 @@ def global_paired(sec_local_transfer, alpha, alternative):
     # Confidence intervals
     sample_mean = diff_sum / n_obs
     ci = t.interval(alpha=1 - alpha, df=n_obs - 1, loc=sample_mean, scale=sed)
+    # ci = st.norm.interval(alpha=1 - alpha, loc=sample_mean, scale=sed)
 
     # Cohen’s d
     cohens_d = (mean_x1 - mean_x2) / numpy.sqrt((sd_x1**2 + sd_x2**2) / 2)
@@ -152,7 +155,7 @@ def global_paired(sec_local_transfer, alpha, alternative):
         "t_stat": t_stat,
         "df": df,
         "p": p,
-        "mean_diff": diff_sum,
+        "mean_diff": diff_sum / n_obs,
         "se_diff": sed,
         "ci_upper": ci[1],
         "ci_lower": ci[0],
