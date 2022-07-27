@@ -37,15 +37,15 @@ spec:
         - name: DEPLOYMENT_TYPE
           value: "KUBERNETES"
         - name: NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL
-          value: "{{ .Values.controller.node_landscape_aggregator_update_interval }}"
+          value: {{ quote .Values.controller.node_landscape_aggregator_update_interval }}
         - name: NODES_CLEANUP_INTERVAL
-          value: "{{ .Values.controller.nodes_cleanup_interval }}"
+          value: {{ quote .Values.controller.nodes_cleanup_interval }}
         - name: NODES_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT
           value: "86400"  # One day in seconds
         - name: CELERY_TASKS_TIMEOUT
-          value: "{{ .Values.controller.celery_tasks_timeout }}"
+          value: {{ quote .Values.controller.celery_tasks_timeout }}
         - name: CELERY_RUN_UDF_TASK_TIMEOUT
-          value: "{{ .Values.controller.celery_run_udf_task_timeout }}"
+          value: {{ quote .Values.controller.celery_run_udf_task_timeout }}
         - name: LOCALNODES_DNS
           value: "mipengine-nodes-service"
         - name: LOCALNODES_PORT
@@ -55,6 +55,16 @@ spec:
         {{ if .Values.smpc.enabled }}
         - name: SMPC_OPTIONAL
           value: {{ quote .Values.smpc.optional }}
+        - name: SMPC_COORDINATOR_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: SMPC_COORDINATOR_ADDRESS
+          value: "http://$(SMPC_COORDINATOR_IP):12314"
+        - name: SMPC_GET_RESULT_INTERVAL
+          value: {{ quote .Values.smpc.get_result_interval }}
+        - name: SMPC_GET_RESULT_MAX_RETRIES
+          value: {{ quote .Values.smpc.get_result_max_retries }}
         {{ end }}
 
       ### --- SMPC components ---
@@ -85,7 +95,7 @@ spec:
         imagePullPolicy: IfNotPresent
         command: ["python", "coordinator.py"]
         ports:
-          - containerPort: 12134
+          - containerPort: 12314
         env:
         - name: POD_IP
           valueFrom:

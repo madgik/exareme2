@@ -233,6 +233,7 @@ algorithm_request_dto = AlgorithmRequestDTO(
 )
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(
@@ -241,6 +242,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnode2_tasks_handler,
+    reset_node_landscape_aggregator,
 ):
     controller = Controller()
 
@@ -374,6 +376,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnode2_tasks_handler,
+    reset_node_landscape_aggregator,
 ):
 
     controller = Controller()
@@ -504,6 +507,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
     localnodetmp_node_service,
+    reset_node_landscape_aggregator,
 ):
     controller = Controller()
 
@@ -668,6 +672,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
     localnodetmp_node_service,
+    reset_node_landscape_aggregator,
 ):
 
     controller = Controller()
@@ -828,6 +833,7 @@ async def test_cleanup_controller_restart(
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
+    reset_node_landscape_aggregator,
 ):
 
     controller = Controller()

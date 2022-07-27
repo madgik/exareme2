@@ -4,13 +4,9 @@ import pytest
 
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
-from tests.dev_env_tests.nodes_communication import get_celery_app
-from tests.dev_env_tests.nodes_communication import get_celery_task_signature
-
-
-@pytest.fixture(scope="session")
-def localnode_id():
-    return "localnode1"
+from tests.standalone_tests.conftest import TASKS_TIMEOUT
+from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
+from tests.standalone_tests.std_output_logger import StdOutputLogger
 
 
 def get_test_cases_get_data_model_cdes():
@@ -126,18 +122,30 @@ def get_test_cases_get_data_model_cdes():
     get_test_cases_get_data_model_cdes(),
 )
 def test_get_data_model_cdes(
-    data_model, expected_data_model_cdes_length, expected_data_model_cdes
+    data_model,
+    expected_data_model_cdes_length,
+    expected_data_model_cdes,
+    load_data_localnode1,
+    localnode1_node_service,
+    localnode1_celery_app,
+    use_localnode1_database,
 ):
-    get_data_model_cdes_signature = get_celery_task_signature(
-        get_celery_app("localnode1"), "get_data_model_cdes"
-    )
     request_id = "test_node_info_" + uuid.uuid4().hex + "_request"
-    data_model_cdes_json = get_data_model_cdes_signature.delay(
-        request_id=request_id, data_model=data_model
-    ).get()
+
+    task_signature = get_celery_task_signature("get_data_model_cdes")
+    async_result = localnode1_celery_app.queue_task(
+        task_signature=task_signature,
+        logger=StdOutputLogger(),
+        request_id=request_id,
+        data_model=data_model,
+    )
+    data_model_cdes_json = localnode1_celery_app.get_result(
+        async_result=async_result,
+        logger=StdOutputLogger(),
+        timeout=TASKS_TIMEOUT,
+    )
     data_model_cdes = CommonDataElements.parse_raw(data_model_cdes_json).values
     assert len(data_model_cdes) == expected_data_model_cdes_length
     for exp_cde_code, exp_cde_metadata in expected_data_model_cdes.values.items():
         assert exp_cde_code in data_model_cdes.keys()
-
         assert data_model_cdes[exp_cde_code] == exp_cde_metadata

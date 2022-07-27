@@ -5,6 +5,7 @@ from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Tuple
 from typing import Union
 
@@ -88,9 +89,7 @@ class InconsistentUDFResultSizeException(Exception):
 
 
 class InconsistentShareTablesValueException(Exception):
-    def __init__(
-        self, share_list: Union[bool, List[bool]], number_of_result_tables: int
-    ):
+    def __init__(self, share_list: Sequence[bool], number_of_result_tables: int):
         message = f"The size of the {share_list=} does not match the {number_of_result_tables=}"
         super().__init__(message)
 
@@ -309,7 +308,8 @@ class _AlgorithmExecutionInterface:
         tensor_op: Optional[TensorBinaryOp] = None,
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
-        share_to_global: Union[None, bool, List[bool]] = None,
+        share_to_global: Union[bool, Sequence[bool]] = False,
+        output_schema: Optional[TableSchema] = None,
     ) -> Union[AlgoFlowData, List[AlgoFlowData]]:
         # 1. check positional_args and keyword_args tables do not contain _GlobalNodeTable(s)
         # 2. queues run_udf task on all local nodes
@@ -325,6 +325,14 @@ class _AlgorithmExecutionInterface:
             positional_args=positional_args,
             keyword_args=keyword_args,
         )
+
+        if isinstance(share_to_global, bool):
+            share_to_global = (share_to_global,)
+
+        if output_schema and len(share_to_global) != 1:
+            raise ValueError(
+                "output_schema cannot be used with multiple output UDFs for now."
+            )
 
         # Queue the udf on all local nodes
         tasks = {}
@@ -342,6 +350,7 @@ class _AlgorithmExecutionInterface:
                 positional_args=positional_udf_args,
                 keyword_args=keyword_udf_args,
                 use_smpc=self.use_smpc,
+                output_schema=output_schema,
             )
             tasks[node] = task
 
@@ -351,22 +360,18 @@ class _AlgorithmExecutionInterface:
         )
 
         results_after_sharing_step = all_local_nodes_data
-        if share_to_global is not None:
-            # validate and transform share_to_global variable
-            if not isinstance(share_to_global, list):
-                share_to_global = [share_to_global]
-            number_of_results = len(all_nodes_results)
-            self._validate_share_to(share_to_global, number_of_results)
 
-            # Share result to global node when necessary
-            results_after_sharing_step = []
-            for share, local_nodes_data in zip(share_to_global, all_local_nodes_data):
-                if share:
-                    result = self._share_local_node_data(local_nodes_data, command_id)
-                    command_id = get_next_command_id()
-                else:
-                    result = local_nodes_data
-                results_after_sharing_step.append(result)
+        # validate length of share_to_global
+        number_of_results = len(all_nodes_results)
+        self._validate_share_to(share_to_global, number_of_results)
+
+        # Share result to global node when necessary
+        results_after_sharing_step = [
+            self._share_local_node_data(local_nodes_data, get_next_command_id())
+            if share
+            else local_nodes_data
+            for share, local_nodes_data in zip(share_to_global, all_local_nodes_data)
+        ]
 
         # SMPC Tables MUST be shared to the global node
         for result in results_after_sharing_step:
@@ -450,7 +455,7 @@ class _AlgorithmExecutionInterface:
             command_id, local_nodes_smpc_tables
         )
 
-        (sum_op, min_op, max_op, union_op) = trigger_smpc_operations(
+        (sum_op, min_op, max_op) = trigger_smpc_operations(
             logger=self._logger,
             context_id=self._global_node.context_id,
             command_id=command_id,
@@ -464,14 +469,12 @@ class _AlgorithmExecutionInterface:
             sum_op=sum_op,
             min_op=min_op,
             max_op=max_op,
-            union_op=union_op,
         )
 
         (
             sum_op_result_table,
             min_op_result_table,
             max_op_result_table,
-            union_op_result_table,
         ) = get_smpc_results(
             node=self._global_node,
             context_id=self._global_node.context_id,
@@ -479,7 +482,6 @@ class _AlgorithmExecutionInterface:
             sum_op=sum_op,
             min_op=min_op,
             max_op=max_op,
-            union_op=union_op,
         )
 
         return GlobalNodeSMPCTables(
@@ -489,7 +491,6 @@ class _AlgorithmExecutionInterface:
                 sum_op=sum_op_result_table,
                 min_op=min_op_result_table,
                 max_op=max_op_result_table,
-                union_op=union_op_result_table,
             ),
         )
 
@@ -499,7 +500,8 @@ class _AlgorithmExecutionInterface:
         tensor_op: Optional[TensorBinaryOp] = None,
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
-        share_to_locals: Union[None, bool, List[bool]] = None,
+        share_to_locals: Union[bool, Sequence[bool]] = False,
+        output_schema: Optional[TableSchema] = None,
     ) -> Union[AlgoFlowData, List[AlgoFlowData]]:
         # 1. check positional_args and keyword_args tables do not contain _LocalNodeTable(s)
         # 2. queue run_udf on the global node
@@ -518,6 +520,14 @@ class _AlgorithmExecutionInterface:
         positional_udf_args = algoexec_udf_posargs_to_node_udf_posargs(positional_args)
         keyword_udf_args = algoexec_udf_kwargs_to_node_udf_kwargs(keyword_args)
 
+        if isinstance(share_to_locals, bool):
+            share_to_locals = (share_to_locals,)
+
+        if output_schema and len(share_to_locals) != 1:
+            raise NotImplementedError(
+                "output_schema cannot be used with multiple output UDFs for now."
+            )
+
         # Queue the udf on global node
         task = self._global_node.queue_run_udf(
             command_id=str(command_id),
@@ -525,6 +535,7 @@ class _AlgorithmExecutionInterface:
             positional_args=positional_udf_args,
             keyword_args=keyword_udf_args,
             use_smpc=self.use_smpc,
+            output_schema=output_schema,
         )
 
         node_tables = self._global_node.get_queued_udf_result(task)
@@ -533,23 +544,16 @@ class _AlgorithmExecutionInterface:
         )
 
         results_after_sharing_step = global_node_tables
-        if share_to_locals is not None:
-            # validate and transform share_to_locals variable
-            if not isinstance(share_to_locals, list):
-                share_to_locals = [share_to_locals]
-            number_of_results = len(global_node_tables)
-            self._validate_share_to(share_to_locals, number_of_results)
 
-            # Share result to local nodes when necessary
-            results_after_sharing_step = []
-            for share, table in zip(share_to_locals, global_node_tables):
-                if share:
-                    results_after_sharing_step.append(
-                        self._share_global_table_to_locals(table)
-                    )
-                    command_id = get_next_command_id()
-                else:
-                    results_after_sharing_step.append(table)
+        # validate length of share_to_locals
+        number_of_results = len(global_node_tables)
+        self._validate_share_to(share_to_locals, number_of_results)
+
+        # Share result to local nodes when necessary
+        results_after_sharing_step = [
+            self._share_global_table_to_locals(table) if share else table
+            for share, table in zip(share_to_locals, global_node_tables)
+        ]
 
         if len(results_after_sharing_step) == 1:
             results_after_sharing_step = results_after_sharing_step[0]
@@ -660,13 +664,13 @@ class _AlgorithmExecutionInterface:
 
         return all_nodes_results
 
-    def _validate_share_to(self, share_to: Union[bool, List[bool]], number_of_results):
-        for elem in share_to:
-            if not isinstance(elem, bool):
-                raise Exception(
-                    f"share_to_locals must be of type bool or List[bool] but "
-                    f"{type(share_to)=} was passed"
-                )
+    @staticmethod
+    def _validate_share_to(share_to: Sequence[bool], number_of_results: int):
+        if not all(isinstance(elem, bool) for elem in share_to):
+            raise TypeError(
+                f"share_to_locals must be of type Sequence[bool] but "
+                f"{type(share_to)=} was passed"
+            )
         if len(share_to) != number_of_results:
             raise InconsistentShareTablesValueException(share_to, number_of_results)
 
@@ -720,9 +724,6 @@ class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
                     sum_op=local_nodes_data.nodes_smpc_tables[self._global_node].sum_op,
                     min_op=local_nodes_data.nodes_smpc_tables[self._global_node].min_op,
                     max_op=local_nodes_data.nodes_smpc_tables[self._global_node].max_op,
-                    union_op=local_nodes_data.nodes_smpc_tables[
-                        self._global_node
-                    ].union_op,
                 ),
             )
 
