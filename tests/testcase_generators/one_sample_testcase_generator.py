@@ -1,0 +1,71 @@
+from pathlib import Path
+
+import numpy as np
+import rpy2.robjects as ro
+import rpy2.robjects.packages as rpackages
+from scipy import stats as st
+
+from tests.testcase_generators.testcase_generator import TestCaseGenerator
+
+SPECS_PATH = Path("mipengine", "algorithms", "one_sample_ttest.json")
+EXPECTED_PATH = Path(
+    "tests",
+    "algorithm_validation_tests",
+    "expected",
+    "one_sample_expected.json",
+)
+utils = rpackages.importr("utils")
+utils.chooseCRANmirror(ind=1)
+from rpy2.robjects.vectors import StrVector
+
+packnames = ("stats", "lsr")
+
+names_to_install = [x for x in packnames if not rpackages.isinstalled(x)]
+if len(names_to_install) > 0:
+    utils.install_packages(StrVector(names_to_install))
+
+stats = rpackages.importr("stats")
+lsr = rpackages.importr("lsr")
+
+
+class OneSampleTtestTestCaseGenerator(TestCaseGenerator):
+    def compute_expected_output(self, input_data, input_parameters="alt_hypothesis"):
+        Y, _ = input_data
+        alt_hyp = input_parameters["alt_hypothesis"]
+        alpha = input_parameters["alpha"]
+        n_obs = len(Y)
+        y_name = Y.columns[0]
+
+        py_t_stat, py_p_value = st.ttest_1samp(Y[y_name], popmean=0)
+        t_test_res = stats.t_test(
+            ro.vectors.FloatVector(Y[y_name]),
+            mu=0,
+            paired=False,
+            alternative=alt_hyp,
+            conf_level=1 - alpha,
+        )
+
+        cohens_d_res = lsr.cohensD(ro.vectors.FloatVector(Y[y_name]), mu=0)
+
+        t_test_res_py = dict(zip(t_test_res.names, map(list, list(t_test_res))))
+        expected_out = {
+            "t_value": t_test_res_py["statistic"][0],
+            "p_value": t_test_res_py["p.value"][0],
+            "py_t_stat": py_t_stat,
+            "py_p_value": py_p_value,
+            "df": t_test_res_py["parameter"][0],
+            "mean_diff": t_test_res_py["estimate"][0],
+            "se_diff": t_test_res_py["stderr"],
+            "ci_upper": t_test_res_py["conf.int"][1],
+            "ci_lower": t_test_res_py["conf.int"][0],
+            "cohens_d": cohens_d_res[0],
+        }
+
+        return expected_out
+
+
+if __name__ == "__main__":
+    with open(SPECS_PATH) as specs_file:
+        one_sample_gen = OneSampleTtestTestCaseGenerator(specs_file)
+    with open(EXPECTED_PATH, "w") as expected_file:
+        one_sample_gen.write_test_cases(expected_file)
