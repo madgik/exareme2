@@ -23,14 +23,14 @@ TABLE_SIZE_MODE = 10
 
 # XXX Change according to your local setup
 DB_IP = "127.0.0.1"
-DB_PORT = 50001
+DB_PORT = 50010
 DB_USER = "monetdb"
 DB_PASS = "monetdb"
 DB_FARM = "db"
 
 
-class DB(_MonetDBConnectionPool):
-    def refresh_connection(self):
+class DB:
+    def __init__(self):
         self._connection = pymonetdb.connect(
             hostname=DB_IP,
             port=DB_PORT,
