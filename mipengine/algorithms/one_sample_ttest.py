@@ -153,7 +153,7 @@ def global_one_sample(sec_local_transfer, alpha, alternative, mu):
         "std": sd,
         "p_value": p,
         "df": df,
-        "mean_diff": mean_diff,
+        "mean_diff": diff_sum,
         "se_diff": sed,
         "ci_upper": ci[1],
         "ci_lower": ci[0],
