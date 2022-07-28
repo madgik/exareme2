@@ -249,4 +249,4 @@ jobs:
           run: cat /tmp/mipengine/localnode1.out
 
       - name: Run algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests/ -k "input0- or input1- or input2- or input3- or input4-" --verbosity=4 -n 16
+        run: poetry run pytest tests/algorithm_validation_tests/ -k "input0-" --verbosity=4 -n 16
