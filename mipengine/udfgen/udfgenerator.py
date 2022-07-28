@@ -29,6 +29,7 @@ IOType is said to be *specific*, else the IOType is said to be *generic*.
 UDF Example (specific)
 ~~~~~~~~~~~~~~~~~~~~~~
 
+
 >>> @udf(x=tensor(dtype=int, ndims=1), return_type=scalar(dtype=int))
 ... def sum_vector(x):
 ...     result = sum(x)
@@ -1309,7 +1310,6 @@ class LiteralAssignments(ASTNode):
         return LN.join(
             f"{name} = {repr(arg.value)}" for name, arg in self.literals.items()
         )
-
 
 
 class LoggerAssignment(ASTNode):
