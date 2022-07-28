@@ -19,6 +19,8 @@ from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.cleaner import Cleaner
+from mipengine.controller.data_model_registry import DataModelCDES
+from mipengine.controller.data_model_registry import DatasetsLocations
 from mipengine.controller.federation_info_logs import log_experiment_execution
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.node_info_DTOs import NodeInfo
@@ -174,14 +176,16 @@ class Controller:
             available_datasets_per_data_model=available_datasets_per_data_model,
         )
 
-    def get_datasets_locations(self) -> Dict[str, Dict[str, str]]:
+    def get_datasets_locations(self) -> DatasetsLocations:
         return self._node_landscape_aggregator.get_datasets_locations()
 
-    def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
+    def get_cdes_per_data_model(self) -> DataModelCDES:
         return self._node_landscape_aggregator.get_cdes_per_data_model()
 
     def get_all_available_data_models(self) -> List[str]:
-        return list(self._node_landscape_aggregator.get_cdes_per_data_model().keys())
+        return list(
+            self._node_landscape_aggregator.get_cdes_per_data_model().values.keys()
+        )
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         return (

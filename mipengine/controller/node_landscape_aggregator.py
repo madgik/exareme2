@@ -3,6 +3,7 @@ import time
 import traceback
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 from pydantic import BaseModel
@@ -11,7 +12,9 @@ from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
+from mipengine.controller.data_model_registry import DataModelCDES
 from mipengine.controller.data_model_registry import DataModelRegistry
+from mipengine.controller.data_model_registry import DatasetsLocations
 from mipengine.controller.federation_info_logs import log_datamodel_added
 from mipengine.controller.federation_info_logs import log_datamodel_removed
 from mipengine.controller.federation_info_logs import log_dataset_added
@@ -19,7 +22,6 @@ from mipengine.controller.federation_info_logs import log_dataset_removed
 from mipengine.controller.federation_info_logs import log_node_joined_federation
 from mipengine.controller.federation_info_logs import log_node_left_federation
 from mipengine.controller.node_info_tasks_handler import NodeInfoTasksHandler
-from mipengine.controller.node_registry import NodeRegistry
 from mipengine.controller.nodes_addresses import get_nodes_addresses
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
@@ -97,10 +99,10 @@ def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements
         async_result = tasks_handler.queue_data_model_cdes_task(
             request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
         )
-        datasets_per_data_model = tasks_handler.result_data_model_cdes_task(
+        node_cdes = tasks_handler.result_data_model_cdes_task(
             async_result=async_result, request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
         )
-        return datasets_per_data_model
+        return node_cdes
     except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
         # just log the exception do not reraise it
         logger.warning(exc)
@@ -113,7 +115,40 @@ def _get_node_socket_addr(node_info: NodeInfo):
     return f"{node_info.ip}:{node_info.port}"
 
 
-class DatasetsInfo(BaseModel):
+class NodeRegistry(BaseModel):
+    def __init__(self, nodes_info=None):
+        if nodes_info:
+            global_nodes = [
+                node_info
+                for node_info in nodes_info
+                if node_info.role == NodeRole.GLOBALNODE
+            ]
+            local_nodes = [
+                node_info
+                for node_info in nodes_info
+                if node_info.role == NodeRole.LOCALNODE
+            ]
+            _nodes_per_id = {
+                node_info.id: node_info for node_info in global_nodes + local_nodes
+            }
+            super().__init__(
+                global_nodes=global_nodes,
+                local_nodes=local_nodes,
+                nodes_per_id=_nodes_per_id,
+            )
+        else:
+            super().__init__()
+
+    global_nodes: List[NodeInfo] = []
+    local_nodes: List[NodeInfo] = []
+    nodes_per_id: Dict[str, NodeInfo] = {}
+
+    class Config:
+        allow_mutation = False
+        arbitrary_types_allowed = True
+
+
+class DatasetsLabels(BaseModel):
     """
     A dictionary representation of a dataset's information.
     Key values are the names of the datasets.
@@ -123,24 +158,33 @@ class DatasetsInfo(BaseModel):
     values: Dict[str, str]
 
 
-class DataModelsInfo(BaseModel):
+class DatasetsLabelsPerDataModel(BaseModel):
     """
-    A dictionary representation of a data_model's information.
+    Key values are the names of the data_models.
+    Values are DatasetsLabels.
+    """
+
+    values: Dict[str, DatasetsLabels]
+
+
+class DataModelsMetadata(BaseModel):
+    """
+    A dictionary representation of a data models's Metadata.
     Key values are data models.
     Values are tuples that contain datasets info and cdes for a specific data model.
     """
 
-    values: Dict[str, Tuple[DatasetsInfo, CommonDataElements]]
+    values: Dict[str, Tuple[DatasetsLabels, Optional[CommonDataElements]]]
 
 
-class FederationInfo(BaseModel):
+class DataModelsMetadataPerNode(BaseModel):
     """
-    A dictionary representation of all information for the federation.
+    A dictionary representation of all information for the data models's Metadata per node.
     Key values are nodes.
-    Values are data models information.
+    Values are data models's Metadata.
     """
 
-    values: Dict[str, DataModelsInfo]
+    values: Dict[str, DataModelsMetadata]
 
 
 class _NLARegistries(BaseModel):
@@ -181,14 +225,17 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         """
         while self._keep_updating:
             try:
-                (nodes_info, federation_info) = data_fetching()
+                (
+                    nodes_info,
+                    data_models_metadata_per_node,
+                ) = _federation_nodes_metadata_fetching()
                 node_registry = NodeRegistry(nodes_info=nodes_info)
-                dmr = data_model_registry_data_cruncing(federation_info)
+                dmr = _data_model_registry_data_cruncing(data_models_metadata_per_node)
 
-                self.set_new_registries(node_registry, dmr)
+                self._set_new_registries(node_registry, dmr)
 
                 logger.debug(
-                    f"Nodes:{[node_info.id for node_info in self._registries.node_registry.get_nodes()]}"
+                    f"Nodes:{[node_info.id for node_info in self.get_nodes()]}"
                 )
 
             except Exception as exc:
@@ -212,42 +259,46 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             self._keep_updating = False
             self._update_loop_thread.join()
 
-    def set_new_registries(self, node_registry, data_model_registry):
+    def _set_new_registries(self, node_registry, data_model_registry):
         _log_node_changes(
-            self._registries.node_registry.get_nodes(),
-            node_registry.get_nodes(),
+            self.get_nodes(),
+            list(node_registry.nodes_per_id.values()),
         )
         _log_data_model_changes(
-            self._registries.data_model_registry.data_models,
-            data_model_registry.data_models,
+            self._registries.data_model_registry.data_models.values,
+            data_model_registry.data_models.values,
         )
         _log_dataset_changes(
-            self._registries.data_model_registry.datasets_locations,
-            data_model_registry.datasets_locations,
+            self._registries.data_model_registry.datasets_locations.values,
+            data_model_registry.datasets_locations.values,
         )
         self._registries = _NLARegistries(
             node_registry=node_registry, data_model_registry=data_model_registry
         )
 
     def get_nodes(self) -> List[NodeInfo]:
-        return self._registries.node_registry.get_nodes()
+        return list(self._registries.node_registry.nodes_per_id.values())
 
     def get_global_node(self) -> NodeInfo:
-        return self._registries.node_registry.global_node
+        if not self._registries.node_registry.global_nodes:
+            raise Exception("Global Node is unavailable")
+        return self._registries.node_registry.global_nodes[0]
 
     def get_all_local_nodes(self) -> List[NodeInfo]:
         return self._registries.node_registry.local_nodes
 
     def get_node_info(self, node_id: str) -> NodeInfo:
-        return self._registries.node_registry.get_node_info(node_id)
+        return self._registries.node_registry.nodes_per_id[node_id]
 
     def get_cdes(self, data_model: str) -> Dict[str, CommonDataElement]:
-        return self._registries.data_model_registry.get_cdes(data_model)
+        return self._registries.data_model_registry.get_cdes_specific_data_model(
+            data_model
+        ).values
 
-    def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
+    def get_cdes_per_data_model(self) -> DataModelCDES:
         return self._registries.data_model_registry.data_models
 
-    def get_datasets_locations(self) -> Dict[str, Dict[str, str]]:
+    def get_datasets_locations(self) -> DatasetsLocations:
         return self._registries.data_model_registry.datasets_locations
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
@@ -276,81 +327,90 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         )
 
 
-def data_fetching() -> Tuple[
+def _federation_nodes_metadata_fetching() -> Tuple[
     List[NodeInfo],
-    FederationInfo,
+    DataModelsMetadataPerNode,
 ]:
     """
-    Returns a list of all the nodes in the federation and the whole information for the federation(data_models, datasets).
+    Returns a list of all the nodes in the federation and their metadata (data_models, datasets, cdes).
     """
     nodes_addresses = get_nodes_addresses()
     nodes_info = _get_nodes_info(nodes_addresses)
     local_nodes = [
         node_info for node_info in nodes_info if node_info.role == NodeRole.LOCALNODE
     ]
-    federation_info = _get_federation_info(local_nodes)
-    return nodes_info, federation_info
+    data_models_metadata_per_node = _get_data_models_metadata_per_node(local_nodes)
+    return nodes_info, data_models_metadata_per_node
 
 
-def data_model_registry_data_cruncing(
-    federation_info: FederationInfo,
+def _data_model_registry_data_cruncing(
+    data_models_metadata_per_node: DataModelsMetadataPerNode,
 ) -> DataModelRegistry:
-    federation_info_with_compatible_data_models = _remove_incompatible_data_models(
-        federation_info
+    data_models_metadata_per_node_with_compatible_data_models = (
+        _remove_incompatible_data_models(data_models_metadata_per_node)
     )
-    datasets_locations, aggregated_datasets = _gather_all_dataset_info(
-        federation_info_with_compatible_data_models
+    (
+        datasets_locations,
+        datasets_labels_per_data_model,
+    ) = _aggregate_datasets_locations_and_labels(
+        data_models_metadata_per_node_with_compatible_data_models
     )
-    data_models = _get_data_models(
-        federation_info_with_compatible_data_models, aggregated_datasets
+    data_models_cdes = _aggregate_data_models_cdes(
+        data_models_metadata_per_node_with_compatible_data_models,
+        datasets_labels_per_data_model,
     )
 
     return DataModelRegistry(
-        data_models=data_models, datasets_locations=datasets_locations
+        data_models=data_models_cdes, datasets_locations=datasets_locations
     )
 
 
-def _get_federation_info(
+def _get_data_models_metadata_per_node(
     nodes: List[NodeInfo],
-) -> FederationInfo:
-    federation_info = {}
+) -> DataModelsMetadataPerNode:
+    data_models_metadata_per_node = {}
 
     for node_info in nodes:
-        dmi = {}
+        data_models_metadata = {}
 
         node_socket_addr = _get_node_socket_addr(node_info)
         datasets_per_data_model = _get_node_datasets_per_data_model(node_socket_addr)
         if datasets_per_data_model:
             node_socket_addr = _get_node_socket_addr(node_info)
             for data_model, datasets in datasets_per_data_model.items():
-
                 cdes = _get_node_cdes(node_socket_addr, data_model)
-                if not cdes:
-                    continue
-                dmi[data_model] = (DatasetsInfo(values=datasets), cdes)
-        federation_info[node_info.id] = DataModelsInfo(values=dmi)
+                cdes = cdes if cdes else None
+                data_models_metadata[data_model] = (
+                    DatasetsLabels(values=datasets),
+                    cdes,
+                )
+        data_models_metadata_per_node[node_info.id] = DataModelsMetadata(
+            values=data_models_metadata
+        )
 
-    return FederationInfo(values=federation_info)
+    return DataModelsMetadataPerNode(values=data_models_metadata_per_node)
 
 
-def _gather_all_dataset_info(federation_info):
+def _aggregate_datasets_locations_and_labels(
+    data_models_metadata_per_node,
+) -> Tuple[DatasetsLocations, DatasetsLabelsPerDataModel]:
     """
     Args:
-        federation_info
+        data_models_metadata_per_node
     Returns:
         A tuple with:
-         1. The location of each dataset.
-         2. The aggregated datasets, existing in all nodes
+         1. DatasetsLocations
+         2. DatasetsLabelsPerDataModel
     """
     datasets_locations = {}
-    aggregated_datasets = {}
-    for node_id, dmi in federation_info.values.items():
-        for data_model, datasets_and_cdes in dmi.values.items():
+    datasets_labels = {}
+    for node_id, data_models_metadata in data_models_metadata_per_node.values.items():
+        for data_model, datasets_and_cdes in data_models_metadata.values.items():
             datasets, _ = datasets_and_cdes
 
             current_labels = (
-                aggregated_datasets[data_model]
-                if data_model in aggregated_datasets
+                datasets_labels[data_model].values
+                if data_model in datasets_labels
                 else {}
             )
             current_datasets = (
@@ -367,7 +427,7 @@ def _gather_all_dataset_info(federation_info):
                 else:
                     current_datasets[dataset_name] = [node_id]
 
-            aggregated_datasets[data_model] = current_labels
+            datasets_labels[data_model] = DatasetsLabels(values=current_labels)
             datasets_locations[data_model] = current_datasets
 
     datasets_locations_without_duplicates = {}
@@ -378,16 +438,21 @@ def _gather_all_dataset_info(federation_info):
             if len(node_ids) == 1:
                 datasets_locations_without_duplicates[data_model][dataset] = node_ids[0]
             else:
-                del aggregated_datasets[data_model][dataset]
+                del datasets_labels[data_model].values[dataset]
                 _log_duplicated_dataset(node_ids, data_model, dataset)
 
-    return datasets_locations_without_duplicates, aggregated_datasets
+    return DatasetsLocations(
+        values=datasets_locations_without_duplicates
+    ), DatasetsLabelsPerDataModel(values=datasets_labels)
 
 
-def _get_data_models(federation_info, aggregated_datasets):
+def _aggregate_data_models_cdes(
+    data_models_metadata_per_node: DataModelsMetadataPerNode,
+    datasets_labels_per_data_model: DatasetsLabelsPerDataModel,
+) -> DataModelCDES:
     data_models = {}
-    for node_id, dmi in federation_info.values.items():
-        for data_model, datasets_and_cdes in dmi.values.items():
+    for node_id, data_models_metadata in data_models_metadata_per_node.values.items():
+        for data_model, datasets_and_cdes in data_models_metadata.values.items():
             _, cdes = datasets_and_cdes
             data_models[data_model] = cdes
             dataset_cde = cdes.values["dataset"]
@@ -396,17 +461,17 @@ def _get_data_models(federation_info, aggregated_datasets):
                 label=dataset_cde.label,
                 sql_type=dataset_cde.sql_type,
                 is_categorical=dataset_cde.is_categorical,
-                enumerations=aggregated_datasets[data_model],
+                enumerations=datasets_labels_per_data_model.values[data_model].values,
                 min=dataset_cde.min,
                 max=dataset_cde.max,
             )
             data_models[data_model].values["dataset"] = new_dataset_cde
-    return data_models
+    return DataModelCDES(values=data_models)
 
 
 def _remove_incompatible_data_models(
-    federation_info: FederationInfo,
-) -> FederationInfo:
+    data_models_metadata_per_node: DataModelsMetadataPerNode,
+) -> DataModelsMetadataPerNode:
     """
     Each node has its own data models definition.
     We need to check for each data model if the definitions across all nodes is the same.
@@ -414,21 +479,22 @@ def _remove_incompatible_data_models(
     The data models with similar definitions across all nodes are returned.
     Parameters
     ----------
-        federation_info: FederationInfo
+        data_models_metadata_per_node: DataModelsMetadataPerNode
     Returns
     ----------
-        FederationInfo
-            The federation info without the incompatible data models
+        DataModelsMetadataPerNode
+            The data models metadata per node without the incompatible data models
     """
     validation_dictionary = {}
 
     incompatible_data_models = []
-    for node_id, dmi in federation_info.values.items():
-        for data_model, datasets_and_cdes in dmi.values.items():
-            if data_model in incompatible_data_models:
+    for node_id, data_models_metadata in data_models_metadata_per_node.values.items():
+        for data_model, datasets_and_cdes in data_models_metadata.values.items():
+            _, cdes = datasets_and_cdes
+
+            if data_model in incompatible_data_models or not cdes:
                 continue
 
-            _, cdes = datasets_and_cdes
             if data_model in validation_dictionary:
                 valid_node_id, valid_cdes = validation_dictionary[data_model]
                 if not valid_cdes == cdes:
@@ -439,17 +505,17 @@ def _remove_incompatible_data_models(
             else:
                 validation_dictionary[data_model] = (node_id, cdes)
 
-    compatible_federation_info = {
-        node_id: DataModelsInfo(
+    compatible_data_models_metadata_per_node = {
+        node_id: DataModelsMetadata(
             values={
                 data_model: datasets_and_cdes
-                for data_model, datasets_and_cdes in dmi.values.items()
-                if data_model not in incompatible_data_models
+                for data_model, datasets_and_cdes in data_models_metadata.values.items()
+                if data_model not in incompatible_data_models and datasets_and_cdes[1]
             }
         )
-        for node_id, dmi in federation_info.values.items()
+        for node_id, data_models_metadata in data_models_metadata_per_node.values.items()
     }
-    return FederationInfo(values=compatible_federation_info)
+    return DataModelsMetadataPerNode(values=compatible_data_models_metadata_per_node)
 
 
 def _log_node_changes(old_nodes, new_nodes):
