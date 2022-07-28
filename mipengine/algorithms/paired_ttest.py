@@ -86,13 +86,21 @@ def local_paired(x, y):
     x2_sqrd_sum = sum(x2**2)
 
     sec_transfer_ = {
-        "n_obs": {"data": n_obs, "operation": "sum"},
-        "sum_x1": {"data": x1_sum.item(), "operation": "sum"},
-        "sum_x2": {"data": x2_sum.item(), "operation": "sum"},
-        "diff": {"data": diff.tolist(), "operation": "sum"},
-        "diff_sqrd": {"data": diff_sqrd.tolist(), "operation": "sum"},
-        "x1_sqrd_sum": {"data": x1_sqrd_sum.tolist(), "operation": "sum"},
-        "x2_sqrd_sum": {"data": x2_sqrd_sum.tolist(), "operation": "sum"},
+        "n_obs": {"data": n_obs, "operation": "sum", "type": "int"},
+        "sum_x1": {"data": x1_sum.item(), "operation": "sum", "type": "float"},
+        "sum_x2": {"data": x2_sum.item(), "operation": "sum", "type": "float"},
+        "diff": {"data": diff.tolist(), "operation": "sum", "type": "float"},
+        "diff_sqrd": {"data": diff_sqrd.tolist(), "operation": "sum", "type": "float"},
+        "x1_sqrd_sum": {
+            "data": x1_sqrd_sum.tolist(),
+            "operation": "sum",
+            "type": "float",
+        },
+        "x2_sqrd_sum": {
+            "data": x2_sqrd_sum.tolist(),
+            "operation": "sum",
+            "type": "float",
+        },
     }
 
     return sec_transfer_

@@ -16,9 +16,6 @@ def test_paired_ttest(test_input, expected):
     response = algorithm_request("paired_ttest", test_input)
     result = json.loads(response.content)
 
-    print(
-        f"res_upper: {result['ci_upper']}, exp_upper: {expected['ci_upper']}, res_lower: {result['ci_lower']}, exp_lower: {expected['ci_lower']}"
-    )
     assert_allclose(result["t_stat"], expected["statistic"], rtol=1e-8, atol=1e-10)
     assert_allclose(result["p"], expected["p_value"], rtol=1e-8, atol=1e-10)
     assert_allclose(result["df"], expected["df"], rtol=1e-8, atol=1e-10)
