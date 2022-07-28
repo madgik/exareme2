@@ -33,6 +33,7 @@ class DescriptiveResult(BaseModel):
     numerical_variables: List[str]
     categorical_variables: List[str]
     categorical_counts: List[Dict]
+    categorical_counts_dataset: List[List[Dict]]
     max: List[float]
     min: List[float]
     mean: List[float]
@@ -113,7 +114,8 @@ def run(algo_interface):
             share_to_locals=[False]
         )
 
-        global_categorical_res = json.loads(global_categorical.get_table_data()[1][0])
+        global_categorical_res = json.loads(global_categorical.get_table_data()[1][0])['final_dict']
+        categorical_list_res = json.loads(global_categorical.get_table_data()[1][0])['categorical_list']
 
         for curr_column in categorical_columns:
             categorical_counts_list.append(global_categorical_res[curr_column])
@@ -262,6 +264,7 @@ def run(algo_interface):
         numerical_variables= numerical_columns,
         categorical_variables= categorical_columns,
         categorical_counts = categorical_counts_list,
+        categorical_counts_dataset = categorical_list_res,
         max=new_max,
         min=new_min,
         mean=new_mean,
@@ -311,6 +314,8 @@ def count_locals(input_df,columns_list):
 def global_counts(local_transfers,columns_list):
     from collections import Counter
 
+    transfer = {}
+
     final_dict = {}
     for curr_column in columns_list:
         first_dict = local_transfers[0][curr_column]
@@ -320,7 +325,16 @@ def global_counts(local_transfers,columns_list):
             c = curr_transfer[curr_column]
             res += Counter(c)
         final_dict[curr_column] = dict(res)
-    return final_dict
+    categorical_list=[]
+    for curr_transfer in local_transfers:
+        column_results = []
+        for curr_column in columns_list:
+            column_results.append(curr_transfer[curr_column])
+        categorical_list.append(column_results)
+
+    transfer['final_dict']= final_dict
+    transfer['categorical_list'] = categorical_list
+    return transfer
 
 @udf(rel=relation(S), return_type=tensor(float, 2))
 def relation_to_matrix(rel):
