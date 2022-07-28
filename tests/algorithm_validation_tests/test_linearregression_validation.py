@@ -12,15 +12,6 @@ expected_file = Path(__file__).parent / "expected" / "linear_regression_expected
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_linearregression_algorithm(test_input, expected):
-    # -------------------------------------------------------
-    import os
-
-    print("\n------------------ $df -hx squashfs --total -----------------")
-    os.system("df -hx squashfs --total")
-    print("------------------ $free -mh -----------------")
-    os.system("free -mh")
-    print("\n")
-    # -------------------------------------------------------
     response = algorithm_request("linear_regression", test_input)
     try:
         result = json.loads(response.text)

@@ -58,15 +58,6 @@ def get_test_params(file, slc=None):
 @pytest.mark.skip(reason="some of the parametrized tests fail with assertion errors")
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_anova_algorithm(test_input, expected):
-    # -------------------------------------------------------
-    import os
-
-    print("\n------------------ $df -hx squashfs --total -----------------")
-    os.system("df -hx squashfs --total")
-    print("------------------ $free -mh -----------------")
-    os.system("free -mh")
-    print("\n")
-    # -------------------------------------------------------
     result = json.loads(anova_one_way_request(test_input).content)
     aov = result["anova_table"]
     tukey = result["tuckey_test"]
