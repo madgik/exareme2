@@ -15,9 +15,9 @@ from mipengine.controller.algorithm_specifications import algorithm_specificatio
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.exceptions import BadRequest
-from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.exceptions import BadRequest
+from mipengine.exceptions import BadUserInput
 from mipengine.filters import validate_filter
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
