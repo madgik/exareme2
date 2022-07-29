@@ -107,9 +107,11 @@ def test_update_loop_data_properly_added(
     # wait until NLA's NodeRegistry to contain the localnode1
     start = time.time()
     while not (
-        node_landscape_aggregator.get_cdes_per_data_model().values
-        and "tbi:0.1" in node_landscape_aggregator.get_cdes_per_data_model().values
-        and "dementia:0.1" in node_landscape_aggregator.get_cdes_per_data_model().values
+        node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes
+        and "tbi:0.1"
+        in node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes
+        and "dementia:0.1"
+        in node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes
     ):
         if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(
@@ -131,6 +133,7 @@ def test_update_loop_get_node_info_fail(
     reset_node_landscape_aggregator,
 ):
     patch_get_nodes_addresses.side_effect = _get_nodes_addresses_empty
+
     node_landscape_aggregator = NodeLandscapeAggregator()
     node_landscape_aggregator.start()
 

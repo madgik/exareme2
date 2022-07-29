@@ -1,6 +1,6 @@
 import pytest
 
-from mipengine.controller.data_model_registry import DataModelRegistry
+from mipengine.controller.node_landscape_aggregator import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_landscape_aggregator import NodeRegistry
 from mipengine.node_info_DTOs import NodeInfo

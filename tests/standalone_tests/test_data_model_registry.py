@@ -3,9 +3,9 @@ import pytest
 from mipengine.controller.controller_logger import get_request_logger
 
 # TODO the testing should be better once the datasets are properly distributed and the are no duplicates.
-from mipengine.controller.data_model_registry import DataModelCDES
-from mipengine.controller.data_model_registry import DataModelRegistry
-from mipengine.controller.data_model_registry import DatasetsLocations
+from mipengine.controller.node_landscape_aggregator import DataModelRegistry
+from mipengine.controller.node_landscape_aggregator import DataModelsCDES
+from mipengine.controller.node_landscape_aggregator import DatasetsLocations
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 
@@ -13,7 +13,7 @@ from mipengine.node_tasks_DTOs import CommonDataElements
 @pytest.fixture
 def mocked_datasets_locations():
     yield DatasetsLocations(
-        values={
+        datasets_locations={
             "tbi:0.1": {
                 "dummy_tbi0": "localnode1",
                 "dummy_tbi1": "localnode2",
@@ -36,8 +36,8 @@ def mocked_datasets_locations():
 
 @pytest.fixture
 def mocked_data_model_cdes():
-    yield DataModelCDES(
-        values={
+    yield DataModelsCDES(
+        data_models_cdes={
             "dementia:0.1": CommonDataElements(
                 values={
                     "dataset": CommonDataElement(
@@ -139,8 +139,6 @@ def test_get_node_specific_datasets(mocked_data_model_registry):
 
 
 def test_empty_initialization():
-    dmr = DataModelRegistry(
-        data_models=DataModelRegistry(), datasets_locations=DatasetsLocations()
-    )
-    assert not dmr.data_models.values
-    assert not dmr.datasets_locations.values
+    dmr = DataModelRegistry()
+    assert not dmr.data_models.data_models_cdes
+    assert not dmr.datasets_locations.datasets_locations

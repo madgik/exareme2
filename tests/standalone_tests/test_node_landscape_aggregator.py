@@ -1,13 +1,13 @@
 import pytest
 
-from mipengine.controller.data_model_registry import DataModelCDES
-from mipengine.controller.data_model_registry import DataModelRegistry
-from mipengine.controller.data_model_registry import DatasetsLocations
+from mipengine.controller.node_landscape_aggregator import DataModelRegistry
+from mipengine.controller.node_landscape_aggregator import DataModelsCDES
 from mipengine.controller.node_landscape_aggregator import DataModelsMetadata
 from mipengine.controller.node_landscape_aggregator import DataModelsMetadataPerNode
 from mipengine.controller.node_landscape_aggregator import DatasetsLabels
+from mipengine.controller.node_landscape_aggregator import DatasetsLocations
 from mipengine.controller.node_landscape_aggregator import (
-    _data_model_registry_data_cruncing,
+    _crunch_data_model_registry_data,
 )
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
@@ -17,12 +17,12 @@ def get_parametrization_cases():
     return [
         pytest.param(
             DataModelsMetadataPerNode(
-                values={
+                data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
@@ -46,7 +46,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
@@ -69,10 +69,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode2": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset3": "DATASET3",
                                         "dataset4": "DATASET4",
                                     }
@@ -97,10 +97,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode3": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset5": "DATASET5",
                                         "dataset6": "DATASET6",
                                     }
@@ -124,7 +124,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset2": "DATASET2",
                                     }
                                 ),
@@ -149,8 +149,8 @@ def get_parametrization_cases():
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelCDES(
-                    values={
+                data_models=DataModelsCDES(
+                    data_models_cdes={
                         "data_model:1": CommonDataElements(
                             values={
                                 "dataset": CommonDataElement(
@@ -190,7 +190,7 @@ def get_parametrization_cases():
                     }
                 ),
                 datasets_locations=DatasetsLocations(
-                    values={
+                    datasets_locations={
                         "data_model:1": {
                             "dataset1": "localnode1",
                             "dataset2": "localnode1",
@@ -210,12 +210,12 @@ def get_parametrization_cases():
         ),
         pytest.param(
             DataModelsMetadataPerNode(
-                values={
+                data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
@@ -224,7 +224,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
@@ -247,10 +247,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode2": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset3": "DATASET3",
                                         "dataset4": "DATASET4",
                                     }
@@ -275,10 +275,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode3": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset5": "DATASET5",
                                         "dataset6": "DATASET6",
                                     }
@@ -302,7 +302,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset2": "DATASET2",
                                     }
                                 ),
@@ -327,8 +327,8 @@ def get_parametrization_cases():
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelCDES(
-                    values={
+                data_models=DataModelsCDES(
+                    data_models_cdes={
                         "data_model:1": CommonDataElements(
                             values={
                                 "dataset": CommonDataElement(
@@ -366,7 +366,7 @@ def get_parametrization_cases():
                     }
                 ),
                 datasets_locations=DatasetsLocations(
-                    values={
+                    datasets_locations={
                         "data_model:1": {
                             "dataset3": "localnode2",
                             "dataset4": "localnode2",
@@ -384,12 +384,12 @@ def get_parametrization_cases():
         ),
         pytest.param(
             DataModelsMetadataPerNode(
-                values={
+                data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
@@ -422,7 +422,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
@@ -445,10 +445,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode2": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset3": "DATASET3",
                                         "dataset4": "DATASET4",
                                     }
@@ -482,10 +482,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode3": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset5": "DATASET5",
                                         "dataset6": "DATASET6",
                                     }
@@ -518,7 +518,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset2": "DATASET2",
                                     }
                                 ),
@@ -543,8 +543,8 @@ def get_parametrization_cases():
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelCDES(
-                    values={
+                data_models=DataModelsCDES(
+                    data_models_cdes={
                         "data_model:2": CommonDataElements(
                             values={
                                 "dataset": CommonDataElement(
@@ -564,7 +564,7 @@ def get_parametrization_cases():
                     }
                 ),
                 datasets_locations=DatasetsLocations(
-                    values={
+                    datasets_locations={
                         "data_model:2": {
                             "dataset1": "localnode1",
                             "dataset2": "localnode3",
@@ -576,11 +576,11 @@ def get_parametrization_cases():
         ),
         pytest.param(
             DataModelsMetadataPerNode(
-                values={
+                data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
-                                DatasetsLabels(values={}),
+                                DatasetsLabels(datasets_labels={}),
                                 CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
@@ -599,7 +599,7 @@ def get_parametrization_cases():
                                 ),
                             ),
                             "data_model:2": (
-                                DatasetsLabels(values={}),
+                                DatasetsLabels(datasets_labels={}),
                                 CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
@@ -619,9 +619,9 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode2": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
-                                DatasetsLabels(values={}),
+                                DatasetsLabels(datasets_labels={}),
                                 CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
@@ -642,9 +642,9 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode3": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
-                                DatasetsLabels(values={}),
+                                DatasetsLabels(datasets_labels={}),
                                 CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
@@ -663,7 +663,7 @@ def get_parametrization_cases():
                                 ),
                             ),
                             "data_model:2": (
-                                DatasetsLabels(values={}),
+                                DatasetsLabels(datasets_labels={}),
                                 CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
@@ -685,8 +685,8 @@ def get_parametrization_cases():
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelCDES(
-                    values={
+                data_models=DataModelsCDES(
+                    data_models_cdes={
                         "data_model:1": CommonDataElements(
                             values={
                                 "dataset": CommonDataElement(
@@ -716,7 +716,7 @@ def get_parametrization_cases():
                     }
                 ),
                 datasets_locations=DatasetsLocations(
-                    values={
+                    datasets_locations={
                         "data_model:1": {},
                         "data_model:2": {},
                     }
@@ -726,25 +726,25 @@ def get_parametrization_cases():
         ),
         pytest.param(
             DataModelsMetadataPerNode(
-                values={
-                    "localnode1": DataModelsMetadata(values={}),
-                    "localnode2": DataModelsMetadata(values={}),
+                data_models_metadata_per_node={
+                    "localnode1": DataModelsMetadata(data_models_metadata={}),
+                    "localnode2": DataModelsMetadata(data_models_metadata={}),
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelCDES(values={}),
-                datasets_locations=DatasetsLocations(values={}),
+                data_models=DataModelsCDES(data_models_cdes={}),
+                datasets_locations=DatasetsLocations(datasets_locations={}),
             ),
             id="no_data_model_or_dataset_case",
         ),
         pytest.param(
             DataModelsMetadataPerNode(
-                values={
+                data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
@@ -768,7 +768,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
@@ -791,10 +791,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode2": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
@@ -818,7 +818,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
@@ -841,10 +841,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode3": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
@@ -868,7 +868,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
@@ -891,10 +891,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode4": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
@@ -918,7 +918,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
@@ -943,8 +943,8 @@ def get_parametrization_cases():
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelCDES(
-                    values={
+                data_models=DataModelsCDES(
+                    data_models_cdes={
                         "data_model:1": CommonDataElements(
                             values={
                                 "dataset": CommonDataElement(
@@ -974,19 +974,19 @@ def get_parametrization_cases():
                     }
                 ),
                 datasets_locations=DatasetsLocations(
-                    values={"data_model:1": {}, "data_model:2": {}}
+                    datasets_locations={"data_model:1": {}, "data_model:2": {}}
                 ),
             ),
             id="same_data_models_and_datasets_on_all_nodes",
         ),
         pytest.param(
             DataModelsMetadataPerNode(
-                values={
+                data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
@@ -1010,7 +1010,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
@@ -1033,10 +1033,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode2": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset3": "DATASET3",
                                         "dataset4": "DATASET4",
                                     }
@@ -1061,10 +1061,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode3": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset5": "DATASET5",
                                         "dataset6": "DATASET6",
                                     }
@@ -1088,7 +1088,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
@@ -1113,8 +1113,8 @@ def get_parametrization_cases():
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelCDES(
-                    values={
+                data_models=DataModelsCDES(
+                    data_models_cdes={
                         "data_model:1": CommonDataElements(
                             values={
                                 "dataset": CommonDataElement(
@@ -1151,7 +1151,7 @@ def get_parametrization_cases():
                     }
                 ),
                 datasets_locations=DatasetsLocations(
-                    values={
+                    datasets_locations={
                         "data_model:1": {
                             "dataset1": "localnode1",
                             "dataset2": "localnode1",
@@ -1168,12 +1168,12 @@ def get_parametrization_cases():
         ),
         pytest.param(
             DataModelsMetadataPerNode(
-                values={
+                data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
@@ -1206,7 +1206,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
@@ -1229,10 +1229,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode2": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset3": "DATASET3",
                                         "dataset4": "DATASET4",
                                     }
@@ -1257,10 +1257,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode3": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset5": "DATASET5",
                                         "dataset6": "DATASET6",
                                     }
@@ -1284,7 +1284,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset2": "DATASET2",
                                     }
                                 ),
@@ -1309,8 +1309,8 @@ def get_parametrization_cases():
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelCDES(
-                    values={
+                data_models=DataModelsCDES(
+                    data_models_cdes={
                         "data_model:2": CommonDataElements(
                             values={
                                 "dataset": CommonDataElement(
@@ -1330,7 +1330,7 @@ def get_parametrization_cases():
                     }
                 ),
                 datasets_locations=DatasetsLocations(
-                    values={
+                    datasets_locations={
                         "data_model:2": {
                             "dataset1": "localnode1",
                             "dataset2": "localnode3",
@@ -1342,12 +1342,12 @@ def get_parametrization_cases():
         ),
         pytest.param(
             DataModelsMetadataPerNode(
-                values={
+                data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
@@ -1380,7 +1380,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
@@ -1403,10 +1403,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode2": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset3": "DATASET3",
                                         "dataset4": "DATASET4",
                                     }
@@ -1431,10 +1431,10 @@ def get_parametrization_cases():
                         }
                     ),
                     "localnode3": DataModelsMetadata(
-                        values={
+                        data_models_metadata={
                             "data_model:1": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset5": "DATASET5",
                                         "dataset6": "DATASET6",
                                     }
@@ -1458,7 +1458,7 @@ def get_parametrization_cases():
                             ),
                             "data_model:2": (
                                 DatasetsLabels(
-                                    values={
+                                    datasets_labels={
                                         "dataset2": "DATASET2",
                                     }
                                 ),
@@ -1483,8 +1483,8 @@ def get_parametrization_cases():
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelCDES(
-                    values={
+                data_models=DataModelsCDES(
+                    data_models_cdes={
                         "data_model:2": CommonDataElements(
                             values={
                                 "dataset": CommonDataElement(
@@ -1504,7 +1504,7 @@ def get_parametrization_cases():
                     }
                 ),
                 datasets_locations=DatasetsLocations(
-                    values={
+                    datasets_locations={
                         "data_model:2": {
                             "dataset1": "localnode1",
                             "dataset2": "localnode3",
@@ -1522,4 +1522,4 @@ def get_parametrization_cases():
     get_parametrization_cases(),
 )
 def test_data_model_registry(data_models_metadata_per_node, expected):
-    assert _data_model_registry_data_cruncing(data_models_metadata_per_node) == expected
+    assert _crunch_data_model_registry_data(data_models_metadata_per_node) == expected

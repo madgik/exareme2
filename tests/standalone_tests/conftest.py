@@ -19,7 +19,6 @@ from mipengine.controller.algorithm_execution_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
 from mipengine.controller.celery_app import CeleryAppFactory
-from mipengine.controller.data_model_registry import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_landscape_aggregator import NodeRegistry
 from mipengine.controller.node_landscape_aggregator import _NLARegistries
@@ -889,10 +888,7 @@ def reset_node_landscape_aggregator():
     nla = NodeLandscapeAggregator()
     nla.stop()
     nla.keep_updating = False
-    nla._nla_registries = _NLARegistries(
-        node_registry=NodeRegistry(),
-        data_model_registry=DataModelRegistry(),
-    )
+    nla._nla_registries = _NLARegistries()
 
 
 @pytest.fixture(scope="session")

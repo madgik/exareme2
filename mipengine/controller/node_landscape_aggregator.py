@@ -1,6 +1,7 @@
 import threading
 import time
 import traceback
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -12,9 +13,6 @@ from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
-from mipengine.controller.data_model_registry import DataModelCDES
-from mipengine.controller.data_model_registry import DataModelRegistry
-from mipengine.controller.data_model_registry import DatasetsLocations
 from mipengine.controller.federation_info_logs import log_datamodel_added
 from mipengine.controller.federation_info_logs import log_datamodel_removed
 from mipengine.controller.federation_info_logs import log_dataset_added
@@ -115,6 +113,108 @@ def _get_node_socket_addr(node_info: NodeInfo):
     return f"{node_info.ip}:{node_info.port}"
 
 
+def _have_common_elements(a: List[Any], b: List[Any]):
+    return bool(set(a) & set(b))
+
+
+class DataModelsCDES(BaseModel):
+    """
+    A dictionary representation of the cdes of each data model.
+    Key values are data models.
+    Values are CommonDataElements.
+    """
+
+    data_models_cdes: Optional[Dict[str, CommonDataElements]] = {}
+
+
+class DatasetsLocations(BaseModel):
+    """
+    A dictionary representation of the locations of each dataset in the federation.
+    Key values are data models because a dataset may be available in multiple data_models.
+    Values are Dictionaries of datasets and their locations.
+    """
+
+    datasets_locations: Optional[Dict[str, Dict[str, str]]] = {}
+
+
+class DataModelRegistry(BaseModel):
+    data_models: Optional[DataModelsCDES] = DataModelsCDES()
+    datasets_locations: Optional[DatasetsLocations] = DatasetsLocations()
+
+    class Config:
+        allow_mutation = False
+        arbitrary_types_allowed = True
+
+    def get_cdes_specific_data_model(self, data_model) -> CommonDataElements:
+        return self.data_models.data_models_cdes[data_model]
+
+    def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
+        """
+        Returns a dictionary with all the currently available data_models on the
+        system as keys and lists of datasets as values. Without duplicates
+        """
+        return (
+            {
+                data_model: list(datasets_and_locations_of_specific_data_model.keys())
+                for data_model, datasets_and_locations_of_specific_data_model in self.datasets_locations.datasets_locations.items()
+            }
+            if self.datasets_locations
+            else {}
+        )
+
+    def data_model_exists(self, data_model: str) -> bool:
+        return data_model in self.datasets_locations.datasets_locations
+
+    def dataset_exists(self, data_model: str, dataset: str) -> bool:
+        return (
+            data_model in self.datasets_locations.datasets_locations
+            and dataset in self.datasets_locations.datasets_locations[data_model]
+        )
+
+    def get_node_ids_with_any_of_datasets(
+        self, data_model: str, datasets: List[str]
+    ) -> List[str]:
+        if not self.data_model_exists(data_model):
+            return []
+
+        local_nodes_with_datasets = [
+            self.datasets_locations.datasets_locations[data_model][dataset]
+            for dataset in self.datasets_locations.datasets_locations[data_model]
+            if dataset in datasets
+        ]
+        return list(set(local_nodes_with_datasets))
+
+    def get_node_specific_datasets(
+        self, node_id: str, data_model: str, wanted_datasets: List[str]
+    ) -> List[str]:
+        """
+        From the datasets provided, returns only the ones located in the node.
+
+        Parameters
+        ----------
+        node_id: the id of the node
+        data_model: the data model of the datasets
+        wanted_datasets: the datasets to look for
+
+        Returns
+        -------
+        some, all or none of bthe wanted_datasets that are located in the node
+        """
+        if not self.data_model_exists(data_model):
+            raise ValueError(
+                f"Data model '{data_model}' is not available in the node '{node_id}'."
+            )
+
+        datasets_in_node = [
+            dataset
+            for dataset in self.datasets_locations.datasets_locations[data_model]
+            if dataset in wanted_datasets
+            and node_id
+            == self.datasets_locations.datasets_locations[data_model][dataset]
+        ]
+        return datasets_in_node
+
+
 class NodeRegistry(BaseModel):
     def __init__(self, nodes_info=None):
         if nodes_info:
@@ -148,6 +248,15 @@ class NodeRegistry(BaseModel):
         arbitrary_types_allowed = True
 
 
+class _NLARegistries(BaseModel):
+    node_registry: Optional[NodeRegistry] = NodeRegistry()
+    data_model_registry: Optional[DataModelRegistry] = DataModelRegistry()
+
+    class Config:
+        allow_mutation = False
+        arbitrary_types_allowed = True
+
+
 class DatasetsLabels(BaseModel):
     """
     A dictionary representation of a dataset's information.
@@ -155,7 +264,7 @@ class DatasetsLabels(BaseModel):
     Values are the labels of the datasets.
     """
 
-    values: Dict[str, str]
+    datasets_labels: Dict[str, str]
 
 
 class DatasetsLabelsPerDataModel(BaseModel):
@@ -164,7 +273,7 @@ class DatasetsLabelsPerDataModel(BaseModel):
     Values are DatasetsLabels.
     """
 
-    values: Dict[str, DatasetsLabels]
+    datasets_labels_per_data_model: Dict[str, DatasetsLabels]
 
 
 class DataModelsMetadata(BaseModel):
@@ -174,7 +283,7 @@ class DataModelsMetadata(BaseModel):
     Values are tuples that contain datasets info and cdes for a specific data model.
     """
 
-    values: Dict[str, Tuple[DatasetsLabels, Optional[CommonDataElements]]]
+    data_models_metadata: Dict[str, Tuple[DatasetsLabels, Optional[CommonDataElements]]]
 
 
 class DataModelsMetadataPerNode(BaseModel):
@@ -184,24 +293,12 @@ class DataModelsMetadataPerNode(BaseModel):
     Values are data models's Metadata.
     """
 
-    values: Dict[str, DataModelsMetadata]
-
-
-class _NLARegistries(BaseModel):
-    node_registry: NodeRegistry
-    data_model_registry: DataModelRegistry
-
-    class Config:
-        allow_mutation = False
-        arbitrary_types_allowed = True
+    data_models_metadata_per_node: Dict[str, DataModelsMetadata]
 
 
 class NodeLandscapeAggregator(metaclass=Singleton):
     def __init__(self):
-        self._registries = _NLARegistries(
-            node_registry=NodeRegistry(),
-            data_model_registry=DataModelRegistry(),
-        )
+        self._registries = _NLARegistries()
         self._keep_updating = True
         self._update_loop_thread = None
 
@@ -228,9 +325,9 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 (
                     nodes_info,
                     data_models_metadata_per_node,
-                ) = _federation_nodes_metadata_fetching()
+                ) = _fetch_federation_nodes_metadata()
                 node_registry = NodeRegistry(nodes_info=nodes_info)
-                dmr = _data_model_registry_data_cruncing(data_models_metadata_per_node)
+                dmr = _crunch_data_model_registry_data(data_models_metadata_per_node)
 
                 self._set_new_registries(node_registry, dmr)
 
@@ -265,12 +362,12 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             list(node_registry.nodes_per_id.values()),
         )
         _log_data_model_changes(
-            self._registries.data_model_registry.data_models.values,
-            data_model_registry.data_models.values,
+            self._registries.data_model_registry.data_models.data_models_cdes,
+            data_model_registry.data_models.data_models_cdes,
         )
         _log_dataset_changes(
-            self._registries.data_model_registry.datasets_locations.values,
-            data_model_registry.datasets_locations.values,
+            self._registries.data_model_registry.datasets_locations.datasets_locations,
+            data_model_registry.datasets_locations.datasets_locations,
         )
         self._registries = _NLARegistries(
             node_registry=node_registry, data_model_registry=data_model_registry
@@ -295,7 +392,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             data_model
         ).values
 
-    def get_cdes_per_data_model(self) -> DataModelCDES:
+    def get_cdes_per_data_model(self) -> DataModelsCDES:
         return self._registries.data_model_registry.data_models
 
     def get_datasets_locations(self) -> DatasetsLocations:
@@ -327,7 +424,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         )
 
 
-def _federation_nodes_metadata_fetching() -> Tuple[
+def _fetch_federation_nodes_metadata() -> Tuple[
     List[NodeInfo],
     DataModelsMetadataPerNode,
 ]:
@@ -343,7 +440,7 @@ def _federation_nodes_metadata_fetching() -> Tuple[
     return nodes_info, data_models_metadata_per_node
 
 
-def _data_model_registry_data_cruncing(
+def _crunch_data_model_registry_data(
     data_models_metadata_per_node: DataModelsMetadataPerNode,
 ) -> DataModelRegistry:
     data_models_metadata_per_node_with_compatible_data_models = (
@@ -381,14 +478,16 @@ def _get_data_models_metadata_per_node(
                 cdes = _get_node_cdes(node_socket_addr, data_model)
                 cdes = cdes if cdes else None
                 data_models_metadata[data_model] = (
-                    DatasetsLabels(values=datasets),
+                    DatasetsLabels(datasets_labels=datasets),
                     cdes,
                 )
         data_models_metadata_per_node[node_info.id] = DataModelsMetadata(
-            values=data_models_metadata
+            data_models_metadata=data_models_metadata
         )
 
-    return DataModelsMetadataPerNode(values=data_models_metadata_per_node)
+    return DataModelsMetadataPerNode(
+        data_models_metadata_per_node=data_models_metadata_per_node
+    )
 
 
 def _aggregate_datasets_locations_and_labels(
@@ -404,12 +503,18 @@ def _aggregate_datasets_locations_and_labels(
     """
     datasets_locations = {}
     datasets_labels = {}
-    for node_id, data_models_metadata in data_models_metadata_per_node.values.items():
-        for data_model, datasets_and_cdes in data_models_metadata.values.items():
+    for (
+        node_id,
+        data_models_metadata,
+    ) in data_models_metadata_per_node.data_models_metadata_per_node.items():
+        for (
+            data_model,
+            datasets_and_cdes,
+        ) in data_models_metadata.data_models_metadata.items():
             datasets, _ = datasets_and_cdes
 
             current_labels = (
-                datasets_labels[data_model].values
+                datasets_labels[data_model].datasets_labels
                 if data_model in datasets_labels
                 else {}
             )
@@ -419,7 +524,7 @@ def _aggregate_datasets_locations_and_labels(
                 else {}
             )
 
-            for dataset_name, dataset_label in datasets.values.items():
+            for dataset_name, dataset_label in datasets.datasets_labels.items():
                 current_labels[dataset_name] = dataset_label
 
                 if dataset_name in current_datasets:
@@ -427,7 +532,7 @@ def _aggregate_datasets_locations_and_labels(
                 else:
                     current_datasets[dataset_name] = [node_id]
 
-            datasets_labels[data_model] = DatasetsLabels(values=current_labels)
+            datasets_labels[data_model] = DatasetsLabels(datasets_labels=current_labels)
             datasets_locations[data_model] = current_datasets
 
     datasets_locations_without_duplicates = {}
@@ -438,21 +543,27 @@ def _aggregate_datasets_locations_and_labels(
             if len(node_ids) == 1:
                 datasets_locations_without_duplicates[data_model][dataset] = node_ids[0]
             else:
-                del datasets_labels[data_model].values[dataset]
+                del datasets_labels[data_model].datasets_labels[dataset]
                 _log_duplicated_dataset(node_ids, data_model, dataset)
 
     return DatasetsLocations(
-        values=datasets_locations_without_duplicates
-    ), DatasetsLabelsPerDataModel(values=datasets_labels)
+        datasets_locations=datasets_locations_without_duplicates
+    ), DatasetsLabelsPerDataModel(datasets_labels_per_data_model=datasets_labels)
 
 
 def _aggregate_data_models_cdes(
     data_models_metadata_per_node: DataModelsMetadataPerNode,
     datasets_labels_per_data_model: DatasetsLabelsPerDataModel,
-) -> DataModelCDES:
+) -> DataModelsCDES:
     data_models = {}
-    for node_id, data_models_metadata in data_models_metadata_per_node.values.items():
-        for data_model, datasets_and_cdes in data_models_metadata.values.items():
+    for (
+        node_id,
+        data_models_metadata,
+    ) in data_models_metadata_per_node.data_models_metadata_per_node.items():
+        for (
+            data_model,
+            datasets_and_cdes,
+        ) in data_models_metadata.data_models_metadata.items():
             _, cdes = datasets_and_cdes
             data_models[data_model] = cdes
             dataset_cde = cdes.values["dataset"]
@@ -461,12 +572,14 @@ def _aggregate_data_models_cdes(
                 label=dataset_cde.label,
                 sql_type=dataset_cde.sql_type,
                 is_categorical=dataset_cde.is_categorical,
-                enumerations=datasets_labels_per_data_model.values[data_model].values,
+                enumerations=datasets_labels_per_data_model.datasets_labels_per_data_model[
+                    data_model
+                ].datasets_labels,
                 min=dataset_cde.min,
                 max=dataset_cde.max,
             )
             data_models[data_model].values["dataset"] = new_dataset_cde
-    return DataModelCDES(values=data_models)
+    return DataModelsCDES(data_models_cdes=data_models)
 
 
 def _remove_incompatible_data_models(
@@ -488,8 +601,14 @@ def _remove_incompatible_data_models(
     validation_dictionary = {}
 
     incompatible_data_models = []
-    for node_id, data_models_metadata in data_models_metadata_per_node.values.items():
-        for data_model, datasets_and_cdes in data_models_metadata.values.items():
+    for (
+        node_id,
+        data_models_metadata,
+    ) in data_models_metadata_per_node.data_models_metadata_per_node.items():
+        for (
+            data_model,
+            datasets_and_cdes,
+        ) in data_models_metadata.data_models_metadata.items():
             _, cdes = datasets_and_cdes
 
             if data_model in incompatible_data_models or not cdes:
@@ -507,15 +626,17 @@ def _remove_incompatible_data_models(
 
     compatible_data_models_metadata_per_node = {
         node_id: DataModelsMetadata(
-            values={
+            data_models_metadata={
                 data_model: datasets_and_cdes
-                for data_model, datasets_and_cdes in data_models_metadata.values.items()
+                for data_model, datasets_and_cdes in data_models_metadata.data_models_metadata.items()
                 if data_model not in incompatible_data_models and datasets_and_cdes[1]
             }
         )
-        for node_id, data_models_metadata in data_models_metadata_per_node.values.items()
+        for node_id, data_models_metadata in data_models_metadata_per_node.data_models_metadata_per_node.items()
     }
-    return DataModelsMetadataPerNode(values=compatible_data_models_metadata_per_node)
+    return DataModelsMetadataPerNode(
+        data_models_metadata_per_node=compatible_data_models_metadata_per_node
+    )
 
 
 def _log_node_changes(old_nodes, new_nodes):
