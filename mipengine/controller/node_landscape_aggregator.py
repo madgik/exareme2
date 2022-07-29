@@ -1,6 +1,7 @@
 import threading
 import time
 import traceback
+from abc import ABC
 from typing import Any
 from typing import Dict
 from typing import List
@@ -109,6 +110,11 @@ def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements
         logger.error(traceback.format_exc())
 
 
+class ImmutableBaseModel(BaseModel, ABC):
+    class Config:
+        allow_mutation = False
+
+
 def _get_node_socket_addr(node_info: NodeInfo):
     return f"{node_info.ip}:{node_info.port}"
 
@@ -117,7 +123,7 @@ def _have_common_elements(a: List[Any], b: List[Any]):
     return bool(set(a) & set(b))
 
 
-class DataModelsCDES(BaseModel):
+class DataModelsCDES(ImmutableBaseModel):
     """
     A dictionary representation of the cdes of each data model.
     Key values are data models.
@@ -127,7 +133,7 @@ class DataModelsCDES(BaseModel):
     data_models_cdes: Optional[Dict[str, CommonDataElements]] = {}
 
 
-class DatasetsLocations(BaseModel):
+class DatasetsLocations(ImmutableBaseModel):
     """
     A dictionary representation of the locations of each dataset in the federation.
     Key values are data models because a dataset may be available in multiple data_models.
@@ -137,7 +143,7 @@ class DatasetsLocations(BaseModel):
     datasets_locations: Optional[Dict[str, Dict[str, str]]] = {}
 
 
-class DataModelRegistry(BaseModel):
+class DataModelRegistry(ImmutableBaseModel):
     data_models: Optional[DataModelsCDES] = DataModelsCDES()
     datasets_locations: Optional[DatasetsLocations] = DatasetsLocations()
 
@@ -215,7 +221,7 @@ class DataModelRegistry(BaseModel):
         return datasets_in_node
 
 
-class NodeRegistry(BaseModel):
+class NodeRegistry(ImmutableBaseModel):
     def __init__(self, nodes_info=None):
         if nodes_info:
             global_nodes = [
@@ -248,7 +254,7 @@ class NodeRegistry(BaseModel):
         arbitrary_types_allowed = True
 
 
-class _NLARegistries(BaseModel):
+class _NLARegistries(ImmutableBaseModel):
     node_registry: Optional[NodeRegistry] = NodeRegistry()
     data_model_registry: Optional[DataModelRegistry] = DataModelRegistry()
 
@@ -257,7 +263,7 @@ class _NLARegistries(BaseModel):
         arbitrary_types_allowed = True
 
 
-class DatasetsLabels(BaseModel):
+class DatasetsLabels(ImmutableBaseModel):
     """
     A dictionary representation of a dataset's information.
     Key values are the names of the datasets.
@@ -267,7 +273,7 @@ class DatasetsLabels(BaseModel):
     datasets_labels: Dict[str, str]
 
 
-class DatasetsLabelsPerDataModel(BaseModel):
+class DatasetsLabelsPerDataModel(ImmutableBaseModel):
     """
     Key values are the names of the data_models.
     Values are DatasetsLabels.
@@ -276,7 +282,7 @@ class DatasetsLabelsPerDataModel(BaseModel):
     datasets_labels_per_data_model: Dict[str, DatasetsLabels]
 
 
-class DataModelsMetadata(BaseModel):
+class DataModelsMetadata(ImmutableBaseModel):
     """
     A dictionary representation of a data models's Metadata.
     Key values are data models.
@@ -286,7 +292,7 @@ class DataModelsMetadata(BaseModel):
     data_models_metadata: Dict[str, Tuple[DatasetsLabels, Optional[CommonDataElements]]]
 
 
-class DataModelsMetadataPerNode(BaseModel):
+class DataModelsMetadataPerNode(ImmutableBaseModel):
     """
     A dictionary representation of all information for the data models's Metadata per node.
     Key values are nodes.
@@ -325,7 +331,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
                 (
                     nodes_info,
                     data_models_metadata_per_node,
-                ) = _fetch_federation_nodes_metadata()
+                ) = _fetch_nodes_metadata()
                 node_registry = NodeRegistry(nodes_info=nodes_info)
                 dmr = _crunch_data_model_registry_data(data_models_metadata_per_node)
 
@@ -424,7 +430,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         )
 
 
-def _fetch_federation_nodes_metadata() -> Tuple[
+def _fetch_nodes_metadata() -> Tuple[
     List[NodeInfo],
     DataModelsMetadataPerNode,
 ]:
@@ -443,8 +449,14 @@ def _fetch_federation_nodes_metadata() -> Tuple[
 def _crunch_data_model_registry_data(
     data_models_metadata_per_node: DataModelsMetadataPerNode,
 ) -> DataModelRegistry:
+
+    incompatible_data_models = _get_incompatible_data_models(
+        data_models_metadata_per_node
+    )
     data_models_metadata_per_node_with_compatible_data_models = (
-        _remove_incompatible_data_models(data_models_metadata_per_node)
+        _remove_incompatible_data_models_from_data_models_metadata_per_node(
+            data_models_metadata_per_node, incompatible_data_models
+        )
     )
     (
         datasets_locations,
@@ -582,9 +594,9 @@ def _aggregate_data_models_cdes(
     return DataModelsCDES(data_models_cdes=data_models)
 
 
-def _remove_incompatible_data_models(
+def _get_incompatible_data_models(
     data_models_metadata_per_node: DataModelsMetadataPerNode,
-) -> DataModelsMetadataPerNode:
+) -> List[str]:
     """
     Each node has its own data models definition.
     We need to check for each data model if the definitions across all nodes is the same.
@@ -595,8 +607,8 @@ def _remove_incompatible_data_models(
         data_models_metadata_per_node: DataModelsMetadataPerNode
     Returns
     ----------
-        DataModelsMetadataPerNode
-            The data models metadata per node without the incompatible data models
+        List[str]
+            The incompatible data models
     """
     validation_dictionary = {}
 
@@ -624,18 +636,25 @@ def _remove_incompatible_data_models(
             else:
                 validation_dictionary[data_model] = (node_id, cdes)
 
-    compatible_data_models_metadata_per_node = {
-        node_id: DataModelsMetadata(
-            data_models_metadata={
-                data_model: datasets_and_cdes
-                for data_model, datasets_and_cdes in data_models_metadata.data_models_metadata.items()
-                if data_model not in incompatible_data_models and datasets_and_cdes[1]
-            }
-        )
-        for node_id, data_models_metadata in data_models_metadata_per_node.data_models_metadata_per_node.items()
-    }
+    return incompatible_data_models
+
+
+def _remove_incompatible_data_models_from_data_models_metadata_per_node(
+    data_models_metadata_per_node: DataModelsMetadataPerNode,
+    incompatible_data_models: List[str],
+) -> DataModelsMetadataPerNode:
     return DataModelsMetadataPerNode(
-        data_models_metadata_per_node=compatible_data_models_metadata_per_node
+        data_models_metadata_per_node={
+            node_id: DataModelsMetadata(
+                data_models_metadata={
+                    data_model: datasets_and_cdes
+                    for data_model, datasets_and_cdes in data_models_metadata.data_models_metadata.items()
+                    if data_model not in incompatible_data_models
+                    and datasets_and_cdes[1]
+                }
+            )
+            for node_id, data_models_metadata in data_models_metadata_per_node.data_models_metadata_per_node.items()
+        }
     )
 
 

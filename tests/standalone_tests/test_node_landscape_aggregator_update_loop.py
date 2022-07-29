@@ -132,15 +132,17 @@ def test_update_loop_get_node_info_fail(
     load_data_localnode2,
     reset_node_landscape_aggregator,
 ):
-    patch_get_nodes_addresses.side_effect = _get_nodes_addresses_empty
-
     node_landscape_aggregator = NodeLandscapeAggregator()
     node_landscape_aggregator.start()
 
+    assert node_landscape_aggregator.get_nodes()
+
+    patch_get_nodes_addresses.side_effect = _get_nodes_addresses_empty
+
     # NLA will never contain nodes
     start = time.time()
-    while time.time() - start < WAIT_TIME_NLA_UPDATE:
-        if node_landscape_aggregator.get_nodes():
+    while node_landscape_aggregator.get_nodes():
+        if time.time() - start > WAIT_TIME_LIMIT:
             pytest.fail(
                 f"Node registry should not contain {node_landscape_aggregator.get_nodes()}"
             )
