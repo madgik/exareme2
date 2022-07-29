@@ -78,14 +78,6 @@ def init_background_controller_logger():
 
 
 @pytest.fixture(autouse=True, scope="session")
-def patch_nodes_addresses(controller_config_mock):
-    with patch(
-        "mipengine.controller.nodes_addresses.controller_config", controller_config_mock
-    ):
-        yield
-
-
-@pytest.fixture(autouse=True, scope="session")
 def patch_celery_app(controller_config_mock):
     with patch(
         "mipengine.controller.celery_app.controller_config", controller_config_mock

@@ -21,7 +21,7 @@ from mipengine.controller.federation_info_logs import log_node_joined_federation
 from mipengine.controller.federation_info_logs import log_node_left_federation
 from mipengine.controller.node_info_tasks_handler import NodeInfoTasksHandler
 from mipengine.controller.node_registry import NodeRegistry
-from mipengine.controller.nodes_addresses import get_nodes_addresses
+from mipengine.controller.nodes_addresses import NodesAddressesFactory
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.node_tasks_DTOs import CommonDataElement
@@ -152,7 +152,11 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         """
         while self._keep_updating:
             try:
-                nodes_addresses = get_nodes_addresses()
+                nodes_addresses = (
+                    NodesAddressesFactory(controller_config.deployment_type)
+                    .get_nodes_addresses()
+                    .socket_addresses
+                )
                 nodes_info = _get_nodes_info(nodes_addresses)
                 local_nodes = {
                     node_info.id: node_info
