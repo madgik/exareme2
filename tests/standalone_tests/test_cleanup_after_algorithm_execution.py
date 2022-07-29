@@ -130,15 +130,6 @@ def patch_algorithm_executor(controller_config_dict_mock):
 
 
 @pytest.fixture(autouse=True, scope="session")
-def patch_nodes_addresses(controller_config_dict_mock):
-    with patch(
-        "mipengine.controller.nodes_addresses.controller_config",
-        AttrDict(controller_config_dict_mock),
-    ):
-        yield
-
-
-@pytest.fixture(autouse=True, scope="session")
 def patch_celery_app(controller_config_dict_mock):
     with patch(
         "mipengine.controller.celery_app.controller_config",
