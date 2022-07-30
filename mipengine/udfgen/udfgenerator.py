@@ -351,6 +351,8 @@ ANDLN = " " + AND + LN
 SPC4 = " " * 4
 SCOLON = ";"
 ROWID = "row_id"
+NODEID = "node_id"
+DEFERRED = "deferred"
 
 
 def get_smpc_build_template(secure_transfer_type):
@@ -388,9 +390,9 @@ def get_table_build_template(input_type: "TableType"):
         raise TypeError(
             f"Build template only for InputTypes. Type provided: {input_type}"
         )
-    COLUMNS_COMPREHENSION_TMPL = "{{n: _columns[n] for n in {colnames}}}"
+    COLUMNS_COMPREHENSION_TMPL = "{{name: _columns[name_w_prefix] for name, name_w_prefix in zip({colnames}, {colnames_w_prefix})}}"
     if isinstance(input_type, RelationType):
-        return f"{{varname}} = pd.DataFrame({COLUMNS_COMPREHENSION_TMPL})"
+        return f"{{varname}} = udfio.from_relational_table({COLUMNS_COMPREHENSION_TMPL}, '{ROWID}')"
     if isinstance(input_type, TensorType):
         return f"{{varname}} = udfio.from_tensor_table({COLUMNS_COMPREHENSION_TMPL})"
     if isinstance(input_type, MergeTensorType):
@@ -472,7 +474,7 @@ def get_main_return_stmt_template(output_type: "OutputType", smpc_used: bool):
             f"Return statement template only for OutputTypes. Type provided: {output_type}"
         )
     if isinstance(output_type, RelationType):
-        return "return udfio.as_relational_table(numpy.array({return_name}))"
+        return f"return udfio.as_relational_table({{return_name}}, '{ROWID}')"
     if isinstance(output_type, TensorType):
         return "return udfio.as_tensor_table(numpy.array({return_name}))"
     if isinstance(output_type, ScalarType):
@@ -803,7 +805,7 @@ class MergeTensorType(TableType, ParametrizedType, InputType, OutputType):
 
     @property
     def schema(self):
-        nodeid_column = [("node_id", dt.STR)]
+        nodeid_column = [(NODEID, dt.STR)]
         dimcolumns = [(f"dim{i}", dt.INT) for i in range(self.ndims)]
         valcolumn = [("val", self.dtype)]
         return nodeid_column + dimcolumns + valcolumn  # type: ignore
@@ -815,13 +817,40 @@ def merge_tensor(dtype, ndims):
 
 class RelationType(TableType, ParametrizedType, InputType, OutputType):
     def __init__(self, schema):
+        error_msg = (
+            "Expected schema of type TypeVar, DEFFERED or List[Tuple]. "
+            f"Got {schema}."
+        )
         if isinstance(schema, TypeVar):
             self._schema = schema
-        else:
+        elif schema == DEFERRED:
+            self._schema = DEFERRED
+        elif isinstance(schema, list):
+            # Subscripted generics cannot be used with class and instance
+            # checks. This means that we have to check if the list has the
+            # correct structure. The only acceptable structure is an empty list
+            # or a list of pairs.
+            if schema == []:
+                pass
+            elif isinstance(schema[0], tuple) and len(schema[0]) == 2:
+                pass
+            else:
+                raise TypeError(error_msg)
             self._schema = [
-                (name, dt.from_py(dtype) if isinstance(dtype, type) else dtype)
-                for name, dtype in schema
+                (name, self._convert_dtype(dtype)) for name, dtype in schema
             ]
+        else:
+            raise TypeError(error_msg)
+
+    @staticmethod
+    def _convert_dtype(dtype):
+        if isinstance(dtype, type):
+            return dt.from_py(dtype)
+        if isinstance(dtype, str):
+            return dt(dtype)
+        if isinstance(dtype, dt):
+            return dtype
+        raise TypeError(f"Expected dtype of type type, str or DType. Got {dtype}.")
 
     @property
     def schema(self):
@@ -1196,10 +1225,12 @@ class TableBuild(ASTNode):
         self.template = template
 
     def compile(self) -> str:
-        colnames = self.arg.type.column_names(prefix=self.arg_name)
+        colnames = self.arg.type.column_names()
+        colnames_w_prefix = self.arg.type.column_names(prefix=self.arg_name)
         return self.template.format(
             varname=self.arg_name,
             colnames=colnames,
+            colnames_w_prefix=colnames_w_prefix,
             table_name=self.arg.table_name,
         )
 
@@ -1275,7 +1306,9 @@ class LiteralAssignments(ASTNode):
         self.literals = literals
 
     def compile(self) -> str:
-        return LN.join(f"{name} = {arg.value}" for name, arg in self.literals.items())
+        return LN.join(
+            f"{name} = {repr(arg.value)}" for name, arg in self.literals.items()
+        )
 
 
 class LoggerAssignment(ASTNode):
@@ -1950,6 +1983,7 @@ def generate_udf_queries(
     keyword_args: Dict[str, UDFGenArgument],
     smpc_used: bool,
     traceback=False,
+    output_schema=None,
 ) -> UDFGenExecutionQueries:
     """
     Parameters
@@ -1995,6 +2029,7 @@ def generate_udf_queries(
         udfregistry=udf.registry,
         smpc_used=smpc_used,
         traceback=traceback,
+        output_schema=output_schema,
     )
 
 
@@ -2094,7 +2129,7 @@ def is_statetype_schema(schema):
 
 
 def convert_table_schema_to_relation_schema(table_schema):
-    return [(c.name, c.dtype) for c in table_schema if c.name != ROWID]
+    return [(c.name, c.dtype) for c in table_schema if c.name != NODEID]
 
 
 # <--
@@ -2108,6 +2143,7 @@ def get_udf_templates_using_udfregistry(
     udfregistry: dict,
     smpc_used: bool,
     traceback=False,
+    output_schema=None,
 ) -> UDFGenExecutionQueries:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
     udf_args = get_udf_args(request_id, funcparts, posargs, keywordargs)
@@ -2122,7 +2158,10 @@ def get_udf_templates_using_udfregistry(
         expected_literal_types=funcparts.literal_input_types,
     )
     main_output_type, sec_output_types = get_output_types(
-        funcparts, udf_args, traceback
+        funcparts,
+        udf_args,
+        traceback,
+        output_schema,
     )
     udf_outputs = get_udf_outputs(
         main_output_type=main_output_type,
@@ -2309,7 +2348,10 @@ def get_udf_definition_template(
 
 
 def get_output_types(
-    funcparts, udf_args, traceback
+    funcparts,
+    udf_args,
+    traceback,
+    output_schema,
 ) -> Tuple[OutputType, List[LoopbackOutputType]]:
     """Computes the UDF output type. If `traceback` is true the type is str
     since the traceback will be returned as a string. If the output type is
@@ -2319,6 +2361,9 @@ def get_output_types(
 
     if traceback:
         return scalar(str), []
+    if output_schema:
+        main_output_type = relation(schema=output_schema)
+        return main_output_type, []
     if (
         isinstance(funcparts.main_output_type, ParametrizedType)
         and funcparts.main_output_type.is_generic
@@ -2411,10 +2456,7 @@ def map_unknown_to_known_typeparams(
 
 
 def get_udf_select_template(output_type: OutputType, table_args: Dict[str, TableArg]):
-    tensors = get_table_ast_nodes_from_table_args(
-        table_args,
-        arg_type=(TensorArg),
-    )
+    tensors = get_table_ast_nodes_from_table_args(table_args, arg_type=TensorArg)
     relations = get_table_ast_nodes_from_table_args(table_args, arg_type=RelationArg)
     tables = tensors or relations
     columns = [column for table in tables for column in table.columns.values()]
@@ -2482,7 +2524,7 @@ def convert_table_arg_to_table_ast_node(table_arg, alias=None):
 
 
 def nodeid_column():
-    return Cast(name="$node_id", type_=dt.STR.to_sql(), alias="node_id")
+    return Cast(name="$node_id", type_=dt.STR.to_sql(), alias=NODEID)
 
 
 # ~~~~~~~~~~~~~~~~~ CREATE TABLE and INSERT query generator ~~~~~~~~~ #
@@ -2526,7 +2568,7 @@ def _create_table_udf_output(
     if isinstance(output_type, ScalarType) or not nodeid:
         output_schema = iotype_to_sql_schema(output_type)
     else:
-        output_schema = f'"node_id" {dt.STR.to_sql()},' + iotype_to_sql_schema(
+        output_schema = f'"{NODEID}" {dt.STR.to_sql()},' + iotype_to_sql_schema(
             output_type
         )
     create_table = CREATE_TABLE + " $" + table_name + f"({output_schema})" + SCOLON

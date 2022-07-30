@@ -21,7 +21,7 @@ from mipengine.controller.federation_info_logs import log_dataset_removed
 from mipengine.controller.federation_info_logs import log_node_joined_federation
 from mipengine.controller.federation_info_logs import log_node_left_federation
 from mipengine.controller.node_info_tasks_handler import NodeInfoTasksHandler
-from mipengine.controller.nodes_addresses import get_nodes_addresses
+from mipengine.controller.nodes_addresses import NodesAddressesFactory
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.node_tasks_DTOs import CommonDataElement
@@ -437,7 +437,13 @@ def _fetch_nodes_metadata() -> Tuple[
     """
     Returns a list of all the nodes in the federation and their metadata (data_models, datasets, cdes).
     """
-    nodes_addresses = get_nodes_addresses()
+    nodes_addresses = (
+        NodesAddressesFactory(
+            controller_config.deployment_type, controller_config.localnodes
+        )
+        .get_nodes_addresses()
+        .socket_addresses
+    )
     nodes_info = _get_nodes_info(nodes_addresses)
     local_nodes = [
         node_info for node_info in nodes_info if node_info.role == NodeRole.LOCALNODE

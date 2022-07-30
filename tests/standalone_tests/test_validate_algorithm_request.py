@@ -528,7 +528,7 @@ def get_parametrization_list_exception_cases():
                 ),
                 parameters={"parameter1": [1], "parameter2": 10},
             ),
-            (BadUserInput, "Parameter .* values should be less than .*"),
+            (BadUserInput, "Parameter .* values should be at most equal to .*"),
         ),
         (
             "algorithm_without_x",

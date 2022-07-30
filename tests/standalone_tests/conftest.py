@@ -7,6 +7,7 @@ import subprocess
 import time
 from os import path
 from pathlib import Path
+from unittest.mock import patch
 
 import docker
 import psutil
@@ -20,7 +21,6 @@ from mipengine.controller.algorithm_execution_tasks_handler import (
 )
 from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_landscape_aggregator import NodeRegistry
 from mipengine.controller.node_landscape_aggregator import _NLARegistries
 from mipengine.udfgen import udfio
 
@@ -30,6 +30,7 @@ TESTING_MONETDB_CONT_IMAGE = "madgik/mipenginedb:dev"
 
 this_mod_path = os.path.dirname(os.path.abspath(__file__))
 TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
+TEST_NODES_ADDRESSES_FOLDER = path.join(TEST_ENV_CONFIG_FOLDER, "nodes_addresses")
 TEST_DATA_FOLDER = Path(this_mod_path).parent / "test_data"
 
 OUTDIR = Path("/tmp/mipengine/")
@@ -98,7 +99,19 @@ LOCALNODE1_SMPC_CONFIG_FILE = "smpc_localnode1.toml"
 LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
 CONTROLLER_CONFIG_FILE = "testcontroller.toml"
 CONTROLLER_SMPC_CONFIG_FILE = "test_smpc_controller.toml"
-CONTROLLER_LOCALNODES_CONFIG_FILE = "test_localnodes_addresses.json"
+CONTROLLER_NODES_ADDRESSES_ONLY_GLOBAL_CONFIG_FILE = "node_addresses_with_global.json"
+CONTROLLER_NODES_ADDRESSES_GLOBAL_AND_LOCAL1_CONFIG_FILE = (
+    "node_addresses_with_global_and_localnode1.json"
+)
+CONTROLLER_NODES_ADDRESSES_GLOBAL_AND_LOCAL_1_AND_2_CONFIG_FILE = (
+    "node_addresses_with_global_and_localnode_1_2.json"
+)
+CONTROLLER_NODES_ADDRESSES_GLOBAL_LOCALS_CONFIG_FILE = (
+    "node_addresses_with_global_and_locals.json"
+)
+CONTROLLER_NODES_ADDRESSES_WITHOUT_NODES_CONFIG_FILE = (
+    "node_addresses_without_nodes.json"
+)
 CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE = "test_smpc_localnodes_addresses.json"
 CONTROLLER_OUTPUT_FILE = "test_controller.out"
 SMPC_CONTROLLER_OUTPUT_FILE = "test_smpc_controller.out"
@@ -205,6 +218,24 @@ def _remove_monetdb_container(cont_name):
     container = client.containers.get(cont_name)
     container.remove(v=True, force=True)
     print(f"Removed monetdb container '{cont_name}'.")
+
+
+@pytest.fixture(autouse=True, scope="function")
+def patch_nodes_addresses():
+    with patch(
+        "mipengine.controller.node_landscape_aggregator.controller_config",
+        AttrDict(
+            {
+                "deployment_type": "LOCAL",
+                "localnodes": {
+                    "config_file": TEST_NODES_ADDRESSES_FOLDER
+                    + "/"
+                    + CONTROLLER_NODES_ADDRESSES_GLOBAL_AND_LOCAL1_CONFIG_FILE,
+                },
+            }
+        ),
+    ) as nodes_addresses_patched:
+        yield nodes_addresses_patched
 
 
 @pytest.fixture(scope="session")
@@ -898,7 +929,8 @@ def controller_service():
         TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE
     )
     localnodes_config_filepath = path.join(
-        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODES_CONFIG_FILE
+        TEST_NODES_ADDRESSES_FOLDER,
+        CONTROLLER_NODES_ADDRESSES_GLOBAL_AND_LOCAL1_CONFIG_FILE,
     )
 
     proc = _create_controller_service(
@@ -918,7 +950,7 @@ def smpc_controller_service():
         TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_CONFIG_FILE
     )
     localnodes_config_filepath = path.join(
-        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE
+        TEST_NODES_ADDRESSES_FOLDER, CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE
     )
 
     proc = _create_controller_service(
