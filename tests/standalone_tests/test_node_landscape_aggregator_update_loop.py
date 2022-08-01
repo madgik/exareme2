@@ -8,16 +8,9 @@ import toml
 from mipengine import AttrDict
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from tests.standalone_tests.conftest import (
-    CONTROLLER_NODES_ADDRESSES_GLOBAL_AND_LOCAL_1_AND_2_CONFIG_FILE,
-)
-from tests.standalone_tests.conftest import (
-    CONTROLLER_NODES_ADDRESSES_WITHOUT_NODES_CONFIG_FILE,
-)
 from tests.standalone_tests.conftest import LOCALNODE1_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE2_CONFIG_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
-from tests.standalone_tests.conftest import TEST_NODES_ADDRESSES_FOLDER
 
 WAIT_TIME_LIMIT = 120
 WAIT_TIME_NLA_UPDATE = 5
@@ -89,7 +82,6 @@ def test_update_loop_data_properly_added(
                 f"NLA did not update DataModelRegistry properly during {WAIT_TIME_LIMIT=}"
             )
         time.sleep(1)
-        print(node_landscape_aggregator.get_nodes())
 
     node_landscape_aggregator.stop()
 
@@ -99,18 +91,7 @@ def test_update_loop_get_node_info_fail(
     patch_nodes_addresses,
     reset_node_landscape_aggregator,
 ):
-    patch_nodes_addresses.update(
-        AttrDict(
-            {
-                "deployment_type": "LOCAL",
-                "localnodes": {
-                    "config_file": TEST_NODES_ADDRESSES_FOLDER
-                    + "/"
-                    + CONTROLLER_NODES_ADDRESSES_WITHOUT_NODES_CONFIG_FILE,
-                },
-            }
-        )
-    )
+
     node_landscape_aggregator = NodeLandscapeAggregator()
     node_landscape_aggregator.start()
 
@@ -157,18 +138,7 @@ def test_update_loop_nodes_properly_added(
 
         time.sleep(1)
     assert localnode2_node_id not in node_landscape_aggregator.get_nodes()
-    patch_nodes_addresses.update(
-        AttrDict(
-            {
-                "deployment_type": "LOCAL",
-                "localnodes": {
-                    "config_file": TEST_NODES_ADDRESSES_FOLDER
-                    + "/"
-                    + CONTROLLER_NODES_ADDRESSES_GLOBAL_AND_LOCAL_1_AND_2_CONFIG_FILE,
-                },
-            }
-        )
-    )
+
     # wait until NLA's NodeRegistry to contain the localnode2
     start = time.time()
     while not any(

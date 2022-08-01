@@ -8,6 +8,8 @@ import envtoml
 from mipengine import AttrDict
 from mipengine import controller
 
+BACKGROUND_LOGGER_NAME = "controller_background_service"
+
 
 @unique
 class DeploymentType(str, Enum):

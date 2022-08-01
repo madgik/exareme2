@@ -18,3 +18,7 @@ class NodeInfo(BaseModel):
     port: int
     db_ip: IPv4Address
     db_port: int
+
+    @property
+    def socket_addr(self):
+        return f"{self.ip}:{self.port}"

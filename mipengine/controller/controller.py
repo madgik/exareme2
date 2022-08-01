@@ -151,7 +151,7 @@ class Controller:
 
         # By calling blocking method AlgorithmExecutor.run() inside run_in_executor(),
         # AlgorithmExecutor.run() will run in a separate thread of the
-        # threadpool and at the same time yield control to the exevent loop, through await
+        # threadpool and at the same time yield control to the executor event loop, through await
         loop = asyncio.get_event_loop()
         algorithm_result = await loop.run_in_executor(
             self._executor, algorithm_executor.run
