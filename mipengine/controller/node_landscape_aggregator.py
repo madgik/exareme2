@@ -326,21 +326,21 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         For each data model the 'enumerations' field in the cde with code 'dataset' is updated with all datasets across nodes.
         Once all the information is aggregated and validated the NLA will provide the information to the Node Registry and to the Data Model Registry.
         """
+        (
+            nodes_info,
+            data_models_metadata_per_node,
+        ) = _fetch_nodes_metadata()
+        node_registry = NodeRegistry(nodes_info=nodes_info)
+        dmr = _crunch_data_model_registry_data(data_models_metadata_per_node)
+
+        self._set_new_registries(node_registry, dmr)
+
+        logger.debug(f"Nodes:{[node_info.id for node_info in self.get_nodes()]}")
+
+    def _update_loop(self):
         while self._keep_updating:
             try:
-                (
-                    nodes_info,
-                    data_models_metadata_per_node,
-                ) = _fetch_nodes_metadata()
-                node_registry = NodeRegistry(nodes_info=nodes_info)
-                dmr = _crunch_data_model_registry_data(data_models_metadata_per_node)
-
-                self._set_new_registries(node_registry, dmr)
-
-                logger.debug(
-                    f"Nodes:{[node_info.id for node_info in self.get_nodes()]}"
-                )
-
+                self._update()
             except Exception as exc:
                 logger.warning(
                     f"NodeLandscapeAggregator caught an exception but will continue to "
@@ -354,7 +354,9 @@ class NodeLandscapeAggregator(metaclass=Singleton):
     def start(self):
         self.stop()
         self._keep_updating = True
-        self._update_loop_thread = threading.Thread(target=self._update, daemon=True)
+        self._update_loop_thread = threading.Thread(
+            target=self._update_loop, daemon=True
+        )
         self._update_loop_thread.start()
 
     def stop(self):
