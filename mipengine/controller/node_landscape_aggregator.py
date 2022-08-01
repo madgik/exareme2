@@ -209,15 +209,9 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             self._update_loop_thread.join()
 
     def set_new_registy_values(self, nodes, data_models, datasets_locations):
-        _log_node_changes(self._registries.node_registry.nodes, nodes)
-        _log_data_model_changes(
-            self._registries.data_model_registry.data_models,
-            data_models,
-        )
-        _log_dataset_changes(
-            self._registries.data_model_registry.datasets_locations,
-            datasets_locations,
-        )
+        old_nodes = self._registries.node_registry.nodes
+        old_data_models = self._registries.data_model_registry.data_models
+        old_datasets_locations = self._registries.data_model_registry.datasets_locations
         _node_registry = NodeRegistry(nodes=nodes)
         _data_model_registry = DataModelRegistry(
             data_models=data_models,
@@ -226,6 +220,9 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         self._registries = _NLARegistries(
             node_registry=_node_registry, data_model_registry=_data_model_registry
         )
+        _log_node_changes(old_nodes, nodes)
+        _log_data_model_changes(old_data_models, data_models)
+        _log_dataset_changes(old_datasets_locations, datasets_locations)
 
     def get_nodes(self) -> Dict[str, NodeInfo]:
         return self._registries.node_registry.nodes
