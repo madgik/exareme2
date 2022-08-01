@@ -172,7 +172,7 @@ def _execute(query: str, parameters=None, many=False, conn=None):
     logger.info(
         f"Executing query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
     )
-    if any(keyword in db_execution_dto.query for keyword in "INSERT" or "CREATE"):
+    if any(keyword in db_execution_dto.query for keyword in ("INSERT", "CREATE")):
         with _lock(
             create_or_insert_query_execution_lock,
             CREATE_OR_INSERT_QUERY_EXECUTION_LOCK_TIMEOUT,
