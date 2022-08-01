@@ -811,24 +811,9 @@ def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     kill_service(proc)
 
 
-def ensure_localnodetmp_node_service_is_running(node_process):
-    """
-    This is used when the rabbitmq is restarted. The node service could potentially
-    be closed if it calls the rabbitmq when it's being initialized.
-
-    This is normal and wouldn't cause a problem in production but in the tests
-    we need to restart it manually.
-
-    ATTENTION!
-    When this method is called the service should be killed manually inside the test.
-    """
+def is_localnodetmp_node_service_ok(node_process):
     psutil_proc = psutil.Process(node_process.pid)
-    if psutil_proc.status() == "zombie" or psutil_proc.status() == "sleeping":
-        print("Localnodetmp node service is down. Creating again.")
-        return create_localnodetmp_node_service()
-    else:
-        print("Localnodetmp node service is up and running.")
-        return node_process
+    return psutil_proc.status() != "zombie" and psutil_proc.status() != "sleeping"
 
 
 def create_node_tasks_handler_celery(node_config_filepath):
@@ -1285,5 +1270,5 @@ def smpc_cluster(smpc_coordinator, smpc_players, smpc_clients):
 
 
 @pytest.fixture(scope="session")
-def controller_testing_logger():
+def get_controller_testing_logger():
     return init_logger("TESTING", "DEBUG")

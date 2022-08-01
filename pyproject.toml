@@ -54,8 +54,6 @@ markers = [
     "database: these tests depend on an external dockerized MonetDB service running (deselect with '-m \"not database\"')",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "smpc: marks the tests that need smpc deployment (deselect with '-m \"not smpc\"')",
-    "integration: marks the tests that need some component deployed (deselect with '-m \"not integration\"')",
-    "e2e: marks the tests that need all the stack deployed (deselect with '-m \"not e2e\"')"
 ]
 filterwarnings = ["ignore::DeprecationWarning"]
 norecursedirs = ["tests/testcase_generators"]

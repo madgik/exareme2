@@ -2,9 +2,7 @@ import traceback
 from logging import Logger
 from threading import Lock
 
-from amqp import AccessRefused
-from amqp import NotAllowed
-from amqp import UnexpectedFrame
+from amqp import exceptions as amqp_exceptions
 from celery import Celery
 from celery import exceptions as celery_exceptions
 from celery.result import AsyncResult
@@ -44,10 +42,10 @@ class CeleryWrapper:
         self._change_app_lock = Lock()
         self._celery_app = self._instantiate_celery_object()
 
-    def _set_new_cel_app(self, cel_app: Celery):
+    def _reset_celery_app(self):
         with self._change_app_lock:
             old_app = self._celery_app
-            self._celery_app = cel_app
+            self._celery_app = self._instantiate_celery_object()
             old_app.close()
 
     # queue_task() is non-blocking, because apply_async() is non-blocking
@@ -59,19 +57,19 @@ class CeleryWrapper:
             return task_signature.apply_async(args, kwargs)
         except (
             kombu_exceptions.OperationalError,
-            AccessRefused,
-            NotAllowed,
+            amqp_exceptions.AccessRefused,
+            amqp_exceptions.NotAllowed,
         ) as exc:
             logger.error(
                 f"{self._socket_addr=} Exception: {exc=} was caught. Most likely this "
-                f"means the broker is not accessible or it's being started. Queuing of {task_signature=} with "
+                f"means the broker is not accessible. Queuing of {task_signature=} with "
                 f"{args=} and {kwargs=} FAILED."
             )
 
             # The celery app needs to be recreated due to a bug:
-            # https://github.com/celery/celery/issues/6912#issuecomment-1107260087
-            # Create a new celery app since the current one is corrupted.
-            self._set_new_cel_app(self._instantiate_celery_object())
+            # https://github.com/celery/celery/issues/6912
+            # If we don't reset the celery app queuing a task will work, but then we won't be able to fetch its result.
+            self._reset_celery_app()
 
             raise CeleryConnectionError(
                 connection_address=self._socket_addr,
@@ -104,7 +102,7 @@ class CeleryWrapper:
             return self._get_result_with_os_error_handler(async_result, timeout)
         except (
             _CeleryWrapperBadAppError,
-            UnexpectedFrame,
+            amqp_exceptions.UnexpectedFrame,
             ConnectionResetError,
             ConnectionRefusedError,
             kombu_exceptions.OperationalError,
@@ -115,9 +113,9 @@ class CeleryWrapper:
             )
 
             # The celery app needs to be recreated due to a bug:
-            # https://github.com/celery/celery/issues/6912#issuecomment-1107260087
-            # Create a new celery app since the current one is corrupted.
-            self._set_new_cel_app(self._instantiate_celery_object())
+            # https://github.com/celery/celery/issues/6912
+            # If we don't reset the celery app queuing a task will work, but then we won't be able to fetch its result.
+            self._reset_celery_app()
 
             raise CeleryConnectionError(
                 connection_address=self._socket_addr,
