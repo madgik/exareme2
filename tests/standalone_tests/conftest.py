@@ -37,6 +37,8 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
+USE_EXTERNAL_SMPC_CLUSTER = True
+
 COMMON_IP = "172.17.0.1"
 
 ALGORITHMS_URL = f"http://{COMMON_IP}:4500/algorithms"
@@ -90,25 +92,34 @@ MONETDB_SMPC_LOCALNODE2_PORT = 61006
 CONTROLLER_PORT = 4500
 CONTROLLER_SMPC_PORT = 4501
 
-GLOBALNODE_CONFIG_FILE = "testglobalnode.toml"
-LOCALNODE1_CONFIG_FILE = "testlocalnode1.toml"
-LOCALNODE2_CONFIG_FILE = "testlocalnode2.toml"
-LOCALNODETMP_CONFIG_FILE = "testlocalnodetmp.toml"
-GLOBALNODE_SMPC_CONFIG_FILE = "smpc_globalnode.toml"
-LOCALNODE1_SMPC_CONFIG_FILE = "smpc_localnode1.toml"
-LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
-CONTROLLER_CONFIG_FILE = "testcontroller.toml"
-CONTROLLER_SMPC_CONFIG_FILE = "test_smpc_controller.toml"
+GLOBALNODE_CONFIG_FILE = "test_globalnode.toml"
+LOCALNODE1_CONFIG_FILE = "test_localnode1.toml"
+LOCALNODE2_CONFIG_FILE = "test_localnode2.toml"
+LOCALNODETMP_CONFIG_FILE = "test_localnodetmp.toml"
+CONTROLLER_CONFIG_FILE = "test_controller.toml"
 CONTROLLER_LOCALNODES_CONFIG_FILE = "test_localnodes_addresses.json"
-CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE = "test_smpc_localnodes_addresses.json"
 CONTROLLER_OUTPUT_FILE = "test_controller.out"
+if USE_EXTERNAL_SMPC_CLUSTER:
+    GLOBALNODE_SMPC_CONFIG_FILE = "test_external_smpc_globalnode.toml"
+    LOCALNODE1_SMPC_CONFIG_FILE = "test_external_smpc_localnode1.toml"
+    LOCALNODE2_SMPC_CONFIG_FILE = "test_external_smpc_localnode2.toml"
+    CONTROLLER_SMPC_CONFIG_FILE = "test_external_smpc_controller.toml"
+    SMPC_COORDINATOR_ADDRESS = "http://dl056.madgik.di.uoa.gr:12314"
+else:
+    GLOBALNODE_SMPC_CONFIG_FILE = "test_smpc_globalnode.toml"
+    LOCALNODE1_SMPC_CONFIG_FILE = "test_smpc_localnode1.toml"
+    LOCALNODE2_SMPC_CONFIG_FILE = "test_smpc_localnode2.toml"
+    CONTROLLER_SMPC_CONFIG_FILE = "test_smpc_controller.toml"
+    SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
+CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE = "test_smpc_localnodes_addresses.json"
 SMPC_CONTROLLER_OUTPUT_FILE = "test_smpc_controller.out"
 
 TASKS_TIMEOUT = 10
 RUN_UDF_TASK_TIMEOUT = 120
 SMPC_CLUSTER_SLEEP_TIME = 60
 
-########### SMPC Cluster ############
+# ------------ SMPC Cluster ------------ #
+
 SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v7.0.0"
 SMPC_COORD_DB_IMAGE = "mongo:5.0.8"
 SMPC_COORD_QUEUE_IMAGE = "redis:alpine3.15"
@@ -973,11 +984,17 @@ def _create_controller_service(
         "INFO - CONTROLLER - BACKGROUND - federation_info_logs", logpath
     )
     print(f"\nCreated controller service on port '{service_port}'.")
+
     return proc
 
 
 @pytest.fixture(scope="session")
 def smpc_coordinator():
+    if USE_EXTERNAL_SMPC_CLUSTER:
+        print(f"\nUsing external smpc cluster. smpc coordinator won't be started.")
+        yield
+        return
+
     docker_cli = docker.from_env()
 
     print(f"\nWaiting for smpc coordinator db to be ready...")
@@ -1052,6 +1069,11 @@ def smpc_coordinator():
 
 @pytest.fixture(scope="session")
 def smpc_players():
+    if USE_EXTERNAL_SMPC_CLUSTER:
+        print(f"\nUsing external smpc cluster. smpc players won't be started.")
+        yield
+        return
+
     docker_cli = docker.from_env()
 
     # Start player 1
@@ -1148,6 +1170,11 @@ def smpc_players():
 
 @pytest.fixture(scope="session")
 def smpc_clients():
+    if USE_EXTERNAL_SMPC_CLUSTER:
+        print(f"\nUsing external smpc cluster. smpc clients won't be started.")
+        yield
+        return
+
     docker_cli = docker.from_env()
 
     # Start client 1
@@ -1215,6 +1242,10 @@ def smpc_clients():
 
 @pytest.fixture(scope="session")
 def smpc_cluster(smpc_coordinator, smpc_players, smpc_clients):
+    if USE_EXTERNAL_SMPC_CLUSTER:
+        yield
+        return
+
     print(f"\nWaiting for smpc cluster to be ready...")
     time.sleep(
         SMPC_CLUSTER_SLEEP_TIME

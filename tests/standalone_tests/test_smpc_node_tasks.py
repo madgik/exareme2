@@ -30,6 +30,7 @@ from tests.algorithms.orphan_udfs import smpc_global_step
 from tests.algorithms.orphan_udfs import smpc_local_step
 from tests.standalone_tests.conftest import LOCALNODE1_SMPC_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE2_SMPC_CONFIG_FILE
+from tests.standalone_tests.conftest import SMPC_COORDINATOR_ADDRESS
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import get_node_config_by_id
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
@@ -39,7 +40,6 @@ context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 command_id = "command123"
 smpc_job_id = "testKey123"
 SMPC_GET_DATASET_ENDPOINT = "/api/update-dataset/"
-SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
 
 
 def create_table_with_one_column_and_ten_rows(celery_app: Celery) -> Tuple[str, int]:
