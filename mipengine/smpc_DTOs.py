@@ -5,6 +5,9 @@ from pydantic import BaseModel
 
 
 class SMPCRequestType(enum.Enum):
+    INT_SUM = "sum"
+    INT_MIN = "min"
+    INT_MAX = "max"
     SUM = "fsum"
     MIN = "fmin"
     MAX = "fmax"

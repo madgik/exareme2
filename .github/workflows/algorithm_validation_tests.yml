@@ -46,7 +46,7 @@ jobs:
           path: /tmp/.buildx-cache/monetdb
           key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
           restore-keys: |
-            ${{ runner.os }}-buildx-monetdb-
+            ${{ runner.os }}-buildx-3-monetdb-
 
       - name: Build MONETDB docker image
         uses: docker/build-push-action@v2
@@ -165,9 +165,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
+          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
           restore-keys: |
-            ${{ runner.os }}-buildx-monetdb-
+            ${{ runner.os }}-buildx-3-monetdb-
 
       - name: Build MONETDB docker image
         uses: docker/build-push-action@v2
