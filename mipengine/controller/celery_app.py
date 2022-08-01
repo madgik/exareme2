@@ -1,19 +1,14 @@
-import time
 import traceback
 from logging import Logger
 from threading import Lock
-from threading import Thread
-from typing import Union
 
-import amqp
-import billiard
-import celery
-import kombu
+from amqp import exceptions as amqp_exceptions
 from celery import Celery
+from celery import exceptions as celery_exceptions
 from celery.result import AsyncResult
+from kombu import exceptions as kombu_exceptions
 
 from mipengine.controller import config as controller_config
-from mipengine.controller import controller_logger
 from mipengine.singleton import Singleton
 
 
@@ -21,6 +16,13 @@ class CeleryConnectionError(Exception):
     def __init__(self, connection_address: str, error_details: str):
         message = f"Connection Error: {connection_address=} {error_details=}"
         super().__init__(message)
+
+
+BAD_APP_OS_ERROR_MESSAGE = "Server unexpectedly closed connection"
+
+
+class _CeleryWrapperBadAppError(Exception):
+    pass
 
 
 class CeleryTaskTimeoutException(Exception):
@@ -37,11 +39,14 @@ class CeleryTaskTimeoutException(Exception):
 class CeleryWrapper:
     def __init__(self, socket_addr: str):
         self._socket_addr = socket_addr
-        self._check_broker_connection_and_reset_celery_lock = Lock()
+        self._change_app_lock = Lock()
         self._celery_app = self._instantiate_celery_object()
 
-    def _close(self):
-        self._celery_app.close()
+    def _reset_celery_app(self):
+        with self._change_app_lock:
+            old_app = self._celery_app
+            self._celery_app = self._instantiate_celery_object()
+            old_app.close()
 
     # queue_task() is non-blocking, because apply_async() is non-blocking
     def queue_task(
@@ -49,132 +54,82 @@ class CeleryWrapper:
     ) -> AsyncResult:
         try:
             task_signature = self._celery_app.signature(task_signature)
-            async_result = task_signature.apply_async(args, kwargs)
-            return async_result
+            return task_signature.apply_async(args, kwargs)
         except (
-            kombu.exceptions.OperationalError,
-            amqp.exceptions.AccessRefused,
-            amqp.exceptions.NotAllowed,
+            kombu_exceptions.OperationalError,
+            amqp_exceptions.AccessRefused,
+            amqp_exceptions.NotAllowed,
         ) as exc:
             logger.error(
                 f"{self._socket_addr=} Exception: {exc=} was caught. Most likely this "
-                f"means the broker is not acccessible. Queuing of {task_signature=} with "
+                f"means the broker is not accessible. Queuing of {task_signature=} with "
                 f"{args=} and {kwargs=} FAILED."
             )
-            self._start_check_broker_connection_and_reset_celery_thread()
 
-            connection_error = CeleryConnectionError(
+            # The celery app needs to be recreated due to a bug:
+            # https://github.com/celery/celery/issues/6912
+            # If we don't reset the celery app queuing a task will work, but then we won't be able to fetch its result.
+            self._reset_celery_app()
+
+            raise CeleryConnectionError(
                 connection_address=self._socket_addr,
-                error_details=f"while queuing {task_signature=} with {args=} and {kwargs=}",
+                error_details=f"While queuing {task_signature=} with {args=} and {kwargs=} on {self._socket_addr=}.",
             )
-
-            raise connection_error
         except Exception as exc:
             logger.error(traceback.format_exc())
             raise exc
 
-    # get_result() is blocking, because celery.result.AsyncResult.get() is blocking
-    def get_result(
-        self, async_result: AsyncResult, timeout: int, logger: Logger
-    ) -> Union[str, dict, list]:
+    @staticmethod
+    def _get_result_with_os_error_handler(async_result, timeout):
+        """
+        When the consumer of a celery app gets corrupted due to a rabbitmq restart,
+        the error thrown is an OSError. The problem with that is that this error is
+        a generic one and many other (e.g. PermissionError) inherit from it.
+        We need to make sure that it's the OSError we expect, it includes the
+        BAD_APP_OS_ERROR_MESSAGE, in order to reset the celery_app.
+        """
         try:
-            result = async_result.get(timeout)
-            return result
+            return async_result.get(timeout)
+        except OSError as exc:
+            if BAD_APP_OS_ERROR_MESSAGE == str(exc):
+                raise _CeleryWrapperBadAppError()
+            else:
+                raise exc
 
+    # get_result() is blocking, because celery.result.AsyncResult.get() is blocking
+    def get_result(self, async_result: AsyncResult, timeout: int, logger: Logger):
+        try:
+            return self._get_result_with_os_error_handler(async_result, timeout)
         except (
-            celery.exceptions.TimeoutError,
-            billiard.exceptions.SoftTimeLimitExceeded,
-            billiard.exceptions.TimeLimitExceeded,
-        ) as timeout_error:
-            logger.error(timeout_error)
+            _CeleryWrapperBadAppError,
+            amqp_exceptions.UnexpectedFrame,
+            ConnectionResetError,
+            ConnectionRefusedError,
+            kombu_exceptions.OperationalError,
+        ) as exc:
+            logger.error(
+                f"{self._socket_addr=} Exception: {exc=} was raised. Most likely this "
+                f"means that the rabbitmq is down."
+            )
 
-            try:
-                self._celery_app.control.inspect().ping()
-            # Known exceptions raised by ping, include(but are not limited to):
-            # amqp.exceptions.NotAllowed, amqp.exceptions.AccessRefused,
-            # kombu.exceptions.OperationalError
-            except Exception as exc:
-                logger.error(
-                    f"{self._socket_addr=} Exception: {exc=} was raised. Most likely this "
-                    f"means the broker is not acccessible. Getting the result of "
-                    f"{async_result.id=} FAILED."
-                )
-                self._start_check_broker_connection_and_reset_celery_thread()
+            # The celery app needs to be recreated due to a bug:
+            # https://github.com/celery/celery/issues/6912
+            # If we don't reset the celery app queuing a task will work, but then we won't be able to fetch its result.
+            self._reset_celery_app()
 
-                connection_error = CeleryConnectionError(
-                    connection_address=self._socket_addr,
-                    error_details=f"while getting {async_result.id=}",
-                )
-                raise connection_error
-
+            raise CeleryConnectionError(
+                connection_address=self._socket_addr,
+                error_details=f"While getting {async_result.id=}.",
+            )
+        except celery_exceptions.TimeoutError as timeout_error:
             raise CeleryTaskTimeoutException(
-                timeout_type=type(timeout_error),
+                timeout_type=str(type(timeout_error)),
                 connection_address=self._socket_addr,
                 async_result=async_result,
             )
-        except (ConnectionResetError, kombu.exceptions.OperationalError) as exc:
-            logger.error(
-                f"{self._socket_addr=} Exception: {exc=} was raised. Most likely this "
-                f"means the broker is not acccessible. Getting the result of "
-                f"{async_result.id=} FAILED."
-            )
-            self._start_check_broker_connection_and_reset_celery_thread()
-
-            connection_error = CeleryConnectionError(
-                connection_address=self._socket_addr,
-                error_details=f"while getting {async_result.id=}",
-            )
-            raise connection_error
         except Exception as exc:
             logger.error(traceback.format_exc())
             raise exc
-
-    def _start_check_broker_connection_and_reset_celery_thread(self):
-        # check if the locked is already acquired so no more than one thread start the
-        # process of
-        if not self._check_broker_connection_and_reset_celery_lock.locked():
-            instantiate_new_celery_object_thread = Thread(
-                target=self._check_broker_connection_and_reset_celery, daemon=True
-            )
-            instantiate_new_celery_object_thread.start()
-
-    # This will instantiate a new Celery object and check if the broker is accessible
-    # If not it will instantiate a new Celery object and recheck the connection to the broker
-    # after a time interval and so on, until the connection to the broker is functional
-    # This re-instantiation of the Celery object is a workaround for a bug in
-    # Celery implementation.
-    # https://github.com/celery/celery/issues/6912#issuecomment-1107260087
-    # Do not call this from the main thread, it will block it until the broker is accessible
-    def _check_broker_connection_and_reset_celery(self):
-        with self._check_broker_connection_and_reset_celery_lock:
-            logger = controller_logger.get_background_service_logger()
-            logger.info(
-                f"Instantiating new Celery object for CeleryWrapper with "
-                f"{self._socket_addr=}"
-            )
-
-            # check connection
-            connection_is_ok = False
-            retry_interval = 1
-            while not connection_is_ok:
-                try:
-                    self._celery_app.control.inspect().ping()
-                    connection_is_ok = True
-                # Known exceptions raised by ping() include(but not limited to):
-                # amqp.exceptions.NotAllowed, amqp.exceptions.AccessRefused,
-                # kombu.exceptions.OperationalError,
-                except Exception as exc:
-                    logger.error(
-                        f"{self._socket_addr=} Exception: {exc=} was raised. Most likely this "
-                        f"means the broker is not acccessible.Will retry to check connection "
-                        f"to broker in {retry_interval} seconds."
-                    )
-                    self._celery_app = self._instantiate_celery_object()
-
-                time.sleep(retry_interval)
-            logger.info(
-                f"Connection to broker ({self._socket_addr=}) successfully established."
-            )
 
     # It seems that Celery objects are somewhat expensive, do not have more than one
     # instance per node at any time
