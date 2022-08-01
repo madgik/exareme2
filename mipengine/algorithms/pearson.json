@@ -1,5 +1,5 @@
 {
-    "name": "pearson",
+    "name": "pearson_correlation",
     "desc": "Pearson Correlation",
     "label": "Pearson Correlation",
     "enabled": true,
