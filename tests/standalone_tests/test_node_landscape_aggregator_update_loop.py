@@ -9,8 +9,10 @@ from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.nodes_addresses import NodesAddresses
 from mipengine.controller.nodes_addresses import NodesAddressesFactory
+from tests.standalone_tests.conftest import GLOBALNODE_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE1_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE2_CONFIG_FILE
+from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 
 WAIT_TIME_LIMIT = 120
@@ -67,6 +69,10 @@ def get_custom_nodes_addresses_without_nodes() -> NodesAddresses:
     return CustomNodeAddresses([])
 
 
+def get_custom_nodes_addresses_global_and_tmp() -> NodesAddresses:
+    return CustomNodeAddresses(["172.17.0.1:60000", "172.17.0.1:60003"])
+
+
 def get_custom_nodes_addresses() -> NodesAddresses:
     return CustomNodeAddresses(["172.17.0.1:60000", "172.17.0.1:60001"])
 
@@ -110,17 +116,27 @@ def test_update_loop_data_properly_added(
 @pytest.mark.slow
 def test_update_loop_get_node_info_fail(
     patch_nodes_addresses,
+    globalnode_node_service,
     reset_node_landscape_aggregator,
 ):
 
+    patch_nodes_addresses.side_effect = get_custom_nodes_addresses_global_and_tmp
     node_landscape_aggregator = NodeLandscapeAggregator()
     node_landscape_aggregator._update()
     assert node_landscape_aggregator.get_nodes()
+    assert any(
+        [
+            node.id == get_globalnode_node_id()
+            for node in node_landscape_aggregator.get_nodes()
+        ]
+    )
 
-    patch_nodes_addresses.side_effect = get_custom_nodes_addresses_without_nodes
-    node_landscape_aggregator._update()
-
-    assert not node_landscape_aggregator.get_nodes()
+    assert all(
+        [
+            node.id != get_localnodetmp_node_id()
+            for node in node_landscape_aggregator.get_all_local_nodes()
+        ]
+    )
 
 
 @pytest.mark.slow
@@ -172,6 +188,22 @@ def get_localnode2_node_id():
 
 def get_localnode1_node_id():
     local_node_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
+    with open(local_node_filepath) as fp:
+        tmp = toml.load(fp)
+        node_id = tmp["identifier"]
+    return node_id
+
+
+def get_localnodetmp_node_id():
+    local_node_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
+    with open(local_node_filepath) as fp:
+        tmp = toml.load(fp)
+        node_id = tmp["identifier"]
+    return node_id
+
+
+def get_globalnode_node_id():
+    local_node_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
     with open(local_node_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]

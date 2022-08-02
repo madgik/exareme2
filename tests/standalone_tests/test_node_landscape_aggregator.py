@@ -9,8 +9,14 @@ from mipengine.controller.node_landscape_aggregator import DatasetsLocations
 from mipengine.controller.node_landscape_aggregator import (
     _crunch_data_model_registry_data,
 )
+from mipengine.controller.node_landscape_aggregator import _get_node_cdes
+from mipengine.controller.node_landscape_aggregator import (
+    _get_node_datasets_per_data_model,
+)
+from mipengine.controller.node_landscape_aggregator import _get_nodes_info
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
+from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_ADDR
 
 
 def get_parametrization_cases():
@@ -1523,3 +1529,23 @@ def get_parametrization_cases():
 )
 def test_data_model_registry(data_models_metadata_per_node, expected):
     assert _crunch_data_model_registry_data(data_models_metadata_per_node) == expected
+
+
+@pytest.mark.slow
+def test_get_nodes_info_properly_handles_errors():
+    nodes_info = _get_nodes_info([RABBITMQ_LOCALNODETMP_ADDR])
+    assert not nodes_info
+
+
+@pytest.mark.slow
+def test_get_node_datasets_per_data_model_properly_handles_errors():
+    datasets_per_data_model = _get_node_datasets_per_data_model(
+        RABBITMQ_LOCALNODETMP_ADDR
+    )
+    assert not datasets_per_data_model
+
+
+@pytest.mark.slow
+def test_get_node_cdes_properly_handles_errors():
+    cdes = _get_node_cdes(RABBITMQ_LOCALNODETMP_ADDR, "dementia:0.1")
+    assert not cdes

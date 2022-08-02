@@ -178,8 +178,13 @@ class Controller:
     def get_datasets_locations(self) -> DatasetsLocations:
         return self._node_landscape_aggregator.get_datasets_locations()
 
-    def get_cdes_per_data_model(self) -> DataModelsCDES:
-        return self._node_landscape_aggregator.get_cdes_per_data_model()
+    def get_cdes_per_data_model(self) -> dict:
+        return {
+            data_model: {
+                column: metadata.dict() for column, metadata in cdes.values.items()
+            }
+            for data_model, cdes in self._node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.items()
+        }
 
     def get_all_available_data_models(self) -> List[str]:
         return list(

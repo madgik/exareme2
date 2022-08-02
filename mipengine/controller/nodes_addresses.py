@@ -19,28 +19,30 @@ class NodesAddresses(ABC):
 
 
 class LocalNodesAddresses(NodesAddresses):
-    def __init__(self, localnodes):
-        with open(localnodes.config_file) as fp:
+    def __init__(self, localnodes_configs):
+        with open(localnodes_configs.config_file) as fp:
             self._socket_addresses = json.load(fp)
 
 
 class DNSNodesAddresses(NodesAddresses):
-    def __init__(self, localnodes):
-        localnode_ips = dns.resolver.resolve(localnodes.dns, "A", search=True)
-        self._socket_addresses = [f"{ip}:{localnodes.port}" for ip in localnode_ips]
+    def __init__(self, localnodes_configs):
+        localnode_ips = dns.resolver.resolve(localnodes_configs.dns, "A", search=True)
+        self._socket_addresses = [
+            f"{ip}:{localnodes_configs.port}" for ip in localnode_ips
+        ]
 
 
 class NodesAddressesFactory:
-    def __init__(self, depl_type: DeploymentType, localnodes):
+    def __init__(self, depl_type: DeploymentType, localnodes_configs):
         self.depl_type = depl_type
-        self.localnodes = localnodes
+        self.localnodes_configs = localnodes_configs
 
     def get_nodes_addresses(self) -> NodesAddresses:
         if self.depl_type == DeploymentType.LOCAL:
-            return LocalNodesAddresses(self.localnodes)
+            return LocalNodesAddresses(self.localnodes_configs)
 
         if self.depl_type == DeploymentType.KUBERNETES:
-            return DNSNodesAddresses(self.localnodes)
+            return DNSNodesAddresses(self.localnodes_configs)
 
         raise ValueError(
             f"DeploymentType can be one of the following: {[t.value for t in DeploymentType]}, "

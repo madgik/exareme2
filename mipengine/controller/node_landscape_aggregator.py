@@ -446,6 +446,7 @@ def _fetch_nodes_metadata() -> Tuple[
         .get_nodes_addresses()
         .socket_addresses
     )
+    logger.error(nodes_addresses)
     nodes_info = _get_nodes_info(nodes_addresses)
     local_nodes = [
         node_info for node_info in nodes_info if node_info.role == NodeRole.LOCALNODE
