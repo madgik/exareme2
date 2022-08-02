@@ -11,7 +11,7 @@ expected_file = Path(__file__).parent / "expected" / "one_way_anova_expected.jso
 
 
 def anova_one_way_request(input):
-    url = algorithms_url + "/one_way_anova"
+    url = algorithms_url + "/anova_oneway"
 
     filters = {
         "condition": "AND",
