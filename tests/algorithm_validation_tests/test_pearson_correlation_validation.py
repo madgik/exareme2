@@ -6,11 +6,11 @@ import numpy as np
 import pytest
 import requests
 
-expected_file = Path(__file__).parent / "expected" / "pearson_expected.json"
+expected_file = Path(__file__).parent / "expected" / "pearson_correlation_expected.json"
 
 
 def pearson_request(input):
-    url = "http://127.0.0.1:5000/algorithms" + "/pearson"
+    url = "http://127.0.0.1:5000/algorithms" + "/pearson_correlation"
 
     variables = copy.deepcopy(input["inputdata"]["y"])
     if input["inputdata"]["x"]:
