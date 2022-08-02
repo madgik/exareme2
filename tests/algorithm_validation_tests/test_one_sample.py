@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 from tests.algorithm_validation_tests.helpers import algorithm_request
@@ -16,11 +15,10 @@ def test_one_sample_ttest(test_input, expected):
     response = algorithm_request("one_sample_ttest", test_input)
     result = json.loads(response.content)
 
-    print(result["mean_diff"], expected["mean_diff"])
     assert_allclose(result["t_stat"], expected["t_value"], rtol=1e-8, atol=1e-10)
     assert_allclose(result["p"], expected["p_value"], rtol=1e-8, atol=1e-10)
     assert_allclose(result["df"], expected["df"], rtol=1e-8, atol=1e-10)
-    # assert_allclose(result["mean_diff"], expected["mean_diff"], rtol=1e-8, atol=1e-10)
+    assert_allclose(result["mean_diff"], expected["mean_diff"], rtol=1e-8, atol=1e-10)
     assert_allclose(result["se_diff"], expected["se_diff"], rtol=1e-8, atol=1e-10)
     # assert_allclose(result["ci_upper"], expected["ci_upper"], rtol=1e-8, atol=1e-10)
     # assert_allclose(result["ci_lower"], expected["ci_lower"], rtol=1e-8, atol=1e-10)

@@ -11,7 +11,6 @@ def algorithm_request(algorithm: str, input: dict):
 
     variables = copy.deepcopy(input["inputdata"]["y"])
     keys = input["inputdata"].keys()
-    print(keys)
     if "x" in keys:
         variables.extend(input["inputdata"]["x"])
     else:

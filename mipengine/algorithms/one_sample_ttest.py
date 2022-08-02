@@ -31,13 +31,11 @@ def run(algo_interface):
     if "mu" in algo_interface.algorithm_parameters.keys():
         mu = algo_interface.algorithm_parameters["mu"]
     else:
-        mu = None
+        mu = 0
 
     X_relation, *_ = algo_interface.create_primary_data_views(
         variable_groups=[algo_interface.y_variables],
     )
-
-    [y_var_name] = algo_interface.y_variables
 
     sec_local_transfer = local_run(
         func=local_one_sample,
@@ -48,7 +46,10 @@ def run(algo_interface):
     result = global_run(
         func=global_one_sample,
         keyword_args=dict(
-            sec_local_transfer=sec_local_transfer, alpha=alpha, alternative=alternative
+            sec_local_transfer=sec_local_transfer,
+            alpha=alpha,
+            alternative=alternative,
+            mu=mu,
         ),
     )
 
@@ -85,11 +86,15 @@ def local_one_sample(x, mu):
     diff_sqrd_x = sum((x - mu) ** 2)
 
     sec_transfer_ = {
-        "n_obs": {"data": n_obs, "operation": "sum"},
-        "sum_x": {"data": sum_x.item(), "operation": "sum"},
-        "sqrd_x": {"data": sqrd_x.tolist(), "operation": "sum"},
-        "diff_x": {"data": diff_x.tolist(), "operation": "sum"},
-        "diff_sqrd_x": {"data": diff_sqrd_x.tolist(), "operation": "sum"},
+        "n_obs": {"data": n_obs, "operation": "sum", "type": "int"},
+        "sum_x": {"data": sum_x.item(), "operation": "sum", "type": "float"},
+        "sqrd_x": {"data": sqrd_x.tolist(), "operation": "sum", "type": "float"},
+        "diff_x": {"data": diff_x.tolist(), "operation": "sum", "type": "float"},
+        "diff_sqrd_x": {
+            "data": diff_sqrd_x.tolist(),
+            "operation": "sum",
+            "type": "float",
+        },
     }
 
     return sec_transfer_
@@ -107,21 +112,17 @@ def global_one_sample(sec_local_transfer, alpha, alternative, mu):
 
     n_obs = sec_local_transfer["n_obs"]
     sum_x = sec_local_transfer["sum_x"]
-    sqrd_sum = sec_local_transfer["sqrd_sum"]
+    sqrd_x = sec_local_transfer["sqrd_x"]
     diff_sum = sec_local_transfer["diff_x"]
-    diff_sqrd_sum = sec_local_transfer["diff_sqrd"]
+    diff_sqrd_x = sec_local_transfer["diff_sqrd_x"]
 
     smpl_mean = sum_x / n_obs
 
     # population mean
     # Population mean = Sample mean + T*(Standard error of the mean)
-    # if mu == None:
-    mu = 0
 
-    # devel_x = sqrd_sum - 2 * sum_x * mu + (mu ** 2) * n_obs
     # standard deviation of the difference between means
-    # sd = numpy.sqrt(devel_x / (n_obs - 1))
-    sd = numpy.sqrt((diff_sqrd_sum - (diff_sum**2 / n_obs)) / (n_obs - 1))
+    sd = numpy.sqrt((diff_sqrd_x - (diff_sum**2 / n_obs)) / (n_obs - 1))
 
     # standard error of the difference between means
     sed = sd / numpy.sqrt(n_obs)
@@ -146,14 +147,12 @@ def global_one_sample(sec_local_transfer, alpha, alternative, mu):
     # Cohen’s d
     cohens_d = (smpl_mean - mu) / sd
 
-    mean_diff = sum_x - mu * n_obs
-
     transfer_ = {
         "t_stat": t_stat,
         "std": sd,
         "p_value": p,
         "df": df,
-        "mean_diff": diff_sum,
+        "mean_diff": diff_sum / n_obs,
         "se_diff": sed,
         "ci_upper": ci[1],
         "ci_lower": ci[0],
