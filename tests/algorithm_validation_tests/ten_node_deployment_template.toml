@@ -14,7 +14,7 @@ celery_run_udf_task_timeout = 300
 minimum_row_count = 0
 
 [cleanup]
-nodes_cleanup_interval=999999#60
+nodes_cleanup_interval=60
 contextid_release_timelimit=3600 #an hour
 
 [smpc]
