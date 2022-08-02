@@ -1,931 +1,1551 @@
 import pytest
 
-from mipengine.controller.node_landscape_aggregator import _get_compatible_data_models
-from mipengine.controller.node_landscape_aggregator import remove_duplicated_datasets
+from mipengine.controller.node_landscape_aggregator import DataModelRegistry
+from mipengine.controller.node_landscape_aggregator import DataModelsCDES
+from mipengine.controller.node_landscape_aggregator import DataModelsMetadata
+from mipengine.controller.node_landscape_aggregator import DataModelsMetadataPerNode
+from mipengine.controller.node_landscape_aggregator import DatasetsLabels
+from mipengine.controller.node_landscape_aggregator import DatasetsLocations
+from mipengine.controller.node_landscape_aggregator import (
+    _crunch_data_model_registry_data,
+)
+from mipengine.controller.node_landscape_aggregator import _get_node_cdes
+from mipengine.controller.node_landscape_aggregator import (
+    _get_node_datasets_per_data_model,
+)
+from mipengine.controller.node_landscape_aggregator import _get_nodes_info
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
+from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_ADDR
 
 
-def get_parametrization_success_cases():
-    parametrization_list = []
-
-    success_case_with_identical_cdes = {
-        "dementia:0.1": [
-            (
-                "localnode1",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "ppmi": "PPMI",
-                                "edsd": "EDSD",
-                                "desd-synthdata": "DESD-synthdata",
-                            },
+def get_parametrization_cases():
+    return [
+        pytest.param(
+            DataModelsMetadataPerNode(
+                data_models_metadata_per_node={
+                    "localnode1": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode2": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset3": "DATASET3",
+                                                "dataset4": "DATASET4",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode3": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset5": "DATASET5",
+                                                "dataset6": "DATASET6",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                }
+            ),
+            DataModelRegistry(
+                data_models=DataModelsCDES(
+                    data_models_cdes={
+                        "data_model:1": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    },
+                                    min=None,
+                                    max=None,
+                                )
+                            }
                         ),
-                        "alzheimerbroadcategory": CommonDataElement(
-                            code="alzheimerbroadcategory",
-                            label="Alzheimer Broad Category",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "AD": "Alzheimer’s disease",
-                                "CN": "Cognitively Normal",
-                                "Other": "Other",
-                                "MCI": "Mild cognitive impairment",
-                            },
+                        "data_model:2": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    },
+                                    min=None,
+                                    max=None,
+                                )
+                            }
                         ),
                     }
                 ),
-            ),
-            (
-                "localnode2",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "ppmi": "PPMI",
-                                "edsd": "EDSD",
-                                "desd-synthdata": "DESD-synthdata",
-                            },
-                        ),
-                        "alzheimerbroadcategory": CommonDataElement(
-                            code="alzheimerbroadcategory",
-                            label="Alzheimer Broad Category",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "AD": "Alzheimer’s disease",
-                                "CN": "Cognitively Normal",
-                                "Other": "Other",
-                                "MCI": "Mild cognitive impairment",
-                            },
-                        ),
+                datasets_locations=DatasetsLocations(
+                    datasets_locations={
+                        "data_model:1": {
+                            "dataset1": "localnode1",
+                            "dataset2": "localnode1",
+                            "dataset3": "localnode2",
+                            "dataset4": "localnode2",
+                            "dataset5": "localnode3",
+                            "dataset6": "localnode3",
+                        },
+                        "data_model:2": {
+                            "dataset1": "localnode1",
+                            "dataset2": "localnode3",
+                        },
                     }
                 ),
             ),
-        ],
-        "tbi:0.1": [
-            (
-                "localnode1",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={"dummy_tbi": "Dummy TBI"},
-                        ),
-                        "age_value": CommonDataElement(
-                            code="age_value",
-                            label="Age",
-                            sql_type="int",
-                            is_categorical=False,
-                            min=0.0,
-                            max=130.0,
-                        ),
-                    }
-                ),
-            ),
-            (
-                "localnode2",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={"dummy_tbi": "Dummy TBI"},
-                        ),
-                        "age_value": CommonDataElement(
-                            code="age_value",
-                            label="Age",
-                            sql_type="int",
-                            is_categorical=False,
-                            min=0.0,
-                            max=130.0,
-                        ),
-                    }
-                ),
-            ),
-        ],
-    }
-
-    expected_with_identical_cdes = {
-        "dementia:0.1": CommonDataElements(
-            values={
-                "dataset": CommonDataElement(
-                    code="dataset",
-                    label="Dataset",
-                    sql_type="text",
-                    is_categorical=True,
-                    enumerations={
-                        "ppmi": "PPMI",
-                        "edsd": "EDSD",
-                        "desd-synthdata": "DESD-synthdata",
-                    },
-                ),
-                "alzheimerbroadcategory": CommonDataElement(
-                    code="alzheimerbroadcategory",
-                    label="Alzheimer Broad Category",
-                    sql_type="text",
-                    is_categorical=True,
-                    enumerations={
-                        "AD": "Alzheimer’s disease",
-                        "CN": "Cognitively Normal",
-                        "Other": "Other",
-                        "MCI": "Mild cognitive impairment",
-                    },
-                ),
-            }
+            id="common_case",
         ),
-        "tbi:0.1": CommonDataElements(
-            values={
-                "dataset": CommonDataElement(
-                    code="dataset",
-                    label="Dataset",
-                    sql_type="text",
-                    is_categorical=True,
-                    enumerations={"dummy_tbi": "Dummy TBI"},
+        pytest.param(
+            DataModelsMetadataPerNode(
+                data_models_metadata_per_node={
+                    "localnode1": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                None,
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode2": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset3": "DATASET3",
+                                                "dataset4": "DATASET4",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode3": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset5": "DATASET5",
+                                                "dataset6": "DATASET6",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                }
+            ),
+            DataModelRegistry(
+                data_models=DataModelsCDES(
+                    data_models_cdes={
+                        "data_model:1": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    },
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                        "data_model:2": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    },
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                    }
                 ),
-                "age_value": CommonDataElement(
-                    code="age_value",
-                    label="Age",
-                    sql_type="int",
-                    is_categorical=False,
-                    min=0.0,
-                    max=130.0,
+                datasets_locations=DatasetsLocations(
+                    datasets_locations={
+                        "data_model:1": {
+                            "dataset3": "localnode2",
+                            "dataset4": "localnode2",
+                            "dataset5": "localnode3",
+                            "dataset6": "localnode3",
+                        },
+                        "data_model:2": {
+                            "dataset1": "localnode1",
+                            "dataset2": "localnode3",
+                        },
+                    }
                 ),
-            }
+            ),
+            id="none_cdes_on_data_model_1",
         ),
-    }
-    parametrization_list.append(
-        (success_case_with_identical_cdes, expected_with_identical_cdes)
-    )
-
-    success_case_with_different_dataset_enum = {
-        "dementia:0.1": [
-            (
-                "localnode1",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "ppmi": "PPMI",
-                                "edsd": "EDSD",
-                                "desd-synthdata": "DESD-synthdata",
-                            },
-                        ),
-                        "alzheimerbroadcategory": CommonDataElement(
-                            code="alzheimerbroadcategory",
-                            label="Alzheimer Broad Category",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "AD": "Alzheimer’s disease",
-                                "CN": "Cognitively Normal",
-                                "Other": "Other",
-                                "MCI": "Mild cognitive impairment",
-                            },
+        pytest.param(
+            DataModelsMetadataPerNode(
+                data_models_metadata_per_node={
+                    "localnode1": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                        "age_value": CommonDataElement(
+                                            code="age_value",
+                                            label="Age",
+                                            sql_type="int",
+                                            is_categorical=False,
+                                            enumerations=None,
+                                            min=0.0,
+                                            max=130.0,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode2": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset3": "DATASET3",
+                                                "dataset4": "DATASET4",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                        "age_value": CommonDataElement(
+                                            code="age_value",
+                                            label="Age",
+                                            sql_type="int",
+                                            is_categorical=False,
+                                            enumerations=None,
+                                            min=1.0,
+                                            max=130.0,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode3": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset5": "DATASET5",
+                                                "dataset6": "DATASET6",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                        "age_value": CommonDataElement(
+                                            code="age_value",
+                                            label="Age",
+                                            sql_type="int",
+                                            is_categorical=False,
+                                            enumerations=None,
+                                            min=0.0,
+                                            max=130.0,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                }
+            ),
+            DataModelRegistry(
+                data_models=DataModelsCDES(
+                    data_models_cdes={
+                        "data_model:2": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    },
+                                    min=None,
+                                    max=None,
+                                )
+                            }
                         ),
                     }
                 ),
-            ),
-            (
-                "localnode2",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "ppmi": "PPMI",
-                                "edsd": "EDSD",
-                            },
-                        ),
-                        "alzheimerbroadcategory": CommonDataElement(
-                            code="alzheimerbroadcategory",
-                            label="Alzheimer Broad Category",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "AD": "Alzheimer’s disease",
-                                "CN": "Cognitively Normal",
-                                "Other": "Other",
-                                "MCI": "Mild cognitive impairment",
-                            },
-                        ),
+                datasets_locations=DatasetsLocations(
+                    datasets_locations={
+                        "data_model:2": {
+                            "dataset1": "localnode1",
+                            "dataset2": "localnode3",
+                        },
                     }
                 ),
             ),
-        ],
-        "tbi:0.1": [
-            (
-                "localnode1",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={"dummy_tbi": "Dummy TBI"},
-                        ),
-                        "age_value": CommonDataElement(
-                            code="age_value",
-                            label="Age",
-                            sql_type="int",
-                            is_categorical=False,
-                            min=0.0,
-                            max=130.0,
-                        ),
-                    }
-                ),
-            ),
-            (
-                "localnode2",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "dummy_tbi": "Dummy TBI",
-                                "dummy_tbi1": "Dummy TBI1",
-                            },
-                        ),
-                        "age_value": CommonDataElement(
-                            code="age_value",
-                            label="Age",
-                            sql_type="int",
-                            is_categorical=False,
-                            min=0.0,
-                            max=130.0,
-                        ),
-                    }
-                ),
-            ),
-        ],
-    }
-
-    expected_with_different_dataset_enum = {
-        "dementia:0.1": CommonDataElements(
-            values={
-                "dataset": CommonDataElement(
-                    code="dataset",
-                    label="Dataset",
-                    sql_type="text",
-                    is_categorical=True,
-                    enumerations={
-                        "ppmi": "PPMI",
-                        "edsd": "EDSD",
-                        "desd-synthdata": "DESD-synthdata",
-                    },
-                ),
-                "alzheimerbroadcategory": CommonDataElement(
-                    code="alzheimerbroadcategory",
-                    label="Alzheimer Broad Category",
-                    sql_type="text",
-                    is_categorical=True,
-                    enumerations={
-                        "AD": "Alzheimer’s disease",
-                        "CN": "Cognitively Normal",
-                        "Other": "Other",
-                        "MCI": "Mild cognitive impairment",
-                    },
-                ),
-            }
+            id="incompatible_cdes_on_data_model1_on_node1_and_node3",
         ),
-        "tbi:0.1": CommonDataElements(
-            values={
-                "dataset": CommonDataElement(
-                    code="dataset",
-                    label="Dataset",
-                    sql_type="text",
-                    is_categorical=True,
-                    enumerations={"dummy_tbi": "Dummy TBI"},
+        pytest.param(
+            DataModelsMetadataPerNode(
+                data_models_metadata_per_node={
+                    "localnode1": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(datasets_labels={}),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(datasets_labels={}),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode2": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(datasets_labels={}),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset3": "DATASET3",
+                                                "dataset4": "DATASET4",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode3": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(datasets_labels={}),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset5": "DATASET5",
+                                                "dataset6": "DATASET6",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(datasets_labels={}),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                }
+            ),
+            DataModelRegistry(
+                data_models=DataModelsCDES(
+                    data_models_cdes={
+                        "data_model:1": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={},
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                        "data_model:2": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={},
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                    }
                 ),
-                "age_value": CommonDataElement(
-                    code="age_value",
-                    label="Age",
-                    sql_type="int",
-                    is_categorical=False,
-                    min=0.0,
-                    max=130.0,
+                datasets_locations=DatasetsLocations(
+                    datasets_locations={
+                        "data_model:1": {},
+                        "data_model:2": {},
+                    }
                 ),
-            }
+            ),
+            id="no_data_model_or_dataset_case",
         ),
-    }
-    parametrization_list.append(
-        (success_case_with_different_dataset_enum, expected_with_different_dataset_enum)
-    )
-    return parametrization_list
+        pytest.param(
+            DataModelsMetadataPerNode(
+                data_models_metadata_per_node={
+                    "localnode1": DataModelsMetadata(data_models_metadata={}),
+                    "localnode2": DataModelsMetadata(data_models_metadata={}),
+                }
+            ),
+            DataModelRegistry(
+                data_models=DataModelsCDES(data_models_cdes={}),
+                datasets_locations=DatasetsLocations(datasets_locations={}),
+            ),
+            id="no_data_model_or_dataset_case",
+        ),
+        pytest.param(
+            DataModelsMetadataPerNode(
+                data_models_metadata_per_node={
+                    "localnode1": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode2": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode3": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode4": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                }
+            ),
+            DataModelRegistry(
+                data_models=DataModelsCDES(
+                    data_models_cdes={
+                        "data_model:1": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={},
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                        "data_model:2": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={},
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                    }
+                ),
+                datasets_locations=DatasetsLocations(
+                    datasets_locations={"data_model:1": {}, "data_model:2": {}}
+                ),
+            ),
+            id="same_data_models_and_datasets_on_all_nodes",
+        ),
+        pytest.param(
+            DataModelsMetadataPerNode(
+                data_models_metadata_per_node={
+                    "localnode1": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode2": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset3": "DATASET3",
+                                                "dataset4": "DATASET4",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode3": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset5": "DATASET5",
+                                                "dataset6": "DATASET6",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                }
+            ),
+            DataModelRegistry(
+                data_models=DataModelsCDES(
+                    data_models_cdes={
+                        "data_model:1": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    },
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                        "data_model:2": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={},
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                    }
+                ),
+                datasets_locations=DatasetsLocations(
+                    datasets_locations={
+                        "data_model:1": {
+                            "dataset1": "localnode1",
+                            "dataset2": "localnode1",
+                            "dataset3": "localnode2",
+                            "dataset4": "localnode2",
+                            "dataset5": "localnode3",
+                            "dataset6": "localnode3",
+                        },
+                        "data_model:2": {},
+                    }
+                ),
+            ),
+            id="duplicated_dataset1_on_data_model2",
+        ),
+        pytest.param(
+            DataModelsMetadataPerNode(
+                data_models_metadata_per_node={
+                    "localnode1": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                        "age_value": CommonDataElement(
+                                            code="age_value",
+                                            label="Age",
+                                            sql_type="int",
+                                            is_categorical=False,
+                                            enumerations=None,
+                                            min=0.0,
+                                            max=130.0,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode2": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset3": "DATASET3",
+                                                "dataset4": "DATASET4",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode3": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset5": "DATASET5",
+                                                "dataset6": "DATASET6",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                }
+            ),
+            DataModelRegistry(
+                data_models=DataModelsCDES(
+                    data_models_cdes={
+                        "data_model:2": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    },
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                    }
+                ),
+                datasets_locations=DatasetsLocations(
+                    datasets_locations={
+                        "data_model:2": {
+                            "dataset1": "localnode1",
+                            "dataset2": "localnode3",
+                        },
+                    }
+                ),
+            ),
+            id="incompatible_cdes_on_data_model1",
+        ),
+        pytest.param(
+            DataModelsMetadataPerNode(
+                data_models_metadata_per_node={
+                    "localnode1": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                        "age_value": CommonDataElement(
+                                            code="age_value",
+                                            label="Age",
+                                            sql_type="int",
+                                            is_categorical=False,
+                                            enumerations=None,
+                                            min=0.0,
+                                            max=130.0,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode2": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset3": "DATASET3",
+                                                "dataset4": "DATASET4",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode3": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset5": "DATASET5",
+                                                "dataset6": "DATASET6",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                            "data_model:2": (
+                                DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                }
+            ),
+            DataModelRegistry(
+                data_models=DataModelsCDES(
+                    data_models_cdes={
+                        "data_model:2": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    },
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                    }
+                ),
+                datasets_locations=DatasetsLocations(
+                    datasets_locations={
+                        "data_model:2": {
+                            "dataset1": "localnode1",
+                            "dataset2": "localnode3",
+                        },
+                    }
+                ),
+            ),
+            id="incompatible_cdes_on_data_model1",
+        ),
+    ]
 
 
 @pytest.mark.parametrize(
-    "nodes_cdes, expected",
-    get_parametrization_success_cases(),
+    "data_models_metadata_per_node,expected",
+    get_parametrization_cases(),
 )
-def test_get_data_models_success(nodes_cdes, expected):
-    assert _get_compatible_data_models(nodes_cdes) == expected
+def test_data_model_registry(data_models_metadata_per_node, expected):
+    assert _crunch_data_model_registry_data(data_models_metadata_per_node) == expected
 
 
-def get_parametrization_fail_cases():
-    parametrization_list = []
-    expected_result = {
-        "tbi:0.1": CommonDataElements(
-            values={
-                "dataset": CommonDataElement(
-                    code="dataset",
-                    label="Dataset",
-                    sql_type="text",
-                    is_categorical=True,
-                    enumerations={"dummy_tbi": "Dummy TBI"},
-                ),
-                "age_value": CommonDataElement(
-                    code="age_value",
-                    label="Age",
-                    sql_type="int",
-                    is_categorical=False,
-                    min=0.0,
-                    max=130.0,
-                ),
-            }
-        )
-    }
-
-    # In all 3 fail cases the dementia:0.1 has an incompatibility exception so the data_model should not be contained in the result
-    incompatible_cdes_keys = {
-        "dementia:0.1": [
-            (
-                "localnode1",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "ppmi": "PPMI",
-                                "edsd": "EDSD",
-                                "desd-synthdata": "DESD-synthdata",
-                            },
-                        ),
-                        "alzheimerbroadcategory": CommonDataElement(
-                            code="alzheimerbroadcategory",
-                            label="Alzheimer Broad Category",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "AD": "Alzheimer’s disease",
-                                "CN": "Cognitively Normal",
-                                "Other": "Other",
-                                "MCI": "Mild cognitive impairment",
-                            },
-                        ),
-                    }
-                ),
-            ),
-            (
-                "localnode2",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "ppmi": "PPMI",
-                                "edsd": "EDSD",
-                                "desd-synthdata": "DESD-synthdata",
-                            },
-                        ),
-                        "invalid_key": CommonDataElement(
-                            code="alzheimerbroadcategory",
-                            label="Alzheimer Broad Category",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "AD": "Alzheimer’s disease",
-                                "CN": "Cognitively Normal",
-                                "Other": "Other",
-                                "MCI": "Mild cognitive impairment",
-                            },
-                        ),
-                    }
-                ),
-            ),
-        ],
-        "tbi:0.1": [
-            (
-                "localnode1",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={"dummy_tbi": "Dummy TBI"},
-                        ),
-                        "age_value": CommonDataElement(
-                            code="age_value",
-                            label="Age",
-                            sql_type="int",
-                            is_categorical=False,
-                            min=0.0,
-                            max=130.0,
-                        ),
-                    }
-                ),
-            ),
-            (
-                "localnode2",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "dummy_tbi": "Dummy TBI",
-                                "dummy_tbi1": "Dummy TBI1",
-                            },
-                        ),
-                        "age_value": CommonDataElement(
-                            code="age_value",
-                            label="Age",
-                            sql_type="int",
-                            is_categorical=False,
-                            min=0.0,
-                            max=130.0,
-                        ),
-                    }
-                ),
-            ),
-        ],
-    }
-
-    parametrization_list.append((incompatible_cdes_keys, expected_result))
-
-    incompatible_cdes = {
-        "dementia:0.1": [
-            (
-                "localnode1",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "ppmi": "PPMI",
-                                "edsd": "EDSD",
-                                "desd-synthdata": "DESD-synthdata",
-                            },
-                        ),
-                        "alzheimerbroadcategory": CommonDataElement(
-                            code="alzheimerbroadcategory",
-                            label="Alzheimer Broad Category",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "AD": "Alzheimer’s disease",
-                                "CN": "Cognitively Normal",
-                                "Other": "Other",
-                                "MCI": "Mild cognitive impairment",
-                            },
-                        ),
-                    }
-                ),
-            ),
-            (
-                "localnode2",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="Incompatible",
-                            is_categorical=True,
-                            enumerations={
-                                "ppmi": "PPMI",
-                                "edsd": "EDSD",
-                                "desd-synthdata": "DESD-synthdata",
-                            },
-                        ),
-                        "alzheimerbroadcategory": CommonDataElement(
-                            code="alzheimerbroadcategory",
-                            label="Alzheimer Broad Category",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "AD": "Alzheimer’s disease",
-                                "CN": "Cognitively Normal",
-                                "Other": "Other",
-                                "MCI": "Mild cognitive impairment",
-                            },
-                        ),
-                    }
-                ),
-            ),
-        ],
-        "tbi:0.1": [
-            (
-                "localnode1",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={"dummy_tbi": "Dummy TBI"},
-                        ),
-                        "age_value": CommonDataElement(
-                            code="age_value",
-                            label="Age",
-                            sql_type="int",
-                            is_categorical=False,
-                            min=0.0,
-                            max=130.0,
-                        ),
-                    }
-                ),
-            ),
-            (
-                "localnode2",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "dummy_tbi": "Dummy TBI",
-                                "dummy_tbi1": "Dummy TBI1",
-                            },
-                        ),
-                        "age_value": CommonDataElement(
-                            code="age_value",
-                            label="Age",
-                            sql_type="int",
-                            is_categorical=False,
-                            min=0.0,
-                            max=130.0,
-                        ),
-                    }
-                ),
-            ),
-        ],
-    }
-
-    parametrization_list.append((incompatible_cdes, expected_result))
-
-    incompatible_label_on_dataset_cdes = {
-        "dementia:0.1": [
-            (
-                "localnode1",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "ppmi": "PPMI",
-                                "edsd": "EDSD",
-                                "desd-synthdata": "DESD-synthdata",
-                            },
-                        ),
-                        "alzheimerbroadcategory": CommonDataElement(
-                            code="alzheimerbroadcategory",
-                            label="Alzheimer Broad Category",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "AD": "Alzheimer’s disease",
-                                "CN": "Cognitively Normal",
-                                "Other": "Other",
-                                "MCI": "Mild cognitive impairment",
-                            },
-                        ),
-                    }
-                ),
-            ),
-            (
-                "localnode2",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Incompatible label",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "ppmi": "PPMI",
-                                "edsd": "EDSD",
-                                "desd-synthdata": "DESD-synthdata",
-                            },
-                        ),
-                        "alzheimerbroadcategory": CommonDataElement(
-                            code="alzheimerbroadcategory",
-                            label="Alzheimer Broad Category",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "AD": "Alzheimer’s disease",
-                                "CN": "Cognitively Normal",
-                                "Other": "Other",
-                                "MCI": "Mild cognitive impairment",
-                            },
-                        ),
-                    }
-                ),
-            ),
-        ],
-        "tbi:0.1": [
-            (
-                "localnode1",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={"dummy_tbi": "Dummy TBI"},
-                        ),
-                        "age_value": CommonDataElement(
-                            code="age_value",
-                            label="Age",
-                            sql_type="int",
-                            is_categorical=False,
-                            min=0.0,
-                            max=130.0,
-                        ),
-                    }
-                ),
-            ),
-            (
-                "localnode2",
-                CommonDataElements(
-                    values={
-                        "dataset": CommonDataElement(
-                            code="dataset",
-                            label="Dataset",
-                            sql_type="text",
-                            is_categorical=True,
-                            enumerations={
-                                "dummy_tbi": "Dummy TBI",
-                                "dummy_tbi1": "Dummy TBI1",
-                            },
-                        ),
-                        "age_value": CommonDataElement(
-                            code="age_value",
-                            label="Age",
-                            sql_type="int",
-                            is_categorical=False,
-                            min=0.0,
-                            max=130.0,
-                        ),
-                    }
-                ),
-            ),
-        ],
-    }
-
-    parametrization_list.append((incompatible_label_on_dataset_cdes, expected_result))
-
-    return parametrization_list
+@pytest.mark.slow
+def test_get_nodes_info_properly_handles_errors():
+    nodes_info = _get_nodes_info([RABBITMQ_LOCALNODETMP_ADDR])
+    assert not nodes_info
 
 
-@pytest.mark.parametrize(
-    "nodes_cdes, expected_result",
-    get_parametrization_fail_cases(),
-)
-def test_get_data_models_fail(nodes_cdes, expected_result):
-    assert _get_compatible_data_models(nodes_cdes) == expected_result
-
-
-parametrization_cases = [
-    (
-        {
-            "localnode1": {
-                "dementia:0.1": {
-                    "desd-synthdata0": "DESD-synthdata_0",
-                    "edsd0": "EDSD_0",
-                },
-            },
-            "localnode2": {
-                "dementia:0.1": {
-                    "desd-synthdata1": "DESD-synthdata_1",
-                    "desd-synthdata2": "DESD-synthdata_2",
-                    "edsd1": "EDSD_1",
-                    "edsd2": "EDSD_2",
-                },
-                "tbi:0.1": {
-                    "dummy_tbi0": "Dummy TBI0",
-                    "edsd0": "EDSD_0",
-                    "desd-synthdata0": "DESD-synthdata_0",
-                },
-            },
-        },
-        {
-            "localnode1": {
-                "dementia:0.1": {
-                    "desd-synthdata0": "DESD-synthdata_0",
-                    "edsd0": "EDSD_0",
-                },
-            },
-            "localnode2": {
-                "dementia:0.1": {
-                    "desd-synthdata1": "DESD-synthdata_1",
-                    "desd-synthdata2": "DESD-synthdata_2",
-                    "edsd1": "EDSD_1",
-                    "edsd2": "EDSD_2",
-                },
-                "tbi:0.1": {
-                    "dummy_tbi0": "Dummy TBI0",
-                    "edsd0": "EDSD_0",
-                    "desd-synthdata0": "DESD-synthdata_0",
-                },
-            },
-        },
-    ),
-    (
-        {
-            "localnode1": {
-                "dementia:0.1": {
-                    "desd-synthdata0": "DESD-synthdata_0",
-                    "edsd0": "EDSD_0",
-                },
-            },
-            "localnode2": {
-                "dementia:0.1": {
-                    "desd-synthdata1": "DESD-synthdata_1",
-                    "desd-synthdata2": "DESD-synthdata_2",
-                    "edsd1": "EDSD_1",
-                    "edsd2": "EDSD_2",
-                },
-            },
-        },
-        {
-            "localnode1": {
-                "dementia:0.1": {
-                    "desd-synthdata0": "DESD-synthdata_0",
-                    "edsd0": "EDSD_0",
-                },
-            },
-            "localnode2": {
-                "dementia:0.1": {
-                    "desd-synthdata1": "DESD-synthdata_1",
-                    "desd-synthdata2": "DESD-synthdata_2",
-                    "edsd1": "EDSD_1",
-                    "edsd2": "EDSD_2",
-                },
-            },
-        },
-    ),
-    (
-        {
-            "localnode1": {
-                "dementia:0.1": {
-                    "desd-synthdata0": "DESD-synthdata_0",
-                    "desd-synthdata1": "DESD-synthdata_1",
-                    "edsd0": "EDSD_0",
-                },
-            },
-            "localnode2": {
-                "dementia:0.1": {
-                    "desd-synthdata1": "DESD-synthdata_1",
-                    "desd-synthdata2": "DESD-synthdata_2",
-                    "edsd1": "EDSD_1",
-                    "edsd2": "EDSD_2",
-                },
-            },
-        },
-        {
-            "localnode1": {
-                "dementia:0.1": {
-                    "desd-synthdata0": "DESD-synthdata_0",
-                    "edsd0": "EDSD_0",
-                },
-            },
-            "localnode2": {
-                "dementia:0.1": {
-                    "desd-synthdata2": "DESD-synthdata_2",
-                    "edsd1": "EDSD_1",
-                    "edsd2": "EDSD_2",
-                },
-            },
-        },
-    ),
-    (
-        {
-            "localnode1": {
-                "dementia:0.1": {
-                    "desd-synthdata0": "DESD-synthdata_0",
-                    "edsd0": "EDSD_0",
-                },
-            },
-            "localnode2": {
-                "dementia:0.1": {
-                    "desd-synthdata0": "DESD-synthdata_0",
-                    "desd-synthdata1": "DESD-synthdata_1",
-                    "desd-synthdata2": "DESD-synthdata_2",
-                    "edsd1": "EDSD_1",
-                    "edsd2": "EDSD_2",
-                },
-            },
-        },
-        {
-            "localnode1": {
-                "dementia:0.1": {
-                    "edsd0": "EDSD_0",
-                },
-            },
-            "localnode2": {
-                "dementia:0.1": {
-                    "desd-synthdata2": "DESD-synthdata_2",
-                    "edsd1": "EDSD_1",
-                    "edsd2": "EDSD_2",
-                },
-            },
-        },
-    ),
-    (
-        {
-            "localnode1": {
-                "dementia:0.1": {
-                    "desd-synthdata0": "DESD-synthdata_0",
-                    "desd-synthdata1": "DESD-synthdata_1",
-                    "desd-synthdata2": "DESD-synthdata_2",
-                    "edsd0": "EDSD_0",
-                    "edsd1": "EDSD_1",
-                    "edsd2": "EDSD_2",
-                },
-            },
-            "localnode2": {
-                "dementia:0.1": {
-                    "desd-synthdata0": "DESD-synthdata_0",
-                    "desd-synthdata1": "DESD-synthdata_1",
-                    "desd-synthdata2": "DESD-synthdata_2",
-                    "edsd0": "EDSD_0",
-                    "edsd1": "EDSD_1",
-                    "edsd2": "EDSD_2",
-                },
-            },
-        },
-        {
-            "localnode1": {
-                "dementia:0.1": {},
-            },
-            "localnode2": {
-                "dementia:0.1": {},
-            },
-        },
-    ),
-]
-
-
-@pytest.mark.parametrize(
-    "datasets_per_node, expected_result",
-    parametrization_cases,
-)
-def test_remove_duplicated_datasets(datasets_per_node, expected_result):
-    datasets_per_node_without_duplicates = remove_duplicated_datasets(datasets_per_node)
-    print("\n")
-    print(datasets_per_node_without_duplicates)
-    assert all(
-        [
-            datasets_per_node_without_duplicates[node_id][data_model][dataset_name]
-            == expected_result[node_id][data_model][dataset_name]
-            for node_id, datasets_per_data_model in expected_result.items()
-            for data_model, datasets in datasets_per_data_model.items()
-            for dataset_name, dataset_label in datasets.items()
-        ]
+@pytest.mark.slow
+def test_get_node_datasets_per_data_model_properly_handles_errors():
+    datasets_per_data_model = _get_node_datasets_per_data_model(
+        RABBITMQ_LOCALNODETMP_ADDR
     )
+    assert not datasets_per_data_model
+
+
+@pytest.mark.slow
+def test_get_node_cdes_properly_handles_errors():
+    cdes = _get_node_cdes(RABBITMQ_LOCALNODETMP_ADDR, "dementia:0.1")
+    assert not cdes

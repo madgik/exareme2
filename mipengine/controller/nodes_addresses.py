@@ -6,7 +6,6 @@ from typing import List
 import dns.resolver
 
 from mipengine.controller import DeploymentType
-from mipengine.controller import config as controller_config
 
 
 class NodesAddresses(ABC):
@@ -20,31 +19,30 @@ class NodesAddresses(ABC):
 
 
 class LocalNodesAddresses(NodesAddresses):
-    def __init__(self):
-        with open(controller_config.localnodes.config_file) as fp:
+    def __init__(self, localnodes_configs):
+        with open(localnodes_configs.config_file) as fp:
             self._socket_addresses = json.load(fp)
 
 
 class DNSNodesAddresses(NodesAddresses):
-    def __init__(self):
-        localnode_ips = dns.resolver.resolve(
-            controller_config.localnodes.dns, "A", search=True
-        )
+    def __init__(self, localnodes_configs):
+        localnode_ips = dns.resolver.resolve(localnodes_configs.dns, "A", search=True)
         self._socket_addresses = [
-            f"{ip}:{controller_config.localnodes.port}" for ip in localnode_ips
+            f"{ip}:{localnodes_configs.port}" for ip in localnode_ips
         ]
 
 
 class NodesAddressesFactory:
-    def __init__(self, depl_type: DeploymentType):
+    def __init__(self, depl_type: DeploymentType, localnodes_configs):
         self.depl_type = depl_type
+        self.localnodes_configs = localnodes_configs
 
     def get_nodes_addresses(self) -> NodesAddresses:
         if self.depl_type == DeploymentType.LOCAL:
-            return LocalNodesAddresses()
+            return LocalNodesAddresses(self.localnodes_configs)
 
         if self.depl_type == DeploymentType.KUBERNETES:
-            return DNSNodesAddresses()
+            return DNSNodesAddresses(self.localnodes_configs)
 
         raise ValueError(
             f"DeploymentType can be one of the following: {[t.value for t in DeploymentType]}, "

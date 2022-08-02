@@ -25,15 +25,12 @@ async def get_datasets() -> dict:
 
 @algorithms.route("/datasets_locations", methods=["GET"])
 async def get_datasets_locations() -> dict:
-    return controller.get_datasets_locations()
+    return controller.get_datasets_locations().datasets_locations
 
 
 @algorithms.route("/cdes_metadata", methods=["GET"])
 async def get_cdes_metadata() -> dict:
-    return {
-        data_model: cdes.dict()
-        for data_model, cdes in controller.get_cdes_per_data_model().items()
-    }
+    return controller.get_cdes_per_data_model()
 
 
 @algorithms.route("/algorithms", methods=["GET"])

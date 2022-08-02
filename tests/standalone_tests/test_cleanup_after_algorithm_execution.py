@@ -12,18 +12,15 @@ from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.celery_app import CeleryConnectionError
-from mipengine.controller.celery_app import CeleryWrapper
 from mipengine.controller.controller import Controller
 from mipengine.controller.controller import get_a_uniqueid
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-from tests.standalone_tests.conftest import CONTROLLER_LOCALNODES_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_NAME
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_PORT
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 from tests.standalone_tests.conftest import _create_node_service
 from tests.standalone_tests.conftest import _create_rabbitmq_container
-from tests.standalone_tests.conftest import create_node_tasks_handler_celery
 from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
@@ -43,12 +40,6 @@ def controller_config_dict_mock():
             "contextids_cleanup_folder": "/tmp",
             "nodes_cleanup_interval": 2,
             "contextid_release_timelimit": 3600,  # 1hour
-        },
-        "localnodes": {
-            "config_file": "./tests/standalone_tests/testing_env_configs/"
-            + CONTROLLER_LOCALNODES_CONFIG_FILE,
-            "dns": "",
-            "port": "",
         },
         "rabbitmq": {
             "user": "user",

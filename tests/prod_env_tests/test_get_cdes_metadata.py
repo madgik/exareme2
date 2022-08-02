@@ -20,4 +20,4 @@ def test_get_cdes_metadata(expected_data_model_len_metadata):
 
     for data_model, cdes in response.items():
         assert data_model in expected_data_model_len_metadata
-        assert len(cdes["values"]) == expected_data_model_len_metadata[data_model]
+        assert len(cdes) == expected_data_model_len_metadata[data_model]
