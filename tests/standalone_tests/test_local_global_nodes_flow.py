@@ -35,6 +35,7 @@ def context_id(request_id):
     yield context_id
 
 
+@pytest.mark.slow
 def test_create_merge_table_with_remote_tables(
     request_id,
     context_id,

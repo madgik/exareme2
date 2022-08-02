@@ -117,6 +117,7 @@ def get_test_cases_get_data_model_cdes():
     return test_cases_get_data_model_cdes
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "data_model, expected_data_model_cdes_length, expected_data_model_cdes",
     get_test_cases_get_data_model_cdes(),
