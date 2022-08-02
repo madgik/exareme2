@@ -14,7 +14,7 @@ celery_run_udf_task_timeout = 300
 minimum_row_count = 0
 
 [cleanup]
-nodes_cleanup_interval=60
+nodes_cleanup_interval=999999#60
 contextid_release_timelimit=3600 #an hour
 
 [smpc]
@@ -59,3 +59,36 @@ id = "localnode5"
 role="LOCALNODE"
 monetdb_port=50005
 rabbitmq_port=5675
+
+[[nodes]]
+id = "localnode6"
+role="LOCALNODE"
+monetdb_port=50006
+rabbitmq_port=5676
+
+[[nodes]]
+id = "localnode7"
+role="LOCALNODE"
+monetdb_port=50007
+rabbitmq_port=5677
+
+
+[[nodes]]
+id = "localnode8"
+role="LOCALNODE"
+monetdb_port=50008
+rabbitmq_port=5678
+
+
+[[nodes]]
+id = "localnode9"
+role="LOCALNODE"
+monetdb_port=50009
+rabbitmq_port=5679
+
+
+[[nodes]]
+id = "localnode10"
+role="LOCALNODE"
+monetdb_port=50010
+rabbitmq_port=5680
