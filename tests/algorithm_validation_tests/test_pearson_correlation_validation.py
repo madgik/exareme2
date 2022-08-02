@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import requests
 
-expected_file = Path(__file__).parent / "expected" / "pearson_expected.json"
+expected_file = Path(__file__).parent / "expected" / "pearson_correlation_expected.json"
 
 
 def pearson_request(input):

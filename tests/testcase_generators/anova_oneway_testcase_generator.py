@@ -9,12 +9,12 @@ from statsmodels.stats.libqsturng import psturng
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
-SPECS_PATH = Path("mipengine", "algorithms", "one_way_anova.json")
+SPECS_PATH = Path("mipengine", "algorithms", "anova_oneway.json")
 EXPECTED_PATH = Path(
     "tests",
     "algorithm_validation_tests",
     "expected",
-    "one_way_anova_expected.json",
+    "anova_oneway_expected.json",
 )
 
 
