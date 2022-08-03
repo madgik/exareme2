@@ -3,6 +3,7 @@ from typing import Final
 
 from celery.result import AsyncResult
 
+from mipengine.celery_app_conf import CELERY_APP_QUEUE_MAX_PRIORITY
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.celery_app import CeleryWrapper
@@ -38,6 +39,7 @@ class NodeInfoTasksHandler:
             task_signature=task_signature,
             logger=logger,
             request_id=request_id,
+            priority=CELERY_APP_QUEUE_MAX_PRIORITY,
         )
         return async_result
 
@@ -64,6 +66,7 @@ class NodeInfoTasksHandler:
             task_signature=task_signature,
             logger=logger,
             request_id=request_id,
+            priority=CELERY_APP_QUEUE_MAX_PRIORITY,
         )
         return async_result
 
@@ -93,6 +96,7 @@ class NodeInfoTasksHandler:
             logger=logger,
             request_id=request_id,
             data_model=data_model,
+            priority=CELERY_APP_QUEUE_MAX_PRIORITY,
         )
         return async_result
 
