@@ -249,4 +249,4 @@ jobs:
           run: cat /tmp/mipengine/localnode1.out
 
       - name: Run algorithm validation tests
-        run: poetry run pytest -vv tests/algorithm_validation_tests -k "input1 and not input1-" -n 16  # run tests 10-19
+        run: poetry run pytest -vv tests/algorithm_validation_tests/ -k "input0-" --verbosity=4 -n 16
