@@ -56,6 +56,7 @@ def task_signatures():
 # TODO: create slow udf to provoke TimeoutException
 
 
+@pytest.mark.slow
 def test_queue_task(localnode1_node_service, task_signatures):
     socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALNODE1_PORT}"
     celery_app = CeleryWrapper(socket_addr=socket_addr)
@@ -77,6 +78,7 @@ def test_queue_task(localnode1_node_service, task_signatures):
     assert isinstance(async_result, celery.result.AsyncResult)
 
 
+@pytest.mark.slow
 def test_get_result(localnode1_node_service, task_signatures):
     socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALNODE1_PORT}"
     celery_app = CeleryWrapper(socket_addr=socket_addr)
@@ -105,6 +107,7 @@ def test_get_result(localnode1_node_service, task_signatures):
     assert isinstance(result, str)
 
 
+@pytest.mark.slow
 def test_queue_task_node_down(localnodetmp_node_service, task_signatures):
     socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALNODETMP_PORT}"
     celery_app = CeleryWrapper(socket_addr=socket_addr)
@@ -129,6 +132,7 @@ def test_queue_task_node_down(localnodetmp_node_service, task_signatures):
         )
 
 
+@pytest.mark.slow
 def test_get_result_node_down(localnodetmp_node_service, task_signatures):
     socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALNODETMP_PORT}"
     celery_app = CeleryWrapper(socket_addr=socket_addr)

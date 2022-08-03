@@ -153,6 +153,7 @@ def test_celery_app_is_the_same_after_get_task_result_with_exception(
     ), "Celery app is different after the task threw an exception, even though the node never went down."
 
 
+@pytest.mark.slow
 def test_celery_app_is_different_after_queue_task_when_rabbitmq_is_down(
     reset_celery_app_factory,
     get_controller_testing_logger,
@@ -178,6 +179,7 @@ def test_celery_app_is_different_after_queue_task_when_rabbitmq_is_down(
     ), "The new celery app is not an instance of Celery. Something unexpected occurred during the reset."
 
 
+@pytest.mark.slow
 def test_celery_app_is_different_after_get_task_res_when_rabbitmq_is_down(
     reset_celery_app_factory,
     get_controller_testing_logger,

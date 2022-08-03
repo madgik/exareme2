@@ -196,6 +196,7 @@ def get_parametrization_list_success_cases():
     return parametrization_list
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "algo_execution_dto",
     get_parametrization_list_success_cases(),

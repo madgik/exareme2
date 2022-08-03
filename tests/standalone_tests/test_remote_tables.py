@@ -28,6 +28,7 @@ def context_id(request_id):
     yield context_id
 
 
+@pytest.mark.slow
 def test_create_and_get_remote_table(
     request_id,
     context_id,

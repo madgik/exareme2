@@ -93,6 +93,7 @@ def create_three_column_table_with_data(
     return table_name
 
 
+@pytest.mark.slow
 def test_create_and_get_merge_table(
     request_id,
     context_id,
@@ -133,6 +134,7 @@ def test_create_and_get_merge_table(
     assert merge_table_1_name in merge_tables
 
 
+@pytest.mark.slow
 def test_incompatible_schemas_merge(
     request_id,
     context_id,
@@ -165,6 +167,7 @@ def test_incompatible_schemas_merge(
         )
 
 
+@pytest.mark.slow
 def test_table_cannot_be_found(
     request_id,
     context_id,

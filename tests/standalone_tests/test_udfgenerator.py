@@ -1833,6 +1833,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database", "create_tensor_table")
     def test_udf_with_db(
