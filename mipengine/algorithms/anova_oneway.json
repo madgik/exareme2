@@ -1,5 +1,5 @@
 {
-    "name": "one_way_anova",
+    "name": "anova_oneway",
     "desc": "ANOVA One-way",
     "label": "ANOVA One-way",
     "enabled": true,

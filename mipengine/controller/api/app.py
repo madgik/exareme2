@@ -4,6 +4,7 @@ from logging.config import dictConfig
 from quart import Quart
 from quart.logging import serving_handler
 
+from mipengine.controller import BACKGROUND_LOGGER_NAME
 from mipengine.controller import config as ctrl_config
 from mipengine.controller.api.algorithms_endpoint import algorithms
 from mipengine.controller.api.error_handlers import error_handlers
@@ -33,7 +34,7 @@ dictConfig(
             },
         },
         "loggers": {
-            "controller_background_service": {
+            BACKGROUND_LOGGER_NAME: {
                 "level": ctrl_config.log_level,
                 "handlers": ["controller_background_service_hdl"],
             },

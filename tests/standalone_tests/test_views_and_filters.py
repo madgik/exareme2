@@ -27,6 +27,7 @@ def context_id():
     return "testviews" + uuid.uuid4().hex
 
 
+@pytest.mark.slow
 def test_view_without_filters(
     request_id,
     context_id,
@@ -139,6 +140,7 @@ def test_view_without_filters(
     assert view_data.name == view_name
 
 
+@pytest.mark.slow
 def test_view_with_filters(
     request_id,
     context_id,
@@ -262,6 +264,7 @@ def test_view_with_filters(
     assert view_data.name == view_name
 
 
+@pytest.mark.slow
 def test_data_model_view_without_filters(
     request_id,
     context_id,
@@ -339,6 +342,7 @@ def test_data_model_view_without_filters(
     assert view_data.name == view_name
 
 
+@pytest.mark.slow
 def test_data_model_view_with_filters(
     request_id,
     context_id,
@@ -439,6 +443,7 @@ def test_data_model_view_with_filters(
     assert view_data.name == view_name
 
 
+@pytest.mark.slow
 def test_data_model_view_dataset_constraint(
     request_id,
     context_id,
@@ -482,6 +487,7 @@ def test_data_model_view_dataset_constraint(
     assert set(dataset_column.data) == {"dummy_tbi1"}
 
 
+@pytest.mark.slow
 def test_data_model_view_null_constraints(
     request_id,
     context_id,
@@ -556,6 +562,7 @@ def test_data_model_view_null_constraints(
     assert None in gose_score_column.data
 
 
+@pytest.mark.slow
 def test_data_model_view_min_rows_checks(
     request_id,
     context_id,
@@ -628,6 +635,7 @@ def test_data_model_view_min_rows_checks(
         )
 
 
+@pytest.mark.slow
 def test_data_model_view_with_data_model_unavailable_exception(
     request_id,
     context_id,
@@ -662,6 +670,7 @@ def test_data_model_view_with_data_model_unavailable_exception(
     )
 
 
+@pytest.mark.slow
 def test_data_model_view_with_dataset_unavailable_exception(
     request_id,
     context_id,
@@ -696,6 +705,7 @@ def test_data_model_view_with_dataset_unavailable_exception(
     )
 
 
+@pytest.mark.slow
 def test_multiple_data_model_views(
     request_id,
     context_id,
@@ -781,6 +791,7 @@ def test_multiple_data_model_views(
     assert schema2 == TableSchema.parse_raw(schema_result_json)
 
 
+@pytest.mark.slow
 def test_multiple_data_model_views_null_constraints(
     request_id,
     context_id,
@@ -851,6 +862,7 @@ def test_multiple_data_model_views_null_constraints(
     assert len(gcs_eye_response_scale_column.data) == 0
 
 
+@pytest.mark.slow
 def test_bad_filters_exception(controller_service):
     algorithm_name = "standard_deviation"
     request_params = {

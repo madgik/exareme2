@@ -112,6 +112,10 @@ class CommonDataElement(ImmutableBaseModel):
 class CommonDataElements(BaseModel):
     values: Dict[str, CommonDataElement]
 
+    class Config:
+        allow_mutation = False
+        arbitrary_types_allowed = True
+
     def __eq__(self, other):
         """
         We are overriding the equals function to check that the two cdes have identical fields except one edge case.

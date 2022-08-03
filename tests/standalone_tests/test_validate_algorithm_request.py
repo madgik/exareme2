@@ -13,10 +13,11 @@ from mipengine.controller.api.exceptions import BadRequest
 from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.controller_logger import get_request_logger
-from mipengine.controller.data_model_registry import DataModelRegistry
+from mipengine.controller.node_landscape_aggregator import DataModelRegistry
+from mipengine.controller.node_landscape_aggregator import DataModelsCDES
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.node_landscape_aggregator import NodeRegistry
 from mipengine.controller.node_landscape_aggregator import _NLARegistries
-from mipengine.controller.node_registry import NodeRegistry
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 
@@ -117,11 +118,10 @@ def mock_cdes():
             }
         ),
     }
-    _node_registry = NodeRegistry()
-    _data_model_registry = DataModelRegistry(data_models=data_models)
-    nla._registries = _NLARegistries(
-        node_registry=_node_registry, data_model_registry=_data_model_registry
+    _data_model_registry = DataModelRegistry(
+        data_models=DataModelsCDES(data_models_cdes=data_models)
     )
+    nla._registries = _NLARegistries(data_model_registry=_data_model_registry)
 
     with patch(
         "mipengine.controller.api.validator.node_landscape_aggregator",

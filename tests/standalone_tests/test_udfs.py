@@ -64,6 +64,7 @@ def create_table_with_one_column_and_ten_rows(celery_app) -> Tuple[str, int]:
     return table_name, 55
 
 
+@pytest.mark.slow
 def test_get_udf(localnode1_node_service, localnode1_celery_app):
     get_udf_task = get_celery_task_signature("get_udf")
 
@@ -79,6 +80,7 @@ def test_get_udf(localnode1_node_service, localnode1_celery_app):
     assert get_column_rows.__name__ in fetched_udf
 
 
+@pytest.mark.slow
 def test_run_udf_relation_to_scalar(
     localnode1_node_service, use_localnode1_database, localnode1_celery_app
 ):
@@ -126,6 +128,7 @@ def test_run_udf_relation_to_scalar(
     assert table_data.columns[0].data[0] == 10
 
 
+@pytest.mark.slow
 def test_run_udf_state_and_transfer_output(
     localnode1_node_service,
     use_localnode1_database,

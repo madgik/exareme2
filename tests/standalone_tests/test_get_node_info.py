@@ -1,5 +1,7 @@
 import uuid
 
+import pytest
+
 from mipengine.node_info_DTOs import NodeInfo
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
@@ -25,6 +27,7 @@ node_info_per_node = {
 }
 
 
+@pytest.mark.slow
 def test_get_node_info(
     localnode1_node_service,
     globalnode_node_service,

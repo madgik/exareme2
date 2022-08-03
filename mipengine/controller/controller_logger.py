@@ -1,8 +1,7 @@
 import logging
 
+from mipengine.controller import BACKGROUND_LOGGER_NAME
 from mipengine.controller import config as ctrl_config
-
-BACKGROUND_LOGGER_NAME = "controller_background_service"
 
 
 def get_request_logger(request_id):

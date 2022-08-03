@@ -1,0 +1,36 @@
+identifier = "testsmpclocalnode1"
+log_level = "DEBUG"
+framework_log_level = "INFO"
+
+role = "LOCALNODE"
+
+[privacy]
+minimum_row_count = 10
+
+[celery]
+worker_concurrency = 1
+task_soft_time_limit = 30
+task_time_limit = 60
+run_udf_soft_time_limit = 30
+run_udf_time_limit = 60
+
+[rabbitmq]
+ip = "172.17.0.1"
+port = 60005
+user = "user"
+password = "password"
+vhost = "user_vhost"
+
+[monetdb]
+ip = "172.17.0.1"
+port = 61005
+database = "db"
+username = "monetdb"
+password = "monetdb"
+
+[smpc]
+enabled = true
+optional = false
+client_id = "testsmpclocalnode1"
+client_address = "http://dl056.madgik.di.uoa.gr:9000"
+coordinator_address = "http://dl056.madgik.di.uoa.gr:12314"

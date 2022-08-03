@@ -46,7 +46,7 @@ jobs:
           path: /tmp/.buildx-cache/monetdb
           key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
           restore-keys: |
-            ${{ runner.os }}-buildx-monetdb-
+            ${{ runner.os }}-buildx-3-monetdb-
 
       - name: Build MONETDB docker image
         uses: docker/build-push-action@v2
@@ -179,7 +179,7 @@ jobs:
 
       - name: Pull SMPC images
         run: |
-          docker pull gpikra/coordinator:v6.0.0
+          docker pull gpikra/coordinator:v7.0.0
           docker pull mongo:5.0.8
           docker pull redis:alpine3.15
 
@@ -195,8 +195,8 @@ jobs:
           docker image rm madgik/mipengine_mipdb:dev
           kind load docker-image madgik/mipengine_rabbitmq:dev
           docker image rm madgik/mipengine_rabbitmq:dev
-          kind load docker-image gpikra/coordinator:v6.0.0
-          docker image rm gpikra/coordinator:v6.0.0
+          kind load docker-image gpikra/coordinator:v7.0.0
+          docker image rm gpikra/coordinator:v7.0.0
           kind load docker-image mongo:5.0.8 --nodes kind-control-plane
           docker image rm mongo:5.0.8
           kind load docker-image redis:alpine3.15 --nodes kind-control-plane
@@ -350,6 +350,6 @@ jobs:
         with:
           run: kubectl logs -l nodeType=localnode --tail -1 -c smpc-client
 
-#      SMPC tests currently hang due to https://team-1617704806227.atlassian.net/browse/MIP-608
+# The SMPC env tests cannot be run because the github actions VMs don't have enough resources.
 #      - name: Run the first 5 algorithm validation tests from each algorithm
-#        run: timeout 60 poetry run pytest tests/algorithm_validation_tests/ -k "input0- or input1- or input2- or input3- or input4-" -vvvv -x
+#        run: poetry run pytest tests/algorithm_validation_tests/ -k "input0- or input1- or input2- or input3- or input4-" -vvvv -x

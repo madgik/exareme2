@@ -32,6 +32,7 @@ def get_parametrization_list_success_cases():
     return [(algorithm_name, request_dict)]
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "algorithm_name, request_dict",
     get_parametrization_list_success_cases(),
