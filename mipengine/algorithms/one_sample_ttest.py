@@ -28,10 +28,7 @@ def run(algo_interface):
     global_run = algo_interface.run_udf_on_global_node
     alpha = algo_interface.algorithm_parameters["alpha"]
     alternative = algo_interface.algorithm_parameters["alt_hypothesis"]
-    if "mu" in algo_interface.algorithm_parameters.keys():
-        mu = algo_interface.algorithm_parameters["mu"]
-    else:
-        mu = 0
+    mu = algo_interface.algorithm_parameters["mu"]
 
     X_relation, *_ = algo_interface.create_primary_data_views(
         variable_groups=[algo_interface.y_variables],
@@ -117,10 +114,6 @@ def global_one_sample(sec_local_transfer, alpha, alternative, mu):
     diff_sqrd_x = sec_local_transfer["diff_sqrd_x"]
 
     smpl_mean = sum_x / n_obs
-
-    # population mean
-    # Population mean = Sample mean + T*(Standard error of the mean)
-
     # standard deviation of the difference between means
     sd = numpy.sqrt((diff_sqrd_x - (diff_sum**2 / n_obs)) / (n_obs - 1))
 
@@ -131,31 +124,35 @@ def global_one_sample(sec_local_transfer, alpha, alternative, mu):
     t_stat = (smpl_mean - mu) / sed
     df = n_obs - 1
 
+    # Confidence intervals
+    ci_lower, ci_upper = t.interval(
+        alpha=1 - alpha, df=n_obs - 1, loc=smpl_mean, scale=sed
+    )
+
     # p-value for alternative = 'greater'
     if alternative == "greater":
         p = 1.0 - t.cdf(t_stat, df)
+        ci_upper = "Infinity"
     # p-value for alternative = 'less'
     elif alternative == "less":
         p = 1.0 - t.cdf(-t_stat, df)
+        ci_lower = "-Infinity"
     # p-value for alternative = 'two-sided'
     else:
         p = (1.0 - t.cdf(abs(t_stat), df)) * 2.0
 
-    # Confidence intervals
-    ci = t.interval(alpha=1 - alpha, df=n_obs - 1, loc=smpl_mean, scale=sed)
-
     # Cohen’s d
-    cohens_d = (smpl_mean - mu) / sd
+    cohens_d = -(smpl_mean - mu) / sd
 
     transfer_ = {
         "t_stat": t_stat,
         "std": sd,
         "p_value": p,
         "df": df,
-        "mean_diff": diff_sum / n_obs,
+        "mean_diff": sum_x / n_obs,
         "se_diff": sed,
-        "ci_upper": ci[1],
-        "ci_lower": ci[0],
+        "ci_upper": ci_upper,
+        "ci_lower": ci_lower,
         "cohens_d": cohens_d,
     }
 

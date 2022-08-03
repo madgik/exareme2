@@ -1,9 +1,8 @@
 from pathlib import Path
 
-import numpy as np
 import rpy2.robjects as ro
 import rpy2.robjects.packages as rpackages
-from scipy import stats as st
+from rpy2.robjects.vectors import StrVector
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
@@ -16,9 +15,7 @@ EXPECTED_PATH = Path(
 )
 utils = rpackages.importr("utils")
 utils.chooseCRANmirror(ind=1)
-from rpy2.robjects.vectors import StrVector
-
-packnames = ("stats", "lsr")
+packnames = ("stats", "lsr", "effsize")
 
 names_to_install = [x for x in packnames if not rpackages.isinstalled(x)]
 if len(names_to_install) > 0:
@@ -26,6 +23,7 @@ if len(names_to_install) > 0:
 
 stats = rpackages.importr("stats")
 lsr = rpackages.importr("lsr")
+effsize = rpackages.importr("effsize")
 
 
 class OneSampleTtestTestCaseGenerator(TestCaseGenerator):
@@ -33,26 +31,24 @@ class OneSampleTtestTestCaseGenerator(TestCaseGenerator):
         Y, _ = input_data
         alt_hyp = input_parameters["alt_hypothesis"]
         alpha = input_parameters["alpha"]
+        mu = input_parameters["mu"]
         n_obs = len(Y)
         y_name = Y.columns[0]
-
-        py_t_stat, py_p_value = st.ttest_1samp(Y[y_name], popmean=0)
         t_test_res = stats.t_test(
             ro.vectors.FloatVector(Y[y_name]),
-            mu=0,
+            mu=mu,
             paired=False,
             alternative=alt_hyp,
             conf_level=1 - alpha,
         )
 
-        cohens_d_res = lsr.cohensD(ro.vectors.FloatVector(Y[y_name]), mu=0)
+        cohens_d_res = lsr.cohensD(ro.vectors.FloatVector(Y[y_name]), mu=mu)
 
         t_test_res_py = dict(zip(t_test_res.names, map(list, list(t_test_res))))
         expected_out = {
+            "n_obs": n_obs,
             "t_value": t_test_res_py["statistic"][0],
             "p_value": t_test_res_py["p.value"][0],
-            "py_t_stat": py_t_stat,
-            "py_p_value": py_p_value,
             "df": t_test_res_py["parameter"][0],
             "mean_diff": t_test_res_py["estimate"][0],
             "se_diff": t_test_res_py["stderr"],

@@ -36,6 +36,16 @@
             "max": 1.0,
             "notblank": true,
             "multiple": false
+        },
+        "mu": {
+            "label": "Population mean",
+            "desc": "The population mean, if it is known, else it defaults to 0.",
+            "type": "real",
+            "default": 0.0,
+            "min": -10,
+            "max": 10,
+            "notblank": true,
+            "multiple": false
         }
     },
     "flags": {
