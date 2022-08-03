@@ -4,9 +4,9 @@ from quart import request
 
 from mipengine.controller.algorithm_specifications import algorithm_specifications
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from mipengine.controller.api.validator import BadRequest
 from mipengine.controller.controller import Controller
 from mipengine.controller.controller import get_a_uniqueid
-from mipengine.exceptions import BadRequest
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 controller = Controller()

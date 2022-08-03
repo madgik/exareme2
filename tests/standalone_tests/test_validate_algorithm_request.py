@@ -9,6 +9,7 @@ from mipengine.controller.algorithm_specifications import InputDataSpecification
 from mipengine.controller.algorithm_specifications import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from mipengine.controller.api.validator import BadRequest
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.controller_logger import get_request_logger
 from mipengine.controller.node_landscape_aggregator import DataModelRegistry
@@ -16,7 +17,6 @@ from mipengine.controller.node_landscape_aggregator import DataModelsCDES
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_landscape_aggregator import NodeRegistry
 from mipengine.controller.node_landscape_aggregator import _NLARegistries
-from mipengine.exceptions import BadRequest
 from mipengine.exceptions import BadUserInput
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements

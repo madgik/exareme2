@@ -9,12 +9,12 @@ from mipengine.controller.algorithm_executor import (
 from mipengine.controller.algorithm_executor import (
     NodeUnresponsiveAlgorithmExecutionException,
 )
-from mipengine.exceptions import BadRequest
+from mipengine.controller.api.validator import BadRequest
+from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.exceptions import BadUserInput
 from mipengine.exceptions import DataModelUnavailable
 from mipengine.exceptions import DatasetUnavailable
 from mipengine.exceptions import InsufficientDataError
-from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.filters import FilterError
 from mipengine.smpc_cluster_comm_helpers import SMPCUsageError
 
