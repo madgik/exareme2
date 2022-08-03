@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
 import pytest
+from pydantic import BaseModel
 
 from mipengine import AttrDict
-from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_execution_tasks_handler import (
@@ -107,17 +107,16 @@ def get_parametrization_list_success_cases():
     algo_execution_dto = AlgorithmExecutionDTO(
         request_id="123",
         context_id="123",
-        algorithm_name="logistic_regression",
+        algorithm_name="pca",
         data_model="dementia:0.1",
         datasets_per_local_node={"localnode1": testlocalnode1_datasets},
-        x_vars=[
+        y_vars=[
             "lefthippocampus",
             "righthippocampus",
             "rightppplanumpolare",
             "leftamygdala",
             "rightamygdala",
         ],
-        y_vars=["alzheimerbroadcategory"],
         var_filters={
             "condition": "AND",
             "rules": [
@@ -142,13 +141,12 @@ def get_parametrization_list_success_cases():
                             "rightppplanumpolare",
                             "leftamygdala",
                             "rightamygdala",
-                            "alzheimerbroadcategory",
                         ]
                     ],
                 },
             ],
         },
-        algo_parameters={"classes": ["AD", "CN"]},
+        algo_parameters={},
     )
     parametrization_list.append(algo_execution_dto)
     # END ~~~~~~~~~~success case 1~~~~~~~~~~
@@ -235,4 +233,4 @@ def test_single_local_node_algorithm_execution(
     )
     result = algo_executor.run()
 
-    assert isinstance(result, TabularDataResult)
+    assert isinstance(result, BaseModel)

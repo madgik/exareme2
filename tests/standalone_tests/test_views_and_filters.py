@@ -5,9 +5,9 @@ import pytest
 import requests
 
 from mipengine.datatypes import DType
-from mipengine.node_exceptions import DataModelUnavailable
-from mipengine.node_exceptions import DatasetUnavailable
-from mipengine.node_exceptions import InsufficientDataError
+from mipengine.exceptions import DataModelUnavailable
+from mipengine.exceptions import DatasetUnavailable
+from mipengine.exceptions import InsufficientDataError
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema

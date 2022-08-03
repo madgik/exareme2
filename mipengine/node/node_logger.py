@@ -5,8 +5,8 @@ from functools import wraps
 
 from celery import current_task
 
+from mipengine.exceptions import RequestIDNotFound
 from mipengine.node import config as node_config
-from mipengine.node_exceptions import RequestIDNotFound
 
 LOGGING_ID_TASK_PARAM = "request_id"
 

@@ -34,6 +34,8 @@ class ParameterType(str, Enum):
     INT = "int"
     TEXT = "text"
     BOOLEAN = "boolean"
+    ENUM_FROM_LIST = "enum_from_list"
+    ENUM_FROM_CDE = "enum_from_cde"
 
 
 class InputDataSpecificationDTO(ImmutableBaseModel):

@@ -3,8 +3,8 @@ import uuid
 import pytest
 
 from mipengine.datatypes import DType
-from mipengine.node_exceptions import IncompatibleSchemasMergeException
-from mipengine.node_exceptions import TablesNotFound
+from mipengine.exceptions import IncompatibleSchemasMergeException
+from mipengine.exceptions import TablesNotFound
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
