@@ -142,6 +142,7 @@ def test_mixed_type_multi_var():
         assert set(result) & {"x1", "x2", "x3"}  # assert pool1 is always used
 
 
+@pytest.mark.slow
 def test_algorithm_specs_numerical_vars(specs_file_xy_numerical):
     numericals = set(DB().get_numerical_variables())
     input_gen = InputGenerator(specs_file_xy_numerical)
@@ -156,6 +157,7 @@ def test_algorithm_specs_numerical_vars(specs_file_xy_numerical):
         assert not set(x) & set(y)
 
 
+@pytest.mark.slow
 def test_algorithm_specs_mixed_vars(specs_file_xy_mixed):
     nominals = set(DB().get_nominal_variables())
     numericals = set(DB().get_numerical_variables())
@@ -172,6 +174,7 @@ def test_algorithm_specs_mixed_vars(specs_file_xy_mixed):
         assert not set(x) & set(y)
 
 
+@pytest.mark.slow
 def test_get_input_data(specs_file_y_numerical):
     class ConcreteTestCaseGenerator(TestCaseGenerator):
         def compute_expected_output(self, input_data, parameters):
@@ -186,6 +189,7 @@ def test_get_input_data(specs_file_y_numerical):
         assert set(y_data.columns) == set(input_["inputdata"]["y"])
 
 
+@pytest.mark.slow
 def test_testcase_generator_single_testcase(specs_file_xy_numerical):
     class ConcreteTestCaseGenerator(TestCaseGenerator):
         def compute_expected_output(self, input_data, parameters):
@@ -201,6 +205,7 @@ def test_testcase_generator_single_testcase(specs_file_xy_numerical):
         assert testcase["input"]["inputdata"]["y"] is not None
 
 
+@pytest.mark.slow
 def test_testcase_generator_multiple_testcases(specs_file_xy_numerical):
     class ConcreteTestCaseGenerator(TestCaseGenerator):
         def compute_expected_output(self, input_data, parameters):
@@ -211,6 +216,7 @@ def test_testcase_generator_multiple_testcases(specs_file_xy_numerical):
     assert len(testcases) == 2
 
 
+@pytest.mark.slow
 def test_testcase_generator_write_to_file(specs_file_xy_numerical):
     class ConcreteTestCaseGenerator(TestCaseGenerator):
         def compute_expected_output(self, input_data, parameters):
@@ -224,27 +230,32 @@ def test_testcase_generator_write_to_file(specs_file_xy_numerical):
     assert len(contents["test_cases"]) == 2
 
 
+@pytest.mark.slow
 def test_db_get_numerical_variables():
     numerical_vars = DB().get_numerical_variables()
     assert numerical_vars != []
 
 
+@pytest.mark.slow
 def test_db_get_nominal_variables():
     nominal_vars = DB().get_nominal_variables()
     assert nominal_vars != []
 
 
+@pytest.mark.slow
 def test_db_get_datasets():
     datasets = DB().get_datasets()
     assert datasets != []
 
 
+@pytest.mark.slow
 def test_db_get_data_table():
     data_table = DB().get_data_table()
     assert data_table is not None
     assert len(data_table) > 0
 
 
+@pytest.mark.slow
 def test_db_get_enumerations():
     enums = DB().get_enumerations("gender")
     assert set(enums) == {"F", "M"}
@@ -263,6 +274,7 @@ def test_enum_from_list_parameter():
     assert EnumFromList(enums).draw() in enums
 
 
+@pytest.mark.slow
 def test_enum_from_cde_parameter():
     varname = "gender"
     assert EnumFromCDE(varname).draw() in {"F", "M"}
