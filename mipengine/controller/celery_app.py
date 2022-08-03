@@ -8,6 +8,7 @@ from celery import exceptions as celery_exceptions
 from celery.result import AsyncResult
 from kombu import exceptions as kombu_exceptions
 
+from mipengine.celery_app_conf import configure_celery_app_to_use_priority_queue
 from mipengine.controller import config as controller_config
 from mipengine.singleton import Singleton
 
@@ -50,11 +51,16 @@ class CeleryWrapper:
 
     # queue_task() is non-blocking, because apply_async() is non-blocking
     def queue_task(
-        self, task_signature: str, logger: Logger, *args, **kwargs
+        self,
+        task_signature: str,
+        logger: Logger,
+        priority=None,
+        *args,
+        **kwargs,
     ) -> AsyncResult:
         try:
             task_signature = self._celery_app.signature(task_signature)
-            return task_signature.apply_async(args, kwargs)
+            return task_signature.apply_async(args, kwargs, priority=priority)
         except (
             kombu_exceptions.OperationalError,
             amqp_exceptions.AccessRefused,
@@ -143,6 +149,9 @@ class CeleryWrapper:
         # connection pool disabled
         # connections are established and closed for every use
         celery_app.conf.broker_pool_limit = None
+
+        configure_celery_app_to_use_priority_queue(celery_app)
+
         return celery_app
 
 
