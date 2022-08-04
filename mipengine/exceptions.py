@@ -1,5 +1,3 @@
-from typing import List
-
 """
 !!!!!!!!!!!!!!!!!!!!!! ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!
 In some cases an exception thrown by the NODE(celery) will be received
@@ -17,6 +15,7 @@ When adding a new exception, the task throwing it should be tested:
 1) That you can catch the exception by it's name,
 2) the contained message, if exists, is shown properly.
 """
+from typing import List
 
 
 class TablesNotFound(Exception):
@@ -111,6 +110,12 @@ class DatasetUnavailable(Exception):
 
 
 class InsufficientDataError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+        self.message = message
+
+
+class BadUserInput(Exception):
     def __init__(self, message):
         super().__init__(message)
         self.message = message

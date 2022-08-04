@@ -1,283 +1,322 @@
-# type: ignore
-from typing import TypeVar
+import json
+from typing import List
 
 import numpy
-import pandas as pd
+import scipy.stats as stats
+from pydantic import BaseModel
+from scipy.special import xlogy
 
-from mipengine.algorithm_result_DTOs import TabularDataResult
-from mipengine.table_data_DTOs import ColumnDataFloat
-from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.udfgen import TensorBinaryOp
-from mipengine.udfgen import TensorUnaryOp
+from mipengine.algorithms.preprocessing import DummyEncoder
+from mipengine.algorithms.preprocessing import LabelBinarizer
+from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import literal
-from mipengine.udfgen import merge_tensor
 from mipengine.udfgen import relation
-from mipengine.udfgen import tensor
+from mipengine.udfgen import secure_transfer
+from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-PREC = 1e-6
+MAX_ITER = 50  # maximum iterations before cancelling run due to non convergence
+TOL = 1e-4  # tolerance for stopping criterion
+ALPHA = 0.05  # alpha level for coefficient confidence intervals
 
 
-def run(algo_interface):
-    local_run = algo_interface.run_udf_on_local_nodes
-    global_run = algo_interface.run_udf_on_global_node
-    get_table_schema = algo_interface.get_table_schema
+def run(executor):
+    xvars, yvars = executor.x_variables, executor.y_variables
+    X, y = executor.create_primary_data_views([xvars, yvars])
+    positive_class = executor.algorithm_parameters["positive_class"]
 
-    classes = algo_interface.algorithm_parameters["classes"]
+    dummy_encoder = DummyEncoder(executor)
+    X = dummy_encoder.transform(X)
 
-    X_relation, y_relation = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
+    ybin = LabelBinarizer(executor, positive_class).transform(y)
+
+    # TODO variable names should be table attributes
+    X.columns = dummy_encoder.new_varnames
+    y.columns = yvars
+    ybin.columns = yvars
+
+    lr = LogisticRegression(executor)
+    lr.fit(X=X, y=ybin)
+
+    summary = compute_summary(model=lr)
+
+    result = LogisticRegressionResult(
+        dependent_var=y.columns[0],
+        indep_vars=X.columns,
+        summary=summary,
     )
 
-    X = local_run(
-        func=relation_to_matrix,
-        keyword_args={"rel": X_relation},
-    )
+    return result
 
-    y = local_run(
-        func=label_binarize,
-        keyword_args={"y": y_relation, "classes": classes},
-    )
 
-    # init model
-    table_schema = get_table_schema(X)
-    ncols = len(table_schema.columns)
-    coeff = local_run(
-        func=zeros1,
-        keyword_args={"n": ncols},
-    )
+class LogisticRegression:
+    def __init__(self, executor):
+        self.local_run = executor.run_udf_on_local_nodes
+        self.global_run = executor.run_udf_on_global_node
 
-    logloss = 1e6
-    while True:
-        z = local_run(
-            tensor_op=TensorBinaryOp.MATMUL,
-            positional_args=[X, coeff],
-        )
+    def fit(self, X, y):
+        self.p = len(X.columns)
 
-        s = local_run(
-            func=tensor_expit,
-            keyword_args={"t": z},
-        )
-
-        one_minus_s = local_run(
-            tensor_op=TensorBinaryOp.SUB,
-            positional_args=[1, s],
-        )
-
-        d = local_run(
-            tensor_op=TensorBinaryOp.MUL,
-            positional_args=[s, one_minus_s],
-        )
-
-        y_minus_s = local_run(
-            tensor_op=TensorBinaryOp.SUB,
-            positional_args=[y, s],
-        )
-
-        y_ratio = local_run(
-            tensor_op=TensorBinaryOp.DIV,
-            positional_args=[y_minus_s, d],
-        )
-
-        X_transpose = local_run(
-            tensor_op=TensorUnaryOp.TRANSPOSE,
-            positional_args=[X],
-        )
-
-        d_diag = local_run(
-            func=diag,
-            keyword_args={"vec": d},
-        )
-
-        Xtranspose_dot_ddiag = local_run(
-            tensor_op=TensorBinaryOp.MATMUL,
-            positional_args=[X_transpose, d_diag],
-        )
-
-        hessian = local_run(
-            tensor_op=TensorBinaryOp.MATMUL,
-            positional_args=[Xtranspose_dot_ddiag, X],
+        # init model
+        coeff = [0] * self.p
+        local_transfers = self.local_run(
+            self._fit_init_local,
+            keyword_args={"y": y},
             share_to_global=True,
         )
-
-        z_plus_yratio = local_run(
-            tensor_op=TensorBinaryOp.ADD,
-            positional_args=[z, y_ratio],
+        global_transfer = self.global_run(
+            self._fit_init_global,
+            keyword_args={"local_transfers": local_transfers},
         )
+        transfer_data = json.loads(global_transfer.get_table_data()[1][0])
+        self.nobs_train = transfer_data["nobs_train"]
+        self.y_sum = transfer_data["y_sum"]
+        handle_logreg_errors(self.nobs_train, self.p, self.y_sum)
 
-        grad = local_run(
-            tensor_op=TensorBinaryOp.MATMUL,
-            positional_args=[Xtranspose_dot_ddiag, z_plus_yratio],
-            share_to_global=True,
-        )
-
-        newlogloss = local_run(
-            func=logistic_loss,
-            keyword_args={"v1": y, "v2": s},
-        )
-        # TODO local_run results should not be fetched https://team-1617704806227.atlassian.net/browse/MIP-534
-        newlogloss = sum(newlogloss.get_table_data()[1])
-
-        # ~~~~~~~~ Global part ~~~~~~~~ #
-        hessian_global = global_run(
-            func=sum_tensors,
-            keyword_args={"xs": hessian},
-        )
-
-        hessian_inverse = global_run(
-            func=mat_inverse,
-            keyword_args={"m": hessian_global},
-        )
-        coeff = global_run(
-            tensor_op=TensorBinaryOp.MATMUL,
-            positional_args=[hessian_inverse, grad],
-            share_to_locals=True,
-        )
-
-        if abs(newlogloss - logloss) <= PREC:
-            coeff = global_run(
-                tensor_op=TensorBinaryOp.MATMUL,
-                positional_args=[hessian_inverse, grad],
+        # optimization iteration
+        for i in range(MAX_ITER):
+            local_transfers = self.local_run(
+                self._fit_local_step,
+                keyword_args={"X": X, "y": y, "coeff": coeff},
+                share_to_global=True,
             )
-            break
-        logloss = newlogloss
+            global_transfer = self.global_run(
+                self._fit_global_step,
+                keyword_args={"local_transfers": local_transfers, "coeff": coeff},
+            )
+            transfer_data = json.loads(global_transfer.get_table_data()[1][0])
+            coeff = transfer_data["coeff"]
+            grad = transfer_data["grad"]
 
-    coeff_values = coeff.get_table_data()[2]
-    x_variables = algo_interface.x_variables
-    result = TabularDataResult(
-        title="Logistic Regression Coefficients",
-        columns=[
-            ColumnDataStr(name="variable", data=x_variables),
-            ColumnDataFloat(name="coefficient", data=coeff_values),
-        ],
+            # stopping criterion
+            if max_abs(grad) <= TOL:
+                break
+        else:
+            raise BadUserInput("Logistic regression cannot converge. Cancelling run.")
+
+        self.coeff = coeff
+        self.ll = transfer_data["ll"]
+        self.H_inv = transfer_data["H_inv"]
+
+    @staticmethod
+    @udf(y=relation(), return_type=secure_transfer(sum_op=True))
+    def _fit_init_local(y):
+        nobs_train = len(y)
+        y_sum = y.sum()
+        stransfer = {}
+        stransfer["nobs_train"] = {
+            "data": nobs_train,
+            "operation": "sum",
+            "type": "int",
+        }
+        stransfer["y_sum"] = {
+            "data": int(y_sum),
+            "operation": "sum",
+            "type": "int",
+        }
+        return stransfer
+
+    @staticmethod
+    @udf(local_transfers=secure_transfer(sum_op=True), return_type=transfer())
+    def _fit_init_global(local_transfers):
+        nobs_train = local_transfers["nobs_train"]
+        y_sum = local_transfers["y_sum"]
+        transfer_ = {"nobs_train": nobs_train, "y_sum": y_sum}
+        return transfer_
+
+    @staticmethod
+    @udf(
+        X=relation(),
+        y=relation(),
+        coeff=literal(),
+        return_type=secure_transfer(sum_op=True),
     )
-    return result
+    def _fit_local_step(X, y, coeff):
+        from scipy import special
+
+        # Add a second axis to coeff to make it a proper column vector.
+        # Simplifies algebraic manipulations later.
+        coeff = numpy.array(coeff)[:, numpy.newaxis]
+
+        X = X.to_numpy()
+        y = y.to_numpy()
+
+        # auxiliary quantities
+        eta = X @ coeff
+        mu = special.expit(eta)
+        w = mu * (1 - mu)
+
+        # The computation of the Hessian could have been writen as
+        #     X.T @ numpy.diag(d) @ X
+        # However, this generates a large (n_obs, n_obs) diagonal matrix.
+        # Instead, the version using Einstein summation is memory efficient
+        # thanks to the optimized tensor constraction algorithms behind einsum.
+        H = numpy.einsum("ji, j..., jk -> ik", X, w, X, optimize="greedy")
+
+        # gradient
+        grad = numpy.einsum("ji, j... -> i", X, y - mu, optimize="greedy")
+
+        # log-likelihood
+        ll = numpy.sum(special.xlogy(y, mu) + special.xlogy(1 - y, 1 - mu))
+
+        stransfer = {}
+        stransfer["H"] = {"data": H.tolist(), "operation": "sum", "type": "float"}
+        stransfer["grad"] = {"data": grad.tolist(), "operation": "sum", "type": "float"}
+        stransfer["ll"] = {"data": float(ll), "operation": "sum", "type": "float"}
+        return stransfer
+
+    @staticmethod
+    @udf(
+        local_transfers=secure_transfer(sum_op=True),
+        coeff=literal(),
+        return_type=transfer(),
+    )
+    def _fit_global_step(local_transfers, coeff):
+        ll = local_transfers["ll"]
+        ll = numpy.array(ll)
+        grad = local_transfers["grad"]
+        grad = numpy.array(grad)
+        H = local_transfers["H"]
+        H = numpy.array(H)
+
+        # if inverse fails try Moore-Penrose pseudo-inverse
+        try:
+            H_inv = numpy.linalg.inv(H)
+        except numpy.linalg.LinAlgError:
+            H_inv = numpy.linalg.pinv(H)
+
+        # update coeff according to Newton's method
+        coeff += H_inv @ grad
+
+        transfer_ = {}
+        transfer_["ll"] = float(ll)
+        transfer_["coeff"] = coeff.tolist()
+        transfer_["grad"] = grad.tolist()
+        transfer_["H_inv"] = H_inv.tolist()
+        return transfer_
+
+    def predict(self, X):
+        return self.local_run(
+            self._predict_local,
+            keyword_args={"X": X, "coeff": self.coeff},
+        )
+
+    @staticmethod
+    @udf(
+        X=relation(),
+        coeff=literal(),
+        return_type=relation(schema=[("row_id", int), ("ypred", int)]),
+    )
+    def _predict_local(X, coeff):
+        import pandas as pd
+        from scipy import special
+        from sklearn.preprocessing import binarize
+
+        probs = special.expit(X @ coeff).to_numpy()
+        ypred = binarize(probs.reshape(-1, 1), threshold=0.5)
+
+        result = pd.DataFrame({"ypred": ypred.reshape((-1,))}, index=X.index)
+        return result
 
 
-def logistic_regression_py(y, X, classes):
-    y = label_binarize(y, classes)
-    X = X.to_numpy()
-    nobs, ncols = X.shape
-    coeff = zeros1(ncols)
-    logloss = 1e6
-    while True:
-        z = X @ coeff
-        s = tensor_expit(z)
-        one_minus_s = 1 - s
-        d = s * one_minus_s
-        y_minus_s = y - s
-        y_ratio = y_minus_s / d
-
-        X_transpose = X.T
-        d_diag = diag(d)
-        Xtranspose_dot_ddiag = X_transpose @ d_diag
-        hessian = Xtranspose_dot_ddiag @ X
-
-        z_plus_yratio = z + y_ratio
-        grad = Xtranspose_dot_ddiag @ z_plus_yratio
-        newlogloss = logistic_loss(y, s)
-
-        hessian_inverse = mat_inverse(hessian)
-        coeff = hessian_inverse @ grad
-
-        if abs(newlogloss - logloss) <= PREC:
-            break
-        logloss = newlogloss
-    return coeff
+def handle_logreg_errors(nobs, p, y_sum):
+    if nobs <= p:
+        msg = (
+            "Logistic regression cannot run because the number of "
+            "observarions is smaller than the number of predictors. Please "
+            "add mode predictors or select more observations."
+        )
+        raise BadUserInput(msg)
+    if min(y_sum, nobs - y_sum) <= p:
+        msg = (
+            "Logistic regression cannot run because the number of "
+            "observarions in one category is smaller than the number of "
+            "predictors. Please add mode predictors or select more "
+            "observations for the category in question."
+        )
+        raise BadUserInput(msg)
 
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~ UDFs ~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+def compute_summary(model: LogisticRegression):
+    p = model.p
+    H_inv = model.H_inv
+    coeff = model.coeff
+    nobs_train = model.nobs_train
+    y_sum = model.y_sum
+    ll = model.ll
+
+    # statistics
+    stderr = numpy.sqrt(numpy.diag(H_inv))
+    z_scores = coeff / stderr
+    pvalues = stats.norm.sf(abs(z_scores)) * 2
+
+    # confidence intervals
+    lower_ci = [c - s * stats.norm.ppf(1 - ALPHA / 2) for c, s in zip(coeff, stderr)]
+    upper_ci = [c + s * stats.norm.ppf(1 - ALPHA / 2) for c, s in zip(coeff, stderr)]
+
+    # degrees of freedom
+    df_model = p - 1
+    df_resid = nobs_train - p
+
+    # Null model log-likelihood
+    y_mean = y_sum / nobs_train
+    ll0 = xlogy(y_sum, y_mean) + xlogy(nobs_train - y_sum, 1.0 - y_mean)
+
+    # AIC
+    aic = 2 * p - 2 * ll
+
+    # BIC
+    bic = numpy.log(nobs_train) * p - 2 * ll
+
+    # pseudo-R^2 McFadden and Cox-Snell
+    if numpy.isclose(ll, 0.0) and numpy.isclose(ll0, 0.0):
+        r2_mcf = 1
+    else:
+        r2_mcf = 1 - ll / ll0
+    r2_cs = 1 - numpy.exp(2 * (ll0 - ll) / nobs_train)
+
+    return LogisticRegressionSummary(
+        n_obs=nobs_train,
+        coefficients=coeff,
+        stderr=stderr.tolist(),
+        lower_ci=lower_ci,
+        upper_ci=upper_ci,
+        z_scores=z_scores.tolist(),
+        pvalues=pvalues.tolist(),
+        df_resid=df_resid,
+        df_model=df_model,
+        r_squared_cs=r2_cs,
+        r_squared_mcf=r2_mcf,
+        aic=aic,
+        bic=bic,
+        ll0=ll0,
+        ll=ll,
+    )
 
 
-T = TypeVar("T")
-N = TypeVar("N")
-S = TypeVar("S")
+class LogisticRegressionSummary(BaseModel):
+    n_obs: int
+    coefficients: List[float]
+    stderr: List[float]
+    lower_ci: List[float]
+    upper_ci: List[float]
+    z_scores: List[float]
+    pvalues: List[float]
+    df_model: int
+    df_resid: int
+    r_squared_cs: float
+    r_squared_mcf: float
+    ll0: float
+    ll: float
+    aic: float
+    bic: float
 
 
-@udf(y=relation(S), classes=literal(), return_type=tensor(int, 1))
-def label_binarize(y, classes):
-    from sklearn import preprocessing
-
-    ybin = preprocessing.label_binarize(y, classes=classes).T[0]
-    return ybin
+class LogisticRegressionResult(BaseModel):
+    dependent_var: str
+    indep_vars: List[str]
+    summary: LogisticRegressionSummary
 
 
-@udf(n=literal(), return_type=tensor(float, 1))
-def zeros1(n):
-    result = numpy.zeros((n,))
-    return result
-
-
-@udf(rel=relation(S), return_type=tensor(float, 2))
-def relation_to_matrix(rel):
-    return rel
-
-
-@udf(rel=relation(S), return_type=tensor(float, 1))
-def relation_to_vector(rel):
-    return rel
-
-
-@udf(t=tensor(T, N), return_type=tensor(float, N))
-def tensor_expit(t):
-    from scipy import special
-
-    result = special.expit(t)
-    return result
-
-
-@udf(vec=tensor(T, 1), return_type=tensor(T, 2))
-def diag(vec):
-    result = numpy.diag(vec)
-    return result
-
-
-@udf(v1=tensor(T, N), v2=tensor(T, N), return_type=relation(schema=[("scalar", float)]))
-def logistic_loss(v1, v2):
-    from scipy import special
-
-    ll = numpy.sum(special.xlogy(v1, v2) + special.xlogy(1 - v1, 1 - v2))
-    return ll
-
-
-@udf(t1=tensor(T, N), t2=tensor(T, N), return_type=relation(schema=[("scalar", float)]))
-def tensor_max_abs_diff(t1, t2):
-    result = numpy.max(numpy.abs(t1 - t2))
-    return result
-
-
-@udf(m=tensor(T, 2), return_type=tensor(float, 2))
-def mat_inverse(m):
-    minv = numpy.linalg.inv(m)
-    return minv
-
-
-@udf(xs=merge_tensor(dtype=T, ndims=N), return_type=tensor(dtype=T, ndims=N))
-def sum_tensors(xs):
-    from functools import reduce
-
-    reduced = reduce(lambda a, b: a + b, xs)
-    reduced = numpy.array(reduced)
-    return reduced
-
-
-def test_logistic_regression():
-    data = pd.read_csv("tests/dev_env_tests/data/dementia/edsd.csv")
-    y_name = "alzheimerbroadcategory"
-    x_names = [
-        "lefthippocampus",
-        "righthippocampus",
-        "rightppplanumpolare",
-        "leftamygdala",
-        "rightamygdala",
-    ]
-    classes = ["AD", "CN"]
-
-    data = data[[y_name] + x_names].dropna()
-    data = data[data[y_name].isin(classes)]
-    y = data[y_name]
-    X = data[x_names]
-
-    coeff = logistic_regression_py(y, X, classes=classes)
-    expected = numpy.array([4.5790059, -5.680588, -6.193766, 1.807270, 19.584665])
-    assert numpy.isclose(coeff, expected).all()
+def max_abs(lst):
+    return max(abs(elm) for elm in lst)

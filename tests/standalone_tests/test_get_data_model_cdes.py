@@ -13,7 +13,6 @@ def get_test_cases_get_data_model_cdes():
     test_cases_get_data_model_cdes = [
         (
             "dementia:0.1",
-            186,
             CommonDataElements(
                 values={
                     "dataset": CommonDataElement(
@@ -79,7 +78,6 @@ def get_test_cases_get_data_model_cdes():
         ),
         (
             "tbi:0.1",
-            21,
             CommonDataElements(
                 values={
                     "dataset": CommonDataElement(
@@ -119,12 +117,11 @@ def get_test_cases_get_data_model_cdes():
 
 @pytest.mark.slow
 @pytest.mark.parametrize(
-    "data_model, expected_data_model_cdes_length, expected_data_model_cdes",
+    "data_model, expected_data_model_cdes",
     get_test_cases_get_data_model_cdes(),
 )
 def test_get_data_model_cdes(
     data_model,
-    expected_data_model_cdes_length,
     expected_data_model_cdes,
     load_data_localnode1,
     localnode1_node_service,
@@ -146,7 +143,7 @@ def test_get_data_model_cdes(
         timeout=TASKS_TIMEOUT,
     )
     data_model_cdes = CommonDataElements.parse_raw(data_model_cdes_json).values
-    assert len(data_model_cdes) == expected_data_model_cdes_length
+    assert len(data_model_cdes) > 0
     for exp_cde_code, exp_cde_metadata in expected_data_model_cdes.values.items():
         assert exp_cde_code in data_model_cdes.keys()
         assert data_model_cdes[exp_cde_code] == exp_cde_metadata
