@@ -34,12 +34,16 @@ NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL = (
     controller_config.node_landscape_aggregator_update_interval
 )
 CELERY_TASKS_TIMEOUT = controller_config.rabbitmq.celery_tasks_timeout
+NODE_INFO_TASKS_TIMEOUT = (
+    controller_config.rabbitmq.celery_tasks_timeout
+    + controller_config.rabbitmq.celery_run_udf_task_timeout
+)
 
 
 def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
     node_info_tasks_handlers = [
         NodeInfoTasksHandler(
-            node_queue_addr=node_socket_addr, tasks_timeout=CELERY_TASKS_TIMEOUT
+            node_queue_addr=node_socket_addr, tasks_timeout=NODE_INFO_TASKS_TIMEOUT
         )
         for node_socket_addr in nodes_socket_addr
     ]
@@ -67,7 +71,7 @@ def _get_node_datasets_per_data_model(
     node_socket_addr: str,
 ) -> Dict[str, Dict[str, str]]:
     tasks_handler = NodeInfoTasksHandler(
-        node_queue_addr=node_socket_addr, tasks_timeout=CELERY_TASKS_TIMEOUT
+        node_queue_addr=node_socket_addr, tasks_timeout=NODE_INFO_TASKS_TIMEOUT
     )
     try:
         async_result = tasks_handler.queue_node_datasets_per_data_model_task(
@@ -92,7 +96,7 @@ def _get_node_datasets_per_data_model(
 
 def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements:
     tasks_handler = NodeInfoTasksHandler(
-        node_queue_addr=node_socket_addr, tasks_timeout=CELERY_TASKS_TIMEOUT
+        node_queue_addr=node_socket_addr, tasks_timeout=NODE_INFO_TASKS_TIMEOUT
     )
     try:
         async_result = tasks_handler.queue_data_model_cdes_task(
