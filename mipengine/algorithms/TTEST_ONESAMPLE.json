@@ -1,7 +1,7 @@
 {
-    "name": "one_sample_ttest",
-    "desc": "One sample t-test",
-    "label": "One sample t-test",
+    "name": "TTEST_ONESAMPLE",
+    "desc": "Student’s One-sample t-test",
+    "label": "T-Test One-Sample",
     "enabled": true,
     "inputdata": {
         "y": {

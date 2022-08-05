@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import numpy as np
 import rpy2.robjects as ro
 import rpy2.robjects.packages as rpackages
 from rpy2.robjects.vectors import FloatVector
@@ -8,7 +7,7 @@ from rpy2.robjects.vectors import StrVector
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
-SPECS_PATH = Path("mipengine", "algorithms", "one_sample_ttest.json")
+SPECS_PATH = Path("mipengine", "algorithms", "TTEST_ONESAMPLE.json")
 EXPECTED_PATH = Path(
     "tests",
     "algorithm_validation_tests",
@@ -44,7 +43,7 @@ class OneSampleTtestTestCaseGenerator(TestCaseGenerator):
             conf_level=1 - alpha,
         )
 
-        cohens_d_res = lsr.cohensD(ro.vectors.FloatVector(Y[y_name]), mu=mu)
+        cohens_d_res = lsr.cohensD(FloatVector(Y[y_name]), mu=mu)
 
         t_test_res_py = dict(zip(t_test_res.names, map(list, list(t_test_res))))
         expected_out = {
