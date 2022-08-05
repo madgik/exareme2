@@ -15,6 +15,7 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
 from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
 from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
+from mipengine.udfgen.udfgenerator import DEFERRED
 from mipengine.udfgen.udfgenerator import Column
 from mipengine.udfgen.udfgenerator import IOType
 from mipengine.udfgen.udfgenerator import LiteralArg
@@ -492,6 +493,27 @@ def test_relation_generic():
 def test_relation_specific():
     r = relation(schema=[("c1", int), ("c2", float)])
     assert isinstance(r, RelationType)
+
+
+def test_relation_valid_schema_types():
+    assert relation(schema=TypeVar("S"))
+    assert relation(schema=DEFERRED)
+    assert relation(schema=[("c1", int), ("c2", float)])
+    with pytest.raises(TypeError):
+        relation(schema=1)
+
+
+def test_relation_valid_dtype_types():
+    assert relation(schema=[("c1", int)])
+    assert relation(schema=[("c1", "INT")])
+    assert relation(schema=[("c1", DType.INT)])
+    with pytest.raises(TypeError):
+        relation(schema=[("c1", 1)])
+
+
+def test_relation_invalid_schema_structure():
+    with pytest.raises(TypeError):
+        relation(schema=[1])
 
 
 def test_literal():
@@ -1020,7 +1042,7 @@ ORDER BY
 class TestUDFGenBase:
     @pytest.fixture(scope="class")
     def funcname(self, udfregistry):
-        # assert len(udfregistry) == 1
+        assert len(udfregistry) == 1
         return next(iter(udfregistry.keys()))
 
     @staticmethod
@@ -1046,11 +1068,6 @@ class TestUDFGenBase:
                 if udf_output.max_op_values:
                     tablename_placeholder = (
                         udf_output.max_op_values.tablename_placeholder
-                    )
-                    template_mapping[tablename_placeholder] = tablename_placeholder
-                if udf_output.union_op_values:
-                    tablename_placeholder = (
-                        udf_output.union_op_values.tablename_placeholder
                     )
                     template_mapping[tablename_placeholder] = tablename_placeholder
             else:
@@ -1122,10 +1139,6 @@ class TestUDFGenBase:
                     queries.extend(
                         self._concrete_table_udf_outputs(udf_output.max_op_values)
                     )
-                if udf_output.union_op_values:
-                    queries.extend(
-                        self._concrete_table_udf_outputs(udf_output.union_op_values)
-                    )
             else:
                 pytest.fail(
                     f"A udf_output must be of the format TableUDFOutput or SMPCUDFOutput."
@@ -1171,13 +1184,13 @@ class TestUDFGenBase:
             "CREATE TABLE test_secure_transfer_table(node_id VARCHAR(500), secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": 1, "operation": "sum"}}\')'
+            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": 1, "operation": "sum", "type": "int"}}\')'
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(2, \'{"sum": {"data": 10, "operation": "sum"}}\')'
+            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(2, \'{"sum": {"data": 10, "operation": "sum", "type": "int"}}\')'
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(3, \'{"sum": {"data": 100, "operation": "sum"}}\')'
+            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(3, \'{"sum": {"data": 100, "operation": "sum", "type": "int"}}\')'
         )
 
     @pytest.fixture(scope="function")
@@ -1186,7 +1199,7 @@ class TestUDFGenBase:
             "CREATE TABLE test_smpc_template_table(node_id VARCHAR(500), secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "operation": "sum"}}\')'
+            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "operation": "sum", "type": "int"}}\')'
         )
 
     @pytest.fixture(scope="function")
@@ -1204,8 +1217,8 @@ class TestUDFGenBase:
             "CREATE TABLE test_smpc_template_table(node_id VARCHAR(500), secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "operation": "sum"}, '
-            '"max": {"data": 0, "operation": "max"}}\')'
+            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "operation": "sum", "type": "int"}, '
+            '"max": {"data": 0, "operation": "max", "type": "int"}}\')'
         )
 
     @pytest.fixture(scope="function")
@@ -1253,7 +1266,7 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
         posargs = [TensorArg("table_name", dtype=int, ndims=1)]
         keywordargs = {"z": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = get_udf_templates_using_udfregistry(
+            get_udf_templates_using_udfregistry(
                 request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
@@ -1280,7 +1293,7 @@ class TestUDFGen_LoggerArgument_provided_in_pos_args(TestUDFGenBase):
     def test_get_udf_templates(self, udfregistry, funcname):
         posargs = [TensorArg("table_name", dtype=int, ndims=1), LiteralArg(1)]
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = get_udf_templates_using_udfregistry(
+            get_udf_templates_using_udfregistry(
                 request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
@@ -1310,7 +1323,7 @@ class TestUDFGen_LoggerArgument_provided_in_kw_args(TestUDFGenBase):
         posargs = [TensorArg("table_name", dtype=int, ndims=1)]
         keywordargs = {"logger": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = get_udf_templates_using_udfregistry(
+            get_udf_templates_using_udfregistry(
                 request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
@@ -1359,7 +1372,7 @@ class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _, _ = generate_udf_queries(
+            generate_udf_queries(
                 request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
@@ -1455,7 +1468,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
             )
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _ = generate_udf_queries(
+            generate_udf_queries(
                 request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
@@ -1490,19 +1503,9 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
                 type_=TableType.NORMAL,
             ),
         ]
-        try:
-            _ = generate_udf_queries(
-                request_id=REQUEST_ID,
-                func_name=funcname,
-                positional_args=posargs,
-                keyword_args={},
-                smpc_used=False,
-            )
-        except Exception as exc:
-            pytest.fail(f"An exception should not have been raised. {exc}")
 
         with pytest.raises(UDFBadCall) as exc:
-            _ = generate_udf_queries(
+            generate_udf_queries(
                 request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
@@ -1549,7 +1552,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
             )
         ]
         with pytest.raises(UDFBadCall) as exc:
-            _ = generate_udf_queries(
+            generate_udf_queries(
                 request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
@@ -1581,7 +1584,7 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         ]
         keywordargs = {}
         with pytest.raises(ValueError) as e:
-            _, _ = get_udf_templates_using_udfregistry(
+            get_udf_templates_using_udfregistry(
                 request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
@@ -1599,7 +1602,7 @@ class TestUDFGen_KW_args_on_tensor_operation:
         posargs = []
         keywordargs = {"Μ": 5, "v": 7}
         with pytest.raises(UDFBadCall) as e:
-            _ = generate_udf_queries(
+            generate_udf_queries(
                 request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
@@ -1719,7 +1722,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_dim1', 'x_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['x_dim0', 'x_dim1', 'x_val'])})
     result = x
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -1796,7 +1799,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    X = udfio.from_tensor_table({n: _columns[n] for n in ['X_dim0', 'X_dim1', 'X_val']})
+    X = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['X_dim0', 'X_dim1', 'X_val'])})
     result = X
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -1830,6 +1833,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database", "create_tensor_table")
     def test_udf_with_db(
@@ -1872,6 +1876,7 @@ class TestUDFGen_RelationToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col0", dtype=DType.INT),
                         ColumnInfo(name="col1", dtype=DType.FLOAT),
                         ColumnInfo(name="col2", dtype=DType.STR),
@@ -1885,14 +1890,14 @@ class TestUDFGen_RelationToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name("r_col0" INT,"r_col1" DOUBLE,"r_col2" VARCHAR(500))
+$udf_name("r_row_id" INT,"r_col0" INT,"r_col1" DOUBLE,"r_col2" VARCHAR(500))
 RETURNS
 TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    r = pd.DataFrame({n: _columns[n] for n in ['r_col0', 'r_col1', 'r_col2']})
+    r = udfio.from_relational_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col0', 'col1', 'col2'], ['r_row_id', 'r_col0', 'r_col1', 'r_col2'])}, 'row_id')
     result = r
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -1907,6 +1912,7 @@ SELECT
 FROM
     $udf_name((
         SELECT
+            rel_in_db.row_id,
             rel_in_db.col0,
             rel_in_db.col1,
             rel_in_db.col2
@@ -1950,6 +1956,7 @@ class TestUDFGen_2RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel1_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col0", dtype=DType.INT),
                         ColumnInfo(name="col1", dtype=DType.FLOAT),
                         ColumnInfo(name="col2", dtype=DType.STR),
@@ -1961,6 +1968,7 @@ class TestUDFGen_2RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel2_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col4", dtype=DType.INT),
                         ColumnInfo(name="col5", dtype=DType.FLOAT),
                         ColumnInfo(name="col6", dtype=DType.STR),
@@ -1974,15 +1982,15 @@ class TestUDFGen_2RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name("r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_col4" INT,"r2_col5" DOUBLE,"r2_col6" VARCHAR(500))
+$udf_name("r1_row_id" INT,"r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_row_id" INT,"r2_col4" INT,"r2_col5" DOUBLE,"r2_col6" VARCHAR(500))
 RETURNS
 TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    r1 = pd.DataFrame({n: _columns[n] for n in ['r1_col0', 'r1_col1', 'r1_col2']})
-    r2 = pd.DataFrame({n: _columns[n] for n in ['r2_col4', 'r2_col5', 'r2_col6']})
+    r1 = udfio.from_relational_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col0', 'col1', 'col2'], ['r1_row_id', 'r1_col0', 'r1_col1', 'r1_col2'])}, 'row_id')
+    r2 = udfio.from_relational_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col4', 'col5', 'col6'], ['r2_row_id', 'r2_col4', 'r2_col5', 'r2_col6'])}, 'row_id')
     result = r1
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -1997,9 +2005,11 @@ SELECT
 FROM
     $udf_name((
         SELECT
+            rel1_in_db.row_id,
             rel1_in_db.col0,
             rel1_in_db.col1,
             rel1_in_db.col2,
+            rel2_in_db.row_id,
             rel2_in_db.col4,
             rel2_in_db.col5,
             rel2_in_db.col6
@@ -2047,6 +2057,7 @@ class TestUDFGen_3RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel1_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col0", dtype=DType.INT),
                         ColumnInfo(name="col1", dtype=DType.FLOAT),
                         ColumnInfo(name="col2", dtype=DType.STR),
@@ -2058,6 +2069,7 @@ class TestUDFGen_3RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel2_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col4", dtype=DType.INT),
                         ColumnInfo(name="col5", dtype=DType.FLOAT),
                         ColumnInfo(name="col6", dtype=DType.STR),
@@ -2069,6 +2081,7 @@ class TestUDFGen_3RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel3_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col8", dtype=DType.INT),
                         ColumnInfo(name="col9", dtype=DType.FLOAT),
                         ColumnInfo(name="col10", dtype=DType.STR),
@@ -2082,16 +2095,16 @@ class TestUDFGen_3RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name("r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_col4" INT,"r2_col5" DOUBLE,"r2_col6" VARCHAR(500),"r3_col8" INT,"r3_col9" DOUBLE,"r3_col10" VARCHAR(500))
+$udf_name("r1_row_id" INT,"r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_row_id" INT,"r2_col4" INT,"r2_col5" DOUBLE,"r2_col6" VARCHAR(500),"r3_row_id" INT,"r3_col8" INT,"r3_col9" DOUBLE,"r3_col10" VARCHAR(500))
 RETURNS
 TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    r1 = pd.DataFrame({n: _columns[n] for n in ['r1_col0', 'r1_col1', 'r1_col2']})
-    r2 = pd.DataFrame({n: _columns[n] for n in ['r2_col4', 'r2_col5', 'r2_col6']})
-    r3 = pd.DataFrame({n: _columns[n] for n in ['r3_col8', 'r3_col9', 'r3_col10']})
+    r1 = udfio.from_relational_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col0', 'col1', 'col2'], ['r1_row_id', 'r1_col0', 'r1_col1', 'r1_col2'])}, 'row_id')
+    r2 = udfio.from_relational_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col4', 'col5', 'col6'], ['r2_row_id', 'r2_col4', 'r2_col5', 'r2_col6'])}, 'row_id')
+    r3 = udfio.from_relational_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col8', 'col9', 'col10'], ['r3_row_id', 'r3_col8', 'r3_col9', 'r3_col10'])}, 'row_id')
     result = r1
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -2106,12 +2119,15 @@ SELECT
 FROM
     $udf_name((
         SELECT
+            rel1_in_db.row_id,
             rel1_in_db.col0,
             rel1_in_db.col1,
             rel1_in_db.col2,
+            rel2_in_db.row_id,
             rel2_in_db.col4,
             rel2_in_db.col5,
             rel2_in_db.col6,
+            rel3_in_db.row_id,
             rel3_in_db.col8,
             rel3_in_db.col9,
             rel3_in_db.col10
@@ -2160,6 +2176,7 @@ class TestUDFGen_2SameRelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries)
                 name="rel1_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col0", dtype=DType.INT),
                         ColumnInfo(name="col1", dtype=DType.FLOAT),
                         ColumnInfo(name="col2", dtype=DType.STR),
@@ -2171,6 +2188,7 @@ class TestUDFGen_2SameRelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries)
                 name="rel1_in_db",
                 schema_=TableSchema(
                     columns=[
+                        ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="col0", dtype=DType.INT),
                         ColumnInfo(name="col1", dtype=DType.FLOAT),
                         ColumnInfo(name="col2", dtype=DType.STR),
@@ -2184,15 +2202,15 @@ class TestUDFGen_2SameRelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries)
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name("r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_col0" INT,"r2_col1" DOUBLE,"r2_col2" VARCHAR(500))
+$udf_name("r1_row_id" INT,"r1_col0" INT,"r1_col1" DOUBLE,"r1_col2" VARCHAR(500),"r2_row_id" INT,"r2_col0" INT,"r2_col1" DOUBLE,"r2_col2" VARCHAR(500))
 RETURNS
 TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    r1 = pd.DataFrame({n: _columns[n] for n in ['r1_col0', 'r1_col1', 'r1_col2']})
-    r2 = pd.DataFrame({n: _columns[n] for n in ['r2_col0', 'r2_col1', 'r2_col2']})
+    r1 = udfio.from_relational_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col0', 'col1', 'col2'], ['r1_row_id', 'r1_col0', 'r1_col1', 'r1_col2'])}, 'row_id')
+    r2 = udfio.from_relational_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'col0', 'col1', 'col2'], ['r2_row_id', 'r2_col0', 'r2_col1', 'r2_col2'])}, 'row_id')
     result = r1
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -2207,9 +2225,11 @@ SELECT
 FROM
     $udf_name((
         SELECT
+            rel1_in_db.row_id,
             rel1_in_db.col0,
             rel1_in_db.col1,
             rel1_in_db.col2,
+            rel1_in_db.row_id,
             rel1_in_db.col0,
             rel1_in_db.col1,
             rel1_in_db.col2
@@ -2275,8 +2295,8 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
-    return udfio.as_relational_table(numpy.array(x))
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
+    return udfio.as_relational_table(x, 'row_id')
 }"""
 
     @pytest.fixture(scope="class")
@@ -2350,7 +2370,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
     v = 42
     result = v
     return result
@@ -2422,7 +2442,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
     v = 42
     w = 24
     result = v + w
@@ -2505,7 +2525,7 @@ FROM
         ]
 
 
-class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase, _TestGenerateUDFQueries):
+class TestUDFGen_RelationIncludeRowId(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         S = TypeVar("S")
@@ -2538,14 +2558,14 @@ class TestUDFGen_RelationInExcludeRowId(TestUDFGenBase, _TestGenerateUDFQueries)
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name("r_c0" INT,"r_c1" DOUBLE,"r_c2" VARCHAR(500))
+$udf_name("r_row_id" INT,"r_c0" INT,"r_c1" DOUBLE,"r_c2" VARCHAR(500))
 RETURNS
 TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    r = pd.DataFrame({n: _columns[n] for n in ['r_c0', 'r_c1', 'r_c2']})
+    r = udfio.from_relational_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'c0', 'c1', 'c2'], ['r_row_id', 'r_c0', 'r_c1', 'r_c2'])}, 'row_id')
     result = r
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -2560,6 +2580,84 @@ SELECT
 FROM
     $udf_name((
         SELECT
+            rel_in_db.row_id,
+            rel_in_db.c0,
+            rel_in_db.c1,
+            rel_in_db.c2
+        FROM
+            rel_in_db
+    ));"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                ),
+            )
+        ]
+
+
+class TestUDFGen_RelationExcludeNodeid(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        S = TypeVar("S")
+
+        @udf(r=relation(schema=S), return_type=tensor(dtype=DType.FLOAT, ndims=2))
+        def f(r):
+            result = r
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def positional_args(self):
+        return [
+            TableInfo(
+                name="rel_in_db",
+                schema_=TableSchema(
+                    columns=[
+                        ColumnInfo(name="node_id", dtype=DType.INT),
+                        ColumnInfo(name="row_id", dtype=DType.INT),
+                        ColumnInfo(name="c0", dtype=DType.INT),
+                        ColumnInfo(name="c1", dtype=DType.FLOAT),
+                        ColumnInfo(name="c2", dtype=DType.STR),
+                    ]
+                ),
+                type_=TableType.NORMAL,
+            )
+        ]
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name("r_row_id" INT,"r_c0" INT,"r_c1" DOUBLE,"r_c2" VARCHAR(500))
+RETURNS
+TABLE("dim0" INT,"dim1" INT,"val" DOUBLE)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    r = udfio.from_relational_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'c0', 'c1', 'c2'], ['r_row_id', 'r_c0', 'r_c1', 'r_c2'])}, 'row_id')
+    result = r
+    return udfio.as_tensor_table(numpy.array(result))
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name((
+        SELECT
+            rel_in_db.row_id,
             rel_in_db.c0,
             rel_in_db.c1,
             rel_in_db.c2
@@ -2621,7 +2719,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    t = udfio.from_tensor_table({n: _columns[n] for n in ['t_dim0', 't_dim1', 't_val']})
+    t = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['t_dim0', 't_dim1', 't_val'])})
     result = t
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -2708,8 +2806,8 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
-    y = udfio.from_tensor_table({n: _columns[n] for n in ['y_dim0', 'y_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
+    y = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['y_dim0', 'y_val'])})
     result = x - y
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -2812,9 +2910,9 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
-    y = udfio.from_tensor_table({n: _columns[n] for n in ['y_dim0', 'y_val']})
-    z = udfio.from_tensor_table({n: _columns[n] for n in ['z_dim0', 'z_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
+    y = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['y_dim0', 'y_val'])})
+    z = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['z_dim0', 'z_val'])})
     result = x + y + z
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -2924,9 +3022,9 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_dim1', 'x_val']})
-    y = udfio.from_tensor_table({n: _columns[n] for n in ['y_dim0', 'y_dim1', 'y_val']})
-    z = udfio.from_tensor_table({n: _columns[n] for n in ['z_dim0', 'z_dim1', 'z_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['x_dim0', 'x_dim1', 'x_val'])})
+    y = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['y_dim0', 'y_dim1', 'y_val'])})
+    z = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['z_dim0', 'z_dim1', 'z_val'])})
     result = x + y + z
     return udfio.as_tensor_table(numpy.array(result))
 }"""
@@ -3032,8 +3130,8 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
-    y = udfio.from_tensor_table({n: _columns[n] for n in ['y_dim0', 'y_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
+    y = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['y_dim0', 'y_val'])})
     result = sum(x - y)
     return result
 }"""
@@ -3293,7 +3391,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_dim1', 'x_val']})
+    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['x_dim0', 'x_dim1', 'x_val'])})
     result = sum(x)
     return result
 }"""
@@ -3360,7 +3458,7 @@ LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    xs = udfio.merge_tensor_to_list({n: _columns[n] for n in ['xs_node_id', 'xs_dim0', 'xs_val']})
+    xs = udfio.merge_tensor_to_list({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['node_id', 'dim0', 'val'], ['xs_node_id', 'xs_dim0', 'xs_val'])})
     x = sum(xs)
     return udfio.as_tensor_table(numpy.array(x))
 }"""
@@ -3395,6 +3493,9 @@ FROM
         ]
 
 
+@pytest.mark.skip(
+    reason="The traceback flag is never used. Should be removed from udfgen altogether."
+)
 class TestUDFGen_TracebackFlag(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def udfregistry(self):
@@ -3533,6 +3634,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database")
     def test_udf_with_db(
@@ -3622,6 +3724,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database", "create_state_table")
     def test_udf_with_db(
@@ -3694,6 +3797,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database")
     def test_udf_with_db(
@@ -3783,6 +3887,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database", "create_transfer_table")
     def test_udf_with_db(
@@ -3875,6 +3980,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database", "create_transfer_table")
     def test_udf_with_db(
@@ -3981,6 +4087,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4094,6 +4201,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4207,6 +4315,7 @@ FROM
             ),
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4327,6 +4436,7 @@ FROM
             ),
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4451,6 +4561,7 @@ FROM
             ),
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4490,9 +4601,9 @@ class TestUDFGen_SecureTransferOutput_with_SMPC_off(
         )
         def f(state):
             result = {
-                "sum": {"data": state["num"], "operation": "sum"},
-                "min": {"data": state["num"], "operation": "min"},
-                "max": {"data": state["num"], "operation": "max"},
+                "sum": {"data": state["num"], "operation": "sum", "type": "int"},
+                "min": {"data": state["num"], "operation": "min", "type": "int"},
+                "max": {"data": state["num"], "operation": "max", "type": "int"},
             }
             return result
 
@@ -4527,9 +4638,9 @@ LANGUAGE PYTHON
     import json
     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
     state = pickle.loads(__state_str)
-    result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'min': {'data':
-        state['num'], 'operation': 'min'}, 'max': {'data': state['num'],
-        'operation': 'max'}}
+    result = {'sum': {'data': state['num'], 'operation': 'sum', 'type': 'int'},
+        'min': {'data': state['num'], 'operation': 'min', 'type': 'int'}, 'max':
+        {'data': state['num'], 'operation': 'max', 'type': 'int'}}
     return json.dumps(result)
 }"""
 
@@ -4555,6 +4666,7 @@ FROM
             ),
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4575,9 +4687,9 @@ FROM
         ).fetchone()
         result = json.loads(secure_transfer_)
         assert result == {
-            "sum": {"data": 5, "operation": "sum"},
-            "min": {"data": 5, "operation": "min"},
-            "max": {"data": 5, "operation": "max"},
+            "sum": {"data": 5, "operation": "sum", "type": "int"},
+            "min": {"data": 5, "operation": "min", "type": "int"},
+            "max": {"data": 5, "operation": "max", "type": "int"},
         }
 
 
@@ -4592,8 +4704,8 @@ class TestUDFGen_SecureTransferOutput_with_SMPC_on(
         )
         def f(state):
             result = {
-                "sum": {"data": state["num"], "operation": "sum"},
-                "max": {"data": state["num"], "operation": "max"},
+                "sum": {"data": state["num"], "operation": "sum", "type": "int"},
+                "max": {"data": state["num"], "operation": "max", "type": "int"},
             }
             return result
 
@@ -4628,9 +4740,9 @@ LANGUAGE PYTHON
     import json
     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
     state = pickle.loads(__state_str)
-    result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'max': {'data':
-        state['num'], 'operation': 'max'}}
-    template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
+    result = {'sum': {'data': state['num'], 'operation': 'sum', 'type': 'int'},
+        'max': {'data': state['num'], 'operation': 'max', 'type': 'int'}}
+    template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict(result)
     _conn.execute(f"INSERT INTO $main_output_table_name_sum_op VALUES ('$node_id', '{json.dumps(sum_op)}');")
     _conn.execute(f"INSERT INTO $main_output_table_name_max_op VALUES ('$node_id', '{json.dumps(max_op)}');")
     return json.dumps(template)
@@ -4684,6 +4796,7 @@ FROM
     def use_smpc(self):
         return True
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4704,8 +4817,8 @@ FROM
         ).fetchone()
         template = json.loads(template_str)
         assert template == {
-            "max": {"data": 0, "operation": "max"},
-            "sum": {"data": 0, "operation": "sum"},
+            "max": {"data": 0, "operation": "max", "type": "int"},
+            "sum": {"data": 0, "operation": "sum", "type": "int"},
         }
 
         sum_op_values_str, *_ = globalnode_db_cursor.execute(
@@ -4735,9 +4848,9 @@ class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_off(
         )
         def f(state):
             result = {
-                "sum": {"data": state["num"], "operation": "sum"},
-                "min": {"data": state["num"], "operation": "min"},
-                "max": {"data": state["num"], "operation": "max"},
+                "sum": {"data": state["num"], "operation": "sum", "type": "int"},
+                "min": {"data": state["num"], "operation": "min", "type": "int"},
+                "max": {"data": state["num"], "operation": "max", "type": "int"},
             }
             return state, result
 
@@ -4772,9 +4885,9 @@ LANGUAGE PYTHON
     import json
     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
     state = pickle.loads(__state_str)
-    result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'min': {'data':
-        state['num'], 'operation': 'min'}, 'max': {'data': state['num'],
-        'operation': 'max'}}
+    result = {'sum': {'data': state['num'], 'operation': 'sum', 'type': 'int'},
+        'min': {'data': state['num'], 'operation': 'min', 'type': 'int'}, 'max':
+        {'data': state['num'], 'operation': 'max', 'type': 'int'}}
     _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(result)}');")
     return pickle.dumps(state)
 }"""
@@ -4808,6 +4921,7 @@ FROM
             ),
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4829,9 +4943,9 @@ FROM
         ).fetchone()
         result = json.loads(secure_transfer_)
         assert result == {
-            "sum": {"data": 5, "operation": "sum"},
-            "min": {"data": 5, "operation": "min"},
-            "max": {"data": 5, "operation": "max"},
+            "sum": {"data": 5, "operation": "sum", "type": "int"},
+            "min": {"data": 5, "operation": "min", "type": "int"},
+            "max": {"data": 5, "operation": "max", "type": "int"},
         }
 
 
@@ -4849,9 +4963,9 @@ class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_on(
         )
         def f(state):
             result = {
-                "sum": {"data": state["num"], "operation": "sum"},
-                "min": {"data": state["num"], "operation": "min"},
-                "max": {"data": state["num"], "operation": "max"},
+                "sum": {"data": state["num"], "operation": "sum", "type": "int"},
+                "min": {"data": state["num"], "operation": "min", "type": "int"},
+                "max": {"data": state["num"], "operation": "max", "type": "int"},
             }
             return state, result
 
@@ -4886,10 +5000,10 @@ LANGUAGE PYTHON
     import json
     __state_str = _conn.execute("SELECT state from test_state_table;")["state"][0]
     state = pickle.loads(__state_str)
-    result = {'sum': {'data': state['num'], 'operation': 'sum'}, 'min': {'data':
-        state['num'], 'operation': 'min'}, 'max': {'data': state['num'],
-        'operation': 'max'}}
-    template, sum_op, min_op, max_op, union_op = udfio.split_secure_transfer_dict(result)
+    result = {'sum': {'data': state['num'], 'operation': 'sum', 'type': 'int'},
+        'min': {'data': state['num'], 'operation': 'min', 'type': 'int'}, 'max':
+        {'data': state['num'], 'operation': 'max', 'type': 'int'}}
+    template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict(result)
     _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(template)}');")
     _conn.execute(f"INSERT INTO $loopback_table_name_0_sum_op VALUES ('$node_id', '{json.dumps(sum_op)}');")
     _conn.execute(f"INSERT INTO $loopback_table_name_0_min_op VALUES ('$node_id', '{json.dumps(min_op)}');")
@@ -4959,6 +5073,7 @@ FROM
     def use_smpc(self):
         return True
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4979,9 +5094,9 @@ FROM
         ).fetchone()
         template = json.loads(template_str)
         assert template == {
-            "sum": {"data": 0, "operation": "sum"},
-            "min": {"data": 0, "operation": "min"},
-            "max": {"data": 0, "operation": "max"},
+            "sum": {"data": 0, "operation": "sum", "type": "int"},
+            "min": {"data": 0, "operation": "min", "type": "int"},
+            "max": {"data": 0, "operation": "max", "type": "int"},
         }
 
         sum_op_values_str, *_ = globalnode_db_cursor.execute(
@@ -5071,6 +5186,7 @@ FROM
             ),
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -5160,8 +5276,7 @@ LANGUAGE PYTHON
     __min_op_values = None
     __max_op_values_str = _conn.execute("SELECT secure_transfer from test_smpc_max_op_values_table;")["secure_transfer"][0]
     __max_op_values = json.loads(__max_op_values_str)
-    __union_op_values = None
-    transfer = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values,__union_op_values)
+    transfer = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values)
     return json.dumps(transfer)
 }"""
 
@@ -5191,6 +5306,7 @@ FROM
     def use_smpc(self):
         return True
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -5279,6 +5395,7 @@ FROM
     def request_id(self):
         return "test_udfgenerator"
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database")
     def test_udf_with_db(
@@ -5296,6 +5413,83 @@ FROM
         ).fetchone()
         result = json.loads(transfer)
         assert result == {"num": 5}
+
+
+class TestUDFGen_DeferredOutputSchema(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(return_type=relation(schema=DEFERRED))
+        def f():
+            result = {"a": [1, 2, 3], "b": [4.0, 5.0, 6.0]}
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("a" INT,"b" DOUBLE)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    result = {'a': [1, 2, 3], 'b': [4.0, 5.0, 6.0]}
+    return udfio.as_relational_table(result, 'row_id')
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    CAST('$node_id' AS VARCHAR(500)) AS node_id,
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"a" INT,"b" DOUBLE);'
+                ),
+            )
+        ]
+
+    @pytest.fixture(scope="class")
+    def request_id(self):
+        return "test_udfgenerator"
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        output_schema = [("a", DType.INT), ("b", DType.FLOAT)]
+        udf_execution_queries = generate_udf_queries(
+            request_id="",
+            func_name=funcname,
+            positional_args=[],
+            keyword_args={},
+            smpc_used=False,
+            traceback=False,
+            output_schema=output_schema,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results,
+            expected_udf_outputs,
+        ):
+            assert udf_output == expected_udf_output
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~ Test SQL Generator ~~~~~~~~~~~~~~~~~~ #

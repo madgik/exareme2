@@ -2,6 +2,8 @@ from typing import List
 
 from celery import shared_task
 
+from mipengine.exceptions import DataModelUnavailable
+from mipengine.exceptions import DatasetUnavailable
 from mipengine.node import DATA_TABLE_PRIMARY_KEY
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import views
@@ -11,8 +13,6 @@ from mipengine.node.monetdb_interface.common_actions import (
     get_dataset_code_per_dataset_label,
 )
 from mipengine.node.node_logger import initialise_logger
-from mipengine.node_exceptions import DataModelUnavailable
-from mipengine.node_exceptions import DatasetUnavailable
 from mipengine.node_tasks_DTOs import TableType
 
 

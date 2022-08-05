@@ -4,14 +4,18 @@ from quart import Blueprint
 
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_executor import (
+    NodeTaskTimeoutAlgorithmExecutionException,
+)
+from mipengine.controller.algorithm_executor import (
     NodeUnresponsiveAlgorithmExecutionException,
 )
-from mipengine.controller.api.exceptions import BadRequest
-from mipengine.controller.api.exceptions import BadUserInput
+from mipengine.controller.api.validator import BadRequest
+from mipengine.controller.celery_app import CeleryTaskTimeoutException
+from mipengine.exceptions import BadUserInput
+from mipengine.exceptions import DataModelUnavailable
+from mipengine.exceptions import DatasetUnavailable
+from mipengine.exceptions import InsufficientDataError
 from mipengine.filters import FilterError
-from mipengine.node_exceptions import DataModelUnavailable
-from mipengine.node_exceptions import DatasetUnavailable
-from mipengine.node_exceptions import InsufficientDataError
 from mipengine.smpc_cluster_comm_helpers import SMPCUsageError
 
 error_handlers = Blueprint("error_handlers", __name__)
@@ -28,6 +32,7 @@ class HTTPStatusCode(enum.IntEnum):
     INSUFFICIENT_DATA_ERROR = 461
     SMPC_USAGE_ERROR = 462
     NODE_UNRESPONSIVE_ALGORITHM_EXECUTION_ERROR = 512
+    NODE_TASK_TIMEOUT_ALGORITHM_EXECUTION_ERROR = 513
     UNEXPECTED_ERROR = 500
 
 
@@ -66,7 +71,7 @@ def handle_privacy_error(error: InsufficientDataError):
 
 
 @error_handlers.app_errorhandler(SMPCUsageError)
-def handle_privacy_error(error: SMPCUsageError):
+def handle_smpc_error(error: SMPCUsageError):
     return error.message, HTTPStatusCode.SMPC_USAGE_ERROR
 
 
@@ -77,6 +82,16 @@ def handle_node_unresponsive_algorithm_excecution_exception(
     return (
         error.message,
         HTTPStatusCode.NODE_UNRESPONSIVE_ALGORITHM_EXECUTION_ERROR,
+    )
+
+
+@error_handlers.app_errorhandler(NodeTaskTimeoutAlgorithmExecutionException)
+def handle_node_task_timeout_algorithm_execution_exception(
+    error: NodeTaskTimeoutAlgorithmExecutionException,
+):
+    return (
+        error.message,
+        HTTPStatusCode.NODE_TASK_TIMEOUT_ALGORITHM_EXECUTION_ERROR,
     )
 
 

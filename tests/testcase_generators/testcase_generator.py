@@ -1,87 +1,85 @@
 import json
 import random
-import re
 from abc import ABC
 from abc import abstractmethod
 from functools import cached_property
+from functools import lru_cache
 from functools import partial
-from traceback import format_exc
+from pathlib import Path
 
 import pandas as pd
-import pymonetdb
 from tqdm import tqdm
 
-from mipengine.node.monetdb_interface.monet_db_connection import MonetDB
-
 TESTING_DATAMODEL = "dementia:0.1"
-DATA_TABLENAME = f""""{TESTING_DATAMODEL}".primary_data"""
-METADATA_TABLENAME = f""""{TESTING_DATAMODEL}".variables_metadata"""
-
-MAX_TABLE_SIZE = 60
-MIN_TABLE_SIZE = 1
-TABLE_SIZE_MODE = 10
-
-# XXX Change according to your local setup
-DB_IP = "127.0.0.1"
-DB_PORT = 50010
-DB_USER = "monetdb"
-DB_PASS = "monetdb"
-DB_FARM = "db"
+DATAMODEL_BASEPATH = Path("tests/test_data/dementia_v_0_1/")
+DATAMODEL_CDESPATH = DATAMODEL_BASEPATH / "CDEsMetadata.json"
 
 
-class DB(MonetDB):
-    def refresh_connection(self):
-        self._connection = pymonetdb.connect(
-            hostname=DB_IP,
-            port=DB_PORT,
-            username=DB_USER,
-            password=DB_PASS,
-            database=DB_FARM,
-        )
-
+class _DB:
+    @lru_cache
     def get_numerical_variables(self):
-        query = f"""SELECT code
-                        FROM {METADATA_TABLENAME}
-                        WHERE json.filter(metadata, '$.is_categorical')='[false]'
-                            AND (json.filter(metadata, '$.sql_type')='["real"]'
-                            OR json.filter(metadata, '$.sql_type')='["int"]');"""
-        variables = pd.read_sql(query, self._connection)
-        return variables["code"].tolist()
+        cdes = self._get_cdes()
+        return [
+            cde["code"]
+            for cde in cdes
+            if not cde["isCategorical"] and cde["sql_type"] in ("int", "real")
+        ]
 
+    @lru_cache
     def get_nominal_variables(self):
+        cdes = self._get_cdes()
+        return [cde["code"] for cde in cdes if cde["isCategorical"]]
 
-        query = f"""SELECT code
-                        FROM {METADATA_TABLENAME}
-                        WHERE json.filter(metadata, '$.is_categorical')='[true]';"""
+    @lru_cache
+    def get_data_table(self):
+        """Loads all csv into a single DataFrame"""
+        dataset_prefix = ["edsd", "ppmi", "desd-synthdata"]
 
-        variables = pd.read_sql(query, self._connection)
-        return variables["code"].tolist()
+        datasets = []
+        for prefix in dataset_prefix:
+            for i in range(10):
+                filepath = DATAMODEL_BASEPATH / f"{prefix}{i}.csv"
+                datasets.append(pd.read_csv(filepath))
 
-    def get_data_table(self, replicas=2):
-        """Loads the whole data table from the DB.
+        return pd.concat(datasets)
 
-        Parameters
-        ----------
-        replicas: int
-            Number of times the data will be replicated. Useful for testing in
-            federated environment with an equal number of local nodes.
-
-        """
-        query = f"SELECT * FROM {DATA_TABLENAME}"
-        data_table = pd.read_sql(query, self._connection)
-        data_table = pd.concat([data_table for _ in range(replicas)])
-        return data_table
-
+    @lru_cache
     def get_datasets(self):
-        query = f"SELECT DISTINCT dataset FROM {DATA_TABLENAME}"
-        datasets = pd.read_sql(query, self._connection)
-        return datasets["dataset"].tolist()
+        data = self.get_data_table()
+        return data["dataset"].unique().tolist()
 
+    @lru_cache
     def get_enumerations(self, varname):
-        query = f"SELECT enumerations FROM {METADATA_TABLENAME} WHERE code='{varname}'"
-        result = self.execute_and_fetchall(query)
-        enums = re.split(r"\s*,\s*", result[0][0])
-        return enums
+        cdes = self._get_cdes()
+        assert varname in self.get_nominal_variables(), f"{varname} is not nominal"
+        enums = next(cde["enumerations"] for cde in cdes if cde["code"] == varname)
+        return [enum["code"] for enum in enums]
+
+    @lru_cache
+    def _get_cdes(self):
+        with open(DATAMODEL_CDESPATH) as file:
+            cdes = json.load(file)
+
+        def flatten_cdes(cdes: dict, flat_cdes: list):
+            if "isCategorical" in cdes:  # isCategorical indicates that we reached a var
+                flat_cdes.append(cdes)
+            elif "variables" in cdes or "groups" in cdes:
+                for elm in cdes.get("variables", []) + cdes.get("groups", []):
+                    flatten_cdes(elm, flat_cdes)
+
+        flat_cdes = []
+        flatten_cdes(cdes, flat_cdes)
+
+        # some variables found in CDEs are not found in any csv file, remove them
+        all_vars = list(self.get_data_table().columns)
+        return [cde for cde in flat_cdes if cde["code"] in all_vars]
+
+
+def DB():
+    # Dead simple singleton pattern. Not great but we don't need anything fancier here.
+    if not hasattr(DB, "instance"):
+        DB.instance = _DB()
+    return DB.instance
 
 
 def random_permutation(iterable, r=None):
@@ -96,79 +94,117 @@ def coin():
     return outcome
 
 
-def triangular():
-    return int(random.triangular(MIN_TABLE_SIZE, MAX_TABLE_SIZE, TABLE_SIZE_MODE))
+def triangular(high, mode=2):
+    # mode=2 has been found to produce good results empirically
+    return int(random.triangular(1, high, mode))
 
 
 class InputDataVariable(ABC):
-    db = DB()
-
-    def __init__(self, notblank, multiple):
-        self._notblank = notblank
-        self._multiple = multiple
-
-    @property
     @abstractmethod
-    def all_variables(self):
-        pass
+    def draw(self):
+        raise NotImplementedError
+
+
+class SingleTypeSingleVar(InputDataVariable):
+    def __init__(self, notblank, pool):
+        self.pool = pool
+        self.notblank = notblank
 
     def draw(self):
-        if not self._notblank and not coin():
-            return
-        num = triangular() if self._multiple else 1
-        choice = random_permutation(
-            self.all_variables,
-            r=min(num, len(self.all_variables)),
-        )
+        if not self.notblank and coin():
+            return ()
+
+        return (self.pool.pop(),)
+
+
+class SingleTypeMultipleVar(InputDataVariable):
+    def __init__(self, notblank, pool):
+        self.pool = pool
+        self.notblank = notblank
+
+    def draw(self):
+        if not self.notblank and coin():
+            return ()
+
+        r = triangular(len(self.pool))
+        choice = tuple(self.pool[:r])
+        del self.pool[:r]
         return choice
 
 
-class NumericalInputDataVariables(InputDataVariable):
-    @cached_property
-    def all_variables(self):
-        """Gets the names of all numerical variables available."""
-        numerical_vars = self.db.get_numerical_variables()
-        return numerical_vars
+class MixedTypeSingleVar(InputDataVariable):
+    def __init__(self, notblank, pool1, pool2):
+        self.pool1 = pool1
+        self.pool2 = pool2
+        self.notblank = notblank
+
+    def draw(self):
+        if not self.notblank and coin():
+            return ()
+
+        pool = self.pool1 if coin() else self.pool2
+        return (pool.pop(),)
 
 
-class NominalInputDataVariables(InputDataVariable):
-    @cached_property
-    def all_variables(self):
-        """Gets the names of all nominal variables available."""
-        nominal_vars = self.db.get_nominal_variables()
-        return nominal_vars
+class MixedTypeMultipleVar(InputDataVariable):
+    def __init__(self, notblank, pool1, pool2):
+        self.pool1 = pool1
+        self.pool2 = pool2
+        self.notblank = notblank
+
+    def draw(self):
+        if not self.notblank and coin():
+            return ()
+
+        # pool1 is the main pool and is always used. Additionally, variables
+        # are also drawn from pool2 holf of the times. This is in par with the
+        # main usecase of MixedTypeMultipleVar, which is regression models that
+        # accept both numerical and nominal variables (dummy coded) but where
+        # numerical are mandatory whereas nominal are optional.
+        r1 = triangular(len(self.pool1))
+        choice = self.pool1[:r1]
+        del self.pool1[:r1]
+        if coin():
+            r2 = triangular(len(self.pool2))
+            choice += self.pool2[:r2]
+            del self.pool2[:r2]
+        return tuple(choice)
 
 
-class MixedInputDataVariables(InputDataVariable):
-    @cached_property
-    def all_variables(self):
-        """Gets the names of all variables available, both numerical and nominal."""
-        all_vars = self.db.get_nominal_variables() + self.db.get_numerical_variables()
-        return all_vars
+def make_input_data_variables(properties, numerical_pool, nominal_pool):
+    notblank = properties["notblank"]
+    multiple = properties["multiple"]
+    stattypes = set(properties["stattypes"])
 
+    # numerical variables
+    if stattypes == {"numerical"} and not multiple:
+        return SingleTypeSingleVar(notblank, pool=numerical_pool)
+    elif stattypes == {"numerical"} and multiple:
+        return SingleTypeMultipleVar(notblank, pool=numerical_pool)
 
-def make_input_data_variables(properties):
-    if properties["stattypes"] == ["numerical"]:
-        return NumericalInputDataVariables(
-            properties["notblank"],
-            properties["multiple"],
-        )
-    elif properties["stattypes"] == ["nominal"]:
-        return NominalInputDataVariables(
-            properties["notblank"],
-            properties["multiple"],
-        )
-    elif set(properties["stattypes"]) == {"numerical", "nominal"}:
-        return MixedInputDataVariables(
-            properties["notblank"],
-            properties["multiple"],
+    # nominal variables
+    elif stattypes == {"nominal"} and not multiple:
+        return SingleTypeSingleVar(notblank, pool=nominal_pool)
+    elif stattypes == {"nominal"} and multiple:
+        return SingleTypeMultipleVar(notblank, pool=nominal_pool)
+
+    # mixed variables
+    elif stattypes == {"numerical", "nominal"} and not multiple:
+        return MixedTypeSingleVar(notblank, pool1=numerical_pool, pool2=nominal_pool)
+    elif stattypes == {"numerical", "nominal"} and multiple:
+        return MixedTypeMultipleVar(notblank, pool1=numerical_pool, pool2=nominal_pool)
+
+    else:
+        raise TypeError(
+            "Variable stattypes can be 'numerical', 'nominal' or both. "
+            f"Got {stattypes}."
         )
 
 
 class AlgorithmParameter(ABC):
     @abstractmethod
     def draw(self):
-        pass
+        raise NotImplementedError
 
 
 class IntegerParameter(AlgorithmParameter):
@@ -211,7 +247,7 @@ class EnumFromCDE(AlgorithmParameter):
         return random.choice(self.enums)
 
 
-def make_parameters(properties, y=None, x=None):
+def make_parameters(properties, variable_groups):
     if properties["type"] == "int":
         return IntegerParameter(min=properties["min"], max=properties["max"])
     if properties["type"] == "float":
@@ -219,63 +255,107 @@ def make_parameters(properties, y=None, x=None):
     if properties["type"] == "enum_from_list":
         return EnumFromList(enums=properties["enums"])
     if properties["type"] == "enum_from_cde":
-        return make_enum_from_cde_parameter(properties, y, x)
+        var_group_key = properties["variable_group"]
+        var_group = variable_groups[var_group_key]
+        assert len(var_group) == 1, "EnumFromCDE doesn't work when multiple=True"
+        varname = var_group[0]
+        return EnumFromCDE(varname=varname)
     else:
         raise TypeError(f"Unknown parameter type: {properties['type']}.")
 
 
-def make_enum_from_cde_parameter(properties, y=None, x=None):
-    if properties["variable_name"] == "y":
-        assert len(y) == 1, "Can't instantiate EnumFromList for multiple variables."
-        varname = y[0]
-        return EnumFromCDE(varname=varname)
-    elif properties["variable_name"] == "x":
-        assert len(x) == 1, "Can't instantiate EnumFromList for multiple variables."
-        varname = x[0]
-        return EnumFromCDE(varname=varname)
-    else:
-        raise ValueError(
-            "Parameters enum_from_cde can only accept x or y as variable_name."
-        )
-
-
 class InputGenerator:
+    db = DB()
+
     def __init__(self, specs_file):
-        specs = json.load(specs_file)
-
-        self.inputdata_gens = {
-            name: make_input_data_variables(properties)
-            for name, properties in specs["inputdata"].items()
-        }
-        y, x = specs["inputdata"].get("y"), specs["inputdata"].get("y")
-
-        self.parameter_gens = {
-            name: make_parameters(properties, y, x)
-            for name, properties in specs["parameters"].items()
-        }
+        self.specs = json.load(specs_file)
+        self.inputdata_gens = None  # init in draw to recreate variable pools
+        self.parameter_gens = None  # init in draw due to interaction with inputdata
         self.datasets_gen = DatasetsGenerator()
         self.filters_gen = FiltersGenerator()
         self._seen = set()
 
+    def init_variable_gens(self):
+        numerical_vars = self.db.get_numerical_variables()
+        nominal_vars = self.db.get_nominal_variables()
+
+        numerical_pool = list(random_permutation(numerical_vars))
+        nominal_pool = list(random_permutation(nominal_vars))
+        # if specs contain only y variable, pass entire pools to variable generator
+        if len(self.specs["inputdata"]) == 1:
+            assert "y" in self.specs["inputdata"], "There should be a 'y' in inputdata"
+            self.inputdata_gens = {
+                "y": make_input_data_variables(
+                    properties=self.specs["inputdata"]["y"],
+                    numerical_pool=numerical_pool,
+                    nominal_pool=nominal_pool,
+                )
+            }
+        # if specs contain both y and x, pass half pools to each variable generator
+        elif len(self.specs["inputdata"]) == 2:
+            numerical_pool1 = numerical_pool[: len(numerical_pool) // 2]
+            numerical_pool2 = numerical_pool[len(numerical_pool) // 2 :]
+            nominal_pool1 = nominal_pool[: len(nominal_pool) // 2]
+            nominal_pool2 = nominal_pool[len(nominal_pool) // 2 :]
+            self.inputdata_gens = {
+                "y": make_input_data_variables(
+                    properties=self.specs["inputdata"]["y"],
+                    numerical_pool=numerical_pool1,
+                    nominal_pool=nominal_pool1,
+                ),
+                "x": make_input_data_variables(
+                    properties=self.specs["inputdata"]["x"],
+                    numerical_pool=numerical_pool2,
+                    nominal_pool=nominal_pool2,
+                ),
+            }
+        else:
+            raise ValueError(
+                "Algorithm specs connot contain more than two variable groups. "
+                f"Got {self.specs['inputdata'].keys()}."
+            )
+
+    def init_parameter_gens(self, variable_groups):
+        self.parameter_gens = {
+            name: make_parameters(properties, variable_groups)
+            for name, properties in self.specs["parameters"].items()
+        }
+
     def draw(self):
         """Draws a random instance of an algorithm input, based on the
-        algorithm specs."""
+        algorithm specs.
+        """
+
         for _ in range(100):
+            # We need to draw variables in each variable group without
+            # replacement, to avoid ending up with the same variable in
+            # different groups. The way this is implemented is by using common
+            # pools of numerical/nominal variables passed to subclasses of
+            # InputDataVariable. Each time draw is called on a subclass the
+            # pools are depleted, hence they need to be re-initialized each time.
+            self.init_variable_gens()
             inputdata = {
                 name: inputdata_vars.draw()
                 for name, inputdata_vars in self.inputdata_gens.items()
             }
-            # removes vars found in both y and x, from x
-            if inputdata.get("x") != None:
-                diff = set(inputdata["y"]) & set(inputdata["x"])
-                inputdata["x"] = tuple(set(inputdata["x"]) - diff)
 
             inputdata["data_model"] = TESTING_DATAMODEL
             inputdata["datasets"] = self.datasets_gen.draw()
             inputdata["filters"] = self.filters_gen.draw()
+
+            # Parameter generators rely on drawn values for inputdata,
+            # specifically for the EnumFromCDE case, hence they need to be
+            # initialized after inputdata is drawn.
+            self.init_parameter_gens(
+                variable_groups={
+                    "y": inputdata["y"],
+                    "x": inputdata.get("x", None),
+                }
+            )
             parameters = {
                 name: param.draw() for name, param in self.parameter_gens.items()
             }
+
             input_ = {"inputdata": inputdata, "parameters": parameters}
             input_key = (*inputdata.values(), *parameters.values())
             if input_key not in self._seen:
@@ -293,9 +373,9 @@ class DatasetsGenerator:
         return self.db.get_datasets()
 
     def draw(self):
-        num = len(self.all_datasets)
-        num_datasets = random.randint(1, num)
-        return random_permutation(self.all_datasets, r=num_datasets)
+        high = len(self.all_datasets)
+        r = triangular(high)
+        return random_permutation(self.all_datasets, r=r)
 
 
 class FiltersGenerator:
@@ -318,10 +398,6 @@ class TestCaseGenerator(ABC):
     ----------
     specs_file
         Pointer to algorithm specs file in json format
-    replicas: int
-        Number of times the data used in the expected output will be
-        replicated. Useful for testing in federated environment with an equal
-        number of local nodes.
 
     Examples
     --------
@@ -330,7 +406,7 @@ class TestCaseGenerator(ABC):
                 ...  # SOA computation
                 return {"some_result": 42, "other_result": 24}
     >>> with open('my_algoritm.json') as file:
-            tcg = MyAlgorithmTCG(file, replicas=2)
+            tcg = MyAlgorithmTCG(file)
     >>> with open('my_algoritm_expected.json') as file:
             tcg.write_test_cases(file)
 
@@ -338,23 +414,46 @@ class TestCaseGenerator(ABC):
 
     __test__ = False
 
-    def __init__(self, specs_file, replicas=1):
+    def __init__(self, specs_file):
         self.input_gen = InputGenerator(specs_file)
-        self.all_data = DB().get_data_table(replicas)
+        self.all_data = DB().get_data_table()
 
     def generate_input(self):
         return self.input_gen.draw()
 
     @abstractmethod
     def compute_expected_output(self, input_data, input_parameters=None):
-        pass
+        """Computes the expected output for specific algorithm
+
+        This method has to be implemented by subclasses. The user should use
+        some state-of-the-art implementation (e.g. sklearn, statsmodels, ...)
+        of the algorithm in question to compute the expected results.
+
+        Parameters
+        ----------
+        input_data: tuple
+            A pair of design matrices. Either (y, x) or (y, None) depending on
+            the algorithm specs.
+        input_parameters: dict or None
+            A dict mapping algorithm parameters to values or None if the
+            algorithm doesn't have any parameters.
+
+        Returns
+        -------
+        dict or None
+            A dict containing the algorithm output. If no output can be
+            computed for the given input the implementer can return None, in
+            which case the test case is discarded. Use this for cases where the
+            test case generator generates seamingly valid inputs which do not
+            make sense for some reason.
+        """
+        raise NotImplementedError
 
     def get_input_data(self, input_):
         inputdata = input_["inputdata"]
         datasets = list(inputdata["datasets"])
         y = list(inputdata["y"])
-        x = inputdata.get("x", None)
-        x = list(x) if x else []
+        x = list(inputdata.get("x", []))
 
         variables = list(set(y + x))
         if "dataset" in variables:
@@ -383,24 +482,21 @@ class TestCaseGenerator(ABC):
             raise ValueError(
                 "Cannot find inputdata values resulting in non-empty data."
             )
-
         parameters = input_["parameters"]
-
-        try:
-            output = self.compute_expected_output(input_data, parameters)
-
-        except Exception as err:
-            raise Exception(
-                f"{err}, input_data: {input_data}, parameters: {parameters}, datasets: {input_['inputdata']['datasets']}, traceback: {format_exc()}"
-            )
-
+        output = self.compute_expected_output(input_data, parameters)
         return {"input": input_, "output": output}
 
     def generate_test_cases(self, num_test_cases=100):
-        test_cases = [self.generate_test_case() for _ in tqdm(range(num_test_cases))]
+        test_cases = []
+        with tqdm(total=num_test_cases) as pbar:
+            while len(test_cases) < num_test_cases:
+                test_case = self.generate_test_case()
+                if test_case["output"]:
+                    test_cases.append(test_case)
+                    pbar.update(1)
 
         def append_test_case_number(test_case, num):
-            test_case["test_case_num"] = num
+            test_case["input"]["test_case_num"] = num
             return test_case
 
         test_cases = [

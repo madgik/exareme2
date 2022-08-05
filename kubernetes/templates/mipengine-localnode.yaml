@@ -117,7 +117,7 @@ spec:
             fieldRef:
               fieldPath: status.podIP
         - name: SMPC_CLIENT_ADDRESS
-          value: "http://$(SMPC_CLIENT_IP)9000"
+          value: "http://$(SMPC_CLIENT_IP):9000"
         {{ end }}
 
       {{ if .Values.smpc.enabled }}

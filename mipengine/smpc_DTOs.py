@@ -5,11 +5,12 @@ from pydantic import BaseModel
 
 
 class SMPCRequestType(enum.Enum):
-    SUM = "sum"
-    MIN = "min"
-    MAX = "max"
-    UNION = "union"
-    PRODUCT = "product"
+    INT_SUM = "sum"
+    INT_MIN = "min"
+    INT_MAX = "max"
+    SUM = "fsum"
+    MIN = "fmin"
+    MAX = "fmax"
 
     def __str__(self):
         return self.name
@@ -38,7 +39,7 @@ class SMPCResponse(BaseModel):
 
 
 class SMPCResponseWithOutput(BaseModel):
-    computationOutput: List[int]
+    computationOutput: List[float]
     computationType: SMPCRequestType
     jobId: str
     status: SMPCResponseStatus

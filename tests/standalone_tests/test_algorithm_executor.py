@@ -6,13 +6,17 @@ import pytest
 
 from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.controller.algorithm_executor_nodes import _INode
-from mipengine.controller.node_tasks_handler_interface import IQueuedUDFAsyncResult
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import DType
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableSchema
 
 # TODO does not contain any test, just a placeholder..
+
+
+class AsyncResult:
+    def get(self, timeout=None):
+        pass
 
 
 class NodeMock(_INode):
@@ -65,12 +69,10 @@ class NodeMock(_INode):
 
     def queue_run_udf(
         self, command_id: str, func_name: str, positional_args, keyword_args
-    ) -> IQueuedUDFAsyncResult:
+    ) -> AsyncResult:
         pass
 
-    def get_queued_udf_result(
-        self, async_result: IQueuedUDFAsyncResult
-    ) -> List[TableName]:
+    def get_queued_udf_result(self, async_result: AsyncResult) -> List[TableName]:
         pass
 
     def get_udfs(self, algorithm_name) -> List[str]:

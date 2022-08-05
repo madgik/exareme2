@@ -15,14 +15,19 @@ from mipengine.controller.algorithm_specifications import algorithm_specificatio
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.exceptions import BadRequest
-from mipengine.controller.api.exceptions import BadUserInput
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.exceptions import BadUserInput
 from mipengine.filters import validate_filter
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 
 node_landscape_aggregator = NodeLandscapeAggregator()
+
+
+class BadRequest(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+        self.message = message
 
 
 def validate_algorithm_request(
@@ -288,6 +293,8 @@ def _validate_parameter_type(
         "int": int,
         "real": numbers.Real,
         "boolean": bool,
+        "enum_from_list": (str, int),
+        "enum_from_cde": (str, int),
     }
 
     if not isinstance(
@@ -328,7 +335,7 @@ def _validate_parameter_inside_min_max(
     if parameter_spec.max is not None and parameter_value > parameter_spec.max:
         raise BadUserInput(
             f"Parameter '{parameter_spec.label}' values "
-            f"should be less than {parameter_spec.max} ."
+            f"should be at most equal to {parameter_spec.max} ."
         )
 
 

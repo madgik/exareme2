@@ -6,15 +6,17 @@ import pytest
 
 from mipengine import AttrDict
 from mipengine.controller.controller_logger import init_logger
-from mipengine.controller.data_model_registry import _log_data_model_changes
-from mipengine.controller.data_model_registry import _log_dataset_changes
 from mipengine.controller.federation_info_logs import log_experiment_execution
-from mipengine.controller.node_registry import log_node_changes
+from mipengine.controller.node_landscape_aggregator import _log_data_model_changes
+from mipengine.controller.node_landscape_aggregator import _log_dataset_changes
+from mipengine.controller.node_landscape_aggregator import _log_node_changes
+from mipengine.node_info_DTOs import NodeInfo
 from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_PORT
 
 LOGFILE_NAME = "test_show_controller_audit_entries.out"
 
 
+@pytest.mark.slow
 def test_show_node_db_actions(monetdb_localnodetmp, load_data_localnodetmp):
     """
     Load data into the db and then remove datamodel and datasets.
@@ -54,20 +56,48 @@ def patch_controller_logger_config(controller_config_dict_mock):
         yield
 
 
-def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
+@pytest.fixture(scope="session")
+def patch_logger():
+    with patch(
+        "mipengine.controller.node_landscape_aggregator.logger",
+        init_logger("BACKGROUND"),
+    ):
+        yield
+
+
+def test_show_controller_audit_entries(
+    patch_controller_logger_config, capsys, patch_logger
+):
     logger = init_logger("BACKGROUND")
-    log_node_changes(
-        logger=logger, old_nodes={"localnode1": ""}, new_nodes={"localnode2": ""}
+    _log_node_changes(
+        old_nodes=[
+            NodeInfo(
+                id="localnode1",
+                role="LOCALNODE",
+                ip="172.17.0.1",
+                port=60001,
+                db_ip="172.17.0.1",
+                db_port=61001,
+            )
+        ],
+        new_nodes=[
+            NodeInfo(
+                id="localnode2",
+                role="LOCALNODE",
+                ip="172.17.0.1",
+                port=60002,
+                db_ip="172.17.0.1",
+                db_port=61002,
+            )
+        ],
     )
     _log_data_model_changes(
-        logger=logger,
         old_data_models={"dementia:0.1": ""},
         new_data_models={"tbi:0.1": ""},
     )
     _log_dataset_changes(
-        logger=logger,
-        old_datasets_per_data_model={"dementia:0.1": {"edsd": ["localnode1"]}},
-        new_datasets_per_data_model={"tbi:0.1": {"dummy_tbi": ["localnode2"]}},
+        old_datasets_locations={"dementia:0.1": {"edsd": "localnode1"}},
+        new_datasets_locations={"tbi:0.1": {"dummy_tbi": "localnode2"}},
     )
     log_experiment_execution(logger, "test", "test_algorithm", ["edsd"], "parameters")
 

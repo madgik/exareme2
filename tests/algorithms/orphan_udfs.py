@@ -34,7 +34,7 @@ def smpc_local_step(table: DataFrame):
     sum_ = 0
     for element, *_ in table.values:
         sum_ += element
-    secure_transfer_ = {"sum": {"data": int(sum_), "operation": "sum"}}
+    secure_transfer_ = {"sum": {"data": int(sum_), "operation": "sum", "type": "int"}}
     return secure_transfer_
 
 
@@ -45,9 +45,27 @@ def smpc_global_step(locals_result):
 
 
 @udf(table=relation(S), return_type=scalar(int))
-def very_slow_udf(table):
+def one_second_udf(table):
     from time import sleep
 
-    sleep(1000)
+    sleep(1)
+    rows = [len(table)]
+    return rows
+
+
+@udf(table=relation(S), return_type=scalar(int))
+def five_seconds_udf(table):
+    from time import sleep
+
+    sleep(5)
+    rows = [len(table)]
+    return rows
+
+
+@udf(table=relation(S), return_type=scalar(int))
+def one_hundred_seconds_udf(table):
+    from time import sleep
+
+    sleep(100)
     rows = [len(table)]
     return rows

@@ -1,14 +1,17 @@
 from unittest.mock import patch
 
 import pytest
+from pydantic import BaseModel
 
 from mipengine import AttrDict
-from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
+from mipengine.controller.algorithm_execution_tasks_handler import (
+    NodeAlgorithmTasksHandler,
+)
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
-from mipengine.controller.node_tasks_handler_celery import NodeTasksHandlerCelery
 from mipengine.node_tasks_DTOs import CommonDataElement
+from tests.standalone_tests.conftest import DATASET_SUFFIXES_LOCALNODE1
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
 
@@ -96,53 +99,31 @@ def mock_algorithms_modules():
 
 def get_parametrization_list_success_cases():
     parametrization_list = []
+    testlocalnode1_datasets = [
+        f"edsd{dataset_suffix}" for dataset_suffix in DATASET_SUFFIXES_LOCALNODE1
+    ]
 
     # ~~~~~~~~~~success case 1~~~~~~~~~~
     algo_execution_dto = AlgorithmExecutionDTO(
         request_id="123",
         context_id="123",
-        algorithm_name="logistic_regression",
+        algorithm_name="pca",
         data_model="dementia:0.1",
-        datasets_per_local_node={
-            "localnode1": [
-                "edsd0",
-                "edsd1",
-                "edsd2",
-                "edsd3",
-                "edsd4",
-                "edsd5",
-                "edsd6",
-                "edsd7",
-                "edsd8",
-                "edsd9",
-            ]
-        },
-        x_vars=[
+        datasets_per_local_node={"localnode1": testlocalnode1_datasets},
+        y_vars=[
             "lefthippocampus",
             "righthippocampus",
             "rightppplanumpolare",
             "leftamygdala",
             "rightamygdala",
         ],
-        y_vars=["alzheimerbroadcategory"],
         var_filters={
             "condition": "AND",
             "rules": [
                 {
                     "id": "dataset",
                     "type": "string",
-                    "value": [
-                        "edsd0",
-                        "edsd1",
-                        "edsd2",
-                        "edsd3",
-                        "edsd4",
-                        "edsd5",
-                        "edsd6",
-                        "edsd7",
-                        "edsd8",
-                        "edsd9",
-                    ],
+                    "value": testlocalnode1_datasets,
                     "operator": "in",
                 },
                 {
@@ -160,13 +141,12 @@ def get_parametrization_list_success_cases():
                             "rightppplanumpolare",
                             "leftamygdala",
                             "rightamygdala",
-                            "alzheimerbroadcategory",
                         ]
                     ],
                 },
             ],
         },
-        algo_parameters={"classes": ["AD", "CN"]},
+        algo_parameters={},
     )
     parametrization_list.append(algo_execution_dto)
     # END ~~~~~~~~~~success case 1~~~~~~~~~~
@@ -177,20 +157,7 @@ def get_parametrization_list_success_cases():
         context_id="1234",
         algorithm_name="smpc_standard_deviation",
         data_model="dementia:0.1",
-        datasets_per_local_node={
-            "localnode1": [
-                "edsd0",
-                "edsd1",
-                "edsd2",
-                "edsd3",
-                "edsd4",
-                "edsd5",
-                "edsd6",
-                "edsd7",
-                "edsd8",
-                "edsd9",
-            ]
-        },
+        datasets_per_local_node={"localnode1": testlocalnode1_datasets},
         y_vars=[
             "lefthippocampus",
         ],
@@ -200,18 +167,7 @@ def get_parametrization_list_success_cases():
                 {
                     "id": "dataset",
                     "type": "string",
-                    "value": [
-                        "edsd0",
-                        "edsd1",
-                        "edsd2",
-                        "edsd3",
-                        "edsd4",
-                        "edsd5",
-                        "edsd6",
-                        "edsd7",
-                        "edsd8",
-                        "edsd9",
-                    ],
+                    "value": testlocalnode1_datasets,
                     "operator": "in",
                 },
                 {
@@ -238,6 +194,7 @@ def get_parametrization_list_success_cases():
     return parametrization_list
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "algo_execution_dto",
     get_parametrization_list_success_cases(),
@@ -257,7 +214,7 @@ def test_single_local_node_algorithm_execution(
     local_node_rabbitmq_port = RABBITMQ_LOCALNODE1_PORT
     queue_addr = local_node_ip + ":" + str(local_node_rabbitmq_port)
     db_addr = local_node_ip + ":" + str(local_node_monetdb_port)
-    local_node_task_handler = NodeTasksHandlerCelery(
+    local_node_task_handler = NodeAlgorithmTasksHandler(
         node_id=local_node_id,
         node_queue_addr=queue_addr,
         node_db_addr=db_addr,
@@ -276,4 +233,4 @@ def test_single_local_node_algorithm_execution(
     )
     result = algo_executor.run()
 
-    assert isinstance(result, TabularDataResult)
+    assert isinstance(result, BaseModel)

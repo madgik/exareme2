@@ -11,8 +11,8 @@ monetdb_storage: /opt/mipengine/db
 csvs_datapath: /opt/mipengine/csvs
 
 controller:
-  node_landscape_aggregator_update_interval: 20
-  celery_tasks_timeout: 10
+  node_landscape_aggregator_update_interval: 30
+  celery_tasks_timeout: 20
   celery_run_udf_task_timeout: 120
   nodes_cleanup_interval: 60
   cleanup_file_folder: /opt/cleanup
@@ -20,6 +20,8 @@ controller:
 smpc:
   enabled: true
   optional: false
-  image: gpikra/coordinator:v6.0.0
+  image: gpikra/coordinator:v7.0.0
   db_image: mongo:5.0.8
   queue_image: redis:alpine3.15
+  get_result_interval: 10
+  get_result_max_retries: 100

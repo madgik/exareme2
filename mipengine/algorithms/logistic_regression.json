@@ -8,17 +8,17 @@
             "label": "features",
             "desc": "Features",
             "types": [
-                "real"
+                "real", "int", "text"
             ],
             "stattypes": [
-                "numerical"
+                "numerical", "nominal"
             ],
             "notblank": true,
             "multiple": true
         },
         "y": {
             "label": "target",
-            "desc": "Target variable",
+            "desc": "Target",
             "types": [
                 "int", "text"
             ],
@@ -30,16 +30,14 @@
         }
     },
     "parameters": {
-        "classes" : {
-            "label": "classes",
-            "desc": "Positive and negative classes to use as binary classification targets",
-            "type": "text",
+        "positive_class" : {
+            "label": "Positive class",
+            "desc": "Positive class of y. All other classes are considered negative.",
+            "type": "enum_from_cde",
+            "variable_group": "y",
             "default": null,
             "notblank": true,
-            "multiple": true
+            "multiple": false
         }
-    },
-    "flags": {
-        "formula": false
     }
 }

@@ -1,0 +1,295 @@
+#!/usr/bin/env python
+r"""Run MIP-Engine algorithms from the command line
+
+
+USAGE
+
+    ./run_algorithm [-h] -a ALGORITHM -y Y [Y ...] [-x X [X ...]]
+        -d DATASETS [DATASETS ...] -m DATA_MODEL [-p PARAMETER PARAMETER] [-n]
+
+    echo <json> | ./run_algorithm [-h] -a ALGORITHM [-y Y [Y ...]] [-x X [X ...]]
+        [-d DATASETS [DATASETS ...]] [-m DATA_MODEL] [-p PARAMETER PARAMETER] [-n]
+
+    ./run_algorithm --doc
+
+
+DESCRIPTION
+
+    The first form is used when you want to pass all algorithm args from the
+    command line. In this form some args are required and some are optional,
+    according to the algorithm specifications.
+
+    In the second form, <json> is a valid json string. Using this form you can
+    pipe a json string with the algorithm args to the script, to avoid writing
+    them on the command line. In this form, only the ALGORITHM arg is required
+    and all other args are optional. If any other arg is passed from the
+    command line it overrides the corresponding field in <json>.
+
+    The third form prints the documentation.
+
+
+ARGUMENTS
+
+    -a, --algorithm
+        The algorithm name. This is required in both forms.
+
+    -y
+        One or more space-separated fields to include in the Y variable.
+
+    -x
+        One or more space-separated fields to include in the X variable.
+
+    -d, --datasets
+        One or more space-separated dataset names.
+
+    -m, --data-model
+        The data model name in full form, NAME:VERSION.
+
+    -p, --parameter
+        A key value pair for an algorithm parameter. We can supply multiple
+        parameters by repeating the '-p <key> <value>' sequences. Parameter
+        values can be of types bool, int, float and str.
+
+    -n, --dry-run
+        Print request object without making actual request.
+
+    -h, --help
+        Print short help.
+
+    --doc
+        Print documentation. Cannot be combined with any other arg.
+
+
+USING PIPED DATA
+
+    The second form can be used with any program that outputs a valid json
+    object, not only echo. For example you can keep the appropriate object in a
+    file and use
+
+        cat file.json | ./run_algorithm ...
+
+    The json format has to be identical to the one defined in the algorithm
+    specs file.
+
+    One useful use case is to run a particular test case from the expected json
+    file, e.g. when trying to debug a particular test that failed. This can be
+    done using the jq program (https://stedolan.github.io/jq/) which can search
+    through a json file and filter some substructure.
+
+    For example, you can run test case number 3 found in expected.json like this
+
+        jq '.test_cases[3].input' expected.json | ./run_algorithm ...
+
+    Since the algorithms always return their results in json format you can
+    also filter the output for a particular field. For example, running the
+    first test case of the PCA algorithm, you want to see only the resulting
+    eigenvalues
+
+        jq '.test_cases[0].input' expected.json | ./run_algorithm -a pca \
+            | jq '.eigenvalues'
+
+    When running a particular test case, if you want to change the value of
+    some argument you can supply it after ./run_algorithm. The supplied value
+    will override the value found in the json data structure. For example, if
+    you want the same variables and parameters, but a different dataset
+
+        jq '.test_cases[0].input' expected.json | ./run_algorithm -a pca -d ppmi0
+
+
+ALGORITHM EXAMPLES
+
+    Examples of valid algorithm inputs
+
+    PEARSON CORRELATION
+
+        ./run_algorithm -a pearson -y leftamygdala lefthippocampus -d ppmi0 \
+            -m dementia:0.1 -p alpha 0.95
+
+    PCA
+
+        ./run_algorithm -a pca -y leftamygdala lefthippocampus -d ppmi0 \
+            -m dementia:0.1
+
+    ONE WAY ANOVA
+
+        ./run_algorithm -a one_way_anova -x ppmicategory -y lefthippocampus \
+            -d ppmi1 -m dementia:0.1
+
+    LINEAR REGRESSION
+
+        ./run_algorithm -a linear_regression -y righthippocampus \
+            -x lefthippocampus leftamygdala -d ppmi0 -m dementia:0.1
+
+    LINEAR REGRESSION CROSS-VALIDATION
+
+        ./run_algorithm -a linear_regression_cv -y righthippocampus \
+            -x lefthippocampus leftamygdala -d ppmi0 -m dementia:0.1 -p n_splits 4
+
+    LOGISTIC REGRESSION
+
+        ./run_algorithm -a logistic_regression -y ppmicategory \
+            -x lefthippocampus leftamygdala -d ppmi0 ppmi1 -m dementia:0.1 \
+            -p positive_class PD
+"""
+
+import json
+import pydoc
+import sys
+from argparse import ArgumentParser
+
+import requests
+
+ALGORITHMS_URL = "http://127.0.0.1:5000/algorithms/"
+
+
+def parse_argv(argv):
+    parser = ArgumentParser(
+        prog=f"{sys.argv[0]}",
+        epilog=f"To see full documentation run {sys.argv[0]} --doc.",
+    )
+    required_when_tty = sys.stdin.isatty()
+    parser.add_argument(
+        "-a",
+        "--algorithm",
+        required=True,
+        help="Algorithm name",
+    )
+    parser.add_argument(
+        "-y",
+        required=required_when_tty,
+        nargs="+",
+        help="Y variables, multiple values",
+    )
+    parser.add_argument(
+        "-x",
+        required=False,
+        nargs="+",
+        help="X variables, multiple values",
+    )
+    parser.add_argument(
+        "-d",
+        "--datasets",
+        required=required_when_tty,
+        nargs="+",
+        help="Datasets, multiple values",
+    )
+    parser.add_argument(
+        "-m",
+        "--data-model",
+        required=required_when_tty,
+        help="Data model, full name NAME:VERSION",
+    )
+    parser.add_argument(
+        "-p",
+        "--parameter",
+        required=False,
+        nargs=2,
+        action="append",
+        dest="parameters",
+        help="Parameter as key value pair. Can repeat '-p key value' multiple times.",
+    )
+    parser.add_argument(
+        "-n",
+        "--dry-run",
+        required=False,
+        action="store_true",
+        help="Print request object without making actual request.",
+    )
+    return parser.parse_args(argv)
+
+
+def guess_type_and_cast(value: str):
+    """Casts values passed in the command line by guessing their type.
+
+    Types supported: bool, int, float, str.
+    """
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    try:
+        return float(value)
+    except ValueError:
+        pass
+    if value == "True":
+        return True
+    if value == "False":
+        return False
+    return value
+
+
+def get_commandline_request_data(cl_args):
+    """Formats an algorithm request data object from command line args."""
+    parameters = {
+        key: guess_type_and_cast(value) for key, value in cl_args.parameters or []
+    }
+    return dict(
+        inputdata=dict(
+            data_model=cl_args.data_model,
+            datasets=cl_args.datasets,
+            filters=None,
+            y=cl_args.y,
+            x=cl_args.x,
+        ),
+        parameters=parameters,
+    )
+
+
+def get_piped_request_data():
+    """Gets an algorithm request data object from the stdin. If nothing is piped,
+    return empty object."""
+    if not sys.stdin.isatty():
+        piped_input = json.loads(sys.stdin.read())
+        piped_input["inputdata"]["filters"] = None  # fix for empty string in test case
+        sys.stdin = open("/dev/tty")  # get back stdin in case we need it for debugger
+        return piped_input
+    return {"inputdata": {}, "parameters": {}}
+
+
+def merge_request_data(data1, data2):
+    """Merge request data1 and request data2 prioritizing data1."""
+    # merge inpudata
+    keys = set(data1["inputdata"].keys()) | set(data2["inputdata"].keys())
+    inputdata = {
+        key: data1["inputdata"].get(key, None) or data2["inputdata"].get(key, None)
+        for key in keys
+    }
+
+    # merge parameters
+    parameters = data1.get("parameters", None) or data2.get("parameters", None)
+
+    merged = {"inputdata": inputdata, "parameters": parameters}
+    return merged
+
+
+def do_post_request(algorithm, request_data):
+    url = ALGORITHMS_URL + algorithm
+    headers = {"Content-type": "application/json", "Accept": "text/plain"}
+    response = requests.post(url, data=json.dumps(request_data), headers=headers)
+    return response
+
+
+def print_response(response):
+    try:
+        print(json.dumps(json.loads(response.text), indent=4))
+    except json.decoder.JSONDecodeError:
+        print(f"Something went wrong:\n\n{response.text}")
+
+
+def main(argv):
+    if len(argv) == 1 and argv[0] == "--doc":
+        pydoc.pager(__doc__)
+        return
+    cl_args = parse_argv(argv)
+    cl_data = get_commandline_request_data(cl_args)
+    piped_data = get_piped_request_data()
+    request_data = merge_request_data(piped_data, cl_data)
+    if cl_args.dry_run:
+        print(json.dumps(request_data, indent=4))
+    else:
+        response = do_post_request(cl_args.algorithm, request_data)
+        print_response(response)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
