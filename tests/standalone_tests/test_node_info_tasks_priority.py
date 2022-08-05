@@ -65,8 +65,10 @@ def test_node_info_tasks_have_higher_priority_over_other_tasks(
         for _ in range(number_of_udfs_to_schedule)
     ]
 
-    # The node info task should wait for one udf to complete, in order to start being executed,
+    # The node info task should wait for one udf to complete (~1-2sec), in order to start being executed,
     # but shouldn't wait for more than one, since it has priority of the other tasks.
+    # The timeout should be the time taken for one udf to complete, plus some additional time for
+    # the actual get_node_info task to complete.
     node_info_task_timeout = 3
     node_info_task_handler = NodeInfoTasksHandler(
         RABBITMQ_GLOBALNODE_ADDR, node_info_task_timeout
