@@ -34,10 +34,11 @@ NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL = (
     controller_config.node_landscape_aggregator_update_interval
 )
 CELERY_TASKS_TIMEOUT = controller_config.rabbitmq.celery_tasks_timeout
-NODE_INFO_TASKS_TIMEOUT = (
-    controller_config.rabbitmq.celery_tasks_timeout
-    + controller_config.rabbitmq.celery_run_udf_task_timeout
-)
+CELERY_RUN_UDF_TASK_TIMEOUT = controller_config.rabbitmq.celery_run_udf_task_timeout
+
+# The timeout of the node info tasks should be the celery_tasks_timeout, incremented by the
+# celery_run_udf_task_timeout to avoid starvation due to udfs being executed.
+NODE_INFO_TASKS_TIMEOUT = CELERY_TASKS_TIMEOUT + CELERY_RUN_UDF_TASK_TIMEOUT
 
 
 def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
