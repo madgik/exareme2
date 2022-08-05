@@ -31,7 +31,7 @@ class AlgorithmExecutionDTO(BaseModel):
 # It contains the handler objects(essentially the celery objects) on which the
 # AlgorithmExecutor will request tasks execution
 class NodesTasksHandlersDTO(BaseModel):
-    global_node_tasks_handler: INodeAlgorithmTasksHandler
+    global_node_tasks_handler: Optional[INodeAlgorithmTasksHandler]
     local_nodes_tasks_handlers: List[INodeAlgorithmTasksHandler]
 
     class Config:
