@@ -1,7 +1,9 @@
 from pathlib import Path
 
+import numpy as np
 import rpy2.robjects as ro
 import rpy2.robjects.packages as rpackages
+from rpy2.robjects.vectors import FloatVector
 from rpy2.robjects.vectors import StrVector
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator

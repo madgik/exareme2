@@ -12,6 +12,7 @@ from mipengine.udfgen.udfgenerator import udf
 
 
 class TtestResult(BaseModel):
+    n_obs: int
     t_stat: float
     df: int
     std: float
@@ -52,6 +53,7 @@ def run(algo_interface):
 
     result = json.loads(result.get_table_data()[1][0])
     one_sample_ttest_res = TtestResult(
+        n_obs=result["n_obs"],
         t_stat=result["t_stat"],
         df=result["df"],
         std=result["std"],
@@ -145,6 +147,7 @@ def global_one_sample(sec_local_transfer, alpha, alternative, mu):
     cohens_d = -(smpl_mean - mu) / sd
 
     transfer_ = {
+        "n_obs": n_obs,
         "t_stat": t_stat,
         "std": sd,
         "p_value": p,
