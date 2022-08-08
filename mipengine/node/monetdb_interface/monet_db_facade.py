@@ -12,11 +12,9 @@ from mipengine.singleton import Singleton
 INTEGRITY_ERROR_RETRY_INTERVAL = 1
 BROKEN_PIPE_MAX_ATTEMPTS = 50
 BROKEN_PIPE_ERROR_RETRY = 0.2
-CREATE_OR_REPLACE_QUERY_TIMEOUT = 1
-CREATE_REMOTE_TABLE_QUERY_TIMEOUT = 1
-INSERT_INTO_QUERY_TIMEOUT = (
-    node_config.celery.worker_concurrency * node_config.celery.run_udf_time_limit
-)
+CREATE_OR_REPLACE_QUERY_TIMEOUT = node_config.celery.tasks_timeout
+CREATE_REMOTE_TABLE_QUERY_TIMEOUT = node_config.celery.tasks_timeout
+INSERT_INTO_QUERY_TIMEOUT = node_config.celery.run_udf_task_timeout
 
 create_remote_table_query_lock = Semaphore()
 create_function_query_lock = Semaphore()
