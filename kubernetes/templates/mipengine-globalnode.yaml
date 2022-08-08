@@ -1,3 +1,4 @@
+{{ if gt .Values.localnodes 1.0}} # Single node deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,7 +18,7 @@ spec:
         nodeType: globalnode
     spec:
       nodeSelector:
-        nodeType: master
+        master: "true"
       volumes:
       - name: db-data
         hostPath:
@@ -88,3 +89,4 @@ spec:
         - name: SMPC_COORDINATOR_ADDRESS
           value: "http://$(SMPC_COORDINATOR_IP):12314"
         {{ end }}
+{{end}}
