@@ -96,7 +96,7 @@ LOCALNODE1_CONFIG_FILE = "test_localnode1.toml"
 LOCALNODE2_CONFIG_FILE = "test_localnode2.toml"
 LOCALNODETMP_CONFIG_FILE = "test_localnodetmp.toml"
 CONTROLLER_CONFIG_FILE = "test_controller.toml"
-CONTROLLER_LOCALNODES_CONFIG_FILE = "test_localnodes_addresses.json"
+CONTROLLER_LOCALNODE1_CONFIG_FILE = "test_localnode1_globalnode_addresses.json"
 CONTROLLER_OUTPUT_FILE = "test_controller.out"
 if USE_EXTERNAL_SMPC_CLUSTER:
     GLOBALNODE_SMPC_CONFIG_FILE = "test_external_smpc_globalnode.toml"
@@ -916,14 +916,14 @@ def reset_node_landscape_aggregator():
     nla._nla_registries = _NLARegistries()
 
 
-@pytest.fixture(scope="session")
-def controller_service():
+@pytest.fixture(scope="function")
+def controller_service_with_localnode1():
     service_port = CONTROLLER_PORT
     controller_config_filepath = path.join(
         TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE
     )
     localnodes_config_filepath = path.join(
-        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODES_CONFIG_FILE
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODE1_CONFIG_FILE
     )
 
     proc = _create_controller_service(

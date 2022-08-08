@@ -863,7 +863,7 @@ def test_multiple_data_model_views_null_constraints(
 
 
 @pytest.mark.slow
-def test_bad_filters_exception(controller_service):
+def test_bad_filters_exception(controller_service_with_localnode1):
     algorithm_name = "standard_deviation"
     request_params = {
         "inputdata": {
