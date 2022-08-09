@@ -1,5 +1,4 @@
 import json
-from typing import TypeVar
 
 import numpy
 from pydantic import BaseModel
