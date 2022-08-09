@@ -68,11 +68,8 @@ def run(algo_interface):
     return one_sample_ttest_res
 
 
-S = TypeVar("S")
-
-
 @udf(
-    x=relation(schema=S),
+    x=relation(),
     mu=literal(),
     return_type=[secure_transfer(sum_op=True)],
 )

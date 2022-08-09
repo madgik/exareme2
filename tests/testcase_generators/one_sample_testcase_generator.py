@@ -30,7 +30,10 @@ effsize = rpackages.importr("effsize")
 class OneSampleTtestTestCaseGenerator(TestCaseGenerator):
     def compute_expected_output(self, input_data, input_parameters="alt_hypothesis"):
         Y, _ = input_data
-        alt_hyp = input_parameters["alt_hypothesis"]
+        if input_parameters["alt_hypothesis"] == "two-sided":
+            alt_hyp = "two.sided"
+        else:
+            alt_hyp = input_parameters["alt_hypothesis"]
         alpha = input_parameters["alpha"]
         mu = input_parameters["mu"]
         n_obs = len(Y)
