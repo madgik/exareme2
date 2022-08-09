@@ -17,7 +17,7 @@ spec:
         nodeType: localnode
     spec:
       nodeSelector:
-        nodeType: worker
+        worker: "true"
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

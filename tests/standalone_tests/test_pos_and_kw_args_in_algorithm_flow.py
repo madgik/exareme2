@@ -47,7 +47,7 @@ def test_pos_and_kw_args_in_algorithm_flow(
     localnode1_node_service,
     load_data_localnode1,
     globalnode_node_service,
-    controller_service,
+    controller_service_with_localnode1,
 ):
     algorithm_url = ALGORITHMS_URL + "/" + algorithm_name
 

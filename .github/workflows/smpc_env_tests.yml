@@ -158,12 +158,12 @@ jobs:
       - name: Taint Nodes
         run: |
           kubectl taint nodes master node-role.kubernetes.io/master-
-          kubectl label node master nodeType=master
-          kubectl label node master smpcType=player
-          kubectl label node localnode1 nodeType=worker
-          kubectl label node localnode2 nodeType=worker
-          kubectl label node localnode1 smpcType=player
-          kubectl label node localnode2 smpcType=player
+          kubectl label node master master=true
+          kubectl label node master smpc_player=true
+          kubectl label node localnode1 worker=true
+          kubectl label node localnode2 worker=true
+          kubectl label node localnode1 smpc_player=true
+          kubectl label node localnode2 smpc_player=true
 
       - name: Get container disk space
         run: df -h

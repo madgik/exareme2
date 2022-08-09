@@ -18,7 +18,7 @@ from mipengine.node_tasks_DTOs import UDFResults
 from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import get_column_rows
 from tests.algorithms.orphan_udfs import local_step
-from tests.algorithms.orphan_udfs import very_slow_udf
+from tests.algorithms.orphan_udfs import one_hundred_seconds_udf
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
@@ -28,7 +28,9 @@ request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
 context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 
 
-def create_table_with_one_column_and_ten_rows(celery_app) -> Tuple[str, int]:
+def create_table_with_one_column_and_ten_rows(
+    celery_app, request_id
+) -> Tuple[str, int]:
     create_table_task = get_celery_task_signature("create_table")
     insert_data_to_table_task = get_celery_task_signature("insert_data_to_table")
 
@@ -41,7 +43,7 @@ def create_table_with_one_column_and_ten_rows(celery_app) -> Tuple[str, int]:
         task_signature=create_table_task,
         logger=StdOutputLogger(),
         request_id=request_id,
-        context_id=context_id,
+        context_id=request_id,
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     )
@@ -89,7 +91,7 @@ def test_run_udf_relation_to_scalar(
     local_node_get_table_data = get_celery_task_signature("get_table_data")
 
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode1_celery_app
+        localnode1_celery_app, request_id
     )
     kw_args_str = UDFKeyArguments(
         args={"table": NodeTableDTO(value=input_table_name)}
@@ -140,7 +142,7 @@ def test_run_udf_state_and_transfer_output(
     local_node_get_table_data = get_celery_task_signature("get_table_data")
 
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode1_celery_app
+        localnode1_celery_app, request_id
     )
 
     kw_args_str = UDFKeyArguments(
@@ -208,7 +210,7 @@ def test_slow_udf_exception(
     run_udf_task = get_celery_task_signature("run_udf")
 
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode1_celery_app
+        localnode1_celery_app, request_id
     )
 
     kw_args_str = UDFKeyArguments(
@@ -221,7 +223,7 @@ def test_slow_udf_exception(
             logger=StdOutputLogger(),
             command_id="1",
             context_id=context_id,
-            func_name=make_unique_func_name(very_slow_udf),
+            func_name=make_unique_func_name(one_hundred_seconds_udf),
             positional_args_json=UDFPosArguments(args=[]).json(),
             keyword_args_json=kw_args_str,
         )

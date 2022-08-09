@@ -150,6 +150,3 @@ pyrightconfig.json
 .deployment.toml
 /configs
 /smpc_configs
-
-# Used from tests to run sequentially
-semaphore.lock

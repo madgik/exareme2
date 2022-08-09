@@ -125,11 +125,14 @@ class AlgorithmExecutor:
         self._algorithm_flow_module = None
         self._execution_interface = None
 
-        self._global_node: GlobalNode = GlobalNode(
-            request_id=self._request_id,
-            context_id=self._context_id,
-            node_tasks_handler=self._nodes_tasks_handlers_dto.global_node_tasks_handler,
-        )
+        self._global_node: Optional[GlobalNode] = None
+        if self._nodes_tasks_handlers_dto.global_node_tasks_handler:
+            self._global_node: Optional[GlobalNode] = GlobalNode(
+                request_id=self._request_id,
+                context_id=self._context_id,
+                node_tasks_handler=self._nodes_tasks_handlers_dto.global_node_tasks_handler,
+            )
+
         self._local_nodes: List[LocalNode] = [
             LocalNode(
                 request_id=self._request_id,
@@ -204,7 +207,7 @@ class AlgorithmExecutor:
 
 
 class _AlgorithmExecutionInterfaceDTO(BaseModel):
-    global_node: GlobalNode
+    global_node: Optional[GlobalNode]
     local_nodes: List[LocalNode]
     algorithm_name: str
     algorithm_parameters: Optional[Dict[str, Any]] = None
