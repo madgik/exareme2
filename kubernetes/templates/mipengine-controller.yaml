@@ -15,7 +15,7 @@ spec:
         app: mipengine-controller
     spec:
       nodeSelector:
-        nodeType: master
+        master: "true"
       volumes:
       - name: cleanup-file
         hostPath:
@@ -206,7 +206,7 @@ metadata:
     smpc_player: player0
 spec:
   nodeSelector:
-    smpcType: player
+    smpc_player: "true"
   affinity:
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -286,7 +286,7 @@ metadata:
     smpc_player: player1
 spec:
   nodeSelector:
-    smpcType: player
+    smpc_player: "true"
   affinity:
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -366,7 +366,7 @@ metadata:
     smpc_player: player2
 spec:
   nodeSelector:
-    smpcType: player
+    smpc_player: "true"
   affinity:
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

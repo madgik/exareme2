@@ -130,31 +130,20 @@ class Cleaner(metaclass=Singleton):
         self._cleanup_file_processor.set_released_true_to_file(context_id=context_id)
 
     def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
-        global_node = NodeLandscapeAggregator().get_global_node()
-        local_nodes = NodeLandscapeAggregator().get_all_local_nodes()
-
-        if node_id == global_node.id:
-            return _NodeInfoDTO(
-                node_id=global_node.id,
-                queue_address=":".join([str(global_node.ip), str(global_node.port)]),
-                db_address=":".join([str(global_node.db_ip), str(global_node.db_port)]),
-                tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-                run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+        try:
+            node_info = NodeLandscapeAggregator().get_node_info(node_id)
+        except KeyError as exc:
+            raise KeyError(
+                f"(Cleaner::_get_node_info_by_id) Node with id '{node_id}' is "
+                f"not currently available. Exception: {exc}"
             )
 
-        if node_id in local_nodes.keys():
-            local_node = local_nodes[node_id]
-            return _NodeInfoDTO(
-                node_id=local_node.id,
-                queue_address=":".join([str(local_node.ip), str(local_node.port)]),
-                db_address=":".join([str(local_node.db_ip), str(local_node.db_port)]),
-                tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-                run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
-            )
-
-        raise KeyError(
-            f"(Cleaner::_get_node_info_by_id) Node with id '{node_id}' is "
-            f"not currently available."
+        return _NodeInfoDTO(
+            node_id=node_info.id,
+            queue_address=":".join([str(node_info.ip), str(node_info.port)]),
+            db_address=":".join([str(node_info.db_ip), str(node_info.db_port)]),
+            tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+            run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         )
 
     # This is only supposed to be called from a test.

@@ -52,7 +52,7 @@ kubectl apply -f https://docs.projectcalico.org/v3.20/manifests/calico.yaml
 
 ```
 kubectl taint nodes --all node-role.kubernetes.io/master-
-kubectl label node <master-node-name> nodeType=master
+kubectl label node <master-node-name> master=true
 ```
 
 ### Add a worker node to the cluster
@@ -68,7 +68,7 @@ Use the provided on the **worker** node, with `sudo`, to join the cluster.
 2. Allow worker-specific pods to run on the **worker** node with:
 
 ```
-kubectl label node <worker-node-name> nodeType=worker
+kubectl label node <worker-node-name> worker=true
 ```
 
 3. If the node has status `Ready,SchedulingDisabled` run:
@@ -84,6 +84,16 @@ On the **master** node execute the following commands:
 ```
 kubectl drain <node-name> --ignore-daemonsets
 kubectl delete node <node-name>
+```
+
+### (Optional) Configure SMPC workers in the cluster
+
+The SMPC cluster requires 3 different nodes, to be used as "players", in order to secure the computation.
+
+If SMPC is enabled in the deployment use the following command on the **master** or **worker** nodes (3 nodes are needed):
+
+```
+kubectl label node <node-name> smpc_player=true
 ```
 
 ## Firewall Configuration

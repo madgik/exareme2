@@ -88,10 +88,13 @@ class Controller:
         )
 
         algo_execution_node_ids = [
-            node_tasks_handlers.global_node_tasks_handler.node_id
+            local_node_task_handler.node_id
+            for local_node_task_handler in node_tasks_handlers.local_nodes_tasks_handlers
         ]
-        for local_node_task_handler in node_tasks_handlers.local_nodes_tasks_handlers:
-            algo_execution_node_ids.append(local_node_task_handler.node_id)
+        if node_tasks_handlers.global_node_tasks_handler:
+            algo_execution_node_ids.append(
+                node_tasks_handlers.global_node_tasks_handler.node_id
+            )
 
         self._cleaner.add_contextid_for_cleanup(context_id, algo_execution_node_ids)
 
@@ -205,17 +208,6 @@ class Controller:
     def _get_nodes_tasks_handlers(
         self, data_model: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
-        global_node = self._node_landscape_aggregator.get_global_node()
-        global_node_tasks_handler = _create_node_task_handler(
-            _NodeInfoDTO(
-                node_id=global_node.id,
-                queue_address=":".join([str(global_node.ip), str(global_node.port)]),
-                db_address=":".join([str(global_node.db_ip), str(global_node.db_port)]),
-                tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-                run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
-            )
-        )
-
         # Get only the relevant nodes
         local_nodes_info = self._get_nodes_info_by_dataset(
             data_model=data_model, datasets=datasets
@@ -223,6 +215,24 @@ class Controller:
         local_nodes_tasks_handlers = [
             _create_node_task_handler(node_info) for node_info in local_nodes_info
         ]
+
+        # If there is only one localnode that is going to be used, there is no need for a global node.
+        global_node_tasks_handler = None
+        if len(local_nodes_tasks_handlers) > 1:
+            global_node = self._node_landscape_aggregator.get_global_node()
+            global_node_tasks_handler = _create_node_task_handler(
+                _NodeInfoDTO(
+                    node_id=global_node.id,
+                    queue_address=":".join(
+                        [str(global_node.ip), str(global_node.port)]
+                    ),
+                    db_address=":".join(
+                        [str(global_node.db_ip), str(global_node.db_port)]
+                    ),
+                    tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+                    run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+                )
+            )
 
         return NodesTasksHandlersDTO(
             global_node_tasks_handler=global_node_tasks_handler,

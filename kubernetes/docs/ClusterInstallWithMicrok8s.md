@@ -33,6 +33,15 @@ in kubelet’s configuration in /var/snap/microk8s/current/args/kubelet.
 
 ## Cluster Management
 
+### Configure the master node to run pods
+
+Allow master-specific pods to run on the **master** node with:
+
+```
+kubectl taint nodes --all node-role.kubernetes.io/master-
+kubectl label node <master-node-name> master=true
+```
+
 ### Add a worker node to the cluster
 
 1. On the **master** node, get the join token with the following command:
@@ -46,7 +55,7 @@ Use the provided command, including `--worker` on the **worker** node to join th
 2. Allow worker-specific pods to run on the **worker** node with:
 
 ```
-microk8s kubectl label node <worker-node-name> nodeType=worker
+microk8s kubectl label node <worker-node-name> worker=true
 ```
 
 3. If the node has status `Ready,SchedulingDisabled` run:
@@ -68,6 +77,16 @@ On the **worker** node execute the following command:
 
 ```
 microk8s leave
+```
+
+### (Optional) Configure SMPC workers in the cluster
+
+The SMPC cluster requires 3 different nodes, to be used as "players", in order to secure the computation.
+
+If SMPC is enabled in the deployment use the following command on the **master** or **worker** nodes (3 nodes are needed):
+
+```
+microk8s kubectl label node <node-name> smpc_player=true
 ```
 
 ## Firewall Configuration
