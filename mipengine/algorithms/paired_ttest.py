@@ -2,9 +2,7 @@ import json
 from typing import TypeVar
 
 import numpy
-import numpy as np
 from pydantic import BaseModel
-from scipy.stats import stats
 
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen.udfgenerator import literal
@@ -34,9 +32,6 @@ def run(algo_interface):
         variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
     )
 
-    [x_var_name] = algo_interface.x_variables
-    [y_var_name] = algo_interface.y_variables
-
     sec_local_transfer = local_run(
         func=local_paired,
         keyword_args=dict(y=Y_relation, x=X_relation),
@@ -65,13 +60,9 @@ def run(algo_interface):
     return res
 
 
-S = TypeVar("S")
-T = TypeVar("T")
-
-
 @udf(
-    y=relation(schema=T),
-    x=relation(schema=S),
+    y=relation(),
+    x=relation(),
     return_type=[secure_transfer(sum_op=True)],
 )
 def local_paired(x, y):
@@ -113,7 +104,6 @@ def local_paired(x, y):
     return_type=[transfer()],
 )
 def global_paired(sec_local_transfer, alpha, alternative):
-    import scipy.stats as st
     from scipy.stats import t
 
     n_obs = sec_local_transfer["n_obs"]
@@ -141,20 +131,26 @@ def global_paired(sec_local_transfer, alpha, alternative):
     t_stat = (mean_x1 - mean_x2) / sed
     df = n_obs - 1
 
+    # Sample mean
+    sample_mean = diff_sum / n_obs
+
+    # Confidence intervals !WARNING: The ci values are  not tested. The code should not be modified, unless there is
+    # a test for the new method.
+    ci_lower, ci_upper = t.interval(
+        alpha=1 - alpha, df=n_obs - 1, loc=sample_mean, scale=sed
+    )
+
     # p-value for alternative = 'greater'
     if alternative == "greater":
         p = 1.0 - t.cdf(t_stat, df)
+        ci_upper = "Infinity"
     # p-value for alternative = 'less'
     elif alternative == "less":
         p = 1.0 - t.cdf(-t_stat, df)
+        ci_lower = "-Infinity"
     # p-value for alternative = 'two-sided'
     else:
         p = (1.0 - t.cdf(abs(t_stat), df)) * 2.0
-
-    # Confidence intervals
-    sample_mean = diff_sum / n_obs
-    ci = t.interval(alpha=1 - alpha, df=n_obs - 1, loc=sample_mean, scale=sed)
-    # ci = st.norm.interval(alpha=1 - alpha, loc=sample_mean, scale=sed)
 
     # Cohen’s d
     cohens_d = (mean_x1 - mean_x2) / numpy.sqrt((sd_x1**2 + sd_x2**2) / 2)
@@ -165,8 +161,9 @@ def global_paired(sec_local_transfer, alpha, alternative):
         "p": p,
         "mean_diff": diff_sum / n_obs,
         "se_diff": sed,
-        "ci_upper": ci[1],
-        "ci_lower": ci[0],
+        "ci_upper": ci_upper,
+        "ci_upper": ci_upper,
+        "ci_lower": ci_lower,
         "cohens_d": cohens_d,
     }
 

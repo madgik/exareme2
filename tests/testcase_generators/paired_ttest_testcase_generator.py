@@ -1,11 +1,7 @@
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
 import rpy2.robjects as ro
-import rpy2.robjects.conversion
 from rpy2.robjects.packages import importr
-from scipy import stats
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
@@ -26,7 +22,10 @@ stats = importr("stats")
 class PairedTtestTestCaseGenerator(TestCaseGenerator):
     def compute_expected_output(self, input_data, input_parameters="alt_hypothesis"):
         Y, X = input_data
-        alt_hyp = input_parameters["alt_hypothesis"]
+        if input_parameters["alt_hypothesis"] == "two-sided":
+            alt_hyp = "two.sided"
+        else:
+            alt_hyp = input_parameters["alt_hypothesis"]
         alpha = input_parameters["alpha"]
         n_obs = len(Y)
         y_name = Y.columns[0]
@@ -46,6 +45,7 @@ class PairedTtestTestCaseGenerator(TestCaseGenerator):
         cohens_d_res_py = dict(zip(cohens_d_res.names, map(list, list(cohens_d_res))))
 
         expected_out = {
+            "n_obs": n_obs,
             "statistic": t_test_res_py["statistic"],
             "p_value": t_test_res_py["p.value"],
             "df": t_test_res_py["parameter"],
