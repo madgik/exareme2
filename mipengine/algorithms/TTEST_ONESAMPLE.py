@@ -1,4 +1,5 @@
 import json
+from typing import TypeVar
 
 import numpy
 from pydantic import BaseModel
@@ -11,8 +12,10 @@ from mipengine.udfgen.udfgenerator import udf
 
 
 class TtestResult(BaseModel):
+    n_obs: int
     t_stat: float
     df: int
+    std: float
     p: float
     mean_diff: float
     se_diff: float
@@ -26,29 +29,35 @@ def run(algo_interface):
     global_run = algo_interface.run_udf_on_global_node
     alpha = algo_interface.algorithm_parameters["alpha"]
     alternative = algo_interface.algorithm_parameters["alt_hypothesis"]
+    mu = algo_interface.algorithm_parameters["mu"]
 
-    X_relation, Y_relation = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
+    X_relation, *_ = algo_interface.create_primary_data_views(
+        variable_groups=[algo_interface.y_variables],
     )
 
     sec_local_transfer = local_run(
-        func=local_paired,
-        keyword_args=dict(y=Y_relation, x=X_relation),
+        func=local_one_sample,
+        keyword_args=dict(x=X_relation, mu=mu),
         share_to_global=[True],
     )
 
     result = global_run(
-        func=global_paired,
+        func=global_one_sample,
         keyword_args=dict(
-            sec_local_transfer=sec_local_transfer, alpha=alpha, alternative=alternative
+            sec_local_transfer=sec_local_transfer,
+            alpha=alpha,
+            alternative=alternative,
+            mu=mu,
         ),
     )
 
     result = json.loads(result.get_table_data()[1][0])
-    res = TtestResult(
+    one_sample_ttest_res = TtestResult(
+        n_obs=result["n_obs"],
         t_stat=result["t_stat"],
         df=result["df"],
-        p=result["p"],
+        std=result["std"],
+        p=result["p_value"],
         mean_diff=result["mean_diff"],
         se_diff=result["se_diff"],
         ci_upper=result["ci_upper"],
@@ -56,38 +65,29 @@ def run(algo_interface):
         cohens_d=result["cohens_d"],
     )
 
-    return res
+    return one_sample_ttest_res
 
 
 @udf(
-    y=relation(),
     x=relation(),
+    mu=literal(),
     return_type=[secure_transfer(sum_op=True)],
 )
-def local_paired(x, y):
-    x1 = x.reset_index(drop=True).to_numpy().squeeze()
-    x2 = y.reset_index(drop=True).to_numpy().squeeze()
-    x1_sum = sum(x1)
-    x2_sum = sum(x2)
+def local_one_sample(x, mu):
+    x = x.reset_index(drop=True).to_numpy().squeeze()
     n_obs = len(x)
-    diff = sum(x1 - x2)
-    diff_sqrd = sum((x1 - x2) ** 2)
-    x1_sqrd_sum = sum(x1**2)
-    x2_sqrd_sum = sum(x2**2)
+    sum_x = sum(x)
+    sqrd_x = sum(x**2)
+    diff_x = sum(x - mu)
+    diff_sqrd_x = sum((x - mu) ** 2)
 
     sec_transfer_ = {
         "n_obs": {"data": n_obs, "operation": "sum", "type": "int"},
-        "sum_x1": {"data": x1_sum.item(), "operation": "sum", "type": "float"},
-        "sum_x2": {"data": x2_sum.item(), "operation": "sum", "type": "float"},
-        "diff": {"data": diff.tolist(), "operation": "sum", "type": "float"},
-        "diff_sqrd": {"data": diff_sqrd.tolist(), "operation": "sum", "type": "float"},
-        "x1_sqrd_sum": {
-            "data": x1_sqrd_sum.tolist(),
-            "operation": "sum",
-            "type": "float",
-        },
-        "x2_sqrd_sum": {
-            "data": x2_sqrd_sum.tolist(),
+        "sum_x": {"data": sum_x.item(), "operation": "sum", "type": "float"},
+        "sqrd_x": {"data": sqrd_x.tolist(), "operation": "sum", "type": "float"},
+        "diff_x": {"data": diff_x.tolist(), "operation": "sum", "type": "float"},
+        "diff_sqrd_x": {
+            "data": diff_sqrd_x.tolist(),
             "operation": "sum",
             "type": "float",
         },
@@ -100,43 +100,32 @@ def local_paired(x, y):
     sec_local_transfer=secure_transfer(sum_op=True),
     alpha=literal(),
     alternative=literal(),
+    mu=literal(),
     return_type=[transfer()],
 )
-def global_paired(sec_local_transfer, alpha, alternative):
+def global_one_sample(sec_local_transfer, alpha, alternative, mu):
     from scipy.stats import t
 
     n_obs = sec_local_transfer["n_obs"]
-    sum_x1 = sec_local_transfer["sum_x1"]
-    sum_x2 = sec_local_transfer["sum_x2"]
-    diff_sum = sec_local_transfer["diff"]
-    diff_sqrd_sum = sec_local_transfer["diff_sqrd"]
-    x1_sqrd_sum = sec_local_transfer["x1_sqrd_sum"]
-    x2_sqrd_sum = sec_local_transfer["x2_sqrd_sum"]
+    sum_x = sec_local_transfer["sum_x"]
+    sqrd_x = sec_local_transfer["sqrd_x"]
+    diff_sum = sec_local_transfer["diff_x"]
+    diff_sqrd_x = sec_local_transfer["diff_sqrd_x"]
 
-    mean_x1 = sum_x1 / n_obs
-    mean_x2 = sum_x2 / n_obs
-    devel_x1 = x1_sqrd_sum - 2 * mean_x1 * sum_x1 + (mean_x1**2) * n_obs
-    devel_x2 = x2_sqrd_sum - 2 * sum_x2 * mean_x2 + (mean_x2**2) * n_obs
-    sd_x1 = numpy.sqrt(devel_x1 / (n_obs - 1))
-    sd_x2 = numpy.sqrt(devel_x2 / (n_obs - 1))
-
+    smpl_mean = sum_x / n_obs
     # standard deviation of the difference between means
-    sd = numpy.sqrt((diff_sqrd_sum - (diff_sum**2 / n_obs)) / (n_obs - 1))
+    sd = numpy.sqrt((diff_sqrd_x - (diff_sum**2 / n_obs)) / (n_obs - 1))
 
     # standard error of the difference between means
     sed = sd / numpy.sqrt(n_obs)
 
     # t-statistic
-    t_stat = (mean_x1 - mean_x2) / sed
+    t_stat = (smpl_mean - mu) / sed
     df = n_obs - 1
 
-    # Sample mean
-    sample_mean = diff_sum / n_obs
-
-    # Confidence intervals !WARNING: The ci values are  not tested. The code should not be modified, unless there is
-    # a test for the new method.
+    # Confidence intervals
     ci_lower, ci_upper = t.interval(
-        alpha=1 - alpha, df=n_obs - 1, loc=sample_mean, scale=sed
+        alpha=1 - alpha, df=n_obs - 1, loc=smpl_mean, scale=sed
     )
 
     # p-value for alternative = 'greater'
@@ -152,13 +141,15 @@ def global_paired(sec_local_transfer, alpha, alternative):
         p = (1.0 - t.cdf(abs(t_stat), df)) * 2.0
 
     # Cohen’s d
-    cohens_d = (mean_x1 - mean_x2) / numpy.sqrt((sd_x1**2 + sd_x2**2) / 2)
+    cohens_d = -(smpl_mean - mu) / sd
 
     transfer_ = {
+        "n_obs": n_obs,
         "t_stat": t_stat,
+        "std": sd,
+        "p_value": p,
         "df": df,
-        "p": p,
-        "mean_diff": diff_sum / n_obs,
+        "mean_diff": sum_x / n_obs,
         "se_diff": sed,
         "ci_upper": ci_upper,
         "ci_lower": ci_lower,

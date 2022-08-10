@@ -11,8 +11,11 @@ def algorithm_request(algorithm: str, input: dict):
     url = "http://127.0.0.1:5000/algorithms" + f"/{algorithm}"
 
     variables = copy.deepcopy(input["inputdata"]["y"])
-    if input["inputdata"]["x"]:
+    keys = input["inputdata"].keys()
+    if "x" in keys:
         variables.extend(input["inputdata"]["x"])
+    else:
+        pass
 
     filters = {
         "condition": "AND",
