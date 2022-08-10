@@ -1,8 +1,6 @@
 import json
-from typing import TypeVar
 
 import numpy
-import numpy as np
 from pydantic import BaseModel
 
 from mipengine.udfgen import secure_transfer
@@ -33,9 +31,6 @@ def run(algo_interface):
         variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
     )
 
-    [x_var_name] = algo_interface.x_variables
-    [y_var_name] = algo_interface.y_variables
-
     sec_local_transfer = local_run(
         func=local_paired,
         keyword_args=dict(y=Y_relation, x=X_relation),
@@ -64,13 +59,9 @@ def run(algo_interface):
     return res
 
 
-S = TypeVar("S")
-T = TypeVar("T")
-
-
 @udf(
-    y=relation(schema=T),
-    x=relation(schema=S),
+    y=relation(),
+    x=relation(),
     return_type=[secure_transfer(sum_op=True)],
 )
 def local_paired(x, y):
@@ -85,13 +76,21 @@ def local_paired(x, y):
     x2_sqrd_sum = sum(x2**2)
 
     sec_transfer_ = {
-        "n_obs": {"data": n_obs, "operation": "sum"},
-        "sum_x1": {"data": x1_sum.item(), "operation": "sum"},
-        "sum_x2": {"data": x2_sum.item(), "operation": "sum"},
-        "diff": {"data": diff.tolist(), "operation": "sum"},
-        "diff_sqrd": {"data": diff_sqrd.tolist(), "operation": "sum"},
-        "x1_sqrd_sum": {"data": x1_sqrd_sum.tolist(), "operation": "sum"},
-        "x2_sqrd_sum": {"data": x2_sqrd_sum.tolist(), "operation": "sum"},
+        "n_obs": {"data": n_obs, "operation": "sum", "type": "int"},
+        "sum_x1": {"data": x1_sum.item(), "operation": "sum", "type": "float"},
+        "sum_x2": {"data": x2_sum.item(), "operation": "sum", "type": "float"},
+        "diff": {"data": diff.tolist(), "operation": "sum", "type": "float"},
+        "diff_sqrd": {"data": diff_sqrd.tolist(), "operation": "sum", "type": "float"},
+        "x1_sqrd_sum": {
+            "data": x1_sqrd_sum.tolist(),
+            "operation": "sum",
+            "type": "float",
+        },
+        "x2_sqrd_sum": {
+            "data": x2_sqrd_sum.tolist(),
+            "operation": "sum",
+            "type": "float",
+        },
     }
 
     return sec_transfer_
@@ -131,19 +130,26 @@ def global_paired(sec_local_transfer, alpha, alternative):
     t_stat = (mean_x1 - mean_x2) / sed
     df = n_obs - 1
 
+    # Sample mean
+    sample_mean = diff_sum / n_obs
+
+    # Confidence intervals !WARNING: The ci values are  not tested. The code should not be modified, unless there is
+    # a test for the new method.
+    ci_lower, ci_upper = t.interval(
+        alpha=1 - alpha, df=n_obs - 1, loc=sample_mean, scale=sed
+    )
+
     # p-value for alternative = 'greater'
     if alternative == "greater":
         p = 1.0 - t.cdf(t_stat, df)
+        ci_upper = "Infinity"
     # p-value for alternative = 'less'
     elif alternative == "less":
         p = 1.0 - t.cdf(-t_stat, df)
+        ci_lower = "-Infinity"
     # p-value for alternative = 'two-sided'
     else:
         p = (1.0 - t.cdf(abs(t_stat), df)) * 2.0
-
-    # Confidence intervals
-    sample_mean = diff_sum / n_obs
-    ci = t.interval(alpha=1 - alpha, df=n_obs - 1, loc=sample_mean, scale=sed)
 
     # Cohen’s d
     cohens_d = (mean_x1 - mean_x2) / numpy.sqrt((sd_x1**2 + sd_x2**2) / 2)
@@ -152,10 +158,10 @@ def global_paired(sec_local_transfer, alpha, alternative):
         "t_stat": t_stat,
         "df": df,
         "p": p,
-        "mean_diff": diff_sum,
+        "mean_diff": diff_sum / n_obs,
         "se_diff": sed,
-        "ci_upper": ci[1],
-        "ci_lower": ci[0],
+        "ci_upper": ci_upper,
+        "ci_lower": ci_lower,
         "cohens_d": cohens_d,
     }
 

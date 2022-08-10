@@ -1,9 +1,7 @@
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
-import pingouin as pt
-from scipy import stats
+import rpy2.robjects as ro
+from rpy2.robjects.packages import importr
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
@@ -15,49 +13,47 @@ EXPECTED_PATH = Path(
     "paired_ttest_expected.json",
 )
 
+jsonlite = importr("jsonlite")
+dplyr = importr("dplyr")
+effsize = importr("effsize")
+stats = importr("stats")
+
 
 class PairedTtestTestCaseGenerator(TestCaseGenerator):
     def compute_expected_output(self, input_data, input_parameters="alt_hypothesis"):
         Y, X = input_data
-        alt_hyp = input_parameters["alt_hypothesis"]
+        if input_parameters["alt_hypothesis"] == "two-sided":
+            alt_hyp = "two.sided"
+        else:
+            alt_hyp = input_parameters["alt_hypothesis"]
         alpha = input_parameters["alpha"]
         n_obs = len(Y)
         y_name = Y.columns[0]
         x_name = X.columns[0]
-        dict_to_df = {y_name: np.array(Y[y_name]), x_name: np.array(X[x_name])}
-        data = pd.DataFrame(dict_to_df)
-        y = data[y_name].tolist()
-        x = data[x_name].tolist()
 
-        diff_sum = sum(X[x_name] - Y[y_name])
-        diff_sqrd_sum = sum((X[x_name] - Y[y_name]) ** 2)
-
-        # standard deviation of the difference between means
-        sd = np.sqrt((diff_sqrd_sum - (diff_sum**2 / n_obs)) / (n_obs - 1))
-
-        # standard error of the difference between means
-        sed = sd / np.sqrt(n_obs)
-        sample_mean = diff_sum / n_obs
-
-        # critical value
-        cv = stats.t.ppf(1.0 - alpha / 2, n_obs - 1)
-
-        ci_upper = sample_mean + cv * (sd / np.sqrt(n_obs))
-        ci_lower = sample_mean - cv * (sd / np.sqrt(n_obs))
-        res = stats.ttest_rel(x, y, alternative=alt_hyp, nan_policy="omit")
-        cohens_d = (np.mean(X[x_name]) - np.mean(Y[y_name])) / np.sqrt(
-            (np.std(x, ddof=1) ** 2 + np.std(y, ddof=1) ** 2) / 2
+        t_test_res = stats.t_test(
+            ro.vectors.FloatVector(X[x_name]),
+            ro.vectors.FloatVector(Y[y_name]),
+            paired=True,
+            alternative=alt_hyp,
+            conf_level=1 - alpha,
         )
+        cohens_d_res = effsize.cohen_d(
+            ro.vectors.FloatVector(X[x_name]), ro.vectors.FloatVector(Y[y_name])
+        )
+        t_test_res_py = dict(zip(t_test_res.names, map(list, list(t_test_res))))
+        cohens_d_res_py = dict(zip(cohens_d_res.names, map(list, list(cohens_d_res))))
 
         expected_out = {
-            "statistic": res[0],
-            "p_value": res[1],
-            "df": n_obs - 1,
-            "mean_diff": diff_sum,
-            "se_difference": sed,
-            "ci_upper": ci_upper,
-            "ci_lower": ci_lower,
-            "cohens_d": cohens_d,
+            "n_obs": n_obs,
+            "statistic": t_test_res_py["statistic"],
+            "p_value": t_test_res_py["p.value"],
+            "df": t_test_res_py["parameter"],
+            "mean_diff": t_test_res_py["estimate"],
+            "se_difference": t_test_res_py["stderr"],
+            "ci_upper": t_test_res_py["conf.int"][1],
+            "ci_lower": t_test_res_py["conf.int"][0],
+            "cohens_d": cohens_d_res_py["estimate"],
         }
 
         return expected_out
