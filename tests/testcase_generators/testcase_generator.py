@@ -253,7 +253,7 @@ def make_parameters(properties, variable_groups):
     if properties["type"] == "float":
         return FloatParameter(min=properties["min"], max=properties["max"])
     if properties["type"] == "enum_from_list":
-        return EnumFromList(enums=properties["enumerations"])
+        return EnumFromList(enums=properties["enums"])
     if properties["type"] == "enum_from_cde":
         var_group_key = properties["variable_group"]
         var_group = variable_groups[var_group_key]
