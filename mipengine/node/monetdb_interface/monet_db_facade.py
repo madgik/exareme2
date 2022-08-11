@@ -12,15 +12,11 @@ from mipengine.singleton import Singleton
 INTEGRITY_ERROR_RETRY_INTERVAL = 1
 BROKEN_PIPE_MAX_ATTEMPTS = 50
 BROKEN_PIPE_ERROR_RETRY = 0.2
-CREATE_OR_REPLACE_QUERY_TIMEOUT = 1
-CREATE_REMOTE_TABLE_QUERY_TIMEOUT = 1
-INSERT_INTO_QUERY_TIMEOUT = (
-    node_config.celery.worker_concurrency * node_config.celery.run_udf_time_limit
-)
+QUERY_EXECUTION_LOCK_TIMEOUT = node_config.celery.tasks_timeout
+UDF_EXECUTION_LOCK_TIMEOUT = node_config.celery.run_udf_task_timeout
 
-create_remote_table_query_lock = Semaphore()
-create_function_query_lock = Semaphore()
-insert_query_lock = Semaphore()
+query_execution_lock = Semaphore()
+udf_execution_lock = Semaphore()
 
 
 class DBExecutionDTO:
@@ -51,21 +47,17 @@ class _MonetDBConnectionPool(metaclass=Singleton):
         )
 
     def get_connection(self):
-        return self._connection_pool.pop()
+        connection = self._connection_pool.pop()
+        connection.commit()
+        return connection
 
-    def release_connection(self, conn):
-        self._connection_pool.append(conn)
+    def release_connection(self, connection):
+        connection.commit()
+        self._connection_pool.append(connection)
 
 
 @contextmanager
 def cursor(_connection):
-    """
-    We use pseudo-multithreading (eventlet greenlets) by committing before a select query we refresh the state
-    of the connection so that it sees changes from other connections.
-    https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
-    """
-    _connection.commit()
-
     cur = _connection.cursor()
     yield cur
     cur.close()
@@ -83,8 +75,8 @@ def _execute_and_commit(conn, db_execution_dto):
 
 @contextmanager
 def _lock(query_lock, timeout):
-    query_lock.acquire(timeout=timeout)
-    yield
+    acquired = query_lock.acquire(timeout=timeout)
+    yield acquired
     query_lock.release()
 
 
@@ -176,14 +168,31 @@ def _execute(query: str, parameters=None, many=False, conn=None):
         f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
     )
 
-    if "CREATE OR REPLACE FUNCTION" in db_execution_dto.query:
-        with _lock(create_function_query_lock, CREATE_OR_REPLACE_QUERY_TIMEOUT):
-            _execute_and_commit(conn, db_execution_dto)
-    elif "CREATE REMOTE" in db_execution_dto.query:
-        with _lock(create_remote_table_query_lock, CREATE_REMOTE_TABLE_QUERY_TIMEOUT):
-            _execute_and_commit(conn, db_execution_dto)
-    elif "INSERT INTO" in db_execution_dto.query:
-        with _lock(insert_query_lock, INSERT_INTO_QUERY_TIMEOUT):
-            _execute_and_commit(conn, db_execution_dto)
+    if db_execution_dto.query.startswith("INSERT INTO"):
+        with _lock(udf_execution_lock, UDF_EXECUTION_LOCK_TIMEOUT) as acquired:
+            if acquired:
+                _execute_and_commit(conn, db_execution_dto)
+            else:
+                error_msg = _get_error_msg(db_execution_dto, UDF_EXECUTION_LOCK_TIMEOUT)
+                logger.error(error_msg)
+                raise Exception(error_msg)
     else:
-        _execute_and_commit(conn, db_execution_dto)
+        with _lock(query_execution_lock, QUERY_EXECUTION_LOCK_TIMEOUT) as acquired:
+            if acquired:
+                _execute_and_commit(conn, db_execution_dto)
+            else:
+                error_msg = _get_error_msg(
+                    db_execution_dto, QUERY_EXECUTION_LOCK_TIMEOUT
+                )
+                logger.error(error_msg)
+                raise Exception(error_msg)
+
+
+def _get_error_msg(db_execution_dto, lock_timeout):
+    return f"""
+        query: {db_execution_dto.query=} with parameters:
+        {str(db_execution_dto.parameters)} and
+        {db_execution_dto.many=} was not executed because the
+        lock was not acquired during
+        {lock_timeout=}
+    """
