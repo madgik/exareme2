@@ -26,6 +26,12 @@ class DBExecutionDTO:
         self.many = many
 
 
+class LockDTO:
+    def __init__(self, lock, timeout):
+        self.lock = lock
+        self.timeout = timeout
+
+
 class _MonetDBConnectionPool(metaclass=Singleton):
     """
     MonetDBConnectionPool is a Singleton class.
@@ -35,7 +41,10 @@ class _MonetDBConnectionPool(metaclass=Singleton):
     """
 
     def __init__(self):
-        self._connection_pool = [self.create_connection() for _ in range(16)]
+        self._connection_pool = [
+            self.create_connection()
+            for _ in range(node_config.celery.worker_concurrency)
+        ]
 
     def create_connection(self):
         return pymonetdb.connect(
@@ -71,13 +80,6 @@ def _execute_and_commit(conn, db_execution_dto):
             db_execution_dto.query, db_execution_dto.parameters
         )
     conn.commit()
-
-
-@contextmanager
-def _lock(query_lock, timeout):
-    acquired = query_lock.acquire(timeout=timeout)
-    yield acquired
-    query_lock.release()
 
 
 def db_execute_and_fetchall(query: str, parameters=None, many=False) -> List:
@@ -168,24 +170,24 @@ def _execute(query: str, parameters=None, many=False, conn=None):
         f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
     )
 
-    if db_execution_dto.query.startswith("INSERT INTO"):
-        with _lock(udf_execution_lock, UDF_EXECUTION_LOCK_TIMEOUT) as acquired:
-            if acquired:
-                _execute_and_commit(conn, db_execution_dto)
-            else:
-                error_msg = _get_error_msg(db_execution_dto, UDF_EXECUTION_LOCK_TIMEOUT)
-                logger.error(error_msg)
-                raise Exception(error_msg)
-    else:
-        with _lock(query_execution_lock, QUERY_EXECUTION_LOCK_TIMEOUT) as acquired:
-            if acquired:
-                _execute_and_commit(conn, db_execution_dto)
-            else:
-                error_msg = _get_error_msg(
-                    db_execution_dto, QUERY_EXECUTION_LOCK_TIMEOUT
-                )
-                logger.error(error_msg)
-                raise Exception(error_msg)
+    lock_dto = (
+        LockDTO(udf_execution_lock, UDF_EXECUTION_LOCK_TIMEOUT)
+        if db_execution_dto.query.startswith("INSERT INTO")
+        else LockDTO(query_execution_lock, QUERY_EXECUTION_LOCK_TIMEOUT)
+    )
+
+    acquired = lock_dto.lock.acquire(timeout=lock_dto.timeout)
+    try:
+        if acquired:
+            _execute_and_commit(conn, db_execution_dto)
+            lock_dto.lock.release()
+        else:
+            error_msg = _get_error_msg(db_execution_dto, lock_dto.timeout)
+            logger.error(error_msg)
+            raise Exception(error_msg)
+    except Exception as exc:
+        lock_dto.lock.release()
+        raise exc
 
 
 def _get_error_msg(db_execution_dto, lock_timeout):

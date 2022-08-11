@@ -8,8 +8,8 @@ minimum_row_count = 10
 
 [celery]
 worker_concurrency = 16
-celery_tasks_timeout = 120
-celery_run_udf_task_timeout = 300
+tasks_timeout = 120
+run_udf_task_timeout = 300
 
 [rabbitmq]
 ip = "172.17.0.1"
