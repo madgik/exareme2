@@ -18,19 +18,6 @@ microk8s enable dns ingress helm3
 microk8s enable dashboard
 ```
 
-### Hostname configuration
-
-Currently, each node is distinguished from another one using their hostnames and they <b>MUST</b> be alphanumeric.
-
-**NOT working currently**
-<br>If the node's hostname does not comply with that convention it has to be configured
-from the kubelet, for microk8s you can do the following, quoting from https://microk8s.io/docs/troubleshooting:
-
-```
-To fix this you can change the hostname or use the --hostname-override argument
-in kubelet’s configuration in /var/snap/microk8s/current/args/kubelet.
-```
-
 ## Cluster Management
 
 ### Configure the master node to run pods
@@ -89,6 +76,17 @@ If SMPC is enabled in the deployment use the following command on the **master**
 microk8s kubectl label node <node-name> smpc_player=true
 ```
 
+### Hostname configuration
+
+Currently, each node is distinguished from another one using their hostnames and they <b>MUST</b> be alphanumeric.
+
+If a node's hostname does not comply with that convention it has to be configured from the kubelet, for microk8s you can do the following, quoting from https://microk8s.io/docs/troubleshooting:
+
+```
+To fix this you can change the hostname or use the --hostname-override argument
+in kubelet’s configuration in /var/snap/microk8s/current/args/kubelet.
+```
+**ATTENTION:** The hostname configuration should take place AFTER the node has joined the cluster.
 
 ## Images Registry Management
 
