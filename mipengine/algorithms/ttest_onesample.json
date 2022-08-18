@@ -1,5 +1,5 @@
 {
-    "name": "TTEST_ONESAMPLE",
+    "name": "ttest_onesample",
     "desc": "Student’s One-sample t-test",
     "label": "T-Test One-Sample",
     "enabled": true,
