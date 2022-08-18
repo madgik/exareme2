@@ -7,7 +7,7 @@ from rpy2.robjects.vectors import StrVector
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
-SPECS_PATH = Path("mipengine", "algorithms", "TTEST_ONESAMPLE.json")
+SPECS_PATH = Path("mipengine", "algorithms", "ttest_onesample.json")
 EXPECTED_PATH = Path(
     "tests",
     "algorithm_validation_tests",
