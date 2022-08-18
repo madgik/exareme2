@@ -1,5 +1,5 @@
 {
-    "name": "paired_ttest",
+    "name": "TTEST_PAIRED",
     "desc": "Paired t-test",
     "label": "Paired t-test",
     "enabled": true,
