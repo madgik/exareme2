@@ -56,6 +56,11 @@ class _MonetDBConnectionPool(metaclass=Singleton):
         )
 
     def get_connection(self):
+        """
+        We use pseudo-multithreading (eventlet greenlets) by committing before a query we refresh the state
+        of the connection so that it sees changes from other connections.
+        https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
+        """
         connection = self._connection_pool.pop()
         connection.commit()
         return connection
