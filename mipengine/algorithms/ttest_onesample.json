@@ -1,26 +1,14 @@
 {
-    "name": "paired_ttest",
-    "desc": "Paired t-test",
-    "label": "Paired t-test",
+    "name": "ttest_onesample",
+    "desc": "Student’s One-sample t-test",
+    "label": "T-Test One-Sample",
     "enabled": true,
     "inputdata": {
         "y": {
-            "label": "independent",
-            "desc": "independent variable",
+            "label": "Variables",
+            "desc": "Variables",
             "types": [
                "real", "int"
-            ],
-            "stattypes": [
-                "numerical"
-            ],
-            "notblank": true,
-            "multiple": false
-        },
-        "x": {
-            "label": "dependent",
-            "desc": "Dependent variable",
-            "types": [
-                "real", "int"
             ],
             "stattypes": [
                 "numerical"
@@ -32,7 +20,7 @@
     "parameters": {
         "alt_hypothesis": {
             "label": "Alternative Hypothesis",
-            "desc": "The alternative hypothesis to the null, returning specifically whether measure 1 is different to measure 2, measure 1 greater than measure 2, and measure 1 less than measure 2 respectively.",
+            "desc": "The alternative hypothesis to the null, returning specifically whether the result is less than, greater than, or .",
             "type": "text",
             "default": "two-sided",
             "enums": ["two-sided", "less", "greater"],
@@ -46,6 +34,16 @@
             "default": 0.95,
             "min": 0.0,
             "max": 1.0,
+            "notblank": true,
+            "multiple": false
+        },
+        "mu": {
+            "label": "Population mean",
+            "desc": "The population mean, if it is known, else it defaults to 0.",
+            "type": "real",
+            "default": 0.0,
+            "min": -10,
+            "max": 10,
             "notblank": true,
             "multiple": false
         }

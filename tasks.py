@@ -138,6 +138,13 @@ def create_configs(c):
         node_config["rabbitmq"]["ip"] = deployment_config["ip"]
         node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
 
+        node_config["celery"]["tasks_timeout"] = deployment_config[
+            "celery_tasks_timeout"
+        ]
+        node_config["celery"]["run_udf_task_timeout"] = deployment_config[
+            "celery_run_udf_task_timeout"
+        ]
+
         node_config["privacy"]["minimum_row_count"] = deployment_config["privacy"][
             "minimum_row_count"
         ]

@@ -13,7 +13,7 @@ expected_file = Path(__file__).parent / "expected" / "paired_ttest_expected.json
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_paired_ttest(test_input, expected):
-    response = algorithm_request("paired_ttest", test_input)
+    response = algorithm_request("ttest_paired", test_input)
     result = json.loads(response.content)
 
     assert_allclose(result["t_stat"], expected["statistic"], rtol=1e-8, atol=1e-10)

@@ -1,9 +1,6 @@
-import itertools
-import logging
 from typing import Any
 from typing import Dict
 from typing import List
-from typing import Tuple
 
 from mipengine import DType
 from mipengine.exceptions import TablesNotFound

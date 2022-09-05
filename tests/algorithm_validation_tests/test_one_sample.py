@@ -13,7 +13,7 @@ expected_file = Path(__file__).parent / "expected" / "one_sample_expected.json"
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_one_sample_ttest(test_input, expected):
-    response = algorithm_request("TTEST_ONESAMPLE", test_input)
+    response = algorithm_request("ttest_onesample", test_input)
     result = json.loads(response.content)
 
     assert_allclose(result["n_obs"], expected["n_obs"], rtol=1e-8, atol=1e-10)
