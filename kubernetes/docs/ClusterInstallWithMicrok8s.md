@@ -102,7 +102,7 @@ A more permanent solution is to use a local registry. The k8s master node will k
 ### In the master node follow these instructions:
 Add the registry component in the microk8s cluster:
 ```
-microk8s registry
+microk8s enable registry
 ```
 
 Install docker so you can pull, tag and push images:
