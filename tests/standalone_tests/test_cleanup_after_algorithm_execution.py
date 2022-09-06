@@ -15,6 +15,9 @@ from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.controller import Controller
 from mipengine.controller.controller import get_a_uniqueid
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+from tests.standalone_tests.conftest import DATASET_SUFFIXES_LOCALNODE1
+from tests.standalone_tests.conftest import DATASET_SUFFIXES_LOCALNODE2
+from tests.standalone_tests.conftest import DATASET_SUFFIXES_LOCALNODETMP
 from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_NAME
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_PORT
@@ -40,6 +43,11 @@ def controller_config_dict_mock():
             "contextids_cleanup_folder": "/tmp",
             "nodes_cleanup_interval": 2,
             "contextid_release_timelimit": 3600,  # 1hour
+        },
+        "localnodes": {
+            "config_file": "/home/sskoull/Desktop/Dropbox/AthinaInstitute/MIP-Engine/tests/standalone_tests/testing_env_configs/test_globalnode_localnode1_localnode2_localnodetmp_addresses.json",
+            "dns": "",
+            "port": "",
         },
         "rabbitmq": {
             "user": "user",
@@ -144,40 +152,21 @@ datasets = [
     "edsd9",
 ]
 
+datasets_localnode1 = [f"edsd{i}" for i in DATASET_SUFFIXES_LOCALNODE1]
+datasets_localnode2 = [f"edsd{i}" for i in DATASET_SUFFIXES_LOCALNODE2]
+datasets_localnodetmp = [f"edsd{i}" for i in DATASET_SUFFIXES_LOCALNODETMP]
 
 algorithm_request_dto = AlgorithmRequestDTO(
     inputdata=AlgorithmInputDataDTO(
         data_model="dementia:0.1",
-        datasets=[
-            "edsd0",
-            "edsd1",
-            "edsd2",
-            "edsd3",
-            "edsd4",
-            "edsd5",
-            "edsd6",
-            "edsd7",
-            "edsd8",
-            "edsd9",
-        ],
+        datasets=datasets,
         filters={
             "condition": "AND",
             "rules": [
                 {
                     "id": "dataset",
                     "type": "string",
-                    "value": [
-                        "edsd0",
-                        "edsd1",
-                        "edsd2",
-                        "edsd3",
-                        "edsd4",
-                        "edsd5",
-                        "edsd6",
-                        "edsd7",
-                        "edsd8",
-                        "edsd9",
-                    ],
+                    "value": datasets,
                     "operator": "in",
                 },
                 {
@@ -211,11 +200,11 @@ algorithm_request_dto = AlgorithmRequestDTO(
         ],
         y=["alzheimerbroadcategory"],
     ),
-    parameters={"classes": ["AD", "CN"]},
+    parameters={"positive_class": "AD", "positive_class": "CN"},
 )
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
+# @pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(
@@ -229,13 +218,20 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     controller = Controller()
 
     # NodeLandscapeAggregator needs to be running because it is used by the Cleaner
-    controller.start_node_landscape_aggregator()
+    # ----------------------
+    from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+
+    node_landscape_aggregator = NodeLandscapeAggregator()
+    node_landscape_aggregator._update()
+    # ----------------------
+    # controller.start_node_landscape_aggregator()
+
     # wait until NodeLandscapeAggregator gets filled with some node info
     start = time.time()
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_datasets_location()
+        or not controller._node_landscape_aggregator.get_datasets_locations()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -271,8 +267,8 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: datasets,
-                localnode2_tasks_handler.node_id: datasets,
+                localnode1_tasks_handler.node_id: datasets_localnode1,
+                localnode2_tasks_handler.node_id: datasets_localnode2,
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -348,7 +344,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         assert False
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
+# @pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_timelimit(
@@ -360,17 +356,23 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     localnode2_tasks_handler,
     reset_node_landscape_aggregator,
 ):
-
     controller = Controller()
 
     # NodeLandscapeAggregator needs to be running because it is used by the Cleaner
-    controller.start_node_landscape_aggregator()
+    # ----------------------
+    from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+
+    node_landscape_aggregator = NodeLandscapeAggregator()
+    node_landscape_aggregator._update()
+    # ----------------------
+    # controller.start_node_landscape_aggregator()
+
     # wait until NodeLandscapeAggregator gets filled with some node info
     start = time.time()
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_datasets_location()
+        or not controller._node_landscape_aggregator.get_datasets_locations()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -395,8 +397,8 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             datasets_per_local_node={
-                localnode1_tasks_handler.node_id: datasets,
-                localnode2_tasks_handler.node_id: datasets,
+                localnode1_tasks_handler.node_id: datasets_localnode1,
+                localnode2_tasks_handler.node_id: datasets_localnode2,
             },
             tasks_handlers=NodesTasksHandlersDTO(
                 global_node_tasks_handler=globalnode_tasks_handler,
@@ -500,7 +502,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_datasets_location()
+        or not controller._node_landscape_aggregator.get_datasets_locations()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -666,7 +668,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_datasets_location()
+        or not controller._node_landscape_aggregator.get_datasets_locations()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
@@ -827,7 +829,7 @@ async def test_cleanup_controller_restart(
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
-        or not controller._node_landscape_aggregator.get_datasets_location()
+        or not controller._node_landscape_aggregator.get_datasets_locations()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
