@@ -15,14 +15,6 @@ def test_independent_ttest(test_input, expected):
     response = algorithm_request("ttest_independent", test_input)
     result = json.loads(response.content)
 
-    # print(result["t_stat"], ["statistic"])
-    # print(result["df"], expected["df"], expected["n_obs"])
-    print(
-        result["mean_diff"],
-        expected["mean_diff"],
-        result["t_stat"],
-        expected["statistic"],
-    )
     assert_allclose(result["t_stat"], expected["statistic"], rtol=1e-8, atol=1e-10)
     assert_allclose(result["p"], expected["p_value"], rtol=1e-8, atol=1e-10)
     assert_allclose(result["mean_diff"], expected["mean_diff"], rtol=1e-8, atol=1e-10)

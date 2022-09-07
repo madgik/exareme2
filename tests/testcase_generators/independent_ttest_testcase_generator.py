@@ -51,7 +51,7 @@ class IndependentTtestTestCaseGenerator(TestCaseGenerator):
             "statistic": t_test_res_py["statistic"][0],
             "p_value": t_test_res_py["p.value"][0],
             "df": n_obs - 2,
-            "mean_diff": t_test_res_py["estimate"][0],
+            "mean_diff": t_test_res_py["estimate"][0] - t_test_res_py["estimate"][1],
             "se_difference": t_test_res_py["stderr"][0],
             "ci_upper": t_test_res_py["conf.int"][1],
             "ci_lower": t_test_res_py["conf.int"][0],
