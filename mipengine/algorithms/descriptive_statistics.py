@@ -65,6 +65,181 @@ class DescriptiveResult(BaseModel):
     q2_model: List[List[float]]
     q3_model: List[List[float]]
 
+class numerical_summary(BaseModel):
+    num_datapoints: int
+    num_nulls: int
+    num_total: int
+    data:Dict
+
+class categorical_summary(BaseModel):
+    num_datapoints: int
+    num_nulls: int
+    num_total: int
+    data:Dict
+
+class desc_output(BaseModel):
+    single:List[BaseModel]
+    model:List[BaseModel]
+
+class numerical_variable(BaseModel):
+    name:str
+    dataset_name:str
+    #results: List[numerical_summary]
+    results: numerical_summary
+
+
+class categorical_variable(BaseModel):
+    name:str
+    dataset_name:str
+    #results: List[categorical_summary]
+    results: categorical_summary
+
+
+def populate(response,numerical_variables,categorical_variables):
+    numerical_list = []
+    num_datasets = numpy.array(response.max_dataset).shape[0]
+    for i,curr_numerical in enumerate(numerical_variables):
+        for j in range(num_datasets):
+            numerical_list.append(numerical_to_result(curr_numerical,str(j),response,i))
+        global_result = numerical_to_result(curr_numerical,'global',response,i)
+        numerical_list.append(global_result)
+
+    categorical_list = []
+    for i,curr_categorical in enumerate(categorical_variables):
+        for j in range(num_datasets):
+            categorical_list.append(categorical_to_result(curr_numerical,str(j),response,i))
+        global_result = categorical_to_result(curr_numerical,'global',response,i)
+        categorical_list.append(global_result)
+
+    single_list = numerical_list + categorical_list
+
+    numerical_model_list = []
+    for i,curr_numerical in enumerate(numerical_variables):
+        for j in range(num_datasets):
+            numerical_model_list.append(numerical_to_result_model(curr_numerical,str(j),response,i))
+        global_result = numerical_to_result_model(curr_numerical,'global',response,i)
+        numerical_model_list.append(global_result)
+
+    new_obj = desc_output(single=single_list,model= numerical_model_list)
+    return new_obj
+def numerical_to_result(name,dataset_id:str,response,column_id):
+    if dataset_id == 'global':
+        count_not_null = response.count_not_null[column_id]
+        num_null = response.count_num_null[column_id]
+        num_total = num_null  + count_not_null
+        data = {}
+        data['max'] = response.max[column_id]
+        data['min'] = response.min[column_id]
+        data['mean'] = response.mean[column_id]
+        data['std'] = response.mean[column_id]
+        #data['q1'] = response.q1[column_id]
+        #data['q2'] = response.q2[column_id]
+        #data['q3'] = response.q3[column_id]
+        dataset = 'global'
+    else:
+        dataset_id_numeric = int(dataset_id)
+        count_not_null_dataset = numpy.array(response.count_not_null_dataset)
+        count_num_null_dataset = numpy.array(response.count_num_null_dataset)
+        max_dataset = numpy.array(response.max_dataset)
+        min_dataset = numpy.array(response.min_dataset)
+        mean_dataset = numpy.array(response.mean_dataset)
+        std_dataset = numpy.array(response.std_dataset)
+        q1_dataset = numpy.array(response.q1)
+        q2_dataset = numpy.array(response.q2)
+        q3_dataset = numpy.array(response.q3)
+
+        dataset_name = 'dataset_'+dataset_id
+        count_not_null = count_not_null_dataset[dataset_id_numeric][column_id]
+        num_null = count_num_null_dataset[dataset_id_numeric][column_id]
+        num_total = num_null + count_not_null
+        data = {}
+        data['max'] = max_dataset[dataset_id_numeric][column_id]
+        data['min'] = min_dataset[dataset_id_numeric][column_id]
+        data['mean'] = mean_dataset[dataset_id_numeric][column_id]
+        data['std'] = std_dataset[dataset_id_numeric][column_id]
+        data['q1'] = q1_dataset[dataset_id_numeric][column_id]
+        data['q2'] = q2_dataset[dataset_id_numeric][column_id]
+        data['q3'] = q3_dataset[dataset_id_numeric][column_id]
+        dataset = dataset_name
+    summary = numerical_summary(num_datapoints=num_total,num_nulls= num_null,num_total= num_total- num_null,
+                                                             data=data)
+
+    new_variable = numerical_variable(name=name,dataset_name=dataset,results=summary)
+
+    return new_variable
+
+def numerical_to_result_model(name,dataset_id:str,response,column_id):
+    if dataset_id == 'global':
+        count_not_null = response.count_not_null_model[column_id]
+        num_null = response.count_num_null_model[column_id]
+        num_total = num_null  + count_not_null
+        data = {}
+        data['max'] = response.max_model[column_id]
+        data['min'] = response.min_model[column_id]
+        data['mean'] = response.mean_model[column_id]
+        data['std'] = response.mean_model[column_id]
+        #data['q1'] = response.q1_model[column_id]
+        #data['q2'] = response.q2_model[column_id]
+        #data['q3'] = response.q3_model[column_id]
+        dataset = 'global'
+    else:
+        dataset_id_numeric = int(dataset_id)
+        count_not_null_dataset = numpy.array(response.count_not_null_dataset_model)
+        count_num_null_dataset = numpy.array(response.count_num_null_dataset_model)
+        max_dataset = numpy.array(response.max_dataset_model)
+        min_dataset = numpy.array(response.min_dataset_model)
+        mean_dataset = numpy.array(response.mean_dataset_model)
+        std_dataset = numpy.array(response.std_dataset_model)
+        q1_dataset = numpy.array(response.q1_model)
+        q2_dataset = numpy.array(response.q2_model)
+        q3_dataset = numpy.array(response.q3_model)
+
+        dataset_name = 'dataset_'+dataset_id
+        count_not_null = count_not_null_dataset[dataset_id_numeric][column_id]
+        num_null = count_num_null_dataset[dataset_id_numeric][column_id]
+        num_total = num_null + count_not_null
+        data = {}
+        data['max'] = max_dataset[dataset_id_numeric][column_id]
+        data['min'] = min_dataset[dataset_id_numeric][column_id]
+        data['mean'] = mean_dataset[dataset_id_numeric][column_id]
+        data['std'] = std_dataset[dataset_id_numeric][column_id]
+        data['q1'] = q1_dataset[dataset_id_numeric][column_id]
+        data['q2'] = q2_dataset[dataset_id_numeric][column_id]
+        data['q3'] = q3_dataset[dataset_id_numeric][column_id]
+        dataset = dataset_name
+    curr_summary = numerical_summary(num_datapoints=num_total,
+                                                             num_nulls= num_null,
+                                                             num_total= num_total-num_null,
+                                                             data=data)
+
+    return numerical_variable(name = name,dataset_name=dataset,results=curr_summary)
+
+
+def categorical_to_result(name,dataset_id:str,response,column_id):
+    if dataset_id == 'global':
+        num_nulls = 0
+        num_total = 0
+        dataset = 'global'
+        data = response.categorical_counts[column_id]
+    else:
+        dataset_id_numeric = int(dataset_id)
+        num_nulls = 0
+        num_total = 0
+        categorical_counts_dataset = numpy.array(response.categorical_counts_dataset)
+        data = categorical_counts_dataset[dataset_id_numeric][column_id]
+
+
+
+        dataset_name = 'dataset_'+dataset_id
+
+        dataset = dataset_name
+    curr_summary = categorical_summary(num_datapoints=num_total,num_nulls= num_nulls,
+                                       num_total= num_total-num_nulls,
+                                       data=data)
+
+    return categorical_variable(name=name,dataset_name=dataset,results=curr_summary)
+
+
 
 def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
@@ -296,7 +471,10 @@ def run(algo_interface):
         q2_model=q2_final_nn,
         q3_model=q3_final_nn
     )
-    return result
+    new_obj = populate(result,numerical_columns,categorical_columns)
+    #print(new_obj)
+    #return result
+    return new_obj
 
 @udf(input_df=relation(S),columns_list =literal(),return_type=[transfer()])
 def count_locals(input_df,columns_list):
