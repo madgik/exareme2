@@ -16,8 +16,8 @@ class TtestResult(BaseModel):
     p: float
     mean_diff: float
     se_diff: float
-    # ci_upper: float
-    # ci_lower: float
+    ci_upper: float
+    ci_lower: float
     cohens_d: float
 
 
@@ -51,8 +51,8 @@ def run(algo_interface):
         p=result["p"],
         mean_diff=result["mean_diff"],
         se_diff=result["se_diff"],
-        # ci_upper=result["ci_upper"],
-        # ci_lower=result["ci_lower"],
+        ci_upper=result["ci_upper"],
+        ci_lower=result["ci_lower"],
         cohens_d=result["cohens_d"],
     )
 
@@ -105,6 +105,7 @@ def local_independent(x, y):
     return_type=[transfer()],
 )
 def global_independent(sec_local_transfer, alpha, alternative):
+    import scipy.stats as st
     from scipy.stats import t
 
     n_obs_x1 = sec_local_transfer["n_obs_x1"]
@@ -116,6 +117,7 @@ def global_independent(sec_local_transfer, alpha, alternative):
     x1_sqrd_sum = sec_local_transfer["x1_sqrd_sum"]
     x2_sqrd_sum = sec_local_transfer["x2_sqrd_sum"]
 
+    n_obs = n_obs_x1 + n_obs_x2
     mean_x1 = sum_x1 / n_obs_x1
     mean_x2 = sum_x2 / n_obs_x2
     devel_x1 = x1_sqrd_sum - 2 * mean_x1 * sum_x1 + (mean_x1**2) * n_obs_x1
@@ -137,14 +139,17 @@ def global_independent(sec_local_transfer, alpha, alternative):
     t_stat = (mean_x1 - mean_x2) / sed
     df = n_obs_x1 + n_obs_x2 - 2
 
-    # Sample mean
-    # sample_mean = diff_sum / n_obs
+    # Difference of means
+    diff_mean = mean_x1 - mean_x2
 
     # Confidence intervals !WARNING: The ci values are not tested. The code should not be modified, unless there is
     # a test for the new method.
-    # ci_lower, ci_upper = t.interval(
-    #     alpha=1 - alpha, df=df, loc=sample_mean, scale=sed
-    # )
+    if n_obs < 30:
+        ci_lower, ci_upper = t.interval(
+            alpha=1 - alpha, df=df, loc=diff_mean, scale=sed
+        )
+    else:
+        ci_lower, ci_upper = st.norm.interval(alpha=1 - alpha, loc=diff_mean, scale=sed)
 
     # p-value for alternative = 'greater'
     if alternative == "greater":
@@ -165,10 +170,10 @@ def global_independent(sec_local_transfer, alpha, alternative):
         "t_stat": t_stat,
         "df": df,
         "p": p,
-        "mean_diff": mean_x1 - mean_x2 - t_stat,
+        "mean_diff": diff_mean,
         "se_diff": sed,
-        # "ci_upper": ci_upper,
-        # "ci_lower": ci_lower,
+        "ci_upper": ci_upper,
+        "ci_lower": ci_lower,
         "cohens_d": cohens_d,
     }
 
