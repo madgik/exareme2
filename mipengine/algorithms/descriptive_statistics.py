@@ -222,15 +222,14 @@ def categorical_to_result(name,dataset_id:str,response,column_id,enumerations_di
         dataset = 'global'
         data_original = response.categorical_counts[column_id]
         possible_enumerations = enumerations_dict[name]
-        print("possible enumerations are "+str(possible_enumerations))
-        print("data original are "+str(data_original))
+        #print("possible enumerations are "+str(possible_enumerations))
+        #print("data original are "+str(data_original))
         num_nulls = data_original.get("NaN",0)
-        print('num_nulls are'+str(num_nulls))
+        #print('num_nulls are'+str(num_nulls))
         data = {}
-        for i in len(possible_enumerations):
-            curr_enumeration = possible_enumerations2[i]
+        for curr_enumeration in possible_enumerations:
             value = data_original.get(curr_enumeration,0)
-            print("Tried "+curr_enumeration+' and recieved value '+str(value))
+            #print("Tried "+curr_enumeration+' and recieved value '+str(value))
             num_total += value
             data[curr_enumeration] = value
         num_total += num_nulls
