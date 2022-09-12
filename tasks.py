@@ -271,13 +271,14 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False, smpc=Fa
 
 
 @task(iterable=["node"])
-def create_monetdb(c, node, image=None, log_level=None):
+def create_monetdb(c, node, image=None, log_level=None, nclients=None):
     """
     (Re)Create MonetDB container(s) for given node(s). If the container exists, it will remove it and create it again.
 
     :param node: A list of nodes for which it will create the monetdb containers.
     :param image: The image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
     :param log_level: If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param nclients: If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
 
     If an image is not provided it will use the 'monetdb_image' field from
     the 'DEPLOYMENT_CONFIG_FILE' ex. monetdb_image = "madgik/mipenginedb:dev1.2"
@@ -293,6 +294,9 @@ def create_monetdb(c, node, image=None, log_level=None):
 
     if not log_level:
         log_level = get_deployment_config("log_level")
+
+    if not nclients:
+        nclients = get_deployment_config("monetdb_nclients")
 
     get_docker_image(c, image)
 
@@ -311,7 +315,7 @@ def create_monetdb(c, node, image=None, log_level=None):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} {image}"""
+        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level}  -e MONETDB_NCLIENTS={nclients} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} {image}"""
         run(c, cmd)
 
 
@@ -636,6 +640,7 @@ def deploy(
     log_level=None,
     framework_log_level=None,
     monetdb_image=None,
+    monetdb_nclients=None,
     algorithm_folders=None,
     smpc=None,
 ):
@@ -649,6 +654,7 @@ def deploy(
     :param log_level: Used for the dev logs. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param framework_log_level: Used for the engine services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_image: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param monetdb_nclients: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param algorithm_folders: Used from the services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param smpc: Deploy the SMPC cluster as well. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     """
@@ -661,6 +667,9 @@ def deploy(
 
     if not monetdb_image:
         monetdb_image = get_deployment_config("monetdb_image")
+
+    if not monetdb_nclients:
+        monetdb_nclients = get_deployment_config("monetdb_nclients")
 
     if not algorithm_folders:
         algorithm_folders = get_deployment_config("algorithm_folders")
@@ -691,7 +700,13 @@ def deploy(
 
     node_ids.sort()  # Sorting the ids protects removing a similarly named id, localnode1 would remove localnode10.
 
-    create_monetdb(c, node=node_ids, image=monetdb_image, log_level=log_level)
+    create_monetdb(
+        c,
+        node=node_ids,
+        image=monetdb_image,
+        log_level=log_level,
+        nclients=monetdb_nclients,
+    )
     create_rabbitmq(c, node=node_ids)
     init_monetdb(c, port=local_nodes_monetdb_ports)
 
@@ -1160,4 +1175,4 @@ def get_docker_image(c, image, always_pull=False):
 
     message(f"Pulling image {image} ...", Level.HEADER)
     cmd = f"docker pull {image}"
-    run(c, cmd)
+    # run(c, cmd)

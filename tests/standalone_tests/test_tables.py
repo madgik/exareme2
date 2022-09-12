@@ -38,8 +38,6 @@ def test_create_and_find_tables(
     context_id,
     localnode1_node_service,
     localnode1_celery_app,
-    globalnode_node_service,
-    globalnode_celery_app,
 ):
     table_schema = TableSchema(
         columns=[
