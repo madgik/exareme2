@@ -95,7 +95,7 @@ class categorical_variable(BaseModel):
     results: categorical_summary
 
 
-def populate(response,numerical_variables,categorical_variables):
+def populate(response,numerical_variables,categorical_variables,enumerations_dict):
     numerical_list = []
     num_datasets = numpy.array(response.max_dataset).shape[0]
     for i,curr_numerical in enumerate(numerical_variables):
@@ -107,8 +107,8 @@ def populate(response,numerical_variables,categorical_variables):
     categorical_list = []
     for i,curr_categorical in enumerate(categorical_variables):
         for j in range(num_datasets):
-            categorical_list.append(categorical_to_result(curr_numerical,str(j),response,i))
-        global_result = categorical_to_result(curr_numerical,'global',response,i)
+            categorical_list.append(categorical_to_result(curr_numerical,str(j),response,i,enumerations_dict,categorical_variables))
+        global_result = categorical_to_result(curr_numerical,'global',response,i,enumerations_dict,categorical_variables)
         categorical_list.append(global_result)
 
     single_list = numerical_list + categorical_list
@@ -215,20 +215,42 @@ def numerical_to_result_model(name,dataset_id:str,response,column_id):
     return numerical_variable(name = name,dataset_name=dataset,results=curr_summary)
 
 
-def categorical_to_result(name,dataset_id:str,response,column_id):
+def categorical_to_result(name,dataset_id:str,response,column_id,enumerations_dict,categorical_columns):
     if dataset_id == 'global':
-        num_nulls = 0
+
         num_total = 0
         dataset = 'global'
-        data = response.categorical_counts[column_id]
+        data_original = response.categorical_counts[column_id]
+        possible_enumerations = enumerations_dict[categorical_columns[column_id]]
+        print("possible enumerations are "+str(possible_enumerations))
+        print("data original are "+str(data_original))
+        num_nulls = data_original.get("NaN",0)
+        print('num_nulls are'+str(num_nulls))
+        data = {}
+        for i in len(possible_enumerations):
+            curr_enumeration = possible_enumerations2[i]
+            value = data_original.get(curr_enumeration,0)
+            print("Tried "+curr_enumeration+' and recieved value '+str(value))
+            num_total += value
+            data[curr_enumeration] = value
+        num_total += num_nulls
+
     else:
         dataset_id_numeric = int(dataset_id)
-        num_nulls = 0
         num_total = 0
         categorical_counts_dataset = numpy.array(response.categorical_counts_dataset)
-        data = categorical_counts_dataset[dataset_id_numeric][column_id]
+        data_original = categorical_counts_dataset[dataset_id_numeric][column_id]
 
+        possible_enumerations = enumerations_dict[categorical_columns[column_id]]
+        num_nulls = data_original.get("NaN",0)
+        data = {}
+        #print(data_original)
+        for curr_enumeration in possible_enumerations:
+            value = data_original.get(curr_enumeration,0)
+            num_total += value
+            data[curr_enumeration] = value
 
+        num_total += num_nulls
 
         dataset_name = 'dataset_'+dataset_id
 
@@ -255,16 +277,20 @@ def run(algo_interface):
     )
 
     metadata_dict = algo_interface.metadata
+    #print(metadata_dict)
 
     categorical_columns = []
     numerical_columns = []
+    enumerations_dict = {}
     for colname,rest_dict in metadata_dict.items():
         if rest_dict['is_categorical'] == True:
             categorical_columns.append(colname)
+            enumerations_dict[colname] = list(rest_dict['enumerations'].keys())
         else:
             numerical_columns.append(colname)
     print(categorical_columns)
     print(numerical_columns)
+    print(enumerations_dict)
 
     categorical_columns = sorted(categorical_columns)
     numerical_columns = sorted(numerical_columns)
@@ -471,7 +497,7 @@ def run(algo_interface):
         q2_model=q2_final_nn,
         q3_model=q3_final_nn
     )
-    new_obj = populate(result,numerical_columns,categorical_columns)
+    new_obj = populate(result,numerical_columns,categorical_columns,enumerations_dict)
     #print(new_obj)
     #return result
     return new_obj
