@@ -107,8 +107,8 @@ def populate(response,numerical_variables,categorical_variables,enumerations_dic
     categorical_list = []
     for i,curr_categorical in enumerate(categorical_variables):
         for j in range(num_datasets):
-            categorical_list.append(categorical_to_result(curr_categorical,str(j),response,i,enumerations_dict,categorical_variables))
-        global_result = categorical_to_result(curr_categorical,'global',response,i,enumerations_dict,categorical_variables)
+            categorical_list.append(categorical_to_result(curr_categorical,str(j),response,i,enumerations_dict))
+        global_result = categorical_to_result(curr_categorical,'global',response,i,enumerations_dict)
         categorical_list.append(global_result)
 
     single_list = numerical_list + categorical_list
@@ -215,7 +215,7 @@ def numerical_to_result_model(name,dataset_id:str,response,column_id):
     return numerical_variable(name = name,dataset_name=dataset,results=curr_summary)
 
 
-def categorical_to_result(name,dataset_id:str,response,column_id,enumerations_dict,categorical_columns):
+def categorical_to_result(name,dataset_id:str,response,column_id,enumerations_dict):
     if dataset_id == 'global':
 
         num_total = 0
@@ -241,7 +241,7 @@ def categorical_to_result(name,dataset_id:str,response,column_id,enumerations_di
         categorical_counts_dataset = numpy.array(response.categorical_counts_dataset)
         data_original = categorical_counts_dataset[dataset_id_numeric][column_id]
 
-        possible_enumerations = enumerations_dict[categorical_columns[column_id]]
+        possible_enumerations = enumerations_dict[name]
         num_nulls = data_original.get("NaN",0)
         data = {}
         #print(data_original)
