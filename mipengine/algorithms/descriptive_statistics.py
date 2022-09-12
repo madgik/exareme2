@@ -107,8 +107,8 @@ def populate(response,numerical_variables,categorical_variables,enumerations_dic
     categorical_list = []
     for i,curr_categorical in enumerate(categorical_variables):
         for j in range(num_datasets):
-            categorical_list.append(categorical_to_result(curr_numerical,str(j),response,i,enumerations_dict,categorical_variables))
-        global_result = categorical_to_result(curr_numerical,'global',response,i,enumerations_dict,categorical_variables)
+            categorical_list.append(categorical_to_result(curr_categorical,str(j),response,i,enumerations_dict,categorical_variables))
+        global_result = categorical_to_result(curr_categorical,'global',response,i,enumerations_dict,categorical_variables)
         categorical_list.append(global_result)
 
     single_list = numerical_list + categorical_list
@@ -221,7 +221,7 @@ def categorical_to_result(name,dataset_id:str,response,column_id,enumerations_di
         num_total = 0
         dataset = 'global'
         data_original = response.categorical_counts[column_id]
-        possible_enumerations = enumerations_dict[categorical_columns[column_id]]
+        possible_enumerations = enumerations_dict[name]
         print("possible enumerations are "+str(possible_enumerations))
         print("data original are "+str(data_original))
         num_nulls = data_original.get("NaN",0)
