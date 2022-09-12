@@ -45,7 +45,7 @@ def controller_config_dict_mock():
             "contextid_release_timelimit": 3600,  # 1hour
         },
         "localnodes": {
-            "config_file": "/home/sskoull/Desktop/Dropbox/AthinaInstitute/MIP-Engine/tests/standalone_tests/testing_env_configs/test_globalnode_localnode1_localnode2_localnodetmp_addresses.json",
+            "config_file": "./tests/standalone_tests/testing_env_configs/test_globalnode_localnode1_localnode2_localnodetmp_addresses.json",
             "dns": "",
             "port": "",
         },
