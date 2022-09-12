@@ -27,7 +27,7 @@ from tests.standalone_tests.conftest import _create_rabbitmq_container
 from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
-WAIT_CLEANUP_TIME_LIMIT = 60
+WAIT_CLEANUP_TIME_LIMIT = 160
 WAIT_BEFORE_BRING_TMPNODE_DOWN = 20
 NLA_WAIT_TIME_LIMIT = 120
 
@@ -38,7 +38,7 @@ def controller_config_dict_mock():
         "log_level": "DEBUG",
         "framework_log_level": "INFO",
         "deployment_type": "LOCAL",
-        "node_landscape_aggregator_update_interval": 2,
+        "node_landscape_aggregator_update_interval": WAIT_BEFORE_BRING_TMPNODE_DOWN / 2,
         "cleanup": {
             "contextids_cleanup_folder": "/tmp",
             "nodes_cleanup_interval": 2,
@@ -115,6 +115,13 @@ def patch_node_landscape_aggregator(controller_config_dict_mock):
     ), patch(
         "mipengine.controller.node_landscape_aggregator.CELERY_TASKS_TIMEOUT",
         AttrDict(controller_config_dict_mock).rabbitmq.celery_tasks_timeout,
+    ), patch(
+        "mipengine.controller.node_landscape_aggregator.CELERY_RUN_UDF_TASK_TIMEOUT",
+        AttrDict(controller_config_dict_mock).rabbitmq.celery_run_udf_task_timeout,
+    ), patch(
+        "mipengine.controller.node_landscape_aggregator.NODE_INFO_TASKS_TIMEOUT",
+        AttrDict(controller_config_dict_mock).rabbitmq.celery_run_udf_task_timeout
+        + AttrDict(controller_config_dict_mock).rabbitmq.celery_tasks_timeout,
     ):
         yield
 
@@ -204,7 +211,6 @@ algorithm_request_dto = AlgorithmRequestDTO(
 )
 
 
-# @pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(
@@ -213,18 +219,11 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnode2_tasks_handler,
-    reset_node_landscape_aggregator,
 ):
     controller = Controller()
 
     # NodeLandscapeAggregator needs to be running because it is used by the Cleaner
-    # ----------------------
-    from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-
-    node_landscape_aggregator = NodeLandscapeAggregator()
-    node_landscape_aggregator._update()
-    # ----------------------
-    # controller.start_node_landscape_aggregator()
+    controller.start_node_landscape_aggregator()
 
     # wait until NodeLandscapeAggregator gets filled with some node info
     start = time.time()
@@ -330,7 +329,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
 
     controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
-
     if (
         globalnode_tables_before_cleanup
         and not globalnode_tables_after_cleanup
@@ -344,7 +342,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         assert False
 
 
-# @pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_timelimit(
@@ -354,18 +351,12 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnode2_tasks_handler,
-    reset_node_landscape_aggregator,
+    reset_celery_app_factory,  # celery tasks fail if this is not reset
 ):
     controller = Controller()
 
     # NodeLandscapeAggregator needs to be running because it is used by the Cleaner
-    # ----------------------
-    from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-
-    node_landscape_aggregator = NodeLandscapeAggregator()
-    node_landscape_aggregator._update()
-    # ----------------------
-    # controller.start_node_landscape_aggregator()
+    controller.start_node_landscape_aggregator()
 
     # wait until NodeLandscapeAggregator gets filled with some node info
     start = time.time()
@@ -381,6 +372,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
             )
         time.sleep(1)
 
+    print(f"{controller._node_landscape_aggregator.get_nodes()=}")
     # Start the Cleaner
     controller._cleaner._reset_cleanup()  # resets the persistence file
     controller.start_cleanup_loop()
@@ -481,7 +473,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
         assert False
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_rabbitmq_down_algorithm_execution(
@@ -491,7 +482,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
     localnodetmp_node_service,
-    reset_node_landscape_aggregator,
+    reset_celery_app_factory,  # celery tasks fail if this is not reset
 ):
     controller = Controller()
 
@@ -539,8 +530,8 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
                 algorithm_name=algorithm_name,
                 algorithm_request_dto=algorithm_request_dto,
                 datasets_per_local_node={
-                    localnode1_tasks_handler.node_id: datasets,
-                    localnodetmp_tasks_handler.node_id: datasets,
+                    localnode1_tasks_handler.node_id: datasets_localnode1,
+                    localnodetmp_tasks_handler.node_id: datasets_localnodetmp,
                 },
                 tasks_handlers=NodesTasksHandlersDTO(
                     global_node_tasks_handler=globalnode_tasks_handler,
@@ -645,7 +636,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         assert False
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_node_service_down_algorithm_execution(
@@ -656,7 +646,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
     localnodetmp_node_service,
-    reset_node_landscape_aggregator,
+    reset_celery_app_factory,  # celery tasks fail if this is not reset
 ):
 
     controller = Controller()
@@ -705,8 +695,8 @@ async def test_cleanup_node_service_down_algorithm_execution(
                 algorithm_name=algorithm_name,
                 algorithm_request_dto=algorithm_request_dto,
                 datasets_per_local_node={
-                    localnode1_tasks_handler.node_id: datasets,
-                    localnodetmp_tasks_handler.node_id: datasets,
+                    localnode1_tasks_handler.node_id: datasets_localnode1,
+                    localnodetmp_tasks_handler.node_id: datasets_localnodetmp,
                 },
                 tasks_handlers=NodesTasksHandlersDTO(
                     global_node_tasks_handler=globalnode_tasks_handler,
@@ -807,7 +797,6 @@ async def test_cleanup_node_service_down_algorithm_execution(
         assert False
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-625")
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_cleanup_controller_restart(
@@ -817,7 +806,7 @@ async def test_cleanup_controller_restart(
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnodetmp_tasks_handler,
-    reset_node_landscape_aggregator,
+    reset_celery_app_factory,  # celery tasks fail if this is not reset
 ):
 
     controller = Controller()
@@ -866,8 +855,8 @@ async def test_cleanup_controller_restart(
                 algorithm_name=algorithm_name,
                 algorithm_request_dto=algorithm_request_dto,
                 datasets_per_local_node={
-                    localnode1_tasks_handler.node_id: datasets,
-                    localnodetmp_tasks_handler.node_id: datasets,
+                    localnode1_tasks_handler.node_id: datasets_localnode1,
+                    localnodetmp_tasks_handler.node_id: datasets_localnodetmp,
                 },
                 tasks_handlers=NodesTasksHandlersDTO(
                     global_node_tasks_handler=globalnode_tasks_handler,
