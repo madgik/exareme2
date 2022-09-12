@@ -310,12 +310,15 @@ def create_monetdb(c, node, image=None, log_level=None, nclients=None):
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
         with open(node_config_file) as fp:
             node_config = toml.load(fp)
+        monetdb_nclient_env_var = ""
+        if node_config["role"] == "GLOBALNODE":
+            monetdb_nclient_env_var = f"-e MONETDB_NCLIENTS={nclients}"
         container_ports = f"{node_config['monetdb']['port']}:50000"
         message(
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level}  -e MONETDB_NCLIENTS={nclients} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} {image}"""
+        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} {image}"""
         run(c, cmd)
 
 
@@ -1175,4 +1178,4 @@ def get_docker_image(c, image, always_pull=False):
 
     message(f"Pulling image {image} ...", Level.HEADER)
     cmd = f"docker pull {image}"
-    # run(c, cmd)
+    run(c, cmd)

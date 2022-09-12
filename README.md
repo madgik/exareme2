@@ -47,6 +47,8 @@
    monetdb_image = "madgik/mipenginedb:dev"
    rabbitmq_image = "madgik/mipengine_rabbitmq:dev"
 
+   monetdb_nclients = 128
+
    algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 
    node_landscape_aggregator_update_interval = 30

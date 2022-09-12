@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-monetdbd get all /home/monetdb
+monetdbd get all /home/monetdb > /dev/null 2>&1
 EXIT_STATUS=$?
 
 if [ "$EXIT_STATUS" -eq 1 ]
@@ -19,9 +19,9 @@ then
   monetdb release db
   echo 'Database initialized'
 else
-  echo "Setting nclients"
-  monetdb stop db
+  monetdbd start $MONETDB_STORAGE
   monetdb set nclients=$MONETDB_NCLIENTS db
+  echo "Number of clients were set"
   monetdb start db
 fi
 
