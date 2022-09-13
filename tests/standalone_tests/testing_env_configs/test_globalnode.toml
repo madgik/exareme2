@@ -1,8 +1,8 @@
 identifier = "testglobalnode"
 log_level = "DEBUG"
 framework_log_level = "INFO"
-
 role = "GLOBALNODE"
+monetdb_nclients = 128
 
 [privacy]
 minimum_row_count = 10

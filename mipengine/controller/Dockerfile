@@ -44,7 +44,7 @@ COPY mipengine/ ./mipengine/
 RUN rm -rf mipengine/node
 
 #######################################################
-# Define Hypercorn neeeded env variables and start hypercorn
+# Define Hypercorn needed env variables and start hypercorn
 #######################################################
 ENV FRAMEWORK_LOG_LEVEL="INFO"
 ENV PYTHONPATH=$CODE_PATH

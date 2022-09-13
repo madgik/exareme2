@@ -4,6 +4,8 @@ framework_log_level ="INFO"
 monetdb_image = "madgik/mipenginedb:testing"
 rabbitmq_image = "madgik/mipengine_rabbitmq:testing"
 
+monetdb_nclients = 128
+
 algorithm_folders = "./mipengine/algorithms"
 
 node_landscape_aggregator_update_interval = 30

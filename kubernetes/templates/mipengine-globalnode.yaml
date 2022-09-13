@@ -30,6 +30,8 @@ spec:
         env:
         - name: LOG_LEVEL
           value: {{ .Values.log_level }}
+        - name: MONETDB_NCLIENTS
+          value: {{ mul .Values.max_concurrent_experiments .Values.localnodes | quote }}
         ports:
           - containerPort: 50000
         volumeMounts:
