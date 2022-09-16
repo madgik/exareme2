@@ -155,8 +155,6 @@ class Controller:
             ),
         )
 
-        logger.info(f"Starts executing->  {algorithm_name=} with {request_id=}")
-
         # By calling blocking method AlgorithmExecutor.run() inside run_in_executor(),
         # AlgorithmExecutor.run() will run in a separate thread of the
         # threadpool and at the same time yield control to the executor event loop, through await
