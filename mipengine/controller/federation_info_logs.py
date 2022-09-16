@@ -6,15 +6,16 @@ from typing import List
 def log_experiment_execution(
     logger,
     request_id: str,
+    context_id: str,
     algorithm_name: str,
     datasets: List[str],
     algorithm_parameters: str,
+    local_node_ids: List[str],
 ):
     logger.info(
-        f"Experiment with request id '{request_id}' started, "
-        f"with algorithm '{algorithm_name}', "
-        f"touching datasets '{','.join(datasets)}', "
-        f"with parameters '{algorithm_parameters}'."
+        f"Experiment with {request_id=}, {context_id=}, {algorithm_name=}, "
+        f"touching {datasets=}, with {algorithm_parameters=}, on {local_node_ids=} "
+        f"is starting."
     )
 
 

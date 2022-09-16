@@ -99,7 +99,15 @@ def test_show_controller_audit_entries(
         old_datasets_locations={"dementia:0.1": {"edsd": "localnode1"}},
         new_datasets_locations={"tbi:0.1": {"dummy_tbi": "localnode2"}},
     )
-    log_experiment_execution(logger, "test", "test_algorithm", ["edsd"], "parameters")
+    log_experiment_execution(
+        logger=logger,
+        request_id="test",
+        context_id="test_cntxtid",
+        algorithm_name="test_algorithm",
+        datasets=["edsd"],
+        algorithm_parameters="parameters",
+        local_node_ids=["localnode1"],
+    )
 
     # Get the logged output
     captured = capsys.readouterr()

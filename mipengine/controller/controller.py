@@ -72,13 +72,6 @@ class Controller:
     ):
         context_id = get_a_uniqueid()
         algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-        log_experiment_execution(
-            logger=algo_execution_logger,
-            request_id=request_id,
-            algorithm_name=algorithm_name,
-            datasets=algorithm_request_dto.inputdata.datasets,
-            algorithm_parameters=algorithm_request_dto.json(),
-        )
 
         data_model = algorithm_request_dto.inputdata.data_model
         datasets = algorithm_request_dto.inputdata.datasets
@@ -87,10 +80,12 @@ class Controller:
             data_model=data_model, datasets=datasets
         )
 
-        algo_execution_node_ids = [
+        algo_execution_local_node_ids = [
             local_node_task_handler.node_id
             for local_node_task_handler in node_tasks_handlers.local_nodes_tasks_handlers
         ]
+
+        algo_execution_node_ids = algo_execution_local_node_ids
         if node_tasks_handlers.global_node_tasks_handler:
             algo_execution_node_ids.append(
                 node_tasks_handlers.global_node_tasks_handler.node_id
@@ -104,6 +99,16 @@ class Controller:
             )
             for task_handler in node_tasks_handlers.local_nodes_tasks_handlers
         }
+
+        log_experiment_execution(
+            logger=algo_execution_logger,
+            request_id=request_id,
+            context_id=context_id,
+            algorithm_name=algorithm_name,
+            datasets=algorithm_request_dto.inputdata.datasets,
+            algorithm_parameters=algorithm_request_dto.json(),
+            local_node_ids=algo_execution_local_node_ids,
+        )
 
         try:
             algorithm_result = await self._exec_algorithm_with_task_handlers(
@@ -161,7 +166,7 @@ class Controller:
         )
 
         logger.info(f"Finished execution->  {algorithm_name=} with {request_id=}")
-        logger.info(f"Algorithm {request_id=} result-> {algorithm_result.json()=}")
+        logger.debug(f"Algorithm {request_id=} result-> {algorithm_result.json()=}")
 
         return algorithm_result.json()
 
