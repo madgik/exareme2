@@ -118,7 +118,7 @@ def get_table_data(request_id: str, table_name: str) -> str:
     return TableData(name=table_name, columns=columns).json()
 
 
-@shared_task
+@shared_task(ignore_result=True)
 @initialise_logger
 def clean_up(request_id: str, context_id: str):
     """

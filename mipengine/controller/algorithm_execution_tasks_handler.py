@@ -579,6 +579,3 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             request_id=request_id,
             context_id=context_id,
         )
-        celery_app.get_result(
-            async_result=async_result, logger=logger, timeout=self._tasks_timeout
-        )
