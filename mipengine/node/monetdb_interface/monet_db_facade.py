@@ -120,22 +120,29 @@ def execute_queries_with_connection_handling(func, *args, **kwargs):
     In the case of the 'BrokenPipeError' exception, we create a new connection,
     and we retry for x amount of times the execution in case the database has recovered.
     """
+    bp_exception = None
+    conn = None
     for tries in range(BROKEN_PIPE_MAX_ATTEMPTS):
-        conn = _MonetDBConnectionPool().get_connection()
 
         try:
+            conn = _MonetDBConnectionPool().get_connection()
             return func(*args, **kwargs, conn=conn)
         except BrokenPipeError as exc:
+            logger = logging.get_logger()
+            logger.warning("Trying to recover from BrokenPipeError")
+            bp_exception = exc
             conn = _MonetDBConnectionPool().create_connection()
             sleep(tries * BROKEN_PIPE_ERROR_RETRY)
             continue
         except Exception as exc:
-            conn.rollback()
+            if conn:
+                conn.rollback()
             raise exc
         finally:
-            _MonetDBConnectionPool().release_connection(conn)
+            if conn:
+                _MonetDBConnectionPool().release_connection(conn)
     else:
-        raise exc
+        raise bp_exception
 
 
 def _execute_and_fetchall(query: str, parameters=None, many=False, conn=None) -> List:

@@ -210,6 +210,14 @@ def _create_monetdb_container(cont_name, cont_port):
     print(f"Monetdb container '{cont_name}' started.")
 
 
+def _restart_monetdb_container(cont_name):
+    print(f"\nRestarting monetdb container '{cont_name}'.")
+    client = docker.from_env()
+    container = client.containers.get(cont_name)
+    container.restart()
+    print(f"Restarted monetdb container '{cont_name}'.")
+
+
 def _remove_monetdb_container(cont_name):
     print(f"\nRemoving monetdb container '{cont_name}'.")
     client = docker.from_env()
