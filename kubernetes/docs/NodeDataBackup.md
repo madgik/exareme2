@@ -1,8 +1,6 @@
 ## Backup of Node Data
 
-The global/local Node data are stored in the `monetdb_storage` path defined in the [helm chart values](../values.yaml). This is the same for all the nodes.
-
-In order to backup the global/local node data,
+#### In order to backup the global/local node data:
 
 1. Get the pod id of the node to backup:
 
@@ -10,17 +8,26 @@ In order to backup the global/local node data,
 kubectl get pods -o wide
 ```
 
-2. Stop the pod's database:
+2. Create a snapshot of the database:
 
 ```
-kubectl exec -i <pod_id> --container mipengine-monetdb -- monetdb lock db
-kubectl exec -i <pod_id> --container mipengine-monetdb -- monetdb stop db
+kubectl exec -i <pod_id> -c monetdb -- sh -c 'msqldump --database=db > $MONETDB_STORAGE/db.sql'
 ```
 
-3. You can then copy the contents in the `monetdb_storage` of the monetdb and store them.
+The global/local Node data are stored in the `db_storage` path defined in the [helm chart values](../values.yaml). This is the same for all the nodes.
 
-1. Start the pod's database again:
+#### In order to restore the instance of the database:
+
+1. Move the database snapshot to your local storage `db_storage` path defined in the [helm chart values](../values.yaml).
+
+1. Get the pod id of the node to restore:
 
 ```
-kubectl exec -i <pod_id> --container mipengine-monetdb -- monetdb start db
+kubectl get pods -o wide
+```
+
+3. Restore the database's snapshot:
+
+```
+kubectl exec -i <pod_id> -c monetdb /bin/sh -c 'mclient db  <$MONETDB_STORAGE/db.sql'
 ```

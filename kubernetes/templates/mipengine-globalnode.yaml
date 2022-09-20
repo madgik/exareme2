@@ -22,7 +22,7 @@ spec:
       volumes:
       - name: db-data
         hostPath:
-          path: {{ .Values.monetdb_storage }}
+          path: {{ .Values.db_storage }}
       containers:
       - name: monetdb
         image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
