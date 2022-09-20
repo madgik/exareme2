@@ -696,7 +696,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "mipdb"
-version = "0.4.1"
+version = "0.4.2"
 description = ""
 category = "dev"
 optional = false
@@ -1534,7 +1534,7 @@ h11 = ">=0.9.0,<1"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "50a47bfcf2e38d25dfc7af1e42bbb08cc6dffb36dab04bb023aa6e0cf054f423"
+content-hash = "002756a42f94016f20630eb35fdba129ad02c9edd1064c8ac9a6b98d3f4c5959"
 
 [metadata.files]
 aiofiles = [
@@ -1610,10 +1610,7 @@ cfgv = [
     {file = "cfgv-3.3.1-py2.py3-none-any.whl", hash = "sha256:c6a0883f3917a037485059700b9e75da2464e6c27051014ad85ba6aaa5884426"},
     {file = "cfgv-3.3.1.tar.gz", hash = "sha256:f5a830efb9ce7a445376bb66ec94c638a9787422f96264c98edc6bdeed8ab736"},
 ]
-charset-normalizer = [
-    {file = "charset-normalizer-2.1.0.tar.gz", hash = "sha256:575e708016ff3a5e3681541cb9d79312c416835686d054a23accb873b254f413"},
-    {file = "charset_normalizer-2.1.0-py3-none-any.whl", hash = "sha256:5189b6f22b01957427f35b6a08d9a0bc45b46d3788ef5a92e978433c7a35f8a5"},
-]
+charset-normalizer = []
 click = [
     {file = "click-8.1.3-py3-none-any.whl", hash = "sha256:bb4d8133cb15a609f44e8213d9b391b0809795062913b383c62be0ee95b1db48"},
     {file = "click-8.1.3.tar.gz", hash = "sha256:7682dc8afb30297001674575ea00d1814d808d6a36af415a82bd481d37ba7b8e"},
@@ -1940,10 +1937,7 @@ mccabe = [
     {file = "mccabe-0.7.0-py2.py3-none-any.whl", hash = "sha256:6c2d30ab6be0e4a46919781807b4f0d834ebdd6c6e3dca0bda5a15f863427b6e"},
     {file = "mccabe-0.7.0.tar.gz", hash = "sha256:348e0240c33b60bbdf4e523192ef919f28cb2c3d7d5c7794f74009290f236325"},
 ]
-mipdb = [
-    {file = "mipdb-0.4.1-py3-none-any.whl", hash = "sha256:375e58b2864a436e4e756471678171e772358a692d2148ba1ebea83c8a7c1437"},
-    {file = "mipdb-0.4.1.tar.gz", hash = "sha256:70a196ad962643e8df490e678dd7c1ca6fc18a958d39900b20a9a1127cf49248"},
-]
+mipdb = []
 mypy-extensions = [
     {file = "mypy_extensions-0.4.3-py2.py3-none-any.whl", hash = "sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d"},
     {file = "mypy_extensions-0.4.3.tar.gz", hash = "sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8"},
@@ -2123,10 +2117,7 @@ pyreadline = [
 pyrepl = [
     {file = "pyrepl-0.9.0.tar.gz", hash = "sha256:292570f34b5502e871bbb966d639474f2b57fbfcd3373c2d6a2f3d56e681a775"},
 ]
-pytest = [
-    {file = "pytest-7.1.2-py3-none-any.whl", hash = "sha256:13d0e3ccfc2b6e26be000cb6568c832ba67ba32e719443bfe725814d3c42433c"},
-    {file = "pytest-7.1.2.tar.gz", hash = "sha256:a06a0425453864a270bc45e71f783330a7428defb4230fb5e6a731fde06ecd45"},
-]
+pytest = []
 pytest-assume = [
     {file = "pytest-assume-2.4.3.tar.gz", hash = "sha256:983e90537660fd7aa18bb554693523020272e7edeee3e40435593297bcc6347e"},
     {file = "pytest_assume-2.4.3-py3-none-any.whl", hash = "sha256:09074220213b87cf1f400609701a44b75078b4e69588c7227e061ff9b3ecf54b"},
@@ -2211,10 +2202,7 @@ quart = [
     {file = "Quart-0.17.0-py3-none-any.whl", hash = "sha256:69480e7384935feff1f50293a8cb70c5d31f568af94ed792d043bb368b50bd50"},
     {file = "Quart-0.17.0.tar.gz", hash = "sha256:2cf213d8b83fa701a83e3b3125e9102a937cefd1e97e9583f22ee2fa79139640"},
 ]
-requests = [
-    {file = "requests-2.28.1-py3-none-any.whl", hash = "sha256:8fefa2a1a1365bf5520aac41836fbee479da67864514bdb821f31ce07ce65349"},
-    {file = "requests-2.28.1.tar.gz", hash = "sha256:7c5599b102feddaa661c826c56ab4fee28bfd17f5abca1ebbe3e7f19d7c97983"},
-]
+requests = []
 rope = [
     {file = "rope-0.19.0.tar.gz", hash = "sha256:64e6d747532e1f5c8009ec5aae3e5523a5bcedf516f39a750d57d8ed749d90da"},
 ]
@@ -2312,10 +2300,7 @@ traitlets = [
     {file = "traitlets-5.3.0-py3-none-any.whl", hash = "sha256:65fa18961659635933100db8ca120ef6220555286949774b9cfc106f941d1c7a"},
     {file = "traitlets-5.3.0.tar.gz", hash = "sha256:0bb9f1f9f017aa8ec187d8b1b2a7a6626a2a1d877116baba52a129bfa124f8e2"},
 ]
-typing-extensions = [
-    {file = "typing_extensions-4.3.0-py3-none-any.whl", hash = "sha256:25642c956049920a5aa49edcdd6ab1e06d7e5d467fc00e0506c44ac86fbfca02"},
-    {file = "typing_extensions-4.3.0.tar.gz", hash = "sha256:e6d2677a32f47fc7eb2795db1dd15c1f34eff616bcaf2cfb5e997f854fa1c4a6"},
-]
+typing-extensions = []
 typing-inspect = [
     {file = "typing_inspect-0.7.1-py2-none-any.whl", hash = "sha256:b1f56c0783ef0f25fb064a01be6e5407e54cf4a4bf4f3ba3fe51e0bd6dcea9e5"},
     {file = "typing_inspect-0.7.1-py3-none-any.whl", hash = "sha256:3cd7d4563e997719a710a3bfe7ffb544c6b72069b6812a02e9b414a8fa3aaa6b"},
