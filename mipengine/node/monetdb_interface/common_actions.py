@@ -6,6 +6,10 @@ from mipengine import DType
 from mipengine.exceptions import TablesNotFound
 from mipengine.node.monetdb_interface.monet_db_facade import db_execute
 from mipengine.node.monetdb_interface.monet_db_facade import db_execute_and_fetchall
+from mipengine.node.sql_injection_guard import isalnum
+from mipengine.node.sql_injection_guard import isdatamodel
+from mipengine.node.sql_injection_guard import isidentifier
+from mipengine.node.sql_injection_guard import sql_injection_guard
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
@@ -69,6 +73,7 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     )
 
 
+@sql_injection_guard("table_name", isidentifier)
 def get_table_schema(table_name: str) -> TableSchema:
     """
     Retrieves a schema for a specific table name from the monetdb.
@@ -107,6 +112,7 @@ def get_table_schema(table_name: str) -> TableSchema:
     )
 
 
+@sql_injection_guard("table_name", isidentifier)
 def get_table_type(table_name: str) -> TableType:
     """
     Retrieves the type for a specific table name from the monetdb.
@@ -137,6 +143,7 @@ def get_table_type(table_name: str) -> TableType:
     return _convert_monet2mip_table_type(monetdb_table_type_result[0][0])
 
 
+@sql_injection_guard("context_id", isalnum)
 def get_table_names(table_type: TableType, context_id: str) -> List[str]:
     """
     Retrieves a list of table names, which contain the context_id from the monetdb.
@@ -165,6 +172,7 @@ def get_table_names(table_type: TableType, context_id: str) -> List[str]:
     return [table[0] for table in table_names]
 
 
+@sql_injection_guard("table_name", isidentifier)
 def get_table_data(table_name: str) -> List[ColumnData]:
     """
     Returns a list of columns data which will contain name, type and the data of the specific column.
@@ -253,7 +261,8 @@ def get_data_models() -> List[str]:
     return data_models
 
 
-def get_dataset_code_per_dataset_label(data_model) -> Dict[str, str]:
+@sql_injection_guard("data_model", isdatamodel)
+def get_dataset_code_per_dataset_label(data_model: str) -> Dict[str, str]:
     """
     Retrieves the enabled key-value pair of code and label, for a specific data_model.
 
@@ -282,7 +291,8 @@ def get_dataset_code_per_dataset_label(data_model) -> Dict[str, str]:
     return datasets
 
 
-def get_data_model_cdes(data_model) -> CommonDataElements:
+@sql_injection_guard("data_model", isdatamodel)
+def get_data_model_cdes(data_model: str) -> CommonDataElements:
     """
     Retrieves the cdes of the specific data_model.
 
@@ -291,10 +301,11 @@ def get_data_model_cdes(data_model) -> CommonDataElements:
     CommonDataElements
         A CommonDataElements object
     """
+    data_model_code, data_model_version = data_model.split(":")
 
     cdes_rows = db_execute_and_fetchall(
         f"""
-        SELECT code, metadata FROM "{data_model}"."variables_metadata"
+        SELECT code, metadata FROM "{data_model_code}:{data_model_version}"."variables_metadata"
         """
     )
 
@@ -368,6 +379,7 @@ def _convert_mip2monet_table_type(table_type: TableType) -> int:
     return type_mapping.get(table_type)
 
 
+@sql_injection_guard("context_id", isalnum)
 def _drop_table_by_type_and_context_id(table_type: TableType, context_id: str):
     """
     Drops all tables of specific type with name that contain a specific context_id from the DB.
@@ -394,6 +406,7 @@ def _drop_table_by_type_and_context_id(table_type: TableType, context_id: str):
             db_execute(f"DROP TABLE {name}")
 
 
+@sql_injection_guard("context_id", isalnum)
 def _drop_udfs_by_context_id(context_id: str):
     """
     Drops all functions of specific context_id from the DB.

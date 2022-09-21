@@ -5475,7 +5475,7 @@ FROM
     ):
         output_schema = [("a", DType.INT), ("b", DType.FLOAT)]
         udf_execution_queries = generate_udf_queries(
-            request_id="",
+            request_id="test-generate-udf-queries",
             func_name=funcname,
             positional_args=[],
             keyword_args={},

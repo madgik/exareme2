@@ -6,6 +6,9 @@ from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.monet_db_facade import db_execute
 from mipengine.node.monetdb_interface.monet_db_facade import db_execute_and_fetchall
+from mipengine.node.sql_injection_guard import is_primary_data_table
+from mipengine.node.sql_injection_guard import isidentifier
+from mipengine.node.sql_injection_guard import sql_injection_guard
 from mipengine.node_tasks_DTOs import TableType
 
 MINIMUM_ROW_COUNT = node_config.privacy.minimum_row_count
@@ -15,6 +18,11 @@ def get_view_names(context_id: str) -> List[str]:
     return get_table_names(TableType.VIEW, context_id)
 
 
+@sql_injection_guard("view_name", isidentifier)
+@sql_injection_guard("table_name", is_primary_data_table)
+@sql_injection_guard("columns", isidentifier)
+# TODO https://team-1617704806227.atlassian.net/browse/MIP-673
+# @sql_injection_guard("filters", isidentifier)
 def create_view(
     view_name: str,
     table_name: str,

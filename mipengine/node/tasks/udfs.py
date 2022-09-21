@@ -24,7 +24,6 @@ from mipengine.node_tasks_DTOs import UDFKeyArguments
 from mipengine.node_tasks_DTOs import UDFPosArguments
 from mipengine.node_tasks_DTOs import UDFResults
 from mipengine.node_tasks_DTOs import _NodeUDFDTOType
-from mipengine.smpc_cluster_comm_helpers import SMPCUsageError
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 from mipengine.udfgen import generate_udf_queries
 from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
@@ -463,6 +462,9 @@ def _generate_udf_statements(
 
     gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
 
+    # TODO https://team-1617704806227.atlassian.net/browse/MIP-673
+    # The SQL injection guard should protect the udfgenerator.
+    # This could be done by using templates for all the values passed inside the udfgenerator.
     udf_execution_queries = generate_udf_queries(
         request_id=request_id,
         func_name=func_name,

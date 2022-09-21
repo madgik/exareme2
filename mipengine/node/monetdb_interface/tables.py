@@ -6,6 +6,8 @@ from mipengine.node.monetdb_interface.common_actions import (
     convert_schema_to_sql_query_format,
 )
 from mipengine.node.monetdb_interface.monet_db_facade import db_execute
+from mipengine.node.sql_injection_guard import isidentifier
+from mipengine.node.sql_injection_guard import sql_injection_guard
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 
@@ -14,12 +16,14 @@ def get_table_names(context_id: str) -> List[str]:
     return common_actions.get_table_names(TableType.NORMAL, context_id)
 
 
+@sql_injection_guard("table_name", isidentifier)
 def create_table(table_name: str, table_schema: TableSchema):
     columns_schema = convert_schema_to_sql_query_format(table_schema)
     db_execute(f"CREATE TABLE {table_name} ( {columns_schema} )")
 
 
-# TODO:Should validate the arguments, will be fixed with pydantic
+# TODO Disable on production https://team-1617704806227.atlassian.net/browse/MIP-535
+# SQL injection guard is not needed here since this method will be disabled in production.
 def insert_data_to_table(
     table_name: str, table_values: List[List[Union[str, int, float]]]
 ):
