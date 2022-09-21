@@ -13,6 +13,10 @@ expected_file = Path(__file__).parent / "expected" / "linear_regression_expected
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_linearregression_algorithm(test_input, expected):
     response = algorithm_request("linear_regression", test_input)
+    if response.status_code != 200:
+        raise ValueError(
+            f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
+        )
     try:
         result = json.loads(response.text)
     except json.decoder.JSONDecodeError:

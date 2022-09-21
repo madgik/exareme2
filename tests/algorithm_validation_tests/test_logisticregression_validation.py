@@ -14,6 +14,10 @@ expected_file = Path(__file__).parent / "expected" / "logistic_regression_expect
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_logisticregression_algorithm(test_input, expected, subtests):
     response = algorithm_request("logistic_regression", test_input)
+    if response.status_code != 200:
+        raise ValueError(
+            f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
+        )
     try:
         result = json.loads(response.text)
     except json.decoder.JSONDecodeError:
