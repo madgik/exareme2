@@ -4,7 +4,7 @@ import pandas as pd
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 class DesciptiveStatisticsTestCaseGenerator(TestCaseGenerator):
-    def compute_expected_output(self, input_data, input_parameters=None,datatypes=None):
+    def compute_expected_output(self, input_data, input_parameters=None,datatypes=None,enumerations = None):
         X_dataset, Y_dataset = input_data
 
         full_dataset = pd.concat([X_dataset,Y_dataset],axis=1)
@@ -24,7 +24,12 @@ class DesciptiveStatisticsTestCaseGenerator(TestCaseGenerator):
 
         for curr_categorical_column in categorical_columns_dataset:
             filled_values1 = categoricals_df[curr_categorical_column].fillna("NaN")
-            categorical_counts.append(filled_values1.value_counts(dropna=False).to_dict())
+            curr_counts = filled_values1.value_counts(dropna=False).to_dict()
+            final_dict = {}
+            categories = enumerations[curr_categorical_column]
+            for curr_category in categories:
+                final_dict[curr_category] = curr_counts.get(curr_category,0)
+            categorical_counts.append(final_dict)
 
         X_mean = numpy.nanmean(X,axis=0)
         X_max = numpy.nanmax(X,axis=0)

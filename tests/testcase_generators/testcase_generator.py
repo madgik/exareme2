@@ -425,7 +425,7 @@ class TestCaseGenerator(ABC):
         return self.input_gen.draw()
 
     @abstractmethod
-    def compute_expected_output(self, input_data, input_parameters=None,datatypes = None):
+    def compute_expected_output(self, input_data, input_parameters=None,datatypes = None,enumerations = None):
         """Computes the expected output for specific algorithm
 
         This method has to be implemented by subclasses. The user should use
@@ -492,7 +492,12 @@ class TestCaseGenerator(ABC):
             datatypes = {}
             datatypes['numerical'] = DB().get_numerical_variables()
             datatypes['nominal'] = DB().get_nominal_variables()
-            output = self.compute_expected_output(input_data, parameters,datatypes)
+            enumerations = {}
+            for curr_nominal in datatypes['nominal']:
+                curr_enumerations = DB().get_enumerations(curr_nominal)
+                enumerations[curr_nominal]=curr_enumerations
+            #print(enumerations)
+            output = self.compute_expected_output(input_data, parameters,datatypes,enumerations)
         except Exception as err:
 
             traceback.print_exc()
