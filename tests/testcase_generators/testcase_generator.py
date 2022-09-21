@@ -10,6 +10,8 @@ from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
 
+import traceback
+
 TESTING_DATAMODEL = "dementia:0.1"
 DATAMODEL_BASEPATH = Path("tests/test_data/dementia_v_0_1/")
 DATAMODEL_CDESPATH = DATAMODEL_BASEPATH / "CDEsMetadata.json"
@@ -417,6 +419,7 @@ class TestCaseGenerator(ABC):
     def __init__(self, specs_file,dropna = True):
         self.input_gen = InputGenerator(specs_file)
         self.all_data = DB().get_data_table()
+        self.dropna = dropna
 
     def generate_input(self):
         return self.input_gen.draw()
@@ -487,8 +490,8 @@ class TestCaseGenerator(ABC):
         parameters = input_["parameters"]
         try:
             datatypes = {}
-            datatypes['numerical'] = self._db.get_numerical_variables()
-            datatypes['nominal'] = self._db.get_nominal_variables()
+            datatypes['numerical'] = DB().get_numerical_variables()
+            datatypes['nominal'] = DB().get_nominal_variables()
             output = self.compute_expected_output(input_data, parameters,datatypes)
         except Exception as err:
 
