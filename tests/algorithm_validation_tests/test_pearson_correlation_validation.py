@@ -37,6 +37,10 @@ def get_test_params(expected_file, slc=None):
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_pearson_algorithm(test_input, expected):
     response = pearson_request(test_input)
+    if response.status_code != 200:
+        raise ValueError(
+            f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
+        )
     try:
         result = json.loads(response.content)
     except json.decoder.JSONDecodeError as exc:
