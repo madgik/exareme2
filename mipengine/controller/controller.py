@@ -20,9 +20,10 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.federation_info_logs import log_experiment_execution
+from mipengine.controller.node_landscape_aggregator import DataModelsCDES
+from mipengine.controller.node_landscape_aggregator import DatasetsLocations
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.node_info_DTOs import NodeInfo
-from mipengine.node_tasks_DTOs import CommonDataElements
 
 
 class _NodeInfoDTO(BaseModel):
@@ -87,10 +88,13 @@ class Controller:
         )
 
         algo_execution_node_ids = [
-            node_tasks_handlers.global_node_tasks_handler.node_id
+            local_node_task_handler.node_id
+            for local_node_task_handler in node_tasks_handlers.local_nodes_tasks_handlers
         ]
-        for local_node_task_handler in node_tasks_handlers.local_nodes_tasks_handlers:
-            algo_execution_node_ids.append(local_node_task_handler.node_id)
+        if node_tasks_handlers.global_node_tasks_handler:
+            algo_execution_node_ids.append(
+                node_tasks_handlers.global_node_tasks_handler.node_id
+            )
 
         self._cleaner.add_contextid_for_cleanup(context_id, algo_execution_node_ids)
 
@@ -150,7 +154,7 @@ class Controller:
 
         # By calling blocking method AlgorithmExecutor.run() inside run_in_executor(),
         # AlgorithmExecutor.run() will run in a separate thread of the
-        # threadpool and at the same time yield control to the exevent loop, through await
+        # threadpool and at the same time yield control to the executor event loop, through await
         loop = asyncio.get_event_loop()
         algorithm_result = await loop.run_in_executor(
             self._executor, algorithm_executor.run
@@ -174,21 +178,28 @@ class Controller:
             available_datasets_per_data_model=available_datasets_per_data_model,
         )
 
-    def get_datasets_locations(self) -> Dict[str, Dict[str, str]]:
+    def get_datasets_locations(self) -> DatasetsLocations:
         return self._node_landscape_aggregator.get_datasets_locations()
 
-    def get_cdes_per_data_model(self) -> Dict[str, CommonDataElements]:
-        return self._node_landscape_aggregator.get_cdes_per_data_model()
+    def get_cdes_per_data_model(self) -> dict:
+        return {
+            data_model: {
+                column: metadata.dict() for column, metadata in cdes.values.items()
+            }
+            for data_model, cdes in self._node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.items()
+        }
 
     def get_all_available_data_models(self) -> List[str]:
-        return list(self._node_landscape_aggregator.get_cdes_per_data_model().keys())
+        return list(
+            self._node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.keys()
+        )
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         return (
             self._node_landscape_aggregator.get_all_available_datasets_per_data_model()
         )
 
-    def get_all_local_nodes(self) -> Dict[str, NodeInfo]:
+    def get_all_local_nodes(self) -> List[NodeInfo]:
         return self._node_landscape_aggregator.get_all_local_nodes()
 
     def get_global_node(self) -> NodeInfo:
@@ -197,17 +208,6 @@ class Controller:
     def _get_nodes_tasks_handlers(
         self, data_model: str, datasets: List[str]
     ) -> NodesTasksHandlersDTO:
-        global_node = self._node_landscape_aggregator.get_global_node()
-        global_node_tasks_handler = _create_node_task_handler(
-            _NodeInfoDTO(
-                node_id=global_node.id,
-                queue_address=":".join([str(global_node.ip), str(global_node.port)]),
-                db_address=":".join([str(global_node.db_ip), str(global_node.db_port)]),
-                tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-                run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
-            )
-        )
-
         # Get only the relevant nodes
         local_nodes_info = self._get_nodes_info_by_dataset(
             data_model=data_model, datasets=datasets
@@ -215,6 +215,24 @@ class Controller:
         local_nodes_tasks_handlers = [
             _create_node_task_handler(node_info) for node_info in local_nodes_info
         ]
+
+        # If there is only one localnode that is going to be used, there is no need for a global node.
+        global_node_tasks_handler = None
+        if len(local_nodes_tasks_handlers) > 1:
+            global_node = self._node_landscape_aggregator.get_global_node()
+            global_node_tasks_handler = _create_node_task_handler(
+                _NodeInfoDTO(
+                    node_id=global_node.id,
+                    queue_address=":".join(
+                        [str(global_node.ip), str(global_node.port)]
+                    ),
+                    db_address=":".join(
+                        [str(global_node.db_ip), str(global_node.db_port)]
+                    ),
+                    tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+                    run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+                )
+            )
 
         return NodesTasksHandlersDTO(
             global_node_tasks_handler=global_node_tasks_handler,

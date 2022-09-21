@@ -1833,6 +1833,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database", "create_tensor_table")
     def test_udf_with_db(
@@ -3633,6 +3634,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database")
     def test_udf_with_db(
@@ -3722,6 +3724,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database", "create_state_table")
     def test_udf_with_db(
@@ -3794,6 +3797,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database")
     def test_udf_with_db(
@@ -3883,6 +3887,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database", "create_transfer_table")
     def test_udf_with_db(
@@ -3975,6 +3980,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database", "create_transfer_table")
     def test_udf_with_db(
@@ -4081,6 +4087,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4194,6 +4201,7 @@ FROM
             )
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4307,6 +4315,7 @@ FROM
             ),
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4427,6 +4436,7 @@ FROM
             ),
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4551,6 +4561,7 @@ FROM
             ),
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4655,6 +4666,7 @@ FROM
             ),
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4784,6 +4796,7 @@ FROM
     def use_smpc(self):
         return True
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -4908,6 +4921,7 @@ FROM
             ),
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -5059,6 +5073,7 @@ FROM
     def use_smpc(self):
         return True
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -5171,6 +5186,7 @@ FROM
             ),
         ]
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -5290,6 +5306,7 @@ FROM
     def use_smpc(self):
         return True
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
         "use_globalnode_database",
@@ -5378,6 +5395,7 @@ FROM
     def request_id(self):
         return "test_udfgenerator"
 
+    @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures("use_globalnode_database")
     def test_udf_with_db(

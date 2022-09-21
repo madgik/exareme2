@@ -37,7 +37,6 @@ class DummyEncoder:
             global_transfer = self._global_run(
                 func=self._gather_enums_global,
                 keyword_args=dict(local_transfers=local_transfers),
-                share_to_locals=[True],
             )
             enums = json.loads(global_transfer.get_table_data()[1][0])
             enums = {varname: sorted(e)[1:] for varname, e in enums.items()}
@@ -112,6 +111,55 @@ class DummyEncoder:
         if self._categorical_vars or self.intercept:
             x = self._create_design_matrix(x, enums)
         return x
+
+
+class LabelBinarizer:
+    """Transforms a table of labels to binary in one-vs-all fashion
+
+    This is used in classification models where the input target table is
+    composed of not necessarily numeric and not necessarily binary elements. It
+    is a port of `sklearn.preprocessing.LabelBinarizer` with one important
+    difference.
+
+    The original discovers all the classes present in the data, during the
+    `fit` part, and returns a matrix where each column corresponds to one class
+    being considered 'positive'.
+
+    In our case this might lead to errors in cases where not all classes are
+    present in every node, thus causing mismatches between local results. The
+    remedy is to provide a `positive_class` parameter and to return only the
+    corresponding binary column.
+
+    Attributes
+    ----------
+    positive_class : str
+        The class that should be considered positive, while all others are
+        considered negative.
+    """
+
+    def __init__(self, executor, positive_class):
+        self._local_run = executor.run_udf_on_local_nodes
+        self._global_run = executor.run_udf_on_global_node
+        self.positive_class = positive_class
+
+    def transform(self, y):
+        return self._local_run(
+            self._transform_local,
+            keyword_args={"y": y, "positive_class": self.positive_class},
+        )
+
+    @staticmethod
+    @udf(
+        y=relation(),
+        positive_class=literal(),
+        return_type=relation(schema=[("row_id", int), ("ybin", int)]),
+    )
+    def _transform_local(y, positive_class):
+        import pandas as pd
+
+        ybin = y == positive_class
+        result = pd.DataFrame({"ybin": ybin.to_numpy().reshape((-1,))}, index=y.index)
+        return result
 
 
 def relation_to_vector(rel, executor):

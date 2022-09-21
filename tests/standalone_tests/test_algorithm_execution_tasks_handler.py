@@ -21,6 +21,7 @@ def test_table_params():
     return {"command_id": command_id, "schema": schema}
 
 
+@pytest.mark.slow
 def test_create_table(
     localnode1_tasks_handler, use_localnode1_database, test_table_params
 ):
@@ -42,6 +43,7 @@ def test_create_table(
     assert table_name_parts[3] == command_id
 
 
+@pytest.mark.slow
 def test_get_tables(
     localnode1_tasks_handler, use_localnode1_database, test_table_params
 ):
@@ -62,6 +64,7 @@ def test_get_tables(
     assert table_name in tables
 
 
+@pytest.mark.slow
 def test_get_table_schema(
     localnode1_tasks_handler, use_localnode1_database, test_table_params
 ):

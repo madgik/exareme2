@@ -29,6 +29,7 @@ IOType is said to be *specific*, else the IOType is said to be *generic*.
 UDF Example (specific)
 ~~~~~~~~~~~~~~~~~~~~~~
 
+
 >>> @udf(x=tensor(dtype=int, ndims=1), return_type=scalar(dtype=int))
 ... def sum_vector(x):
 ...     result = sum(x)
@@ -1967,7 +1968,7 @@ def validate_udf_table_input_types(table_input_types):
 # ~~~~~~~~~~~~~~~~~ Module Public Function ~~~~~~~~~~~~~~~ #
 
 
-LiteralValue = Union[Number, numpy.ndarray]
+LiteralValue = Union[Number, numpy.ndarray, str]
 UDFGenArgument = Union[TableInfo, LiteralValue, SMPCTablesInfo]
 
 

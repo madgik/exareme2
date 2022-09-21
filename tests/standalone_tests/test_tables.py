@@ -32,13 +32,12 @@ def context_id(request_id):
     yield context_id
 
 
+@pytest.mark.slow
 def test_create_and_find_tables(
     request_id,
     context_id,
     localnode1_node_service,
     localnode1_celery_app,
-    globalnode_node_service,
-    globalnode_celery_app,
 ):
     table_schema = TableSchema(
         columns=[

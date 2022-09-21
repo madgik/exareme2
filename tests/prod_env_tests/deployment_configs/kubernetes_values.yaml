@@ -7,7 +7,9 @@ mipengine_images:
 log_level: DEBUG
 framework_log_level: INFO
 
-monetdb_storage: /opt/mipengine/db
+max_concurrent_experiments: 32
+
+db_storage: /opt/mipengine/db
 csvs_datapath: /opt/mipengine/csvs
 
 controller:

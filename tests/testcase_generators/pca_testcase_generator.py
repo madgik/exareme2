@@ -4,7 +4,7 @@ from sklearn.decomposition import PCA
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
-SPECS_PATH = Path("mipengine", "algorithms", "paired_ttest.json")
+SPECS_PATH = Path("mipengine", "algorithms", "ttest_paired.json")
 EXPECTED_PATH = Path(
     "tests",
     "algorithm_validation_tests",

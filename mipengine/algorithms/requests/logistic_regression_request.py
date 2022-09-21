@@ -8,40 +8,32 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 
 
 def do_post_request():
-    url = "http://127.0.0.1:5000/algorithms" + "/linear_regression"
+    url = "http://127.0.0.1:5000/algorithms" + "/logistic_regression"
 
     data_model = "dementia:0.1"
     datasets = [
-        "desd-synthdata0",
-        "desd-synthdata1",
-        "desd-synthdata2",
-        "desd-synthdata4",
-        "desd-synthdata5",
-        "desd-synthdata6",
-        "desd-synthdata7",
-        "desd-synthdata9",
-        "edsd2",
-        "edsd3",
-        "edsd4",
-        "edsd5",
-        "edsd6",
-        "edsd7",
-        "edsd9",
         "ppmi0",
         "ppmi1",
         "ppmi2",
+        "ppmi3",
         "ppmi4",
+        "ppmi5",
         "ppmi6",
         "ppmi7",
         "ppmi8",
+        "ppmi9",
     ]
     x = [
         "righthippocampus",
         "alzheimerbroadcategory",
-        "agegroup",
+        # "agegroup"
+        # "leftphgparahippocampalgyrus",
+        # "rightpallidum",
+        # "leftsmcsupplementarymotorcortex",
+        # "leftcalccalcarinecortex"
     ]
     y = [
-        "lefthippocampus",
+        "ppmicategory",
     ]
     filters = {
         "condition": "AND",
@@ -78,11 +70,8 @@ def do_post_request():
 
     algorithm_request = AlgorithmRequestDTO(
         inputdata=algorithm_input_data,
-        parameters={},
+        parameters={"positive_class": "GENPD"},
     )
-
-    print(f"POSTing to {url}:")
-    debug(algorithm_request)
 
     request_json = algorithm_request.json()
 
@@ -94,9 +83,7 @@ def do_post_request():
 
 if __name__ == "__main__":
     response = do_post_request()
-    print("\nResponse:")
-    print(f"{response.status_code=}")
     try:
-        print(f"Result={json.dumps(json.loads(response.text), indent=4)}")
+        print(f"{json.dumps(json.loads(response.text), indent=4)}")
     except json.decoder.JSONDecodeError:
         print(f"Something went wrong:\n{response.text}")

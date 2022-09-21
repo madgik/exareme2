@@ -69,6 +69,7 @@ RUN echo "password=monetdb" >> /home/.monetdb
 #######################################################
 # Setup MONETDB Volume
 #######################################################
+ENV MONETDB_NCLIENTS=64
 ENV MONETDB_STORAGE=/home/monetdb
 VOLUME $MONETDB_STORAGE
 

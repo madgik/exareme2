@@ -1,3 +1,4 @@
+{{ if gt .Values.localnodes 1.0}} # Single node deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,11 +18,11 @@ spec:
         nodeType: globalnode
     spec:
       nodeSelector:
-        nodeType: master
+        master: "true"
       volumes:
       - name: db-data
         hostPath:
-          path: {{ .Values.monetdb_storage }}
+          path: {{ .Values.db_storage }}
       containers:
       - name: monetdb
         image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
@@ -29,6 +30,8 @@ spec:
         env:
         - name: LOG_LEVEL
           value: {{ .Values.log_level }}
+        - name: MONETDB_NCLIENTS
+          value: {{ mul .Values.max_concurrent_experiments .Values.localnodes | quote }}
         ports:
           - containerPort: 50000
         volumeMounts:
@@ -62,6 +65,10 @@ spec:
           value: {{ .Values.log_level }}
         - name: FRAMEWORK_LOG_LEVEL
           value: {{ .Values.framework_log_level }}
+        - name: CELERY_TASKS_TIMEOUT
+          value: {{ quote .Values.controller.celery_tasks_timeout }}
+        - name: CELERY_RUN_UDF_TASK_TIMEOUT
+          value: {{ quote .Values.controller.celery_run_udf_task_timeout }}
         - name: RABBITMQ_IP
           valueFrom:
             fieldRef:
@@ -88,3 +95,4 @@ spec:
         - name: SMPC_COORDINATOR_ADDRESS
           value: "http://$(SMPC_COORDINATOR_IP):12314"
         {{ end }}
+{{end}}

@@ -1,7 +1,6 @@
 import subprocess
 import uuid
 
-import fasteners
 import pytest
 
 from tests.standalone_tests.conftest import MONETDB_GLOBALNODE_NAME
@@ -10,12 +9,6 @@ from tests.standalone_tests.nodes_communication_helper import get_celery_task_si
 from tests.standalone_tests.std_output_logger import StdOutputLogger
 
 label_identifier = "test_get_datasets_per_data_model"
-
-
-@pytest.fixture(autouse=True)
-def run_tests_sequentially():
-    with fasteners.InterProcessLock("semaphore.lock"):
-        yield
 
 
 def setup_data_table_in_db(datasets_per_data_model):
@@ -82,6 +75,7 @@ test_cases_get_node_info_datasets = [
 ]
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "expected_datasets_per_data_model",
     test_cases_get_node_info_datasets,

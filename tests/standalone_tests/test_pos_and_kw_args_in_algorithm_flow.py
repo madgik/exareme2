@@ -36,6 +36,7 @@ def get_parametrization_list_success_cases():
     return parametrization_list
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "algorithm_name, request_dict",
     get_parametrization_list_success_cases(),
@@ -46,7 +47,7 @@ def test_pos_and_kw_args_in_algorithm_flow(
     localnode1_node_service,
     load_data_localnode1,
     globalnode_node_service,
-    controller_service,
+    controller_service_with_localnode1,
 ):
     algorithm_url = ALGORITHMS_URL + "/" + algorithm_name
 

@@ -10,11 +10,13 @@ from mipengine.controller.federation_info_logs import log_experiment_execution
 from mipengine.controller.node_landscape_aggregator import _log_data_model_changes
 from mipengine.controller.node_landscape_aggregator import _log_dataset_changes
 from mipengine.controller.node_landscape_aggregator import _log_node_changes
+from mipengine.node_info_DTOs import NodeInfo
 from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_PORT
 
 LOGFILE_NAME = "test_show_controller_audit_entries.out"
 
 
+@pytest.mark.slow
 def test_show_node_db_actions(monetdb_localnodetmp, load_data_localnodetmp):
     """
     Load data into the db and then remove datamodel and datasets.
@@ -67,7 +69,28 @@ def test_show_controller_audit_entries(
     patch_controller_logger_config, capsys, patch_logger
 ):
     logger = init_logger("BACKGROUND")
-    _log_node_changes(old_nodes={"localnode1": ""}, new_nodes={"localnode2": ""})
+    _log_node_changes(
+        old_nodes=[
+            NodeInfo(
+                id="localnode1",
+                role="LOCALNODE",
+                ip="172.17.0.1",
+                port=60001,
+                db_ip="172.17.0.1",
+                db_port=61001,
+            )
+        ],
+        new_nodes=[
+            NodeInfo(
+                id="localnode2",
+                role="LOCALNODE",
+                ip="172.17.0.1",
+                port=60002,
+                db_ip="172.17.0.1",
+                db_port=61002,
+            )
+        ],
+    )
     _log_data_model_changes(
         old_data_models={"dementia:0.1": ""},
         new_data_models={"tbi:0.1": ""},

@@ -27,6 +27,7 @@ def run(algo_interface):
     X_relation, Y_relation = algo_interface.create_primary_data_views(
         variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
     )
+
     [x_var_name] = algo_interface.x_variables
     [y_var_name] = algo_interface.y_variables
 
@@ -46,9 +47,8 @@ def run(algo_interface):
     )
 
     result = json.loads(result.get_table_data()[1][0])
-    n_obs = result["n_obs"]
     anova_result = {
-        "n_obs": n_obs,
+        "n_obs": result["n_obs"],
         "y_label": y_var_name,
         "x_label": x_var_name,
         "df_residual": result["df_residual"],

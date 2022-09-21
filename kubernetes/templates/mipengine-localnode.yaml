@@ -17,7 +17,7 @@ spec:
         nodeType: localnode
     spec:
       nodeSelector:
-        nodeType: worker
+        worker: "true"
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -31,7 +31,7 @@ spec:
       volumes:
       - name: db-data
         hostPath:
-          path: {{ .Values.monetdb_storage }}
+          path: {{ .Values.db_storage }}
       - name: csv-data
         hostPath:
           path: {{ .Values.csvs_datapath }}
@@ -91,6 +91,10 @@ spec:
           value: {{ .Values.log_level }}
         - name: FRAMEWORK_LOG_LEVEL
           value: {{ .Values.framework_log_level }}
+        - name: CELERY_TASKS_TIMEOUT
+          value: {{ quote .Values.controller.celery_tasks_timeout }}
+        - name: CELERY_RUN_UDF_TASK_TIMEOUT
+          value: {{ quote .Values.controller.celery_run_udf_task_timeout }}
         - name: RABBITMQ_IP
           valueFrom:
             fieldRef:

@@ -1,0 +1,31 @@
+identifier = "testlocalnodetmp"
+log_level = "DEBUG"
+framework_log_level = "INFO"
+role = "LOCALNODE"
+monetdb_nclients = 64
+
+[privacy]
+minimum_row_count = 10
+
+[celery]
+worker_concurrency = 16
+tasks_timeout = 120
+run_udf_task_timeout = 300
+
+[rabbitmq]
+ip = "172.17.0.1"
+port = 60003
+user = "user"
+password = "password"
+vhost = "user_vhost"
+
+[monetdb]
+ip = "172.17.0.1"
+port = 61003
+database = "db"
+username = "monetdb"
+password = "monetdb"
+
+[smpc]
+enabled = false
+optional = false

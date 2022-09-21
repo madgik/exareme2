@@ -32,6 +32,7 @@ def get_parametrization_list_success_cases():
     return [(algorithm_name, request_dict)]
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "algorithm_name, request_dict",
     get_parametrization_list_success_cases(),
@@ -42,7 +43,7 @@ def test_local_global_step_algorithms(
     localnode1_node_service,
     load_data_localnode1,
     globalnode_node_service,
-    controller_service,
+    controller_service_with_localnode1,
 ):
     algorithm_url = ALGORITHMS_URL + "/" + algorithm_name
 

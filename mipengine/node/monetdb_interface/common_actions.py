@@ -1,14 +1,11 @@
-import itertools
-import logging
 from typing import Any
 from typing import Dict
 from typing import List
-from typing import Tuple
 
 from mipengine import DType
+from mipengine.exceptions import TablesNotFound
 from mipengine.node.monetdb_interface.monet_db_facade import db_execute
 from mipengine.node.monetdb_interface.monet_db_facade import db_execute_and_fetchall
-from mipengine.node_exceptions import TablesNotFound
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements

@@ -19,10 +19,9 @@ from mipengine.controller.algorithm_execution_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
 from mipengine.controller.celery_app import CeleryAppFactory
-from mipengine.controller.data_model_registry import DataModelRegistry
+from mipengine.controller.controller_logger import init_logger
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_landscape_aggregator import _NLARegistries
-from mipengine.controller.node_registry import NodeRegistry
 from mipengine.udfgen import udfio
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
@@ -37,10 +36,12 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
+USE_EXTERNAL_SMPC_CLUSTER = True
+
 COMMON_IP = "172.17.0.1"
 
 ALGORITHMS_URL = f"http://{COMMON_IP}:4500/algorithms"
-SMPC_ALGORITHMS_URL = f"http://{COMMON_IP}::4501/algorithms"
+SMPC_ALGORITHMS_URL = f"http://{COMMON_IP}:4501/algorithms"
 
 
 RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
@@ -90,26 +91,35 @@ MONETDB_SMPC_LOCALNODE2_PORT = 61006
 CONTROLLER_PORT = 4500
 CONTROLLER_SMPC_PORT = 4501
 
-GLOBALNODE_CONFIG_FILE = "testglobalnode.toml"
-LOCALNODE1_CONFIG_FILE = "testlocalnode1.toml"
-LOCALNODE2_CONFIG_FILE = "testlocalnode2.toml"
-LOCALNODETMP_CONFIG_FILE = "testlocalnodetmp.toml"
-GLOBALNODE_SMPC_CONFIG_FILE = "smpc_globalnode.toml"
-LOCALNODE1_SMPC_CONFIG_FILE = "smpc_localnode1.toml"
-LOCALNODE2_SMPC_CONFIG_FILE = "smpc_localnode2.toml"
-CONTROLLER_CONFIG_FILE = "testcontroller.toml"
-CONTROLLER_SMPC_CONFIG_FILE = "test_smpc_controller.toml"
-CONTROLLER_LOCALNODES_CONFIG_FILE = "test_localnodes_addresses.json"
-CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE = "test_smpc_localnodes_addresses.json"
+GLOBALNODE_CONFIG_FILE = "test_globalnode.toml"
+LOCALNODE1_CONFIG_FILE = "test_localnode1.toml"
+LOCALNODE2_CONFIG_FILE = "test_localnode2.toml"
+LOCALNODETMP_CONFIG_FILE = "test_localnodetmp.toml"
+CONTROLLER_CONFIG_FILE = "test_controller.toml"
+CONTROLLER_LOCALNODE1_CONFIG_FILE = "test_localnode1_globalnode_addresses.json"
 CONTROLLER_OUTPUT_FILE = "test_controller.out"
+if USE_EXTERNAL_SMPC_CLUSTER:
+    GLOBALNODE_SMPC_CONFIG_FILE = "test_external_smpc_globalnode.toml"
+    LOCALNODE1_SMPC_CONFIG_FILE = "test_external_smpc_localnode1.toml"
+    LOCALNODE2_SMPC_CONFIG_FILE = "test_external_smpc_localnode2.toml"
+    CONTROLLER_SMPC_CONFIG_FILE = "test_external_smpc_controller.toml"
+    SMPC_COORDINATOR_ADDRESS = "http://dl056.madgik.di.uoa.gr:12314"
+else:
+    GLOBALNODE_SMPC_CONFIG_FILE = "test_smpc_globalnode.toml"
+    LOCALNODE1_SMPC_CONFIG_FILE = "test_smpc_localnode1.toml"
+    LOCALNODE2_SMPC_CONFIG_FILE = "test_smpc_localnode2.toml"
+    CONTROLLER_SMPC_CONFIG_FILE = "test_smpc_controller.toml"
+    SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
+CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE = "test_smpc_localnodes_addresses.json"
 SMPC_CONTROLLER_OUTPUT_FILE = "test_smpc_controller.out"
 
 TASKS_TIMEOUT = 10
 RUN_UDF_TASK_TIMEOUT = 120
 SMPC_CLUSTER_SLEEP_TIME = 60
 
-########### SMPC Cluster ############
-SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v6.0.0"
+# ------------ SMPC Cluster ------------ #
+
+SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v7.0.0"
 SMPC_COORD_DB_IMAGE = "mongo:5.0.8"
 SMPC_COORD_QUEUE_IMAGE = "redis:alpine3.15"
 
@@ -198,6 +208,14 @@ def _create_monetdb_container(cont_name, cont_port):
     else:
         raise MonetDBSetupError
     print(f"Monetdb container '{cont_name}' started.")
+
+
+def _restart_monetdb_container(cont_name):
+    print(f"\nRestarting monetdb container '{cont_name}'.")
+    client = docker.from_env()
+    container = client.containers.get(cont_name)
+    container.restart()
+    print(f"Restarted monetdb container '{cont_name}'.")
 
 
 def _remove_monetdb_container(cont_name):
@@ -561,7 +579,7 @@ def _create_rabbitmq_container(cont_name, cont_port):
         container = client.containers.run(
             TESTING_RABBITMQ_CONT_IMAGE,
             detach=True,
-            ports={"5672/tcp": cont_port},
+            ports={"5672/tcp": cont_port, "15672/tcp": cont_port + 100},
             name=cont_name,
         )
     else:
@@ -778,6 +796,13 @@ def smpc_localnode2_node_service(rabbitmq_smpc_localnode2, monetdb_smpc_localnod
     kill_service(proc)
 
 
+def create_localnodetmp_node_service():
+    node_config_file = LOCALNODETMP_CONFIG_FILE
+    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
+    return _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+
+
 @pytest.fixture(scope="function")
 def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     """
@@ -787,12 +812,14 @@ def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
     The rabbitmq and monetdb containers have also 'function' scope so this is VERY slow.
     This should be used only when the service should be killed e.g. for testing.
     """
-    node_config_file = LOCALNODETMP_CONFIG_FILE
-    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
-    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    proc = create_localnodetmp_node_service()
     yield proc
     kill_service(proc)
+
+
+def is_localnodetmp_node_service_ok(node_process):
+    psutil_proc = psutil.Process(node_process.pid)
+    return psutil_proc.status() != "zombie" and psutil_proc.status() != "sleeping"
 
 
 def create_node_tasks_handler_celery(node_config_filepath):
@@ -885,24 +912,26 @@ def smpc_localnode2_celery_app(smpc_localnode2_node_service):
 
 
 @pytest.fixture(scope="function")
+def reset_celery_app_factory():
+    CeleryAppFactory()._celery_apps = {}
+
+
+@pytest.fixture(scope="function")
 def reset_node_landscape_aggregator():
     nla = NodeLandscapeAggregator()
     nla.stop()
     nla.keep_updating = False
-    nla._nla_registries = _NLARegistries(
-        node_registry=NodeRegistry(nodes={}),
-        data_model_registry=DataModelRegistry(data_models={}, datasets_location={}),
-    )
+    nla._nla_registries = _NLARegistries()
 
 
-@pytest.fixture(scope="session")
-def controller_service():
+@pytest.fixture(scope="function")
+def controller_service_with_localnode1():
     service_port = CONTROLLER_PORT
     controller_config_filepath = path.join(
         TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE
     )
     localnodes_config_filepath = path.join(
-        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODES_CONFIG_FILE
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODE1_CONFIG_FILE
     )
 
     proc = _create_controller_service(
@@ -973,11 +1002,17 @@ def _create_controller_service(
         "INFO - CONTROLLER - BACKGROUND - federation_info_logs", logpath
     )
     print(f"\nCreated controller service on port '{service_port}'.")
+
     return proc
 
 
 @pytest.fixture(scope="session")
 def smpc_coordinator():
+    if USE_EXTERNAL_SMPC_CLUSTER:
+        print(f"\nUsing external smpc cluster. smpc coordinator won't be started.")
+        yield
+        return
+
     docker_cli = docker.from_env()
 
     print(f"\nWaiting for smpc coordinator db to be ready...")
@@ -995,7 +1030,7 @@ def smpc_coordinator():
                 "MONGO_INITDB_ROOT_PASSWORD": "123qwe",
             },
         )
-    print("Created controller db service.")
+    print("Created coordinator db service.")
 
     # Start coordinator queue
     print(f"\nWaiting for smpc coordinator queue to be ready...")
@@ -1012,7 +1047,7 @@ def smpc_coordinator():
             },
             command="redis-server --requirepass agora",
         )
-    print("Created controller queue service.")
+    print("Created coordinator queue service.")
 
     # Start coordinator
     print(f"\nWaiting for smpc coordinator to be ready...")
@@ -1037,7 +1072,7 @@ def smpc_coordinator():
             },
             command="python coordinator.py",
         )
-    print("Created controller service.")
+    print("Created coordinator service.")
 
     yield
 
@@ -1052,6 +1087,11 @@ def smpc_coordinator():
 
 @pytest.fixture(scope="session")
 def smpc_players():
+    if USE_EXTERNAL_SMPC_CLUSTER:
+        print(f"\nUsing external smpc cluster. smpc players won't be started.")
+        yield
+        return
+
     docker_cli = docker.from_env()
 
     # Start player 1
@@ -1148,6 +1188,11 @@ def smpc_players():
 
 @pytest.fixture(scope="session")
 def smpc_clients():
+    if USE_EXTERNAL_SMPC_CLUSTER:
+        print(f"\nUsing external smpc cluster. smpc clients won't be started.")
+        yield
+        return
+
     docker_cli = docker.from_env()
 
     # Start client 1
@@ -1215,9 +1260,18 @@ def smpc_clients():
 
 @pytest.fixture(scope="session")
 def smpc_cluster(smpc_coordinator, smpc_players, smpc_clients):
+    if USE_EXTERNAL_SMPC_CLUSTER:
+        yield
+        return
+
     print(f"\nWaiting for smpc cluster to be ready...")
     time.sleep(
         SMPC_CLUSTER_SLEEP_TIME
     )  # TODO Check when the smpc cluster is actually ready
     print(f"\nFinished waiting '{SMPC_CLUSTER_SLEEP_TIME}' secs for SMPC cluster.")
     yield
+
+
+@pytest.fixture(scope="session")
+def get_controller_testing_logger():
+    return init_logger("TESTING", "DEBUG")

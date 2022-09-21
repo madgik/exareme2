@@ -73,6 +73,17 @@ class NodeUnresponsiveAlgorithmExecutionException(Exception):
         self.message = message
 
 
+class NodeTaskTimeoutAlgorithmExecutionException(Exception):
+    def __init__(self):
+        message = (
+            "One of the tasks in the algorithm execution took longer to finish than the timeout."
+            f"This could be caused by a high load or by an experiment with too much data. "
+            f"Please try again or increase the timeout."
+        )
+        super().__init__(message)
+        self.message = message
+
+
 class InconsistentTableSchemasException(Exception):
     def __init__(self, tables_schemas: Dict[TableName, TableSchema]):
         message = f"Tables: {tables_schemas} do not have a common schema"
@@ -114,11 +125,14 @@ class AlgorithmExecutor:
         self._algorithm_flow_module = None
         self._execution_interface = None
 
-        self._global_node: GlobalNode = GlobalNode(
-            request_id=self._request_id,
-            context_id=self._context_id,
-            node_tasks_handler=self._nodes_tasks_handlers_dto.global_node_tasks_handler,
-        )
+        self._global_node: Optional[GlobalNode] = None
+        if self._nodes_tasks_handlers_dto.global_node_tasks_handler:
+            self._global_node: Optional[GlobalNode] = GlobalNode(
+                request_id=self._request_id,
+                context_id=self._context_id,
+                node_tasks_handler=self._nodes_tasks_handlers_dto.global_node_tasks_handler,
+            )
+
         self._local_nodes: List[LocalNode] = [
             LocalNode(
                 request_id=self._request_id,
@@ -181,16 +195,19 @@ class AlgorithmExecutor:
             )
             self._logger.info(f"finished execution of algorithm:{self._algorithm_name}")
             return algorithm_result
-        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+        except CeleryConnectionError as exc:
             self._logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
             raise NodeUnresponsiveAlgorithmExecutionException()
+        except CeleryTaskTimeoutException as exc:
+            self._logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
+            raise NodeTaskTimeoutAlgorithmExecutionException()
         except Exception as exc:
             self._logger.error(traceback.format_exc())
             raise exc
 
 
 class _AlgorithmExecutionInterfaceDTO(BaseModel):
-    global_node: GlobalNode
+    global_node: Optional[GlobalNode]
     local_nodes: List[LocalNode]
     algorithm_name: str
     algorithm_parameters: Optional[Dict[str, Any]] = None
