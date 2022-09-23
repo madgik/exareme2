@@ -55,6 +55,7 @@ def run_udf(
     func_name: str,
     positional_args_json: str,
     keyword_args_json: str,
+    share_outputs: List[bool],
     use_smpc: bool = False,
     output_schema: Optional[TableSchema] = None,
 ) -> str:
@@ -100,6 +101,7 @@ def run_udf(
         func_name=func_name,
         positional_args=positional_args,
         keyword_args=keyword_args,
+        share_outputs=share_outputs,
         use_smpc=use_smpc,
         output_schema=output_schema,
     )
@@ -455,6 +457,7 @@ def _generate_udf_statements(
     func_name: str,
     positional_args: UDFPosArguments,
     keyword_args: UDFKeyArguments,
+    share_outputs: List[bool],
     use_smpc: bool,
     output_schema,
 ) -> Tuple[List[str], UDFResults]:
@@ -468,6 +471,7 @@ def _generate_udf_statements(
         func_name=func_name,
         positional_args=gen_pos_args,
         keyword_args=gen_kw_args,
+        share_outputs=share_outputs,
         smpc_used=use_smpc,
         output_schema=output_schema,
     )

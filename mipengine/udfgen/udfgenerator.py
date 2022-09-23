@@ -287,6 +287,7 @@ from typing import Dict
 from typing import List
 from typing import NamedTuple
 from typing import Optional
+from typing import Sequence
 from typing import Tuple
 from typing import TypeVar
 from typing import Union
@@ -1982,7 +1983,8 @@ def generate_udf_queries(
     func_name: str,
     positional_args: List[UDFGenArgument],
     keyword_args: Dict[str, UDFGenArgument],
-    smpc_used: bool,
+    share_outputs: Sequence[bool] = (True,),
+    smpc_used: bool = False,
     traceback=False,
     output_schema=None,
 ) -> UDFGenExecutionQueries:
@@ -2012,7 +2014,12 @@ def generate_udf_queries(
             raise UDFBadCall("Keyword args are not supported for tensor operations.")
         udf_select = get_sql_tensor_operation_select_query(udf_posargs, func_name)
         output_type = get_output_type_for_sql_tensor_operation(func_name, udf_posargs)
-        udf_outputs = get_udf_outputs(output_type, None, False)
+        udf_outputs = get_udf_outputs(
+            main_output_type=output_type,
+            sec_output_types=None,
+            share_outputs=share_outputs,
+            smpc_used=smpc_used,
+        )
         udf_execution_query = get_udf_execution_template(udf_select)
         return UDFGenExecutionQueries(
             udf_results=udf_outputs,
@@ -2028,6 +2035,7 @@ def generate_udf_queries(
         posargs=udf_posargs,
         keywordargs=udf_kwargs,
         udfregistry=udf.registry,
+        share_outputs=share_outputs,
         smpc_used=smpc_used,
         traceback=traceback,
         output_schema=output_schema,
@@ -2093,9 +2101,9 @@ def convert_table_info_to_table_arg(table_info, smpc_used):
             raise UDFBadCall("Usage of state is only allowed on local tables.")
         return StateArg(table_name=table_info.name)
     if is_tensor_schema(table_info.schema_.columns):
-        ndims = (
-            len(table_info.schema_.columns) - 2
-        )  # TODO avoid this using kinds of TableInfo
+        ndims = len(
+            [col for col in table_info.schema_.columns if col.name.startswith("dim")]
+        )
         valcol = next(col for col in table_info.schema_.columns if col.name == "val")
         dtype = valcol.dtype
         return TensorArg(table_name=table_info.name, dtype=dtype, ndims=ndims)
@@ -2142,7 +2150,8 @@ def get_udf_templates_using_udfregistry(
     posargs: List[UDFArgument],
     keywordargs: Dict[str, UDFArgument],
     udfregistry: dict,
-    smpc_used: bool,
+    share_outputs: Sequence[bool] = (True,),
+    smpc_used: bool = False,
     traceback=False,
     output_schema=None,
 ) -> UDFGenExecutionQueries:
@@ -2167,6 +2176,7 @@ def get_udf_templates_using_udfregistry(
     udf_outputs = get_udf_outputs(
         main_output_type=main_output_type,
         sec_output_types=sec_output_types,
+        share_outputs=share_outputs,
         smpc_used=smpc_used,
     )
 
@@ -2183,6 +2193,7 @@ def get_udf_templates_using_udfregistry(
     udf_select = get_udf_select_template(
         ScalarType(str) if traceback else main_output_type,
         table_args,
+        nodeid=share_outputs[0],
     )
     udf_execution = get_udf_execution_template(udf_select)
 
@@ -2456,7 +2467,11 @@ def map_unknown_to_known_typeparams(
 # ~~~~~~~~~~~~~~ UDF SELECT Query Generator ~~~~~~~~~~~~~~ #
 
 
-def get_udf_select_template(output_type: OutputType, table_args: Dict[str, TableArg]):
+def get_udf_select_template(
+    output_type: OutputType,
+    table_args: Dict[str, TableArg],
+    nodeid: bool,
+):
     tensors = get_table_ast_nodes_from_table_args(table_args, arg_type=TensorArg)
     relations = get_table_ast_nodes_from_table_args(table_args, arg_type=RelationArg)
     tables = tensors or relations
@@ -2472,7 +2487,8 @@ def get_udf_select_template(output_type: OutputType, table_args: Dict[str, Table
     if isinstance(output_type, TableType):
         subquery = Select(columns, tables, where_clause) if tables else None
         func = TableFunction(name="$udf_name", subquery=subquery)
-        select_stmt = Select([nodeid_column(), StarColumn()], [func])
+        columns = ([nodeid_column()] if nodeid else []) + [StarColumn()]
+        select_stmt = Select(columns, [func])
         return select_stmt.compile()
     raise TypeError(f"Got {output_type} as output. Expected ScalarType or TableType")
 
@@ -2620,18 +2636,27 @@ def _create_udf_output(
 def get_udf_outputs(
     main_output_type: OutputType,
     sec_output_types: List[LoopbackOutputType],
+    share_outputs: List[bool],
     smpc_used: bool,
-    nodeid=True,
 ) -> List[UDFGenResult]:
     table_name = _get_main_table_template_name()
-    udf_outputs = [_create_udf_output(main_output_type, table_name, smpc_used, nodeid)]
+    share_main, *share_secs = share_outputs
+    udf_outputs = [
+        _create_udf_output(main_output_type, table_name, smpc_used, nodeid=share_main)
+    ]
 
     if sec_output_types:
-        for table_name, sec_output_type in _get_loopback_tables_template_names(
-            sec_output_types
+        for (table_name, sec_output_type), share_sec in zip(
+            _get_loopback_tables_template_names(sec_output_types),
+            share_secs,
         ):
             udf_outputs.append(
-                _create_udf_output(sec_output_type, table_name, smpc_used)
+                _create_udf_output(
+                    sec_output_type,
+                    table_name,
+                    smpc_used,
+                    nodeid=share_sec,
+                )
             )
 
     return udf_outputs
@@ -2881,8 +2906,8 @@ def get_create_dummy_encoded_design_matrix_execution_queries(keyword_args):
     udf_outputs = get_udf_outputs(
         output_type,
         sec_output_types=None,
+        share_outputs=[False],
         smpc_used=False,
-        nodeid=False,
     )
     udf_execution_query = get_udf_execution_template(udf_select)
     return UDFGenExecutionQueries(

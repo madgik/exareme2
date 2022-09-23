@@ -1,0 +1,2325 @@
+{
+  "test_cases": [
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "alzheimerbroadcategory"
+          ],
+          "x": [
+            "leftopifgopercularpartoftheinferiorfrontalgyrus",
+            "rightmsfgsuperiorfrontalgyrusmedialsegment",
+            "leftbasalforebrain",
+            "leftinflatvent"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "ppmi1",
+            "edsd2",
+            "desd-synthdata4",
+            "edsd3"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "AD",
+          "n_splits": 3
+        },
+        "test_case_num": 0
+      },
+      "output": {
+        "accuracy": [
+          0.8309859154929577,
+          0.6857142857142857,
+          0.7285714285714285
+        ],
+        "recall": [
+          0.72,
+          0.3333333333333333,
+          0.4166666666666667
+        ],
+        "precision": [
+          0.782608695652174,
+          0.5714285714285714,
+          0.6666666666666666
+        ],
+        "fscore": [
+          0.7499999999999999,
+          0.4210526315789474,
+          0.5128205128205129
+        ],
+        "auc": [
+          0.86,
+          0.779891304347826,
+          0.806159420289855
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "edsdcategory"
+          ],
+          "x": [
+            "cerebellarvermallobulesiv",
+            "rightpogpostcentralgyrus",
+            "leftmfgmiddlefrontalgyrus",
+            "leftocpoccipitalpole",
+            "righttrifgtriangularpartoftheinferiorfrontalgyrus",
+            "cerebellarvermallobulesvivii",
+            "leftsfgsuperiorfrontalgyrus",
+            "cerebellarvermallobulesviiix",
+            "rightmprgprecentralgyrusmedialsegment",
+            "leftthalamusproper",
+            "rightfofrontaloperculum",
+            "leftlorglateralorbitalgyrus",
+            "rightsmcsupplementarymotorcortex",
+            "leftitginferiortemporalgyrus"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata9",
+            "edsd7",
+            "desd-synthdata3",
+            "ppmi5"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "AD",
+          "n_splits": 3
+        },
+        "test_case_num": 1
+      },
+      "output": {
+        "accuracy": [
+          0.7538461538461538,
+          0.640625,
+          0.609375
+        ],
+        "recall": [
+          0.7407407407407407,
+          0.4444444444444444,
+          0.37037037037037035
+        ],
+        "precision": [
+          0.6896551724137931,
+          0.6,
+          0.5555555555555556
+        ],
+        "fscore": [
+          0.7142857142857143,
+          0.5106382978723405,
+          0.4444444444444445
+        ],
+        "auc": [
+          0.861598440545809,
+          0.6856856856856857,
+          0.6636636636636637
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "neurodegenerativescategories"
+          ],
+          "x": [
+            "leftmfgmiddlefrontalgyrus",
+            "rightputamen",
+            "leftpoparietaloperculum",
+            "leftmtgmiddletemporalgyrus",
+            "rightcocentraloperculum",
+            "leftporgposteriororbitalgyrus"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "ppmi0",
+            "desd-synthdata0",
+            "desd-synthdata2",
+            "edsd8",
+            "edsd6",
+            "desd-synthdata4",
+            "desd-synthdata6",
+            "desd-synthdata3",
+            "desd-synthdata1",
+            "ppmi4",
+            "desd-synthdata5",
+            "ppmi2",
+            "desd-synthdata7",
+            "edsd4",
+            "ppmi5",
+            "edsd1",
+            "edsd5",
+            "edsd7",
+            "ppmi9",
+            "ppmi1",
+            "ppmi7",
+            "edsd3",
+            "edsd2",
+            "edsd9"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "AD",
+          "n_splits": 4
+        },
+        "test_case_num": 2
+      },
+      "output": {
+        "accuracy": [
+          0.746268656716418,
+          0.8109452736318408,
+          0.77,
+          0.49
+        ],
+        "recall": [
+          0.8160919540229885,
+          0.6091954022988506,
+          0.5581395348837209,
+          0.7241379310344828
+        ],
+        "precision": [
+          0.6698113207547169,
+          0.9298245614035088,
+          0.8571428571428571,
+          0.44680851063829785
+        ],
+        "fscore": [
+          0.7357512953367875,
+          0.7361111111111112,
+          0.676056338028169,
+          0.5526315789473684
+        ],
+        "auc": [
+          0.774148013712442,
+          0.9229683403912079,
+          0.8315993472052223,
+          0.5667785576238429
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "agegroup"
+          ],
+          "x": [
+            "leftpcggposteriorcingulategyrus",
+            "rightpcggposteriorcingulategyrus",
+            "leftmfcmedialfrontalcortex",
+            "leftcuncuneus",
+            "rightioginferioroccipitalgyrus",
+            "rightmfcmedialfrontalcortex"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "ppmi4",
+            "ppmi0",
+            "edsd9",
+            "ppmi7",
+            "desd-synthdata0",
+            "ppmi2",
+            "edsd3",
+            "desd-synthdata3",
+            "edsd5",
+            "ppmi8"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "50-59y",
+          "n_splits": 2
+        },
+        "test_case_num": 3
+      },
+      "output": {
+        "accuracy": [
+          0.8090614886731392,
+          0.8122977346278317
+        ],
+        "recall": [
+          0.034482758620689655,
+          0.017241379310344827
+        ],
+        "precision": [
+          0.4,
+          0.5
+        ],
+        "fscore": [
+          0.06349206349206349,
+          0.03333333333333333
+        ],
+        "auc": [
+          0.6153317763429043,
+          0.5966478911938453
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "edsdcategory"
+          ],
+          "x": [
+            "leftpcggposteriorcingulategyrus",
+            "leftmprgprecentralgyrusmedialsegment",
+            "righthippocampus",
+            "rightcaudate"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata4",
+            "ppmi1",
+            "desd-synthdata2",
+            "edsd0",
+            "edsd5",
+            "edsd8",
+            "ppmi8",
+            "edsd6"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "CN",
+          "n_splits": 6
+        },
+        "test_case_num": 4
+      },
+      "output": {
+        "accuracy": [
+          0.6222222222222222,
+          0.6666666666666666,
+          0.7045454545454546,
+          0.6363636363636364,
+          0.5909090909090909,
+          0.5909090909090909
+        ],
+        "recall": [
+          0.47368421052631576,
+          0.2631578947368421,
+          0.5555555555555556,
+          0.5555555555555556,
+          0.3333333333333333,
+          0.4444444444444444
+        ],
+        "precision": [
+          0.5625,
+          0.8333333333333334,
+          0.6666666666666666,
+          0.5555555555555556,
+          0.5,
+          0.5
+        ],
+        "fscore": [
+          0.5142857142857142,
+          0.39999999999999997,
+          0.606060606060606,
+          0.5555555555555556,
+          0.4,
+          0.47058823529411764
+        ],
+        "auc": [
+          0.6902834008097166,
+          0.8421052631578947,
+          0.8012820512820513,
+          0.6346153846153847,
+          0.5683760683760684,
+          0.6068376068376068
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "parkinsonbroadcategory"
+          ],
+          "x": [
+            "leftainsanteriorinsula",
+            "righttmptemporalpole",
+            "leftangangulargyrus",
+            "leftphgparahippocampalgyrus",
+            "rightmsfgsuperiorfrontalgyrusmedialsegment",
+            "rightliglingualgyrus",
+            "leftptplanumtemporale",
+            "leftppplanumpolare",
+            "rightmcggmiddlecingulategyrus",
+            "rightaorganteriororbitalgyrus",
+            "leftlorglateralorbitalgyrus",
+            "rightbasalforebrain",
+            "cerebellarvermallobulesviiix",
+            "rightptplanumtemporale",
+            "rightlateralventricle",
+            "leftmprgprecentralgyrusmedialsegment",
+            "leftmogmiddleoccipitalgyrus",
+            "rightioginferioroccipitalgyrus",
+            "leftententorhinalarea",
+            "cerebellarvermallobulesiv",
+            "leftsmcsupplementarymotorcortex",
+            "rightitginferiortemporalgyrus",
+            "rightcaudate",
+            "leftfofrontaloperculum",
+            "leftaorganteriororbitalgyrus",
+            "leftocpoccipitalpole",
+            "leftscasubcallosalarea",
+            "leftpoparietaloperculum",
+            "rightaccumbensarea",
+            "leftaccumbensarea",
+            "leftventraldc"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "ppmi9",
+            "edsd3",
+            "ppmi5",
+            "edsd8",
+            "desd-synthdata0",
+            "desd-synthdata5",
+            "ppmi4",
+            "edsd5",
+            "desd-synthdata9",
+            "desd-synthdata4",
+            "desd-synthdata7",
+            "edsd2",
+            "edsd9",
+            "desd-synthdata2",
+            "ppmi7",
+            "desd-synthdata1",
+            "edsd4"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "Other",
+          "n_splits": 12
+        },
+        "test_case_num": 5
+      },
+      "output": {
+        "accuracy": [
+          0.6296296296296297,
+          0.7037037037037037,
+          0.7692307692307693,
+          0.6923076923076923,
+          0.7307692307692307,
+          0.7692307692307693,
+          0.6923076923076923,
+          0.6923076923076923,
+          0.7307692307692307,
+          0.6153846153846154,
+          0.6538461538461539,
+          0.6538461538461539
+        ],
+        "recall": [
+          0.14285714285714285,
+          0,
+          0.2857142857142857,
+          0.14285714285714285,
+          0.2857142857142857,
+          0.2857142857142857,
+          0,
+          0,
+          0.5714285714285714,
+          0.14285714285714285,
+          0.14285714285714285,
+          0.2857142857142857
+        ],
+        "precision": [
+          0.2,
+          0,
+          0.6666666666666666,
+          0.3333333333333333,
+          0.5,
+          0.6666666666666666,
+          0,
+          0,
+          0.5,
+          0.2,
+          0.25,
+          0.3333333333333333
+        ],
+        "fscore": [
+          0.16666666666666666,
+          0,
+          0.4,
+          0.2,
+          0.36363636363636365,
+          0.4,
+          0,
+          0,
+          0.5333333333333333,
+          0.16666666666666666,
+          0.18181818181818182,
+          0.30769230769230765
+        ],
+        "auc": [
+          0.5785714285714285,
+          0.513157894736842,
+          0.5789473684210527,
+          0.40601503759398494,
+          0.7142857142857143,
+          0.6165413533834586,
+          0.3533834586466166,
+          0.7293233082706767,
+          0.6165413533834587,
+          0.5864661654135339,
+          0.5639097744360902,
+          0.44360902255639095
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "parkinsonbroadcategory"
+          ],
+          "x": [
+            "rightitginferiortemporalgyrus",
+            "rightmogmiddleoccipitalgyrus",
+            "rightangangulargyrus",
+            "rightlorglateralorbitalgyrus",
+            "rightcuncuneus",
+            "leftbasalforebrain",
+            "rightttgtransversetemporalgyrus",
+            "rightthalamusproper",
+            "leftmprgprecentralgyrusmedialsegment"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "edsd1",
+            "ppmi6",
+            "edsd2",
+            "ppmi7",
+            "edsd4",
+            "ppmi4",
+            "desd-synthdata6",
+            "ppmi2",
+            "desd-synthdata2",
+            "edsd7",
+            "desd-synthdata5",
+            "edsd0",
+            "ppmi0",
+            "desd-synthdata0",
+            "desd-synthdata1",
+            "ppmi5",
+            "ppmi1",
+            "desd-synthdata4",
+            "edsd3"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "PD",
+          "n_splits": 8
+        },
+        "test_case_num": 6
+      },
+      "output": {
+        "accuracy": [
+          0.65,
+          0.65,
+          0.65,
+          0.65,
+          0.65,
+          0.65,
+          0.65,
+          0.65
+        ],
+        "recall": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "precision": [
+          0.65,
+          0.65,
+          0.65,
+          0.65,
+          0.65,
+          0.65,
+          0.65,
+          0.65
+        ],
+        "fscore": [
+          0.787878787878788,
+          0.787878787878788,
+          0.787878787878788,
+          0.787878787878788,
+          0.787878787878788,
+          0.787878787878788,
+          0.787878787878788,
+          0.787878787878788
+        ],
+        "auc": [
+          0.5006105006105006,
+          0.43833943833943834,
+          0.5665445665445665,
+          0.5750915750915752,
+          0.4078144078144078,
+          0.3431013431013431,
+          0.463980463980464,
+          0.4822954822954823
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "alzheimerbroadcategory"
+          ],
+          "x": [
+            "rightcerebellumwhitematter",
+            "rightmsfgsuperiorfrontalgyrusmedialsegment"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata3",
+            "ppmi2",
+            "edsd0"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "AD",
+          "n_splits": 3
+        },
+        "test_case_num": 7
+      },
+      "output": {
+        "accuracy": [
+          0.7719298245614035,
+          0.8421052631578947,
+          0.6666666666666666
+        ],
+        "recall": [
+          0.07142857142857142,
+          0.35714285714285715,
+          0.42857142857142855
+        ],
+        "precision": [
+          1,
+          1,
+          0.35294117647058826
+        ],
+        "fscore": [
+          0.13333333333333333,
+          0.5263157894736842,
+          0.3870967741935484
+        ],
+        "auc": [
+          0.7109634551495017,
+          0.7657807308970099,
+          0.5980066445182723
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "edsdcategory"
+          ],
+          "x": [
+            "rightcerebralwhitematter",
+            "rightmfgmiddlefrontalgyrus",
+            "leftaorganteriororbitalgyrus",
+            "rightacgganteriorcingulategyrus",
+            "cerebellarvermallobulesiv",
+            "righthippocampus",
+            "rightofugoccipitalfusiformgyrus",
+            "leftpoparietaloperculum",
+            "leftinflatvent",
+            "rightporgposteriororbitalgyrus",
+            "leftfrpfrontalpole",
+            "leftainsanteriorinsula",
+            "rightmcggmiddlecingulategyrus",
+            "rightsogsuperioroccipitalgyrus",
+            "rightsmcsupplementarymotorcortex",
+            "leftstgsuperiortemporalgyrus",
+            "leftsmgsupramarginalgyrus",
+            "leftmprgprecentralgyrusmedialsegment",
+            "subjectage",
+            "rightorifgorbitalpartoftheinferiorfrontalgyrus",
+            "rightpogpostcentralgyrus",
+            "rightpoparietaloperculum"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "edsd9",
+            "desd-synthdata8",
+            "ppmi5",
+            "desd-synthdata5",
+            "ppmi3",
+            "edsd5",
+            "desd-synthdata6"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "MCI",
+          "n_splits": 10
+        },
+        "test_case_num": 8
+      },
+      "output": {
+        "accuracy": [
+          0.8181818181818182,
+          0.7727272727272727,
+          0.7727272727272727,
+          0.7727272727272727,
+          0.8181818181818182,
+          0.7727272727272727,
+          0.8095238095238095,
+          0.8571428571428571,
+          0.8571428571428571,
+          0.8571428571428571
+        ],
+        "recall": [
+          0,
+          0,
+          0,
+          0.25,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "precision": [
+          0,
+          0,
+          0,
+          0.3333333333333333,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fscore": [
+          0,
+          0,
+          0,
+          0.28571428571428575,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "auc": [
+          0.2807017543859649,
+          0.5416666666666666,
+          0.7916666666666667,
+          0.45833333333333337,
+          0.5833333333333334,
+          0.6666666666666667,
+          0.3518518518518518,
+          0.8333333333333334,
+          0.25925925925925924,
+          0.7407407407407407
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "parkinsonbroadcategory"
+          ],
+          "x": [
+            "cerebellarvermallobulesiv",
+            "rightainsanteriorinsula",
+            "leftventraldc",
+            "rightcerebellumwhitematter",
+            "leftfrpfrontalpole",
+            "rightpcggposteriorcingulategyrus",
+            "rightofugoccipitalfusiformgyrus",
+            "leftputamen",
+            "leftscasubcallosalarea",
+            "rightangangulargyrus",
+            "rightgregyrusrectus",
+            "leftpcuprecuneus",
+            "subjectageyears",
+            "leftpogpostcentralgyrus",
+            "leftphgparahippocampalgyrus",
+            "rightmsfgsuperiorfrontalgyrusmedialsegment"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata8",
+            "desd-synthdata7",
+            "edsd8",
+            "ppmi2",
+            "edsd1",
+            "ppmi3",
+            "desd-synthdata0",
+            "ppmi1",
+            "ppmi7"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "PD",
+          "n_splits": 6
+        },
+        "test_case_num": 9
+      },
+      "output": {
+        "accuracy": [
+          0.5652173913043478,
+          0.45652173913043476,
+          0.4782608695652174,
+          0.4782608695652174,
+          0.5333333333333333,
+          0.5555555555555556
+        ],
+        "recall": [
+          0.7307692307692307,
+          0.5,
+          0.6923076923076923,
+          0.6923076923076923,
+          0.5769230769230769,
+          0.7307692307692307
+        ],
+        "precision": [
+          0.59375,
+          0.52,
+          0.5294117647058824,
+          0.5294117647058824,
+          0.6,
+          0.59375
+        ],
+        "fscore": [
+          0.6551724137931033,
+          0.5098039215686274,
+          0.5999999999999999,
+          0.5999999999999999,
+          0.5882352941176471,
+          0.6551724137931033
+        ],
+        "auc": [
+          0.5153846153846153,
+          0.4307692307692308,
+          0.5057692307692307,
+          0.475,
+          0.48785425101214575,
+          0.5445344129554657
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "parkinsonbroadcategory"
+          ],
+          "x": [
+            "rightcaudate",
+            "leftainsanteriorinsula",
+            "rightainsanteriorinsula",
+            "rightopifgopercularpartoftheinferiorfrontalgyrus",
+            "rightlateralventricle",
+            "rightptplanumtemporale",
+            "rightcuncuneus",
+            "leftofugoccipitalfusiformgyrus"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "edsd0",
+            "desd-synthdata9",
+            "desd-synthdata6",
+            "desd-synthdata4",
+            "edsd1",
+            "ppmi8",
+            "ppmi2",
+            "desd-synthdata7",
+            "edsd5",
+            "edsd7",
+            "edsd3",
+            "desd-synthdata1",
+            "desd-synthdata2",
+            "desd-synthdata8",
+            "ppmi7",
+            "edsd9",
+            "ppmi5",
+            "ppmi0",
+            "edsd4",
+            "ppmi9",
+            "ppmi4",
+            "ppmi3",
+            "ppmi6",
+            "edsd6",
+            "edsd8"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "PD",
+          "n_splits": 5
+        },
+        "test_case_num": 10
+      },
+      "output": {
+        "accuracy": [
+          0.5735294117647058,
+          0.5073529411764706,
+          0.5882352941176471,
+          0.625,
+          0.5808823529411765
+        ],
+        "recall": [
+          0.9012345679012346,
+          0.7901234567901234,
+          0.9382716049382716,
+          0.8395061728395061,
+          0.8641975308641975
+        ],
+        "precision": [
+          0.5934959349593496,
+          0.5614035087719298,
+          0.5984251968503937,
+          0.6415094339622641,
+          0.603448275862069
+        ],
+        "fscore": [
+          0.7156862745098039,
+          0.6564102564102564,
+          0.7307692307692308,
+          0.7272727272727271,
+          0.7106598984771574
+        ],
+        "auc": [
+          0.5349046015712683,
+          0.4143658810325477,
+          0.6125701459034794,
+          0.5721661054994388,
+          0.4278338945005612
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "gender"
+          ],
+          "x": [
+            "leftfofrontaloperculum",
+            "rightofugoccipitalfusiformgyrus"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "edsd2",
+            "desd-synthdata0",
+            "desd-synthdata6",
+            "ppmi5",
+            "edsd8",
+            "ppmi7",
+            "edsd4",
+            "desd-synthdata9",
+            "ppmi6",
+            "ppmi4",
+            "edsd7",
+            "desd-synthdata8",
+            "edsd9",
+            "desd-synthdata4"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "F",
+          "n_splits": 2
+        },
+        "test_case_num": 11
+      },
+      "output": {
+        "accuracy": [
+          0.6800847457627118,
+          0.6815286624203821
+        ],
+        "recall": [
+          0.5161290322580645,
+          0.728110599078341
+        ],
+        "precision": [
+          0.7088607594936709,
+          0.6345381526104418
+        ],
+        "fscore": [
+          0.5973333333333333,
+          0.6781115879828326
+        ],
+        "auc": [
+          0.761778259690973,
+          0.7413186254943939
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "edsdcategory"
+          ],
+          "x": [
+            "rightmtgmiddletemporalgyrus",
+            "rightpallidum",
+            "_4thventricle",
+            "leftsmcsupplementarymotorcortex",
+            "rightporgposteriororbitalgyrus",
+            "rightsmgsupramarginalgyrus",
+            "rightsmcsupplementarymotorcortex",
+            "rightlateralventricle",
+            "leftocpoccipitalpole",
+            "lefthippocampus",
+            "rightscasubcallosalarea",
+            "leftcaudate",
+            "leftptplanumtemporale",
+            "rightinflatvent",
+            "leftainsanteriorinsula",
+            "rightgregyrusrectus",
+            "cerebellarvermallobulesiv",
+            "subjectage",
+            "leftcerebellumwhitematter",
+            "rightpcggposteriorcingulategyrus",
+            "rightententorhinalarea",
+            "leftcerebellumexterior",
+            "righttmptemporalpole",
+            "rightpcuprecuneus",
+            "rightfrpfrontalpole",
+            "rightptplanumtemporale",
+            "rightsogsuperioroccipitalgyrus",
+            "leftfugfusiformgyrus",
+            "leftcocentraloperculum",
+            "rightcerebellumexterior",
+            "leftputamen",
+            "rightventraldc",
+            "rightpoparietaloperculum",
+            "rightttgtransversetemporalgyrus",
+            "leftstgsuperiortemporalgyrus",
+            "brainstem",
+            "leftpoparietaloperculum",
+            "righttrifgtriangularpartoftheinferiorfrontalgyrus",
+            "leftlateralventricle",
+            "leftmorgmedialorbitalgyrus",
+            "leftphgparahippocampalgyrus",
+            "rightcerebellumwhitematter",
+            "leftpcuprecuneus",
+            "leftthalamusproper",
+            "leftorifgorbitalpartoftheinferiorfrontalgyrus",
+            "leftaorganteriororbitalgyrus",
+            "rightmprgprecentralgyrusmedialsegment"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata3",
+            "edsd9",
+            "edsd6",
+            "desd-synthdata4",
+            "ppmi2",
+            "ppmi8",
+            "edsd0",
+            "ppmi6",
+            "edsd4",
+            "edsd7",
+            "edsd5"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "AD",
+          "n_splits": 9
+        },
+        "test_case_num": 12
+      },
+      "output": {
+        "accuracy": [
+          0.5882352941176471,
+          0.8235294117647058,
+          0.8823529411764706,
+          0.5294117647058824,
+          0.35294117647058826,
+          0.5625,
+          null,
+          0.625,
+          0.5625
+        ],
+        "recall": [
+          0.5,
+          0.5714285714285714,
+          0.8571428571428571,
+          0.42857142857142855,
+          0,
+          0.6666666666666666,
+          null,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "precision": [
+          0.42857142857142855,
+          1,
+          0.8571428571428571,
+          0.42857142857142855,
+          0,
+          0.4444444444444444,
+          null,
+          0.5,
+          0.4
+        ],
+        "fscore": [
+          0.4615384615384615,
+          0.7272727272727273,
+          0.8571428571428571,
+          0.42857142857142855,
+          0,
+          0.5333333333333333,
+          null,
+          0.4,
+          0.3636363636363636
+        ],
+        "auc": [
+          0.5454545454545455,
+          0.7714285714285715,
+          0.8571428571428571,
+          0.6,
+          0.49999999999999994,
+          0.7333333333333334,
+          null,
+          0.6166666666666667,
+          0.5
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "edsdcategory"
+          ],
+          "x": [
+            "leftententorhinalarea",
+            "leftpogpostcentralgyrus",
+            "rightfrpfrontalpole",
+            "rightmsfgsuperiorfrontalgyrusmedialsegment",
+            "opticchiasm",
+            "rightmtgmiddletemporalgyrus",
+            "leftporgposteriororbitalgyrus"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "ppmi4",
+            "edsd2",
+            "edsd6",
+            "edsd9",
+            "ppmi2",
+            "desd-synthdata1",
+            "ppmi1",
+            "ppmi9",
+            "desd-synthdata0",
+            "edsd7"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "MCI",
+          "n_splits": 7
+        },
+        "test_case_num": 13
+      },
+      "output": {
+        "accuracy": [
+          0.813953488372093,
+          0.813953488372093,
+          0.813953488372093,
+          0.813953488372093,
+          0.8095238095238095,
+          0.8333333333333334,
+          0.6904761904761905
+        ],
+        "recall": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0.125,
+          0
+        ],
+        "precision": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        "fscore": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0.2222222222222222,
+          0
+        ],
+        "auc": [
+          0.5107142857142857,
+          0.8357142857142859,
+          0.3821428571428571,
+          0.5107142857142858,
+          0.5,
+          0.5330882352941176,
+          0.3529411764705882
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "gender"
+          ],
+          "x": [
+            "leftpcuprecuneus",
+            "_4thventricle",
+            "leftppplanumpolare",
+            "leftporgposteriororbitalgyrus",
+            "leftcerebellumwhitematter",
+            "rightfugfusiformgyrus",
+            "rightmtgmiddletemporalgyrus",
+            "leftventraldc",
+            "rightsmgsupramarginalgyrus",
+            "rightlateralventricle",
+            "leftsplsuperiorparietallobule",
+            "leftlorglateralorbitalgyrus",
+            "rightcocentraloperculum",
+            "rightcaudate",
+            "leftgregyrusrectus",
+            "rightmsfgsuperiorfrontalgyrusmedialsegment"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata5",
+            "ppmi2",
+            "edsd9",
+            "desd-synthdata1",
+            "ppmi3",
+            "edsd3",
+            "ppmi0",
+            "desd-synthdata9",
+            "ppmi7",
+            "desd-synthdata6",
+            "desd-synthdata3",
+            "edsd5"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "F",
+          "n_splits": 6
+        },
+        "test_case_num": 14
+      },
+      "output": {
+        "accuracy": [
+          0.7961783439490446,
+          0.7692307692307693,
+          0.6025641025641025,
+          0.8205128205128205,
+          0.6858974358974359,
+          0.6987179487179487
+        ],
+        "recall": [
+          0.75,
+          0.6933333333333334,
+          0.64,
+          0.8533333333333334,
+          0.7733333333333333,
+          0.7466666666666667
+        ],
+        "precision": [
+          0.8142857142857143,
+          0.8,
+          0.5783132530120482,
+          0.7901234567901234,
+          0.6444444444444445,
+          0.6666666666666666
+        ],
+        "fscore": [
+          0.7808219178082193,
+          0.7428571428571429,
+          0.6075949367088608,
+          0.8205128205128205,
+          0.7030303030303031,
+          0.7044025157232704
+        ],
+        "auc": [
+          0.8403183885640028,
+          0.877201646090535,
+          0.7004115226337447,
+          0.891522633744856,
+          0.7805761316872428,
+          0.7848559670781893
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "gender"
+          ],
+          "x": [
+            "leftthalamusproper",
+            "leftainsanteriorinsula",
+            "rightamygdala"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata8",
+            "ppmi4",
+            "edsd4",
+            "ppmi5"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "F",
+          "n_splits": 12
+        },
+        "test_case_num": 15
+      },
+      "output": {
+        "accuracy": [
+          0.8076923076923077,
+          0.6923076923076923,
+          0.6923076923076923,
+          0.6923076923076923,
+          0.7692307692307693,
+          0.64,
+          0.68,
+          0.88,
+          0.72,
+          0.64,
+          0.6,
+          0.76
+        ],
+        "recall": [
+          0.7777777777777778,
+          0.7777777777777778,
+          0.2222222222222222,
+          0.1111111111111111,
+          0.3333333333333333,
+          0,
+          0,
+          0.625,
+          0.5,
+          0.375,
+          0.5,
+          0.375
+        ],
+        "precision": [
+          0.7,
+          0.5384615384615384,
+          0.6666666666666666,
+          1,
+          1,
+          0,
+          0,
+          1,
+          0.5714285714285714,
+          0.42857142857142855,
+          0.4,
+          0.75
+        ],
+        "fscore": [
+          0.7368421052631577,
+          0.6363636363636364,
+          0.3333333333333333,
+          0.19999999999999998,
+          0.5,
+          0,
+          0,
+          0.7692307692307693,
+          0.5333333333333333,
+          0.39999999999999997,
+          0.4444444444444445,
+          0.5
+        ],
+        "auc": [
+          0.8169934640522876,
+          0.8431372549019608,
+          0.7058823529411764,
+          0.7973856209150327,
+          0.7908496732026143,
+          0.4791666666666667,
+          0.8161764705882353,
+          0.8970588235294117,
+          0.7794117647058824,
+          0.6323529411764706,
+          0.7058823529411764,
+          0.7352941176470589
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "gender"
+          ],
+          "x": [
+            "lefthippocampus",
+            "cerebellarvermallobulesviiix",
+            "leftitginferiortemporalgyrus",
+            "rightpallidum",
+            "rightententorhinalarea",
+            "rightlateralventricle",
+            "rightioginferioroccipitalgyrus",
+            "leftporgposteriororbitalgyrus",
+            "leftcerebellumwhitematter",
+            "rightpcggposteriorcingulategyrus",
+            "rightprgprecentralgyrus",
+            "righthippocampus",
+            "leftofugoccipitalfusiformgyrus"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "edsd9",
+            "ppmi5",
+            "edsd6",
+            "ppmi6",
+            "ppmi8",
+            "desd-synthdata0",
+            "ppmi7",
+            "edsd7",
+            "edsd4",
+            "desd-synthdata1",
+            "ppmi1",
+            "desd-synthdata8",
+            "edsd5",
+            "desd-synthdata2",
+            "desd-synthdata6",
+            "edsd0",
+            "edsd3",
+            "ppmi9",
+            "desd-synthdata9",
+            "edsd8",
+            "edsd1",
+            "ppmi2",
+            "edsd2",
+            "ppmi0"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "F",
+          "n_splits": 8
+        },
+        "test_case_num": 16
+      },
+      "output": {
+        "accuracy": [
+          0.8031088082901554,
+          0.7564766839378239,
+          0.772020725388601,
+          0.7046632124352331,
+          0.6424870466321243,
+          0.7979274611398963,
+          0.7253886010362695,
+          0.7083333333333334
+        ],
+        "recall": [
+          0.8444444444444444,
+          0.8444444444444444,
+          0.6444444444444445,
+          0.5555555555555556,
+          0.5777777777777777,
+          0.8,
+          0.7252747252747253,
+          0.8111111111111111
+        ],
+        "precision": [
+          0.76,
+          0.6972477064220184,
+          0.8285714285714286,
+          0.746268656716418,
+          0.6265060240963856,
+          0.7741935483870968,
+          0.7021276595744681,
+          0.6517857142857143
+        ],
+        "fscore": [
+          0.8,
+          0.763819095477387,
+          0.7250000000000001,
+          0.6369426751592356,
+          0.6011560693641618,
+          0.7868852459016393,
+          0.7135135135135136,
+          0.7227722772277229
+        ],
+        "auc": [
+          0.8482200647249192,
+          0.8245954692556634,
+          0.8613807982740022,
+          0.7891046386192018,
+          0.6636461704422869,
+          0.8336569579288026,
+          0.7842059900883431,
+          0.768082788671024
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "edsdcategory"
+          ],
+          "x": [
+            "leftmfcmedialfrontalcortex",
+            "rightcerebralwhitematter",
+            "subjectageyears",
+            "rightitginferiortemporalgyrus",
+            "rightcerebellumexterior",
+            "lefthippocampus",
+            "subjectage",
+            "rightfrpfrontalpole",
+            "_4thventricle",
+            "rightmcggmiddlecingulategyrus",
+            "cerebellarvermallobulesiv",
+            "leftstgsuperiortemporalgyrus",
+            "leftpcuprecuneus",
+            "rightsmcsupplementarymotorcortex",
+            "rightainsanteriorinsula"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata6",
+            "desd-synthdata1",
+            "desd-synthdata3",
+            "desd-synthdata9",
+            "edsd5",
+            "edsd2",
+            "desd-synthdata4",
+            "edsd7",
+            "desd-synthdata8",
+            "desd-synthdata0",
+            "desd-synthdata2",
+            "ppmi2",
+            "ppmi5",
+            "edsd6",
+            "ppmi6"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "MCI",
+          "n_splits": 11
+        },
+        "test_case_num": 17
+      },
+      "output": {
+        "accuracy": [
+          0.7735849056603774,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7884615384615384,
+          0.7884615384615384
+        ],
+        "recall": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "precision": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "fscore": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "auc": [
+          0.5691056910569106,
+          0.5277161862527715,
+          0.4057649667405765,
+          0.5055432372505544,
+          0.36363636363636365,
+          0.5543237250554325,
+          0.6097560975609756,
+          0.4878048780487804,
+          0.458980044345898,
+          0.5631929046563193,
+          0.4035476718403548
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "ppmicategory"
+          ],
+          "x": [
+            "rightpcggposteriorcingulategyrus",
+            "rightorifgorbitalpartoftheinferiorfrontalgyrus",
+            "leftttgtransversetemporalgyrus",
+            "rightfrpfrontalpole",
+            "leftprgprecentralgyrus",
+            "brainstem",
+            "rightmfcmedialfrontalcortex",
+            "cerebellarvermallobulesviiix",
+            "leftfofrontaloperculum",
+            "leftmfgmiddlefrontalgyrus",
+            "leftfrpfrontalpole",
+            "rightputamen",
+            "leftgregyrusrectus",
+            "leftpcuprecuneus",
+            "rightcerebellumwhitematter",
+            "leftopifgopercularpartoftheinferiorfrontalgyrus",
+            "rightofugoccipitalfusiformgyrus",
+            "leftcuncuneus",
+            "rightppplanumpolare",
+            "rightfugfusiformgyrus",
+            "rightmsfgsuperiorfrontalgyrusmedialsegment",
+            "leftfugfusiformgyrus",
+            "leftcaudate",
+            "rightlateralventricle",
+            "rightinflatvent",
+            "rightopifgopercularpartoftheinferiorfrontalgyrus",
+            "rightporgposteriororbitalgyrus",
+            "rightmogmiddleoccipitalgyrus",
+            "leftioginferioroccipitalgyrus",
+            "leftainsanteriorinsula",
+            "leftmsfgsuperiorfrontalgyrusmedialsegment",
+            "leftliglingualgyrus",
+            "rightmfgmiddlefrontalgyrus",
+            "leftmorgmedialorbitalgyrus",
+            "lefthippocampus",
+            "rightprgprecentralgyrus",
+            "leftmcggmiddlecingulategyrus",
+            "rightocpoccipitalpole"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata4",
+            "edsd7",
+            "edsd0",
+            "desd-synthdata6",
+            "desd-synthdata8",
+            "desd-synthdata2",
+            "desd-synthdata9",
+            "desd-synthdata7",
+            "edsd3",
+            "ppmi4",
+            "edsd1",
+            "ppmi3",
+            "ppmi1",
+            "edsd2",
+            "ppmi9",
+            "edsd9",
+            "desd-synthdata1",
+            "desd-synthdata3",
+            "ppmi7"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "GENPD",
+          "n_splits": 10
+        },
+        "test_case_num": 18
+      },
+      "output": {
+        "accuracy": [
+          0.7714285714285715,
+          0.6857142857142857,
+          0.8,
+          0.8285714285714286,
+          0.8571428571428571,
+          0.8285714285714286,
+          0.7714285714285715,
+          0.8571428571428571,
+          0.8235294117647058,
+          0.7941176470588235
+        ],
+        "recall": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0.2,
+          0.2,
+          0
+        ],
+        "precision": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0.5,
+          0.3333333333333333,
+          0
+        ],
+        "fscore": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0.28571428571428575,
+          0.25,
+          0
+        ],
+        "auc": [
+          0.5733333333333334,
+          0.44666666666666666,
+          0.5733333333333333,
+          0.6466666666666667,
+          0.64,
+          0.48,
+          0.6133333333333334,
+          0.6066666666666667,
+          0.5655172413793103,
+          0.5655172413793104
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "ppmicategory"
+          ],
+          "x": [
+            "rightpcuprecuneus",
+            "rightainsanteriorinsula",
+            "leftcerebellumexterior",
+            "leftcuncuneus",
+            "rightcaudate",
+            "leftlateralventricle",
+            "rightmfcmedialfrontalcortex"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "edsd1",
+            "edsd8",
+            "desd-synthdata4",
+            "edsd0",
+            "desd-synthdata1",
+            "ppmi5",
+            "ppmi9",
+            "edsd6",
+            "edsd5",
+            "edsd7"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "PRODROMA",
+          "n_splits": 6
+        },
+        "test_case_num": 19
+      },
+      "output": {
+        "accuracy": [
+          0.7692307692307693,
+          0.7307692307692307,
+          0.7307692307692307,
+          0.7692307692307693,
+          0.8,
+          0.8
+        ],
+        "recall": [
+          0,
+          0,
+          0,
+          0,
+          0.2,
+          0.2
+        ],
+        "precision": [
+          0,
+          0,
+          0,
+          0,
+          0.5,
+          0.5
+        ],
+        "fscore": [
+          0,
+          0,
+          0,
+          0,
+          0.28571428571428575,
+          0.28571428571428575
+        ],
+        "auc": [
+          0.49166666666666664,
+          0.8333333333333334,
+          0.6749999999999999,
+          0.75,
+          0.45,
+          0.49
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "edsdcategory"
+          ],
+          "x": [
+            "leftmprgprecentralgyrusmedialsegment",
+            "leftputamen",
+            "csfglobal",
+            "leftopifgopercularpartoftheinferiorfrontalgyrus",
+            "lefttrifgtriangularpartoftheinferiorfrontalgyrus",
+            "rightmorgmedialorbitalgyrus",
+            "leftpinsposteriorinsula",
+            "leftttgtransversetemporalgyrus"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata0",
+            "desd-synthdata4",
+            "desd-synthdata9",
+            "edsd7",
+            "ppmi5",
+            "edsd8",
+            "ppmi3",
+            "ppmi2",
+            "desd-synthdata2",
+            "desd-synthdata3"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "CN",
+          "n_splits": 12
+        },
+        "test_case_num": 20
+      },
+      "output": {
+        "accuracy": [
+          0.8333333333333334,
+          0.8888888888888888,
+          0.8333333333333334,
+          0.7428571428571429,
+          0.6857142857142857,
+          0.7142857142857143,
+          0.8285714285714286,
+          0.6571428571428571,
+          0.6571428571428571,
+          0.7142857142857143,
+          0.7714285714285715,
+          0.6857142857142857
+        ],
+        "recall": [
+          0.6428571428571429,
+          0.8,
+          0.7333333333333333,
+          0.7142857142857143,
+          0.5714285714285714,
+          0.5,
+          0.7142857142857143,
+          0.5,
+          0.5,
+          0.5714285714285714,
+          0.6428571428571429,
+          0.7142857142857143
+        ],
+        "precision": [
+          0.9,
+          0.9230769230769231,
+          0.8461538461538461,
+          0.6666666666666666,
+          0.6153846153846154,
+          0.7,
+          0.8333333333333334,
+          0.5833333333333334,
+          0.5833333333333334,
+          0.6666666666666666,
+          0.75,
+          0.5882352941176471
+        ],
+        "fscore": [
+          0.75,
+          0.8571428571428571,
+          0.7857142857142856,
+          0.689655172413793,
+          0.5925925925925927,
+          0.5833333333333334,
+          0.7692307692307692,
+          0.5384615384615384,
+          0.5384615384615384,
+          0.6153846153846153,
+          0.6923076923076924,
+          0.6451612903225806
+        ],
+        "auc": [
+          0.8051948051948052,
+          0.9206349206349207,
+          0.873015873015873,
+          0.7346938775510204,
+          0.6938775510204082,
+          0.6972789115646258,
+          0.8843537414965986,
+          0.7551020408163265,
+          0.8027210884353742,
+          0.7585034013605443,
+          0.7755102040816326,
+          0.7993197278911564
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "edsdcategory"
+          ],
+          "x": [
+            "opticchiasm",
+            "rightpcggposteriorcingulategyrus",
+            "rightpinsposteriorinsula",
+            "leftcerebralwhitematter",
+            "rightmcggmiddlecingulategyrus",
+            "brainstem",
+            "leftpinsposteriorinsula"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata3",
+            "edsd2",
+            "edsd1",
+            "ppmi3",
+            "edsd3",
+            "ppmi6",
+            "desd-synthdata6",
+            "desd-synthdata0",
+            "desd-synthdata2",
+            "ppmi1",
+            "edsd7"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "AD",
+          "n_splits": 11
+        },
+        "test_case_num": 21
+      },
+      "output": {
+        "accuracy": [
+          0.775,
+          0.775,
+          0.675,
+          0.775,
+          0.675,
+          0.6923076923076923,
+          0.6153846153846154,
+          0.6153846153846154,
+          0.7435897435897436,
+          0.5897435897435898,
+          0.6923076923076923
+        ],
+        "recall": [
+          0.6,
+          0.7333333333333333,
+          0.4,
+          0.6666666666666666,
+          0.6,
+          0.4,
+          0.4,
+          0.3333333333333333,
+          0.4666666666666667,
+          0.3333333333333333,
+          0.26666666666666666
+        ],
+        "precision": [
+          0.75,
+          0.6875,
+          0.6,
+          0.7142857142857143,
+          0.5625,
+          0.6666666666666666,
+          0.5,
+          0.5,
+          0.7777777777777778,
+          0.45454545454545453,
+          0.8
+        ],
+        "fscore": [
+          0.6666666666666665,
+          0.7096774193548386,
+          0.48,
+          0.689655172413793,
+          0.5806451612903225,
+          0.5,
+          0.4444444444444445,
+          0.4,
+          0.5833333333333334,
+          0.3846153846153846,
+          0.4
+        ],
+        "auc": [
+          0.8533333333333333,
+          0.8346666666666667,
+          0.6746666666666666,
+          0.7813333333333334,
+          0.7413333333333332,
+          0.65,
+          0.5888888888888889,
+          0.6972222222222223,
+          0.7999999999999999,
+          0.6166666666666667,
+          0.525
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "alzheimerbroadcategory"
+          ],
+          "x": [
+            "leftsmgsupramarginalgyrus",
+            "rightcerebellumwhitematter",
+            "rightententorhinalarea",
+            "leftporgposteriororbitalgyrus",
+            "leftcocentraloperculum",
+            "leftaorganteriororbitalgyrus",
+            "rightppplanumpolare",
+            "rightcaudate",
+            "leftcerebellumexterior",
+            "leftliglingualgyrus",
+            "subjectage",
+            "leftventraldc",
+            "rightttgtransversetemporalgyrus"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "ppmi8",
+            "desd-synthdata5",
+            "ppmi3",
+            "edsd0",
+            "desd-synthdata8",
+            "ppmi6",
+            "edsd6",
+            "edsd8",
+            "desd-synthdata1",
+            "ppmi0",
+            "edsd4",
+            "ppmi9",
+            "desd-synthdata4",
+            "edsd1"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "Other",
+          "n_splits": 7
+        },
+        "test_case_num": 22
+      },
+      "output": {
+        "accuracy": [
+          0.8333333333333334,
+          0.8125,
+          0.7872340425531915,
+          0.8085106382978723,
+          0.8297872340425532,
+          0.851063829787234,
+          0.8297872340425532
+        ],
+        "recall": [
+          0.1111111111111111,
+          0,
+          0,
+          0,
+          0,
+          0.125,
+          0
+        ],
+        "precision": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        "fscore": [
+          0.19999999999999998,
+          0,
+          0,
+          0,
+          0,
+          0.2222222222222222,
+          0
+        ],
+        "auc": [
+          0.49287749287749283,
+          0.5925925925925926,
+          0.4766081871345029,
+          0.5526315789473684,
+          0.6474358974358974,
+          0.75,
+          0.5512820512820513
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "agegroup"
+          ],
+          "x": [
+            "rightscasubcallosalarea",
+            "rightmfcmedialfrontalcortex",
+            "leftcaudate",
+            "leftmogmiddleoccipitalgyrus",
+            "leftofugoccipitalfusiformgyrus",
+            "leftmfgmiddlefrontalgyrus",
+            "lefttrifgtriangularpartoftheinferiorfrontalgyrus",
+            "rightainsanteriorinsula",
+            "leftfrpfrontalpole",
+            "rightprgprecentralgyrus",
+            "leftangangulargyrus",
+            "leftlateralventricle",
+            "rightpcggposteriorcingulategyrus",
+            "rightliglingualgyrus",
+            "rightmogmiddleoccipitalgyrus",
+            "rightitginferiortemporalgyrus",
+            "rightmcggmiddlecingulategyrus"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata4",
+            "edsd9",
+            "edsd6",
+            "desd-synthdata7",
+            "ppmi1",
+            "desd-synthdata2",
+            "desd-synthdata1",
+            "desd-synthdata8",
+            "desd-synthdata6",
+            "desd-synthdata3",
+            "ppmi7",
+            "desd-synthdata9"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "-50y",
+          "n_splits": 5
+        },
+        "test_case_num": 23
+      },
+      "output": {
+        "accuracy": [
+          0.7715736040609137,
+          0.751269035532995,
+          0.7806122448979592,
+          0.7704081632653061,
+          0.7755102040816326
+        ],
+        "recall": [
+          0.044444444444444446,
+          0,
+          0.06666666666666667,
+          0.022222222222222223,
+          0.044444444444444446
+        ],
+        "precision": [
+          0.5,
+          0,
+          0.75,
+          0.5,
+          0.6666666666666666
+        ],
+        "fscore": [
+          0.0816326530612245,
+          0,
+          0.12244897959183675,
+          0.0425531914893617,
+          0.08333333333333334
+        ],
+        "auc": [
+          0.4929824561403509,
+          0.6242690058479532,
+          0.5584988962472407,
+          0.6385577630610743,
+          0.5456953642384106
+        ]
+      }
+    },
+    {
+      "input": {
+        "inputdata": {
+          "y": [
+            "gender"
+          ],
+          "x": [
+            "rightbasalforebrain",
+            "leftaccumbensarea",
+            "leftitginferiortemporalgyrus",
+            "rightputamen",
+            "leftporgposteriororbitalgyrus",
+            "righttrifgtriangularpartoftheinferiorfrontalgyrus",
+            "rightcerebellumexterior",
+            "rightaorganteriororbitalgyrus",
+            "brainstem",
+            "rightsfgsuperiorfrontalgyrus",
+            "leftacgganteriorcingulategyrus",
+            "leftcerebellumexterior",
+            "rightamygdala",
+            "rightfugfusiformgyrus"
+          ],
+          "data_model": "dementia:0.1",
+          "datasets": [
+            "desd-synthdata2",
+            "edsd9",
+            "ppmi5",
+            "desd-synthdata1",
+            "edsd1",
+            "edsd3"
+          ],
+          "filters": ""
+        },
+        "parameters": {
+          "positive_class": "F",
+          "n_splits": 10
+        },
+        "test_case_num": 24
+      },
+      "output": {
+        "accuracy": [
+          0.7727272727272727,
+          0.6363636363636364,
+          0.6818181818181818,
+          0.6136363636363636,
+          0.5681818181818182,
+          0.7727272727272727,
+          0.7272727272727273,
+          0.8372093023255814,
+          0.6976744186046512,
+          0.6511627906976745
+        ],
+        "recall": [
+          0.6,
+          0.6,
+          0.45,
+          0.5,
+          0.45,
+          0.7,
+          0.8,
+          0.8,
+          0.7,
+          0.7894736842105263
+        ],
+        "precision": [
+          0.8571428571428571,
+          0.6,
+          0.75,
+          0.5882352941176471,
+          0.5294117647058824,
+          0.7777777777777778,
+          0.6666666666666666,
+          0.8421052631578947,
+          0.6666666666666666,
+          0.5769230769230769
+        ],
+        "fscore": [
+          0.7058823529411764,
+          0.6,
+          0.5625000000000001,
+          0.5405405405405405,
+          0.48648648648648646,
+          0.7368421052631577,
+          0.7272727272727272,
+          0.8205128205128205,
+          0.6829268292682926,
+          0.6666666666666666
+        ],
+        "auc": [
+          0.8416666666666668,
+          0.7645833333333333,
+          0.8166666666666667,
+          0.6791666666666667,
+          0.48958333333333337,
+          0.8625,
+          0.7770833333333332,
+          0.8282608695652174,
+          0.7478260869565216,
+          0.7697368421052632
+        ]
+      }
+    }
+  ]
+}

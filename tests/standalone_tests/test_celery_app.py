@@ -80,10 +80,12 @@ def queue_slow_udf(cel_app, logger):
         func_name=make_unique_func_name(five_seconds_udf),
         positional_args_json=UDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
+        share_outputs=[True],
     )
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_celery_app_is_the_same_after_executing_task(
     globalnode_node_service,
     reset_celery_app_factory,
@@ -103,6 +105,7 @@ def test_celery_app_is_the_same_after_executing_task(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_celery_app_is_the_same_after_getting_slow_task_result_causing_timeout(
     globalnode_node_service,
     reset_celery_app_factory,
@@ -125,6 +128,7 @@ def test_celery_app_is_the_same_after_getting_slow_task_result_causing_timeout(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_celery_app_is_the_same_after_get_task_result_with_exception(
     globalnode_node_service,
     reset_celery_app_factory,
@@ -152,6 +156,7 @@ def test_celery_app_is_the_same_after_get_task_result_with_exception(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_celery_app_is_different_after_queue_task_when_rabbitmq_is_down(
     reset_celery_app_factory,
     get_controller_testing_logger,
@@ -178,6 +183,7 @@ def test_celery_app_is_different_after_queue_task_when_rabbitmq_is_down(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_celery_app_is_different_after_get_task_res_when_rabbitmq_is_down(
     reset_celery_app_factory,
     get_controller_testing_logger,
@@ -204,6 +210,7 @@ def test_celery_app_is_different_after_get_task_res_when_rabbitmq_is_down(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_celery_app_is_the_same_after_get_task_res_with_node_down(
     localnodetmp_node_service,
     reset_celery_app_factory,
@@ -231,6 +238,7 @@ def test_celery_app_is_the_same_after_get_task_res_with_node_down(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_celery_app_is_the_same_after_getting_task_when_node_restarted(
     localnodetmp_node_service,
     reset_celery_app_factory,
@@ -256,6 +264,7 @@ def test_celery_app_is_the_same_after_getting_task_when_node_restarted(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_celery_app_is_different_after_get_result_when_rabbitmq_restarted(
     localnodetmp_node_service,
     reset_celery_app_factory,
@@ -303,6 +312,7 @@ def test_celery_app_is_different_after_get_result_when_rabbitmq_restarted(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_celery_app_didnt_change_too_many_times_after_parallel_get_task_result_when_rabbitmq_restarted(
     localnodetmp_node_service,
     reset_celery_app_factory,

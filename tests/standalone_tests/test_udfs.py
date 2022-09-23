@@ -106,6 +106,7 @@ def test_run_udf_relation_to_scalar(
         func_name=make_unique_func_name(get_column_rows),
         positional_args_json=UDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
+        share_outputs=[True],
     )
     udf_results_str = localnode1_celery_app.get_result(
         async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
@@ -158,6 +159,7 @@ def test_run_udf_state_and_transfer_output(
         func_name=make_unique_func_name(local_step),
         positional_args_json=UDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
+        share_outputs=[True, True],
     )
     udf_results_str = localnode1_celery_app.get_result(
         async_result=async_result,

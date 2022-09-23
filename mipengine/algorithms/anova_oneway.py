@@ -1,9 +1,9 @@
-import json
 from typing import TypeVar
 
 import pandas as pd
 from pydantic import BaseModel
 
+from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen.udfgenerator import literal
 from mipengine.udfgen.udfgenerator import merge_transfer
@@ -46,7 +46,7 @@ def run(algo_interface):
         ),
     )
 
-    result = json.loads(result.get_table_data()[1][0])
+    result = get_transfer_data(result)
     anova_result = {
         "n_obs": result["n_obs"],
         "y_label": y_var_name,

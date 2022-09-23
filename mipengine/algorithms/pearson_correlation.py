@@ -1,9 +1,9 @@
-import json
 from typing import TypeVar
 
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
@@ -58,7 +58,7 @@ def run(algo_interface):
         keyword_args=dict(local_transfers=local_transfers, alpha=alpha),
     )
 
-    result = json.loads(result.get_table_data()[1][0])
+    result = get_transfer_data(result)
     n_obs = result["n_obs"]
 
     corr_dict, p_values_dict, ci_hi_dict, ci_lo_dict = create_dicts(

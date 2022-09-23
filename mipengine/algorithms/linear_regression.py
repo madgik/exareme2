@@ -5,6 +5,7 @@ import numpy
 import scipy.stats as stats
 from pydantic import BaseModel
 
+from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import relation_to_vector
 from mipengine.udfgen import literal
@@ -172,7 +173,7 @@ class LinearRegression:
                 local_transfers=local_transfers, fit_gstate=self.global_state
             ),
         )
-        global_transfer_data = json.loads(global_transfer.get_table_data()[1][0])
+        global_transfer_data = get_transfer_data(global_transfer)
         rss = global_transfer_data["rss"]
         tss = global_transfer_data["tss"]
         sum_abs_resid = global_transfer_data["sum_abs_resid"]

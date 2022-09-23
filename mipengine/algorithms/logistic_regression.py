@@ -1,4 +1,3 @@
-import json
 from typing import List
 
 import numpy
@@ -6,6 +5,7 @@ import scipy.stats as stats
 from pydantic import BaseModel
 from scipy.special import xlogy
 
+from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import LabelBinarizer
 from mipengine.exceptions import BadUserInput
@@ -68,7 +68,7 @@ class LogisticRegression:
             self._fit_init_global,
             keyword_args={"local_transfers": local_transfers},
         )
-        transfer_data = json.loads(global_transfer.get_table_data()[1][0])
+        transfer_data = get_transfer_data(global_transfer)
         self.nobs_train = transfer_data["nobs_train"]
         self.y_sum = transfer_data["y_sum"]
         handle_logreg_errors(self.nobs_train, self.p, self.y_sum)
@@ -84,7 +84,7 @@ class LogisticRegression:
                 self._fit_global_step,
                 keyword_args={"local_transfers": local_transfers, "coeff": coeff},
             )
-            transfer_data = json.loads(global_transfer.get_table_data()[1][0])
+            transfer_data = get_transfer_data(global_transfer)
             coeff = transfer_data["coeff"]
             grad = transfer_data["grad"]
 
@@ -195,27 +195,28 @@ class LogisticRegression:
         transfer_["H_inv"] = H_inv.tolist()
         return transfer_
 
-    def predict(self, X):
+    def predict_proba(self, X):
         return self.local_run(
-            self._predict_local,
-            keyword_args={"X": X, "coeff": self.coeff},
+            self._predict_proba_local, keyword_args={"X": X, "coeff": self.coeff}
         )
 
     @staticmethod
     @udf(
         X=relation(),
         coeff=literal(),
-        return_type=relation(schema=[("row_id", int), ("ypred", int)]),
+        return_type=relation(schema=[("row_id", int), ("proba", float)]),
     )
-    def _predict_local(X, coeff):
+    def _predict_proba_local(X, coeff):
         import pandas as pd
         from scipy import special
-        from sklearn.preprocessing import binarize
 
-        probs = special.expit(X @ coeff).to_numpy()
-        ypred = binarize(probs.reshape(-1, 1), threshold=0.5)
+        index = X.index
+        X = X.to_numpy()
+        coeff = numpy.array(coeff)[:, numpy.newaxis]
 
-        result = pd.DataFrame({"ypred": ypred.reshape((-1,))}, index=X.index)
+        proba = special.expit(X @ coeff)
+
+        result = pd.DataFrame({"row_id": index, "proba": numpy.squeeze(proba)})
         return result
 
 

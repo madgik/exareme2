@@ -362,6 +362,7 @@ class _AlgorithmExecutionInterface:
                 func_name=func_name,
                 positional_args=positional_udf_args,
                 keyword_args=keyword_udf_args,
+                share_outputs=share_to_global,
                 use_smpc=self.use_smpc,
                 output_schema=output_schema,
             )
@@ -547,6 +548,7 @@ class _AlgorithmExecutionInterface:
             func_name=func_name,
             positional_args=positional_udf_args,
             keyword_args=keyword_udf_args,
+            share_outputs=share_to_locals,
             use_smpc=self.use_smpc,
             output_schema=output_schema,
         )

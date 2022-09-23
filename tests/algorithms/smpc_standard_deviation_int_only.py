@@ -1,4 +1,3 @@
-import json
 from typing import TypeVar
 
 from mipengine.algorithm_result_DTOs import TabularDataResult
@@ -10,6 +9,7 @@ from mipengine.udfgen import state
 from mipengine.udfgen import tensor
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
+from mipengine.algorithms.helpers import get_transfer_data
 
 
 def run(algo_interface):
@@ -48,9 +48,10 @@ def run(algo_interface):
         positional_args=[global_state, local_result],
     )
 
-    std_deviation = json.loads(global_result.get_table_data()[1][0])["deviation"]
-    min_value = json.loads(global_result.get_table_data()[1][0])["min_value"]
-    max_value = json.loads(global_result.get_table_data()[1][0])["max_value"]
+    transfer_data = get_transfer_data(global_result)
+    std_deviation = transfer_data["deviation"]
+    min_value = transfer_data["min_value"]
+    max_value = transfer_data["max_value"]
     y_variables = algo_interface.y_variables
 
     result = TabularDataResult(

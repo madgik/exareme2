@@ -5492,6 +5492,82 @@ FROM
             assert udf_output == expected_udf_output
 
 
+class TestUDFGen_OutputNotShared(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(return_type=state())
+        def f():
+            result = {"x": 42}
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("state" BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    result = {'x': 42}
+    return pickle.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
+                ),
+            )
+        ]
+
+    @pytest.fixture(scope="class")
+    def request_id(self):
+        return "test_udfgenerator"
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            request_id="",
+            func_name=funcname,
+            positional_args=[],
+            keyword_args={},
+            smpc_used=False,
+            traceback=False,
+            share_outputs=[False],
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results,
+            expected_udf_outputs,
+        ):
+            assert udf_output == expected_udf_output
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~ Test SQL Generator ~~~~~~~~~~~~~~~~~~ #
 
 

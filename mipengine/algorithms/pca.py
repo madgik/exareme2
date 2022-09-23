@@ -1,10 +1,10 @@
-import json
 from typing import List
 from typing import TypeVar
 
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import state
@@ -46,7 +46,7 @@ def run(algo_interface):
         func=global2,
         keyword_args=dict(local_transfers=local_transfers, prev_state=global_state),
     )
-    result = json.loads(result.get_table_data()[1][0])
+    result = get_transfer_data(result)
     n_obs = result["n_obs"]
     eigenvalues = result["eigenvalues"]
     eigenvectors = result["eigenvectors"]

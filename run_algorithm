@@ -102,8 +102,8 @@ ALGORITHM EXAMPLES
 
     PEARSON CORRELATION
 
-        ./run_algorithm -a pearson -y leftamygdala lefthippocampus -d ppmi0 \
-            -m dementia:0.1 -p alpha 0.95
+        ./run_algorithma -a pearson_correlation -y leftamygdala lefthippocampus \
+            -d ppmi0 -m dementia:0.1 -p alpha 0.95
 
     PCA
 
@@ -112,7 +112,7 @@ ALGORITHM EXAMPLES
 
     ONE WAY ANOVA
 
-        ./run_algorithm -a one_way_anova -x ppmicategory -y lefthippocampus \
+        ./run_algorithm -a anova_oneway -x ppmicategory -y lefthippocampus \
             -d ppmi1 -m dementia:0.1
 
     LINEAR REGRESSION
@@ -130,6 +130,20 @@ ALGORITHM EXAMPLES
         ./run_algorithm -a logistic_regression -y ppmicategory \
             -x lefthippocampus leftamygdala -d ppmi0 ppmi1 -m dementia:0.1 \
             -p positive_class PD
+
+    LOGISTIC REGRESSION CROSS-VALIDATION
+
+        ./run_algorithm -a logistic_regression_cv -y gender \
+            -x lefthippocampus righthippocampus -d ppmi0 ppmi1 -m dementia:0.1 \
+            -p n_splits 4 -p positive_class F
+
+    T-TEST ONE-SAMPLE
+        ./run_algorithm -a ttest_onesample -y lefthippocampus -d ppmi0 -m dementia:0.1 \
+            -p alt_hypothesis two-sided -p alpha 0.95 -p mu 0
+
+    T-TEST PAIRED
+        ./run_algorithm -a ttest_paired -y lefthippocampus -x righthippocampus \
+           -d ppmi0 -m dementia:0.1 -p alt_hypothesis two-sided -p alpha 0.95
 """
 
 import json
