@@ -121,7 +121,7 @@ class Controller:
                 logger=algo_execution_logger,
             )
         finally:
-            self._cleaner.release_contextid_for_cleanup(context_id=context_id)
+            self._cleaner.release_context_id(context_id=context_id)
 
         return algorithm_result
 
