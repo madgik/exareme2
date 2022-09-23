@@ -57,7 +57,12 @@ def get_test_params(file, slc=None):
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_anova_algorithm(test_input, expected):
-    result = json.loads(anova_one_way_request(test_input).content)
+    response = anova_one_way_request(test_input)
+    if response.status_code != 200:
+        raise ValueError(
+            f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
+        )
+    result = json.loads(response.content)
     aov = result["anova_table"]
     tukey = result["tuckey_test"]
 

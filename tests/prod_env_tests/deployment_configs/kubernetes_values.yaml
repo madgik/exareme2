@@ -9,7 +9,7 @@ framework_log_level: INFO
 
 max_concurrent_experiments: 32
 
-monetdb_storage: /opt/mipengine/db
+db_storage: /opt/mipengine/db
 csvs_datapath: /opt/mipengine/csvs
 
 controller:

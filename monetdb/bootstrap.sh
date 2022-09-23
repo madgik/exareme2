@@ -17,6 +17,7 @@ then
   monetdb set nclients=$MONETDB_NCLIENTS db
   monetdb set embedpy3=true db
   monetdb release db
+  monetdb start db
   echo 'Database initialized'
 else
   monetdbd start $MONETDB_STORAGE
