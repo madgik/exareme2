@@ -5,7 +5,6 @@ import traceback
 from datetime import datetime
 from datetime import timezone
 from pathlib import Path
-from threading import RLock
 from typing import List
 
 import toml
@@ -101,7 +100,7 @@ class Cleaner(metaclass=Singleton):
                                 entry.context_id
                             )
 
-            except Exception as exc:
+            except Exception:
                 self._logger.error(traceback.format_exc())
 
             finally:
@@ -114,7 +113,7 @@ class Cleaner(metaclass=Singleton):
         for node_id in node_ids:
             try:
                 node_info = self._get_node_info_by_id(node_id)
-            except Exception as exc:
+            except Exception:
                 self._logger.debug(
                     f"Could not get node info for {node_id=}. The node is "
                     "most likely offline"
@@ -213,7 +212,6 @@ def _get_node_task_handler(node_info: _NodeInfoDTO) -> NodeAlgorithmTasksHandler
 
 class CleanupFilesProcessor:
     def __init__(self, logger):
-        self._lock = RLock()
         self._logger = logger
         self._cleanup_entries_folder_path = Path(
             controller_config.cleanup.contextids_cleanup_folder
@@ -250,8 +248,8 @@ class CleanupFilesProcessor:
             self._get_file_by_context_id(context_id).unlink()
         except FileNotFoundError as exc:
             self._logger.warning(
-                f"Tried to delete {_file=} but file does not "
-                f"exist. This should not happen. \n{exc=}"
+                f"Tried to delete file with {context_id=} but could not find such file. "
+                f"This should not happen. \n{exc=}"
             )
         self._logger.debug(f"Deleted file with {context_id=}")
 
@@ -265,10 +263,9 @@ class CleanupFilesProcessor:
                     f"Trying to read {_file.name=} raised exception: {exc}"
                 )
             return _CleanupEntry(**parsed_toml)
-        else:
-            self._logger.warning(
-                f"Could not find entry and cleanup file with {context_id=}"
-            )
+        self._logger.warning(
+            f"Could not find entry and cleanup file with {context_id=}"
+        )
 
     def _get_file_by_context_id(self, context_id: str):  # return type??
         for _file in self._cleanup_entries_folder_path.glob("cleanup_*.toml"):
