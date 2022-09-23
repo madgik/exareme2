@@ -29,7 +29,7 @@ TASK_SIGNATURES: Final = {
     "get_udfs": "mipengine.node.tasks.udfs.get_udfs",
     "run_udf": "mipengine.node.tasks.udfs.run_udf",
     "get_run_udf_query": "mipengine.node.tasks.udfs.get_run_udf_query",
-    "cleanup": "mipengine.node.tasks.common.clean_up",
+    "cleanup": "mipengine.node.tasks.common.cleanup",
     "validate_smpc_templates_match": "mipengine.node.tasks.smpc.validate_smpc_templates_match",
     "load_data_to_smpc_client": "mipengine.node.tasks.smpc.load_data_to_smpc_client",
     "get_smpc_result": "mipengine.node.tasks.smpc.get_smpc_result",

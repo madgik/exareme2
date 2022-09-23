@@ -120,7 +120,7 @@ def get_table_data(request_id: str, table_name: str) -> str:
 
 @shared_task
 @initialise_logger
-def clean_up(request_id: str, context_id: str):
+def cleanup(request_id: str, context_id: str):
     """
     Parameters
     ----------
