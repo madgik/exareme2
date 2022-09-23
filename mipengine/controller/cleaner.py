@@ -1,3 +1,23 @@
+# Cleanup entry example:
+# context_id= "3502300"
+# node_ids = [ "testglobalnode", "testlocalnode1", "testlocalnode2",]
+# timestamp = "2022-05-23T14:40:34.203085+00:00"
+# released = false
+
+# How it works:
+# Just before an algorithm starts executing, Cleaner::add_contextid_for_cleanup(context_id)
+# is called (from the Controller). This creates a new file(ex. "cleanup_3502300.toml")
+# containing a cleanup entry as the above. As soon as the algorithm execution finishes,
+# Cleaner::release_context_id(context_id) is called (from the Controller), which sets the
+# 'released' flag, of the respecive cleanup entry, to 'true'. When the Cleaner object is
+# started (method start), it constantly loops through all the entries, finds the ones that
+# either have their 'released' flag set to 'true' or their 'timestamp' has expired
+# (check _is_timestamp_expired function) and processes them by calling the cleanup tasks
+# on the respective nodes for the respective context_id. When the cleanup tasks on all
+# the nodes of an entry are succesfull, the entry file is deleted. Otherwise the 'node_ids'
+# list of the entry is updated to contain only the failed 'node_ids' and will be re-processed
+# in the next iteration of the loop.
+
 import os
 import threading
 import time
@@ -21,12 +41,6 @@ from mipengine.singleton import Singleton
 CLEANER_REQUEST_ID = "CLEANER"
 CLEANUP_FILE_PREFIX = "cleanup"
 CONTEXT_ID_CLEANUP_FILE = "contextids_cleanup.toml"
-
-# Cleanup entry example:
-# context_id= "3502300"
-# node_ids = [ "testglobalnode", "testlocalnode1", "testlocalnode2",]
-# timestamp = "2022-05-23T14:40:34.203085+00:00"
-# released = true
 
 
 class _NodeInfoDTO(BaseModel):
