@@ -20,14 +20,25 @@ WAIT_TIME_NLA_UPDATE = 5
 CELERY_TASKS_TIMEOUT = 10
 
 
-@pytest.fixture(autouse=True, scope="session")
+@pytest.fixture(autouse=True, scope="function")
 def patch_node_landscape_aggregator():
+    controller_config_dict_mock = {}
+    controller_config_dict_mock["deployment_type"] = "LOCAL"
+
+    controller_config_dict_mock["localnodes"] = {}
+    controller_config_dict_mock["localnodes"][
+        "config_file"
+    ] = "./tests/standalone_tests/testing_env_configs/test_globalnode_localnode1_localnode2_localnodetmp_addresses.json"
+
     with patch(
         "mipengine.controller.node_landscape_aggregator.NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL",
         WAIT_TIME_NLA_UPDATE,
     ), patch(
         "mipengine.controller.node_landscape_aggregator.CELERY_TASKS_TIMEOUT",
         CELERY_TASKS_TIMEOUT,
+    ), patch(
+        "mipengine.controller.node_landscape_aggregator.controller_config",
+        AttrDict(controller_config_dict_mock),
     ):
         yield
 
