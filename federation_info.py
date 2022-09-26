@@ -78,9 +78,16 @@ NODE_JOINED_PATTERN = (
 NODE_LEFT_PATTERN = rf"({TIMESTAMP_REGEX}) .* Node with id '(.*)' left the federation.$"
 DATA_MODEL_ADDED_PATTERN = rf"({TIMESTAMP_REGEX}) .* Datamodel '(.*)' was added.$"
 DATA_MODEL_REMOVED_PATTERN = rf"({TIMESTAMP_REGEX}) .* Datamodel '(.*)' was removed.$"
-DATASET_ADDED_PATTERN = rf"({TIMESTAMP_REGEX}) .* Dataset '(.*)' of datamodel '(.*)' was added in node '(.*)'.$"
-DATASET_REMOVED_PATTERN = rf"({TIMESTAMP_REGEX}) .* Dataset '(.*)' of datamodel '(.*)' was removed from node '(.*)'.$"
-EXPERIMENT_EXECUTION_PATTERN = rf"({TIMESTAMP_REGEX}) .* Experiment with request id '(.*)' started, with algorithm '(.*)', touching datasets '(.*)', with parameters '(.*)'.$"
+
+DATASET_ADDED_PATTERN = rf"({TIMESTAMP_REGEX}) .* Dataset '(.*)' of datamodel '(.*)' was \
+added in node '(.*)'.$"
+
+DATASET_REMOVED_PATTERN = rf"({TIMESTAMP_REGEX}) .* Dataset '(.*)' of datamodel '(.*)' \
+was removed from node '(.*)'.$"
+
+EXPERIMENT_EXECUTION_PATTERN = rf"({TIMESTAMP_REGEX}) .* Experiment with request id \
+'(.*)' and context id '(.*)' is starting algorithm '(.*)', touching datasets '(.*)' on \
+local nodes '(.*)' with parameters '(.*)'.$"
 
 
 def print_audit_entry(log_line):
@@ -106,7 +113,7 @@ def print_audit_entry(log_line):
         )
     elif pattern_groups := re.search(EXPERIMENT_EXECUTION_PATTERN, log_line):
         print(
-            f"{pattern_groups.group(1)} - EXPERIMENT_STARTED - {pattern_groups.group(2)} - {pattern_groups.group(3)} - {pattern_groups.group(4)} - {pattern_groups.group(5)}"
+            f"{pattern_groups.group(1)} - EXPERIMENT_STARTED - {pattern_groups.group(2)} - {pattern_groups.group(4)} - {pattern_groups.group(5)} - {pattern_groups.group(7)}"
         )
 
 
