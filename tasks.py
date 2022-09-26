@@ -179,6 +179,9 @@ def create_configs(c):
     controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
         "celery_tasks_timeout"
     ]
+    controller_config["rabbitmq"]["celery_cleanup_task_timeout"] = deployment_config[
+        "celery_cleanup_task_timeout"
+    ]
     controller_config["rabbitmq"]["celery_run_udf_task_timeout"] = deployment_config[
         "celery_run_udf_task_timeout"
     ]

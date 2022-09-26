@@ -47,7 +47,7 @@ class _NodeInfoDTO(BaseModel):
     node_id: str
     queue_address: str
     db_address: str
-    tasks_timeout: int
+    cleanup_task_timeout: int
     run_udf_task_timeout: int
 
     class Config:
@@ -90,7 +90,7 @@ class Cleaner(metaclass=Singleton):
                         if failed_node_ids:
                             self._logger.debug(
                                 f"'Altering' file with {entry.context_id=}, removing node ids "
-                                "wich succeded cleanup, keeping only failed node ids"
+                                f"which succeded cleanup, keeping only failed node ids: {failed_node_ids=}"
                             )
                             entry.node_ids = failed_node_ids
                             self._logger.debug(
@@ -100,7 +100,7 @@ class Cleaner(metaclass=Singleton):
                                 entry.context_id
                             )
                             self._logger.debug(
-                                f"Creating file with {entry.context_id=}"
+                                f"Re-creating file with {entry.context_id=}"
                             )
                             self._cleanup_files_processor.create_file_from_cleanup_entry(
                                 entry
@@ -128,10 +128,10 @@ class Cleaner(metaclass=Singleton):
         for node_id in node_ids:
             try:
                 node_info = self._get_node_info_by_id(node_id)
-            except Exception:
+            except Exception as exc:
                 self._logger.debug(
                     f"Could not get node info for {node_id=}. The node is "
-                    "most likely offline"
+                    f"most likely offline exception:{exc=}"
                 )
                 failed_node_ids.append(node_id)
                 continue
@@ -205,7 +205,7 @@ class Cleaner(metaclass=Singleton):
             node_id=node_info.id,
             queue_address=":".join([str(node_info.ip), str(node_info.port)]),
             db_address=":".join([str(node_info.db_ip), str(node_info.db_port)]),
-            tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+            cleanup_task_timeout=controller_config.rabbitmq.celery_cleanup_task_timeout,
             run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         )
 
@@ -220,7 +220,7 @@ def _get_node_task_handler(node_info: _NodeInfoDTO) -> NodeAlgorithmTasksHandler
         node_id=node_info.node_id,
         node_queue_addr=node_info.queue_address,
         node_db_addr=node_info.db_address,
-        tasks_timeout=2,  # node_info.tasks_timeout,
+        tasks_timeout=node_info.cleanup_task_timeout,
         run_udf_task_timeout=node_info.run_udf_task_timeout,
     )
 
@@ -284,7 +284,7 @@ class CleanupFilesProcessor:
 
     def _get_file_by_context_id(self, context_id: str):  # return type??
         for _file in self._cleanup_entries_folder_path.glob("cleanup_*.toml"):
-            if context_id in _file.name:  # edge case
+            if context_id in _file.name:
                 try:
                     parsed_toml = toml.load(_file)
                 except Exception as exc:
