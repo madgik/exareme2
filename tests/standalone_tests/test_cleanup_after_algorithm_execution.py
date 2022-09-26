@@ -54,6 +54,7 @@ def controller_config_dict_mock():
             "celery_tasks_interval_start": 0,
             "celery_tasks_interval_step": 0.2,
             "celery_tasks_interval_max": 0.5,
+            "celery_cleanup_task_timeout": 2,
         },
         "smpc": {
             "enabled": False,
@@ -353,7 +354,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
             pytest.fail(
                 f"Some of the nodes were not cleaned during {WAIT_CLEANUP_TIME_LIMIT=}\n"
                 f"{globalnode_tables_after_cleanup=}\n{localnode1_tables_after_cleanup=}\n"
-                f"{localnodetmp_tables_after_cleanup=}"
+                f"{localnode2_tables_after_cleanup=}"
             )
         time.sleep(0.5)
 
@@ -488,7 +489,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
             pytest.fail(
                 f"Some of the nodes were not cleaned during {WAIT_CLEANUP_TIME_LIMIT=}\n"
                 f"{globalnode_tables_after_cleanup=}\n{localnode1_tables_after_cleanup=}\n"
-                f"{localnodetmp_tables_after_cleanup=}"
+                f"{localnode2_tables_after_cleanup=}"
             )
         time.sleep(0.5)
 
@@ -981,7 +982,7 @@ async def test_cleanup_controller_restart(
             pytest.fail(
                 f"Some of the nodes were not cleaned during {WAIT_CLEANUP_TIME_LIMIT=}\n"
                 f"{globalnode_tables_after_cleanup=}\n{localnode1_tables_after_cleanup=}\n"
-                f"{localnodetmp_tables_after_cleanup=}"
+                f"{localnode2_tables_after_cleanup=}"
             )
         time.sleep(0.5)
 
