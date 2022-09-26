@@ -300,6 +300,7 @@ def run(algo_interface):
     #    share_to_global=[True],
     #)
     categorical_counts_list = []
+    categorical_list_res =[]
 
     if categorical_columns:
         local_result_categorical = local_run(
@@ -551,7 +552,13 @@ def relation_to_matrix_num(rel,numerical_columns):
 
 @udf(a=tensor(T, 2), return_type=tensor(T, 2))
 def remove_nulls(a):
-    a_sel = a[~numpy.isnan(a).any(axis=1)]
+    indices = ~numpy.isnan(a).any(axis=1)
+    #int_indices = indices.astype(int)
+    if not any(indices):
+        a_sel = a[[]]
+    else:
+        a_sel = a[indices]
+
     return a_sel
 
 
