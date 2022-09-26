@@ -123,6 +123,7 @@ class Cleaner(metaclass=Singleton):
     def _exec_context_id_cleanup(
         self, context_id: str, node_ids: [str]
     ) -> List[str]:  # returns failed node_ids
+        failed_node_ids = []
         node_task_handlers_to_async_results = {}
         for node_id in node_ids:
             try:
@@ -132,6 +133,7 @@ class Cleaner(metaclass=Singleton):
                     f"Could not get node info for {node_id=}. The node is "
                     "most likely offline"
                 )
+                failed_node_ids.append(node_id)
                 continue
             task_handler = _get_node_task_handler(node_info)
 
@@ -142,7 +144,6 @@ class Cleaner(metaclass=Singleton):
                 context_id=context_id,
             )
 
-        failed_node_ids = []
         for task_handler, async_result in node_task_handlers_to_async_results.items():
             try:
                 task_handler.wait_queued_cleanup_complete(
@@ -195,7 +196,7 @@ class Cleaner(metaclass=Singleton):
         self._logger.debug(f"Setting released to true for file with {context_id=}")
         entry = self._cleanup_files_processor.get_entry_by_context_id(context_id)
         entry.released = True
-        self._cleanup_files_processor.delete_file_by_context_id(context_id)  # by entry?
+        self._cleanup_files_processor.delete_file_by_context_id(context_id)
         self._cleanup_files_processor.create_file_from_cleanup_entry(entry)
 
     def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
