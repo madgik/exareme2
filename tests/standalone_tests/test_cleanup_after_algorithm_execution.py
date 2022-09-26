@@ -357,7 +357,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
             )
         time.sleep(0.5)
 
-    controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
     if (
         globalnode_tables_before_cleanup
@@ -493,7 +492,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
             )
         time.sleep(0.5)
 
-    controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
 
     if (
@@ -658,7 +656,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
         time.sleep(0.5)
 
-    controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
 
     # the node service was started in here so it must manually killed, otherwise it is
@@ -825,7 +822,6 @@ async def test_cleanup_node_service_down_algorithm_execution(
             )
         time.sleep(0.5)
 
-    controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
 
     # the node service was started in here so it must manually killed, otherwise it is
@@ -937,7 +933,6 @@ async def test_cleanup_controller_restart(
         request_id=request_id, context_id=context_id
     )
 
-    controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
 
     # Releasing contextid, signals the Cleaner to start cleaning the contextid from the nodes
@@ -990,7 +985,6 @@ async def test_cleanup_controller_restart(
             )
         time.sleep(0.5)
 
-    controller.stop_node_landscape_aggregator()
     controller.stop_cleanup_loop()
 
     if (
