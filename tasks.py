@@ -179,6 +179,9 @@ def create_configs(c):
     controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
         "celery_tasks_timeout"
     ]
+    controller_config["rabbitmq"]["celery_cleanup_task_timeout"] = deployment_config[
+        "celery_cleanup_task_timeout"
+    ]
     controller_config["rabbitmq"]["celery_run_udf_task_timeout"] = deployment_config[
         "celery_run_udf_task_timeout"
     ]
@@ -190,7 +193,7 @@ def create_configs(c):
     controller_config["localnodes"]["dns"] = ""
     controller_config["localnodes"]["port"] = ""
 
-    controller_config["cleanup"]["contextids_cleanup_folder"] = "/tmp"
+    controller_config["cleanup"]["contextids_cleanup_folder"] = "/tmp/cleanup_entries"
     controller_config["cleanup"]["nodes_cleanup_interval"] = deployment_config[
         "cleanup"
     ]["nodes_cleanup_interval"]

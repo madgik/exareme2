@@ -1480,9 +1480,9 @@ optional = false
 python-versions = ">=3.7"
 
 [package.extras]
-docs = ["Sphinx (>=3.4)", "sphinx-rtd-theme (>=0.5)"]
-optional = ["python-socks", "wsaccel"]
 test = ["websockets"]
+optional = ["wsaccel", "python-socks"]
+docs = ["sphinx-rtd-theme (>=0.5)", "Sphinx (>=3.4)"]
 
 [[package]]
 name = "werkzeug"
@@ -1694,10 +1694,7 @@ envtoml = [
     {file = "envTOML-0.1.2-py3-none-any.whl", hash = "sha256:7f376003d907f02f623da82eaba98e287c03f10db0a9a0160adb8caf26256530"},
     {file = "envTOML-0.1.2.tar.gz", hash = "sha256:16c26e2a5e42b66d106ea7d6f7e2f993f7cbdd659837ffbc4a3dd8b68fa81f13"},
 ]
-eventlet = [
-    {file = "eventlet-0.33.1-py2.py3-none-any.whl", hash = "sha256:a085922698e5029f820cf311a648ac324d73cec0e4792877609d978a4b5bbf31"},
-    {file = "eventlet-0.33.1.tar.gz", hash = "sha256:afbe17f06a58491e9aebd7a4a03e70b0b63fd4cf76d8307bae07f280479b1515"},
-]
+eventlet = []
 execnet = [
     {file = "execnet-1.9.0-py2.py3-none-any.whl", hash = "sha256:a295f7cc774947aac58dde7fdc85f4aa00c42adf5d8f5468fc630c1acf30a142"},
     {file = "execnet-1.9.0.tar.gz", hash = "sha256:8f694f3ba9cc92cab508b152dcfe322153975c29bda272e2fd7f3f00f36e47c5"},
