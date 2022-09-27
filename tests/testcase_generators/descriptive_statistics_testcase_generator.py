@@ -34,14 +34,14 @@ class DesciptiveStatisticsTestCaseGenerator(TestCaseGenerator):
         X_mean = numpy.nanmean(X,axis=0)
         X_max = numpy.nanmax(X,axis=0)
         X_min = numpy.nanmin(X,axis=0)
-        X_std = numpy.nanstd(X,axis=0,ddof=1)
+        X_std = numpy.nanstd(X,axis=0,ddof=0)
 
         X_not_null = X[~numpy.isnan(X).any(axis=1)]
 
         model_mean = numpy.nanmean(X_not_null,axis=0)
         model_max = numpy.nanmax(X_not_null,axis=0)
         model_min = numpy.nanmin(X_not_null,axis=0)
-        model_std = numpy.nanstd(X_not_null,axis=0,ddof=1)
+        model_std = numpy.nanstd(X_not_null,axis=0,ddof=0)
 
 
         output = {
