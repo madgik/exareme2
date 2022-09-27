@@ -10,8 +10,8 @@ from mipengine.node import node_logger as logging
 from mipengine.singleton import Singleton
 
 INTEGRITY_ERROR_RETRY_INTERVAL = 1
-BROKEN_PIPE_MAX_ATTEMPTS = 50
-BROKEN_PIPE_ERROR_RETRY = 0.2
+CONN_RECOVERY_MAX_ATTEMPTS = 10
+CONN_RECOVERY_ERROR_RETRY = 0.2
 QUERY_EXECUTION_LOCK_TIMEOUT = node_config.celery.tasks_timeout
 UDF_EXECUTION_LOCK_TIMEOUT = node_config.celery.run_udf_task_timeout
 
@@ -41,10 +41,7 @@ class _MonetDBConnectionPool(metaclass=Singleton):
     """
 
     def __init__(self):
-        self._connection_pool = [
-            self.create_connection()
-            for _ in range(node_config.celery.worker_concurrency)
-        ]
+        self._connection_pool = []
 
     def create_connection(self):
         return pymonetdb.connect(
@@ -61,8 +58,11 @@ class _MonetDBConnectionPool(metaclass=Singleton):
         of the connection so that it sees changes from other connections.
         https://stackoverflow.com/questions/9305669/mysql-python-connection-does-not-see-changes-to-database-made
         """
-        connection = self._connection_pool.pop()
-        connection.commit()
+        if not self._connection_pool:
+            connection = self.create_connection()
+        else:
+            connection = self._connection_pool.pop()
+            connection.commit()
         return connection
 
     def release_connection(self, connection):
@@ -116,33 +116,30 @@ def db_execute(query: str, parameters=None, many=False) -> List:
 
 def execute_queries_with_connection_handling(func, *args, **kwargs):
     """
-    On the query execution we need to handle the 'BrokenPipeError' exception.
-    In the case of the 'BrokenPipeError' exception, we create a new connection,
-    and we retry for x amount of times the execution in case the database has recovered.
+    On the query execution we need to handle the 'OSError' and 'BrokenPipeError' exception.
+    On both cases we try for x amount of times to recover the connection with the database.
     """
-    bp_exception = None
     conn = None
-    for tries in range(BROKEN_PIPE_MAX_ATTEMPTS):
+    for tries in range(CONN_RECOVERY_MAX_ATTEMPTS):
 
         try:
             conn = _MonetDBConnectionPool().get_connection()
-            return func(*args, **kwargs, conn=conn)
-        except BrokenPipeError as exc:
+            result = func(*args, **kwargs, conn=conn)
+            _MonetDBConnectionPool().release_connection(conn)
+            return result
+        except (BrokenPipeError, OSError) as exc:
             logger = logging.get_logger()
-            logger.warning("Trying to recover from BrokenPipeError")
-            bp_exception = exc
-            conn = _MonetDBConnectionPool().create_connection()
-            sleep(tries * BROKEN_PIPE_ERROR_RETRY)
-            continue
+            logger.warning(
+                f"Trying to recover the connection with the database. Exception type: '{type(exc)}', exc: '{exc}'"
+            )
+            sleep(tries * CONN_RECOVERY_ERROR_RETRY)
         except Exception as exc:
             if conn:
                 conn.rollback()
-            raise exc
-        finally:
-            if conn:
                 _MonetDBConnectionPool().release_connection(conn)
+            raise exc
     else:
-        raise bp_exception
+        raise ConnectionError("Failed to connect with the database.")
 
 
 def _execute_and_fetchall(query: str, parameters=None, many=False, conn=None) -> List:
