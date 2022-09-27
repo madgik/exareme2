@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import rpy2.robjects as ro
-import scipy.stats as stats
 import rpy2.robjects.packages as rpackages
+import scipy.stats as stats
 from rpy2.robjects.packages import importr
 from rpy2.robjects.vectors import StrVector
 
@@ -16,11 +16,6 @@ EXPECTED_PATH = Path(
     "independent_ttest_expected.json",
 )
 
-# jsonlite = importr("jsonlite")
-# dplyr = importr("dplyr")
-# effsize = importr("effsize")
-# stats_r = importr("stats")
-
 utils = rpackages.importr("utils")
 utils.chooseCRANmirror(ind=1)
 packnames = ("stats", "jsonlite", "dplyr", "effsize")
@@ -33,6 +28,7 @@ stats_r = rpackages.importr("stats")
 jsonlite = rpackages.importr("jsonlite")
 dplyr = rpackages.importr("dplyr")
 effsize = rpackages.importr("effsize")
+
 
 class IndependentTtestTestCaseGenerator(TestCaseGenerator):
     def compute_expected_output(self, input_data, input_parameters="alt_hypothesis"):
@@ -53,7 +49,7 @@ class IndependentTtestTestCaseGenerator(TestCaseGenerator):
             alternative=alt_hyp,
             conf_level=1 - alpha,
         )
-        # py_tstat, _ = stats.ttest_ind(X[x_name], Y[y_name])
+
         cohens_d_res = effsize.cohen_d(
             ro.vectors.FloatVector(X[x_name]), ro.vectors.FloatVector(Y[y_name])
         )
