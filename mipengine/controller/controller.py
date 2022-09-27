@@ -1,8 +1,7 @@
 import asyncio
 import concurrent
 import logging
-import random
-from datetime import datetime
+import uuid
 from typing import Dict
 from typing import List
 
@@ -293,5 +292,4 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeAlgorithmTasksHand
 
 
 def get_a_uniqueid() -> str:
-    uid = datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
-    return f"{uid}"
+    return str(int(uuid.uuid4().hex, 16))[-16:]

@@ -16,12 +16,12 @@ expected_file = (
     "test_input, expected",
     get_test_params(
         expected_file,
-        skip_indices=[5, 9, 12, 18, 19, 22],
+        skip_indices=[5, 9, 12, 17, 18, 19, 22],
         skip_reason="Run results in empty tables,"
         " see https://team-1617704806227.atlassian.net/browse/MIP-634",
     ),
 )
-def test_logisticregression_algorithm(test_input, expected, subtests):
+def test_logisticregression_cv_algorithm(test_input, expected, subtests):
     response = algorithm_request("logistic_regression_cv", test_input)
     try:
         result = json.loads(response.text)
@@ -39,8 +39,8 @@ def test_logisticregression_algorithm(test_input, expected, subtests):
     precision_exp = expected["precision"]
     fscore_res = summary["fscore"][:-2]
     fscore_exp = expected["fscore"]
-    auc_res = [rc['auc'] for rc in result['roc_curves']]
-    auc_exp = expected['auc']
+    auc_res = [rc["auc"] for rc in result["roc_curves"]]
+    auc_exp = expected["auc"]
 
     with subtests.test():
         # ttest results in NaNs when everything is 0, see answer below
