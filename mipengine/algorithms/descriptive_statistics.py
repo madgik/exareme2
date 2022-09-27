@@ -555,7 +555,8 @@ def remove_nulls(a):
     indices = ~numpy.isnan(a).any(axis=1)
     #int_indices = indices.astype(int)
     if not any(indices):
-        a_sel = a[[]]
+        a_sel = numpy.empty(a.shape)
+        a_sel.fill(numpy.nan)
     else:
         a_sel = a[indices]
 
@@ -606,8 +607,11 @@ def global_stats(local_transfers):
     count_not_null_list = []
 
     for curr_transfer in local_transfers:
-        curr_max = numpy.maximum(curr_max,curr_transfer["max"])
-        curr_min = numpy.minimum(curr_max,curr_transfer["min"])
+        max_array = numpy.array([curr_max,curr_transfer["max"]])
+        #raise ValueError(max_array)
+        curr_max = numpy.nanmax(max_array,axis=0)
+        min_array = numpy.array([curr_min,curr_transfer["min"]])
+        curr_min = numpy.nanmin(min_array,axis=0)
         curr_sum += curr_transfer['sum']
         curr_count += curr_transfer['count']
         curr_count_not_null += curr_transfer['count_not_null']
