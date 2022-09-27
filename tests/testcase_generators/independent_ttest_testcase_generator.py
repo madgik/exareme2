@@ -2,7 +2,9 @@ from pathlib import Path
 
 import rpy2.robjects as ro
 import scipy.stats as stats
+import rpy2.robjects.packages as rpackages
 from rpy2.robjects.packages import importr
+from rpy2.robjects.vectors import StrVector
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
@@ -14,11 +16,23 @@ EXPECTED_PATH = Path(
     "independent_ttest_expected.json",
 )
 
-jsonlite = importr("jsonlite")
-dplyr = importr("dplyr")
-effsize = importr("effsize")
-stats_r = importr("stats")
+# jsonlite = importr("jsonlite")
+# dplyr = importr("dplyr")
+# effsize = importr("effsize")
+# stats_r = importr("stats")
 
+utils = rpackages.importr("utils")
+utils.chooseCRANmirror(ind=1)
+packnames = ("stats", "jsonlite", "dplyr", "effsize")
+
+names_to_install = [x for x in packnames if not rpackages.isinstalled(x)]
+if len(names_to_install) > 0:
+    utils.install_packages(StrVector(names_to_install))
+
+stats_r = rpackages.importr("stats")
+jsonlite = rpackages.importr("jsonlite")
+dplyr = rpackages.importr("dplyr")
+effsize = rpackages.importr("effsize")
 
 class IndependentTtestTestCaseGenerator(TestCaseGenerator):
     def compute_expected_output(self, input_data, input_parameters="alt_hypothesis"):
@@ -27,7 +41,7 @@ class IndependentTtestTestCaseGenerator(TestCaseGenerator):
             alt_hyp = "two.sided"
         else:
             alt_hyp = input_parameters["alt_hypothesis"]
-        alpha = input_parameters["alpha"]
+        alpha = input_parameters["confidence_lvl"]
         n_obs = len(Y) + len(X)
         y_name = Y.columns[0]
         x_name = X.columns[0]
