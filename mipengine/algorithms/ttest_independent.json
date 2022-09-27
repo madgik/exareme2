@@ -39,7 +39,7 @@
             "notblank": true,
             "multiple": false
         },
-        "alpha": {
+        "confidence_lvl": {
             "label": "Confidence level",
             "desc": "The confidence level α used in the calculation of the confidence intervals for the correlation coefficients.",
             "type": "real",

@@ -24,7 +24,7 @@ class TtestResult(BaseModel):
 def run(algo_interface):
     local_run = algo_interface.run_udf_on_local_nodes
     global_run = algo_interface.run_udf_on_global_node
-    alpha = algo_interface.algorithm_parameters["alpha"]
+    conf_lvl = algo_interface.algorithm_parameters["confidence_lvl"]
     alternative = algo_interface.algorithm_parameters["alt_hypothesis"]
 
     X_relation, Y_relation = algo_interface.create_primary_data_views(
@@ -40,7 +40,9 @@ def run(algo_interface):
     result = global_run(
         func=global_independent,
         keyword_args=dict(
-            sec_local_transfer=sec_local_transfer, alpha=alpha, alternative=alternative
+            sec_local_transfer=sec_local_transfer,
+            conf_lvl=conf_lvl,
+            alternative=alternative,
         ),
     )
 
@@ -71,8 +73,6 @@ def local_independent(x, y):
     x2_sum = sum(x2)
     n_obs_x1 = len(x)
     n_obs_x2 = len(y)
-    diff = sum(x1 - x2)
-    diff_sqrd = sum((x1 - x2) ** 2)
     x1_sqrd_sum = sum(x1**2)
     x2_sqrd_sum = sum(x2**2)
 
@@ -81,8 +81,6 @@ def local_independent(x, y):
         "n_obs_x2": {"data": n_obs_x2, "operation": "sum", "type": "int"},
         "sum_x1": {"data": x1_sum.item(), "operation": "sum", "type": "float"},
         "sum_x2": {"data": x2_sum.item(), "operation": "sum", "type": "float"},
-        "diff": {"data": diff.tolist(), "operation": "sum", "type": "float"},
-        "diff_sqrd": {"data": diff_sqrd.tolist(), "operation": "sum", "type": "float"},
         "x1_sqrd_sum": {
             "data": x1_sqrd_sum.tolist(),
             "operation": "sum",
@@ -100,20 +98,17 @@ def local_independent(x, y):
 
 @udf(
     sec_local_transfer=secure_transfer(sum_op=True),
-    alpha=literal(),
+    conf_lvl=literal(),
     alternative=literal(),
     return_type=[transfer()],
 )
-def global_independent(sec_local_transfer, alpha, alternative):
-    import scipy.stats as st
+def global_independent(sec_local_transfer, conf_lvl, alternative):
     from scipy.stats import t
 
     n_obs_x1 = sec_local_transfer["n_obs_x1"]
     n_obs_x2 = sec_local_transfer["n_obs_x2"]
     sum_x1 = sec_local_transfer["sum_x1"]
     sum_x2 = sec_local_transfer["sum_x2"]
-    diff_sum = sec_local_transfer["diff"]
-    diff_sqrd_sum = sec_local_transfer["diff_sqrd"]
     x1_sqrd_sum = sec_local_transfer["x1_sqrd_sum"]
     x2_sqrd_sum = sec_local_transfer["x2_sqrd_sum"]
 
@@ -124,10 +119,6 @@ def global_independent(sec_local_transfer, alpha, alternative):
     devel_x2 = x2_sqrd_sum - 2 * sum_x2 * mean_x2 + (mean_x2**2) * n_obs_x2
     sd_x2 = numpy.sqrt(devel_x2 / (n_obs_x2 - 1))
     sd_x1 = numpy.sqrt(devel_x1 / (n_obs_x1 - 1))
-
-    # standard deviation of the difference between means
-    # sd_x1 = numpy.sqrt((diff_sqrd_sum - (diff_sum**2 / n_obs_x1)) / (n_obs_x1 - 1))
-    # sd_x2 = numpy.sqrt((diff_sqrd_sum - (diff_sum**2 / n_obs_x2)) / (n_obs_x2 - 1))
 
     # standard error of the difference between means
     sed_x1 = sd_x1 / numpy.sqrt(n_obs_x1)
@@ -146,10 +137,12 @@ def global_independent(sec_local_transfer, alpha, alternative):
     # a test for the new method.
     if n_obs < 30:
         ci_lower, ci_upper = t.interval(
-            alpha=1 - alpha, df=df, loc=diff_mean, scale=sed
+            alpha=1 - conf_lvl, df=df, loc=diff_mean, scale=sed
         )
     else:
-        ci_lower, ci_upper = st.norm.interval(alpha=1 - alpha, loc=diff_mean, scale=sed)
+        ci_lower, ci_upper = t.interval(
+            alpha=1 - conf_lvl, df=df, loc=diff_mean, scale=sed
+        )
 
     # p-value for alternative = 'greater'
     if alternative == "greater":
