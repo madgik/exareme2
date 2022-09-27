@@ -19,6 +19,7 @@
 # in the next iteration of the loop.
 
 import os
+import string
 import threading
 import time
 import traceback
@@ -39,8 +40,7 @@ from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregat
 from mipengine.singleton import Singleton
 
 CLEANER_REQUEST_ID = "CLEANER"
-CLEANUP_FILE_PREFIX = "cleanup"
-CONTEXT_ID_CLEANUP_FILE = "contextids_cleanup.toml"
+CLEANUP_FILE_TEMPLATE = string.Template("cleanup_${context_id}.toml")
 
 
 class _NodeInfoDTO(BaseModel):
@@ -237,7 +237,7 @@ class CleanupFilesProcessor:
 
     def create_file_from_cleanup_entry(self, entry: _CleanupEntry):
         entry_dict = entry.dict()
-        filename = f"{CLEANUP_FILE_PREFIX}_{entry.context_id}.toml"
+        filename = CLEANUP_FILE_TEMPLATE.substitute(context_id=entry.context_id)
         full_path_and_filename = os.path.join(
             self._cleanup_entries_folder_path, filename
         )
@@ -260,7 +260,7 @@ class CleanupFilesProcessor:
 
     def delete_file_by_context_id(self, context_id: str):
         try:
-            self._get_file_by_context_id(context_id).unlink()
+            os.unlink(self._get_file_by_context_id(context_id))
         except FileNotFoundError as exc:
             self._logger.warning(
                 f"Tried to delete file with {context_id=} but could not find such file. "
@@ -269,31 +269,34 @@ class CleanupFilesProcessor:
         self._logger.debug(f"Deleted file with {context_id=}")
 
     def get_entry_by_context_id(self, context_id) -> _CleanupEntry:
-        _file = self._get_file_by_context_id(context_id)
-        if _file:
+        file_full_path = self._get_file_by_context_id(context_id)
+        if file_full_path:
             try:
-                parsed_toml = toml.load(_file)
+                parsed_toml = toml.load(file_full_path)
             except Exception as exc:
                 self._logger.warning(
-                    f"Trying to read {_file.name=} raised exception: {exc}"
+                    f"Trying to read {file_full_path=} raised exception: {exc}"
                 )
             return _CleanupEntry(**parsed_toml)
         self._logger.warning(
             f"Could not find entry and cleanup file with {context_id=}"
         )
 
-    def _get_file_by_context_id(self, context_id: str):  # return type??
-        for _file in self._cleanup_entries_folder_path.glob("cleanup_*.toml"):
-            if context_id in _file.name:
-                try:
-                    parsed_toml = toml.load(_file)
-                except Exception as exc:
-                    self._logger.warning(
-                        f"Trying to read {_file.name=} raised exception: {exc}"
-                    )
-                if parsed_toml["context_id"] == context_id:
-                    return _file
-        self._logger.warning(f"Cleanup file with {context_id=} could not be found")
+    def _get_file_by_context_id(self, context_id: str) -> str:
+        filename_to_look_for = CLEANUP_FILE_TEMPLATE.substitute(context_id=context_id)
+        file_full_path = os.path.join(
+            self._cleanup_entries_folder_path, filename_to_look_for
+        )
+        try:
+            parsed_toml = toml.load(file_full_path)
+        except Exception as exc:
+            self._logger.warning(
+                f"Trying to read {file_full_path=} raised exception: {exc}"
+            )
+        if parsed_toml["context_id"] != context_id:
+            self._logger.error(f"File {file_full_path} contains wrnong {context_id=}")
+        else:
+            return file_full_path
 
     def _delete_all_entries(self):
         for _file in self._cleanup_entries_folder_path.glob("cleanup_*.toml"):
