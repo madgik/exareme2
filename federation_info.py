@@ -79,15 +79,21 @@ NODE_LEFT_PATTERN = rf"({TIMESTAMP_REGEX}) .* Node with id '(.*)' left the feder
 DATA_MODEL_ADDED_PATTERN = rf"({TIMESTAMP_REGEX}) .* Datamodel '(.*)' was added.$"
 DATA_MODEL_REMOVED_PATTERN = rf"({TIMESTAMP_REGEX}) .* Datamodel '(.*)' was removed.$"
 
-DATASET_ADDED_PATTERN = rf"({TIMESTAMP_REGEX}) .* Dataset '(.*)' of datamodel '(.*)' was \
-added in node '(.*)'.$"
+DATASET_ADDED_PATTERN = (
+    rf"({TIMESTAMP_REGEX}) .* Dataset '(.*)' of datamodel '(.*)' was "
+    r"added in node '(.*)'.$"
+)
 
-DATASET_REMOVED_PATTERN = rf"({TIMESTAMP_REGEX}) .* Dataset '(.*)' of datamodel '(.*)' \
-was removed from node '(.*)'.$"
+DATASET_REMOVED_PATTERN = (
+    rf"({TIMESTAMP_REGEX}) .* Dataset '(.*)' of datamodel '(.*)' "
+    r"was removed from node '(.*)'.$"
+)
 
-EXPERIMENT_EXECUTION_PATTERN = rf"({TIMESTAMP_REGEX}) .* Experiment with request id \
-'(.*)' and context id '(.*)' is starting algorithm '(.*)', touching datasets '(.*)' on \
-local nodes '(.*)' with parameters '(.*)'.$"
+EXPERIMENT_EXECUTION_PATTERN = (
+    rf"({TIMESTAMP_REGEX}) .* Experiment with request id '(.*)' "
+    r"and context id '(.*)' is starting algorithm '(.*)', touching datasets '(.*)' on local "
+    r"nodes '(.*)' with parameters '(.*)'.$"
+)
 
 
 def print_audit_entry(log_line):
