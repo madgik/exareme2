@@ -120,7 +120,7 @@ jobs:
           run: cat /tmp/mipengine/localnode1.out
 
       - name: Run algorithm validation tests
-        run: poetry run pytest  -vv -n 16 tests/algorithm_validation_tests -k 'not logisticregression_cv'
+        run: poetry run pytest  -vv -n 16 tests/algorithm_validation_tests -k 'not logisticregression and not linearregression_cv'
 
   # run_tests_in_five_nodes:
   #   runs-on: ubuntu-latest
