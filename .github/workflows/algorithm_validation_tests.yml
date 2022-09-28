@@ -122,7 +122,7 @@ jobs:
       - name: Run algorithm validation tests
         run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16
 
-  run_tests_in_five_nodes:
+  run_tests_in_ten_nodes:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -200,7 +200,7 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       - name: Copy .deployment.toml file
-        run: cp ./tests/algorithm_validation_tests/five_node_deployment_template.toml .deployment.toml
+        run: cp ./tests/algorithm_validation_tests/ten_node_deployment_template.toml .deployment.toml
 
       - name: Create config files
         run: poetry run inv create-configs
