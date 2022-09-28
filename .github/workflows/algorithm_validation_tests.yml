@@ -120,125 +120,125 @@ jobs:
           run: cat /tmp/mipengine/localnode1.out
 
       - name: Run algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16
+        run: poetry run pytest  -vv -n 16 tests/algorithm_validation_tests -k 'not logisticregression_cv'
 
-  run_tests_in_five_nodes:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v2
+  # run_tests_in_five_nodes:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Check out repository
+  #       uses: actions/checkout@v2
 
-      - name: Set up python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
+  #     - name: Set up python
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: 3.8
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
+  #     - name: Install Poetry
+  #       uses: snok/install-poetry@v1
+  #       with:
+  #         virtualenvs-create: true
+  #         virtualenvs-in-project: true
 
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v2
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+  #     - name: Load cached venv
+  #       id: cached-poetry-dependencies
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: .venv
+  #         key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
 
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root
+  #     - name: Install dependencies
+  #       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+  #       run: poetry install --no-interaction --no-root
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v1
 
-      - name: Load MONETDB cached image
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-3-monetdb-
+  #     - name: Load MONETDB cached image
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: /tmp/.buildx-cache/monetdb
+  #         key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
+  #         restore-keys: |
+  #           ${{ runner.os }}-buildx-3-monetdb-
 
-      - name: Build MONETDB docker image
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: monetdb/Dockerfile
-          push: false
-          load: true
-          tags: madgik/mipenginedb:testing
-          cache-from: type=local,src=/tmp/.buildx-cache/monetdb
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
+  #     - name: Build MONETDB docker image
+  #       uses: docker/build-push-action@v2
+  #       with:
+  #         context: .
+  #         file: monetdb/Dockerfile
+  #         push: false
+  #         load: true
+  #         tags: madgik/mipenginedb:testing
+  #         cache-from: type=local,src=/tmp/.buildx-cache/monetdb
+  #         cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
 
-      - name: Load RABBITMQ cached image
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache/rabbitmq
-          key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-rabbitmq-
+  #     - name: Load RABBITMQ cached image
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: /tmp/.buildx-cache/rabbitmq
+  #         key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
+  #         restore-keys: |
+  #           ${{ runner.os }}-buildx-rabbitmq-
 
-      - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: rabbitmq/Dockerfile
-          push: false
-          load: true
-          tags: madgik/mipengine_rabbitmq:testing
-          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
+  #     - name: Build RABBITMQ docker image
+  #       uses: docker/build-push-action@v2
+  #       with:
+  #         context: .
+  #         file: rabbitmq/Dockerfile
+  #         push: false
+  #         load: true
+  #         tags: madgik/mipengine_rabbitmq:testing
+  #         cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
+  #         cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
 
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+  #       # Temp fix
+  #       # https://github.com/docker/build-push-action/issues/252
+  #       # https://github.com/moby/buildkit/issues/1896
+  #     - name: Move Docker images cache
+  #       run: |
+  #         rm -rf /tmp/.buildx-cache
+  #         mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-      - name: Copy .deployment.toml file
-        run: cp ./tests/algorithm_validation_tests/five_node_deployment_template.toml .deployment.toml
+  #     - name: Copy .deployment.toml file
+  #       run: cp ./tests/algorithm_validation_tests/five_node_deployment_template.toml .deployment.toml
 
-      - name: Create config files
-        run: poetry run inv create-configs
+  #     - name: Create config files
+  #       run: poetry run inv create-configs
 
-      - name: Deploy all services
-        run: poetry run inv deploy --no-install-dep --no-start-all
+  #     - name: Deploy all services
+  #       run: poetry run inv deploy --no-install-dep --no-start-all
 
-      - name: Load data into DBs
-        run: poetry run inv load-data
+  #     - name: Load data into DBs
+  #       run: poetry run inv load-data
 
-      - name: Start services after data loading
-        run: |
-          poetry run inv start-node --all
-          poetry run inv start-controller --detached
+  #     - name: Start services after data loading
+  #       run: |
+  #         poetry run inv start-node --all
+  #         poetry run inv start-controller --detached
 
-      - name: Controller logs
-        run: cat /tmp/mipengine/controller.out
+  #     - name: Controller logs
+  #       run: cat /tmp/mipengine/controller.out
 
-      - name: Globalnode logs
-        run: cat /tmp/mipengine/globalnode.out
+  #     - name: Globalnode logs
+  #       run: cat /tmp/mipengine/globalnode.out
 
-      - name: Localnode logs
-        run: cat /tmp/mipengine/localnode1.out
+  #     - name: Localnode logs
+  #       run: cat /tmp/mipengine/localnode1.out
 
-      - name: Controller logs (post run)
-        uses: webiny/action-post-run@2.0.1
-        with:
-          run: cat /tmp/mipengine/controller.out
+  #     - name: Controller logs (post run)
+  #       uses: webiny/action-post-run@2.0.1
+  #       with:
+  #         run: cat /tmp/mipengine/controller.out
 
-      - name: Globalnode logs (post run)
-        uses: webiny/action-post-run@2.0.1
-        with:
-          run: cat /tmp/mipengine/globalnode.out
+  #     - name: Globalnode logs (post run)
+  #       uses: webiny/action-post-run@2.0.1
+  #       with:
+  #         run: cat /tmp/mipengine/globalnode.out
 
-      - name: Localnode logs (post run)
-        uses: webiny/action-post-run@2.0.1
-        with:
-          run: cat /tmp/mipengine/localnode1.out
+  #     - name: Localnode logs (post run)
+  #       uses: webiny/action-post-run@2.0.1
+  #       with:
+  #         run: cat /tmp/mipengine/localnode1.out
 
-      - name: Run algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16 -k "input1 and not input1-" # run tests 10-19
+  #     - name: Run algorithm validation tests
+  #       run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16 -k "input1 and not input1-" # run tests 10-19
