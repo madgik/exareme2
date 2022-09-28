@@ -292,4 +292,6 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeAlgorithmTasksHand
 
 
 def get_a_uniqueid() -> str:
-    return str(int(uuid.uuid4().hex, 16))[-16:]
+    uid = str(int(uuid.uuid4().hex, 16))[-16:]
+    print(f"#### UID {uid}")
+    return uid
