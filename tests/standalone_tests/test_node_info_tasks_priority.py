@@ -40,6 +40,7 @@ def queue_one_second_udf(
         func_name=make_unique_func_name(one_second_udf),
         positional_args_json=UDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
+        share_outputs=[True],
     )
 
 

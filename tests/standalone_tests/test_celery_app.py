@@ -80,6 +80,7 @@ def queue_slow_udf(cel_app, logger):
         func_name=make_unique_func_name(five_seconds_udf),
         positional_args_json=UDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
+        share_outputs=[True],
     )
 
 

@@ -185,6 +185,7 @@ class _Node(_INode, ABC):
         func_name: str,
         positional_args: UDFPosArguments,
         keyword_args: UDFKeyArguments,
+        share_outputs: List[bool],
         use_smpc: bool = False,
         output_schema: Optional[TableSchema] = None,
     ) -> AsyncResult:
@@ -193,6 +194,7 @@ class _Node(_INode, ABC):
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
+            share_outputs=share_outputs,
             positional_args=positional_args,
             keyword_args=keyword_args,
             use_smpc=use_smpc,

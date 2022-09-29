@@ -1273,6 +1273,7 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
                 keywordargs=keywordargs,
                 udfregistry=udfregistry,
                 smpc_used=False,
+                share_outputs=[True],
             )
         assert "UDF argument names do not match UDF parameter names" in str(exc)
 
@@ -1300,6 +1301,7 @@ class TestUDFGen_LoggerArgument_provided_in_pos_args(TestUDFGenBase):
                 keywordargs={},
                 udfregistry=udfregistry,
                 smpc_used=False,
+                share_outputs=[True],
             )
         assert "No argument should be provided for 'UDFLoggerType' parameter" in str(
             exc
@@ -1330,6 +1332,7 @@ class TestUDFGen_LoggerArgument_provided_in_kw_args(TestUDFGenBase):
                 keywordargs=keywordargs,
                 udfregistry=udfregistry,
                 smpc_used=False,
+                share_outputs=[True],
             )
         assert "No argument should be provided for 'UDFLoggerType' parameter" in str(
             exc
@@ -1378,6 +1381,7 @@ class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
                 positional_args=posargs,
                 keyword_args={},
                 smpc_used=False,
+                share_outputs=[True],
             )
         assert "should be of type" in str(exc)
 
@@ -1426,6 +1430,7 @@ class TestUDFGen_InvalidUDFArgs_TensorTableInTransferArgument(TestUDFGenBase):
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
+                share_outputs=[True],
                 smpc_used=True,
             )
         assert "should be of type" in str(exc)
@@ -1473,6 +1478,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
+                share_outputs=[True],
                 smpc_used=True,
             )
         assert "should be of type" in str(exc)
@@ -1510,6 +1516,7 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
+                share_outputs=[True],
                 smpc_used=True,
             )
         assert "When smpc is used SecureTransferArg should not be" in str(exc)
@@ -1557,6 +1564,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
+                share_outputs=[True],
                 smpc_used=False,
             )
         assert "SMPC is not used, " in str(exc)
@@ -1589,6 +1597,7 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
                 funcname=funcname,
                 posargs=posargs,
                 keywordargs=keywordargs,
+                share_outputs=[True],
                 udfregistry=udfregistry,
                 smpc_used=False,
             )
@@ -1607,6 +1616,7 @@ class TestUDFGen_KW_args_on_tensor_operation:
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args=keywordargs,
+                share_outputs=[True],
                 smpc_used=False,
             )
         err_msg, *_ = e.value.args
@@ -1658,6 +1668,7 @@ class _TestGenerateUDFQueries:
         expected_udfdef,
         expected_udfsel,
         expected_udf_outputs,
+        share_outputs,
         traceback,
         use_smpc,
         request_id,
@@ -1667,6 +1678,7 @@ class _TestGenerateUDFQueries:
             func_name=funcname,
             positional_args=positional_args,
             keyword_args={},
+            share_outputs=share_outputs,
             smpc_used=use_smpc,
             traceback=traceback,
         )
@@ -1693,6 +1705,10 @@ class TestUDFGen_TensorToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -1770,6 +1786,10 @@ class TestUDFGen_TensorParameterWithCapitalLetter(
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -1870,6 +1890,10 @@ class TestUDFGen_RelationToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [
             TableInfo(
@@ -1948,6 +1972,10 @@ class TestUDFGen_2RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -2049,6 +2077,10 @@ class TestUDFGen_3RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -2170,6 +2202,10 @@ class TestUDFGen_2SameRelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries)
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [
             TableInfo(
@@ -2265,6 +2301,10 @@ class TestUDFGen_TensorToRelation(TestUDFGenBase, _TestGenerateUDFQueries):
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def udf_args(self):
         return {"x": TensorArg(table_name="tensor_in_db", dtype=int, ndims=1)}
 
@@ -2343,6 +2383,10 @@ class TestUDFGen_LiteralArgument(TestUDFGenBase, _TestGenerateUDFQueries):
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [
             TableInfo(
@@ -2412,6 +2456,10 @@ class TestUDFGen_ManyLiteralArguments(TestUDFGenBase, _TestGenerateUDFQueries):
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -2484,6 +2532,10 @@ class TestUDFGen_NoArguments(TestUDFGenBase, _TestGenerateUDFQueries):
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return []
 
@@ -2536,6 +2588,10 @@ class TestUDFGen_RelationIncludeRowId(TestUDFGenBase, _TestGenerateUDFQueries):
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -2612,6 +2668,10 @@ class TestUDFGen_RelationExcludeNodeid(TestUDFGenBase, _TestGenerateUDFQueries):
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -2692,6 +2752,10 @@ class TestUDFGen_UnknownReturnDimensions(TestUDFGenBase, _TestGenerateUDFQueries
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [
             TableInfo(
@@ -2767,6 +2831,10 @@ class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueries
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -2860,6 +2928,10 @@ class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueri
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -2969,6 +3041,10 @@ class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase, _TestGenerateUDFQueri
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -3086,6 +3162,10 @@ class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase, _TestGenerateUDFQuerie
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def udf_args(self):
         return {
             "x": TensorArg(table_name="tens0", dtype=int, ndims=1),
@@ -3167,6 +3247,10 @@ class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase, _TestGenerateUDFQueries):
         return TensorBinaryOp.MATMUL.name
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [
             TableInfo(
@@ -3233,6 +3317,10 @@ class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def funcname(self):
         return TensorBinaryOp.MATMUL.name
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -3307,6 +3395,10 @@ class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase, _TestGenerateUDFQueries)
         return TensorBinaryOp.SUB.name
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [
             1,
@@ -3362,6 +3454,10 @@ class TestUDFGen_ScalarReturn(TestUDFGenBase, _TestGenerateUDFQueries):
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -3430,6 +3526,10 @@ class TestUDFGen_MergeTensor(TestUDFGenBase, _TestGenerateUDFQueries):
             return x
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -3506,6 +3606,10 @@ class TestUDFGen_TracebackFlag(TestUDFGenBase, _TestGenerateUDFQueries):
             return z
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -3592,6 +3696,10 @@ class TestUDFGen_StateReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [False]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [5]
 
@@ -3617,7 +3725,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -3629,7 +3736,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             )
         ]
@@ -3647,7 +3754,7 @@ FROM
         globalnode_db_cursor.execute(concrete_udf_outputs)
         globalnode_db_cursor.execute(concrete_udf_def)
         globalnode_db_cursor.execute(concrete_udf_sel)
-        _, state = globalnode_db_cursor.execute(
+        [state] = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchone()
         result = pickle.loads(state)
@@ -3667,6 +3774,10 @@ class TestUDFGen_StateInputandReturnType(TestUDFGenBase, _TestGenerateUDFQueries
             return prev_state
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [False]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -3707,7 +3818,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -3719,7 +3829,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             )
         ]
@@ -3737,7 +3847,7 @@ FROM
         globalnode_db_cursor.execute(concrete_udf_outputs)
         globalnode_db_cursor.execute(concrete_udf_def)
         globalnode_db_cursor.execute(concrete_udf_sel)
-        _, state = globalnode_db_cursor.execute(
+        [state] = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchone()
         result = pickle.loads(state)
@@ -3753,6 +3863,10 @@ class TestUDFGen_TransferReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -3830,6 +3944,10 @@ class TestUDFGen_TransferInputAndReturnType(TestUDFGenBase, _TestGenerateUDFQuer
             return transfer
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -3924,6 +4042,10 @@ class TestUDFGen_TransferInputAndStateReturnType(
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [False]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [
             5,
@@ -3963,7 +4085,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -3975,7 +4096,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             )
         ]
@@ -3993,7 +4114,7 @@ FROM
         globalnode_db_cursor.execute(concrete_udf_outputs)
         globalnode_db_cursor.execute(concrete_udf_def)
         globalnode_db_cursor.execute(concrete_udf_sel)
-        _, state = globalnode_db_cursor.execute(
+        [state] = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchone()
         result = pickle.loads(state)
@@ -4017,6 +4138,10 @@ class TestUDFGen_TransferAndStateInputandStateReturnType(
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [False]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -4070,7 +4195,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -4082,7 +4206,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             )
         ]
@@ -4104,7 +4228,7 @@ FROM
         globalnode_db_cursor.execute(concrete_udf_outputs)
         globalnode_db_cursor.execute(concrete_udf_def)
         globalnode_db_cursor.execute(concrete_udf_sel)
-        _, state = globalnode_db_cursor.execute(
+        [state] = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchone()
         result = pickle.loads(state)
@@ -4130,6 +4254,10 @@ class TestUDFGen_MergeTransferAndStateInputandTransferReturnType(
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -4241,6 +4369,10 @@ class TestUDFGen_LocalStepLogic(TestUDFGenBase, _TestGenerateUDFQueries):
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [False, True]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [
             TableInfo(
@@ -4291,7 +4423,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -4303,7 +4434,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             ),
             TableUDFGenResult(
@@ -4362,6 +4493,10 @@ class TestUDFGen_LocalStepLogic_Transfer_first_input_and_output(
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True, False]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [
             TableInfo(
@@ -4403,7 +4538,7 @@ LANGUAGE PYTHON
     state = pickle.loads(__state_str)
     result1 = {'num': transfer['num'] + state['num']}
     result2 = {'num': transfer['num'] * state['num']}
-    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{pickle.dumps(result2).hex()}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('{pickle.dumps(result2).hex()}');")
     return json.dumps(result1)
 }"""
 
@@ -4431,7 +4566,7 @@ FROM
                 tablename_placeholder="loopback_table_name_0",
                 drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
-                    'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $loopback_table_name_0("state" BLOB);'
                 ),
             ),
         ]
@@ -4482,6 +4617,10 @@ class TestUDFGen_GlobalStepLogic(TestUDFGenBase, _TestGenerateUDFQueries):
             return result1, result2
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [False, True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -4537,7 +4676,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -4549,7 +4687,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             ),
             TableUDFGenResult(
@@ -4608,6 +4746,10 @@ class TestUDFGen_SecureTransferOutput_with_SMPC_off(
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -4710,6 +4852,10 @@ class TestUDFGen_SecureTransferOutput_with_SMPC_on(
             return result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -4857,6 +5003,10 @@ class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_off(
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [
             TableInfo(
@@ -4970,6 +5120,10 @@ class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_on(
             return state, result
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -5133,6 +5287,10 @@ class TestUDFGen_SecureTransferInput_with_SMPC_off(
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [
             TableInfo(
@@ -5222,6 +5380,10 @@ class TestUDFGen_SecureTransferInput_with_SMPC_on(
             return transfer
 
         return udf.registry
+
+    @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
 
     @pytest.fixture(scope="class")
     def positional_args(self):
@@ -5347,6 +5509,10 @@ class TestUDFGen_LoggerArgument(TestUDFGenBase, _TestGenerateUDFQueries):
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def positional_args(self):
         return [5]
 
@@ -5426,6 +5592,10 @@ class TestUDFGen_DeferredOutputSchema(TestUDFGenBase, _TestGenerateUDFQueries):
         return udf.registry
 
     @pytest.fixture(scope="class")
+    def share_outputs(self):
+        return [True]
+
+    @pytest.fixture(scope="class")
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
@@ -5472,6 +5642,7 @@ FROM
         expected_udfdef,
         expected_udfsel,
         expected_udf_outputs,
+        share_outputs,
     ):
         output_schema = [("a", DType.INT), ("b", DType.FLOAT)]
         udf_execution_queries = generate_udf_queries(
@@ -5479,9 +5650,86 @@ FROM
             func_name=funcname,
             positional_args=[],
             keyword_args={},
+            share_outputs=share_outputs,
             smpc_used=False,
             traceback=False,
             output_schema=output_schema,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results,
+            expected_udf_outputs,
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_OutputNotShared(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(return_type=state())
+        def f():
+            result = {"x": 42}
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("state" BLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import pickle
+    result = {'x': 42}
+    return pickle.dumps(result)
+}"""
+
+    @pytest.fixture(scope="class")
+    def expected_udfsel(self):
+        return """\
+INSERT INTO $main_output_table_name
+SELECT
+    *
+FROM
+    $udf_name();"""
+
+    @pytest.fixture(scope="class")
+    def expected_udf_outputs(self):
+        return [
+            TableUDFGenResult(
+                tablename_placeholder="main_output_table_name",
+                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
+                create_query=Template(
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
+                ),
+            )
+        ]
+
+    @pytest.fixture(scope="class")
+    def request_id(self):
+        return "test_udfgenerator"
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            request_id="",
+            func_name=funcname,
+            positional_args=[],
+            keyword_args={},
+            smpc_used=False,
+            traceback=False,
+            share_outputs=[False],
         )
         assert udf_execution_queries.udf_definition_query.template == expected_udfdef
         assert udf_execution_queries.udf_select_query.template == expected_udfsel

@@ -220,6 +220,7 @@ def test_secure_transfer_output_with_smpc_off(
             func_name=make_unique_func_name(smpc_local_step),
             positional_args_json=pos_args_str,
             keyword_args_json=UDFKeyArguments(args={}).json(),
+            share_outputs=[True],
         )
         .get(timeout=TASKS_TIMEOUT)
     )
@@ -267,6 +268,7 @@ def test_secure_transfer_input_with_smpc_off(
             func_name=make_unique_func_name(smpc_global_step),
             positional_args_json=pos_args_str,
             keyword_args_json=UDFKeyArguments(args={}).json(),
+            share_outputs=[True],
         )
         .get(timeout=TASKS_TIMEOUT)
     )
@@ -363,6 +365,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
             positional_args_json=pos_args_str,
             keyword_args_json=UDFKeyArguments(args={}).json(),
             use_smpc=True,
+            share_outputs=[True],
         )
         .get(timeout=TASKS_TIMEOUT)
     )
@@ -413,6 +416,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
             positional_args_json=pos_args_str,
             keyword_args_json=UDFKeyArguments(args={}).json(),
             use_smpc=True,
+            share_outputs=[True],
         )
         .get(timeout=TASKS_TIMEOUT)
     )
@@ -668,6 +672,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
         positional_args_json=pos_args_str_localnode1,
         keyword_args_json=UDFKeyArguments(args={}).json(),
         use_smpc=True,
+        share_outputs=[True],
     ).get()
 
     udf_results_str_localnode2 = run_udf_task_localnode2.delay(
@@ -678,6 +683,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
         positional_args_json=pos_args_str_localnode2,
         keyword_args_json=UDFKeyArguments(args={}).json(),
         use_smpc=True,
+        share_outputs=[True],
     ).get()
 
     local_1_smpc_result = UDFResults.parse_raw(udf_results_str_localnode1).results[0]
@@ -799,6 +805,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
         positional_args_json=pos_args_str,
         keyword_args_json=UDFKeyArguments(args={}).json(),
         use_smpc=True,
+        share_outputs=[True],
     ).get()
 
     global_step_result = UDFResults.parse_raw(udf_results_str).results[0]

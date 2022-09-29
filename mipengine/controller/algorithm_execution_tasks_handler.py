@@ -125,8 +125,9 @@ class INodeAlgorithmTasksHandler(ABC):
         context_id: str,
         command_id: str,
         func_name: str,
-        positional_args: Optional[UDFPosArguments] = None,
-        keyword_args: Optional[UDFKeyArguments] = None,
+        positional_args: UDFPosArguments,
+        keyword_args: UDFKeyArguments,
+        share_outputs: List[bool],
         use_smpc: bool = False,
         output_schema: Optional[TableSchema] = None,
     ) -> AsyncResult:
@@ -439,6 +440,7 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         func_name: str,
         positional_args: UDFPosArguments,
         keyword_args: UDFKeyArguments,
+        share_outputs: List[bool],
         use_smpc: bool = False,
         output_schema: Optional[TableSchema] = None,
     ) -> AsyncResult:
@@ -454,6 +456,7 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             func_name=func_name,
             positional_args_json=positional_args.json(),
             keyword_args_json=keyword_args.json(),
+            share_outputs=share_outputs,
             use_smpc=use_smpc,
             output_schema=output_schema.json() if output_schema else None,
         )
