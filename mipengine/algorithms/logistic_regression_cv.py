@@ -1,0 +1,139 @@
+import statistics as stats
+from typing import List
+from typing import Optional
+
+import sklearn.metrics as skm
+from pydantic import BaseModel
+
+from mipengine.algorithms.logistic_regression import LogisticRegression
+from mipengine.algorithms.metrics import compute_classification_metrics
+from mipengine.algorithms.metrics import confusion_matrix
+from mipengine.algorithms.metrics import roc_curve
+from mipengine.algorithms.preprocessing import DummyEncoder
+from mipengine.algorithms.preprocessing import KFold
+from mipengine.algorithms.preprocessing import LabelBinarizer
+
+
+def run(executor):
+    xvars, yvars = executor.x_variables, executor.y_variables
+    X, y = executor.create_primary_data_views([xvars, yvars])
+    positive_class = executor.algorithm_parameters["positive_class"]
+    n_splits = executor.algorithm_parameters["n_splits"]
+
+    # Dummy encode categorical variables
+    dummy_encoder = DummyEncoder(executor)
+    X = dummy_encoder.transform(X)
+
+    # Binarize `y` by mapping positive_class to 1 and everything else to 0
+    ybin = LabelBinarizer(executor, positive_class).transform(y)
+
+    # Split datasets according to k-fold CV
+    kf = KFold(executor, n_splits=n_splits)
+    X_train, X_test, y_train, y_test = kf.split(X, ybin)
+
+    # TODO column names should be table attributes
+    X.columns = dummy_encoder.new_varnames
+    y.columns = yvars
+    ybin.columns = yvars
+    for x1, x2, y1, y2 in zip(X_train, X_test, y_train, y_test):
+        x1.columns = dummy_encoder.new_varnames
+        x2.columns = dummy_encoder.new_varnames
+        y1.columns = yvars
+        y2.columns = yvars
+
+    # Create models
+    models = [LogisticRegression(executor) for _ in range(n_splits)]
+
+    # Train models
+    for model, X, y in zip(models, X_train, y_train):
+        model.fit(X=X, y=y)
+
+    # Compute prediction probabilities
+    probas = [model.predict_proba(X) for model, X in zip(models, X_test)]
+
+    # Patrial and total confusion matrices
+    confmats = [
+        confusion_matrix(executor, ytrue, proba) for ytrue, proba in zip(y_test, probas)
+    ]
+    total_confmat = sum(confmats)
+    tn, fp, fn, tp = total_confmat.ravel()
+    confmat = ConfusionMatrix(tn=tn, fp=fp, fn=fn, tp=tp)
+
+    # Classification metrics
+    metrics = [compute_classification_metrics(confmat) for confmat in confmats]
+    n_obs_train = [model.nobs_train for model in models]
+    summary = make_classification_metrics_summary(n_splits, n_obs_train, metrics)
+
+    # ROC curves
+    roc_curves = [
+        roc_curve(executor, ytrue, proba) for ytrue, proba in zip(y_test, probas)
+    ]
+    aucs = [skm.auc(x=fpr, y=tpr) for tpr, fpr in roc_curves]
+    roc_curves_result = [
+        ROCCurve(name=f"fold_{i}", tpr=tpr, fpr=fpr, auc=auc)
+        for (tpr, fpr), auc, i in zip(roc_curves, aucs, range(n_splits))
+    ]
+
+    return CVLogisticRegressionResult(
+        dependent_var=y.columns[0],
+        indep_vars=X.columns,
+        summary=summary,
+        confusion_matrix=confmat,
+        roc_curves=roc_curves_result,
+    )
+
+
+def make_classification_metrics_summary(n_splits, n_obs, metrics):
+    row_names = [f"fold_{i}" for i in range(1, n_splits + 1)] + ["average", "stdev"]
+    accuracy, precision, recall, fscore = zip(*metrics)
+    accuracy += (stats.mean(accuracy), stats.stdev(accuracy))
+    precision += (stats.mean(precision), stats.stdev(precision))
+    recall += (stats.mean(recall), stats.stdev(recall))
+    fscore += (stats.mean(fscore), stats.stdev(fscore))
+    return CVClassificationSummary(
+        row_names=row_names,
+        n_obs=n_obs + [None, None],  # we don't compute average & stderr for n_obs
+        accuracy=accuracy,
+        precision=precision,
+        recall=recall,
+        fscore=fscore,
+    )
+
+
+class ConfusionMatrix(BaseModel):
+    tp: int
+    fp: int
+    tn: int
+    fn: int
+
+    def __add__(self, other):
+        return ConfusionMatrix(
+            tp=self.tp + other.tp,
+            fp=self.fp + other.fp,
+            tn=self.tn + other.tn,
+            fn=self.fn + other.fn,
+        )
+
+
+class CVClassificationSummary(BaseModel):
+    row_names: List[str]
+    n_obs: List[Optional[int]]
+    accuracy: List[float]
+    precision: List[float]
+    recall: List[float]
+    fscore: List[float]
+
+
+class ROCCurve(BaseModel):
+    name: str
+    tpr: List[float]
+    fpr: List[float]
+    auc: float
+
+
+class CVLogisticRegressionResult(BaseModel):
+    dependent_var: str
+    indep_vars: List[str]
+    summary: CVClassificationSummary
+    confusion_matrix: ConfusionMatrix
+    roc_curves: List[ROCCurve]
