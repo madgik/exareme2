@@ -1,10 +1,10 @@
-import json
 from typing import List
 
 import numpy
 import scipy.stats as stats
 from pydantic import BaseModel
 
+from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import relation_to_vector
 from mipengine.udfgen import literal
@@ -90,12 +90,12 @@ class LinearRegression:
             keyword_args={"x": X, "y": y},
             share_to_global=[True],
         )
-        self.global_state, self.global_transfer = self.global_run(
+        self.global_state, global_transfer = self.global_run(
             func=self._fit_global,
             keyword_args=dict(local_transfers=local_transfers),
-            share_to_locals=[False, True],
+            share_to_locals=[False, False],
         )
-        global_transfer_data = json.loads(self.global_transfer.get_table_data()[0][0])
+        global_transfer_data = get_transfer_data(global_transfer)
         self.coefficients = global_transfer_data["coefficients"]
 
     @staticmethod
@@ -172,7 +172,7 @@ class LinearRegression:
                 local_transfers=local_transfers, fit_gstate=self.global_state
             ),
         )
-        global_transfer_data = json.loads(global_transfer.get_table_data()[0][0])
+        global_transfer_data = get_transfer_data(global_transfer)
         rss = global_transfer_data["rss"]
         tss = global_transfer_data["tss"]
         sum_abs_resid = global_transfer_data["sum_abs_resid"]
