@@ -16,7 +16,7 @@ expected_file = (
     "test_input, expected",
     get_test_params(
         expected_file,
-        skip_indices=[5, 9, 12, 18, 19, 22],
+        skip_indices=[5, 9, 12, 18, 19, 22, 17],  # 17 is not related to empty tables!
         skip_reason="Run results in empty tables,"
         " see https://team-1617704806227.atlassian.net/browse/MIP-634",
     ),
