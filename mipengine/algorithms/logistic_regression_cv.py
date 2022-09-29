@@ -14,7 +14,7 @@ from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import LabelBinarizer
 
 
-def run(executor):
+def run(executor):  # noqa R701
     xvars, yvars = executor.x_variables, executor.y_variables
     X, y = executor.create_primary_data_views([xvars, yvars])
     positive_class = executor.algorithm_parameters["positive_class"]
