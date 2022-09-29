@@ -2100,16 +2100,18 @@ def convert_table_info_to_table_arg(table_info, smpc_used):
             raise UDFBadCall("Usage of state is only allowed on local tables.")
         return StateArg(table_name=table_info.name)
     if is_tensor_schema(table_info.schema_.columns):
-        ndims = len(
-            [col for col in table_info.schema_.columns if col.name.startswith("dim")]
-        )
-        valcol = next(col for col in table_info.schema_.columns if col.name == "val")
-        dtype = valcol.dtype
-        return TensorArg(table_name=table_info.name, dtype=dtype, ndims=ndims)
+        return get_tensor_arg_from_table_info(table_info)
     relation_schema = convert_table_schema_to_relation_schema(
         table_info.schema_.columns
     )
     return RelationArg(table_name=table_info.name, schema=relation_schema)
+
+
+def get_tensor_arg_from_table_info(table_info):
+    ndims = sum(1 for col in table_info.schema_.columns if col.name.startswith("dim"))
+    valcol = next(col for col in table_info.schema_.columns if col.name == "val")
+    dtype = valcol.dtype
+    return TensorArg(table_name=table_info.name, dtype=dtype, ndims=ndims)
 
 
 # TODO table kinds must become known in Controller, who should send the
