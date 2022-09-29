@@ -10,7 +10,7 @@ minimum_row_count = 10
 [celery]
 worker_concurrency = 16
 tasks_timeout="$CELERY_TASKS_TIMEOUT"
-run_udf_task_timeout="$CELERY_RUN_UDF_TASK_TIMEOUT"
+run_udf_task_timeout="$CELERY_TASKS_TIMEOUT"
 
 [rabbitmq]
 ip = "$RABBITMQ_IP"

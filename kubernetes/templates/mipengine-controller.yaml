@@ -44,8 +44,6 @@ spec:
           value: "86400"  # One day in seconds
         - name: CELERY_TASKS_TIMEOUT
           value: {{ quote .Values.controller.celery_tasks_timeout }}
-        - name: CELERY_RUN_UDF_TASK_TIMEOUT
-          value: {{ quote .Values.controller.celery_run_udf_task_timeout }}
         - name: LOCALNODES_DNS
           value: "mipengine-nodes-service"
         - name: LOCALNODES_PORT
