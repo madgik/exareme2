@@ -195,27 +195,28 @@ class LogisticRegression:
         transfer_["H_inv"] = H_inv.tolist()
         return transfer_
 
-    def predict(self, X):
+    def predict_proba(self, X):
         return self.local_run(
-            self._predict_local,
-            keyword_args={"X": X, "coeff": self.coeff},
+            self._predict_proba_local, keyword_args={"X": X, "coeff": self.coeff}
         )
 
     @staticmethod
     @udf(
         X=relation(),
         coeff=literal(),
-        return_type=relation(schema=[("row_id", int), ("ypred", int)]),
+        return_type=relation(schema=[("row_id", int), ("proba", float)]),
     )
-    def _predict_local(X, coeff):
+    def _predict_proba_local(X, coeff):
         import pandas as pd
         from scipy import special
-        from sklearn.preprocessing import binarize
 
-        probs = special.expit(X @ coeff).to_numpy()
-        ypred = binarize(probs.reshape(-1, 1), threshold=0.5)
+        index = X.index
+        X = X.to_numpy()
+        coeff = numpy.array(coeff)[:, numpy.newaxis]
 
-        result = pd.DataFrame({"ypred": ypred.reshape((-1,))}, index=X.index)
+        proba = special.expit(X @ coeff)
+
+        result = pd.DataFrame({"row_id": index, "proba": numpy.squeeze(proba)})
         return result
 
 
