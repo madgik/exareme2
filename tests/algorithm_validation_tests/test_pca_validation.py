@@ -32,6 +32,10 @@ def get_test_params(expected_file, slc=None):
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_pca_algorithm(test_input, expected):
     response = pca_request(test_input)
+    if response.status_code != 200:
+        raise ValueError(
+            f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
+        )
     result = json.loads(response.content)
 
     assert response.status_code == 200

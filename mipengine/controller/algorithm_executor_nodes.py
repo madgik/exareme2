@@ -215,11 +215,6 @@ class _Node(_INode, ABC):
             positional_args=positional_args,
         )
 
-    def clean_up(self):
-        self._node_tasks_handler.clean_up(
-            request_id=self.request_id, context_id=self.context_id
-        )
-
 
 class LocalNode(_Node):
     def create_data_model_views(

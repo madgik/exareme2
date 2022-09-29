@@ -210,20 +210,39 @@ def _create_monetdb_container(cont_name, cont_port):
     print(f"Monetdb container '{cont_name}' started.")
 
 
-def _restart_monetdb_container(cont_name):
+def restart_monetdb_container(cont_name):
     print(f"\nRestarting monetdb container '{cont_name}'.")
     client = docker.from_env()
     container = client.containers.get(cont_name)
     container.restart()
+    # The time needed to restart a monetdb container varies considerably. We need
+    # to wait until the phrase "attempting restart"
+    # and then check for the "started 'db'" appears in the logs to avoid starting the tests
+    # too soon. The process is abandoned after 100 tries (50 sec).
+    for _ in range(100):
+        container_logs = container.logs().decode("utf-8")
+        if (
+            "attempting restart" in container_logs
+            and "started 'db'" in container_logs.split("attempting restart")[-1]
+        ):
+            break
+        time.sleep(0.5)
+    else:
+        raise MonetDBSetupError
+
     print(f"Restarted monetdb container '{cont_name}'.")
 
 
-def _remove_monetdb_container(cont_name):
+def remove_monetdb_container(cont_name):
     print(f"\nRemoving monetdb container '{cont_name}'.")
     client = docker.from_env()
-    container = client.containers.get(cont_name)
-    container.remove(v=True, force=True)
-    print(f"Removed monetdb container '{cont_name}'.")
+    container_names = [container.name for container in client.containers.list(all=True)]
+    if cont_name in container_names:
+        container = client.containers.get(cont_name)
+        container.remove(v=True, force=True)
+        print(f"Removed monetdb container '{cont_name}'.")
+    else:
+        print(f"Monetdb container '{cont_name}' is already removed.")
 
 
 @pytest.fixture(scope="session")
@@ -292,7 +311,7 @@ def monetdb_localnodetmp():
     cont_port = MONETDB_LOCALNODETMP_PORT
     _create_monetdb_container(cont_name, cont_port)
     yield
-    _remove_monetdb_container(cont_name)
+    remove_monetdb_container(cont_name)
 
 
 def _init_database_monetdb_container(db_ip, db_port):

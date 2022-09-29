@@ -29,7 +29,7 @@ TASK_SIGNATURES: Final = {
     "get_udfs": "mipengine.node.tasks.udfs.get_udfs",
     "run_udf": "mipengine.node.tasks.udfs.run_udf",
     "get_run_udf_query": "mipengine.node.tasks.udfs.get_run_udf_query",
-    "clean_up": "mipengine.node.tasks.common.clean_up",
+    "cleanup": "mipengine.node.tasks.common.cleanup",
     "validate_smpc_templates_match": "mipengine.node.tasks.smpc.validate_smpc_templates_match",
     "load_data_to_smpc_client": "mipengine.node.tasks.smpc.load_data_to_smpc_client",
     "get_smpc_result": "mipengine.node.tasks.smpc.get_smpc_result",
@@ -156,7 +156,11 @@ class INodeAlgorithmTasksHandler(ABC):
 
     # CLEANUP functionality
     @abstractmethod
-    def clean_up(self, request_id: str, context_id: str):
+    def queue_cleanup(self, request_id: str, context_id: str):
+        pass
+
+    @abstractmethod
+    def wait_queued_cleanup_complete(self, async_result: AsyncResult, request_id: str):
         pass
 
     # ------------- SMPC functionality ---------------
@@ -569,16 +573,24 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         )
 
     # CLEANUP functionality
-    def clean_up(self, request_id: str, context_id: str):
+    def queue_cleanup(self, request_id: str, context_id: str):
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         celery_app = self._get_node_celery_app()
-        task_signature = TASK_SIGNATURES["clean_up"]
+        task_signature = TASK_SIGNATURES["cleanup"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
             request_id=request_id,
             context_id=context_id,
         )
+
+        return async_result
+
+    def wait_queued_cleanup_complete(self, async_result: AsyncResult, request_id: str):
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        celery_app = self._get_node_celery_app()
         celery_app.get_result(
-            async_result=async_result, logger=logger, timeout=self._tasks_timeout
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            logger=logger,
         )
