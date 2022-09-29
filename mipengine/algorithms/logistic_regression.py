@@ -1,4 +1,3 @@
-import json
 from typing import List
 
 import numpy
@@ -6,6 +5,7 @@ import scipy.stats as stats
 from pydantic import BaseModel
 from scipy.special import xlogy
 
+from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import LabelBinarizer
 from mipengine.exceptions import BadUserInput
@@ -68,7 +68,7 @@ class LogisticRegression:
             self._fit_init_global,
             keyword_args={"local_transfers": local_transfers},
         )
-        transfer_data = json.loads(global_transfer.get_table_data()[0][0])
+        transfer_data = get_transfer_data(global_transfer)
         self.nobs_train = transfer_data["nobs_train"]
         self.y_sum = transfer_data["y_sum"]
         handle_logreg_errors(self.nobs_train, self.p, self.y_sum)
@@ -84,7 +84,7 @@ class LogisticRegression:
                 self._fit_global_step,
                 keyword_args={"local_transfers": local_transfers, "coeff": coeff},
             )
-            transfer_data = json.loads(global_transfer.get_table_data()[0][0])
+            transfer_data = get_transfer_data(global_transfer)
             coeff = transfer_data["coeff"]
             grad = transfer_data["grad"]
 
