@@ -1,6 +1,7 @@
 import json
 
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import DEFERRED
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
@@ -197,11 +198,20 @@ class KFold:
         self.n_splits = n_splits
 
     def split(self, X, y):
-        local_state = self._local_run(
+        local_state, local_condition_transfers = self._local_run(
             func=self._split_local,
             keyword_args={"x": X, "y": y, "n_splits": self.n_splits},
-            share_to_global=[False],
+            share_to_global=[False, True],
         )
+
+        _, transfer_data = local_condition_transfers.get_table_data()  # discard node_id
+        conditions = [json.loads(s) for s in transfer_data]
+        if not all(cond["n_obs >= n_splits"] for cond in conditions):
+            raise BadUserInput(
+                "Cross validation cannot run because some of the nodes "
+                "participating in the experiment have a number of observations "
+                f"smaller than the number of splits, {self.n_splits}."
+            )
 
         x_return_schema = X.get_table_schema()
         y_return_schema = y.get_table_schema()
@@ -265,28 +275,48 @@ class KFold:
         return x_train, x_test, y_train, y_test
 
     @staticmethod
-    @udf(x=relation(), y=relation(), n_splits=literal(), return_type=state())
+    @udf(
+        x=relation(),
+        y=relation(),
+        n_splits=literal(),
+        return_type=[state(), transfer()],
+    )
     def _split_local(x, y, n_splits):
         import itertools
 
         import sklearn.model_selection
 
-        kf = sklearn.model_selection.KFold(n_splits=n_splits)
+        # Error handling within a UDF is not possible. Instead, I evaluate the
+        # necessary condition len(y) >= n_splits, and proceed with the
+        # computation accordingly. Moreover, the condition value is sent to the
+        # algorithm flow, where it is handled, using an auxiliary transfer
+        # object.
+        n_obs = len(y)
+        if n_obs >= n_splits:
+            kf = sklearn.model_selection.KFold(n_splits=n_splits)
 
-        x_cv_indices, y_cv_indices = itertools.tee(kf.split(x), 2)
+            x_cv_indices, y_cv_indices = itertools.tee(kf.split(x), 2)
 
-        x_train, x_test = [], []
-        for train_idx, test_idx in x_cv_indices:
-            x_train.append(x.iloc[train_idx])
-            x_test.append(x.iloc[test_idx])
+            x_train, x_test = [], []
+            for train_idx, test_idx in x_cv_indices:
+                x_train.append(x.iloc[train_idx])
+                x_test.append(x.iloc[test_idx])
 
-        y_train, y_test = [], []
-        for train_idx, test_idx in y_cv_indices:
-            y_train.append(y.iloc[train_idx])
-            y_test.append(y.iloc[test_idx])
+            y_train, y_test = [], []
+            for train_idx, test_idx in y_cv_indices:
+                y_train.append(y.iloc[train_idx])
+                y_test.append(y.iloc[test_idx])
 
-        state_ = dict(x_train=x_train, x_test=x_test, y_train=y_train, y_test=y_test)
-        return state_
+            state_ = dict(
+                x_train=x_train,
+                x_test=x_test,
+                y_train=y_train,
+                y_test=y_test,
+            )
+        else:
+            state_ = {}
+        transfer_ = {"n_obs >= n_splits": n_obs >= n_splits}
+        return state_, transfer_
 
     @staticmethod
     @udf(
