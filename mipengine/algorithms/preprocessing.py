@@ -1,5 +1,6 @@
 import json
 
+from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import DEFERRED
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
@@ -38,7 +39,7 @@ class DummyEncoder:
                 func=self._gather_enums_global,
                 keyword_args=dict(local_transfers=local_transfers),
             )
-            enums = json.loads(global_transfer.get_table_data()[1][0])
+            enums = get_transfer_data(global_transfer)
             enums = {varname: sorted(e)[1:] for varname, e in enums.items()}
             enums = {
                 varname: [

@@ -1,9 +1,7 @@
-import json
-from typing import TypeVar
-
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen.udfgenerator import literal
 from mipengine.udfgen.udfgenerator import relation
@@ -51,7 +49,7 @@ def run(algo_interface):
         ),
     )
 
-    result = json.loads(result.get_table_data()[1][0])
+    result = get_transfer_data(result)
     one_sample_ttest_res = TtestResult(
         n_obs=result["n_obs"],
         t_stat=result["t_stat"],
