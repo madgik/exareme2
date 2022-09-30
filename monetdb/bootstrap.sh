@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
+echo 'Monetdb bootstrap script started.'
+
 monetdbd get all /home/monetdb > /dev/null 2>&1
 EXIT_STATUS=$?
 
 if [ "$EXIT_STATUS" -eq 1 ]
 then
-  echo 'Initializing database'
+  echo 'Initializing the database...'
 
   # Create the monetdb daemon
   monetdbd create $MONETDB_STORAGE
@@ -18,12 +20,24 @@ then
   monetdb set embedpy3=true db
   monetdb release db
   monetdb start db
-  echo 'Database initialized'
+  echo 'Database initialized.'
 else
+  echo 'Checking if previous instances are still running (from other containers).'
+  monetdbd_stopped_status_message="no monetdbd is serving this dbfarm"
+  while [[ "$(monetdbd get status /home/monetdb)" != *$monetdbd_stopped_status_message* ]]
+  do
+      echo 'Waiting for previous monetdbd instance to stop...'
+      ((retries++)) && ((retries==60)) && echo 'Previous instance didnt stop, exiting.' && exit 1   # Check 60 times if no daemon is already running, then exit.
+      sleep 1
+  done
+  echo 'No monetdbd instances are running.'
+
+  echo 'Starting the already existing database...'
   monetdbd start $MONETDB_STORAGE
   monetdb set nclients=$MONETDB_NCLIENTS db
-  echo "Number of clients were set"
   monetdb start db
+  echo 'Database restarted.'
 fi
 
+echo 'MonetDB merovingian logs:'
 tail -fn +1 $MONETDB_STORAGE/merovingian.log
