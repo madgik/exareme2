@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import requests
 
-expected_file = Path(__file__).parent / "expected" / "descriptive2.json"
+expected_file = Path(__file__).parent / "expected" / "descriptive3.json"
 
 
 def desc_request(input):
