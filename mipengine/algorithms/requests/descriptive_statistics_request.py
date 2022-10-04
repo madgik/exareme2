@@ -28,7 +28,7 @@ def do_post_request():
         "leftamygdala",
         "rightamygdala",
     ]
-    y = ['parkinsonbroadcategory','neurodegenerativescategories','adnicategory']
+    y = ["parkinsonbroadcategory", "neurodegenerativescategories", "adnicategory"]
     filters = {
         "condition": "AND",
         "rules": [
@@ -41,7 +41,7 @@ def do_post_request():
         ],
         "valid": True,
     }
-    #classes = ["AD", "CN"]
+    # classes = ["AD", "CN"]
 
     algorithm_input_data = AlgorithmInputDataDTO(
         data_model=data_model,
@@ -53,7 +53,7 @@ def do_post_request():
 
     algorithm_request = AlgorithmRequestDTO(
         inputdata=algorithm_input_data,
-        #parameters={"classes": classes},
+        # parameters={"classes": classes},
     )
 
     debug(algorithm_request)
