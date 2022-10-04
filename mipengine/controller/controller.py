@@ -1,8 +1,8 @@
 import asyncio
 import concurrent
+import itertools
 import logging
-import random
-from datetime import datetime
+from threading import Lock
 from typing import Dict
 from typing import List
 
@@ -20,7 +20,6 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.federation_info_logs import log_experiment_execution
-from mipengine.controller.node_landscape_aggregator import DataModelsCDES
 from mipengine.controller.node_landscape_aggregator import DatasetsLocations
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.node_info_DTOs import NodeInfo
@@ -70,7 +69,7 @@ class Controller:
         algorithm_name: str,
         algorithm_request_dto: AlgorithmRequestDTO,
     ):
-        context_id = get_a_uniqueid()
+        context_id = get_a_uid()
         algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
         data_model = algorithm_request_dto.inputdata.data_model
@@ -292,6 +291,20 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeAlgorithmTasksHand
     )
 
 
-def get_a_uniqueid() -> str:
-    uid = datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
-    return f"{uid}"
+uid_generation_lock = Lock()
+
+
+def _get_a_uid():
+    num_chars = 9
+    yield from (
+        str(x).rjust(num_chars, "0") for x in itertools.cycle(range(10**num_chars))
+    )
+
+
+uid_gen = _get_a_uid()
+
+
+def get_a_uid():
+    with uid_generation_lock:
+        uid = next(uid_gen)
+    return uid
