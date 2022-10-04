@@ -1,5 +1,6 @@
 import json
 import random
+import traceback
 from abc import ABC
 from abc import abstractmethod
 from functools import cached_property
@@ -9,8 +10,6 @@ from pathlib import Path
 
 import pandas as pd
 from tqdm import tqdm
-
-import traceback
 
 TESTING_DATAMODEL = "dementia:0.1"
 DATAMODEL_BASEPATH = Path("tests/test_data/dementia_v_0_1/")
@@ -416,7 +415,7 @@ class TestCaseGenerator(ABC):
 
     __test__ = False
 
-    def __init__(self, specs_file,dropna = True):
+    def __init__(self, specs_file, dropna=True):
         self.input_gen = InputGenerator(specs_file)
         self.all_data = DB().get_data_table()
         self.dropna = dropna
@@ -425,7 +424,9 @@ class TestCaseGenerator(ABC):
         return self.input_gen.draw()
 
     @abstractmethod
-    def compute_expected_output(self, input_data, input_parameters=None,datatypes = None,enumerations = None):
+    def compute_expected_output(
+        self, input_data, input_parameters=None, datatypes=None, enumerations=None
+    ):
         """Computes the expected output for specific algorithm
 
         This method has to be implemented by subclasses. The user should use
@@ -488,20 +489,18 @@ class TestCaseGenerator(ABC):
                 "Cannot find inputdata values resulting in non-empty data."
             )
         parameters = input_["parameters"]
-        try:
-            datatypes = {}
-            datatypes['numerical'] = DB().get_numerical_variables()
-            datatypes['nominal'] = DB().get_nominal_variables()
-            enumerations = {}
-            for curr_nominal in datatypes['nominal']:
-                curr_enumerations = DB().get_enumerations(curr_nominal)
-                enumerations[curr_nominal]=curr_enumerations
-            #print(enumerations)
-            output = self.compute_expected_output(input_data, parameters,datatypes,enumerations)
-        except Exception as err:
 
-            traceback.print_exc()
-            raise Exception(f"{err}, datasets: {input_['inputdata']['datasets']}")
+        datatypes = {}
+        datatypes["numerical"] = DB().get_numerical_variables()
+        datatypes["nominal"] = DB().get_nominal_variables()
+        enumerations = {}
+        for curr_nominal in datatypes["nominal"]:
+            curr_enumerations = DB().get_enumerations(curr_nominal)
+            enumerations[curr_nominal] = curr_enumerations
+        # print(enumerations)
+        output = self.compute_expected_output(
+            input_data, parameters, datatypes, enumerations
+        )
 
         return {"input": input_, "output": output}
 

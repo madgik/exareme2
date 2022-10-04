@@ -177,7 +177,9 @@ def test_algorithm_specs_mixed_vars(specs_file_xy_mixed):
 @pytest.mark.slow
 def test_get_input_data(specs_file_y_numerical):
     class ConcreteTestCaseGenerator(TestCaseGenerator):
-        def compute_expected_output(self, input_data, parameters):
+        def compute_expected_output(
+            self, input_data, parameters, datatypes, enumerations
+        ):
             return "Result"
 
     testcase_gen = ConcreteTestCaseGenerator(specs_file_y_numerical)
@@ -192,7 +194,9 @@ def test_get_input_data(specs_file_y_numerical):
 @pytest.mark.slow
 def test_testcase_generator_single_testcase(specs_file_xy_numerical):
     class ConcreteTestCaseGenerator(TestCaseGenerator):
-        def compute_expected_output(self, input_data, parameters):
+        def compute_expected_output(
+            self, input_data, parameters, datatypes=None, enumerations=None
+        ):
             return "Result"
 
     testcase_gen = ConcreteTestCaseGenerator(specs_file_xy_numerical)
@@ -208,7 +212,9 @@ def test_testcase_generator_single_testcase(specs_file_xy_numerical):
 @pytest.mark.slow
 def test_testcase_generator_multiple_testcases(specs_file_xy_numerical):
     class ConcreteTestCaseGenerator(TestCaseGenerator):
-        def compute_expected_output(self, input_data, parameters):
+        def compute_expected_output(
+            self, input_data, parameters, datatypes, enumerations
+        ):
             return "Result"
 
     testcase_gen = ConcreteTestCaseGenerator(specs_file_xy_numerical)
@@ -219,7 +225,9 @@ def test_testcase_generator_multiple_testcases(specs_file_xy_numerical):
 @pytest.mark.slow
 def test_testcase_generator_write_to_file(specs_file_xy_numerical):
     class ConcreteTestCaseGenerator(TestCaseGenerator):
-        def compute_expected_output(self, input_data, parameters):
+        def compute_expected_output(
+            self, input_data, parameters, datatypes, enumerations
+        ):
             return "Result"
 
     testcase_gen = ConcreteTestCaseGenerator(specs_file_xy_numerical)
