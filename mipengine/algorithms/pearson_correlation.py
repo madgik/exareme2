@@ -58,7 +58,7 @@ def run(algo_interface):
         keyword_args=dict(local_transfers=local_transfers, alpha=alpha),
     )
 
-    result = json.loads(result.get_table_data()[1][0])
+    result = json.loads(result.get_table_data()[0][0])
     n_obs = result["n_obs"]
 
     corr_dict, p_values_dict, ci_hi_dict, ci_lo_dict = create_dicts(

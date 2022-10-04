@@ -48,7 +48,7 @@ def run(algo_interface):
         positional_args=[global_state, local_result],
     )
 
-    std_deviation = json.loads(global_result.get_table_data()[1][0])["deviation"]
+    std_deviation = json.loads(global_result.get_table_data()[0][0])["deviation"]
     y_variables = algo_interface.y_variables
 
     result = TabularDataResult(
