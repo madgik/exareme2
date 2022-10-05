@@ -135,14 +135,7 @@ def global_independent(sec_local_transfer, conf_lvl, alternative):
 
     # Confidence intervals !WARNING: The ci values are not tested. The code should not be modified, unless there is
     # a test for the new method.
-    if n_obs < 30:
-        ci_lower, ci_upper = t.interval(
-            alpha=1 - conf_lvl, df=df, loc=diff_mean, scale=sed
-        )
-    else:
-        ci_lower, ci_upper = t.interval(
-            alpha=1 - conf_lvl, df=df, loc=diff_mean, scale=sed
-        )
+    ci_lower, ci_upper = t.interval(alpha=1 - conf_lvl, df=df, loc=diff_mean, scale=sed)
 
     # p-value for alternative = 'greater'
     if alternative == "greater":
