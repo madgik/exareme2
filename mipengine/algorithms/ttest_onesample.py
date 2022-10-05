@@ -51,7 +51,7 @@ def run(algo_interface):
         ),
     )
 
-    result = json.loads(result.get_table_data()[1][0])
+    result = json.loads(result.get_table_data()[0][0])
     one_sample_ttest_res = TtestResult(
         n_obs=result["n_obs"],
         t_stat=result["t_stat"],

@@ -185,14 +185,14 @@ def test_run_udf_state_and_transfer_output(
     )
 
     table_data = TableData.parse_raw(transfer_table_data_json)
-    transfer_result_str, *_ = table_data.columns[1].data
+    transfer_result_str, *_ = table_data.columns[0].data
     transfer_result = json.loads(transfer_result_str)
     assert "count" in transfer_result.keys()
     assert transfer_result["count"] == 10
     assert "sum" in transfer_result.keys()
     assert transfer_result["sum"] == input_table_name_sum
 
-    _, state_result_str = localnode1_db_cursor.execute(
+    [state_result_str] = localnode1_db_cursor.execute(
         f"SELECT * FROM {state_result.value};"
     ).fetchone()
     state_result = pickle.loads(state_result_str)
