@@ -580,7 +580,6 @@ def test_convert_udfgenargs_to_udfargs_tensor():
             name="tab",
             schema_=TableSchema(
                 columns=[
-                    ColumnInfo(name="node_id", dtype=DType.STR),
                     ColumnInfo(name="dim0", dtype=DType.INT),
                     ColumnInfo(name="dim1", dtype=DType.INT),
                     ColumnInfo(name="val", dtype=DType.FLOAT),
@@ -618,7 +617,6 @@ def test_convert_udfgenargs_to_udfargs_multiple_types():
             name="tab",
             schema_=TableSchema(
                 columns=[
-                    ColumnInfo(name="node_id", dtype=DType.STR),
                     ColumnInfo(name="dim0", dtype=DType.INT),
                     ColumnInfo(name="dim1", dtype=DType.INT),
                     ColumnInfo(name="val", dtype=DType.FLOAT),
@@ -1079,12 +1077,11 @@ class TestUDFGenBase:
     @pytest.fixture(scope="class")
     def concrete_udf_def(self, expected_udfdef, expected_udf_outputs):
         """
-        Replaces the udf_name, node_id placeholders in the Template.
+        Replaces the udf_name placeholders in the Template.
         If the udf has loopback tables, it also replaces their names' placeholders.
         """
         template_mapping = {
             "udf_name": "udf_test",
-            "node_id": "1",
         }
         template_mapping.update(
             self._get_udf_output_tablename_template_mapping(expected_udf_outputs)
@@ -1101,7 +1098,6 @@ class TestUDFGenBase:
         """
         template_mapping = {
             "udf_name": "udf_test",
-            "node_id": "1",
         }
         template_mapping.update(
             self._get_udf_output_tablename_template_mapping(expected_udf_outputs)
@@ -1148,86 +1144,80 @@ class TestUDFGenBase:
 
     @pytest.fixture(scope="function")
     def create_transfer_table(self, globalnode_db_cursor):
+        globalnode_db_cursor.execute("CREATE TABLE test_transfer_table(transfer CLOB)")
         globalnode_db_cursor.execute(
-            "CREATE TABLE test_transfer_table(node_id VARCHAR(500), transfer CLOB)"
-        )
-        globalnode_db_cursor.execute(
-            "INSERT INTO test_transfer_table(node_id, transfer) VALUES(1, '{\"num\":5}')"
+            "INSERT INTO test_transfer_table(transfer) VALUES('{\"num\":5}')"
         )
 
     @pytest.fixture(scope="function")
     def create_state_table(self, globalnode_db_cursor):
         state = pickle.dumps({"num": 5}).hex()
-        globalnode_db_cursor.execute(
-            "CREATE TABLE test_state_table(node_id VARCHAR(500), state BLOB)"
-        )
-        insert_state = (
-            f"INSERT INTO test_state_table(node_id, state) VALUES(1, '{state}')"
-        )
+        globalnode_db_cursor.execute("CREATE TABLE test_state_table(state BLOB)")
+        insert_state = f"INSERT INTO test_state_table(state) VALUES('{state}')"
         globalnode_db_cursor.execute(insert_state)
 
     @pytest.fixture(scope="function")
     def create_merge_transfer_table(self, globalnode_db_cursor):
         globalnode_db_cursor.execute(
-            "CREATE TABLE test_merge_transfer_table(node_id VARCHAR(500), transfer CLOB)"
+            "CREATE TABLE test_merge_transfer_table(transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            "INSERT INTO test_merge_transfer_table(node_id, transfer) VALUES(1, '{\"num\":5}')"
-        )
-        globalnode_db_cursor.execute(
-            "INSERT INTO test_merge_transfer_table(node_id, transfer) VALUES(2, '{\"num\":10}')"
+            """INSERT INTO test_merge_transfer_table
+                 (transfer)
+               VALUES
+                 ('{\"num\":5}'),
+                 ('{\"num\":10}')"""
         )
 
     @pytest.fixture(scope="function")
     def create_secure_transfer_table(self, globalnode_db_cursor):
         globalnode_db_cursor.execute(
-            "CREATE TABLE test_secure_transfer_table(node_id VARCHAR(500), secure_transfer CLOB)"
+            "CREATE TABLE test_secure_transfer_table(secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": 1, "operation": "sum", "type": "int"}}\')'
-        )
-        globalnode_db_cursor.execute(
-            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(2, \'{"sum": {"data": 10, "operation": "sum", "type": "int"}}\')'
-        )
-        globalnode_db_cursor.execute(
-            'INSERT INTO test_secure_transfer_table(node_id, secure_transfer) VALUES(3, \'{"sum": {"data": 100, "operation": "sum", "type": "int"}}\')'
+            """INSERT INTO test_secure_transfer_table
+                 (secure_transfer)
+               VALUES
+                 (\'{"sum": {"data": 1, "operation": "sum", "type": "int"}}\'),
+                 (\'{"sum": {"data": 10, "operation": "sum", "type": "int"}}\'),
+                 (\'{"sum": {"data": 100, "operation": "sum", "type": "int"}}\')"""
         )
 
     @pytest.fixture(scope="function")
     def create_smpc_template_table_with_sum(self, globalnode_db_cursor):
         globalnode_db_cursor.execute(
-            "CREATE TABLE test_smpc_template_table(node_id VARCHAR(500), secure_transfer CLOB)"
+            "CREATE TABLE test_smpc_template_table(secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "operation": "sum", "type": "int"}}\')'
+            'INSERT INTO test_smpc_template_table(secure_transfer) VALUES(\'{"sum": {"data": [0,1,2], "operation": "sum", "type": "int"}}\')'
         )
 
     @pytest.fixture(scope="function")
     def create_smpc_sum_op_values_table(self, globalnode_db_cursor):
         globalnode_db_cursor.execute(
-            "CREATE TABLE test_smpc_sum_op_values_table(node_id VARCHAR(500), secure_transfer CLOB)"
+            "CREATE TABLE test_smpc_sum_op_values_table(secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            "INSERT INTO test_smpc_sum_op_values_table(node_id, secure_transfer) VALUES(1, '[100,200,300]')"
+            "INSERT INTO test_smpc_sum_op_values_table(secure_transfer) VALUES('[100,200,300]')"
         )
 
     @pytest.fixture(scope="function")
     def create_smpc_template_table_with_sum_and_max(self, globalnode_db_cursor):
         globalnode_db_cursor.execute(
-            "CREATE TABLE test_smpc_template_table(node_id VARCHAR(500), secure_transfer CLOB)"
+            "CREATE TABLE test_smpc_template_table(secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            'INSERT INTO test_smpc_template_table(node_id, secure_transfer) VALUES(1, \'{"sum": {"data": [0,1,2], "operation": "sum", "type": "int"}, '
+            'INSERT INTO test_smpc_template_table(secure_transfer) VALUES(\'{"sum": {"data": [0,1,2], "operation": "sum", "type": "int"}, '
             '"max": {"data": 0, "operation": "max", "type": "int"}}\')'
         )
 
     @pytest.fixture(scope="function")
     def create_smpc_max_op_values_table(self, globalnode_db_cursor):
         globalnode_db_cursor.execute(
-            "CREATE TABLE test_smpc_max_op_values_table(node_id VARCHAR(500), secure_transfer CLOB)"
+            "CREATE TABLE test_smpc_max_op_values_table(secure_transfer CLOB)"
         )
         globalnode_db_cursor.execute(
-            "INSERT INTO test_smpc_max_op_values_table(node_id, secure_transfer) VALUES(1, '[58]')"
+            "INSERT INTO test_smpc_max_op_values_table(secure_transfer) VALUES('[58]')"
         )
 
     # TODO Should become more dynamic in the future.
@@ -1235,16 +1225,15 @@ class TestUDFGenBase:
     @pytest.fixture(scope="function")
     def create_tensor_table(self, globalnode_db_cursor):
         globalnode_db_cursor.execute(
-            "CREATE TABLE tensor_in_db(node_id VARCHAR(500), dim0 INT, dim1 INT, val INT)"
+            "CREATE TABLE tensor_in_db(dim0 INT, dim1 INT, val INT)"
         )
         globalnode_db_cursor.execute(
-            "INSERT INTO tensor_in_db(node_id, dim0, dim1, val) VALUES('1', 0, 0, 3)"
-        )
-        globalnode_db_cursor.execute(
-            "INSERT INTO tensor_in_db(node_id, dim0, dim1, val) VALUES('1', 0, 1, 4)"
-        )
-        globalnode_db_cursor.execute(
-            "INSERT INTO tensor_in_db(node_id, dim0, dim1, val) VALUES('1', 0, 2, 7)"
+            """INSERT INTO tensor_in_db
+                 (dim0, dim1, val)
+               VALUES
+                 (0, 0, 3),
+                 (0, 1, 4),
+                 (0, 2, 7)"""
         )
 
 
@@ -1402,7 +1391,6 @@ class TestUDFGen_InvalidUDFArgs_TensorTableInTransferArgument(TestUDFGenBase):
                 name="tensor_in_db",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="node_id", dtype=DType.STR),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="dim1", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
@@ -1701,7 +1689,6 @@ class TestUDFGen_TensorToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="tensor_in_db",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="node_id", dtype=DType.STR),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="dim1", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
@@ -1732,7 +1719,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -1751,7 +1737,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
             )
         ]
@@ -1778,7 +1764,6 @@ class TestUDFGen_TensorParameterWithCapitalLetter(
                 name="tensor_in_db",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="node_id", dtype=DType.STR),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="dim1", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
@@ -1809,7 +1794,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -1828,7 +1812,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
             )
         ]
@@ -1851,9 +1835,9 @@ FROM
             "SELECT * FROM main_output_table_name"
         ).fetchall()
         assert output_table_values == [
-            ("1", 0, 0, 3.0),
-            ("1", 0, 1, 4.0),
-            ("1", 0, 2, 7.0),
+            (0, 0, 3.0),
+            (0, 1, 4.0),
+            (0, 2, 7.0),
         ]
 
 
@@ -1907,7 +1891,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -1927,7 +1910,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
             )
         ]
@@ -2000,7 +1983,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -2027,7 +2009,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
             )
         ]
@@ -2114,7 +2096,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -2147,7 +2128,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
             )
         ]
@@ -2220,7 +2201,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -2246,7 +2226,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
             )
         ]
@@ -2275,7 +2255,6 @@ class TestUDFGen_TensorToRelation(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="tensor_in_db",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="node_id", dtype=DType.STR),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -2304,7 +2283,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -2322,7 +2300,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"ci" INT,"cf" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("ci" INT,"cf" DOUBLE);'
                 ),
             )
         ]
@@ -2507,7 +2485,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -2519,7 +2496,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"val" INT);'
                 ),
             )
         ]
@@ -2575,7 +2552,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -2595,7 +2571,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
             )
         ]
@@ -2620,7 +2596,6 @@ class TestUDFGen_RelationExcludeNodeid(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="rel_in_db",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="node_id", dtype=DType.INT),
                         ColumnInfo(name="row_id", dtype=DType.INT),
                         ColumnInfo(name="c0", dtype=DType.INT),
                         ColumnInfo(name="c1", dtype=DType.FLOAT),
@@ -2652,7 +2627,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -2672,7 +2646,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
             )
         ]
@@ -2729,7 +2703,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -2748,7 +2721,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" INT);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" INT);'
                 ),
             )
         ]
@@ -2817,7 +2790,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -2840,7 +2812,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"val" INT);'
                 ),
             )
         ]
@@ -2922,7 +2894,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -2949,7 +2920,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"val" INT);'
                 ),
             )
         ]
@@ -3034,7 +3005,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
@@ -3066,7 +3036,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" INT);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" INT);'
                 ),
             )
         ]
@@ -3173,7 +3143,6 @@ class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="tensor1",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="node_id", dtype=DType.STR),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="dim1", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
@@ -3185,7 +3154,6 @@ class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="tensor2",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="node_id", dtype=DType.STR),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -3203,7 +3171,6 @@ class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase, _TestGenerateUDFQueries):
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     SUM(tensor_0.val * tensor_1.val) AS val
 FROM
@@ -3223,7 +3190,7 @@ ORDER BY
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"val" DOUBLE);'
                 ),
             )
         ]
@@ -3241,7 +3208,6 @@ class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="tensor1",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="node_id", dtype=DType.STR),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="dim1", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
@@ -3253,7 +3219,6 @@ class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="tensor2",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="node_id", dtype=DType.STR),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="dim1", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
@@ -3272,7 +3237,6 @@ class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase, _TestGenerateUDFQueries):
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     tensor_1.dim1 AS dim1,
     SUM(tensor_0.val * tensor_1.val) AS val
@@ -3295,7 +3259,7 @@ ORDER BY
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"dim1" INT,"val" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
             )
         ]
@@ -3314,7 +3278,6 @@ class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase, _TestGenerateUDFQueries)
                 name="tensor1",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="node_id", dtype=DType.STR),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -3332,7 +3295,6 @@ class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase, _TestGenerateUDFQueries)
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     1 - tensor_0.val AS val
 FROM
@@ -3345,7 +3307,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"val" DOUBLE);'
                 ),
             )
         ]
@@ -3451,14 +3413,14 @@ class TestUDFGen_MergeTensor(TestUDFGenBase, _TestGenerateUDFQueries):
     def expected_udfdef(self):
         return """\
 CREATE OR REPLACE FUNCTION
-$udf_name("xs_node_id" VARCHAR(500),"xs_dim0" INT,"xs_val" INT)
+$udf_name("xs_dim0" INT,"xs_val" INT)
 RETURNS
 TABLE("dim0" INT,"val" INT)
 LANGUAGE PYTHON
 {
     import pandas as pd
     import udfio
-    xs = udfio.merge_tensor_to_list({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['node_id', 'dim0', 'val'], ['xs_node_id', 'xs_dim0', 'xs_val'])})
+    xs = udfio.merge_tensor_to_list({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['xs_dim0', 'xs_val'])})
     x = sum(xs)
     return udfio.as_tensor_table(numpy.array(x))
 }"""
@@ -3468,12 +3430,10 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name((
         SELECT
-            merge_table.node_id,
             merge_table.dim0,
             merge_table.val
         FROM
@@ -3487,7 +3447,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"dim0" INT,"val" INT);'
+                    'CREATE TABLE $main_output_table_name("dim0" INT,"val" INT);'
                 ),
             )
         ]
@@ -3514,7 +3474,6 @@ class TestUDFGen_TracebackFlag(TestUDFGenBase, _TestGenerateUDFQueries):
                 name="tensor_in_db",
                 schema_=TableSchema(
                     columns=[
-                        ColumnInfo(name="node_id", dtype=DType.STR),
                         ColumnInfo(name="dim0", dtype=DType.INT),
                         ColumnInfo(name="val", dtype=DType.INT),
                     ]
@@ -3617,7 +3576,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -3629,7 +3587,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             )
         ]
@@ -3647,7 +3605,7 @@ FROM
         globalnode_db_cursor.execute(concrete_udf_outputs)
         globalnode_db_cursor.execute(concrete_udf_def)
         globalnode_db_cursor.execute(concrete_udf_sel)
-        _, state = globalnode_db_cursor.execute(
+        [state] = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchone()
         result = pickle.loads(state)
@@ -3707,7 +3665,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -3719,7 +3676,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             )
         ]
@@ -3737,7 +3694,7 @@ FROM
         globalnode_db_cursor.execute(concrete_udf_outputs)
         globalnode_db_cursor.execute(concrete_udf_def)
         globalnode_db_cursor.execute(concrete_udf_sel)
-        _, state = globalnode_db_cursor.execute(
+        [state] = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchone()
         result = pickle.loads(state)
@@ -3780,7 +3737,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -3792,7 +3748,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                    'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
             )
         ]
@@ -3810,7 +3766,7 @@ FROM
         globalnode_db_cursor.execute(concrete_udf_outputs)
         globalnode_db_cursor.execute(concrete_udf_def)
         globalnode_db_cursor.execute(concrete_udf_sel)
-        _, transfer = globalnode_db_cursor.execute(
+        [transfer] = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchone()
         result = json.loads(transfer)
@@ -3870,7 +3826,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -3882,7 +3837,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                    'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
             )
         ]
@@ -3900,7 +3855,7 @@ FROM
         globalnode_db_cursor.execute(concrete_udf_outputs)
         globalnode_db_cursor.execute(concrete_udf_def)
         globalnode_db_cursor.execute(concrete_udf_sel)
-        _, transfer = globalnode_db_cursor.execute(
+        [transfer] = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchone()
         result = json.loads(transfer)
@@ -3963,7 +3918,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -3975,7 +3929,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             )
         ]
@@ -3993,7 +3947,7 @@ FROM
         globalnode_db_cursor.execute(concrete_udf_outputs)
         globalnode_db_cursor.execute(concrete_udf_def)
         globalnode_db_cursor.execute(concrete_udf_sel)
-        _, state = globalnode_db_cursor.execute(
+        [state] = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchone()
         result = pickle.loads(state)
@@ -4070,7 +4024,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -4082,7 +4035,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             )
         ]
@@ -4104,7 +4057,7 @@ FROM
         globalnode_db_cursor.execute(concrete_udf_outputs)
         globalnode_db_cursor.execute(concrete_udf_def)
         globalnode_db_cursor.execute(concrete_udf_sel)
-        _, state = globalnode_db_cursor.execute(
+        [state] = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchone()
         result = pickle.loads(state)
@@ -4184,7 +4137,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -4196,7 +4148,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                    'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
             )
         ]
@@ -4218,7 +4170,7 @@ FROM
         globalnode_db_cursor.execute(concrete_udf_outputs)
         globalnode_db_cursor.execute(concrete_udf_def)
         globalnode_db_cursor.execute(concrete_udf_sel)
-        _, transfer = globalnode_db_cursor.execute(
+        [transfer] = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchone()
         result = json.loads(transfer)
@@ -4282,7 +4234,7 @@ LANGUAGE PYTHON
     transfer = json.loads(__transfer_str)
     result1 = {'num': transfer['num'] + state['num']}
     result2 = {'num': transfer['num'] * state['num']}
-    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(result2)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('{json.dumps(result2)}');")
     return pickle.dumps(result1)
 }"""
 
@@ -4291,7 +4243,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -4303,14 +4254,14 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             ),
             TableUDFGenResult(
                 tablename_placeholder="loopback_table_name_0",
                 drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
-                    'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"transfer" CLOB);'
+                    'CREATE TABLE $loopback_table_name_0("transfer" CLOB);'
                 ),
             ),
         ]
@@ -4403,7 +4354,7 @@ LANGUAGE PYTHON
     state = pickle.loads(__state_str)
     result1 = {'num': transfer['num'] + state['num']}
     result2 = {'num': transfer['num'] * state['num']}
-    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{pickle.dumps(result2).hex()}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('{pickle.dumps(result2).hex()}');")
     return json.dumps(result1)
 }"""
 
@@ -4412,7 +4363,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -4424,14 +4374,14 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                    'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
             ),
             TableUDFGenResult(
                 tablename_placeholder="loopback_table_name_0",
                 drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
-                    'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $loopback_table_name_0("state" BLOB);'
                 ),
             ),
         ]
@@ -4528,7 +4478,7 @@ LANGUAGE PYTHON
         sum_transfers += transfer['num']
     result1 = {'num': sum_transfers + state['num']}
     result2 = {'num': sum_transfers * state['num']}
-    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(result2)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('{json.dumps(result2)}');")
     return pickle.dumps(result1)
 }"""
 
@@ -4537,7 +4487,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -4549,14 +4498,14 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             ),
             TableUDFGenResult(
                 tablename_placeholder="loopback_table_name_0",
                 drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
-                    'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"transfer" CLOB);'
+                    'CREATE TABLE $loopback_table_name_0("transfer" CLOB);'
                 ),
             ),
         ]
@@ -4649,7 +4598,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -4661,7 +4609,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                    'CREATE TABLE $main_output_table_name("secure_transfer" CLOB);'
                 ),
             ),
         ]
@@ -4743,8 +4691,8 @@ LANGUAGE PYTHON
     result = {'sum': {'data': state['num'], 'operation': 'sum', 'type': 'int'},
         'max': {'data': state['num'], 'operation': 'max', 'type': 'int'}}
     template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict(result)
-    _conn.execute(f"INSERT INTO $main_output_table_name_sum_op VALUES ('$node_id', '{json.dumps(sum_op)}');")
-    _conn.execute(f"INSERT INTO $main_output_table_name_max_op VALUES ('$node_id', '{json.dumps(max_op)}');")
+    _conn.execute(f"INSERT INTO $main_output_table_name_sum_op VALUES ('{json.dumps(sum_op)}');")
+    _conn.execute(f"INSERT INTO $main_output_table_name_max_op VALUES ('{json.dumps(max_op)}');")
     return json.dumps(template)
 }"""
 
@@ -4753,7 +4701,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -4768,7 +4715,7 @@ FROM
                         "DROP TABLE IF EXISTS $main_output_table_name;"
                     ),
                     create_query=Template(
-                        'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                        'CREATE TABLE $main_output_table_name("secure_transfer" CLOB);'
                     ),
                 ),
                 sum_op_values=TableUDFGenResult(
@@ -4777,7 +4724,7 @@ FROM
                         "DROP TABLE IF EXISTS $main_output_table_name_sum_op;"
                     ),
                     create_query=Template(
-                        'CREATE TABLE $main_output_table_name_sum_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                        'CREATE TABLE $main_output_table_name_sum_op("secure_transfer" CLOB);'
                     ),
                 ),
                 max_op_values=TableUDFGenResult(
@@ -4786,7 +4733,7 @@ FROM
                         "DROP TABLE IF EXISTS $main_output_table_name_max_op;"
                     ),
                     create_query=Template(
-                        'CREATE TABLE $main_output_table_name_max_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                        'CREATE TABLE $main_output_table_name_max_op("secure_transfer" CLOB);'
                     ),
                 ),
             )
@@ -4888,7 +4835,7 @@ LANGUAGE PYTHON
     result = {'sum': {'data': state['num'], 'operation': 'sum', 'type': 'int'},
         'min': {'data': state['num'], 'operation': 'min', 'type': 'int'}, 'max':
         {'data': state['num'], 'operation': 'max', 'type': 'int'}}
-    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(result)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('{json.dumps(result)}');")
     return pickle.dumps(state)
 }"""
 
@@ -4897,7 +4844,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -4909,14 +4855,14 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             ),
             TableUDFGenResult(
                 tablename_placeholder="loopback_table_name_0",
                 drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
-                    'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                    'CREATE TABLE $loopback_table_name_0("secure_transfer" CLOB);'
                 ),
             ),
         ]
@@ -5004,10 +4950,10 @@ LANGUAGE PYTHON
         'min': {'data': state['num'], 'operation': 'min', 'type': 'int'}, 'max':
         {'data': state['num'], 'operation': 'max', 'type': 'int'}}
     template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict(result)
-    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('$node_id', '{json.dumps(template)}');")
-    _conn.execute(f"INSERT INTO $loopback_table_name_0_sum_op VALUES ('$node_id', '{json.dumps(sum_op)}');")
-    _conn.execute(f"INSERT INTO $loopback_table_name_0_min_op VALUES ('$node_id', '{json.dumps(min_op)}');")
-    _conn.execute(f"INSERT INTO $loopback_table_name_0_max_op VALUES ('$node_id', '{json.dumps(max_op)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0 VALUES ('{json.dumps(template)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0_sum_op VALUES ('{json.dumps(sum_op)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0_min_op VALUES ('{json.dumps(min_op)}');")
+    _conn.execute(f"INSERT INTO $loopback_table_name_0_max_op VALUES ('{json.dumps(max_op)}');")
     return pickle.dumps(state)
 }"""
 
@@ -5016,7 +4962,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -5028,7 +4973,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"state" BLOB);'
+                    'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             ),
             SMPCUDFGenResult(
@@ -5036,7 +4981,7 @@ FROM
                     tablename_placeholder="loopback_table_name_0",
                     drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                     create_query=Template(
-                        'CREATE TABLE $loopback_table_name_0("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                        'CREATE TABLE $loopback_table_name_0("secure_transfer" CLOB);'
                     ),
                 ),
                 sum_op_values=TableUDFGenResult(
@@ -5045,7 +4990,7 @@ FROM
                         "DROP TABLE IF EXISTS $loopback_table_name_0_sum_op;"
                     ),
                     create_query=Template(
-                        'CREATE TABLE $loopback_table_name_0_sum_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                        'CREATE TABLE $loopback_table_name_0_sum_op("secure_transfer" CLOB);'
                     ),
                 ),
                 min_op_values=TableUDFGenResult(
@@ -5054,7 +4999,7 @@ FROM
                         "DROP TABLE IF EXISTS $loopback_table_name_0_min_op;"
                     ),
                     create_query=Template(
-                        'CREATE TABLE $loopback_table_name_0_min_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                        'CREATE TABLE $loopback_table_name_0_min_op("secure_transfer" CLOB);'
                     ),
                 ),
                 max_op_values=TableUDFGenResult(
@@ -5063,7 +5008,7 @@ FROM
                         "DROP TABLE IF EXISTS $loopback_table_name_0_max_op;"
                     ),
                     create_query=Template(
-                        'CREATE TABLE $loopback_table_name_0_max_op("node_id" VARCHAR(500),"secure_transfer" CLOB);'
+                        'CREATE TABLE $loopback_table_name_0_max_op("secure_transfer" CLOB);'
                     ),
                 ),
             ),
@@ -5169,7 +5114,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -5181,7 +5125,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                    'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
             ),
         ]
@@ -5285,7 +5229,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -5297,7 +5240,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                    'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
             ),
         ]
@@ -5374,7 +5317,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -5386,7 +5328,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"transfer" CLOB);'
+                    'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
             )
         ]
@@ -5408,7 +5350,7 @@ FROM
         globalnode_db_cursor.execute(concrete_udf_outputs)
         globalnode_db_cursor.execute(concrete_udf_def)
         globalnode_db_cursor.execute(concrete_udf_sel)
-        _, transfer = globalnode_db_cursor.execute(
+        [transfer] = globalnode_db_cursor.execute(
             "SELECT * FROM main_output_table_name"
         ).fetchone()
         result = json.loads(transfer)
@@ -5445,7 +5387,6 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     *
 FROM
     $udf_name();"""
@@ -5457,7 +5398,7 @@ FROM
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("node_id" VARCHAR(500),"a" INT,"b" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("a" INT,"b" DOUBLE);'
                 ),
             )
         ]
@@ -5501,7 +5442,6 @@ def test_tensor_elementwise_binary_op_1dim():
     op = TensorBinaryOp.ADD
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     tensor_0.val + tensor_1.val AS val
 FROM
@@ -5519,7 +5459,6 @@ def test_tensor_elementwise_binary_op_2dim():
     op = TensorBinaryOp.ADD
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     tensor_0.dim1 AS dim1,
     tensor_0.val + tensor_1.val AS val
@@ -5539,7 +5478,6 @@ def test_vector_dot_vector_template():
     op = TensorBinaryOp.MATMUL
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     SUM(tensor_0.val * tensor_1.val) AS val
 FROM
     vec0 AS tensor_0,
@@ -5556,7 +5494,6 @@ def test_matrix_dot_matrix_template():
     op = TensorBinaryOp.MATMUL
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     tensor_1.dim1 AS dim1,
     SUM(tensor_0.val * tensor_1.val) AS val
@@ -5581,7 +5518,6 @@ def test_matrix_dot_vector_template():
     op = TensorBinaryOp.MATMUL
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     SUM(tensor_0.val * tensor_1.val) AS val
 FROM
@@ -5603,7 +5539,6 @@ def test_vector_dot_matrix_template():
     op = TensorBinaryOp.MATMUL
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_1.dim1 AS dim0,
     SUM(tensor_0.val * tensor_1.val) AS val
 FROM
@@ -5623,7 +5558,6 @@ def test_sql_matrix_transpose():
     tens = TensorArg(table_name="tens0", dtype=None, ndims=2)
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim1 AS dim0,
     tensor_0.dim0 AS dim1,
     tensor_0.val AS val
@@ -5639,7 +5573,6 @@ def test_tensor_number_binary_op_1dim():
     op = TensorBinaryOp.ADD
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     tensor_0.val + 1 AS val
 FROM
@@ -5654,7 +5587,6 @@ def test_number_tensor_binary_op_1dim():
     op = TensorBinaryOp.SUB
     expected = """\
 SELECT
-    CAST('$node_id' AS VARCHAR(500)) AS node_id,
     tensor_0.dim0 AS dim0,
     1 - tensor_0.val AS val
 FROM

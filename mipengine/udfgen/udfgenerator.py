@@ -321,9 +321,6 @@ __all__ = [
     "make_unique_func_name",
 ]
 
-# TODO Do not select with star, select columns explicitly to avoid surprises
-# with node_id etc.
-
 # TODO need a class TypeParameter so that ParametrizedType knows which params
 # to classify into known/unknown. That way, extra params can be added in the
 # future without breaking the known/unknown mechanism.
@@ -352,7 +349,6 @@ ANDLN = " " + AND + LN
 SPC4 = " " * 4
 SCOLON = ";"
 ROWID = "row_id"
-NODEID = "node_id"
 DEFERRED = "deferred"
 
 
@@ -432,7 +428,7 @@ def _get_secure_transfer_op_return_stmt_template(op_enabled, table_name_tmpl, op
     return [
         '_conn.execute(f"INSERT INTO $'
         + table_name_tmpl
-        + f" VALUES ('$node_id', '{{{{json.dumps({op_name})}}}}');\")"
+        + f" VALUES ('{{{{json.dumps({op_name})}}}}');\")"
     ]
 
 
@@ -507,7 +503,7 @@ def _get_secure_transfer_sec_return_stmt_template(
         return_stmts.append(
             '_conn.execute(f"INSERT INTO $'
             + template_tmpl
-            + " VALUES ('$node_id', '{{json.dumps(template)}}');\")"
+            + " VALUES ('{{json.dumps(template)}}');\")"
         )
         return_stmts.extend(
             _get_secure_transfer_op_return_stmt_template(
@@ -530,7 +526,7 @@ def _get_secure_transfer_sec_return_stmt_template(
         return (
             '_conn.execute(f"INSERT INTO $'
             + tablename_placeholder
-            + " VALUES ('$node_id', '{{json.dumps({return_name})}}');\")"
+            + " VALUES ('{{json.dumps({return_name})}}');\")"
         )
 
 
@@ -545,13 +541,13 @@ def get_secondary_return_stmt_template(
         return (
             '_conn.execute(f"INSERT INTO $'
             + tablename_placeholder
-            + " VALUES ('$node_id', '{{json.dumps({return_name})}}');\")"
+            + " VALUES ('{{json.dumps({return_name})}}');\")"
         )
     if isinstance(output_type, StateType):
         return (
             '_conn.execute(f"INSERT INTO $'
             + tablename_placeholder
-            + " VALUES ('$node_id', '{{pickle.dumps({return_name}).hex()}}');\")"
+            + " VALUES ('{{pickle.dumps({return_name}).hex()}}');\")"
         )
     if isinstance(output_type, SecureTransferType):
         return _get_secure_transfer_sec_return_stmt_template(
@@ -806,10 +802,9 @@ class MergeTensorType(TableType, ParametrizedType, InputType, OutputType):
 
     @property
     def schema(self):
-        nodeid_column = [(NODEID, dt.STR)]
         dimcolumns = [(f"dim{i}", dt.INT) for i in range(self.ndims)]
         valcolumn = [("val", self.dtype)]
-        return nodeid_column + dimcolumns + valcolumn  # type: ignore
+        return dimcolumns + valcolumn  # type: ignore
 
 
 def merge_tensor(dtype, ndims):
@@ -2093,16 +2088,18 @@ def convert_table_info_to_table_arg(table_info, smpc_used):
             raise UDFBadCall("Usage of state is only allowed on local tables.")
         return StateArg(table_name=table_info.name)
     if is_tensor_schema(table_info.schema_.columns):
-        ndims = (
-            len(table_info.schema_.columns) - 2
-        )  # TODO avoid this using kinds of TableInfo
-        valcol = next(col for col in table_info.schema_.columns if col.name == "val")
-        dtype = valcol.dtype
-        return TensorArg(table_name=table_info.name, dtype=dtype, ndims=ndims)
+        return get_tensor_arg_from_table_info(table_info)
     relation_schema = convert_table_schema_to_relation_schema(
         table_info.schema_.columns
     )
     return RelationArg(table_name=table_info.name, schema=relation_schema)
+
+
+def get_tensor_arg_from_table_info(table_info):
+    ndims = sum(1 for col in table_info.schema_.columns if col.name.startswith("dim"))
+    valcol = next(col for col in table_info.schema_.columns if col.name == "val")
+    dtype = valcol.dtype
+    return TensorArg(table_name=table_info.name, dtype=dtype, ndims=ndims)
 
 
 # TODO table kinds must become known in Controller, who should send the
@@ -2130,7 +2127,7 @@ def is_statetype_schema(schema):
 
 
 def convert_table_schema_to_relation_schema(table_schema):
-    return [(c.name, c.dtype) for c in table_schema if c.name != NODEID]
+    return [(c.name, c.dtype) for c in table_schema]
 
 
 # <--
@@ -2472,7 +2469,7 @@ def get_udf_select_template(output_type: OutputType, table_args: Dict[str, Table
     if isinstance(output_type, TableType):
         subquery = Select(columns, tables, where_clause) if tables else None
         func = TableFunction(name="$udf_name", subquery=subquery)
-        select_stmt = Select([nodeid_column(), StarColumn()], [func])
+        select_stmt = Select([StarColumn()], [func])
         return select_stmt.compile()
     raise TypeError(f"Got {output_type} as output. Expected ScalarType or TableType")
 
@@ -2524,10 +2521,6 @@ def convert_table_arg_to_table_ast_node(table_arg, alias=None):
     )
 
 
-def nodeid_column():
-    return Cast(name="$node_id", type_=dt.STR.to_sql(), alias=NODEID)
-
-
 # ~~~~~~~~~~~~~~~~~ CREATE TABLE and INSERT query generator ~~~~~~~~~ #
 def _get_main_table_template_name() -> str:
     return "main_output_table_name"
@@ -2563,15 +2556,9 @@ def _get_smpc_table_template_names(prefix: str):
 def _create_table_udf_output(
     output_type: OutputType,
     table_name: str,
-    nodeid=True,
 ) -> UDFGenResult:
     drop_table = DROP_TABLE_IF_EXISTS + " $" + table_name + SCOLON
-    if isinstance(output_type, ScalarType) or not nodeid:
-        output_schema = iotype_to_sql_schema(output_type)
-    else:
-        output_schema = f'"{NODEID}" {dt.STR.to_sql()},' + iotype_to_sql_schema(
-            output_type
-        )
+    output_schema = iotype_to_sql_schema(output_type)
     create_table = CREATE_TABLE + " $" + table_name + f"({output_schema})" + SCOLON
     return TableUDFGenResult(
         tablename_placeholder=table_name,
@@ -2609,22 +2596,20 @@ def _create_udf_output(
     output_type: OutputType,
     table_name: str,
     smpc_used: bool,
-    nodeid=True,
 ) -> UDFGenResult:
     if isinstance(output_type, SecureTransferType) and smpc_used:
         return _create_smpc_udf_output(output_type, table_name)
     else:
-        return _create_table_udf_output(output_type, table_name, nodeid)
+        return _create_table_udf_output(output_type, table_name)
 
 
 def get_udf_outputs(
     main_output_type: OutputType,
     sec_output_types: List[LoopbackOutputType],
     smpc_used: bool,
-    nodeid=True,
 ) -> List[UDFGenResult]:
     table_name = _get_main_table_template_name()
-    udf_outputs = [_create_udf_output(main_output_type, table_name, smpc_used, nodeid)]
+    udf_outputs = [_create_udf_output(main_output_type, table_name, smpc_used)]
 
     if sec_output_types:
         for table_name, sec_output_type in _get_loopback_tables_template_names(
@@ -2727,7 +2712,6 @@ def get_columns_for_tensor_tensor_binary_op(table0, table1, operator):
         column.alias = column.name
     valcolumn = operator.value(table0.c["val"], table1.c["val"])
     valcolumn.alias = "val"
-    columns = [nodeid_column()] + columns
     columns += [valcolumn]
     return columns
 
@@ -2764,7 +2748,6 @@ def get_columns_for_tensor_number_binary_op(table, valcolumn):
     ]
     for column in columns:
         column.alias = column.name
-    columns = [nodeid_column()] + columns
     columns += [valcolumn]
     return columns
 
@@ -2808,7 +2791,6 @@ def get_columns_for_tensor_matmul(ndims0, ndims1, table0, table1):
             tables[i].c[f"dim{i}"].alias = f"dim{i}"
         columns = [tables[i].c[f"dim{i}"] for i in range(remaining_dims)]
 
-    columns = [nodeid_column()] + columns
     prods_column = table0.c["val"] * table1.c["val"]
     sum_of_prods = ScalarFunction("SUM", [prods_column], alias="val")
     columns += [sum_of_prods]
@@ -2866,7 +2848,7 @@ def get_matrix_transpose_template(matrix):
     table.c["dim1"].alias = "dim0"
     table.c["val"].alias = "val"
     select_stmt = Select(
-        [nodeid_column(), table.c["dim1"], table.c["dim0"], table.c["val"]],
+        [table.c["dim1"], table.c["dim0"], table.c["val"]],
         [table],
     )
     return select_stmt.compile()
@@ -2882,7 +2864,6 @@ def get_create_dummy_encoded_design_matrix_execution_queries(keyword_args):
         output_type,
         sec_output_types=None,
         smpc_used=False,
-        nodeid=False,
     )
     udf_execution_query = get_udf_execution_template(udf_select)
     return UDFGenExecutionQueries(

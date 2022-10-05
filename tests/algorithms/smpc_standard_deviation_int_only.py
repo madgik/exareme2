@@ -48,9 +48,10 @@ def run(algo_interface):
         positional_args=[global_state, local_result],
     )
 
-    std_deviation = json.loads(global_result.get_table_data()[1][0])["deviation"]
-    min_value = json.loads(global_result.get_table_data()[1][0])["min_value"]
-    max_value = json.loads(global_result.get_table_data()[1][0])["max_value"]
+    result_data = json.loads(global_result.get_table_data()[0][0])
+    std_deviation = result_data["deviation"]
+    min_value = result_data["min_value"]
+    max_value = result_data["max_value"]
     y_variables = algo_interface.y_variables
 
     result = TabularDataResult(

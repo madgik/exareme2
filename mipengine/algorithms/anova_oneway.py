@@ -46,7 +46,7 @@ def run(algo_interface):
         ),
     )
 
-    result = json.loads(result.get_table_data()[1][0])
+    result = json.loads(result.get_table_data()[0][0])
     anova_result = {
         "n_obs": result["n_obs"],
         "y_label": y_var_name,

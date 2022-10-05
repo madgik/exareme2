@@ -95,7 +95,7 @@ class LinearRegression:
             keyword_args=dict(local_transfers=local_transfers),
             share_to_locals=[False, True],
         )
-        global_transfer_data = json.loads(self.global_transfer.get_table_data()[1][0])
+        global_transfer_data = json.loads(self.global_transfer.get_table_data()[0][0])
         self.coefficients = global_transfer_data["coefficients"]
 
     @staticmethod
@@ -172,7 +172,7 @@ class LinearRegression:
                 local_transfers=local_transfers, fit_gstate=self.global_state
             ),
         )
-        global_transfer_data = json.loads(global_transfer.get_table_data()[1][0])
+        global_transfer_data = json.loads(global_transfer.get_table_data()[0][0])
         rss = global_transfer_data["rss"]
         tss = global_transfer_data["tss"]
         sum_abs_resid = global_transfer_data["sum_abs_resid"]
