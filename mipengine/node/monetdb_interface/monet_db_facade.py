@@ -62,7 +62,7 @@ class _MonetDBConnectionPool(metaclass=Singleton):
             connection = self.create_connection()
         else:
             connection = self._connection_pool.pop()
-            connection.commit()
+        connection.commit()
         return connection
 
     def release_connection(self, connection):
