@@ -6,12 +6,6 @@ import requests
 
 from tests.standalone_tests.conftest import SMPC_ALGORITHMS_URL
 
-pytest.skip(
-    allow_module_level=True,
-    reason="These tests broke since `node_id` column is not appended by the udfgen. "
-    "They should be fixed by someone with knownledge of the SMPC mechanisms.",
-)
-
 
 def get_parametrization_list_success_cases():
     parametrization_list = []

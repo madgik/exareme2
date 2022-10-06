@@ -153,10 +153,6 @@ def _create_smpc_results_table(
     table_schema = TableSchema(
         columns=[
             ColumnInfo(
-                name="node_id",
-                dtype=DType.STR,
-            ),
-            ColumnInfo(
                 name="secure_transfer",
                 dtype=DType.JSON,
             ),
@@ -164,14 +160,14 @@ def _create_smpc_results_table(
     )
     create_table(table_name, table_schema)
 
-    table_values = [[node_config.identifier, json.dumps(smpc_op_result_data)]]
+    table_values = [[json.dumps(smpc_op_result_data)]]
     insert_data_to_table(table_name, table_values)
 
     return table_name
 
 
 def _get_smpc_values_from_table_data(table_data: List[ColumnData]):
-    node_id_column, values_column = table_data
+    values_column, *_ = table_data
 
     if not values_column.data:
         raise SMPCUsageError("A node doesn't have data to contribute to the SMPC.")
