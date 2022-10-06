@@ -6,7 +6,7 @@ from mipengine.controller.algorithm_specifications import algorithm_specificatio
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import BadRequest
 from mipengine.controller.controller import Controller
-from mipengine.controller.controller import get_a_uniqueid
+from mipengine.controller.uid_generator import UIDGenerator
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 controller = Controller()
@@ -51,7 +51,7 @@ async def post_algorithm(algorithm_name: str) -> str:
         )
         raise BadRequest(error_msg)
 
-    request_id = algorithm_request_dto.request_id or get_a_uniqueid()
+    request_id = algorithm_request_dto.request_id or UIDGenerator().get_a_uid()
     controller.validate_algorithm_execution_request(
         algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
     )

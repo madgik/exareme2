@@ -13,8 +13,8 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.controller import Controller
-from mipengine.controller.controller import get_a_uniqueid
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.uid_generator import UIDGenerator
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
 from tests.standalone_tests.conftest import DATASET_SUFFIXES_LOCALNODE1
 from tests.standalone_tests.conftest import DATASET_SUFFIXES_LOCALNODE2
@@ -271,8 +271,8 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     controller._cleaner._reset()  # deletes all existing persistence files(cleanup files)
     controller.start_cleanup_loop()
 
-    context_id = get_a_uniqueid()
-    request_id = get_a_uniqueid()
+    context_id = UIDGenerator().get_a_uid()
+    request_id = UIDGenerator().get_a_uid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
@@ -409,8 +409,8 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     controller._cleaner._reset()  # deletes all existing persistence files(cleanup files)
     controller.start_cleanup_loop()
 
-    request_id = get_a_uniqueid()
-    context_id = get_a_uniqueid()
+    request_id = UIDGenerator().get_a_uid()
+    context_id = UIDGenerator().get_a_uid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
@@ -545,8 +545,8 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     controller._cleaner._reset()  # deletes all existing persistence files(cleanup files)
     controller.start_cleanup_loop()
 
-    request_id = get_a_uniqueid()
-    context_id = get_a_uniqueid()
+    request_id = UIDGenerator().get_a_uid()
+    context_id = UIDGenerator().get_a_uid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
@@ -716,8 +716,8 @@ async def test_cleanup_node_service_down_algorithm_execution(
     controller._cleaner._reset()  # deletes all existing persistence files(cleanup files)
     controller.start_cleanup_loop()
 
-    request_id = get_a_uniqueid()
-    context_id = get_a_uniqueid()
+    request_id = UIDGenerator().get_a_uid()
+    context_id = UIDGenerator().get_a_uid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
@@ -881,8 +881,8 @@ async def test_cleanup_controller_restart(
     controller._cleaner._reset()  # deletes all existing persistence files(cleanup files)
     controller.start_cleanup_loop()
 
-    request_id = get_a_uniqueid()
-    context_id = get_a_uniqueid()
+    request_id = UIDGenerator().get_a_uid()
+    context_id = UIDGenerator().get_a_uid()
     algorithm_name = "logistic_regression"
     algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 

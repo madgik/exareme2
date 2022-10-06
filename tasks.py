@@ -83,6 +83,10 @@ OUTDIR = Path("/tmp/mipengine/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
+CLEANUP_DIR = Path("/tmp/cleanup_entries/")
+if not CLEANUP_DIR.exists():
+    CLEANUP_DIR.mkdir()
+
 TEST_DATA_FOLDER = Path(tests.__file__).parent / "test_data"
 
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
@@ -193,7 +197,7 @@ def create_configs(c):
     controller_config["localnodes"]["dns"] = ""
     controller_config["localnodes"]["port"] = ""
 
-    controller_config["cleanup"]["contextids_cleanup_folder"] = "/tmp/cleanup_entries"
+    controller_config["cleanup"]["contextids_cleanup_folder"] = str(CLEANUP_DIR)
     controller_config["cleanup"]["nodes_cleanup_interval"] = deployment_config[
         "cleanup"
     ]["nodes_cleanup_interval"]
@@ -765,6 +769,12 @@ def cleanup(c):
         for outpath in OUTDIR.glob("*.out"):
             outpath.unlink()
         OUTDIR.rmdir()
+        message("Ok", level=Level.SUCCESS)
+    if CLEANUP_DIR.exists():
+        message(f"Removing {CLEANUP_DIR}...", level=Level.HEADER)
+        for cleanup_file in CLEANUP_DIR.glob("*.toml"):
+            cleanup_file.unlink()
+        CLEANUP_DIR.rmdir()
         message("Ok", level=Level.SUCCESS)
 
 

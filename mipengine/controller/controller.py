@@ -1,8 +1,6 @@
 import asyncio
 import concurrent
 import logging
-import random
-from datetime import datetime
 from typing import Dict
 from typing import List
 
@@ -20,9 +18,9 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.federation_info_logs import log_experiment_execution
-from mipengine.controller.node_landscape_aggregator import DataModelsCDES
 from mipengine.controller.node_landscape_aggregator import DatasetsLocations
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.uid_generator import UIDGenerator
 from mipengine.node_info_DTOs import NodeInfo
 
 
@@ -70,7 +68,7 @@ class Controller:
         algorithm_name: str,
         algorithm_request_dto: AlgorithmRequestDTO,
     ):
-        context_id = get_a_uniqueid()
+        context_id = UIDGenerator().get_a_uid()
         algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
         data_model = algorithm_request_dto.inputdata.data_model
@@ -290,8 +288,3 @@ def _create_node_task_handler(node_info: _NodeInfoDTO) -> NodeAlgorithmTasksHand
         tasks_timeout=node_info.tasks_timeout,
         run_udf_task_timeout=node_info.run_udf_task_timeout,
     )
-
-
-def get_a_uniqueid() -> str:
-    uid = datetime.now().microsecond + (random.randrange(1, 100 + 1) * 100000)
-    return f"{uid}"
