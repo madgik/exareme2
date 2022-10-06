@@ -35,12 +35,6 @@ from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import get_node_config_by_id
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 
-pytest.skip(
-    allow_module_level=True,
-    reason="These tests broke since `node_id` column is not appended by the udfgen. "
-    "They should be fixed by someone with knownledge of the SMPC mechanisms.",
-)
-
 request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
 context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 command_id = "command123"
@@ -84,7 +78,6 @@ def create_secure_transfer_table(celery_app: Celery) -> str:
 
     table_schema = TableSchema(
         columns=[
-            ColumnInfo(name="node_id", dtype=DType.STR),
             ColumnInfo(name="secure_transfer", dtype=DType.JSON),
         ]
     )
@@ -119,8 +112,8 @@ def create_table_with_secure_transfer_results_with_smpc_off(
         "sum": {"data": secure_transfer_2_value, "operation": "sum", "type": "int"}
     }
     values = [
-        ["localnode1", json.dumps(secure_transfer_1)],
-        ["localnode2", json.dumps(secure_transfer_2)],
+        [json.dumps(secure_transfer_1)],
+        [json.dumps(secure_transfer_2)],
     ]
 
     celery_app.signature(task_signature).delay(
@@ -148,13 +141,13 @@ def create_table_with_multiple_secure_transfer_templates(
 
     if similar:
         values = [
-            ["localnode1", json.dumps(secure_transfer_template)],
-            ["localnode2", json.dumps(secure_transfer_template)],
+            [json.dumps(secure_transfer_template)],
+            [json.dumps(secure_transfer_template)],
         ]
     else:
         values = [
-            ["localnode1", json.dumps(secure_transfer_template)],
-            ["localnode2", json.dumps(different_secure_transfer_template)],
+            [json.dumps(secure_transfer_template)],
+            [json.dumps(different_secure_transfer_template)],
         ]
 
     celery_app.signature(task_signature).delay(
@@ -173,7 +166,7 @@ def create_table_with_smpc_sum_op_values(celery_app: Celery) -> Tuple[str, str]:
 
     sum_op_values = [0, 1, 2, 3, 4, 5]
     values = [
-        ["localnode1", json.dumps(sum_op_values)],
+        [json.dumps(sum_op_values)],
     ]
 
     celery_app.signature(task_signature).delay(
@@ -199,7 +192,7 @@ def validate_table_data_match_expected(
     )
 
     table_data: TableData = TableData.parse_raw(table_data_str)
-    result_str, *_ = table_data.columns[1].data
+    result_str, *_ = table_data.columns[0].data
     result = json.loads(result_str)
     assert result == expected_values
 
