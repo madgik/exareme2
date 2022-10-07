@@ -91,17 +91,6 @@ def test_table_data_with_different_column_types():
     assert TableData.parse_raw(data.json()) == data
 
 
-# validation check for TableSchema with error
-def test_table_schema_sql_injection_error():
-    with pytest.raises(ValidationError):
-        ColumnInfo(name="Robert'); DROP TABLE data; --", dtype=DType.FLOAT)
-
-
-def test_table_schema_type_error():
-    with pytest.raises(ValidationError):
-        ColumnInfo(name=123, dtype=DType.FLOAT)
-
-
 def test_table_schema_immutable():
     schema = TableSchema(
         columns=[
