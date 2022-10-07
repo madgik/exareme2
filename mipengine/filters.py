@@ -43,7 +43,7 @@ def build_filter_clause(rules):
         _check_condition(rules["condition"])
         cond = rules["condition"]
         rules = rules["rules"]
-        return f" {cond} ".join([build_filter_clause(rule) for rule in rules])
+        return "(" + f" {cond} ".join(build_filter_clause(rule) for rule in rules) + ")"
 
     if "id" in rules:
         column_name = rules["id"]
