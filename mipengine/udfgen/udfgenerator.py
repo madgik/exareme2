@@ -277,6 +277,7 @@ import inspect
 import re
 from abc import ABC
 from abc import abstractmethod
+from abc import abstractproperty
 from copy import deepcopy
 from enum import Enum
 from numbers import Number
@@ -352,224 +353,7 @@ ROWID = "row_id"
 DEFERRED = "deferred"
 
 
-def get_smpc_build_template(secure_transfer_type):
-    def get_smpc_op_template(enabled, operation_name):
-        stmts = []
-        if enabled:
-            stmts.append(
-                f'__{operation_name}_values_str = _conn.execute("SELECT secure_transfer from {{{operation_name}_values_table_name}};")["secure_transfer"][0]'
-            )
-            stmts.append(
-                f"__{operation_name}_values = json.loads(__{operation_name}_values_str)"
-            )
-        else:
-            stmts.append(f"__{operation_name}_values = None")
-        return stmts
-
-    stmts = []
-    stmts.append(
-        '__template_str = _conn.execute("SELECT secure_transfer from {template_table_name};")["secure_transfer"][0]'
-    )
-    stmts.append("__template = json.loads(__template_str)")
-    stmts.extend(get_smpc_op_template(secure_transfer_type.sum_op, "sum_op"))
-    stmts.extend(get_smpc_op_template(secure_transfer_type.min_op, "min_op"))
-    stmts.extend(get_smpc_op_template(secure_transfer_type.max_op, "max_op"))
-    stmts.append(
-        "{varname} = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values)"
-    )
-    return LN.join(stmts)
-
-
-# TODO refactor these, polymorphism?
-# Currently DictTypes are loaded with loopback queries only.
-def get_table_build_template(input_type: "TableType"):
-    if not isinstance(input_type, InputType):
-        raise TypeError(
-            f"Build template only for InputTypes. Type provided: {input_type}"
-        )
-    COLUMNS_COMPREHENSION_TMPL = "{{name: _columns[name_w_prefix] for name, name_w_prefix in zip({colnames}, {colnames_w_prefix})}}"
-    if isinstance(input_type, RelationType):
-        return f"{{varname}} = udfio.from_relational_table({COLUMNS_COMPREHENSION_TMPL}, '{ROWID}')"
-    if isinstance(input_type, TensorType):
-        return f"{{varname}} = udfio.from_tensor_table({COLUMNS_COMPREHENSION_TMPL})"
-    if isinstance(input_type, MergeTensorType):
-        return f"{{varname}} = udfio.merge_tensor_to_list({COLUMNS_COMPREHENSION_TMPL})"
-    if isinstance(input_type, MergeTransferType):
-        colname = input_type.data_column_name
-        loopback_query = f'__transfer_strs = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"]'
-        dict_parse = "{varname} = [json.loads(str) for str in __transfer_strs]"
-        return LN.join([loopback_query, dict_parse])
-    if isinstance(input_type, TransferType):
-        colname = input_type.data_column_name
-        loopback_query = f'__transfer_str = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"][0]'
-        dict_parse = "{varname} = json.loads(__transfer_str)"
-        return LN.join([loopback_query, dict_parse])
-    if isinstance(input_type, SecureTransferType):
-        colname = input_type.data_column_name
-        loopback_query = f'__transfer_strs = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"]'
-        dict_parse = "__transfers = [json.loads(str) for str in __transfer_strs]"
-        transfers_data_aggregation = (
-            "{varname} = udfio.secure_transfers_to_merged_dict(__transfers)"
-        )
-        return LN.join([loopback_query, dict_parse, transfers_data_aggregation])
-    if isinstance(input_type, StateType):
-        colname = input_type.data_column_name
-        loopback_query = f'__state_str = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"][0]'
-        dict_parse = "{varname} = pickle.loads(__state_str)"
-        return LN.join([str(loopback_query), dict_parse])
-    raise NotImplementedError(
-        f"Type {input_type} doesn't have a build statement template."
-    )
-
-
-def _get_secure_transfer_op_return_stmt_template(op_enabled, table_name_tmpl, op_name):
-    if not op_enabled:
-        return []
-    return [
-        '_conn.execute(f"INSERT INTO $'
-        + table_name_tmpl
-        + f" VALUES ('{{{{json.dumps({op_name})}}}}');\")"
-    ]
-
-
-def _get_secure_transfer_main_return_stmt_template(output_type, smpc_used):
-    if smpc_used:
-        return_stmts = [
-            "template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict({return_name})"
-        ]
-        (
-            _,
-            sum_op_tmpl,
-            min_op_tmpl,
-            max_op_tmpl,
-        ) = _get_smpc_table_template_names(_get_main_table_template_name())
-        return_stmts.extend(
-            _get_secure_transfer_op_return_stmt_template(
-                output_type.sum_op, sum_op_tmpl, "sum_op"
-            )
-        )
-        return_stmts.extend(
-            _get_secure_transfer_op_return_stmt_template(
-                output_type.min_op, min_op_tmpl, "min_op"
-            )
-        )
-        return_stmts.extend(
-            _get_secure_transfer_op_return_stmt_template(
-                output_type.max_op, max_op_tmpl, "max_op"
-            )
-        )
-        return_stmts.append("return json.dumps(template)")
-        return LN.join(return_stmts)
-    else:
-        # Treated as a TransferType
-        return "return json.dumps({return_name})"
-
-
-def get_main_return_stmt_template(output_type: "OutputType", smpc_used: bool):
-    if not isinstance(output_type, OutputType):
-        raise TypeError(
-            f"Return statement template only for OutputTypes. Type provided: {output_type}"
-        )
-    if isinstance(output_type, RelationType):
-        return f"return udfio.as_relational_table({{return_name}}, '{ROWID}')"
-    if isinstance(output_type, TensorType):
-        return "return udfio.as_tensor_table(numpy.array({return_name}))"
-    if isinstance(output_type, ScalarType):
-        return "return {return_name}"
-    if isinstance(output_type, StateType):
-        return "return pickle.dumps({return_name})"
-    if isinstance(output_type, TransferType):
-        return "return json.dumps({return_name})"
-    if isinstance(output_type, SecureTransferType):
-        return _get_secure_transfer_main_return_stmt_template(output_type, smpc_used)
-    raise NotImplementedError(
-        f"Type {output_type} doesn't have a return statement template."
-    )
-
-
-def _get_secure_transfer_sec_return_stmt_template(
-    output_type, tablename_placeholder: str, smpc_used
-):
-    if smpc_used:
-        return_stmts = [
-            "template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict({return_name})"
-        ]
-        (
-            template_tmpl,
-            sum_op_tmpl,
-            min_op_tmpl,
-            max_op_tmpl,
-        ) = _get_smpc_table_template_names(tablename_placeholder)
-        return_stmts.append(
-            '_conn.execute(f"INSERT INTO $'
-            + template_tmpl
-            + " VALUES ('{{json.dumps(template)}}');\")"
-        )
-        return_stmts.extend(
-            _get_secure_transfer_op_return_stmt_template(
-                output_type.sum_op, sum_op_tmpl, "sum_op"
-            )
-        )
-        return_stmts.extend(
-            _get_secure_transfer_op_return_stmt_template(
-                output_type.min_op, min_op_tmpl, "min_op"
-            )
-        )
-        return_stmts.extend(
-            _get_secure_transfer_op_return_stmt_template(
-                output_type.max_op, max_op_tmpl, "max_op"
-            )
-        )
-        return LN.join(return_stmts)
-    else:
-        # Treated as a TransferType
-        return (
-            '_conn.execute(f"INSERT INTO $'
-            + tablename_placeholder
-            + " VALUES ('{{json.dumps({return_name})}}');\")"
-        )
-
-
-def get_secondary_return_stmt_template(
-    output_type: "OutputType", tablename_placeholder: str, smpc_used: bool
-):
-    if not isinstance(output_type, LoopbackOutputType):
-        raise TypeError(
-            f"Secondary return statement template only for LoopbackOutputTypes. Type provided: {output_type}"
-        )
-    if isinstance(output_type, TransferType):
-        return (
-            '_conn.execute(f"INSERT INTO $'
-            + tablename_placeholder
-            + " VALUES ('{{json.dumps({return_name})}}');\")"
-        )
-    if isinstance(output_type, StateType):
-        return (
-            '_conn.execute(f"INSERT INTO $'
-            + tablename_placeholder
-            + " VALUES ('{{pickle.dumps({return_name}).hex()}}');\")"
-        )
-    if isinstance(output_type, SecureTransferType):
-        return _get_secure_transfer_sec_return_stmt_template(
-            output_type, tablename_placeholder, smpc_used
-        )
-    raise NotImplementedError(
-        f"Type {output_type} doesn't have a loopback return statement template."
-    )
-
-
-def get_return_type_template(output_type):
-    if not isinstance(output_type, OutputType):
-        raise TypeError(
-            f"Return type template only for OutputTypes. Type provided: {output_type}"
-        )
-    if isinstance(output_type, TableType):
-        return f"TABLE({iotype_to_sql_schema(output_type)})"
-    if isinstance(output_type, ScalarType):
-        return output_type.dtype.to_sql()
-    raise NotImplementedError(
-        f"Type {output_type} doesn't have a return type template."
-    )
+# ~~~~~~~~~~~~~~~~~~~~~~~ Helpers ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 
 def iotype_to_sql_schema(iotype, name_prefix=""):
@@ -579,9 +363,6 @@ def iotype_to_sql_schema(iotype, name_prefix=""):
     types = [dtype.to_sql() for _, dtype in iotype.schema]
     sql_params = [f'"{name}" {dtype}' for name, dtype in zip(column_names, types)]
     return SEP.join(sql_params)
-
-
-# ~~~~~~~~~~~~~~~~~~~~~~~ Helpers ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 
 def recursive_repr(self: object) -> str:
@@ -753,8 +534,7 @@ class InputType(IOType):
 
 
 class OutputType(IOType):
-    @property
-    @abstractmethod
+    @abstractproperty
     def schema(self):
         raise NotImplementedError
 
@@ -813,6 +593,9 @@ class TableType(ABC):
         prefix += "_" if prefix else ""
         return [prefix + name for name, _ in self.schema]
 
+    def get_return_type_template(self):
+        return f"TABLE({iotype_to_sql_schema(self)})"
+
 
 class TensorType(TableType, ParametrizedType, InputType, OutputType):
     def __init__(self, dtype, ndims):
@@ -824,6 +607,13 @@ class TensorType(TableType, ParametrizedType, InputType, OutputType):
         dimcolumns = [(f"dim{i}", dt.INT) for i in range(self.ndims)]
         valcolumn = [("val", self.dtype)]
         return dimcolumns + valcolumn
+
+    def get_build_template(self) -> str:
+        columns_tmpl = "{{name: _columns[name_w_prefix] for name, name_w_prefix in zip({colnames}, {colnames_w_prefix})}}"
+        return f"{{varname}} = udfio.from_tensor_table({columns_tmpl})"
+
+    def get_main_return_stmt_template(self, _) -> str:
+        return "return udfio.as_tensor_table(numpy.array({return_name}))"
 
 
 def tensor(dtype, ndims):
@@ -840,6 +630,10 @@ class MergeTensorType(TableType, ParametrizedType, InputType, OutputType):
         dimcolumns = [(f"dim{i}", dt.INT) for i in range(self.ndims)]
         valcolumn = [("val", self.dtype)]
         return dimcolumns + valcolumn  # type: ignore
+
+    def get_build_template(self) -> str:
+        colums_tmpl = "{{name: _columns[name_w_prefix] for name, name_w_prefix in zip({colnames}, {colnames_w_prefix})}}"
+        return f"{{varname}} = udfio.merge_tensor_to_list({colums_tmpl})"
 
 
 def merge_tensor(dtype, ndims):
@@ -887,6 +681,13 @@ class RelationType(TableType, ParametrizedType, InputType, OutputType):
     def schema(self):
         return self._schema
 
+    def get_build_template(self) -> str:
+        columns_tmpl = "{{name: _columns[name_w_prefix] for name, name_w_prefix in zip({colnames}, {colnames_w_prefix})}}"
+        return f"{{varname}} = udfio.from_relational_table({columns_tmpl}, '{ROWID}')"
+
+    def get_main_return_stmt_template(self, _) -> str:
+        return f"return udfio.as_relational_table({{return_name}}, '{ROWID}')"
+
 
 def relation(schema=None):
     schema = schema or TypeVar("S")
@@ -905,6 +706,12 @@ class ScalarType(OutputType, ParametrizedType):
     @property
     def schema(self):
         return [("scalar", self.dtype)]
+
+    def get_main_return_stmt_template(self, _) -> str:
+        return "return {return_name}"
+
+    def get_return_type_template(self):
+        return self.dtype.to_sql()
 
 
 def scalar(dtype):
@@ -936,6 +743,25 @@ class TransferType(DictType, InputType, LoopbackOutputType):
     _data_column_name = "transfer"
     _data_column_type = dt.JSON
 
+    def get_build_template(self) -> str:
+        colname = self.data_column_name
+        return LN.join(
+            [
+                f'__transfer_str = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"][0]',
+                "{varname} = json.loads(__transfer_str)",
+            ]
+        )
+
+    def get_main_return_stmt_template(self, _) -> str:
+        return "return json.dumps({return_name})"
+
+    def get_secondary_return_stmt_template(self, tablename_placeholder, _) -> str:
+        return (
+            '_conn.execute(f"INSERT INTO $'
+            + tablename_placeholder
+            + " VALUES ('{{json.dumps({return_name})}}');\")"
+        )
+
 
 def transfer():
     return TransferType()
@@ -944,6 +770,15 @@ def transfer():
 class MergeTransferType(DictType, InputType):
     _data_column_name = "transfer"
     _data_column_type = dt.JSON
+
+    def get_build_template(self) -> str:
+        colname = self.data_column_name
+        return LN.join(
+            [
+                f'__transfer_strs = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"]',
+                "{varname} = [json.loads(str) for str in __transfer_strs]",
+            ]
+        )
 
 
 def merge_transfer():
@@ -974,6 +809,139 @@ class SecureTransferType(DictType, InputType, LoopbackOutputType):
     def max_op(self):
         return self._max_op
 
+    def get_build_template(self):
+        colname = self.data_column_name
+        return LN.join(
+            [
+                f'__transfer_strs = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"]',
+                "__transfers = [json.loads(str) for str in __transfer_strs]",
+                "{varname} = udfio.secure_transfers_to_merged_dict(__transfers)",
+            ]
+        )
+
+    def get_main_return_stmt_template(self, smpc_used) -> str:
+        return self._get_secure_transfer_main_return_stmt_template(smpc_used)
+
+    def _get_secure_transfer_main_return_stmt_template(self, smpc_used):
+        if smpc_used:
+            return_stmts = [
+                "template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict({return_name})"
+            ]
+            (
+                _,
+                sum_op_tmpl,
+                min_op_tmpl,
+                max_op_tmpl,
+            ) = _get_smpc_table_template_names(_get_main_table_template_name())
+            return_stmts.extend(
+                self._get_secure_transfer_op_return_stmt_template(
+                    self.sum_op, sum_op_tmpl, "sum_op"
+                )
+            )
+            return_stmts.extend(
+                self._get_secure_transfer_op_return_stmt_template(
+                    self.min_op, min_op_tmpl, "min_op"
+                )
+            )
+            return_stmts.extend(
+                self._get_secure_transfer_op_return_stmt_template(
+                    self.max_op, max_op_tmpl, "max_op"
+                )
+            )
+            return_stmts.append("return json.dumps(template)")
+            return LN.join(return_stmts)
+        else:
+            # Treated as a TransferType
+            return "return json.dumps({return_name})"
+
+    def get_secondary_return_stmt_template(
+        self, tablename_placeholder, smpc_used
+    ) -> str:
+        return self._get_secure_transfer_sec_return_stmt_template(
+            tablename_placeholder, smpc_used
+        )
+
+    def _get_secure_transfer_sec_return_stmt_template(
+        self, tablename_placeholder: str, smpc_used
+    ):
+        if smpc_used:
+            return_stmts = [
+                "template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict({return_name})"
+            ]
+            (
+                template_tmpl,
+                sum_op_tmpl,
+                min_op_tmpl,
+                max_op_tmpl,
+            ) = _get_smpc_table_template_names(tablename_placeholder)
+            return_stmts.append(
+                '_conn.execute(f"INSERT INTO $'
+                + template_tmpl
+                + " VALUES ('{{json.dumps(template)}}');\")"
+            )
+            return_stmts.extend(
+                self._get_secure_transfer_op_return_stmt_template(
+                    self.sum_op, sum_op_tmpl, "sum_op"
+                )
+            )
+            return_stmts.extend(
+                self._get_secure_transfer_op_return_stmt_template(
+                    self.min_op, min_op_tmpl, "min_op"
+                )
+            )
+            return_stmts.extend(
+                self._get_secure_transfer_op_return_stmt_template(
+                    self.max_op, max_op_tmpl, "max_op"
+                )
+            )
+            return LN.join(return_stmts)
+        else:
+            # Treated as a TransferType
+            return (
+                '_conn.execute(f"INSERT INTO $'
+                + tablename_placeholder
+                + " VALUES ('{{json.dumps({return_name})}}');\")"
+            )
+
+    @staticmethod
+    def _get_secure_transfer_op_return_stmt_template(
+        op_enabled, table_name_tmpl, op_name
+    ):
+        if not op_enabled:
+            return []
+        return [
+            '_conn.execute(f"INSERT INTO $'
+            + table_name_tmpl
+            + f" VALUES ('{{{{json.dumps({op_name})}}}}');\")"
+        ]
+
+    def get_smpc_build_template(self):
+        def get_smpc_op_template(enabled, operation_name):
+            stmts = []
+            if enabled:
+                stmts.append(
+                    f'__{operation_name}_values_str = _conn.execute("SELECT secure_transfer from {{{operation_name}_values_table_name}};")["secure_transfer"][0]'
+                )
+                stmts.append(
+                    f"__{operation_name}_values = json.loads(__{operation_name}_values_str)"
+                )
+            else:
+                stmts.append(f"__{operation_name}_values = None")
+            return stmts
+
+        stmts = []
+        stmts.append(
+            '__template_str = _conn.execute("SELECT secure_transfer from {template_table_name};")["secure_transfer"][0]'
+        )
+        stmts.append("__template = json.loads(__template_str)")
+        stmts.extend(get_smpc_op_template(self.sum_op, "sum_op"))
+        stmts.extend(get_smpc_op_template(self.min_op, "min_op"))
+        stmts.extend(get_smpc_op_template(self.max_op, "max_op"))
+        stmts.append(
+            "{varname} = udfio.construct_secure_transfer_dict(__template,__sum_op_values,__min_op_values,__max_op_values)"
+        )
+        return LN.join(stmts)
+
 
 def secure_transfer(sum_op=False, min_op=False, max_op=False):
     if not sum_op and not min_op and not max_op:
@@ -986,6 +954,25 @@ def secure_transfer(sum_op=False, min_op=False, max_op=False):
 class StateType(DictType, InputType, LoopbackOutputType):
     _data_column_name = "state"
     _data_column_type = dt.BINARY
+
+    def get_build_template(self):
+        colname = self.data_column_name
+        return LN.join(
+            [
+                f'__state_str = _conn.execute("SELECT {colname} from {{table_name}};")["{colname}"][0]',
+                "{varname} = pickle.loads(__state_str)",
+            ]
+        )
+
+    def get_main_return_stmt_template(self, _) -> str:
+        return "return pickle.dumps({return_name})"
+
+    def get_secondary_return_stmt_template(self, tablename_placeholder, _) -> str:
+        return (
+            '_conn.execute(f"INSERT INTO $'
+            + tablename_placeholder
+            + " VALUES ('{{pickle.dumps({return_name}).hex()}}');\")"
+        )
 
 
 def state():
@@ -1194,7 +1181,7 @@ class UDFReturnType(ASTNode):
         self.output_type = return_type
 
     def compile(self) -> str:
-        return get_return_type_template(self.output_type)
+        return self.output_type.get_return_type_template()
 
 
 class UDFSignature(ASTNode):
@@ -1282,7 +1269,7 @@ class TableBuild(ASTNode):
 class TableBuilds(ASTNode):
     def __init__(self, table_args: Dict[str, TableArg]):
         self.table_builds = [
-            TableBuild(arg_name, arg, template=get_table_build_template(arg.type))
+            TableBuild(arg_name, arg, template=arg.type.get_build_template())
             for arg_name, arg in table_args.items()
         ]
 
@@ -1309,7 +1296,7 @@ class SMPCBuild(ASTNode):
 class SMPCBuilds(ASTNode):
     def __init__(self, smpc_args: Dict[str, SMPCSecureTransferArg]):
         self.smpc_builds = [
-            SMPCBuild(arg_name, arg, template=get_smpc_build_template(arg.type))
+            SMPCBuild(arg_name, arg, template=arg.type.get_smpc_build_template())
             for arg_name, arg in smpc_args.items()
         ]
 
@@ -1320,7 +1307,7 @@ class SMPCBuilds(ASTNode):
 class UDFReturnStatement(ASTNode):
     def __init__(self, return_name, return_type, smpc_used: bool):
         self.return_name = return_name
-        self.template = get_main_return_stmt_template(return_type, smpc_used)
+        self.template = return_type.get_main_return_stmt_template(smpc_used)
 
     def compile(self) -> str:
         return self.template.format(return_name=self.return_name)
@@ -1330,7 +1317,7 @@ class UDFLoopbackReturnStatements(ASTNode):
     def __init__(self, sec_return_names, sec_return_types, smpc_used):
         self.sec_return_names = sec_return_names
         self.templates = [
-            get_secondary_return_stmt_template(sec_return_type, table_name, smpc_used)
+            sec_return_type.get_secondary_return_stmt_template(table_name, smpc_used)
             for table_name, sec_return_type in _get_loopback_tables_template_names(
                 sec_return_types
             )
