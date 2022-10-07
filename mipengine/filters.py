@@ -1,5 +1,7 @@
 from typing import Dict
 
+import pymonetdb.sql.monetize as monetize
+
 from mipengine import DType
 from mipengine.node_tasks_DTOs import CommonDataElement
 
@@ -88,7 +90,9 @@ def validate_filter(data_model: str, rules: dict, cdes: Dict[str, CommonDataElem
 
 def _format_value_if_string(column_type, val):
     if column_type == "string":
-        return [f"'{item}'" for item in val] if isinstance(val, list) else f"'{val}'"
+        if isinstance(val, list):
+            return [monetize.convert(item) for item in val]
+        return monetize.convert(val)
     return val
 
 
