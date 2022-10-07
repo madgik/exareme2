@@ -11,6 +11,11 @@ from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.common_actions import get_table_type
+from mipengine.node.monetdb_interface.guard import is_lowercase_identifier
+from mipengine.node.monetdb_interface.guard import output_schema_validator
+from mipengine.node.monetdb_interface.guard import sql_injection_guard
+from mipengine.node.monetdb_interface.guard import udf_kwargs_validator
+from mipengine.node.monetdb_interface.guard import udf_posargs_validator
 from mipengine.node.node_logger import initialise_logger
 from mipengine.node_tasks_DTOs import NodeLiteralDTO
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
@@ -24,7 +29,6 @@ from mipengine.node_tasks_DTOs import UDFKeyArguments
 from mipengine.node_tasks_DTOs import UDFPosArguments
 from mipengine.node_tasks_DTOs import UDFResults
 from mipengine.node_tasks_DTOs import _NodeUDFDTOType
-from mipengine.smpc_cluster_comm_helpers import SMPCUsageError
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 from mipengine.udfgen import generate_udf_queries
 from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
@@ -448,6 +452,16 @@ def convert_udfgen2udf_results_and_mapping(
     return udf_results, table_names_tmpl_mapping
 
 
+@sql_injection_guard(
+    request_id=str.isalnum,
+    command_id=str.isalnum,
+    context_id=str.isalnum,
+    func_name=is_lowercase_identifier,
+    positional_args=udf_posargs_validator,
+    keyword_args=udf_kwargs_validator,
+    use_smpc=None,
+    output_schema=output_schema_validator,
+)
 def _generate_udf_statements(
     request_id: str,
     command_id: str,
@@ -458,8 +472,7 @@ def _generate_udf_statements(
     use_smpc: bool,
     output_schema,
 ) -> Tuple[List[str], UDFResults]:
-    allowed_func_name = func_name.replace(".", "_")  # A dot is not an allowed character
-    udf_name = _create_udf_name(allowed_func_name, command_id, context_id)
+    udf_name = _create_udf_name(func_name, command_id, context_id)
 
     gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
 
