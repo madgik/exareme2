@@ -120,7 +120,7 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "test_age_value = 17",
+        "(test_age_value = 17)",
     ),
     (
         {
@@ -137,7 +137,7 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "test_pupil_reactivity_right_eye_result <> 'Nonreactive'",
+        "(test_pupil_reactivity_right_eye_result <> 'Nonreactive')",
     ),
     (
         {
@@ -162,7 +162,7 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "test_age_value = 17 OR test_pupil_reactivity_right_eye_result <> 'Nonreactive'",
+        "(test_age_value = 17 OR test_pupil_reactivity_right_eye_result <> 'Nonreactive')",
     ),
     (
         {
@@ -187,7 +187,7 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "test_age_value < 50 AND test_age_value > 20",
+        "(test_age_value < 50 AND test_age_value > 20)",
     ),
     (
         {
@@ -212,7 +212,7 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "NOT test_age_value BETWEEN 60 AND 90 AND test_mortality_core BETWEEN 0.3 AND 0.8",
+        "(NOT test_age_value BETWEEN 60 AND 90 AND test_mortality_core BETWEEN 0.3 AND 0.8)",
     ),
     (
         {
@@ -237,7 +237,7 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "test_gose_score IS NULL OR test_gcs_total_score IS NOT NULL",
+        "(test_gose_score IS NULL OR test_gcs_total_score IS NOT NULL)",
     ),
     (
         {
@@ -254,7 +254,7 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "test_age_value IN (17,19)",
+        "(test_age_value IN (17,19))",
     ),
     (
         {
@@ -271,7 +271,7 @@ all_success_cases = [
             ],
             "valid": True,
         },
-        "test_gender_type IN ('F','M')",
+        "(test_gender_type IN ('F','M'))",
     ),
     (
         {
@@ -349,8 +349,7 @@ all_success_cases = [
             "valid": True,
         },
         (
-            "test_gender_type = 'F' AND test_age_value BETWEEN 20 AND 30 AND test_gose_score IS NOT NULL OR test_gender_type <> 'F' AND "
-            "test_mortality_core > 0.5 AND test_mortality_core <= 0.8"
+            "((test_gender_type = 'F' AND (test_age_value BETWEEN 20 AND 30 AND test_gose_score IS NOT NULL)) OR (test_gender_type <> 'F' AND (test_mortality_core > 0.5 AND test_mortality_core <= 0.8)))"
         ),
     ),
 ]
