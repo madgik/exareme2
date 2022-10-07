@@ -10,8 +10,6 @@ from pydantic import BaseModel
 from pydantic import validator
 
 from mipengine import DType
-
-# ~~~~~~~~~~~~~~~~~~~~ Enums ~~~~~~~~~~~~~~~~~~~~ #
 from mipengine.table_data_DTOs import ColumnDataBinary
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataInt
@@ -19,6 +17,7 @@ from mipengine.table_data_DTOs import ColumnDataJSON
 from mipengine.table_data_DTOs import ColumnDataStr
 
 
+# ~~~~~~~~~~~~~~~~~~~~ Enums ~~~~~~~~~~~~~~~~~~~~ #
 class _NodeUDFDTOType(enum.Enum):
     TABLE = "TABLE"
     LITERAL = "LITERAL"
@@ -38,15 +37,6 @@ class TableType(enum.Enum):
         return self.name
 
 
-# ~~~~~~~~~~~~~~~~~~ Validator ~~~~~~~~~~~~~~~~~ #
-
-
-def validate_identifier(identifier):
-    if not identifier.isidentifier():
-        raise ValueError(f"Expected valid identifier, got {identifier}")
-    return identifier
-
-
 # ~~~~~~~~~~~~~~~~~~~ DTOs ~~~~~~~~~~~~~~~~~~~~~~ #
 
 
@@ -59,8 +49,6 @@ class ColumnInfo(ImmutableBaseModel):
     name: str
     dtype: DType
 
-    _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
-
 
 class TableSchema(ImmutableBaseModel):
     columns: List[ColumnInfo]
@@ -70,8 +58,6 @@ class TableInfo(ImmutableBaseModel):
     name: str
     schema_: TableSchema
     type_: TableType
-
-    _validate_identifier = validator("name", allow_reuse=True)(validate_identifier)
 
 
 class TableData(ImmutableBaseModel):
