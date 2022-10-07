@@ -529,11 +529,7 @@ def test_scalar():
 
 def test_tensor_schema():
     t = tensor(dtype=DType.FLOAT, ndims=2)
-    assert t.schema == [
-        ("dim0", DType.INT),
-        ("dim1", DType.INT),
-        ("val", DType.FLOAT),
-    ]
+    assert t.schema == [("dim0", DType.INT), ("dim1", DType.INT), ("val", DType.FLOAT)]
 
 
 def test_tensor_column_names():
@@ -1638,10 +1634,6 @@ class _TestGenerateUDFQueries:
         raise NotImplementedError
 
     @pytest.fixture(scope="class")
-    def traceback(self):
-        return False
-
-    @pytest.fixture(scope="class")
     def use_smpc(self):
         return False
 
@@ -1656,7 +1648,6 @@ class _TestGenerateUDFQueries:
         expected_udfdef,
         expected_udfsel,
         expected_udf_outputs,
-        traceback,
         use_smpc,
         request_id,
     ):
@@ -1666,7 +1657,6 @@ class _TestGenerateUDFQueries:
             positional_args=positional_args,
             keyword_args={},
             smpc_used=use_smpc,
-            traceback=traceback,
         )
         if expected_udfdef != "":
             assert (
@@ -3559,93 +3549,6 @@ FROM
                 ),
             )
         ]
-
-
-@pytest.mark.skip(
-    reason="The traceback flag is never used. Should be removed from udfgen altogether."
-)
-class TestUDFGen_TracebackFlag(TestUDFGenBase, _TestGenerateUDFQueries):
-    @pytest.fixture(scope="class")
-    def udfregistry(self):
-        @udf(x=tensor(dtype=int, ndims=1), return_type=tensor(dtype=int, ndims=1))
-        def f(x):
-            y = x + 1
-            z = 1 / 0
-            return z
-
-        return udf.registry
-
-    @pytest.fixture(scope="class")
-    def positional_args(self):
-        return [
-            TableInfo(
-                name="tensor_in_db",
-                schema_=TableSchema(
-                    columns=[
-                        ColumnInfo(name="dim0", dtype=DType.INT),
-                        ColumnInfo(name="val", dtype=DType.INT),
-                    ]
-                ),
-                type_=TableType.NORMAL,
-            )
-        ]
-
-    @pytest.fixture(scope="class")
-    def expected_udfdef(self):
-        return r"""CREATE OR REPLACE FUNCTION
-$udf_name("x_dim0" INT,"x_val" INT)
-RETURNS
-VARCHAR(500)
-LANGUAGE PYTHON
-{
-    __code = ['import pandas as pd', 'import udfio', "x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})", 'y = x + 1', 'z = 1 / 0']
-    import traceback
-    try:
-        import pandas as pd
-        import udfio
-        x = udfio.from_tensor_table({n: _columns[n] for n in ['x_dim0', 'x_val']})
-        y = x + 1
-        z = 1 / 0
-        return "no error"
-    except Exception as e:
-        offset = 5
-        tb = e.__traceback__
-        lineno = tb.tb_lineno - offset
-        line = ' ' * 4 + __code[lineno]
-        linelen = len(__code[lineno])
-        underline = ' ' * 4 + '^' * linelen
-        tb_lines = traceback.format_tb(tb)
-        tb_lines.insert(1, line)
-        tb_lines.insert(2, underline)
-        tb_lines.append(repr(e))
-        tb_formatted = '\n'.join(tb_lines)
-        return tb_formatted
-}"""
-
-    @pytest.fixture(scope="class")
-    def expected_udfsel(self):
-        return """\
-INSERT INTO $main_output_table_name
-SELECT
-    $udf_name(tensor_in_db."dim0",tensor_in_db."val")
-FROM
-    tensor_in_db;"""
-
-    @pytest.fixture(scope="class")
-    def expected_udf_outputs(self):
-        return [
-            UDFGenTableResult(
-                tablename_placeholder="main_output_table_name",
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
-                create_query=Template(
-                    'CREATE TABLE $main_output_table_name("result" VARCHAR(500));'
-                ),
-            )
-        ]
-
-    @pytest.fixture(scope="class")
-    def traceback(self):
-        return True
 
 
 class TestUDFGen_StateReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
@@ -5614,7 +5517,6 @@ FROM
             positional_args=[],
             keyword_args={},
             smpc_used=False,
-            traceback=False,
             output_schema=output_schema,
         )
         assert udf_execution_queries.udf_definition_query.template == expected_udfdef

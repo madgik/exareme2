@@ -1437,44 +1437,6 @@ class UDFBody(ASTNode):
         )
 
 
-class UDFTracebackCatcher(ASTNode):
-    try_template = [
-        r"import traceback",
-        r"try:",
-    ]
-    except_template = [
-        r"except Exception as e:",
-        indent(r"offset = 5", prefix=SPC4),
-        indent(r"tb = e.__traceback__", prefix=SPC4),
-        indent(r"lineno = tb.tb_lineno - offset", prefix=SPC4),
-        indent(r"line = ' ' * 4 + __code[lineno]", prefix=SPC4),
-        indent(r"linelen = len(__code[lineno])", prefix=SPC4),
-        indent(r"underline = ' ' * 4 + '^' * linelen", prefix=SPC4),
-        indent(r"tb_lines = traceback.format_tb(tb)", prefix=SPC4),
-        indent(r"tb_lines.insert(1, line)", prefix=SPC4),
-        indent(r"tb_lines.insert(2, underline)", prefix=SPC4),
-        indent(r"tb_lines.append(repr(e))", prefix=SPC4),
-        indent(r"tb_formatted = '\n'.join(tb_lines)", prefix=SPC4),
-        indent(r"return tb_formatted", prefix=SPC4),
-    ]
-
-    def __init__(self, body: UDFBody):
-        self.body = body
-
-    def compile(self) -> str:
-        body = self.body.compile().splitlines()
-        *base_body, _ = body
-        recompiled_lines = base_body + ['return "no error"']
-        return LN.join(
-            [
-                f"__code = {base_body}",
-                *self.try_template,
-                *[indent(line, SPC4) for line in recompiled_lines],
-                *self.except_template,
-            ]
-        )
-
-
 class UDFDefinition(ASTNode):
     def __init__(
         self,
@@ -1487,7 +1449,6 @@ class UDFDefinition(ASTNode):
         main_output_type: OutputType,
         sec_output_types: List[OutputType],
         smpc_used: bool,
-        traceback=False,
     ):
         self.header = UDFHeader(
             udfname=funcparts.qualname,
@@ -1507,7 +1468,7 @@ class UDFDefinition(ASTNode):
             sec_return_types=sec_output_types,
             smpc_used=smpc_used,
         )
-        self.body = UDFTracebackCatcher(body) if traceback else body
+        self.body = body
 
     def compile(self) -> str:
         return LN.join(
@@ -2029,7 +1990,6 @@ def generate_udf_queries(
     positional_args: List[UDFGenArgument],
     keyword_args: Dict[str, UDFGenArgument],
     smpc_used: bool,
-    traceback=False,
     output_schema=None,
 ) -> UDFGenExecutionQueries:
     """
@@ -2040,7 +2000,6 @@ def generate_udf_queries(
     positional_args: Positional arguments
     keyword_args: Keyword arguments
     smpc_used: Is SMPC used in the computations?
-    traceback: Run the udf with traceback enabled to get logs
 
     Returns
     -------
@@ -2075,7 +2034,6 @@ def generate_udf_queries(
         keywordargs=udf_kwargs,
         udfregistry=udf.registry,
         smpc_used=smpc_used,
-        traceback=traceback,
         output_schema=output_schema,
     )
 
@@ -2191,7 +2149,6 @@ def get_udf_templates_using_udfregistry(
     keywordargs: Dict[str, UDFArgument],
     udfregistry: dict,
     smpc_used: bool,
-    traceback=False,
     output_schema=None,
 ) -> UDFGenExecutionQueries:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
@@ -2209,7 +2166,6 @@ def get_udf_templates_using_udfregistry(
     main_output_type, sec_output_types = get_output_types(
         funcparts,
         udf_args,
-        traceback,
         output_schema,
     )
     udf_outputs = get_udf_outputs(
@@ -2224,12 +2180,11 @@ def get_udf_templates_using_udfregistry(
         main_output_type=main_output_type,
         sec_output_types=sec_output_types,
         smpc_used=smpc_used,
-        traceback=traceback,
     )
 
     table_args = get_items_of_type(TableArg, mapping=udf_args)
     udf_select = get_udf_select_template(
-        ScalarType(str) if traceback else main_output_type,
+        main_output_type,
         table_args,
     )
     udf_execution = get_udf_execution_template(udf_select)
@@ -2373,7 +2328,6 @@ def get_udf_definition_template(
     main_output_type: OutputType,
     sec_output_types: List[OutputType],
     smpc_used: bool,
-    traceback=False,
 ) -> Template:
     table_args: Dict[str, TableArg] = get_items_of_type(TableArg, mapping=input_args)
     smpc_args: Dict[str, SMPCSecureTransferArg] = get_items_of_type(
@@ -2401,7 +2355,6 @@ def get_udf_definition_template(
         main_output_type=main_output_type,
         sec_output_types=sec_output_types,
         smpc_used=smpc_used,
-        traceback=traceback,
     )
     return Template(udf_definition.compile())
 
@@ -2409,17 +2362,13 @@ def get_udf_definition_template(
 def get_output_types(
     funcparts,
     udf_args,
-    traceback,
     output_schema,
 ) -> Tuple[OutputType, List[LoopbackOutputType]]:
-    """Computes the UDF output type. If `traceback` is true the type is str
-    since the traceback will be returned as a string. If the output type is
-    generic its type parameters must be inferred from the passed input types.
+    """Computes  the  UDF  output  type. If the output type is generic its
+    type  parameters  must  be  inferred  from  the  passed  input  types.
     Otherwise, the declared output type is returned."""
     input_types = copy_types_from_udfargs(udf_args)
 
-    if traceback:
-        return scalar(str), []
     if output_schema:
         main_output_type = relation(schema=output_schema)
         return main_output_type, []
