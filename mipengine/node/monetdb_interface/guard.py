@@ -172,9 +172,21 @@ def is_valid_table_dto(dto):
 def is_valid_smpc_dto(dto):
     return (
         is_lowercase_identifier(dto.value.template.value)
-        and is_lowercase_identifier(dto.value.sum_op_values.value)
-        and is_lowercase_identifier(dto.value.min_op_values.value)
-        and is_lowercase_identifier(dto.value.max_op_values.value)
+        and (
+            is_lowercase_identifier(dto.value.sum_op_values.value)
+            if dto.value.sum_op_values
+            else True
+        )
+        and (
+            is_lowercase_identifier(dto.value.min_op_values.value)
+            if dto.value.min_op_values
+            else True
+        )
+        and (
+            is_lowercase_identifier(dto.value.max_op_values.value)
+            if dto.value.max_op_values
+            else True
+        )
     )
 
 
