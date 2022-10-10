@@ -29,20 +29,19 @@ IOType is said to be *specific*, else the IOType is said to be *generic*.
 UDF Example (specific)
 ~~~~~~~~~~~~~~~~~~~~~~
 
-
->>> @udf(x=tensor(dtype=int, ndims=1), return_type=scalar(dtype=int))
+>>> @udf(x=tensor(dtype=int, ndims=1), return_type=relation([("sum", int)]))
 ... def sum_vector(x):
 ...     result = sum(x)
 ...     return result
 
 Let's look at the decorator
 
-@udf(x=tensor(dtype=int, ndims=1), return_type=scalar(dtype=int))
+@udf(x=tensor(dtype=int, ndims=1), return_type=relation([("sum", int)]))
      ^                             ^
      |                             |
      The function takes an         The function returns a
-     argument x of type            "scalar of datatype int"
-     "one dimensional tensor
+     argument x of type            "table with one column
+     "one dimensional tensor       of datatype int"
      of datatype int"
 
 Notice that the type of x is more than just a datatype. It is a more complex
@@ -258,7 +257,6 @@ udf                     Decorator for registering python funcs as UDFs
 tensor                  Tensor type factory
 relation                Relation type factory
 merge_tensor            Merge tensor type factory
-scalar                  Scalar type factory
 literal                 Literal type factory
 state                   State type factory
 transfer                Transfer type factory
@@ -310,7 +308,6 @@ __all__ = [
     "tensor",
     "relation",
     "merge_tensor",
-    "scalar",
     "literal",
     "transfer",
     "merge_transfer",
@@ -357,8 +354,6 @@ DEFERRED = "deferred"
 
 
 def iotype_to_sql_schema(iotype, name_prefix=""):
-    if isinstance(iotype, ScalarType):
-        return f'"scalar" {iotype.dtype.to_sql()}'
     column_names = iotype.column_names(name_prefix)
     types = [dtype.to_sql() for _, dtype in iotype.schema]
     sql_params = [f'"{name}" {dtype}' for name, dtype in zip(column_names, types)]
@@ -692,34 +687,6 @@ class RelationType(TableType, ParametrizedType, InputType, OutputType):
 def relation(schema=None):
     schema = schema or TypeVar("S")
     return RelationType(schema)
-
-
-class ScalarType(OutputType, ParametrizedType):
-    """
-    @deprecated
-    Use 'RelationType(schema=[("scalar", dtype)])' instead.
-    """
-
-    def __init__(self, dtype):
-        self.dtype = dt.from_py(dtype) if isinstance(dtype, type) else dtype
-
-    @property
-    def schema(self):
-        return [("scalar", self.dtype)]
-
-    def get_main_return_stmt_template(self, _) -> str:
-        return "return {return_name}"
-
-    def get_return_type_template(self):
-        return self.dtype.to_sql()
-
-
-def scalar(dtype):
-    """
-    @deprecated
-    Use 'relation(schema=[("scalar", dtype)])' instead.
-    """
-    return ScalarType(dtype)
 
 
 class DictType(TableType, ABC):
@@ -2413,7 +2380,7 @@ def infer_output_type(
     passed_input_types: Dict[str, ParametrizedType],
     declared_input_types: Dict[str, ParametrizedType],
     declared_output_type: ParametrizedType,
-) -> Union[ParametrizedType, ScalarType]:
+) -> ParametrizedType:
     inferred_input_typeparams = infer_unknown_input_typeparams(
         declared_input_types,
         passed_input_types,
@@ -2465,16 +2432,10 @@ def get_udf_select_template(output_type: OutputType, table_args: Dict[str, Table
     where_clause = (
         get_where_clause_for_relations(relations) if relations else where_clause
     )
-    if isinstance(output_type, ScalarType):
-        func = ScalarFunction(name="$udf_name", columns=columns)
-        select_stmt = Select([func], tables, where_clause)
-        return select_stmt.compile()
-    if isinstance(output_type, TableType):
-        subquery = Select(columns, tables, where_clause) if tables else None
-        func = TableFunction(name="$udf_name", subquery=subquery)
-        select_stmt = Select([StarColumn()], [func])
-        return select_stmt.compile()
-    raise TypeError(f"Got {output_type} as output. Expected ScalarType or TableType")
+    subquery = Select(columns, tables, where_clause) if tables else None
+    func = TableFunction(name="$udf_name", subquery=subquery)
+    select_stmt = Select([StarColumn()], [func])
+    return select_stmt.compile()
 
 
 def get_table_ast_nodes_from_table_args(table_args, arg_type):

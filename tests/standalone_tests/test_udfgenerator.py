@@ -51,7 +51,6 @@ from mipengine.udfgen.udfgenerator import merge_transfer
 from mipengine.udfgen.udfgenerator import placeholder
 from mipengine.udfgen.udfgenerator import recursive_repr
 from mipengine.udfgen.udfgenerator import relation
-from mipengine.udfgen.udfgenerator import scalar
 from mipengine.udfgen.udfgenerator import state
 from mipengine.udfgen.udfgenerator import tensor
 from mipengine.udfgen.udfgenerator import transfer
@@ -176,7 +175,7 @@ class TestUDFValidation:
     def test_validate_func_as_udf_invalid_input_type(self):
         with pytest.raises(UDFBadDefinition) as exc:
 
-            @udf(x=tensor, return_type=scalar(int))
+            @udf(x=tensor, return_type=relation([("result", int)]))
             def f_invalid_sig(x):
                 x = 1
                 return x
@@ -196,7 +195,7 @@ class TestUDFValidation:
     def test_validate_func_as_udf_invalid_expression_in_return_stmt(self):
         with pytest.raises(UDFBadDefinition) as exc:
 
-            @udf(x=tensor(int, 1), return_type=scalar(int))
+            @udf(x=tensor(int, 1), return_type=relation([("result", int)]))
             def f_invalid_ret_stmt(x):
                 x = 1
                 return x + 1
@@ -206,7 +205,7 @@ class TestUDFValidation:
     def test_validate_func_as_udf_invalid_no_return_stmt(self):
         with pytest.raises(UDFBadDefinition) as exc:
 
-            @udf(x=tensor(int, 1), return_type=scalar(int))
+            @udf(x=tensor(int, 1), return_type=relation([("result", int)]))
             def f_invalid_ret_stmt(x):
                 pass
 
@@ -215,7 +214,7 @@ class TestUDFValidation:
     def test_validate_func_as_udf_invalid_parameter_names(self):
         with pytest.raises(UDFBadDefinition) as exc:
 
-            @udf(y=tensor(int, 1), return_type=scalar(int))
+            @udf(y=tensor(int, 1), return_type=relation([("result", int)]))
             def f(x):
                 return x
 
@@ -224,7 +223,7 @@ class TestUDFValidation:
     def test_validate_func_as_udf_undeclared_parameter_names(self):
         with pytest.raises(UDFBadDefinition) as exc:
 
-            @udf(y=tensor(int, 1), return_type=scalar(int))
+            @udf(y=tensor(int, 1), return_type=relation([("result", int)]))
             def f(y, x):
                 return x
 
@@ -244,7 +243,7 @@ class TestUDFValidation:
             x=tensor(int, 1),
             y=state(),
             z=transfer(),
-            return_type=scalar(int),
+            return_type=relation([("result", int)]),
         )
         def f(x, y, z):
             return x
@@ -354,7 +353,9 @@ class TestUDFValidation:
         with pytest.raises(UDFBadDefinition) as exc:
 
             @udf(
-                x=state(), y=merge_transfer(), return_type=[state(), scalar(DType.INT)]
+                x=state(),
+                y=merge_transfer(),
+                return_type=[state(), relation([("result", int)])],
             )
             def f(x, y):
                 r1 = {"num1": 1}
@@ -372,7 +373,7 @@ class TestUDFValidation:
             @udf(
                 x=tensor(dtype=int, ndims=1),
                 y=relation(schema=[]),
-                return_type=scalar(int),
+                return_type=relation([("result", int)]),
             )
             def f(x, y):
                 return x
@@ -518,11 +519,6 @@ def test_relation_invalid_schema_structure():
 def test_literal():
     ltr = literal()
     assert isinstance(ltr, IOType)
-
-
-def test_scalar():
-    s = scalar(dtype=int)
-    assert not s.is_generic
 
 
 def test_tensor_schema():
@@ -1246,7 +1242,7 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
             x=tensor(dtype=int, ndims=1),
             y=tensor(dtype=int, ndims=1),
             z=literal(),
-            return_type=scalar(int),
+            return_type=relation([("result", int)]),
         )
         def f(x, y, z):
             return x
@@ -1273,7 +1269,7 @@ class TestUDFGen_LoggerArgument_provided_in_pos_args(TestUDFGenBase):
         @udf(
             x=tensor(dtype=int, ndims=1),
             logger=udf_logger(),
-            return_type=scalar(int),
+            return_type=relation([("result", int)]),
         )
         def f(x, logger):
             return x
@@ -1301,7 +1297,7 @@ class TestUDFGen_LoggerArgument_provided_in_kw_args(TestUDFGenBase):
         @udf(
             x=tensor(dtype=int, ndims=1),
             logger=udf_logger(),
-            return_type=scalar(int),
+            return_type=relation([("result", int)]),
         )
         def f(x, logger):
             return x
@@ -1552,7 +1548,7 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         @udf(
             x=tensor(dtype=T, ndims=1),
             y=tensor(dtype=T, ndims=1),
-            return_type=scalar(T),
+            return_type=tensor(dtype=T, ndims=1),
         )
         def f(x, y):
             return x
@@ -2326,7 +2322,7 @@ class TestUDFGen_LiteralArgument(TestUDFGenBase, _TestGenerateUDFQueries):
         @udf(
             x=tensor(dtype=DType.INT, ndims=1),
             v=literal(),
-            return_type=scalar(dtype=DType.INT),
+            return_type=relation([("result", int)]),
         )
         def f(x, v):
             result = v
@@ -2357,7 +2353,7 @@ class TestUDFGen_LiteralArgument(TestUDFGenBase, _TestGenerateUDFQueries):
 CREATE OR REPLACE FUNCTION
 $udf_name("x_dim0" INT,"x_val" INT)
 RETURNS
-INT
+TABLE("result" INT)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -2365,7 +2361,7 @@ LANGUAGE PYTHON
     x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
     v = 42
     result = v
-    return result
+    return udfio.as_relational_table(result, 'row_id')
 }"""
 
     @pytest.fixture(scope="class")
@@ -2373,9 +2369,15 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    $udf_name(the_table."dim0",the_table."val")
+    *
 FROM
-    the_table;"""
+    $udf_name((
+        SELECT
+            the_table."dim0",
+            the_table."val"
+        FROM
+            the_table
+    ));"""
 
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
@@ -2383,11 +2385,11 @@ FROM
             UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
                 table_schema=[
-                    ("scalar", DType.INT),
+                    ("result", DType.INT),
                 ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("scalar" INT);'
+                    'CREATE TABLE $main_output_table_name("result" INT);'
                 ),
             )
         ]
@@ -2400,7 +2402,7 @@ class TestUDFGen_ManyLiteralArguments(TestUDFGenBase, _TestGenerateUDFQueries):
             x=tensor(dtype=DType.INT, ndims=1),
             v=literal(),
             w=literal(),
-            return_type=scalar(dtype=DType.INT),
+            return_type=relation([("result", int)]),
         )
         def f(x, v, w):
             result = v + w
@@ -2432,7 +2434,7 @@ class TestUDFGen_ManyLiteralArguments(TestUDFGenBase, _TestGenerateUDFQueries):
 CREATE OR REPLACE FUNCTION
 $udf_name("x_dim0" INT,"x_val" INT)
 RETURNS
-INT
+TABLE("result" INT)
 LANGUAGE PYTHON
 {
     import pandas as pd
@@ -2441,7 +2443,7 @@ LANGUAGE PYTHON
     v = 42
     w = 24
     result = v + w
-    return result
+    return udfio.as_relational_table(result, 'row_id')
 }"""
 
     @pytest.fixture(scope="class")
@@ -2449,9 +2451,15 @@ LANGUAGE PYTHON
         return """\
 INSERT INTO $main_output_table_name
 SELECT
-    $udf_name(tensor_in_db."dim0",tensor_in_db."val")
+    *
 FROM
-    tensor_in_db;"""
+    $udf_name((
+        SELECT
+            tensor_in_db."dim0",
+            tensor_in_db."val"
+        FROM
+            tensor_in_db
+    ));"""
 
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
@@ -2459,11 +2467,11 @@ FROM
             UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
                 table_schema=[
-                    ("scalar", DType.INT),
+                    ("result", DType.INT),
                 ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("scalar" INT);'
+                    'CREATE TABLE $main_output_table_name("result" INT);'
                 ),
             )
         ]
@@ -3094,98 +3102,6 @@ FROM
         ]
 
 
-class TestUDFGen_TwoTensors1DReturnScalar(TestUDFGenBase, _TestGenerateUDFQueries):
-    @pytest.fixture(scope="class")
-    def udfregistry(self):
-        T = TypeVar("T")
-        N = TypeVar("N")
-
-        @udf(x=tensor(T, N), y=tensor(T, N), return_type=scalar(float))
-        def f(x, y):
-            result = sum(x - y)
-            return result
-
-        return udf.registry
-
-    @pytest.fixture(scope="class")
-    def udf_args(self):
-        return {
-            "x": TensorArg(table_name="tens0", dtype=int, ndims=1),
-            "y": TensorArg(table_name="tens1", dtype=int, ndims=1),
-        }
-
-    @pytest.fixture(scope="class")
-    def positional_args(self):
-        return [
-            TableInfo(
-                name="tens0",
-                schema_=TableSchema(
-                    columns=[
-                        ColumnInfo(name="row_id", dtype=DType.INT),
-                        ColumnInfo(name="dim0", dtype=DType.INT),
-                        ColumnInfo(name="val", dtype=DType.INT),
-                    ]
-                ),
-                type_=TableType.NORMAL,
-            ),
-            TableInfo(
-                name="tens1",
-                schema_=TableSchema(
-                    columns=[
-                        ColumnInfo(name="row_id", dtype=DType.INT),
-                        ColumnInfo(name="dim0", dtype=DType.INT),
-                        ColumnInfo(name="val", dtype=DType.INT),
-                    ]
-                ),
-                type_=TableType.NORMAL,
-            ),
-        ]
-
-    @pytest.fixture(scope="class")
-    def expected_udfdef(self):
-        return """\
-CREATE OR REPLACE FUNCTION
-$udf_name("x_dim0" INT,"x_val" INT,"y_dim0" INT,"y_val" INT)
-RETURNS
-DOUBLE
-LANGUAGE PYTHON
-{
-    import pandas as pd
-    import udfio
-    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['x_dim0', 'x_val'])})
-    y = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'val'], ['y_dim0', 'y_val'])})
-    result = sum(x - y)
-    return result
-}"""
-
-    @pytest.fixture(scope="class")
-    def expected_udfsel(self):
-        return """\
-INSERT INTO $main_output_table_name
-SELECT
-    $udf_name(tens0."dim0",tens0."val",tens1."dim0",tens1."val")
-FROM
-    tens0,
-    tens1
-WHERE
-    tens0."dim0"=tens1."dim0";"""
-
-    @pytest.fixture(scope="class")
-    def expected_udf_outputs(self):
-        return [
-            UDFGenTableResult(
-                tablename_placeholder="main_output_table_name",
-                table_schema=[
-                    ("scalar", DType.FLOAT),
-                ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
-                create_query=Template(
-                    'CREATE TABLE $main_output_table_name("scalar" DOUBLE);'
-                ),
-            )
-        ]
-
-
 @pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
@@ -3379,76 +3295,6 @@ FROM
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" DOUBLE);'
-                ),
-            )
-        ]
-
-
-class TestUDFGen_ScalarReturn(TestUDFGenBase, _TestGenerateUDFQueries):
-    @pytest.fixture(scope="class")
-    def udfregistry(self):
-        T = TypeVar("T")
-
-        @udf(x=tensor(dtype=T, ndims=2), return_type=scalar(dtype=T))
-        def f(x):
-            result = sum(x)
-            return result
-
-        return udf.registry
-
-    @pytest.fixture(scope="class")
-    def positional_args(self):
-        return [
-            TableInfo(
-                name="tensor_in_db",
-                schema_=TableSchema(
-                    columns=[
-                        ColumnInfo(name="row_id", dtype=DType.INT),
-                        ColumnInfo(name="dim0", dtype=DType.INT),
-                        ColumnInfo(name="dim1", dtype=DType.INT),
-                        ColumnInfo(name="val", dtype=DType.INT),
-                    ]
-                ),
-                type_=TableType.NORMAL,
-            )
-        ]
-
-    @pytest.fixture(scope="class")
-    def expected_udfdef(self):
-        return """\
-CREATE OR REPLACE FUNCTION
-$udf_name("x_dim0" INT,"x_dim1" INT,"x_val" INT)
-RETURNS
-INT
-LANGUAGE PYTHON
-{
-    import pandas as pd
-    import udfio
-    x = udfio.from_tensor_table({name: _columns[name_w_prefix] for name, name_w_prefix in zip(['dim0', 'dim1', 'val'], ['x_dim0', 'x_dim1', 'x_val'])})
-    result = sum(x)
-    return result
-}"""
-
-    @pytest.fixture(scope="class")
-    def expected_udfsel(self):
-        return """\
-INSERT INTO $main_output_table_name
-SELECT
-    $udf_name(tensor_in_db."dim0",tensor_in_db."dim1",tensor_in_db."val")
-FROM
-    tensor_in_db;"""
-
-    @pytest.fixture(scope="class")
-    def expected_udf_outputs(self):
-        return [
-            UDFGenTableResult(
-                tablename_placeholder="main_output_table_name",
-                table_schema=[
-                    ("scalar", DType.INT),
-                ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
-                create_query=Template(
-                    'CREATE TABLE $main_output_table_name("scalar" INT);'
                 ),
             )
         ]

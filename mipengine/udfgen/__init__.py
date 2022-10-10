@@ -8,7 +8,6 @@ from .udfgenerator import make_unique_func_name
 from .udfgenerator import merge_tensor
 from .udfgenerator import merge_transfer
 from .udfgenerator import relation
-from .udfgenerator import scalar
 from .udfgenerator import secure_transfer
 from .udfgenerator import state
 from .udfgenerator import tensor
@@ -22,7 +21,6 @@ __all__ = [
     "tensor",
     "relation",
     "merge_tensor",
-    "scalar",
     "literal",
     "transfer",
     "merge_transfer",
