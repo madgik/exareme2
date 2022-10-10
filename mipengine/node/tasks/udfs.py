@@ -11,7 +11,6 @@ from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.common_actions import get_table_type
-from mipengine.node.monetdb_interface.guard import is_lowercase_identifier
 from mipengine.node.monetdb_interface.guard import output_schema_validator
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
 from mipengine.node.monetdb_interface.guard import udf_kwargs_validator
@@ -456,7 +455,7 @@ def convert_udfgen2udf_results_and_mapping(
     request_id=str.isalnum,
     command_id=str.isalnum,
     context_id=str.isalnum,
-    func_name=is_lowercase_identifier,
+    func_name=str.isidentifier,
     positional_args=udf_posargs_validator,
     keyword_args=udf_kwargs_validator,
     use_smpc=None,

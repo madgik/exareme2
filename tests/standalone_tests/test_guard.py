@@ -5,29 +5,12 @@ import pytest
 from mipengine.node.monetdb_interface.guard import InvalidSQLParameter
 from mipengine.node.monetdb_interface.guard import is_datamodel
 from mipengine.node.monetdb_interface.guard import is_list_of_identifiers
-from mipengine.node.monetdb_interface.guard import is_lowercase_identifier
 from mipengine.node.monetdb_interface.guard import is_primary_data_table
 from mipengine.node.monetdb_interface.guard import is_socket_address
 from mipengine.node.monetdb_interface.guard import is_valid_filter
 from mipengine.node.monetdb_interface.guard import is_valid_literal_value
 from mipengine.node.monetdb_interface.guard import is_valid_table_schema
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
-
-
-def test_is_lowercase_identifier_valid():
-    assert is_lowercase_identifier("some_name_1")
-
-
-@pytest.mark.parametrize(
-    "string",
-    [
-        "SomeName",
-        "1some_name",
-        "some.name",
-    ],
-)
-def test_is_lowercase_identifier_invalid(string):
-    assert not is_lowercase_identifier(string)
 
 
 @pytest.mark.parametrize(
@@ -113,12 +96,14 @@ def test_is_primary_data_table_invalid(string):
 
 def test_is_list_of_identifiers():
     assert is_list_of_identifiers(["name_1", "name_2"])
-    assert not is_list_of_identifiers(["Name_1", "name_2"])
+    assert not is_list_of_identifiers(["name.1", "name_2"])
 
 
 def test_is_valid_filter():
-    assert is_valid_filter({"rules": [{"id": "name"}, {"rules": [{"id": "name"}]}]})
-    assert not is_valid_filter({"rules": [{"id": "name"}, {"rules": [{"id": "Name"}]}]})
+    assert is_valid_filter({"rules": [{"id": "name1"}, {"rules": [{"id": "name2"}]}]})
+    assert not is_valid_filter(
+        {"rules": [{"id": "name1"}, {"rules": [{"id": "name.2"}]}]}
+    )
 
 
 def test_is_valid_table_schema():
@@ -126,7 +111,7 @@ def test_is_valid_table_schema():
     Schema = namedtuple("Schema", "columns")
 
     valid_schema = Schema(columns=[Column(name="name_1"), Column(name="name_2")])
-    invalid_schema = Schema(columns=[Column(name="name_1"), Column(name="Name_2")])
+    invalid_schema = Schema(columns=[Column(name="name_1"), Column(name="name.2")])
 
     assert is_valid_table_schema(valid_schema)
     assert not is_valid_table_schema(invalid_schema)

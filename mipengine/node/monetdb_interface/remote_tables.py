@@ -5,7 +5,6 @@ from mipengine.node.monetdb_interface.common_actions import (
     convert_schema_to_sql_query_format,
 )
 from mipengine.node.monetdb_interface.common_actions import get_table_names
-from mipengine.node.monetdb_interface.guard import is_lowercase_identifier
 from mipengine.node.monetdb_interface.guard import is_socket_address
 from mipengine.node.monetdb_interface.guard import is_valid_table_schema
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
@@ -19,7 +18,7 @@ def get_remote_table_names(context_id: str) -> List[str]:
 
 
 @sql_injection_guard(
-    name=is_lowercase_identifier,
+    name=str.isidentifier,
     monetdb_socket_address=is_socket_address,
     schema=is_valid_table_schema,
 )

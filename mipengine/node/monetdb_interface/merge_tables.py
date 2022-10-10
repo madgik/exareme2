@@ -10,7 +10,6 @@ from mipengine.node.monetdb_interface.common_actions import (
 )
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.guard import is_list_of_identifiers
-from mipengine.node.monetdb_interface.guard import is_lowercase_identifier
 from mipengine.node.monetdb_interface.guard import is_valid_table_schema
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
 from mipengine.node.monetdb_interface.monet_db_facade import db_execute
@@ -23,16 +22,14 @@ def get_merge_tables_names(context_id: str) -> List[str]:
     return get_table_names(TableType.MERGE, context_id)
 
 
-@sql_injection_guard(
-    table_name=is_lowercase_identifier, table_schema=is_valid_table_schema
-)
+@sql_injection_guard(table_name=str.isidentifier, table_schema=is_valid_table_schema)
 def create_merge_table(table_name: str, table_schema: TableSchema):
     columns_schema = convert_schema_to_sql_query_format(table_schema)
     db_execute(f"CREATE MERGE TABLE {table_name} ( {columns_schema} )")
 
 
 @sql_injection_guard(
-    merge_table_name=is_lowercase_identifier,
+    merge_table_name=str.isidentifier,
     table_names=is_list_of_identifiers,
 )
 def add_to_merge_table(merge_table_name: str, table_names: List[str]):
