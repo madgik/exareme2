@@ -31,4 +31,4 @@ enabled = true
 optional = false
 client_id = ""
 client_address = ""
-coordinator_address = "http://dl056.madgik.di.uoa.gr:12314"
+coordinator_address = "http://157.230.185.50:12314"

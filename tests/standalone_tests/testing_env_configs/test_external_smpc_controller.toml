@@ -27,6 +27,6 @@ celery_tasks_interval_max = 0.5
 [smpc]
 enabled = true
 optional = false
-coordinator_address = "http://dl056.madgik.di.uoa.gr:12314"
+coordinator_address = "http://157.230.185.50:12314"
 get_result_interval = 5
 get_result_max_retries = 100
