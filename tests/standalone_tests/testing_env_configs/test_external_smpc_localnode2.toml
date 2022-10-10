@@ -29,6 +29,6 @@ password = "monetdb"
 [smpc]
 enabled = true
 optional = false
-client_id = "testsmpclocalnode2"
-client_address = "http://dl058.madgik.di.uoa.gr:9001"
-coordinator_address = "http://dl056.madgik.di.uoa.gr:12314"
+client_id = "ChildrensHospital"
+client_address = "http://157.230.185.50:9001"
+coordinator_address = "http://157.230.185.50:12314"
