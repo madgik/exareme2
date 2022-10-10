@@ -59,8 +59,6 @@ from mipengine.udfgen.udfgenerator import udf
 from mipengine.udfgen.udfgenerator import udf_logger
 from mipengine.udfgen.udfgenerator import verify_declared_typeparams_match_passed_type
 
-REQUEST_ID = "test_udfgenerator"
-
 
 @pytest.fixture(autouse=True)
 def clear_udf_registry():
@@ -1086,9 +1084,7 @@ class TestUDFGenBase:
         Replaces the udf_name placeholders in the Template.
         If the udf has loopback tables, it also replaces their names' placeholders.
         """
-        template_mapping = {
-            "udf_name": "udf_test",
-        }
+        template_mapping = {"udf_name": "udf_test", "request_id": "request_id_test"}
         template_mapping.update(
             self._get_udf_output_tablename_template_mapping(expected_udf_outputs)
         )
@@ -1262,7 +1258,6 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
         keywordargs = {"z": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
             get_udf_templates_using_udfregistry(
-                request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
                 keywordargs=keywordargs,
@@ -1289,7 +1284,6 @@ class TestUDFGen_LoggerArgument_provided_in_pos_args(TestUDFGenBase):
         posargs = [TensorArg("table_name", dtype=int, ndims=1), LiteralArg(1)]
         with pytest.raises(UDFBadCall) as exc:
             get_udf_templates_using_udfregistry(
-                request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
                 keywordargs={},
@@ -1319,7 +1313,6 @@ class TestUDFGen_LoggerArgument_provided_in_kw_args(TestUDFGenBase):
         keywordargs = {"logger": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
             get_udf_templates_using_udfregistry(
-                request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
                 keywordargs=keywordargs,
@@ -1368,7 +1361,6 @@ class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             generate_udf_queries(
-                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1416,7 +1408,6 @@ class TestUDFGen_InvalidUDFArgs_TensorTableInTransferArgument(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             _ = generate_udf_queries(
-                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1463,7 +1454,6 @@ class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             generate_udf_queries(
-                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1500,7 +1490,6 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
 
         with pytest.raises(UDFBadCall) as exc:
             generate_udf_queries(
-                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1547,7 +1536,6 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
         ]
         with pytest.raises(UDFBadCall) as exc:
             generate_udf_queries(
-                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args={},
@@ -1579,7 +1567,6 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         keywordargs = {}
         with pytest.raises(ValueError) as e:
             get_udf_templates_using_udfregistry(
-                request_id=REQUEST_ID,
                 funcname=funcname,
                 posargs=posargs,
                 keywordargs=keywordargs,
@@ -1597,7 +1584,6 @@ class TestUDFGen_KW_args_on_tensor_operation:
         keywordargs = {"Μ": 5, "v": 7}
         with pytest.raises(UDFBadCall) as e:
             generate_udf_queries(
-                request_id=REQUEST_ID,
                 func_name=funcname,
                 positional_args=posargs,
                 keyword_args=keywordargs,
@@ -1637,10 +1623,6 @@ class _TestGenerateUDFQueries:
     def use_smpc(self):
         return False
 
-    @pytest.fixture(scope="class")
-    def request_id(self):
-        return "test_udfgenerator_base"
-
     def test_generate_udf_queries(
         self,
         funcname,
@@ -1649,10 +1631,8 @@ class _TestGenerateUDFQueries:
         expected_udfsel,
         expected_udf_outputs,
         use_smpc,
-        request_id,
     ):
         udf_execution_queries = generate_udf_queries(
-            request_id=request_id,
             func_name=funcname,
             positional_args=positional_args,
             keyword_args={},
@@ -5395,7 +5375,7 @@ LANGUAGE PYTHON
     import udfio
     import json
     t = 5
-    logger = udfio.get_logger('f_gb47', 'test_udfgenerator')
+    logger = udfio.get_logger('f_gb47', '$request_id')
     logger.info('Log inside monetdb udf.')
     result = {'num': t}
     return json.dumps(result)
@@ -5424,10 +5404,6 @@ FROM
                 ),
             )
         ]
-
-    @pytest.fixture(scope="class")
-    def request_id(self):
-        return "test_udfgenerator"
 
     @pytest.mark.slow
     @pytest.mark.database
@@ -5499,10 +5475,6 @@ FROM
             )
         ]
 
-    @pytest.fixture(scope="class")
-    def request_id(self):
-        return "test_udfgenerator"
-
     def test_generate_udf_queries(
         self,
         funcname,
@@ -5512,7 +5484,6 @@ FROM
     ):
         output_schema = [("a", DType.INT), ("b", DType.FLOAT)]
         udf_execution_queries = generate_udf_queries(
-            request_id="",
             func_name=funcname,
             positional_args=[],
             keyword_args={},
@@ -5561,7 +5532,6 @@ LANGUAGE PYTHON
         expected_udfdef,
     ):
         udf_execution_queries = generate_udf_queries(
-            request_id="",
             func_name=funcname,
             positional_args=[],
             keyword_args={},

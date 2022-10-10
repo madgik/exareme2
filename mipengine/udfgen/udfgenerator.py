@@ -997,11 +997,9 @@ class UDFArgument:
 
 class UDFLoggerArg(UDFArgument):
     type = UDFLoggerType()
-    request_id: str
     udf_name: str
 
-    def __init__(self, request_id, udf_name):
-        self.request_id = request_id
+    def __init__(self, udf_name):
         self.udf_name = udf_name
 
 
@@ -1350,7 +1348,7 @@ class LoggerAssignment(ASTNode):
         if not self.logger:
             return ""
         name, logger_arg = self.logger
-        return f"{name} = udfio.get_logger('{logger_arg.udf_name}', '{logger_arg.request_id}')"
+        return f"{name} = udfio.get_logger('{logger_arg.udf_name}', '$request_id')"
 
 
 class PlaceholderAssignments(ASTNode):
@@ -1985,7 +1983,6 @@ class UDFBadCall(Exception):
 
 
 def generate_udf_queries(
-    request_id: str,
     func_name: str,
     positional_args: List[UDFGenArgument],
     keyword_args: Dict[str, UDFGenArgument],
@@ -1995,7 +1992,6 @@ def generate_udf_queries(
     """
     Parameters
     ----------
-    request_id: An identifier for logging purposes
     func_name: The name of the udf to run
     positional_args: Positional arguments
     keyword_args: Keyword arguments
@@ -2028,7 +2024,6 @@ def generate_udf_queries(
         return get_create_dummy_encoded_design_matrix_execution_queries(keyword_args)
 
     return get_udf_templates_using_udfregistry(
-        request_id=request_id,
         funcname=func_name,
         posargs=udf_posargs,
         keywordargs=udf_kwargs,
@@ -2143,7 +2138,6 @@ def convert_table_schema_to_relation_schema(table_schema):
 
 
 def get_udf_templates_using_udfregistry(
-    request_id: str,
     funcname: str,
     posargs: List[UDFArgument],
     keywordargs: Dict[str, UDFArgument],
@@ -2152,7 +2146,7 @@ def get_udf_templates_using_udfregistry(
     output_schema=None,
 ) -> UDFGenExecutionQueries:
     funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
-    udf_args = get_udf_args(request_id, funcparts, posargs, keywordargs)
+    udf_args = get_udf_args(funcparts, posargs, keywordargs)
     udf_args = resolve_merge_table_args(
         udf_args=udf_args,
         expected_table_types=funcparts.table_input_types,
@@ -2211,7 +2205,7 @@ def get_output_type_for_sql_tensor_operation(funcname, posargs):
     return output_type
 
 
-def get_udf_args(request_id, funcparts, posargs, keywordargs) -> Dict[str, UDFArgument]:
+def get_udf_args(funcparts, posargs, keywordargs) -> Dict[str, UDFArgument]:
     udf_args = merge_args_and_kwargs(
         param_names=funcparts.sig.parameters.keys(),
         args=posargs,
@@ -2225,7 +2219,6 @@ def get_udf_args(request_id, funcparts, posargs, keywordargs) -> Dict[str, UDFAr
                 f"No argument should be provided for 'UDFLoggerType' parameter: '{funcparts.logger_param_name}'"
             )
         udf_args[funcparts.logger_param_name] = UDFLoggerArg(
-            request_id=request_id,
             udf_name=funcparts.qualname,
         )
     placeholders = get_items_of_type(PlaceholderType, funcparts.sig.parameters)
