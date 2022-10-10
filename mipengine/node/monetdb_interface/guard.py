@@ -113,10 +113,6 @@ sqlidentifier_re = r"[a-z_][a-z0-9_]*"
 datatable_ptrn = re.compile(rf'"{datamodel_re}"\.("\w+"|{sqlidentifier_re})', re.A)
 
 
-def is_lowercase_identifier(string):
-    return str.isidentifier(string) and str.islower(string)
-
-
 def is_socket_address(string):
     match = socketaddress_ptrn.fullmatch(string)
     if not match:
@@ -132,25 +128,25 @@ def is_datamodel(string):
 
 
 def is_primary_data_table(string):
-    return is_lowercase_identifier(string) or bool(datatable_ptrn.fullmatch(string))
+    return string.isidentifier() or bool(datatable_ptrn.fullmatch(string))
 
 
 def is_list_of_identifiers(lst):
-    return all(is_lowercase_identifier(s) for s in lst)
+    return all(s.isidentifier() for s in lst)
 
 
 def is_valid_filter(filter):
     if filter is None:
         return True
     if "id" in filter:  # base case
-        return is_lowercase_identifier(filter["id"])
+        return filter["id"].isidentifier()
     if "rules" in filter:  # recursive case
         return all(is_valid_filter(rule) for rule in filter["rules"])
     return False
 
 
 def is_valid_table_schema(schema):
-    return all(is_lowercase_identifier(col.name) for col in schema.columns)
+    return all(col.name.isidentifier() for col in schema.columns)
 
 
 def is_valid_udf_arg(arg):
@@ -166,24 +162,24 @@ def is_valid_udf_arg(arg):
 
 
 def is_valid_table_dto(dto):
-    return is_lowercase_identifier(dto.value)
+    return dto.value.isidentifier()
 
 
 def is_valid_smpc_dto(dto):
     return (
-        is_lowercase_identifier(dto.value.template.value)
+        dto.value.template.value.isidentifier()
         and (
-            is_lowercase_identifier(dto.value.sum_op_values.value)
+            dto.value.sum_op_values.value.isidentifier()
             if dto.value.sum_op_values
             else True
         )
         and (
-            is_lowercase_identifier(dto.value.min_op_values.value)
+            dto.value.min_op_values.value.isidentifier()
             if dto.value.min_op_values
             else True
         )
         and (
-            is_lowercase_identifier(dto.value.max_op_values.value)
+            dto.value.max_op_values.value.isidentifier()
             if dto.value.max_op_values
             else True
         )
@@ -226,4 +222,4 @@ def udf_kwargs_validator(kwargs):
 
 
 def output_schema_validator(schema):
-    return schema is None or all(is_lowercase_identifier(name) for name, _ in schema)
+    return schema is None or all(name.isidentifier() for name, _ in schema)

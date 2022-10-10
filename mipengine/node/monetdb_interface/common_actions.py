@@ -5,7 +5,6 @@ from typing import List
 from mipengine import DType
 from mipengine.exceptions import TablesNotFound
 from mipengine.node.monetdb_interface.guard import is_datamodel
-from mipengine.node.monetdb_interface.guard import is_lowercase_identifier
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
 from mipengine.node.monetdb_interface.monet_db_facade import db_execute
 from mipengine.node.monetdb_interface.monet_db_facade import db_execute_and_fetchall
@@ -72,7 +71,7 @@ def convert_schema_to_sql_query_format(schema: TableSchema) -> str:
     )
 
 
-@sql_injection_guard(table_name=is_lowercase_identifier)
+@sql_injection_guard(table_name=str.isidentifier)
 def get_table_schema(table_name: str) -> TableSchema:
     """
     Retrieves a schema for a specific table name from the monetdb.
@@ -111,7 +110,7 @@ def get_table_schema(table_name: str) -> TableSchema:
     )
 
 
-@sql_injection_guard(table_name=is_lowercase_identifier)
+@sql_injection_guard(table_name=str.isidentifier)
 def get_table_type(table_name: str) -> TableType:
     """
     Retrieves the type for a specific table name from the monetdb.
@@ -171,7 +170,7 @@ def get_table_names(table_type: TableType, context_id: str) -> List[str]:
     return [table[0] for table in table_names]
 
 
-@sql_injection_guard(table_name=is_lowercase_identifier)
+@sql_injection_guard(table_name=str.isidentifier)
 def get_table_data(table_name: str) -> List[ColumnData]:
     """
     Returns a list of columns data which will contain name, type and the data of the specific column.
