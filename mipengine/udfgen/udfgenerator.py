@@ -1152,11 +1152,11 @@ class UDFReturnType(ASTNode):
 class UDFSignature(ASTNode):
     def __init__(
         self,
-        udfname: str,  # unused as long as generator returns templates
+        udfname: str,
         table_args: Dict[str, TableArg],
         return_type: OutputType,
     ):
-        self.udfname = "$udf_name"
+        self.udfname = udfname
         self.parameter_types = [
             UDFParameter(arg, name)
             for name, arg in table_args.items()
@@ -1405,6 +1405,7 @@ class UDFBody(ASTNode):
 class UDFDefinition(ASTNode):
     def __init__(
         self,
+        udfname: str,
         funcparts: "FunctionParts",
         table_args: Dict[str, TableArg],
         smpc_args: Dict[str, SMPCSecureTransferArg],
@@ -1416,7 +1417,7 @@ class UDFDefinition(ASTNode):
         smpc_used: bool,
     ):
         self.header = UDFHeader(
-            udfname=funcparts.qualname,
+            udfname=udfname,
             table_args=table_args,
             return_type=main_output_type,
         )
@@ -2183,11 +2184,10 @@ def get_udf_args(funcparts, posargs, keywordargs) -> Dict[str, UDFArgument]:
     if funcparts.logger_param_name:
         if funcparts.logger_param_name in udf_args.keys():
             raise UDFBadCall(
-                f"No argument should be provided for 'UDFLoggerType' parameter: '{funcparts.logger_param_name}'"
+                "No argument should be provided for "
+                f"'UDFLoggerType' parameter: '{funcparts.logger_param_name}'"
             )
-        udf_args[funcparts.logger_param_name] = UDFLoggerArg(
-            udf_name=funcparts.qualname,
-        )
+        udf_args[funcparts.logger_param_name] = UDFLoggerArg(udf_name="$udf_name")
     placeholders = get_items_of_type(PlaceholderType, funcparts.sig.parameters)
     if placeholders:
         udf_args.update(
@@ -2306,6 +2306,7 @@ def get_udf_definition_template(
         funcparts.table_input_types, table_args
     )
     udf_definition = UDFDefinition(
+        udfname="$udf_name",
         funcparts=funcparts,
         table_args=table_args,
         smpc_args=smpc_args,

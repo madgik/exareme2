@@ -5221,7 +5221,7 @@ LANGUAGE PYTHON
     import udfio
     import json
     t = 5
-    logger = udfio.get_logger('f_gb47', '$request_id')
+    logger = udfio.get_logger('$udf_name', '$request_id')
     logger.info('Log inside monetdb udf.')
     result = {'num': t}
     return json.dumps(result)
