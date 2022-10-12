@@ -929,6 +929,7 @@ def start_smpc_player(c, ip, id, image):
         f"-e DB_URL={ip}:{SMPC_COORDINATOR_DB_PORT} "
         "-e DB_UNAME=sysadmin "
         "-e DB_PSWD=123qwe "
+        f"-e PORT={SMPC_PLAYER_BASE_PORT + id}"
     )
     container_ports = (
         f"-p {6000 + id}:{6000 + id} "

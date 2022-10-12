@@ -119,7 +119,7 @@ SMPC_CLUSTER_SLEEP_TIME = 60
 
 # ------------ SMPC Cluster ------------ #
 
-SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v7.0.0"
+SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v7.0.6.8"
 SMPC_COORD_DB_IMAGE = "mongo:5.0.8"
 SMPC_COORD_QUEUE_IMAGE = "redis:alpine3.15"
 
@@ -1135,6 +1135,7 @@ def smpc_players():
                 "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "DB_UNAME": "sysadmin",
                 "DB_PSWD": "123qwe",
+                "PORT": f"{SMPC_PLAYER1_PORT2}",
             },
             command="python player.py 0",
         )
@@ -1162,6 +1163,7 @@ def smpc_players():
                 "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "DB_UNAME": "sysadmin",
                 "DB_PSWD": "123qwe",
+                "PORT": f"{SMPC_PLAYER2_PORT2}",
             },
             command="python player.py 1",
         )
@@ -1189,6 +1191,7 @@ def smpc_players():
                 "DB_URL": f"{COMMON_IP}:{SMPC_COORD_DB_PORT}",
                 "DB_UNAME": "sysadmin",
                 "DB_PSWD": "123qwe",
+                "PORT": f"{SMPC_PLAYER3_PORT2}",
             },
             command="python player.py 2",
         )

@@ -237,6 +237,8 @@ spec:
       value: "sysadmin"
     - name: DB_PSWD
       value: "123qwe"
+    - name: PORT
+      value: "7000"
     - name: PLAYER_IP_0
       value: mipengine-smpc-player0-service
     - name: PLAYER_REPO_0
@@ -317,6 +319,8 @@ spec:
       value: "sysadmin"
     - name: DB_PSWD
       value: "123qwe"
+    - name: PORT
+      value: "7000"
     - name: PLAYER_IP_0
       value: mipengine-smpc-player0-service
     - name: PLAYER_REPO_0
@@ -397,6 +401,8 @@ spec:
       value: "sysadmin"
     - name: DB_PSWD
       value: "123qwe"
+    - name: PORT
+      value: "7000"
     - name: PLAYER_IP_0
       value: mipengine-smpc-player0-service
     - name: PLAYER_REPO_0
