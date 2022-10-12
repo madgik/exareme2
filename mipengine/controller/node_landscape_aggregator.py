@@ -26,6 +26,7 @@ from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
+from mipengine.node_tasks_DTOs import DataModelAttributes
 from mipengine.singleton import Singleton
 
 logger = ctrl_logger.get_background_service_logger()
@@ -115,6 +116,28 @@ def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements
         logger.error(traceback.format_exc())
 
 
+def _get_data_model_attributes(
+    node_socket_addr: str, data_model: str
+) -> DataModelAttributes:
+    tasks_handler = NodeInfoTasksHandler(
+        node_queue_addr=node_socket_addr, tasks_timeout=NODE_INFO_TASKS_TIMEOUT
+    )
+    try:
+        async_result = tasks_handler.queue_data_model_attributes_task(
+            request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
+        )
+        attributes = tasks_handler.result_data_model_attributes_task(
+            async_result=async_result, request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+        )
+        return attributes
+    except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+        # just log the exception do not reraise it
+        logger.warning(exc)
+    except Exception:
+        # just log full traceback exception as error and do not reraise it
+        logger.error(traceback.format_exc())
+
+
 class ImmutableBaseModel(BaseModel, ABC):
     class Config:
         allow_mutation = False
@@ -138,6 +161,16 @@ class DataModelsCDES(ImmutableBaseModel):
     data_models_cdes: Optional[Dict[str, CommonDataElements]] = {}
 
 
+class DataModelsAttributes(ImmutableBaseModel):
+    """
+    A dictionary representation of the attributes of each data model.
+    Key values are data models.
+    Values are DataModelAttributes.
+    """
+
+    data_models_attributes: Optional[Dict[str, DataModelAttributes]] = {}
+
+
 class DatasetsLocations(ImmutableBaseModel):
     """
     A dictionary representation of the locations of each dataset in the federation.
@@ -149,7 +182,8 @@ class DatasetsLocations(ImmutableBaseModel):
 
 
 class DataModelRegistry(ImmutableBaseModel):
-    data_models: Optional[DataModelsCDES] = DataModelsCDES()
+    data_models_attributes: Optional[DataModelsAttributes] = DataModelsAttributes()
+    data_models_cdes: Optional[DataModelsCDES] = DataModelsCDES()
     datasets_locations: Optional[DatasetsLocations] = DatasetsLocations()
 
     class Config:
@@ -157,7 +191,10 @@ class DataModelRegistry(ImmutableBaseModel):
         arbitrary_types_allowed = True
 
     def get_cdes_specific_data_model(self, data_model) -> CommonDataElements:
-        return self.data_models.data_models_cdes[data_model]
+        return self.data_models_cdes.data_models_cdes[data_model]
+
+    def get_data_models_attributes(self) -> Dict[str, DataModelAttributes]:
+        return self.data_models_attributes.data_models_attributes
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         """
@@ -287,14 +324,24 @@ class DatasetsLabelsPerDataModel(ImmutableBaseModel):
     datasets_labels_per_data_model: Dict[str, DatasetsLabels]
 
 
+class DataModelMetadata(ImmutableBaseModel):
+    """
+    A representation of a data models's Metadata datasets info, cdes and attributes for a specific data model
+    """
+
+    datasets_labels: DatasetsLabels
+    cdes: Optional[CommonDataElements]
+    attributes: DataModelAttributes
+
+
 class DataModelsMetadata(ImmutableBaseModel):
     """
     A dictionary representation of a data models's Metadata.
     Key values are data models.
-    Values are tuples that contain datasets info and cdes for a specific data model.
+    Values are DataModelMetadata.
     """
 
-    data_models_metadata: Dict[str, Tuple[DatasetsLabels, Optional[CommonDataElements]]]
+    data_models_metadata: Dict[str, DataModelMetadata]
 
 
 class DataModelsMetadataPerNode(ImmutableBaseModel):
@@ -375,8 +422,8 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             list(node_registry.nodes_per_id.values()),
         )
         _log_data_model_changes(
-            self._registries.data_model_registry.data_models.data_models_cdes,
-            data_model_registry.data_models.data_models_cdes,
+            self._registries.data_model_registry.data_models_cdes.data_models_cdes,
+            data_model_registry.data_models_cdes.data_models_cdes,
         )
         _log_dataset_changes(
             self._registries.data_model_registry.datasets_locations.datasets_locations,
@@ -406,7 +453,7 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         ).values
 
     def get_cdes_per_data_model(self) -> DataModelsCDES:
-        return self._registries.data_model_registry.data_models
+        return self._registries.data_model_registry.data_models_cdes
 
     def get_datasets_locations(self) -> DatasetsLocations:
         return self._registries.data_model_registry.datasets_locations
@@ -435,6 +482,9 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         return self._registries.data_model_registry.get_node_specific_datasets(
             node_id, data_model, wanted_datasets
         )
+
+    def get_data_models_attributes(self) -> Dict[str, DataModelAttributes]:
+        return self._registries.data_model_registry.get_data_models_attributes()
 
 
 def _fetch_nodes_metadata() -> Tuple[
@@ -481,9 +531,14 @@ def _crunch_data_model_registry_data(
         data_models_metadata_per_node_with_compatible_data_models,
         datasets_labels_per_data_model,
     )
+    data_models_attributes = _aggregate_data_models_attributes(
+        data_models_metadata_per_node_with_compatible_data_models,
+    )
 
     return DataModelRegistry(
-        data_models=data_models_cdes, datasets_locations=datasets_locations
+        data_models_cdes=data_models_cdes,
+        datasets_locations=datasets_locations,
+        data_models_attributes=data_models_attributes,
     )
 
 
@@ -501,10 +556,13 @@ def _get_data_models_metadata_per_node(
             node_socket_addr = _get_node_socket_addr(node_info)
             for data_model, datasets in datasets_per_data_model.items():
                 cdes = _get_node_cdes(node_socket_addr, data_model)
+                attributes = _get_data_model_attributes(node_socket_addr, data_model)
                 cdes = cdes if cdes else None
-                data_models_metadata[data_model] = (
-                    DatasetsLabels(datasets_labels=datasets),
-                    cdes,
+                attributes = attributes if attributes else None
+                data_models_metadata[data_model] = DataModelMetadata(
+                    datasets_labels=DatasetsLabels(datasets_labels=datasets),
+                    cdes=cdes,
+                    attributes=attributes,
                 )
         data_models_metadata_per_node[node_info.id] = DataModelsMetadata(
             data_models_metadata=data_models_metadata
@@ -534,10 +592,8 @@ def _aggregate_datasets_locations_and_labels(
     ) in data_models_metadata_per_node.data_models_metadata_per_node.items():
         for (
             data_model,
-            datasets_and_cdes,
+            data_model_metadata,
         ) in data_models_metadata.data_models_metadata.items():
-            datasets, _ = datasets_and_cdes
-
             current_labels = (
                 datasets_labels[data_model].datasets_labels
                 if data_model in datasets_labels
@@ -549,7 +605,10 @@ def _aggregate_datasets_locations_and_labels(
                 else {}
             )
 
-            for dataset_name, dataset_label in datasets.datasets_labels.items():
+            for (
+                dataset_name,
+                dataset_label,
+            ) in data_model_metadata.datasets_labels.datasets_labels.items():
                 current_labels[dataset_name] = dataset_label
 
                 if dataset_name in current_datasets:
@@ -587,11 +646,10 @@ def _aggregate_data_models_cdes(
     ) in data_models_metadata_per_node.data_models_metadata_per_node.items():
         for (
             data_model,
-            datasets_and_cdes,
+            data_model_metadata,
         ) in data_models_metadata.data_models_metadata.items():
-            _, cdes = datasets_and_cdes
-            data_models[data_model] = cdes
-            dataset_cde = cdes.values["dataset"]
+            data_models[data_model] = data_model_metadata.cdes
+            dataset_cde = data_model_metadata.cdes.values["dataset"]
             new_dataset_cde = CommonDataElement(
                 code=dataset_cde.code,
                 label=dataset_cde.label,
@@ -605,6 +663,57 @@ def _aggregate_data_models_cdes(
             )
             data_models[data_model].values["dataset"] = new_dataset_cde
     return DataModelsCDES(data_models_cdes=data_models)
+
+
+def _aggregate_data_models_attributes(
+    data_models_metadata_per_node: DataModelsMetadataPerNode,
+) -> DataModelsAttributes:
+    data_models_attributes = {}
+    for (
+        node_id,
+        data_models_metadata,
+    ) in data_models_metadata_per_node.data_models_metadata_per_node.items():
+        for (
+            data_model,
+            data_model_metadata,
+        ) in data_models_metadata.data_models_metadata.items():
+            current_tags = _get_updated_tags(
+                data_model=data_model,
+                data_models_attributes=data_models_attributes,
+                tags=data_model_metadata.attributes.tags,
+            )
+            current_properties = _get_updated_properties(
+                data_model=data_model,
+                data_models_attributes=data_models_attributes,
+                properties_to_be_added=data_model_metadata.attributes.properties,
+            )
+            data_models_attributes[data_model] = DataModelAttributes(
+                tags=current_tags, properties=current_properties
+            )
+    return DataModelsAttributes(data_models_attributes=data_models_attributes)
+
+
+def _get_updated_properties(data_model, data_models_attributes, properties_to_be_added):
+    if data_model not in data_models_attributes:
+        return {key: [value] for key, value in properties_to_be_added.items()}
+
+    properties = data_models_attributes[data_model].properties
+    for key, value in properties_to_be_added.items():
+        properties[key] = (
+            (properties[key] if value in properties[key] else properties[key] + [value])
+            if key in properties
+            else [value]
+        )
+    return properties
+
+
+def _get_updated_tags(data_model, data_models_attributes, tags):
+    return (
+        data_models_attributes[data_model].tags
+        + list(set(tags) - set(data_models_attributes[data_model].tags))
+        if data_model in data_models_attributes
+        else tags
+    )
 
 
 def _get_incompatible_data_models(
@@ -632,22 +741,23 @@ def _get_incompatible_data_models(
     ) in data_models_metadata_per_node.data_models_metadata_per_node.items():
         for (
             data_model,
-            datasets_and_cdes,
+            data_model_metadata,
         ) in data_models_metadata.data_models_metadata.items():
-            _, cdes = datasets_and_cdes
 
-            if data_model in incompatible_data_models or not cdes:
+            if data_model in incompatible_data_models or not data_model_metadata.cdes:
                 continue
 
             if data_model in validation_dictionary:
                 valid_node_id, valid_cdes = validation_dictionary[data_model]
-                if not valid_cdes == cdes:
+                if not valid_cdes == data_model_metadata.cdes:
                     nodes = [node_id, valid_node_id]
                     incompatible_data_models.append(data_model)
-                    _log_incompatible_data_models(nodes, data_model, [cdes, valid_cdes])
+                    _log_incompatible_data_models(
+                        nodes, data_model, [data_model_metadata.cdes, valid_cdes]
+                    )
                     break
             else:
-                validation_dictionary[data_model] = (node_id, cdes)
+                validation_dictionary[data_model] = (node_id, data_model_metadata.cdes)
 
     return incompatible_data_models
 
@@ -660,10 +770,10 @@ def _remove_incompatible_data_models_from_data_models_metadata_per_node(
         data_models_metadata_per_node={
             node_id: DataModelsMetadata(
                 data_models_metadata={
-                    data_model: datasets_and_cdes
-                    for data_model, datasets_and_cdes in data_models_metadata.data_models_metadata.items()
+                    data_model: data_model_metadata
+                    for data_model, data_model_metadata in data_models_metadata.data_models_metadata.items()
                     if data_model not in incompatible_data_models
-                    and datasets_and_cdes[1]
+                    and data_model_metadata.cdes
                 }
             )
             for node_id, data_models_metadata in data_models_metadata_per_node.data_models_metadata_per_node.items()

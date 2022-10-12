@@ -9,11 +9,13 @@ from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.celery_app import CeleryWrapper
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import CommonDataElements
+from mipengine.node_tasks_DTOs import DataModelAttributes
 
 TASK_SIGNATURES: Final = {
     "get_node_info": "mipengine.node.tasks.common.get_node_info",
     "get_node_datasets_per_data_model": "mipengine.node.tasks.common.get_node_datasets_per_data_model",
     "get_data_model_cdes": "mipengine.node.tasks.common.get_data_model_cdes",
+    "get_data_model_attributes": "mipengine.node.tasks.common.get_data_model_attributes",
 }
 
 
@@ -112,3 +114,33 @@ class NodeInfoTasksHandler:
             logger=logger,
         )
         return CommonDataElements.parse_raw(result)
+
+    # --------------- get_data_model_attributes task ---------------
+    # NON-BLOCKING
+    def queue_data_model_attributes_task(
+        self, request_id: str, data_model: str
+    ) -> AsyncResult:
+        celery_app = self._get_node_celery_app()
+        task_signature = TASK_SIGNATURES["get_data_model_attributes"]
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        async_result = celery_app.queue_task(
+            task_signature=task_signature,
+            logger=logger,
+            request_id=request_id,
+            data_model=data_model,
+            priority=CELERY_APP_QUEUE_MAX_PRIORITY,
+        )
+        return async_result
+
+    # BLOCKING
+    def result_data_model_attributes_task(
+        self, async_result: AsyncResult, request_id: str
+    ) -> DataModelAttributes:
+        celery_app = self._get_node_celery_app()
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        result = celery_app.get_result(
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            logger=logger,
+        )
+        return DataModelAttributes.parse_raw(result)

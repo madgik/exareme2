@@ -1,3 +1,5 @@
+import json
+import logging
 from typing import Any
 from typing import Dict
 from typing import List
@@ -11,6 +13,7 @@ from mipengine.node.monetdb_interface.monet_db_facade import db_execute_and_fetc
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
+from mipengine.node_tasks_DTOs import DataModelAttributes
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.table_data_DTOs import ColumnData
@@ -314,6 +317,32 @@ def get_data_model_cdes(data_model: str) -> CommonDataElements:
     )
 
     return cdes
+
+
+@sql_injection_guard(data_model=is_datamodel)
+def get_data_model_attributes(data_model: str) -> DataModelAttributes:
+    """
+    Retrieves the attributes, for a specific data_model.
+
+    Returns
+    ------
+    DataModelAttributes
+    """
+    data_model_code, data_model_version = data_model.split(":")
+
+    attributes = db_execute_and_fetchall(
+        f"""
+        SELECT properties
+        FROM "mipdb_metadata"."data_models"
+        WHERE code = '{data_model_code}'
+        AND version = '{data_model_version}'
+        """
+    )
+
+    attributes = json.loads(attributes[0][0])
+    return DataModelAttributes(
+        tags=attributes["tags"], properties=attributes["properties"]
+    )
 
 
 def drop_db_artifacts_by_context_id(context_id: str):

@@ -60,6 +60,11 @@ class TableInfo(ImmutableBaseModel):
     type_: TableType
 
 
+class DataModelAttributes(ImmutableBaseModel):
+    tags: List
+    properties: Dict
+
+
 class TableData(ImmutableBaseModel):
     name: str
     columns: List[

@@ -33,6 +33,11 @@ async def get_cdes_metadata() -> dict:
     return controller.get_cdes_per_data_model()
 
 
+@algorithms.route("/data_models_attributes", methods=["GET"])
+async def get_data_models_attributes() -> dict:
+    return controller.get_data_models_attributes()
+
+
 @algorithms.route("/algorithms", methods=["GET"])
 async def get_algorithms() -> str:
     return algorithm_specifications.get_enabled_algorithm_dtos().json()
