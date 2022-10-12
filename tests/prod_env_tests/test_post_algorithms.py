@@ -91,3 +91,28 @@ def test_post_algorithm_error(algorithm_name, request_dict, expected_response):
         response.status_code == exp_response_status
     ), f"Response message: {response.text}"
     assert re.search(exp_response_message, response.text)
+
+
+def test_post_algorithm_with_request_id():
+    algorithm_name = "pca"
+    request_dict = {
+        "inputdata": {
+            "y": [
+                "lefthippocampus",
+            ],
+            "data_model": "dementia:0.1",
+            "datasets": [
+                "desd-synthdata8",
+            ],
+            "filters": None,
+        },
+        "parameters": None,
+        "request_id": "89aace55-60e8-4b29-958b-84cca8785120",
+    }
+    algorithm_url = algorithms_url + "/" + algorithm_name
+    headers = {"Content-type": "application/json", "Accept": "text/plain"}
+    request_json = json.dumps(request_dict)
+    response = requests.post(algorithm_url, data=request_json, headers=headers)
+    assert response.status_code == 200, pytest.fail(
+        f"Algorithm did not succeed with {response.status_code=} and {response.text=}"
+    )

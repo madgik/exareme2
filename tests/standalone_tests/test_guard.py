@@ -9,6 +9,7 @@ from mipengine.node.monetdb_interface.guard import is_primary_data_table
 from mipengine.node.monetdb_interface.guard import is_socket_address
 from mipengine.node.monetdb_interface.guard import is_valid_filter
 from mipengine.node.monetdb_interface.guard import is_valid_literal_value
+from mipengine.node.monetdb_interface.guard import is_valid_request_id
 from mipengine.node.monetdb_interface.guard import is_valid_table_schema
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
 
@@ -115,6 +116,25 @@ def test_is_valid_table_schema():
 
     assert is_valid_table_schema(valid_schema)
     assert not is_valid_table_schema(invalid_schema)
+
+
+@pytest.mark.parametrize(
+    "string",
+    [
+        "not identifier",
+        "2343-2342342-",
+        "--",
+        "identifieranduuid-89aace55-60e8-4b29-958b-84cca8785120",
+    ],
+)
+def test_is_valid_request_id_invalid(string):
+    assert not is_valid_request_id(string)
+
+
+def test_is_valid_request_id_valid():
+    assert is_valid_request_id("identifier2432342")
+    assert is_valid_request_id("89aace55-60e8-4b29-958b-84cca8785120")
+    assert is_valid_request_id("89AACE55-60e8-4b29-958b-84cca8785120")
 
 
 def test_sql_injection_guard__validate_posarg():

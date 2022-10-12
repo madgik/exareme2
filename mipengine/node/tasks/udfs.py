@@ -11,6 +11,7 @@ from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.common_actions import get_table_type
+from mipengine.node.monetdb_interface.guard import is_valid_request_id
 from mipengine.node.monetdb_interface.guard import output_schema_validator
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
 from mipengine.node.monetdb_interface.guard import udf_kwargs_validator
@@ -452,7 +453,7 @@ def convert_udfgen2udf_results_and_mapping(
 
 
 @sql_injection_guard(
-    request_id=str.isalnum,
+    request_id=is_valid_request_id,
     command_id=str.isalnum,
     context_id=str.isalnum,
     func_name=str.isidentifier,

@@ -111,6 +111,8 @@ datamodel_re = rf"\w+:{version_re}"
 datamodel_ptrn = re.compile(datamodel_re, re.A)
 sqlidentifier_re = r"[a-z_][a-z0-9_]*"
 datatable_ptrn = re.compile(rf'"{datamodel_re}"\.("\w+"|{sqlidentifier_re})', re.A)
+uuid_re = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+uuid_ptrn = re.compile(uuid_re, re.A | re.I)
 
 
 def is_socket_address(string):
@@ -223,3 +225,7 @@ def udf_kwargs_validator(kwargs):
 
 def output_schema_validator(schema):
     return schema is None or all(name.isidentifier() for name, _ in schema)
+
+
+def is_valid_request_id(string):
+    return string.isalnum() or bool(uuid_ptrn.fullmatch(string))
