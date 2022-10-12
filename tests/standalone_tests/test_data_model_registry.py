@@ -4,10 +4,12 @@ from mipengine.controller.controller_logger import get_request_logger
 
 # TODO the testing should be better once the datasets are properly distributed and the are no duplicates.
 from mipengine.controller.node_landscape_aggregator import DataModelRegistry
+from mipengine.controller.node_landscape_aggregator import DataModelsAttributes
 from mipengine.controller.node_landscape_aggregator import DataModelsCDES
 from mipengine.controller.node_landscape_aggregator import DatasetsLocations
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
+from mipengine.node_tasks_DTOs import DataModelAttributes
 
 
 @pytest.fixture
@@ -35,7 +37,7 @@ def mocked_datasets_locations():
 
 
 @pytest.fixture
-def mocked_data_model_cdes():
+def mocked_data_models_cdes():
     yield DataModelsCDES(
         data_models_cdes={
             "dementia:0.1": CommonDataElements(
@@ -101,9 +103,25 @@ def mocked_data_model_cdes():
 
 
 @pytest.fixture
-def mocked_data_model_registry(mocked_data_model_cdes, mocked_datasets_locations):
+def mocked_data_models_attributes():
+    yield DataModelsAttributes(
+        data_models_attributes={
+            "dementia:0.1": DataModelAttributes(
+                tags=["dementia"], properties={"key": ["value"]}
+            ),
+            "tbi:0.1": DataModelAttributes(tags=["tbi"], properties={"key": ["value"]}),
+        }
+    )
+
+
+@pytest.fixture
+def mocked_data_model_registry(
+    mocked_data_models_cdes, mocked_datasets_locations, mocked_data_models_attributes
+):
     data_model_registry = DataModelRegistry(
-        data_models=mocked_data_model_cdes, datasets_locations=mocked_datasets_locations
+        data_models_cdes=mocked_data_models_cdes,
+        datasets_locations=mocked_datasets_locations,
+        data_models_attributes=mocked_data_models_attributes,
     )
     return data_model_registry
 
@@ -138,7 +156,21 @@ def test_get_node_specific_datasets(mocked_data_model_registry):
     ) == {"edsd0", "ppmi0"}
 
 
+def test_get_data_models_attributes(mocked_data_model_registry):
+    data_models_attributes = mocked_data_model_registry.get_data_models_attributes()
+    assert "tbi:0.1" in data_models_attributes
+    assert "dementia:0.1" in data_models_attributes
+    assert (
+        DataModelAttributes(tags=["tbi"], properties={"key": ["value"]})
+        == data_models_attributes["tbi:0.1"]
+    )
+    assert (
+        DataModelAttributes(tags=["dementia"], properties={"key": ["value"]})
+        == data_models_attributes["dementia:0.1"]
+    )
+
+
 def test_empty_initialization():
     dmr = DataModelRegistry()
-    assert not dmr.data_models.data_models_cdes
+    assert not dmr.data_models_cdes.data_models_cdes
     assert not dmr.datasets_locations.datasets_locations

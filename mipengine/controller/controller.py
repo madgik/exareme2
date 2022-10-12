@@ -190,6 +190,12 @@ class Controller:
             for data_model, cdes in self._node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.items()
         }
 
+    def get_data_models_attributes(self) -> Dict[str, Dict]:
+        return {
+            data_model: data_model_metadata.dict()
+            for data_model, data_model_metadata in self._node_landscape_aggregator.get_data_models_attributes().items()
+        }
+
     def get_all_available_data_models(self) -> List[str]:
         return list(
             self._node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.keys()

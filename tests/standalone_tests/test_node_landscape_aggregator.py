@@ -1,6 +1,8 @@
 import pytest
 
+from mipengine.controller.node_landscape_aggregator import DataModelMetadata
 from mipengine.controller.node_landscape_aggregator import DataModelRegistry
+from mipengine.controller.node_landscape_aggregator import DataModelsAttributes
 from mipengine.controller.node_landscape_aggregator import DataModelsCDES
 from mipengine.controller.node_landscape_aggregator import DataModelsMetadata
 from mipengine.controller.node_landscape_aggregator import DataModelsMetadataPerNode
@@ -16,6 +18,7 @@ from mipengine.controller.node_landscape_aggregator import (
 from mipengine.controller.node_landscape_aggregator import _get_nodes_info
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
+from mipengine.node_tasks_DTOs import DataModelAttributes
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_ADDR
 
 
@@ -26,14 +29,14 @@ def get_parametrization_cases():
                 data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -49,14 +52,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag1"],
+                                    properties={"key1": "value1"},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -71,19 +78,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag1"],
+                                    properties={"key1": "value1"},
+                                ),
                             ),
                         }
                     ),
                     "localnode2": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset3": "DATASET3",
                                         "dataset4": "DATASET4",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -99,19 +110,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag2"],
+                                    properties={"key2": "value2"},
+                                ),
                             ),
                         }
                     ),
                     "localnode3": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset5": "DATASET5",
                                         "dataset6": "DATASET6",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -127,14 +142,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag3"],
+                                    properties={"key3": "value3"},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -149,13 +168,36 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag2"],
+                                    properties={"key2": "value2"},
+                                ),
                             ),
                         }
                     ),
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelsCDES(
+                data_models_attributes=DataModelsAttributes(
+                    data_models_attributes={
+                        "data_model:1": DataModelAttributes(
+                            tags=["tag1", "tag2", "tag3"],
+                            properties={
+                                "key1": ["value1"],
+                                "key2": ["value2"],
+                                "key3": ["value3"],
+                            },
+                        ),
+                        "data_model:2": DataModelAttributes(
+                            tags=["tag1", "tag2"],
+                            properties={
+                                "key1": ["value1"],
+                                "key2": ["value2"],
+                            },
+                        ),
+                    }
+                ),
+                data_models_cdes=DataModelsCDES(
                     data_models_cdes={
                         "data_model:1": CommonDataElements(
                             values={
@@ -219,22 +261,26 @@ def get_parametrization_cases():
                 data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                None,
+                                cdes=None,
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -249,19 +295,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                     "localnode2": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset3": "DATASET3",
                                         "dataset4": "DATASET4",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -277,19 +327,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                     "localnode3": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset5": "DATASET5",
                                         "dataset6": "DATASET6",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -305,14 +359,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -327,13 +385,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelsCDES(
+                data_models_attributes=DataModelsAttributes(
+                    data_models_attributes={
+                        "data_model:2": DataModelAttributes(tags=[], properties={}),
+                        "data_model:1": DataModelAttributes(tags=[], properties={}),
+                    }
+                ),
+                data_models_cdes=DataModelsCDES(
                     data_models_cdes={
                         "data_model:1": CommonDataElements(
                             values={
@@ -393,14 +461,14 @@ def get_parametrization_cases():
                 data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -425,14 +493,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -447,19 +519,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                     "localnode2": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset3": "DATASET3",
                                         "dataset4": "DATASET4",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -484,19 +560,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                     "localnode3": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset5": "DATASET5",
                                         "dataset6": "DATASET6",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -521,14 +601,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -543,13 +627,22 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelsCDES(
+                data_models_attributes=DataModelsAttributes(
+                    data_models_attributes={
+                        "data_model:2": DataModelAttributes(tags=[], properties={})
+                    }
+                ),
+                data_models_cdes=DataModelsCDES(
                     data_models_cdes={
                         "data_model:2": CommonDataElements(
                             values={
@@ -585,9 +678,9 @@ def get_parametrization_cases():
                 data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(datasets_labels={}),
-                                CommonDataElements(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(datasets_labels={}),
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -603,10 +696,14 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(datasets_labels={}),
-                                CommonDataElements(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(datasets_labels={}),
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -621,14 +718,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                     "localnode2": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(datasets_labels={}),
-                                CommonDataElements(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(datasets_labels={}),
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -644,14 +745,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                     "localnode3": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(datasets_labels={}),
-                                CommonDataElements(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(datasets_labels={}),
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -667,10 +772,14 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(datasets_labels={}),
-                                CommonDataElements(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(datasets_labels={}),
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -685,13 +794,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelsCDES(
+                data_models_attributes=DataModelsAttributes(
+                    data_models_attributes={
+                        "data_model:1": DataModelAttributes(tags=[], properties={}),
+                        "data_model:2": DataModelAttributes(tags=[], properties={}),
+                    }
+                ),
+                data_models_cdes=DataModelsCDES(
                     data_models_cdes={
                         "data_model:1": CommonDataElements(
                             values={
@@ -738,7 +857,8 @@ def get_parametrization_cases():
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelsCDES(data_models_cdes={}),
+                data_models_attributes=DataModelsAttributes(data_models_attributes={}),
+                data_models_cdes=DataModelsCDES(data_models_cdes={}),
                 datasets_locations=DatasetsLocations(datasets_locations={}),
             ),
             id="no_data_model_or_dataset_case",
@@ -748,14 +868,14 @@ def get_parametrization_cases():
                 data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -771,14 +891,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -792,20 +916,24 @@ def get_parametrization_cases():
                                             max=None,
                                         ),
                                     }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
                                 ),
                             ),
                         }
                     ),
                     "localnode2": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -821,14 +949,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -842,20 +974,24 @@ def get_parametrization_cases():
                                             max=None,
                                         ),
                                     }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
                                 ),
                             ),
                         }
                     ),
                     "localnode3": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -871,14 +1007,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -892,20 +1032,24 @@ def get_parametrization_cases():
                                             max=None,
                                         ),
                                     }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
                                 ),
                             ),
                         }
                     ),
                     "localnode4": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -921,14 +1065,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -942,6 +1090,10 @@ def get_parametrization_cases():
                                             max=None,
                                         ),
                                     }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
                                 ),
                             ),
                         }
@@ -949,7 +1101,13 @@ def get_parametrization_cases():
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelsCDES(
+                data_models_attributes=DataModelsAttributes(
+                    data_models_attributes={
+                        "data_model:1": DataModelAttributes(tags=[], properties={}),
+                        "data_model:2": DataModelAttributes(tags=[], properties={}),
+                    }
+                ),
+                data_models_cdes=DataModelsCDES(
                     data_models_cdes={
                         "data_model:1": CommonDataElements(
                             values={
@@ -990,14 +1148,14 @@ def get_parametrization_cases():
                 data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1013,14 +1171,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1035,19 +1197,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                     "localnode2": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset3": "DATASET3",
                                         "dataset4": "DATASET4",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1063,19 +1229,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                     "localnode3": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset5": "DATASET5",
                                         "dataset6": "DATASET6",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1091,14 +1261,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1113,13 +1287,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelsCDES(
+                data_models_attributes=DataModelsAttributes(
+                    data_models_attributes={
+                        "data_model:1": DataModelAttributes(tags=[], properties={}),
+                        "data_model:2": DataModelAttributes(tags=[], properties={}),
+                    }
+                ),
+                data_models_cdes=DataModelsCDES(
                     data_models_cdes={
                         "data_model:1": CommonDataElements(
                             values={
@@ -1177,14 +1361,14 @@ def get_parametrization_cases():
                 data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1209,14 +1393,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1231,19 +1419,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                     "localnode2": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset3": "DATASET3",
                                         "dataset4": "DATASET4",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1259,19 +1451,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                     "localnode3": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset5": "DATASET5",
                                         "dataset6": "DATASET6",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1287,14 +1483,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1309,13 +1509,22 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelsCDES(
+                data_models_attributes=DataModelsAttributes(
+                    data_models_attributes={
+                        "data_model:2": DataModelAttributes(tags=[], properties={})
+                    }
+                ),
+                data_models_cdes=DataModelsCDES(
                     data_models_cdes={
                         "data_model:2": CommonDataElements(
                             values={
@@ -1351,14 +1560,14 @@ def get_parametrization_cases():
                 data_models_metadata_per_node={
                     "localnode1": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1383,14 +1592,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset1": "DATASET1",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1405,19 +1618,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                     "localnode2": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset3": "DATASET3",
                                         "dataset4": "DATASET4",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1433,19 +1650,23 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                     "localnode3": DataModelsMetadata(
                         data_models_metadata={
-                            "data_model:1": (
-                                DatasetsLabels(
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset5": "DATASET5",
                                         "dataset6": "DATASET6",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1461,14 +1682,18 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
-                            "data_model:2": (
-                                DatasetsLabels(
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
                                     datasets_labels={
                                         "dataset2": "DATASET2",
                                     }
                                 ),
-                                CommonDataElements(
+                                cdes=CommonDataElements(
                                     values={
                                         "dataset": CommonDataElement(
                                             code="dataset",
@@ -1483,13 +1708,22 @@ def get_parametrization_cases():
                                         ),
                                     }
                                 ),
+                                attributes=DataModelAttributes(
+                                    tags=[],
+                                    properties={},
+                                ),
                             ),
                         }
                     ),
                 }
             ),
             DataModelRegistry(
-                data_models=DataModelsCDES(
+                data_models_attributes=DataModelsAttributes(
+                    data_models_attributes={
+                        "data_model:2": DataModelAttributes(tags=[], properties={})
+                    }
+                ),
+                data_models_cdes=DataModelsCDES(
                     data_models_cdes={
                         "data_model:2": CommonDataElements(
                             values={
@@ -1520,6 +1754,484 @@ def get_parametrization_cases():
             ),
             id="incompatible_cdes_on_data_model1",
         ),
+        pytest.param(
+            DataModelsMetadataPerNode(
+                data_models_metadata_per_node={
+                    "localnode1": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                cdes=CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag1", "common-tag"],
+                                    properties={
+                                        "key1": "value1",
+                                        "common-key": "common-value",
+                                    },
+                                ),
+                            ),
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                cdes=CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag1"],
+                                    properties={"key1": "value1"},
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode2": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                    }
+                                ),
+                                cdes=CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset3": "DATASET3",
+                                                "dataset4": "DATASET4",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag2", "common-tag"],
+                                    properties={
+                                        "key2": "value2",
+                                        "common-key": "common-value",
+                                    },
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode3": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    }
+                                ),
+                                cdes=CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset5": "DATASET5",
+                                                "dataset6": "DATASET6",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag3"],
+                                    properties={"key3": "value3"},
+                                ),
+                            ),
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                cdes=CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag2"],
+                                    properties={"key2": "value2"},
+                                ),
+                            ),
+                        }
+                    ),
+                }
+            ),
+            DataModelRegistry(
+                data_models_attributes=DataModelsAttributes(
+                    data_models_attributes={
+                        "data_model:1": DataModelAttributes(
+                            tags=["tag1", "common-tag", "tag2", "tag3"],
+                            properties={
+                                "key1": ["value1"],
+                                "common-key": ["common-value"],
+                                "key2": ["value2"],
+                                "key3": ["value3"],
+                            },
+                        ),
+                        "data_model:2": DataModelAttributes(
+                            tags=["tag1", "tag2"],
+                            properties={
+                                "key1": ["value1"],
+                                "key2": ["value2"],
+                            },
+                        ),
+                    }
+                ),
+                data_models_cdes=DataModelsCDES(
+                    data_models_cdes={
+                        "data_model:1": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    },
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                        "data_model:2": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    },
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                    }
+                ),
+                datasets_locations=DatasetsLocations(
+                    datasets_locations={
+                        "data_model:1": {
+                            "dataset1": "localnode1",
+                            "dataset2": "localnode1",
+                            "dataset3": "localnode2",
+                            "dataset4": "localnode2",
+                            "dataset5": "localnode3",
+                            "dataset6": "localnode3",
+                        },
+                        "data_model:2": {
+                            "dataset1": "localnode1",
+                            "dataset2": "localnode3",
+                        },
+                    }
+                ),
+            ),
+            id="duplicated_tags_and_properties",
+        ),
+        pytest.param(
+            DataModelsMetadataPerNode(
+                data_models_metadata_per_node={
+                    "localnode1": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                cdes=CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag1"],
+                                    properties={
+                                        "key1": "value1",
+                                        "common-key": "different-value1",
+                                    },
+                                ),
+                            ),
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset1": "DATASET1",
+                                    }
+                                ),
+                                cdes=CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset1": "DATASET1",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag1"],
+                                    properties={"key1": "value1"},
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode2": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                    }
+                                ),
+                                cdes=CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset3": "DATASET3",
+                                                "dataset4": "DATASET4",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag2"],
+                                    properties={
+                                        "key2": "value2",
+                                        "common-key": "different-value2",
+                                    },
+                                ),
+                            ),
+                        }
+                    ),
+                    "localnode3": DataModelsMetadata(
+                        data_models_metadata={
+                            "data_model:1": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    }
+                                ),
+                                cdes=CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset5": "DATASET5",
+                                                "dataset6": "DATASET6",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag3"],
+                                    properties={"key3": "value3"},
+                                ),
+                            ),
+                            "data_model:2": DataModelMetadata(
+                                datasets_labels=DatasetsLabels(
+                                    datasets_labels={
+                                        "dataset2": "DATASET2",
+                                    }
+                                ),
+                                cdes=CommonDataElements(
+                                    values={
+                                        "dataset": CommonDataElement(
+                                            code="dataset",
+                                            label="Dataset",
+                                            sql_type="text",
+                                            is_categorical=True,
+                                            enumerations={
+                                                "dataset2": "DATASET2",
+                                            },
+                                            min=None,
+                                            max=None,
+                                        ),
+                                    }
+                                ),
+                                attributes=DataModelAttributes(
+                                    tags=["tag2"],
+                                    properties={"key2": "value2"},
+                                ),
+                            ),
+                        }
+                    ),
+                }
+            ),
+            DataModelRegistry(
+                data_models_attributes=DataModelsAttributes(
+                    data_models_attributes={
+                        "data_model:1": DataModelAttributes(
+                            tags=["tag1", "tag2", "tag3"],
+                            properties={
+                                "key1": ["value1"],
+                                "common-key": ["different-value1", "different-value2"],
+                                "key2": ["value2"],
+                                "key3": ["value3"],
+                            },
+                        ),
+                        "data_model:2": DataModelAttributes(
+                            tags=["tag1", "tag2"],
+                            properties={
+                                "key1": ["value1"],
+                                "key2": ["value2"],
+                            },
+                        ),
+                    }
+                ),
+                data_models_cdes=DataModelsCDES(
+                    data_models_cdes={
+                        "data_model:1": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                        "dataset3": "DATASET3",
+                                        "dataset4": "DATASET4",
+                                        "dataset5": "DATASET5",
+                                        "dataset6": "DATASET6",
+                                    },
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                        "data_model:2": CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={
+                                        "dataset1": "DATASET1",
+                                        "dataset2": "DATASET2",
+                                    },
+                                    min=None,
+                                    max=None,
+                                )
+                            }
+                        ),
+                    }
+                ),
+                datasets_locations=DatasetsLocations(
+                    datasets_locations={
+                        "data_model:1": {
+                            "dataset1": "localnode1",
+                            "dataset2": "localnode1",
+                            "dataset3": "localnode2",
+                            "dataset4": "localnode2",
+                            "dataset5": "localnode3",
+                            "dataset6": "localnode3",
+                        },
+                        "data_model:2": {
+                            "dataset1": "localnode1",
+                            "dataset2": "localnode3",
+                        },
+                    }
+                ),
+            ),
+            id="properties_with_common_keys",
+        ),
     ]
 
 
@@ -1527,8 +2239,23 @@ def get_parametrization_cases():
     "data_models_metadata_per_node,expected",
     get_parametrization_cases(),
 )
-def test_data_model_registry(data_models_metadata_per_node, expected):
-    assert _crunch_data_model_registry_data(data_models_metadata_per_node) == expected
+def test_data_model_registry(
+    data_models_metadata_per_node: DataModelsMetadataPerNode,
+    expected: DataModelRegistry,
+):
+    dmr = _crunch_data_model_registry_data(data_models_metadata_per_node)
+    assert (
+        dmr.data_models_cdes.data_models_cdes
+        == expected.data_models_cdes.data_models_cdes
+    )
+    assert (
+        dmr.datasets_locations.datasets_locations
+        == expected.datasets_locations.datasets_locations
+    )
+    assert (
+        dmr.data_models_attributes.data_models_attributes
+        == expected.data_models_attributes.data_models_attributes
+    )
 
 
 @pytest.mark.slow

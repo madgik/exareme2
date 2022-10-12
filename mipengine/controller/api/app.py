@@ -6,7 +6,7 @@ from quart.logging import serving_handler
 
 from mipengine.controller import BACKGROUND_LOGGER_NAME
 from mipengine.controller import config as ctrl_config
-from mipengine.controller.api.algorithms_endpoint import algorithms
+from mipengine.controller.api.endpoint import algorithms
 from mipengine.controller.api.error_handlers import error_handlers
 
 app = Quart(__name__)

@@ -60,6 +60,25 @@ def get_node_datasets_per_data_model(request_id: str) -> Dict[str, Dict[str, str
 
 @shared_task
 @initialise_logger
+def get_data_model_attributes(request_id: str, data_model: str) -> str:
+    """
+    Parameters
+    ----------
+    request_id : str
+        The identifier for the logging
+    data_model: str
+        The data model to retrieve its attributes.
+
+    Returns
+    ------
+    Properties
+        A DataModelAttributes object in a jsonified format
+    """
+    return common_actions.get_data_model_attributes(data_model).json()
+
+
+@shared_task
+@initialise_logger
 def get_data_model_cdes(request_id: str, data_model: str) -> str:
     """
     Parameters
