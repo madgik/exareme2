@@ -388,9 +388,7 @@ def get_table_build_template(input_type: "TableType"):
             f"Build template only for InputTypes. Type provided: {input_type}"
         )
     COLUMNS_COMPREHENSION_TMPL = "{{name: _columns[name_w_prefix] for name, name_w_prefix in zip({colnames}, {colnames_w_prefix})}}"
-
     if isinstance(input_type, RelationType):
-        COLUMNS_COMPREHENSION_TMPL = "{{name: _columns[name_w_prefix] for name, name_w_prefix in zip(['row_id', 'rightocpoccipitalpole', 'leftitginferiortemporalgyrus', 'leftmogmiddleoccipitalgyrus', 'rightacgganteriorcingulategyrus', 'cerebellarvermallobulesvivii', 'leftcaudate', 'leftprgprecentralgyrus', 'leftofugoccipitalfusiformgyrus', 'leftmfcmedialfrontalcortex', 'rightpcuprecuneus', 'rightmfgmiddlefrontalgyrus', 'leftcerebralwhitematter', 'rightlateralventricle', 'rightcerebralwhitematter', 'lefthippocampus', 'rightcuncuneus', 'rightmtgmiddletemporalgyrus', 'leftttgtransversetemporalgyrus', 'rightputamen', 'rightsfgsuperiorfrontalgyrus'], ['x_row_id', 'x_rightocpoccipitalpole', 'x_leftitginferiortemporalgyrus', 'x_leftmogmiddleoccipitalgyrus', 'x_rightacgganteriorcingulategyrus', 'x_cerebellarvermallobulesvivii', 'x_leftcaudate', 'x_leftprgprecentralgyrus', 'x_leftofugoccipitalfusiformgyrus', 'x_leftmfcmedialfrontalcortex', 'x_rightpcuprecuneus', 'x_rightmfgmiddlefrontalgyrus', 'x_leftcerebralwhitematter', 'x_rightlateralventricle', 'x_rightcerebralwhitematter', 'x_lefthippocampus', 'x_rightcuncuneus', 'x_rightmtgmiddletemporalgyrus', 'x_leftttgtransversetemporalgyrus', 'x_rightputamen', 'x_rightsfgsuperiorfrontalgyrus'])}}"
         return f"{{varname}} = udfio.from_relational_table({COLUMNS_COMPREHENSION_TMPL}, '{ROWID}')"
     if isinstance(input_type, TensorType):
         return f"{{varname}} = udfio.from_tensor_table({COLUMNS_COMPREHENSION_TMPL})"
