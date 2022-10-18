@@ -50,10 +50,8 @@ class _DB:
 
     @lru_cache
     def get_enumerations(self, varname):
-        cdes = self._get_cdes()
         assert varname in self.get_nominal_variables(), f"{varname} is not nominal"
-        enums = next(cde["enumerations"] for cde in cdes if cde["code"] == varname)
-        return [enum["code"] for enum in enums]
+        return self.get_metadata(varname)["enumerations"]
 
     @lru_cache
     def _get_cdes(self):
@@ -73,6 +71,11 @@ class _DB:
         # some variables found in CDEs are not found in any csv file, remove them
         all_vars = list(self.get_data_table().columns)
         return [cde for cde in flat_cdes if cde["code"] in all_vars]
+
+    @lru_cache
+    def get_metadata(self, varname):
+        cdes = self._get_cdes()
+        return next(cde for cde in cdes if cde["code"] == varname)
 
 
 def DB():
@@ -394,6 +397,15 @@ class TestCaseGenerator(ABC):
     Subclasses must implement `compute_expected_output` where the algorithm
     expected ouput is computed according to the SOA implementation.
 
+    Attributes
+    ----------
+    full_data: bool
+        If true input_data is a single table with all variables found in x
+        and y plus the dataset column. Else input_data is a pair of y and x,
+        with x being optional, depending on the algorithm specs.
+    dropna: bool
+        If true NA values are droped from input_data.
+
     Parameters
     ----------
     specs_file
@@ -413,6 +425,8 @@ class TestCaseGenerator(ABC):
     """
 
     __test__ = False
+    full_data = False
+    dropna = True
 
     def __init__(self, specs_file):
         self.input_gen = InputGenerator(specs_file)
@@ -450,41 +464,55 @@ class TestCaseGenerator(ABC):
         raise NotImplementedError
 
     def get_input_data(self, input_):
+        variables = self._get_variables_from_input(input_)
         inputdata = input_["inputdata"]
         datasets = list(inputdata["datasets"])
-        y = list(inputdata["y"])
-        x = list(inputdata.get("x", []))
 
-        variables = list(set(y + x))
         if "dataset" in variables:
             full_data = self.all_data[variables]
-            full_data = full_data[full_data.dataset.isin(datasets)]
         else:
             full_data = self.all_data[variables + ["dataset"]]
-            full_data = full_data[full_data.dataset.isin(datasets)]
-            del full_data["dataset"]
+        full_data = full_data[full_data.dataset.isin(datasets)]
 
-        full_data = full_data.dropna()
+        if self.dropna:
+            full_data = full_data.dropna()
+
         if len(full_data) == 0:
             return None
 
+        if self.full_data:
+            return full_data
+
+        y = list(inputdata["y"])
+        x = list(inputdata.get("x", []))
         y_data = full_data[y]
         x_data = full_data[x] if x else None
         return y_data, x_data
 
+    @staticmethod
+    def _get_variables_from_input(input):
+        inputdata = input["inputdata"]
+        y = list(inputdata["y"])
+        x = list(inputdata.get("x", []))
+        return y + x
+
     def generate_test_case(self):
         for _ in range(10_000):
-            input_ = self.generate_input()
-            input_data = self.get_input_data(input_)
+            input = self.generate_input()
+            input_data = self.get_input_data(input)
             if input_data is not None:
                 break
         else:
             raise ValueError(
                 "Cannot find inputdata values resulting in non-empty data."
             )
-        parameters = input_["parameters"]
-        output = self.compute_expected_output(input_data, parameters)
-        return {"input": input_, "output": output}
+        parameters = input["parameters"]
+        metadata = [
+            DB().get_metadata(varname)
+            for varname in self._get_variables_from_input(input)
+        ]
+        output = self.compute_expected_output(input_data, parameters, metadata)
+        return {"input": input, "output": output}
 
     def generate_test_cases(self, num_test_cases=100):
         test_cases = []
