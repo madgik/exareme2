@@ -198,10 +198,10 @@ def is_valid_literal_value(val):
         # sequence is part of the actual code and not inside a string, it is not
         # interpreted  like  that. This behaviour can be exploited to perform an
         # SQL injection attack, passing for example the string '};DROP TABLE x;'
-        # as  a  literal.  To  avoid  that, these characters are prohibited from
+        # as  a  literal.  To  avoid  that,  this  sequence  is  prohibited from
         # appearing in a literal string.
-        prohibited_chars = "};"
-        return not any(chr in val for chr in prohibited_chars)
+        prohibited_sequence = "};"
+        return prohibited_sequence not in val
     if isinstance(val, list):
         return all(is_valid_literal_value(elem) for elem in val)
     if isinstance(val, dict):
