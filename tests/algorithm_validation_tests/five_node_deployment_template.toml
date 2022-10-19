@@ -14,7 +14,7 @@ celery_cleanup_task_timeout=2
 celery_run_udf_task_timeout = 300
 
 [privacy]
-minimum_row_count = 0
+minimum_row_count = 1
 
 [cleanup]
 nodes_cleanup_interval=36000 # TODO Disabled cleanup due to non deterministic behavior https://team-1617704806227.atlassian.net/browse/MIP-668
