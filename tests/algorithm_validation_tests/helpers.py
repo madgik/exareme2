@@ -26,18 +26,6 @@ def algorithm_request(algorithm: str, input: dict):
                 "value": input["inputdata"]["datasets"],
                 "operator": "in",
             },
-            {
-                "condition": "AND",
-                "rules": [
-                    {
-                        "id": variable,
-                        "type": "string",
-                        "operator": "is_not_null",
-                        "value": None,
-                    }
-                    for variable in variables
-                ],
-            },
         ],
         "valid": True,
     }

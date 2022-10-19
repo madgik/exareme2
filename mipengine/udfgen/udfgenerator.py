@@ -1365,8 +1365,8 @@ class UDFBody(ASTNode):
 
         import_pickle = is_any_element_of_type(StateType, all_types)
         import_json = is_any_element_of_type(
-            TransferType, all_types
-        ) or is_any_element_of_type(SecureTransferType, all_types)
+            (TransferType, SecureTransferType, MergeTransferType), all_types
+        )
         self.imports = Imports(
             import_pickle=import_pickle,
             import_json=import_json,

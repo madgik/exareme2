@@ -200,6 +200,7 @@ def test_sql_injection_guard__raise_invalid_parameter():
     [
         1,
         "a",
+        "DROP TABLE x;",
         ["a", "b"],
         {"a": "b", "c": 1},
         [{"a": "b"}],
@@ -214,10 +215,11 @@ def test_is_valid_literal_value__valid(val):
     "val",
     [
         "};",
-        ["}", ";"],
-        {"}": ";"},
-        [{"}": ";"}],
-        {"}": [";"]},
+        "};DROP TABLE x;",
+        ["};", "a"],
+        {"a": "};"},
+        [{"};": "a"}],
+        {"a": ["};"]},
     ],
 )
 def test_is_valid_literal_value__invalid(val):
