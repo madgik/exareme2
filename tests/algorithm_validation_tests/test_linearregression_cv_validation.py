@@ -41,7 +41,7 @@ def get_cached_response(algorithm_name, test_input, cache):
     "test_input, expected",
     get_test_params(
         expected_file,
-        skip_indices=[4, 27, 39, 40],
+        # skip_indices=[4, 27, 39, 40],
         skip_reason="Run on five nodes in CI results in empty tables,"
         " see https://team-1617704806227.atlassian.net/browse/MIP-634",
     ),
@@ -77,7 +77,7 @@ def test_linearregression_cv_non_inferiority_msre(test_input, expected, cache):
     "test_input, expected",
     get_test_params(
         expected_file,
-        skip_indices=[4, 27, 39, 40],
+        # skip_indices=[4, 27, 39, 40],
         skip_reason="Run on five nodes in CI results in empty tables,"
         " see https://team-1617704806227.atlassian.net/browse/MIP-634",
     ),
@@ -109,7 +109,7 @@ def test_linearregression_cv_non_inferiority_mae(test_input, expected, cache):
     "test_input, expected",
     get_test_params(
         expected_file,
-        skip_indices=[4, 27, 39, 40],
+        # skip_indices=[4, 27, 39, 40],
         skip_reason="Run on five nodes in CI results in empty tables,"
         " see https://team-1617704806227.atlassian.net/browse/MIP-634",
     ),
