@@ -6,7 +6,9 @@ from mipengine.datatypes import DType
 from mipengine.exceptions import IncompatibleSchemasMergeException
 from mipengine.exceptions import TablesNotFound
 from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import TableType
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
@@ -44,12 +46,14 @@ def create_two_column_table(request_id, context_id, table_id: int, celery_app):
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     )
-    table_name = celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
+    table_info = TableInfo.parse_raw(
+        celery_app.get_result(
+            async_result=async_result,
+            logger=StdOutputLogger(),
+            timeout=TASKS_TIMEOUT,
+        )
     )
-    return table_name
+    return table_info
 
 
 def create_three_column_table_with_data(
@@ -70,10 +74,12 @@ def create_three_column_table_with_data(
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     )
-    table_name = celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
+    table_info = TableInfo.parse_raw(
+        celery_app.get_result(
+            async_result=async_result,
+            logger=StdOutputLogger(),
+            timeout=TASKS_TIMEOUT,
+        )
     )
 
     values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
@@ -81,7 +87,7 @@ def create_three_column_table_with_data(
         task_signature=insert_data_to_table_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=table_name,
+        table_name=table_info.name,
         values=values,
     )
     celery_app.get_result(
@@ -90,7 +96,7 @@ def create_three_column_table_with_data(
         timeout=TASKS_TIMEOUT,
     )
 
-    return table_name
+    return table_info
 
 
 @pytest.mark.slow
@@ -112,12 +118,14 @@ def test_create_and_get_merge_table(
         request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
-        table_names=tables_to_be_merged,
+        table_infos_json=[table_info.json() for table_info in tables_to_be_merged],
     )
-    merge_table_1_name = localnode1_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
+    merge_table_info = TableInfo.parse_raw(
+        localnode1_celery_app.get_result(
+            async_result=async_result,
+            logger=StdOutputLogger(),
+            timeout=TASKS_TIMEOUT,
+        )
     )
 
     async_result = localnode1_celery_app.queue_task(
@@ -131,7 +139,7 @@ def test_create_and_get_merge_table(
         logger=StdOutputLogger(),
         timeout=TASKS_TIMEOUT,
     )
-    assert merge_table_1_name in merge_tables
+    assert merge_table_info.name in merge_tables
 
 
 @pytest.mark.slow
@@ -141,25 +149,28 @@ def test_incompatible_schemas_merge(
     localnode1_node_service,
     localnode1_celery_app,
 ):
+    incompatible_partition_tables = [
+        create_three_column_table_with_data(
+            request_id, context_id, 1, localnode1_celery_app
+        ),
+        create_two_column_table(request_id, context_id, 2, localnode1_celery_app),
+        create_two_column_table(request_id, context_id, 3, localnode1_celery_app),
+        create_three_column_table_with_data(
+            request_id, context_id, 4, localnode1_celery_app
+        ),
+    ]
+    async_result = localnode1_celery_app.queue_task(
+        task_signature=create_merge_table_task_signature,
+        logger=StdOutputLogger(),
+        request_id=request_id,
+        context_id=context_id,
+        command_id=uuid.uuid4().hex,
+        table_infos_json=[
+            table_info.json() for table_info in incompatible_partition_tables
+        ],
+    )
+
     with pytest.raises(IncompatibleSchemasMergeException):
-        incompatible_partition_tables = [
-            create_three_column_table_with_data(
-                request_id, context_id, 1, localnode1_celery_app
-            ),
-            create_two_column_table(request_id, context_id, 2, localnode1_celery_app),
-            create_two_column_table(request_id, context_id, 3, localnode1_celery_app),
-            create_three_column_table_with_data(
-                request_id, context_id, 4, localnode1_celery_app
-            ),
-        ]
-        async_result = localnode1_celery_app.queue_task(
-            task_signature=create_merge_table_task_signature,
-            logger=StdOutputLogger(),
-            request_id=request_id,
-            context_id=context_id,
-            command_id=uuid.uuid4().hex,
-            table_names=incompatible_partition_tables,
-        )
         localnode1_celery_app.get_result(
             async_result=async_result,
             logger=StdOutputLogger(),
@@ -174,25 +185,32 @@ def test_table_cannot_be_found(
     localnode1_node_service,
     localnode1_celery_app,
 ):
-    with pytest.raises(TablesNotFound):
-        not_found_tables = [
-            create_three_column_table_with_data(
-                request_id, context_id, 1, localnode1_celery_app
+    not_found_tables = [
+        create_three_column_table_with_data(
+            request_id, context_id, 1, localnode1_celery_app
+        ),
+        create_three_column_table_with_data(
+            request_id, context_id, 2, localnode1_celery_app
+        ),
+        TableInfo(
+            name="non_existing_table",
+            schema_=TableSchema(
+                columns=[ColumnInfo(name="non_existing", dtype=DType.INT)]
             ),
-            create_three_column_table_with_data(
-                request_id, context_id, 2, localnode1_celery_app
-            ),
-            "non_existing_table",
-        ]
+            type_=TableType.NORMAL,
+        ),
+    ]
 
-        async_result = localnode1_celery_app.queue_task(
-            task_signature=create_merge_table_task_signature,
-            logger=StdOutputLogger(),
-            request_id=request_id,
-            context_id=context_id,
-            command_id=uuid.uuid4().hex,
-            table_names=not_found_tables,
-        )
+    async_result = localnode1_celery_app.queue_task(
+        task_signature=create_merge_table_task_signature,
+        logger=StdOutputLogger(),
+        request_id=request_id,
+        context_id=context_id,
+        command_id=uuid.uuid4().hex,
+        table_infos_json=[table_info.json() for table_info in not_found_tables],
+    )
+
+    with pytest.raises(TablesNotFound):
         localnode1_celery_app.get_result(
             async_result=async_result,
             logger=StdOutputLogger(),

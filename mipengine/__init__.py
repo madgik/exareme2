@@ -16,7 +16,10 @@ __all__ = [
     "ALGORITHM_FOLDERS_ENV_VARIABLE",
     "ALGORITHM_FOLDERS",
     "algorithm_modules",
+    "DATA_TABLE_PRIMARY_KEY",
 ]
+
+DATA_TABLE_PRIMARY_KEY = "row_id"
 
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
 ALGORITHM_FOLDERS = "./mipengine/algorithms"

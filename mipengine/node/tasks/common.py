@@ -98,26 +98,6 @@ def get_data_model_cdes(request_id: str, data_model: str) -> str:
 
 @shared_task
 @initialise_logger
-def get_table_schema(request_id: str, table_name: str) -> str:
-    """
-    Parameters
-    ----------
-    request_id : str
-        The identifier for the logging
-    table_name : str
-        The name of the table
-
-    Returns
-    ------
-    str(TableSchema)
-        A TableSchema object in a jsonified format
-    """
-    schema = common_actions.get_table_schema(table_name)
-    return schema.json()
-
-
-@shared_task
-@initialise_logger
 def get_table_data(request_id: str, table_name: str) -> str:
     """
     Parameters

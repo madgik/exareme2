@@ -33,15 +33,16 @@ def create_merge_table(table_name: str, table_schema: TableSchema):
     table_names=is_list_of_identifiers,
 )
 def add_to_merge_table(merge_table_name: str, table_names: List[str]):
-    try:
-        for name in table_names:
+    for name in table_names:
+        try:
             db_execute(f"ALTER TABLE {merge_table_name} ADD TABLE {name.lower()}")
-
-    except pymonetdb.exceptions.OperationalError as exc:
-        if str(exc).startswith("3F000"):
-            raise IncompatibleSchemasMergeException(table_names)
-        else:
-            raise exc
+        except pymonetdb.exceptions.OperationalError as exc:
+            if str(exc).startswith("3F000"):
+                raise IncompatibleSchemasMergeException(table_names)
+            if str(exc).startswith("42S02"):
+                raise TablesNotFound([name])
+            else:
+                raise exc
 
 
 @sql_injection_guard(table_names=is_list_of_identifiers)

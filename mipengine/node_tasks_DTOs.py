@@ -4,6 +4,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import Union
 
 from pydantic import BaseModel
@@ -53,11 +54,58 @@ class ColumnInfo(ImmutableBaseModel):
 class TableSchema(ImmutableBaseModel):
     columns: List[ColumnInfo]
 
+    @property
+    def column_names(self):
+        return [column_info.name for column_info in self.columns]
+
 
 class TableInfo(ImmutableBaseModel):
     name: str
     schema_: TableSchema
     type_: TableType
+
+    @property
+    def column_names(self):
+        return self.schema_.column_names
+
+    @property
+    def tablename_parts(self) -> Tuple[str, str, str, str]:
+        table_type, node_id, context_id, command_id, command_subid = self.name.split(
+            "_"
+        )
+        return node_id, context_id, command_id, command_subid
+
+    @property
+    def node_id(self) -> str:
+        node_id, _, _, _ = self.tablename_parts
+        return node_id
+
+    @property
+    def context_id(self) -> str:
+        _, context_id, _, _ = self.tablename_parts
+        return context_id
+
+    @property
+    def command_id(self) -> str:
+        _, _, command_id, _ = self.tablename_parts
+        return command_id
+
+    @property
+    def command_subid(self) -> str:
+        _, _, _, command_subid = self.tablename_parts
+        return command_subid
+
+    @property
+    def name_without_node_id(self) -> str:
+        return (
+            str(self.type_)
+            + "_"
+            + self.context_id
+            + "_"
+            + self.command_id
+            + "_"
+            + self.command_subid
+        )
 
 
 class DataModelAttributes(ImmutableBaseModel):
@@ -143,6 +191,13 @@ class CommonDataElements(BaseModel):
 # ~~~~~~~~~~~~~~~~~~~ UDFs IO ~~~~~~~~~~~~~~~~~~~~~~ #
 
 
+class SMPCTablesInfo(ImmutableBaseModel):
+    template: TableInfo
+    sum_op: Optional[TableInfo]
+    min_op: Optional[TableInfo]
+    max_op: Optional[TableInfo]
+
+
 class NodeUDFDTO(ImmutableBaseModel):
     type: _NodeUDFDTOType
     value: Any
@@ -170,28 +225,21 @@ class NodeLiteralDTO(NodeUDFDTO):
 
 class NodeTableDTO(NodeUDFDTO):
     type = _NodeUDFDTOType.TABLE
-    value: str
-
-
-class NodeSMPCValueDTO(ImmutableBaseModel):
-    template: NodeTableDTO
-    sum_op_values: NodeTableDTO = None
-    min_op_values: NodeTableDTO = None
-    max_op_values: NodeTableDTO = None
+    value: TableInfo
 
 
 class NodeSMPCDTO(NodeUDFDTO):
     type = _NodeUDFDTOType.SMPC
-    value: NodeSMPCValueDTO
+    value: SMPCTablesInfo
 
 
-class UDFPosArguments(ImmutableBaseModel):
+class NodeUDFPosArguments(ImmutableBaseModel):
     args: List[Union[NodeLiteralDTO, NodeTableDTO, NodeSMPCDTO]]
 
 
-class UDFKeyArguments(ImmutableBaseModel):
+class NodeUDFKeyArguments(ImmutableBaseModel):
     args: Dict[str, Union[NodeLiteralDTO, NodeTableDTO, NodeSMPCDTO]]
 
 
-class UDFResults(ImmutableBaseModel):
-    results: List[Union[NodeTableDTO, NodeSMPCDTO]]
+class NodeUDFResults(ImmutableBaseModel):
+    results: List[Union[NodeLiteralDTO, NodeTableDTO, NodeSMPCDTO]]

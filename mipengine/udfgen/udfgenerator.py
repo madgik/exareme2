@@ -295,13 +295,13 @@ import astor
 import numpy
 
 from mipengine import DType as dt
+from mipengine.node_tasks_DTOs import SMPCTablesInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType as DBTableType
-from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
-from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
-from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
 from mipengine.udfgen.udfgen_DTOs import UDFGenExecutionQueries
 from mipengine.udfgen.udfgen_DTOs import UDFGenResult
+from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
+from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
 
 __all__ = [
     "udf",
@@ -574,7 +574,7 @@ def get_return_type_template(output_type):
 
 def iotype_to_sql_schema(iotype, name_prefix=""):
     if isinstance(iotype, ScalarType):
-        return f'"result" {iotype.dtype.to_sql()}'
+        return f'"scalar" {iotype.dtype.to_sql()}'
     column_names = iotype.column_names(name_prefix)
     types = [dtype.to_sql() for _, dtype in iotype.schema]
     sql_params = [f'"{name}" {dtype}' for name, dtype in zip(column_names, types)]
@@ -753,7 +753,10 @@ class InputType(IOType):
 
 
 class OutputType(IOType):
-    pass
+    @property
+    @abstractmethod
+    def schema(self):
+        raise NotImplementedError
 
 
 class LoopbackOutputType(OutputType):
@@ -866,6 +869,10 @@ class ScalarType(OutputType, ParametrizedType):
 
     def __init__(self, dtype):
         self.dtype = dt.from_py(dtype) if isinstance(dtype, type) else dtype
+
+    @property
+    def schema(self):
+        return [("scalar", self.dtype)]
 
 
 def scalar(dtype):
@@ -2046,7 +2053,7 @@ def convert_udfgenargs_to_udfargs(udfgen_posargs, udfgen_kwargs, smpc_used=False
     return udf_posargs, udf_keywordargs
 
 
-def convert_udfgenarg_to_udfarg(udfgen_arg, smpc_used) -> UDFArgument:
+def convert_udfgenarg_to_udfarg(udfgen_arg: UDFGenArgument, smpc_used) -> UDFArgument:
     if isinstance(udfgen_arg, SMPCTablesInfo):
         if not smpc_used:
             raise UDFBadCall("SMPC is not used, so SMPCTablesInfo cannot be used.")
@@ -2060,12 +2067,12 @@ def convert_smpc_udf_input_to_udf_arg(smpc_udf_input: SMPCTablesInfo):
     sum_op_table_name = None
     min_op_table_name = None
     max_op_table_name = None
-    if smpc_udf_input.sum_op_values:
-        sum_op_table_name = smpc_udf_input.sum_op_values.name
-    if smpc_udf_input.min_op_values:
-        min_op_table_name = smpc_udf_input.min_op_values.name
-    if smpc_udf_input.max_op_values:
-        max_op_table_name = smpc_udf_input.max_op_values.name
+    if smpc_udf_input.sum_op:
+        sum_op_table_name = smpc_udf_input.sum_op.name
+    if smpc_udf_input.min_op:
+        min_op_table_name = smpc_udf_input.min_op.name
+    if smpc_udf_input.max_op:
+        max_op_table_name = smpc_udf_input.max_op.name
     return SMPCSecureTransferArg(
         template_table_name=smpc_udf_input.template.name,
         sum_op_values_table_name=sum_op_table_name,
@@ -2074,7 +2081,7 @@ def convert_smpc_udf_input_to_udf_arg(smpc_udf_input: SMPCTablesInfo):
     )
 
 
-def convert_table_info_to_table_arg(table_info, smpc_used):
+def convert_table_info_to_table_arg(table_info: TableInfo, smpc_used):
     if is_transfertype_schema(table_info.schema_.columns):
         return TransferArg(table_name=table_info.name)
     if is_secure_transfer_type_schema(table_info.schema_.columns):
@@ -2560,8 +2567,9 @@ def _create_table_udf_output(
     drop_table = DROP_TABLE_IF_EXISTS + " $" + table_name + SCOLON
     output_schema = iotype_to_sql_schema(output_type)
     create_table = CREATE_TABLE + " $" + table_name + f"({output_schema})" + SCOLON
-    return TableUDFGenResult(
+    return UDFGenTableResult(
         tablename_placeholder=table_name,
+        table_schema=output_type.schema,
         drop_query=Template(drop_table),
         create_query=Template(create_table),
     )
@@ -2584,7 +2592,7 @@ def _create_smpc_udf_output(output_type: SecureTransferType, table_name_prefix: 
         min_op = _create_table_udf_output(output_type, min_op_tmpl)
     if output_type.max_op:
         max_op = _create_table_udf_output(output_type, max_op_tmpl)
-    return SMPCUDFGenResult(
+    return UDFGenSMPCResult(
         template=template,
         sum_op_values=sum_op,
         min_op_values=min_op,

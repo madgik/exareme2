@@ -30,11 +30,6 @@ def run(executor):
 
     ybin = LabelBinarizer(executor, positive_class).transform(y)
 
-    # TODO variable names should be table attributes
-    X.columns = dummy_encoder.new_varnames
-    y.columns = yvars
-    ybin.columns = yvars
-
     lr = LogisticRegression(executor)
     lr.fit(X=X, y=ybin)
 

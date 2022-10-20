@@ -9,7 +9,6 @@ from mipengine.datatypes import DType
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import udfs
 from mipengine.node.monetdb_interface.common_actions import create_table_name
-from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.common_actions import get_table_type
 from mipengine.node.monetdb_interface.guard import is_valid_request_id
 from mipengine.node.monetdb_interface.guard import output_schema_validator
@@ -17,25 +16,26 @@ from mipengine.node.monetdb_interface.guard import sql_injection_guard
 from mipengine.node.monetdb_interface.guard import udf_kwargs_validator
 from mipengine.node.monetdb_interface.guard import udf_posargs_validator
 from mipengine.node.node_logger import initialise_logger
+from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import NodeLiteralDTO
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
-from mipengine.node_tasks_DTOs import NodeSMPCValueDTO
 from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import NodeUDFDTO
+from mipengine.node_tasks_DTOs import NodeUDFKeyArguments
+from mipengine.node_tasks_DTOs import NodeUDFPosArguments
+from mipengine.node_tasks_DTOs import NodeUDFResults
+from mipengine.node_tasks_DTOs import SMPCTablesInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
-from mipengine.node_tasks_DTOs import UDFKeyArguments
-from mipengine.node_tasks_DTOs import UDFPosArguments
-from mipengine.node_tasks_DTOs import UDFResults
 from mipengine.node_tasks_DTOs import _NodeUDFDTOType
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 from mipengine.udfgen import generate_udf_queries
-from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
-from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
-from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
 from mipengine.udfgen.udfgen_DTOs import UDFGenExecutionQueries
 from mipengine.udfgen.udfgen_DTOs import UDFGenResult
+from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
+from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
+from mipengine.udfgen.udfgenerator import UDFGenArgument
 from mipengine.udfgen.udfgenerator import udf as udf_registry
 
 
@@ -60,7 +60,7 @@ def run_udf(
     positional_args_json: str,
     keyword_args_json: str,
     use_smpc: bool = False,
-    output_schema: Optional[TableSchema] = None,
+    output_schema: Optional[str] = None,
 ) -> str:
     """
     Creates the UDF, if provided, and adds it in the database.
@@ -76,13 +76,13 @@ def run_udf(
             The experiment identifier, common among all experiment related actions.
         func_name: str
             Name of function from which to generate UDF.
-        positional_args_json: str(UDFPosArguments)
+        positional_args_json: str(NodeUDFPosArguments)
             Positional arguments of the udf call.
-        keyword_args_json: str(UDFKeyArguments)
+        keyword_args_json: str(NodeUDFKeyArguments)
             Keyword arguments of the udf call.
         use_smpc: bool
             Should SMPC be used?
-        output_schema: Optional[TableSchema]
+        output_schema: Optional[str(TableSchema)]
             Schema of main UDF output when deferred mechanism is used.
     Returns
     -------
@@ -91,11 +91,13 @@ def run_udf(
     """
     validate_smpc_usage(use_smpc, node_config.smpc.enabled, node_config.smpc.optional)
 
-    positional_args = UDFPosArguments.parse_raw(positional_args_json)
-    keyword_args = UDFKeyArguments.parse_raw(keyword_args_json)
+    positional_args = NodeUDFPosArguments.parse_raw(positional_args_json)
+    keyword_args = NodeUDFKeyArguments.parse_raw(keyword_args_json)
 
     if output_schema:
-        output_schema = _parse_output_schema(output_schema)
+        output_schema = _convert_tableschema2udfgen_iotype(
+            TableSchema.parse_raw(output_schema)
+        )
 
     udf_statements, udf_results = _generate_udf_statements(
         request_id=request_id,
@@ -113,8 +115,9 @@ def run_udf(
     return udf_results.json()
 
 
-def _parse_output_schema(output_schema: TableSchema) -> List[Tuple[str, DType]]:
-    output_schema = TableSchema.parse_raw(output_schema)
+def _convert_tableschema2udfgen_iotype(
+    output_schema: TableSchema,
+) -> List[Tuple[str, DType]]:
     return [(col.name, col.dtype) for col in output_schema.columns]
 
 
@@ -156,8 +159,8 @@ def get_run_udf_query(
     """
     validate_smpc_usage(use_smpc, node_config.smpc.enabled, node_config.smpc.optional)
 
-    positional_args = UDFPosArguments.parse_raw(positional_args_json)
-    keyword_args = UDFKeyArguments.parse_raw(keyword_args_json)
+    positional_args = NodeUDFPosArguments.parse_raw(positional_args_json)
+    keyword_args = NodeUDFKeyArguments.parse_raw(keyword_args_json)
 
     udf_statements, _ = _generate_udf_statements(
         request_id=request_id,
@@ -180,67 +183,17 @@ def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
     return f"{func_name}_{command_id}_{context_id}"
 
 
-def _create_table_info_from_tablename(tablename: str):
-    return TableInfo(
-        name=tablename,
-        schema_=get_table_schema(tablename),
-        type_=get_table_type(tablename),
-    )
-
-
-def _convert_smpc_udf2udfgen_arg(udf_argument: NodeSMPCDTO):
-    template = _create_table_info_from_tablename(udf_argument.value.template.value)
-    sum_op = (
-        _create_table_info_from_tablename(udf_argument.value.sum_op_values.value)
-        if udf_argument.value.sum_op_values
-        else None
-    )
-    min_op = (
-        _create_table_info_from_tablename(udf_argument.value.min_op_values.value)
-        if udf_argument.value.min_op_values
-        else None
-    )
-    max_op = (
-        _create_table_info_from_tablename(udf_argument.value.max_op_values.value)
-        if udf_argument.value.max_op_values
-        else None
-    )
-    return SMPCTablesInfo(
-        template=template,
-        sum_op_values=sum_op,
-        min_op_values=min_op,
-        max_op_values=max_op,
-    )
-
-
-def _convert_udf2udfgen_arg(udf_argument: NodeUDFDTO):
-    if isinstance(udf_argument, NodeLiteralDTO):
-        return udf_argument.value
-    elif isinstance(udf_argument, NodeTableDTO):
-        return _create_table_info_from_tablename(udf_argument.value)
-    elif isinstance(udf_argument, NodeSMPCDTO):
-        return _convert_smpc_udf2udfgen_arg(udf_argument)
-    else:
-        argument_kinds = ",".join([str(k) for k in _NodeUDFDTOType])
-        raise ValueError(
-            f"A udf argument can have one of the following types {argument_kinds}'."
-        )
-
-
-def _convert_udf2udfgen_args(
-    positional_args: UDFPosArguments,
-    keyword_args: UDFKeyArguments,
-):
+def _convert_nodeudf2udfgen_args(
+    positional_args: NodeUDFPosArguments,
+    keyword_args: NodeUDFKeyArguments,
+) -> Tuple[List[UDFGenArgument], Dict[str, UDFGenArgument]]:
     """
-    The input arguments are received from the controller and are
-    containing the value of the argument (literal) or information
+    The input arguments are received from the controller and contain
+    the value of the argument (literal) or information
     about the location of the input (tablename).
 
     This method adds information on these arguments, that will be
     sent to the udfgenerator.
-
-    The information, such as TableType, TableSchema, can only be
-    added from the NODE, not the controller, for security reasons.
 
     The udfgen args can be of number, TableInfo or SMPCUDFInput type.
 
@@ -254,19 +207,55 @@ def _convert_udf2udfgen_args(
     The same arguments (pos/kw) in a udfgen argument structure.
     """
     generator_pos_args = [
-        _convert_udf2udfgen_arg(pos_arg) for pos_arg in positional_args.args
+        _convert_nodeudf2udfgen_arg(pos_arg) for pos_arg in positional_args.args
     ]
 
     generator_kw_args = {
-        key: _convert_udf2udfgen_arg(argument)
+        key: _convert_nodeudf2udfgen_arg(argument)
         for key, argument in keyword_args.args.items()
     }
 
     return generator_pos_args, generator_kw_args
 
 
+def _convert_nodeudf2udfgen_arg(udf_argument: NodeUDFDTO) -> UDFGenArgument:
+    if isinstance(udf_argument, NodeTableDTO):
+        validate_tableinfo_type_matches_actual_tabletype(udf_argument.value)
+        return udf_argument.value
+    elif isinstance(udf_argument, NodeSMPCDTO):
+        validate_smpctablesinfo_type_matches_actual_tablestype(udf_argument.value)
+        return udf_argument.value
+    elif isinstance(udf_argument, NodeLiteralDTO):
+        return udf_argument.value
+    else:
+        argument_kinds = ",".join([str(k) for k in _NodeUDFDTOType])
+        raise ValueError(
+            f"A udf argument can have one of the following types {argument_kinds}'."
+        )
+
+
+def validate_tableinfo_type_matches_actual_tabletype(table_info: TableInfo):
+    if table_info.type_ != get_table_type(table_info.name):
+        raise ValueError(
+            f"Table: '{table_info.name}' is not of type: '{table_info.type_}'."
+        )
+
+
+def validate_smpctablesinfo_type_matches_actual_tablestype(tables_info: SMPCTablesInfo):
+    validate_tableinfo_type_matches_actual_tabletype(tables_info.template)
+    validate_tableinfo_type_matches_actual_tabletype(
+        tables_info.sum_op
+    ) if tables_info.sum_op else None
+    validate_tableinfo_type_matches_actual_tabletype(
+        tables_info.min_op
+    ) if tables_info.min_op else None
+    validate_tableinfo_type_matches_actual_tabletype(
+        tables_info.max_op
+    ) if tables_info.max_op else None
+
+
 def _convert_table_result_to_udf_statements(
-    result: TableUDFGenResult, templates_mapping: dict
+    result: UDFGenTableResult, templates_mapping: dict
 ) -> List[str]:
     return [
         result.drop_query.substitute(**templates_mapping),
@@ -275,8 +264,8 @@ def _convert_table_result_to_udf_statements(
 
 
 def _get_all_table_results_from_smpc_result(
-    smpc_result: SMPCUDFGenResult,
-) -> List[TableUDFGenResult]:
+    smpc_result: UDFGenSMPCResult,
+) -> List[UDFGenTableResult]:
     table_results = [smpc_result.template]
     table_results.append(
         smpc_result.sum_op_values
@@ -291,7 +280,7 @@ def _get_all_table_results_from_smpc_result(
 
 
 def _convert_smpc_result_to_udf_statements(
-    result: SMPCUDFGenResult, templates_mapping: dict
+    result: UDFGenSMPCResult, templates_mapping: dict
 ) -> List[str]:
     table_results = _get_all_table_results_from_smpc_result(result)
     udf_statements = []
@@ -308,11 +297,11 @@ def _create_udf_statements(
 ) -> List[str]:
     udf_statements = []
     for result in udf_execution_queries.udf_results:
-        if isinstance(result, TableUDFGenResult):
+        if isinstance(result, UDFGenTableResult):
             udf_statements.extend(
                 _convert_table_result_to_udf_statements(result, templates_mapping)
             )
-        elif isinstance(result, SMPCUDFGenResult):
+        elif isinstance(result, UDFGenSMPCResult):
             udf_statements.extend(
                 _convert_smpc_result_to_udf_statements(result, templates_mapping)
             )
@@ -330,12 +319,12 @@ def _create_udf_statements(
     return udf_statements
 
 
-def _convert_udfgen2udf_table_result_and_mapping(
-    udfgen_result: TableUDFGenResult,
+def _convert_udfgen2table_info_result_and_mapping(
+    udfgen_result: UDFGenTableResult,
     context_id: str,
     command_id: str,
     command_subid: int,
-) -> Tuple[NodeTableDTO, Dict[str, str]]:
+) -> Tuple[TableInfo, Dict[str, str]]:
     table_name_ = create_table_name(
         table_type=TableType.NORMAL,
         node_id=node_config.identifier,
@@ -344,24 +333,37 @@ def _convert_udfgen2udf_table_result_and_mapping(
         command_subid=str(command_subid),
     )
     table_name_tmpl_mapping = {udfgen_result.tablename_placeholder: table_name_}
-    return NodeTableDTO(value=table_name_), table_name_tmpl_mapping
+    return (
+        TableInfo(
+            name=table_name_,
+            schema_=_convert_udfgen_iotype2table_schema(udfgen_result.table_schema),
+            type_=TableType.NORMAL,
+        ),
+        table_name_tmpl_mapping,
+    )
 
 
-def _convert_udfgen2udf_smpc_result_and_mapping(
-    udfgen_result: SMPCUDFGenResult,
+def _convert_udfgen_iotype2table_schema(iotype: List[Tuple[str, DType]]) -> TableSchema:
+    return TableSchema(
+        columns=[ColumnInfo(name=name, dtype=dtype) for name, dtype in iotype]
+    )
+
+
+def _convert_udfgen2smpc_tables_info_result_and_mapping(
+    udfgen_result: UDFGenSMPCResult,
     context_id: str,
     command_id: str,
     command_subid: int,
-) -> Tuple[NodeSMPCDTO, Dict[str, str]]:
+) -> Tuple[SMPCTablesInfo, Dict[str, str]]:
     (
         template_udf_result,
         table_names_tmpl_mapping,
-    ) = _convert_udfgen2udf_table_result_and_mapping(
+    ) = _convert_udfgen2table_info_result_and_mapping(
         udfgen_result.template, context_id, command_id, command_subid
     )
 
     if udfgen_result.sum_op_values:
-        (sum_op_udf_result, mapping,) = _convert_udfgen2udf_table_result_and_mapping(
+        (sum_op_udf_result, mapping,) = _convert_udfgen2table_info_result_and_mapping(
             udfgen_result.sum_op_values, context_id, command_id, command_subid + 1
         )
         table_names_tmpl_mapping.update(mapping)
@@ -369,7 +371,7 @@ def _convert_udfgen2udf_smpc_result_and_mapping(
         sum_op_udf_result = None
 
     if udfgen_result.min_op_values:
-        (min_op_udf_result, mapping,) = _convert_udfgen2udf_table_result_and_mapping(
+        (min_op_udf_result, mapping,) = _convert_udfgen2table_info_result_and_mapping(
             udfgen_result.min_op_values, context_id, command_id, command_subid + 2
         )
         table_names_tmpl_mapping.update(mapping)
@@ -377,47 +379,47 @@ def _convert_udfgen2udf_smpc_result_and_mapping(
         min_op_udf_result = None
 
     if udfgen_result.max_op_values:
-        (max_op_udf_result, mapping,) = _convert_udfgen2udf_table_result_and_mapping(
+        (max_op_udf_result, mapping,) = _convert_udfgen2table_info_result_and_mapping(
             udfgen_result.max_op_values, context_id, command_id, command_subid + 3
         )
         table_names_tmpl_mapping.update(mapping)
     else:
         max_op_udf_result = None
 
-    result = NodeSMPCDTO(
-        value=NodeSMPCValueDTO(
-            template=template_udf_result,
-            sum_op_values=sum_op_udf_result,
-            min_op_values=min_op_udf_result,
-            max_op_values=max_op_udf_result,
-        )
+    result = SMPCTablesInfo(
+        template=template_udf_result,
+        sum_op=sum_op_udf_result,
+        min_op=min_op_udf_result,
+        max_op=max_op_udf_result,
     )
     return result, table_names_tmpl_mapping
 
 
-def _convert_udfgen2udf_result_and_mapping(
+def _convert_udfgen2nodeudf_result_and_mapping(
     udfgen_result: UDFGenResult,
     context_id: str,
     command_id: str,
     command_subid: int,
 ) -> Tuple[NodeUDFDTO, Dict[str, str]]:
-    if isinstance(udfgen_result, TableUDFGenResult):
-        return _convert_udfgen2udf_table_result_and_mapping(
+    if isinstance(udfgen_result, UDFGenTableResult):
+        table_info, mapping = _convert_udfgen2table_info_result_and_mapping(
             udfgen_result, context_id, command_id, command_subid
         )
-    elif isinstance(udfgen_result, SMPCUDFGenResult):
-        return _convert_udfgen2udf_smpc_result_and_mapping(
+        return NodeTableDTO(value=table_info), mapping
+    elif isinstance(udfgen_result, UDFGenSMPCResult):
+        tables_info, mapping = _convert_udfgen2smpc_tables_info_result_and_mapping(
             udfgen_result, context_id, command_id, command_subid
         )
+        return NodeSMPCDTO(value=tables_info), mapping
     else:
         raise NotImplementedError
 
 
-def convert_udfgen2udf_results_and_mapping(
+def convert_udfgen2nodeudf_results_and_mapping(
     udf_queries: UDFGenExecutionQueries,
     context_id: str,
     command_id: str,
-) -> Tuple[UDFResults, Dict[str, str]]:
+) -> Tuple[NodeUDFResults, Dict[str, str]]:
     """
     Iterates through all the udf generator results, in order to create
     a table for each one.
@@ -435,20 +437,20 @@ def convert_udfgen2udf_results_and_mapping(
     table_names_tmpl_mapping = {}
     command_subid = 0
     for udf_result in udf_queries.udf_results:
-        table_name, mapping = _convert_udfgen2udf_result_and_mapping(
+        table, mapping = _convert_udfgen2nodeudf_result_and_mapping(
             udf_result,
             context_id,
             command_id,
             command_subid,
         )
         table_names_tmpl_mapping.update(mapping)
-        results.append(table_name)
+        results.append(table)
 
         # Needs to be incremented by 10 because a udf_result could
         # contain more than one tables. (SMPC for example)
         command_subid += 10
 
-    udf_results = UDFResults(results=results)
+    udf_results = NodeUDFResults(results=results)
     return udf_results, table_names_tmpl_mapping
 
 
@@ -467,14 +469,16 @@ def _generate_udf_statements(
     command_id: str,
     context_id: str,
     func_name: str,
-    positional_args: UDFPosArguments,
-    keyword_args: UDFKeyArguments,
+    positional_args: NodeUDFPosArguments,
+    keyword_args: NodeUDFKeyArguments,
     use_smpc: bool,
     output_schema,
-) -> Tuple[List[str], UDFResults]:
+) -> Tuple[List[str], NodeUDFResults]:
     udf_name = _create_udf_name(func_name, command_id, context_id)
 
-    gen_pos_args, gen_kw_args = _convert_udf2udfgen_args(positional_args, keyword_args)
+    gen_pos_args, gen_kw_args = _convert_nodeudf2udfgen_args(
+        positional_args, keyword_args
+    )
 
     udf_execution_queries = generate_udf_queries(
         request_id=request_id,
@@ -485,7 +489,7 @@ def _generate_udf_statements(
         output_schema=output_schema,
     )
 
-    (udf_results, templates_mapping,) = convert_udfgen2udf_results_and_mapping(
+    (udf_results, templates_mapping,) = convert_udfgen2nodeudf_results_and_mapping(
         udf_execution_queries, context_id, command_id
     )
 

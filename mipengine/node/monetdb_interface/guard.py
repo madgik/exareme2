@@ -11,6 +11,10 @@ from mipengine.node_tasks_DTOs import NodeLiteralDTO
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
 from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import NodeUDFDTO
+from mipengine.node_tasks_DTOs import SMPCTablesInfo
+from mipengine.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableSchema
+from mipengine.node_tasks_DTOs import TableType
 
 
 def sql_injection_guard(**validators: Optional[Callable[[Any], bool]]):
@@ -147,44 +151,32 @@ def is_valid_filter(filter):
     return False
 
 
-def is_valid_table_schema(schema):
+def is_valid_table_schema(schema: TableSchema):
     return all(col.name.isidentifier() for col in schema.columns)
 
 
 def is_valid_udf_arg(arg):
     if isinstance(arg, NodeUDFDTO):
         if isinstance(arg, NodeTableDTO):
-            return is_valid_table_dto(arg)
+            return is_valid_table_info(arg.value)
         elif isinstance(arg, NodeSMPCDTO):
-            return is_valid_smpc_dto(arg)
+            return is_valid_smpc_tables_info(arg.value)
         elif isinstance(arg, NodeLiteralDTO):
             return is_valid_literal_value(arg.value)
         raise NotImplementedError(f"{arg.__class__} has no validator implementation")
     raise TypeError("UDF args have to be subclasses of NodeUDFDTO")
 
 
-def is_valid_table_dto(dto):
-    return dto.value.isidentifier()
+def is_valid_table_info(info: TableInfo):
+    return info.name.isidentifier() and is_valid_table_schema(info.schema_)
 
 
-def is_valid_smpc_dto(dto):
+def is_valid_smpc_tables_info(info: SMPCTablesInfo):
     return (
-        dto.value.template.value.isidentifier()
-        and (
-            dto.value.sum_op_values.value.isidentifier()
-            if dto.value.sum_op_values
-            else True
-        )
-        and (
-            dto.value.min_op_values.value.isidentifier()
-            if dto.value.min_op_values
-            else True
-        )
-        and (
-            dto.value.max_op_values.value.isidentifier()
-            if dto.value.max_op_values
-            else True
-        )
+        is_valid_table_info(info.template)
+        and (is_valid_table_info(info.sum_op) if info.sum_op else True)
+        and (is_valid_table_info(info.min_op) if info.min_op else True)
+        and (is_valid_table_info(info.max_op) if info.max_op else True)
     )
 
 

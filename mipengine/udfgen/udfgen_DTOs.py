@@ -1,10 +1,11 @@
 from string import Template
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from pydantic import BaseModel
 
-from mipengine.node_tasks_DTOs import TableInfo
+from mipengine import DType
 
 
 class UDFGenBaseModel(BaseModel):
@@ -17,13 +18,16 @@ class UDFGenResult(UDFGenBaseModel):
     pass
 
 
-class TableUDFGenResult(UDFGenResult):
+class UDFGenTableResult(UDFGenResult):
     tablename_placeholder: str
+    table_schema: List[Tuple[str, DType]]
     drop_query: Template
     create_query: Template
 
     def __eq__(self, other):
         if self.tablename_placeholder != other.tablename_placeholder:
+            return False
+        if self.table_schema != other.table_schema:
             return False
         if self.drop_query.template != other.drop_query.template:
             return False
@@ -33,19 +37,20 @@ class TableUDFGenResult(UDFGenResult):
 
     def __repr__(self):
         return (
-            f"TableUDFGenResult("
-            f"tablename_placeholder='{self.tablename_placeholder}', "
-            f"drop_query='{self.drop_query.template}', "
-            f"create_query='{self.create_query.template}'"
+            f"UDFGenTableResult("
+            f"{self.tablename_placeholder=}, "
+            f"{self.table_schema=}, "
+            f"{self.drop_query.template=}, "
+            f"{self.create_query.template=}"
             f")"
         )
 
 
-class SMPCUDFGenResult(UDFGenResult):
-    template: TableUDFGenResult
-    sum_op_values: Optional[TableUDFGenResult] = None
-    min_op_values: Optional[TableUDFGenResult] = None
-    max_op_values: Optional[TableUDFGenResult] = None
+class UDFGenSMPCResult(UDFGenResult):
+    template: UDFGenTableResult
+    sum_op_values: Optional[UDFGenTableResult] = None
+    min_op_values: Optional[UDFGenTableResult] = None
+    max_op_values: Optional[UDFGenTableResult] = None
 
     def __eq__(self, other):
         if self.template != other.template:
@@ -60,7 +65,7 @@ class SMPCUDFGenResult(UDFGenResult):
 
     def __repr__(self):
         return (
-            f"SMPCUDFGenResult("
+            f"UDFGenSMPCResult("
             f"template={self.template}, "
             f"sum_op_values={self.sum_op_values}, "
             f"min_op_values={self.min_op_values}, "
@@ -83,22 +88,5 @@ class UDFGenExecutionQueries(UDFGenBaseModel):
             f"udf_results={self.udf_results}, "
             f"udf_definition_query='{udf_definition_query_str}', "
             f"udf_select_query='{self.udf_select_query.template}'"
-            f")"
-        )
-
-
-class SMPCTablesInfo(UDFGenBaseModel):
-    template: TableInfo
-    sum_op_values: Optional[TableInfo] = None
-    min_op_values: Optional[TableInfo] = None
-    max_op_values: Optional[TableInfo] = None
-
-    def __repr__(self):
-        return (
-            f"SMPCUDFInput("
-            f"template={self.template}, "
-            f"sum_op_values={self.sum_op_values}, "
-            f"min_op_values={self.min_op_values}, "
-            f"max_op_values={self.max_op_values}, "
             f")"
         )

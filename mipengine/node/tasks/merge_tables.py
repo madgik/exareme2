@@ -3,11 +3,10 @@ from typing import List
 from celery import shared_task
 
 from mipengine.node import config as node_config
-from mipengine.node.monetdb_interface import common_actions
 from mipengine.node.monetdb_interface import merge_tables
 from mipengine.node.monetdb_interface.common_actions import create_table_name
-from mipengine.node.monetdb_interface.merge_tables import validate_tables_can_be_merged
 from mipengine.node.node_logger import initialise_logger
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType
 
 
@@ -33,7 +32,7 @@ def get_merge_tables(request_id: str, context_id: str) -> List[str]:
 @shared_task
 @initialise_logger
 def create_merge_table(
-    request_id: str, context_id: str, command_id: str, table_names: List[str]
+    request_id: str, context_id: str, command_id: str, table_infos_json: List[str]
 ) -> str:
     """
     Parameters
@@ -44,23 +43,32 @@ def create_merge_table(
         The id of the experiment
     command_id : str
         The id of the command that the merge table
-    table_names: List[str]
-        Its a list of names of the tables to be merged
+    table_infos_json: List[str(TableInfo)]
+        A list of TableInfo of the tables to be merged, in a jsonified format
 
     Returns
     ------
-    str
-        The name(string) of the created merge table in lower case.
+    str(TableInfo)
+        A TableInfo object in a jsonified format
     """
-    validate_tables_can_be_merged(table_names)
-    schema = common_actions.get_table_schema(table_names[0])
+    table_infos = [
+        TableInfo.parse_raw(table_info_json) for table_info_json in table_infos_json
+    ]
     merge_table_name = create_table_name(
         TableType.MERGE,
         node_config.identifier,
         context_id,
         command_id,
     )
-    merge_tables.create_merge_table(merge_table_name, schema)
-    merge_tables.add_to_merge_table(merge_table_name, table_names)
+    # The schema of the 1st table is used as the merge table schema.
+    # If there is an incompatibility it will crash in the db.
+    merge_tables.create_merge_table(merge_table_name, table_infos[0].schema_)
+    merge_tables.add_to_merge_table(
+        merge_table_name, [table_info.name for table_info in table_infos]
+    )
 
-    return merge_table_name
+    return TableInfo(
+        name=merge_table_name,
+        schema_=table_infos[0].schema_,
+        type_=TableType.MERGE,
+    ).json()

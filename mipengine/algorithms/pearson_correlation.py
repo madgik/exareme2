@@ -35,18 +35,6 @@ def run(algo_interface):
         )
         X_relation = Y_relation
 
-    column_names = [
-        x.__dict__["name"]
-        for x in Y_relation.get_table_schema().__dict__["columns"]
-        if x.__dict__["name"] != "row_id"
-    ]
-
-    row_names = [
-        x.__dict__["name"]
-        for x in X_relation.get_table_schema().__dict__["columns"]
-        if x.__dict__["name"] != "row_id"
-    ]
-
     local_transfers = local_run(
         func=local1,
         keyword_args=dict(y=Y_relation, x=X_relation),
@@ -62,7 +50,7 @@ def run(algo_interface):
     n_obs = result["n_obs"]
 
     corr_dict, p_values_dict, ci_hi_dict, ci_lo_dict = create_dicts(
-        result, row_names, column_names
+        result, X_relation.columns, Y_relation.columns
     )
 
     result = PearsonResult(

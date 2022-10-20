@@ -8,13 +8,13 @@ import pytest
 
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import SMPCTablesInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.udfgen import secure_transfer
-from mipengine.udfgen.udfgen_DTOs import SMPCTablesInfo
-from mipengine.udfgen.udfgen_DTOs import SMPCUDFGenResult
-from mipengine.udfgen.udfgen_DTOs import TableUDFGenResult
+from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
+from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
 from mipengine.udfgen.udfgenerator import DEFERRED
 from mipengine.udfgen.udfgenerator import Column
 from mipengine.udfgen.udfgenerator import IOType
@@ -1047,10 +1047,10 @@ class TestUDFGenBase:
     def _get_udf_output_tablename_template_mapping(expected_udf_outputs):
         template_mapping = {}
         for udf_output in expected_udf_outputs:
-            if isinstance(udf_output, TableUDFGenResult):
+            if isinstance(udf_output, UDFGenTableResult):
                 tablename_placeholder = udf_output.tablename_placeholder
                 template_mapping[tablename_placeholder] = tablename_placeholder
-            elif isinstance(udf_output, SMPCUDFGenResult):
+            elif isinstance(udf_output, UDFGenSMPCResult):
                 tablename_placeholder = udf_output.template.tablename_placeholder
                 template_mapping[tablename_placeholder] = tablename_placeholder
                 if udf_output.sum_op_values:
@@ -1105,7 +1105,7 @@ class TestUDFGenBase:
         return Template(expected_udfsel).substitute(**template_mapping)
 
     @staticmethod
-    def _concrete_table_udf_outputs(output: TableUDFGenResult):
+    def _concrete_table_udf_outputs(output: UDFGenTableResult):
         queries = []
         template_mapping = {output.tablename_placeholder: output.tablename_placeholder}
         queries.append(output.drop_query.substitute(**template_mapping))
@@ -1119,9 +1119,9 @@ class TestUDFGenBase:
         """
         queries = []
         for udf_output in expected_udf_outputs:
-            if isinstance(udf_output, TableUDFGenResult):
+            if isinstance(udf_output, UDFGenTableResult):
                 queries.extend(self._concrete_table_udf_outputs(udf_output))
-            elif isinstance(udf_output, SMPCUDFGenResult):
+            elif isinstance(udf_output, UDFGenSMPCResult):
                 queries.extend(self._concrete_table_udf_outputs(udf_output.template))
                 if udf_output.sum_op_values:
                     queries.extend(
@@ -1444,7 +1444,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
                     ),
                     type_=TableType.NORMAL,
                 ),
-                sum_op_values=TableInfo(
+                sum_op=TableInfo(
                     name="test_smpc_sum_op_values_table",
                     schema_=TableSchema(
                         columns=[
@@ -1733,8 +1733,13 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("dim1", DType.INT),
+                    ("val", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
@@ -1808,8 +1813,13 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("dim1", DType.INT),
+                    ("val", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
@@ -1906,8 +1916,13 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("dim1", DType.INT),
+                    ("val", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
@@ -2005,8 +2020,13 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("dim1", DType.INT),
+                    ("val", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
@@ -2124,8 +2144,13 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("dim1", DType.INT),
+                    ("val", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
@@ -2222,8 +2247,13 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("dim1", DType.INT),
+                    ("val", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
@@ -2296,8 +2326,12 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("ci", DType.INT),
+                    ("cf", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("ci" INT,"cf" DOUBLE);'
@@ -2366,11 +2400,14 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("scalar", DType.INT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("result" INT);'
+                    'CREATE TABLE $main_output_table_name("scalar" INT);'
                 ),
             )
         ]
@@ -2439,11 +2476,14 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("scalar", DType.INT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("result" INT);'
+                    'CREATE TABLE $main_output_table_name("scalar" INT);'
                 ),
             )
         ]
@@ -2492,8 +2532,12 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("val", DType.INT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" INT);'
@@ -2567,8 +2611,13 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("dim1", DType.INT),
+                    ("val", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
@@ -2642,8 +2691,13 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("dim1", DType.INT),
+                    ("val", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
@@ -2717,8 +2771,13 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("dim1", DType.INT),
+                    ("val", DType.INT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" INT);'
@@ -2808,8 +2867,12 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("val", DType.INT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" INT);'
@@ -2916,8 +2979,12 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("val", DType.INT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" INT);'
@@ -3032,8 +3099,13 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("dim1", DType.INT),
+                    ("val", DType.INT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" INT);'
@@ -3121,11 +3193,14 @@ WHERE
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("scalar", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("result" DOUBLE);'
+                    'CREATE TABLE $main_output_table_name("scalar" DOUBLE);'
                 ),
             )
         ]
@@ -3186,8 +3261,12 @@ ORDER BY
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("val", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" DOUBLE);'
@@ -3255,8 +3334,13 @@ ORDER BY
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("dim1", DType.INT),
+                    ("val", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
@@ -3303,8 +3387,12 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("val", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" DOUBLE);'
@@ -3370,11 +3458,14 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("scalar", DType.INT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
-                    'CREATE TABLE $main_output_table_name("result" INT);'
+                    'CREATE TABLE $main_output_table_name("scalar" INT);'
                 ),
             )
         ]
@@ -3443,8 +3534,12 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("dim0", DType.INT),
+                    ("val", DType.INT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" INT);'
@@ -3526,7 +3621,7 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
@@ -3583,8 +3678,11 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("state", DType.BINARY),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
@@ -3672,8 +3770,11 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("state", DType.BINARY),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
@@ -3744,8 +3845,11 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("transfer", DType.JSON),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
@@ -3833,8 +3937,11 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("transfer", DType.JSON),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
@@ -3925,8 +4032,11 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("state", DType.BINARY),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
@@ -4031,8 +4141,11 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("state", DType.BINARY),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
@@ -4144,8 +4257,11 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("transfer", DType.JSON),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
@@ -4250,15 +4366,21 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("state", DType.BINARY),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             ),
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="loopback_table_name_0",
+                table_schema=[
+                    ("transfer", DType.JSON),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
                     'CREATE TABLE $loopback_table_name_0("transfer" CLOB);'
@@ -4370,15 +4492,21 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("transfer", DType.JSON),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
             ),
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="loopback_table_name_0",
+                table_schema=[
+                    ("state", DType.BINARY),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
                     'CREATE TABLE $loopback_table_name_0("state" BLOB);'
@@ -4494,15 +4622,21 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("state", DType.BINARY),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             ),
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="loopback_table_name_0",
+                table_schema=[
+                    ("transfer", DType.JSON),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
                     'CREATE TABLE $loopback_table_name_0("transfer" CLOB);'
@@ -4605,8 +4739,11 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("secure_transfer", DType.JSON),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("secure_transfer" CLOB);'
@@ -4708,9 +4845,12 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            SMPCUDFGenResult(
-                template=TableUDFGenResult(
+            UDFGenSMPCResult(
+                template=UDFGenTableResult(
                     tablename_placeholder="main_output_table_name",
+                    table_schema=[
+                        ("secure_transfer", DType.JSON),
+                    ],
                     drop_query=Template(
                         "DROP TABLE IF EXISTS $main_output_table_name;"
                     ),
@@ -4718,8 +4858,11 @@ FROM
                         'CREATE TABLE $main_output_table_name("secure_transfer" CLOB);'
                     ),
                 ),
-                sum_op_values=TableUDFGenResult(
+                sum_op_values=UDFGenTableResult(
                     tablename_placeholder="main_output_table_name_sum_op",
+                    table_schema=[
+                        ("secure_transfer", DType.JSON),
+                    ],
                     drop_query=Template(
                         "DROP TABLE IF EXISTS $main_output_table_name_sum_op;"
                     ),
@@ -4727,8 +4870,11 @@ FROM
                         'CREATE TABLE $main_output_table_name_sum_op("secure_transfer" CLOB);'
                     ),
                 ),
-                max_op_values=TableUDFGenResult(
+                max_op_values=UDFGenTableResult(
                     tablename_placeholder="main_output_table_name_max_op",
+                    table_schema=[
+                        ("secure_transfer", DType.JSON),
+                    ],
                     drop_query=Template(
                         "DROP TABLE IF EXISTS $main_output_table_name_max_op;"
                     ),
@@ -4851,15 +4997,21 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("state", DType.BINARY),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             ),
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="loopback_table_name_0",
+                table_schema=[
+                    ("secure_transfer", DType.JSON),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
                     'CREATE TABLE $loopback_table_name_0("secure_transfer" CLOB);'
@@ -4969,23 +5121,32 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("state", DType.BINARY),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
             ),
-            SMPCUDFGenResult(
-                template=TableUDFGenResult(
+            UDFGenSMPCResult(
+                template=UDFGenTableResult(
                     tablename_placeholder="loopback_table_name_0",
+                    table_schema=[
+                        ("secure_transfer", DType.JSON),
+                    ],
                     drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                     create_query=Template(
                         'CREATE TABLE $loopback_table_name_0("secure_transfer" CLOB);'
                     ),
                 ),
-                sum_op_values=TableUDFGenResult(
+                sum_op_values=UDFGenTableResult(
                     tablename_placeholder="loopback_table_name_0_sum_op",
+                    table_schema=[
+                        ("secure_transfer", DType.JSON),
+                    ],
                     drop_query=Template(
                         "DROP TABLE IF EXISTS $loopback_table_name_0_sum_op;"
                     ),
@@ -4993,8 +5154,11 @@ FROM
                         'CREATE TABLE $loopback_table_name_0_sum_op("secure_transfer" CLOB);'
                     ),
                 ),
-                min_op_values=TableUDFGenResult(
+                min_op_values=UDFGenTableResult(
                     tablename_placeholder="loopback_table_name_0_min_op",
+                    table_schema=[
+                        ("secure_transfer", DType.JSON),
+                    ],
                     drop_query=Template(
                         "DROP TABLE IF EXISTS $loopback_table_name_0_min_op;"
                     ),
@@ -5002,8 +5166,11 @@ FROM
                         'CREATE TABLE $loopback_table_name_0_min_op("secure_transfer" CLOB);'
                     ),
                 ),
-                max_op_values=TableUDFGenResult(
+                max_op_values=UDFGenTableResult(
                     tablename_placeholder="loopback_table_name_0_max_op",
+                    table_schema=[
+                        ("secure_transfer", DType.JSON),
+                    ],
                     drop_query=Template(
                         "DROP TABLE IF EXISTS $loopback_table_name_0_max_op;"
                     ),
@@ -5121,8 +5288,11 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("transfer", DType.JSON),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
@@ -5180,7 +5350,7 @@ class TestUDFGen_SecureTransferInput_with_SMPC_on(
                     ),
                     type_=TableType.NORMAL,
                 ),
-                sum_op_values=TableInfo(
+                sum_op=TableInfo(
                     name="test_smpc_sum_op_values_table",
                     schema_=TableSchema(
                         columns=[
@@ -5189,7 +5359,7 @@ class TestUDFGen_SecureTransferInput_with_SMPC_on(
                     ),
                     type_=TableType.NORMAL,
                 ),
-                max_op_values=TableInfo(
+                max_op=TableInfo(
                     name="test_smpc_max_op_values_table",
                     schema_=TableSchema(
                         columns=[
@@ -5236,8 +5406,11 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("transfer", DType.JSON),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
@@ -5324,8 +5497,11 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("transfer", DType.JSON),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
@@ -5394,8 +5570,12 @@ FROM
     @pytest.fixture(scope="class")
     def expected_udf_outputs(self):
         return [
-            TableUDFGenResult(
+            UDFGenTableResult(
                 tablename_placeholder="main_output_table_name",
+                table_schema=[
+                    ("a", DType.INT),
+                    ("b", DType.FLOAT),
+                ],
                 drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("a" INT,"b" DOUBLE);'

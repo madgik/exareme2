@@ -7,14 +7,16 @@ import pytest
 from billiard.exceptions import TimeLimitExceeded
 
 from mipengine import DType
-from mipengine.node.tasks.udfs import _parse_output_schema
+from mipengine.node.tasks.udfs import _convert_tableschema2udfgen_iotype
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import NodeTableDTO
+from mipengine.node_tasks_DTOs import NodeUDFKeyArguments
+from mipengine.node_tasks_DTOs import NodeUDFPosArguments
+from mipengine.node_tasks_DTOs import NodeUDFResults
 from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import UDFKeyArguments
-from mipengine.node_tasks_DTOs import UDFPosArguments
-from mipengine.node_tasks_DTOs import UDFResults
+from mipengine.node_tasks_DTOs import TableType
 from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import get_column_rows
 from tests.algorithms.orphan_udfs import local_step
@@ -30,7 +32,7 @@ context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 
 def create_table_with_one_column_and_ten_rows(
     celery_app, request_id
-) -> Tuple[str, int]:
+) -> Tuple[TableInfo, int]:
     create_table_task = get_celery_task_signature("create_table")
     insert_data_to_table_task = get_celery_task_signature("insert_data_to_table")
 
@@ -47,8 +49,10 @@ def create_table_with_one_column_and_ten_rows(
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     )
-    table_name = celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    table_info = TableInfo.parse_raw(
+        celery_app.get_result(
+            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+        )
     )
 
     values = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
@@ -56,14 +60,36 @@ def create_table_with_one_column_and_ten_rows(
         task_signature=insert_data_to_table_task,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=table_name,
+        table_name=table_info.name,
         values=values,
     )
     celery_app.get_result(
         async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
 
-    return table_name, 55
+    return table_info, 55
+
+
+def create_non_existing_remote_table(celery_app, request_id) -> TableInfo:
+    create_remote_table_task = get_celery_task_signature("create_remote_table")
+    table_schema = TableSchema(
+        columns=[
+            ColumnInfo(name="col1", dtype=DType.INT),
+        ]
+    )
+    table_name = "non_existing_remote_table"
+    async_result = celery_app.queue_task(
+        task_signature=create_remote_table_task,
+        logger=StdOutputLogger(),
+        request_id=request_id,
+        table_name=table_name,
+        table_schema_json=table_schema.json(),
+        monetdb_socket_address="127.0.0.1:50000",
+    )
+    celery_app.get_result(
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    )
+    return TableInfo(name=table_name, schema_=table_schema, type_=TableType.REMOTE)
 
 
 @pytest.mark.slow
@@ -83,54 +109,6 @@ def test_get_udf(localnode1_node_service, localnode1_celery_app):
 
 
 @pytest.mark.slow
-def test_run_udf_relation_to_scalar(
-    localnode1_node_service, use_localnode1_database, localnode1_celery_app
-):
-    run_udf_task = get_celery_task_signature("run_udf")
-
-    local_node_get_table_data = get_celery_task_signature("get_table_data")
-
-    input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode1_celery_app, request_id
-    )
-    kw_args_str = UDFKeyArguments(
-        args={"table": NodeTableDTO(value=input_table_name)}
-    ).json()
-
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=run_udf_task,
-        logger=StdOutputLogger(),
-        command_id="1",
-        request_id=request_id,
-        context_id=context_id,
-        func_name=make_unique_func_name(get_column_rows),
-        positional_args_json=UDFPosArguments(args=[]).json(),
-        keyword_args_json=kw_args_str,
-    )
-    udf_results_str = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    results = UDFResults.parse_raw(udf_results_str).results
-    assert len(results) == 1
-
-    result = results[0]
-    assert isinstance(result, NodeTableDTO)
-
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=local_node_get_table_data,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=result.value,
-    )
-    table_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    table_data = TableData.parse_raw(table_data_json)
-
-    assert table_data.columns[0].data[0] == 10
-
-
-@pytest.mark.slow
 def test_run_udf_state_and_transfer_output(
     localnode1_node_service,
     use_localnode1_database,
@@ -141,12 +119,12 @@ def test_run_udf_state_and_transfer_output(
 
     local_node_get_table_data = get_celery_task_signature("get_table_data")
 
-    input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
+    input_table_info, input_table_name_sum = create_table_with_one_column_and_ten_rows(
         localnode1_celery_app, request_id
     )
 
-    kw_args_str = UDFKeyArguments(
-        args={"table": NodeTableDTO(value=input_table_name)}
+    kw_args_str = NodeUDFKeyArguments(
+        args={"table": NodeTableDTO(value=input_table_info)}
     ).json()
 
     async_result = localnode1_celery_app.queue_task(
@@ -156,7 +134,7 @@ def test_run_udf_state_and_transfer_output(
         request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(local_step),
-        positional_args_json=UDFPosArguments(args=[]).json(),
+        positional_args_json=NodeUDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
     )
     udf_results_str = localnode1_celery_app.get_result(
@@ -165,7 +143,7 @@ def test_run_udf_state_and_transfer_output(
         timeout=TASKS_TIMEOUT,
     )
 
-    results = UDFResults.parse_raw(udf_results_str).results
+    results = NodeUDFResults.parse_raw(udf_results_str).results
     assert len(results) == 2
 
     state_result = results[0]
@@ -178,7 +156,7 @@ def test_run_udf_state_and_transfer_output(
         task_signature=local_node_get_table_data,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=transfer_result.value,
+        table_name=transfer_result.value.name,
     )
     transfer_table_data_json = localnode1_celery_app.get_result(
         async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
@@ -193,13 +171,55 @@ def test_run_udf_state_and_transfer_output(
     assert transfer_result["sum"] == input_table_name_sum
 
     [state_result_str] = localnode1_db_cursor.execute(
-        f"SELECT * FROM {state_result.value};"
+        f"SELECT * FROM {state_result.value.name};"
     ).fetchone()
     state_result = pickle.loads(state_result_str)
     assert "count" in state_result.keys()
     assert state_result["count"] == 10
     assert "sum" in state_result.keys()
     assert state_result["sum"] == input_table_name_sum
+
+
+def test_run_udf_with_remote_state_table_passed_as_normal_table(
+    localnode1_node_service,
+    use_localnode1_database,
+    localnode1_db_cursor,
+    localnode1_celery_app,
+):
+    run_udf_task = get_celery_task_signature("run_udf")
+
+    table_info = create_non_existing_remote_table(
+        celery_app=localnode1_celery_app, request_id=request_id
+    )
+    invalid_table_info = TableInfo(
+        name=table_info.name, schema_=table_info.schema_, type_=TableType.NORMAL
+    )
+
+    kw_args_str = NodeUDFKeyArguments(
+        args={"remote_state_table": NodeTableDTO(value=invalid_table_info)}
+    ).json()
+
+    async_result = localnode1_celery_app.queue_task(
+        task_signature=run_udf_task,
+        logger=StdOutputLogger(),
+        command_id="1",
+        request_id=request_id,
+        context_id=context_id,
+        func_name=make_unique_func_name(local_step),
+        positional_args_json=NodeUDFPosArguments(args=[]).json(),
+        keyword_args_json=kw_args_str,
+    )
+    with pytest.raises(ValueError) as exc_info:
+        localnode1_celery_app.get_result(
+            async_result=async_result,
+            logger=StdOutputLogger(),
+            timeout=TASKS_TIMEOUT,
+        )
+
+    assert (
+        str(exc_info.value)
+        == "Table: 'non_existing_remote_table' is not of type: 'NORMAL'."
+    )
 
 
 @pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-473")
@@ -213,7 +233,7 @@ def test_slow_udf_exception(
         localnode1_celery_app, request_id
     )
 
-    kw_args_str = UDFKeyArguments(
+    kw_args_str = NodeUDFKeyArguments(
         args={"table": NodeTableDTO(value=input_table_name)}
     ).json()
 
@@ -224,7 +244,7 @@ def test_slow_udf_exception(
             command_id="1",
             context_id=context_id,
             func_name=make_unique_func_name(one_hundred_seconds_udf),
-            positional_args_json=UDFPosArguments(args=[]).json(),
+            positional_args_json=NodeUDFPosArguments(args=[]).json(),
             keyword_args_json=kw_args_str,
         )
         localnode1_celery_app.get_result(
@@ -238,6 +258,6 @@ def test_parse_output_schema():
             ColumnInfo(name="a", dtype=DType.INT),
             ColumnInfo(name="b", dtype=DType.FLOAT),
         ]
-    ).json()
-    result = _parse_output_schema(output_schema)
+    )
+    result = _convert_tableschema2udfgen_iotype(output_schema)
     assert result == [("a", DType.INT), ("b", DType.FLOAT)]
