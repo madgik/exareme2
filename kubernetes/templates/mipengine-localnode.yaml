@@ -50,6 +50,15 @@ spec:
         volumeMounts:
         - mountPath: /home/monetdb
           name: db-data
+        livenessProbe:
+          exec:
+            command:
+            - mclient
+            - db
+            - -s
+            - "select name from sys.tables;"
+          initialDelaySeconds: 30
+          periodSeconds: 30
 
       - name: db-importer
         image: {{ .Values.mipengine_images.repository }}/mipengine_mipdb:{{ .Values.mipengine_images.version }}
