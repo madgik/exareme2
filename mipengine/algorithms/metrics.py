@@ -45,7 +45,8 @@ def confusion_matrix(executor, ytrue, proba):
     return_type=secure_transfer(sum_op=True),
 )
 def _confusion_matrix_local(ytrue, proba):
-    import sklearn
+    import sklearn.metrics
+    import sklearn.preprocessing
 
     ytrue, proba = ytrue.align(proba, axis=0, copy=False)
     ytruec, probac = ytrue["ybin"], proba["proba"]
@@ -100,7 +101,7 @@ def roc_curve(executor, ytrue, proba):
     return_type=secure_transfer(sum_op=True),
 )
 def _roc_curve_local(ytrue, proba, thresholds):
-    import sklearn
+    import sklearn.preprocessing
 
     ytrue, proba = ytrue.align(proba, axis=0, copy=False)
     ytruec, probac = ytrue["ybin"], proba["proba"]
