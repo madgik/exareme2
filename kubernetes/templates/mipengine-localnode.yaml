@@ -31,14 +31,17 @@ spec:
       volumes:
       - name: db-data
         hostPath:
-          path: {{ .Values.db_storage }}
+          path: {{ .Values.db.storage_location }}
       - name: csv-data
         hostPath:
-          path: {{ .Values.csvs_datapath }}
+          path: {{ .Values.db.csvs_location }}
       containers:
       - name: monetdb
         image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
         imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            memory: {{ quote .Values.db.max_memory }}
         env:
         - name: LOG_LEVEL
           value: {{ .Values.log_level }}
