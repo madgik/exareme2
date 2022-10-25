@@ -165,9 +165,12 @@
    inv kill-flower
    ```
 
-#### Algorithm Run
+#### Execute an algorithm
 
-1. Make a post request, _e.g._
-   ```
-   python example_post_request.py
-   ```
+- Examples
+  ```
+  ./run_algorithm -a pca -y leftamygdala lefthippocampus -d ppmi0 -m dementia:0.1
+  ```
+  ```
+  ./run_algorithm -a pearson -y leftamygdala lefthippocampus -d ppmi0 -m dementia:0.1 -p alpha 0.95
+  ```
