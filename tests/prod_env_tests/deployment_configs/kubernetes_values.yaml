@@ -9,8 +9,10 @@ framework_log_level: INFO
 
 max_concurrent_experiments: 32
 
-db_storage: /opt/mipengine/db
-csvs_datapath: /opt/mipengine/csvs
+db:
+  storage_location: /opt/mipengine/db
+  csvs_location: /opt/mipengine/csvs
+  max_memory: 1024Mi    # k8s memory limit measurement limit
 
 controller:
   node_landscape_aggregator_update_interval: 20

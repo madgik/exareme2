@@ -3,7 +3,7 @@
 ### Setting up the data
 
 Before the data manager can load data in a local node, the data should be located
-in the `csvs_datapath` location provided in the kubernetes `values.yaml`.
+in the `db.csvs_location` provided in the kubernetes `values.yaml`.
 
 That folder should contain the metadata of the data model that will be loaded and the dataset csvs.
 
