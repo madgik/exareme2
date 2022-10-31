@@ -23,16 +23,8 @@ def get_test_params(expected_file, slc=None):
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_pearson_algorithm(test_input, expected):
     response = algorithm_request("pearson_correlation", test_input)
-    if response.status_code != 200:
-        raise ValueError(
-            f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
-        )
-    try:
-        result = json.loads(response.content)
-    except json.decoder.JSONDecodeError as exc:
-        print(response)
-        raise exc
-    assert response.status_code == 200
+    result = json.loads(response.content)
+
     assert int(result["n_obs"]) == int(expected["n_obs"])
     for var in test_input["inputdata"]["y"]:
         np.testing.assert_allclose(

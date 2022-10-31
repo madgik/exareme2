@@ -32,6 +32,15 @@ def algorithm_request(algorithm: str, input: dict):
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
     response = requests.post(url, data=request_json, headers=headers)
+    if response.status_code != 200:
+        raise ValueError(
+            f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
+        )
+    try:
+        json.loads(response.content)
+    except json.decoder.JSONDecodeError as exc:
+        print(response)
+        raise exc
     return response
 
 
