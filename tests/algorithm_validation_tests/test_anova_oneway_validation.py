@@ -3,47 +3,10 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-import requests
 
-from tests.prod_env_tests import algorithms_url
+from tests.algorithm_validation_tests.helpers import algorithm_request
 
 expected_file = Path(__file__).parent / "expected" / "anova_oneway_expected.json"
-
-
-def anova_one_way_request(input):
-    url = algorithms_url + "/anova_oneway"
-
-    filters = {
-        "condition": "AND",
-        "rules": [
-            {
-                "id": "dataset",
-                "type": "string",
-                "value": input["inputdata"]["datasets"],
-                "operator": "in",
-            },
-            {
-                "condition": "AND",
-                "rules": [
-                    {
-                        "id": variable,
-                        "type": "string",
-                        "operator": "is_not_null",
-                        "value": None,
-                    }
-                    for variable in input["inputdata"]["x"] + input["inputdata"]["y"]
-                ],
-            },
-        ],
-        "valid": True,
-    }
-    input["inputdata"]["filters"] = filters
-    # input["inputdata"]["use_smpc"] = False
-    request_json = json.dumps(input)
-
-    headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    response = requests.post(url, data=request_json, headers=headers)
-    return response
 
 
 def get_test_params(file, slc=None):
@@ -57,7 +20,8 @@ def get_test_params(file, slc=None):
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_anova_algorithm(test_input, expected):
-    response = anova_one_way_request(test_input)
+    response = algorithm_request("anova_oneway", test_input)
+
     if response.status_code != 200:
         raise ValueError(
             f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"

@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 from tests.algorithm_validation_tests.helpers import algorithm_request

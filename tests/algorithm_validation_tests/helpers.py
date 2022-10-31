@@ -12,10 +12,8 @@ def algorithm_request(algorithm: str, input: dict):
 
     variables = copy.deepcopy(input["inputdata"]["y"])
     keys = input["inputdata"].keys()
-    if "x" in keys:
+    if "x" in keys and input["inputdata"]["x"]:
         variables.extend(input["inputdata"]["x"])
-    else:
-        pass
 
     filters = {
         "condition": "AND",
