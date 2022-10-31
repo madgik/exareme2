@@ -48,14 +48,7 @@ def get_cached_response(algorithm_name, test_input, cache):
 )
 def test_linearregression_cv_non_inferiority_msre(test_input, expected, cache):
     response = get_cached_response("linear_regression_cv", test_input, cache)
-    if response.status_code != 200:
-        raise ValueError(
-            f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
-        )
-    try:
-        result = json.loads(response.text)
-    except json.decoder.JSONDecodeError:
-        raise ValueError(f"The result is not valid json:\n{response.text}") from None
+    result = json.loads(response.content)
 
     n_splits = test_input["parameters"]["n_splits"]
     msre_res_mean, msre_res_std = result["mean_sq_error"]

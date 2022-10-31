@@ -22,14 +22,8 @@ def get_test_params(expected_file, slc=None):
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_pca_algorithm(test_input, expected):
     response = algorithm_request("pca", test_input)
-
-    if response.status_code != 200:
-        raise ValueError(
-            f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
-        )
     result = json.loads(response.content)
 
-    assert response.status_code == 200
     assert int(result["n_obs"]) == int(expected["n_obs"])
     np.testing.assert_allclose(
         result["eigenvalues"],

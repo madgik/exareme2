@@ -25,10 +25,7 @@ expected_file = (
 )
 def test_logisticregression_cv_algorithm(test_input, expected, subtests):
     response = algorithm_request("logistic_regression_cv", test_input)
-    try:
-        result = json.loads(response.text)
-    except json.decoder.JSONDecodeError:
-        raise ValueError(f"The result is not valid json:\n{response.text}") from None
+    result = json.loads(response.content)
 
     # summary results also contain their average and stdev in the last
     # positions, so I remove them
