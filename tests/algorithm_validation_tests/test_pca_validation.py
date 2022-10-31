@@ -5,19 +5,9 @@ import numpy as np
 import pytest
 import requests
 
+from tests.algorithm_validation_tests.helpers import algorithm_request
+
 expected_file = Path(__file__).parent / "expected" / "pca_expected.json"
-
-
-def pca_request(input):
-    url = "http://127.0.0.1:5000/algorithms" + "/pca"
-
-    filters = None
-    input["inputdata"]["filters"] = filters
-    request_json = json.dumps(input)
-
-    headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    response = requests.post(url, data=request_json, headers=headers)
-    return response
 
 
 def get_test_params(expected_file, slc=None):
@@ -31,7 +21,8 @@ def get_test_params(expected_file, slc=None):
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_pca_algorithm(test_input, expected):
-    response = pca_request(test_input)
+    response = algorithm_request("pca", test_input)
+
     if response.status_code != 200:
         raise ValueError(
             f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
