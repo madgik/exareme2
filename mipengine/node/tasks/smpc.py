@@ -14,6 +14,7 @@ from mipengine.node.monetdb_interface.tables import insert_data_to_table
 from mipengine.node.node_logger import initialise_logger
 from mipengine.node_info_DTOs import NodeRole
 from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.smpc_cluster_comm_helpers import SMPCComputationError
@@ -104,7 +105,8 @@ def get_smpc_result(
 
     Returns
     -------
-    The tablename where the results are in.
+    str(TableInfo)
+        A TableInfo object in a jsonified format
     """
     if node_config.role != NodeRole.GLOBALNODE:
         raise PermissionError("get_smpc_result is allowed only for a GLOBALNODE.")
@@ -124,7 +126,7 @@ def get_smpc_result(
             f"\nResponse: {response} \nException: {exc}"
         )
 
-    results_table_name = _create_smpc_results_table(
+    results_table_name, results_table_schema = _create_smpc_results_table(
         request_id=request_id,
         context_id=context_id,
         command_id=command_id,
@@ -132,7 +134,11 @@ def get_smpc_result(
         smpc_op_result_data=smpc_response.computationOutput,
     )
 
-    return results_table_name
+    return TableInfo(
+        name=results_table_name,
+        schema_=results_table_schema,
+        type_=TableType.NORMAL,
+    ).json()
 
 
 def _create_smpc_results_table(
@@ -141,7 +147,6 @@ def _create_smpc_results_table(
     """
     Create a table with the SMPC specific schema
     and insert the results of the SMPC to it.
-
     """
     table_name = create_table_name(
         TableType.NORMAL,
@@ -163,7 +168,7 @@ def _create_smpc_results_table(
     table_values = [[json.dumps(smpc_op_result_data)]]
     insert_data_to_table(table_name, table_values)
 
-    return table_name
+    return table_name, table_schema
 
 
 def _get_smpc_values_from_table_data(table_data: List[ColumnData]):

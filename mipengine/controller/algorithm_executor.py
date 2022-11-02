@@ -16,9 +16,6 @@ from mipengine.controller import config as ctrl_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
 from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
-from mipengine.controller.algorithm_executor_node_data_objects import NodeData
-from mipengine.controller.algorithm_executor_node_data_objects import SMPCTableNames
-from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.controller.algorithm_executor_nodes import LocalNode
 from mipengine.controller.algorithm_executor_smpc_helper import get_smpc_results
@@ -46,7 +43,12 @@ from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.node_tasks_DTOs import CommonDataElement
+from mipengine.node_tasks_DTOs import NodeSMPCDTO
+from mipengine.node_tasks_DTOs import NodeTableDTO
+from mipengine.node_tasks_DTOs import NodeUDFDTO
+from mipengine.node_tasks_DTOs import SMPCTablesInfo
 from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.udfgen import TensorBinaryOp
 from mipengine.udfgen import make_unique_func_name
@@ -85,13 +87,13 @@ class NodeTaskTimeoutAlgorithmExecutionException(Exception):
 
 
 class InconsistentTableSchemasException(Exception):
-    def __init__(self, tables_schemas: Dict[TableName, TableSchema]):
-        message = f"Tables: {tables_schemas} do not have a common schema"
+    def __init__(self, table_infos: List[TableInfo]):
+        message = f"Table_infos: {table_infos} do not have a common schema."
         super().__init__(message)
 
 
 class InconsistentUDFResultSizeException(Exception):
-    def __init__(self, result_tables: Dict[int, List[Tuple[LocalNode, TableName]]]):
+    def __init__(self, result_tables: Dict[int, List[Tuple[LocalNode, TableInfo]]]):
         message = (
             f"The following udf execution results on multiple nodes should have "
             f"the same number of results.\nResults:{result_tables}"
@@ -372,10 +374,8 @@ class _AlgorithmExecutionInterface:
             all_nodes_results
         )
 
-        results_after_sharing_step = all_local_nodes_data
-
         # validate length of share_to_global
-        number_of_results = len(all_nodes_results)
+        number_of_results = len(all_local_nodes_data)
         self._validate_share_to(share_to_global, number_of_results)
 
         # Share result to global node when necessary
@@ -397,16 +397,24 @@ class _AlgorithmExecutionInterface:
         return results_after_sharing_step
 
     def _convert_local_udf_results_to_local_nodes_data(
-        self, all_nodes_results: List[List[Tuple[LocalNode, NodeData]]]
+        self, all_nodes_results: List[List[Tuple[LocalNode, NodeUDFDTO]]]
     ) -> List[LocalNodesData]:
         results = []
         for nodes_result in all_nodes_results:
             # All nodes' results have the same type so only the first_result is needed to define the type
             first_result = nodes_result[0][1]
-            if isinstance(first_result, TableName):
-                results.append(LocalNodesTable(dict(nodes_result)))
-            elif isinstance(first_result, SMPCTableNames):
-                results.append(LocalNodesSMPCTables(dict(nodes_result)))
+            if isinstance(first_result, NodeTableDTO):
+                results.append(
+                    LocalNodesTable(
+                        {node: node_res.value for node, node_res in nodes_result}
+                    )
+                )
+            elif isinstance(first_result, NodeSMPCDTO):
+                results.append(
+                    LocalNodesSMPCTables(
+                        {node: node_res.value for node, node_res in nodes_result}
+                    )
+                )
             else:
                 raise NotImplementedError
         return results
@@ -431,25 +439,25 @@ class _AlgorithmExecutionInterface:
         local_nodes_table: LocalNodesTable,
         command_id: int,
     ) -> GlobalNodeTable:
-        nodes_tables = local_nodes_table.nodes_tables
+        nodes_tables = local_nodes_table.nodes_tables_info
 
         # check the tables have the same schema
         common_schema = self._validate_same_schema_tables(nodes_tables)
 
         # create remote tables on global node
-        table_names = []
-        for node, node_table in nodes_tables.items():
+        table_infos = [
             self._global_node.create_remote_table(
-                table_name=node_table.full_table_name,
+                table_name=node_table.name,
                 table_schema=common_schema,
                 native_node=node,
             )
-            table_names.append(node_table.full_table_name)
+            for node, node_table in nodes_tables.items()
+        ]
 
         # merge remote tables into one merge table on global node
-        merge_table = self._global_node.create_merge_table(str(command_id), table_names)
+        merge_table = self._global_node.create_merge_table(str(command_id), table_infos)
 
-        return GlobalNodeTable(node=self._global_node, table=merge_table)
+        return GlobalNodeTable(node=self._global_node, table_info=merge_table)
 
     def _share_local_smpc_tables_to_global(
         self,
@@ -461,7 +469,7 @@ class _AlgorithmExecutionInterface:
             command_id=command_id,
         )
         self._global_node.validate_smpc_templates_match(
-            global_template_table.table.full_table_name
+            global_template_table.table_info.name
         )
 
         smpc_clients_per_op = load_data_to_smpc_clients(
@@ -499,8 +507,8 @@ class _AlgorithmExecutionInterface:
 
         return GlobalNodeSMPCTables(
             node=self._global_node,
-            smpc_tables=SMPCTableNames(
-                template=global_template_table.table,
+            smpc_tables_info=SMPCTablesInfo(
+                template=global_template_table.table_info,
                 sum_op=sum_op_result_table,
                 min_op=min_op_result_table,
                 max_op=max_op_result_table,
@@ -556,8 +564,6 @@ class _AlgorithmExecutionInterface:
             node_tables
         )
 
-        results_after_sharing_step = global_node_tables
-
         # validate length of share_to_locals
         number_of_results = len(global_node_tables)
         self._validate_share_to(share_to_locals, number_of_results)
@@ -575,32 +581,29 @@ class _AlgorithmExecutionInterface:
 
     def _convert_global_udf_results_to_global_node_data(
         self,
-        node_tables: List[TableName],
+        node_tables: List[NodeTableDTO],
     ) -> List[GlobalNodeTable]:
         global_tables = [
             GlobalNodeTable(
                 node=self._global_node,
-                table=node_table,
+                table_info=table_dto.value,
             )
-            for node_table in node_tables
+            for table_dto in node_tables
         ]
         return global_tables
 
     def _share_global_table_to_locals(
         self, global_table: GlobalNodeTable
     ) -> LocalNodesTable:
-
-        local_tables = []
-        table_schema = self._global_node.get_table_schema(global_table.table)
-        for node in self._local_nodes:
-            node.create_remote_table(
-                table_name=global_table.table.full_table_name,
-                table_schema=table_schema,
+        local_tables = {
+            node: node.create_remote_table(
+                table_name=global_table.table_info.name,
+                table_schema=global_table.table_info.schema_,
                 native_node=self._global_node,
             )
-            local_tables.append((node, global_table.table))
-
-        return LocalNodesTable(nodes_tables=dict(local_tables))
+            for node in self._local_nodes
+        }
+        return LocalNodesTable(nodes_tables_info=local_tables)
 
     # TABLES functionality
     def get_table_data(self, node_table) -> TableData:
@@ -650,7 +653,7 @@ class _AlgorithmExecutionInterface:
 
     def _get_local_run_udfs_results(
         self, tasks: Dict[LocalNode, AsyncResult]
-    ) -> List[List[Tuple[LocalNode, NodeData]]]:
+    ) -> List[List[Tuple[LocalNode, NodeUDFDTO]]]:
         all_nodes_results = {}
         for node, task in tasks.items():
             node_results = node.get_queued_udf_result(task)
@@ -688,23 +691,20 @@ class _AlgorithmExecutionInterface:
             raise InconsistentShareTablesValueException(share_to, number_of_results)
 
     def _validate_same_schema_tables(
-        self, tables: Dict[LocalNode, TableName]
+        self, table_info_per_node: Dict[LocalNode, TableInfo]
     ) -> TableSchema:
         """
         Returns : TableSchema the common TableSchema, if all tables have the same schema
         """
-        have_common_schema = True
-        reference_schema = None
-        schemas = {}
-        for node, table in tables.items():
-            schemas[table] = node.get_table_schema(table)
-            if reference_schema:
-                if schemas[table] != reference_schema:
-                    have_common_schema = False
-            else:
-                reference_schema = schemas[table]
-        if not have_common_schema:
-            raise InconsistentTableSchemasException(schemas)
+        reference_schema = next(
+            iter(table_info_per_node.values())
+        ).schema_  # Use the first table schema as reference
+        for node, table_info in table_info_per_node.items():
+            if table_info.schema_ != reference_schema:
+                raise InconsistentTableSchemasException(
+                    list(table_info_per_node.values())
+                )
+
         return reference_schema
 
 
@@ -725,28 +725,20 @@ class _SingleLocalNodeAlgorithmExecutionInterface(_AlgorithmExecutionInterface):
         if isinstance(local_nodes_data, LocalNodesTable):
             return GlobalNodeTable(
                 node=self._global_node,
-                table=local_nodes_data.nodes_tables[self._local_nodes[0]],
+                table_info=local_nodes_data.nodes_tables_info[self._local_nodes[0]],
             )
         elif isinstance(local_nodes_data, LocalNodesSMPCTables):
             return GlobalNodeSMPCTables(
                 node=self._global_node,
-                smpc_tables=SMPCTableNames(
-                    template=local_nodes_data.nodes_smpc_tables[
-                        self._global_node
-                    ].template,
-                    sum_op=local_nodes_data.nodes_smpc_tables[self._global_node].sum_op,
-                    min_op=local_nodes_data.nodes_smpc_tables[self._global_node].min_op,
-                    max_op=local_nodes_data.nodes_smpc_tables[self._global_node].max_op,
-                ),
+                smpc_tables_info=local_nodes_data.nodes_smpc_tables[self._global_node],
             )
-
         raise NotImplementedError
 
     def _share_global_table_to_locals(
         self, global_table: GlobalNodeTable
     ) -> LocalNodesTable:
         return LocalNodesTable(
-            nodes_tables=dict({self._global_node: global_table.table})
+            nodes_tables_info=dict({self._global_node: global_table.table_info})
         )
 
 
@@ -775,7 +767,7 @@ def get_func_name(
 
 
 def _convert_views_per_localnode_to_local_nodes_tables(
-    views_per_localnode: List[Tuple[LocalNode, List[TableName]]]
+    views_per_localnode: List[Tuple[LocalNode, List[TableInfo]]]
 ) -> List[LocalNodesTable]:
     """
     In the views_per_localnode the views are stored per the localnode where they exist.
@@ -784,17 +776,15 @@ def _convert_views_per_localnode_to_local_nodes_tables(
 
     Parameters
     ----------
-    views_per_localnode: List[Tuple[LocalNode, List[TableName]]]
-        views grouped per the localnode where they exist.
+    views_per_localnode: views grouped per the localnode where they exist.
 
     Returns
     ------
-    List[LocalNodesTable]
-        One (LocalNodesTable) view for each one existing in the localnodes.
+    One (LocalNodesTable) view for each one existing in the localnodes.
     """
     views_count = _get_amount_of_localnodes_views(views_per_localnode)
 
-    local_nodes_tables_dicts: List[Dict[LocalNode, TableName]] = [
+    local_nodes_tables_dicts: List[Dict[LocalNode, TableInfo]] = [
         {} for _ in range(views_count)
     ]
     for localnode, local_node_views in views_per_localnode:
@@ -808,7 +798,7 @@ def _convert_views_per_localnode_to_local_nodes_tables(
 
 
 def _get_amount_of_localnodes_views(
-    views_per_localnode: List[Tuple[LocalNode, List[TableName]]]
+    views_per_localnode: List[Tuple[LocalNode, List[TableInfo]]]
 ) -> int:
     """
     Returns the amount of views after validating all localnodes created the same amount of views.

@@ -2,9 +2,9 @@ from typing import List
 
 from celery import shared_task
 
+from mipengine import DATA_TABLE_PRIMARY_KEY
 from mipengine.exceptions import DataModelUnavailable
 from mipengine.exceptions import DatasetUnavailable
-from mipengine.node import DATA_TABLE_PRIMARY_KEY
 from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import views
 from mipengine.node.monetdb_interface.common_actions import create_table_name
@@ -13,6 +13,7 @@ from mipengine.node.monetdb_interface.common_actions import (
     get_dataset_code_per_dataset_label,
 )
 from mipengine.node.node_logger import initialise_logger
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType
 
 
@@ -74,8 +75,8 @@ def create_data_model_views(
 
     Returns
     ------
-    List[str]
-        The names of the created views
+    List[str(TableInfo)]
+        A list of TableInfo objects in a jsonified format
     """
     _validate_data_model_and_datasets_exist(data_model, datasets)
     if datasets:
@@ -99,7 +100,7 @@ def create_data_model_views(
             columns=view_columns,
             filters=filters,
             check_min_rows=check_min_rows,
-        )
+        ).json()
         for count, view_columns in enumerate(columns_per_view)
     ]
 
@@ -112,7 +113,7 @@ def create_data_model_view(
     columns: List[str],
     filters: dict = None,
     check_min_rows: bool = True,
-) -> str:
+) -> TableInfo:
     view_name = create_table_name(
         table_type=TableType.VIEW,
         node_id=node_config.identifier,
@@ -122,14 +123,13 @@ def create_data_model_view(
     )
     columns.insert(0, DATA_TABLE_PRIMARY_KEY)
 
-    views.create_view(
+    return views.create_view(
         view_name=view_name,
         table_name=f'"{data_model}"."primary_data"',
         columns=columns,
         filters=filters,
         check_min_rows=check_min_rows,
     )
-    return view_name
 
 
 def _get_filters_with_datasets_constraints(filters, datasets):
@@ -226,8 +226,8 @@ def create_view(
 
     Returns
     ------
-    str
-        The name of the created view
+    str(TableInfo)
+        A TableInfo object in a jsonified format
     """
     view_name = create_table_name(
         TableType.VIEW,
@@ -235,10 +235,9 @@ def create_view(
         context_id,
         command_id,
     )
-    views.create_view(
+    return views.create_view(
         view_name=view_name,
         table_name=table_name,
         columns=columns,
         filters=filters,
-    )
-    return view_name
+    ).json()

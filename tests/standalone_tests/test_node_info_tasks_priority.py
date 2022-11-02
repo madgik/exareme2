@@ -6,8 +6,8 @@ from mipengine.controller.node_info_tasks_handler import NodeInfoTasksHandler
 from mipengine.node import config as node_config
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import NodeTableDTO
-from mipengine.node_tasks_DTOs import UDFKeyArguments
-from mipengine.node_tasks_DTOs import UDFPosArguments
+from mipengine.node_tasks_DTOs import NodeUDFKeyArguments
+from mipengine.node_tasks_DTOs import NodeUDFPosArguments
 from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import one_second_udf
 from tests.standalone_tests.conftest import RABBITMQ_GLOBALNODE_ADDR
@@ -25,7 +25,7 @@ def queue_one_second_udf(
 ):
     run_udf_task = get_celery_task_signature("run_udf")
 
-    kw_args_str = UDFKeyArguments(
+    kw_args_str = NodeUDFKeyArguments(
         args={"table": NodeTableDTO(value=input_table_name)}
     ).json()
 
@@ -38,7 +38,7 @@ def queue_one_second_udf(
         command_id=str(command_id),
         context_id=request_id,
         func_name=make_unique_func_name(one_second_udf),
-        positional_args_json=UDFPosArguments(args=[]).json(),
+        positional_args_json=NodeUDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
     )
 

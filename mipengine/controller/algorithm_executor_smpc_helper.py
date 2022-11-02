@@ -6,10 +6,10 @@ from typing import Tuple
 
 from mipengine import smpc_cluster_comm_helpers as smpc_cluster
 from mipengine.controller import config as ctrl_config
-from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesSMPCTables
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.smpc_cluster_comm_helpers import SMPCComputationError
 from mipengine.smpc_cluster_comm_helpers import trigger_smpc
 from mipengine.smpc_DTOs import SMPCRequestType
@@ -30,11 +30,11 @@ def load_operation_data_to_smpc_clients(
 ) -> List[str]:
     smpc_clients = []
     if local_nodes_table:
-        for node, table in local_nodes_table.nodes_tables.items():
+        for node, table_info in local_nodes_table.nodes_tables_info.items():
             smpc_clients.append(
                 node.load_data_to_smpc_client(
-                    table_name=table.full_table_name,
-                    jobid=get_smpc_job_id(table.context_id, command_id, op_type),
+                    table_name=table_info.name,
+                    jobid=get_smpc_job_id(table_info.context_id, command_id, op_type),
                 )
             )
     return smpc_clients
@@ -42,7 +42,7 @@ def load_operation_data_to_smpc_clients(
 
 def load_data_to_smpc_clients(
     command_id: int, smpc_tables: LocalNodesSMPCTables
-) -> Tuple[List[str], List[str], List[str], List[str]]:
+) -> Tuple[List[str], List[str], List[str]]:
     sum_op_smpc_clients = load_operation_data_to_smpc_clients(
         command_id, smpc_tables.sum_op_local_nodes_table, SMPCRequestType.SUM
     )
@@ -174,48 +174,42 @@ def get_smpc_results(
     sum_op: bool,
     min_op: bool,
     max_op: bool,
-) -> Tuple[TableName, TableName, TableName]:
+) -> Tuple[TableInfo, TableInfo, TableInfo]:
     sum_op_result_table = (
-        TableName(
-            table_name=node.get_smpc_result(
-                jobid=get_smpc_job_id(
-                    context_id=context_id,
-                    command_id=command_id,
-                    operation=SMPCRequestType.SUM,
-                ),
-                command_id=str(command_id),
-                command_subid="0",
-            )
+        node.get_smpc_result(
+            jobid=get_smpc_job_id(
+                context_id=context_id,
+                command_id=command_id,
+                operation=SMPCRequestType.SUM,
+            ),
+            command_id=str(command_id),
+            command_subid="0",
         )
         if sum_op
         else None
     )
     min_op_result_table = (
-        TableName(
-            table_name=node.get_smpc_result(
-                jobid=get_smpc_job_id(
-                    context_id=context_id,
-                    command_id=command_id,
-                    operation=SMPCRequestType.MIN,
-                ),
-                command_id=str(command_id),
-                command_subid="1",
-            )
+        node.get_smpc_result(
+            jobid=get_smpc_job_id(
+                context_id=context_id,
+                command_id=command_id,
+                operation=SMPCRequestType.MIN,
+            ),
+            command_id=str(command_id),
+            command_subid="1",
         )
         if min_op
         else None
     )
     max_op_result_table = (
-        TableName(
-            table_name=node.get_smpc_result(
-                jobid=get_smpc_job_id(
-                    context_id=context_id,
-                    command_id=command_id,
-                    operation=SMPCRequestType.MAX,
-                ),
-                command_id=str(command_id),
-                command_subid="2",
-            )
+        node.get_smpc_result(
+            jobid=get_smpc_job_id(
+                context_id=context_id,
+                command_id=command_id,
+                operation=SMPCRequestType.MAX,
+            ),
+            command_id=str(command_id),
+            command_subid="2",
         )
         if max_op
         else None

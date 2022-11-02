@@ -4,6 +4,7 @@ import pytest
 
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.standalone_tests.conftest import COMMON_IP
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
@@ -56,17 +57,19 @@ def test_create_and_get_remote_table(
         command_id=uuid.uuid4().hex,
         schema_json=table_schema.json(),
     )
-    table_name = localnode1_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
+    table_info = TableInfo.parse_raw(
+        localnode1_celery_app.get_result(
+            async_result=async_result,
+            logger=StdOutputLogger(),
+            timeout=TASKS_TIMEOUT,
+        )
     )
 
     async_result = globalnode_celery_app.queue_task(
         task_signature=create_remote_table_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=table_name,
+        table_name=table_info.name,
         table_schema_json=table_schema.json(),
         monetdb_socket_address=local_node_monetdb_sock_address,
     )
@@ -89,4 +92,4 @@ def test_create_and_get_remote_table(
         timeout=TASKS_TIMEOUT,
     )
 
-    assert table_name in remote_tables
+    assert table_info.name in remote_tables

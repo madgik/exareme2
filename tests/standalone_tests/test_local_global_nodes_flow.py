@@ -5,6 +5,7 @@ import pytest
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableData
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from tests.standalone_tests.conftest import COMMON_IP
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
@@ -64,10 +65,12 @@ def test_create_merge_table_with_remote_tables(
         schema_json=schema.json(),
     )
 
-    local_node_1_table_name = localnode1_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
+    local_node_1_table_info = TableInfo.parse_raw(
+        localnode1_celery_app.get_result(
+            async_result=async_result,
+            logger=StdOutputLogger(),
+            timeout=TASKS_TIMEOUT,
+        )
     )
 
     async_result = localnode2_celery_app.queue_task(
@@ -79,10 +82,12 @@ def test_create_merge_table_with_remote_tables(
         schema_json=schema.json(),
     )
 
-    local_node_2_table_name = localnode2_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
+    local_node_2_table_info = TableInfo.parse_raw(
+        localnode2_celery_app.get_result(
+            async_result=async_result,
+            logger=StdOutputLogger(),
+            timeout=TASKS_TIMEOUT,
+        )
     )
 
     # Insert data into local tables
@@ -91,10 +96,9 @@ def test_create_merge_table_with_remote_tables(
         task_signature=insert_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=local_node_1_table_name,
+        table_name=local_node_1_table_info.name,
         values=values,
     )
-
     localnode1_celery_app.get_result(
         async_result=async_result,
         logger=StdOutputLogger(),
@@ -105,7 +109,7 @@ def test_create_merge_table_with_remote_tables(
         task_signature=insert_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=local_node_2_table_name,
+        table_name=local_node_2_table_info.name,
         values=values,
     )
 
@@ -123,7 +127,7 @@ def test_create_merge_table_with_remote_tables(
         task_signature=create_remote_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=local_node_1_table_name,
+        table_name=local_node_1_table_info.name,
         table_schema_json=schema.json(),
         monetdb_socket_address=local_node_1_monetdb_sock_address,
     )
@@ -138,7 +142,7 @@ def test_create_merge_table_with_remote_tables(
         task_signature=create_remote_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=local_node_2_table_name,
+        table_name=local_node_2_table_info.name,
         table_schema_json=schema.json(),
         monetdb_socket_address=local_node_2_monetdb_sock_address,
     )
@@ -161,8 +165,8 @@ def test_create_merge_table_with_remote_tables(
         logger=StdOutputLogger(),
         timeout=TASKS_TIMEOUT,
     )
-    assert local_node_1_table_name in remote_tables
-    assert local_node_2_table_name in remote_tables
+    assert local_node_1_table_info.name in remote_tables
+    assert local_node_2_table_info.name in remote_tables
 
     # Create merge table
     async_result = globalnode_celery_app.queue_task(
@@ -171,13 +175,18 @@ def test_create_merge_table_with_remote_tables(
         request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
-        table_names=remote_tables,
+        table_infos_json=[
+            local_node_1_table_info.json(),
+            local_node_2_table_info.json(),
+        ],
     )
 
-    merge_table_name = globalnode_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
+    merge_table_info = TableInfo.parse_raw(
+        globalnode_celery_app.get_result(
+            async_result=async_result,
+            logger=StdOutputLogger(),
+            timeout=TASKS_TIMEOUT,
+        )
     )
 
     # Validate merge table exists
@@ -193,14 +202,14 @@ def test_create_merge_table_with_remote_tables(
         logger=StdOutputLogger(),
         timeout=TASKS_TIMEOUT,
     )
-    assert merge_table_name in merge_tables
+    assert merge_table_info.name in merge_tables
 
     # Validate merge table row count
     async_result = globalnode_celery_app.queue_task(
         task_signature=get_merge_table_data_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=merge_table_name,
+        table_name=merge_table_info.name,
     )
 
     table_data_json = globalnode_celery_app.get_result(
