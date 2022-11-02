@@ -13,7 +13,6 @@ signature_mapping = {
     "get_merge_tables": "mipengine.node.tasks.merge_tables.get_merge_tables",
     "create_remote_table": "mipengine.node.tasks.remote_tables.create_remote_table",
     "get_remote_tables": "mipengine.node.tasks.remote_tables.get_remote_tables",
-    "get_table_schema": "mipengine.node.tasks.common.get_table_schema",
     "get_table_data": "mipengine.node.tasks.common.get_table_data",
     "get_udf": "mipengine.node.tasks.udfs.get_udf",
     "run_udf": "mipengine.node.tasks.udfs.run_udf",

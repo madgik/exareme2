@@ -1,7 +1,8 @@
 import pytest
 
-from mipengine.controller.algorithm_executor_node_data_objects import TableName
 from mipengine.node.monetdb_interface.common_actions import create_table_name
+from mipengine.node_tasks_DTOs import TableInfo
+from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 
 
@@ -14,9 +15,11 @@ def test_create_table_name():
         command_subid="commandsubid",
     )
 
-    tablename_obj = TableName(tablename)
+    tablename_obj = TableInfo(
+        name=tablename, schema_=TableSchema(columns=[]), type_=TableType.NORMAL
+    )
 
-    assert tablename_obj.table_type == TableType.NORMAL
+    assert tablename_obj.type_ == TableType.NORMAL
     assert tablename_obj.node_id == "nodeid"
     assert tablename_obj.context_id == "contextid"
     assert tablename_obj.command_id == "commandid"

@@ -31,16 +31,6 @@ def run(executor):
     kf = KFold(executor, n_splits=n_splits)
     X_train, X_test, y_train, y_test = kf.split(X, ybin)
 
-    # TODO column names should be table attributes
-    X.columns = dummy_encoder.new_varnames
-    y.columns = yvars
-    ybin.columns = yvars
-    for x1, x2, y1, y2 in zip(X_train, X_test, y_train, y_test):
-        x1.columns = dummy_encoder.new_varnames
-        x2.columns = dummy_encoder.new_varnames
-        y1.columns = yvars
-        y2.columns = yvars
-
     # Create models
     models = [LogisticRegression(executor) for _ in range(n_splits)]
 

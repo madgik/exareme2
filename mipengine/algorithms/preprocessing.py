@@ -213,9 +213,6 @@ class KFold:
                 f"smaller than the number of splits, {self.n_splits}."
             )
 
-        x_return_schema = X.get_table_schema()
-        y_return_schema = y.get_table_schema()
-
         x_train = [
             self._local_run(
                 func=self._get_split_local,
@@ -225,7 +222,7 @@ class KFold:
                     key="x_train",
                 ),
                 share_to_global=[False],
-                output_schema=x_return_schema,
+                output_schema=X.full_schema,
             )
             for i in range(self.n_splits)
         ]
@@ -239,7 +236,7 @@ class KFold:
                     key="x_test",
                 ),
                 share_to_global=[False],
-                output_schema=x_return_schema,
+                output_schema=X.full_schema,
             )
             for i in range(self.n_splits)
         ]
@@ -253,7 +250,7 @@ class KFold:
                     key="y_train",
                 ),
                 share_to_global=[False],
-                output_schema=y_return_schema,
+                output_schema=y.full_schema,
             )
             for i in range(self.n_splits)
         ]
@@ -267,7 +264,7 @@ class KFold:
                     key="y_test",
                 ),
                 share_to_global=[False],
-                output_schema=y_return_schema,
+                output_schema=y.full_schema,
             )
             for i in range(self.n_splits)
         ]

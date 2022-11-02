@@ -11,8 +11,8 @@ from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.controller.celery_app import CeleryWrapper
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import NodeTableDTO
-from mipengine.node_tasks_DTOs import UDFKeyArguments
-from mipengine.node_tasks_DTOs import UDFPosArguments
+from mipengine.node_tasks_DTOs import NodeUDFKeyArguments
+from mipengine.node_tasks_DTOs import NodeUDFPosArguments
 from mipengine.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import five_seconds_udf
 from tests.standalone_tests.conftest import RABBITMQ_GLOBALNODE_ADDR
@@ -67,7 +67,7 @@ def execute_task_and_assert_connection_error_raised(
 def queue_slow_udf(cel_app, logger):
     run_udf_task = get_celery_task_signature("run_udf")
     input_table_name, _ = create_table_with_one_column_and_ten_rows(cel_app, request_id)
-    kw_args_str = UDFKeyArguments(
+    kw_args_str = NodeUDFKeyArguments(
         args={"table": NodeTableDTO(value=input_table_name)}
     ).json()
 
@@ -78,7 +78,7 @@ def queue_slow_udf(cel_app, logger):
         command_id="1",
         context_id=request_id,
         func_name=make_unique_func_name(five_seconds_udf),
-        positional_args_json=UDFPosArguments(args=[]).json(),
+        positional_args_json=NodeUDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
     )
 

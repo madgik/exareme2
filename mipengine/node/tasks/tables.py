@@ -7,6 +7,7 @@ from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import tables
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.node_logger import initialise_logger
+from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 
@@ -49,8 +50,8 @@ def create_table(
 
     Returns
     ------
-    str
-        The name of the created table in lower case
+    str(TableInfo)
+        A TableInfo object in a jsonified format
     """
     schema = TableSchema.parse_raw(schema_json)
     table_name = create_table_name(
@@ -60,7 +61,12 @@ def create_table(
         command_id,
     )
     tables.create_table(table_name, schema)
-    return table_name
+
+    return TableInfo(
+        name=table_name,
+        schema_=schema,
+        type_=TableType.NORMAL,
+    ).json()
 
 
 @shared_task
