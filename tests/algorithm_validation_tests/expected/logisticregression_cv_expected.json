@@ -19,7 +19,7 @@
             "desd-synthdata4",
             "edsd3"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "AD",
@@ -84,7 +84,7 @@
             "desd-synthdata3",
             "ppmi5"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "AD",
@@ -161,7 +161,7 @@
             "edsd2",
             "edsd9"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "AD",
@@ -229,7 +229,7 @@
             "edsd5",
             "ppmi8"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "50-59y",
@@ -283,7 +283,7 @@
             "ppmi8",
             "edsd6"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "CN",
@@ -393,7 +393,7 @@
             "desd-synthdata1",
             "edsd4"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "Other",
@@ -513,7 +513,7 @@
             "desd-synthdata4",
             "edsd3"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "PD",
@@ -590,7 +590,7 @@
             "ppmi2",
             "edsd0"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "AD",
@@ -666,7 +666,7 @@
             "edsd5",
             "desd-synthdata6"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "MCI",
@@ -773,7 +773,7 @@
             "ppmi1",
             "ppmi7"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "PD",
@@ -868,7 +868,7 @@
             "edsd6",
             "edsd8"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "PD",
@@ -941,7 +941,7 @@
             "edsd9",
             "desd-synthdata4"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "F",
@@ -1041,7 +1041,7 @@
             "edsd7",
             "edsd5"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "AD",
@@ -1135,7 +1135,7 @@
             "desd-synthdata0",
             "edsd7"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "MCI",
@@ -1230,7 +1230,7 @@
             "desd-synthdata3",
             "edsd5"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "F",
@@ -1299,7 +1299,7 @@
             "edsd4",
             "ppmi5"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "F",
@@ -1428,7 +1428,7 @@
             "edsd2",
             "ppmi0"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "F",
@@ -1530,7 +1530,7 @@
             "edsd6",
             "ppmi6"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "MCI",
@@ -1674,7 +1674,7 @@
             "desd-synthdata3",
             "ppmi7"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "GENPD",
@@ -1773,7 +1773,7 @@
             "edsd5",
             "edsd7"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "PRODROMA",
@@ -1853,7 +1853,7 @@
             "desd-synthdata2",
             "desd-synthdata3"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "CN",
@@ -1963,7 +1963,7 @@
             "ppmi1",
             "edsd7"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "AD",
@@ -2077,7 +2077,7 @@
             "desd-synthdata4",
             "edsd1"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "Other",
@@ -2173,7 +2173,7 @@
             "ppmi7",
             "desd-synthdata9"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "-50y",
@@ -2250,7 +2250,7 @@
             "edsd1",
             "edsd3"
           ],
-          "filters": ""
+          "filters": null
         },
         "parameters": {
           "positive_class": "F",

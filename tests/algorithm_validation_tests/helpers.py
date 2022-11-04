@@ -9,29 +9,8 @@ import requests
 
 def algorithm_request(algorithm: str, input: dict):
     url = "http://127.0.0.1:5000/algorithms" + f"/{algorithm}"
-
-    variables = copy.deepcopy(input["inputdata"]["y"])
-    keys = input["inputdata"].keys()
-    if "x" in keys and input["inputdata"]["x"]:
-        variables.extend(input["inputdata"]["x"])
-
-    filters = {
-        "condition": "AND",
-        "rules": [
-            {
-                "id": "dataset",
-                "type": "string",
-                "value": input["inputdata"]["datasets"],
-                "operator": "in",
-            },
-        ],
-        "valid": True,
-    }
-    input["inputdata"]["filters"] = filters
-    request_json = json.dumps(input)
-
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    response = requests.post(url, data=request_json, headers=headers)
+    response = requests.post(url, data=json.dumps(input), headers=headers)
     if response.status_code != 200:
         raise ValueError(
             f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
