@@ -384,7 +384,7 @@ class DatasetsGenerator:
 class FiltersGenerator:
     def draw(self):
         # TODO Implement random filters generator
-        return ""
+        return None
 
 
 tqdm = partial(tqdm, desc="Generating test cases", unit=" test cases")
