@@ -32,7 +32,7 @@
                 "se_diff": [
                     0.036753647434866504
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 4.588578681593238,
                 "cohens_d": 10.61753458611538
             }
@@ -67,7 +67,7 @@
                 "se_diff": [
                     0.016207598245132623
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 1.5768234046707112,
                 "cohens_d": 18.38658756199538
             }
@@ -206,7 +206,7 @@
                 "se_diff": [
                     0.09108955606459518
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 8.420086972236525,
                 "cohens_d": 6.267259099093887
             }
@@ -239,7 +239,7 @@
                 "se_diff": [
                     0.21315647647165756
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 14.26941595325929,
                 "cohens_d": 12.829800340960578
             }
@@ -282,7 +282,7 @@
                     0.009274411186549978
                 ],
                 "ci_upper": 1.908856421975699,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 21.41581063724157
             }
         },
@@ -326,7 +326,7 @@
                     0.01756504881821386
                 ],
                 "ci_upper": 3.5200594390776283,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 9.673743942521273
             }
         },
@@ -402,7 +402,7 @@
                 "se_diff": [
                     0.07451643909766946
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 9.077198338290176,
                 "cohens_d": 7.60512386645115
             }
@@ -449,7 +449,7 @@
                     0.019644449538002876
                 ],
                 "ci_upper": 3.6569317499571383,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 16.26064969187773
             }
         },
@@ -492,7 +492,7 @@
                     0.009755700632431625
                 ],
                 "ci_upper": 2.0488970062557827,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 27.08315874877298
             }
         },
@@ -528,7 +528,7 @@
                     0.44308948112102253
                 ],
                 "ci_upper": 18.18313213155199,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 3.24952535443553
             }
         },
@@ -568,7 +568,7 @@
                     0.05869786113685743
                 ],
                 "ci_upper": 7.672939723184998,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 7.926121503624955
             }
         },
@@ -605,7 +605,7 @@
                     0.013378510036085367
                 ],
                 "ci_upper": 2.3344287816788762,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 16.7682224004133
             }
         },
@@ -645,7 +645,7 @@
                 "se_diff": [
                     1.2610223552109394
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 219.17497186151365,
                 "cohens_d": 6.912999615492563
             }
@@ -694,7 +694,7 @@
                 "se_diff": [
                     0.18129326674222268
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 45.3985316626004,
                 "cohens_d": 8.209197348424821
             }
@@ -790,7 +790,7 @@
                 "se_diff": [
                     0.00795987578757641
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 2.019196264133081,
                 "cohens_d": 1.0049284643186132
             }
@@ -847,7 +847,7 @@
                     0.006333611269261319
                 ],
                 "ci_upper": 2.315079878377258,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 6.563793559932061
             }
         },
@@ -953,7 +953,7 @@
                     0.008336491812505429
                 ],
                 "ci_upper": 2.2167442787310314,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 36.55665423456973
             }
         },
@@ -1005,7 +1005,7 @@
                 "se_diff": [
                     0.005275388878300282
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 1.4931375706310082,
                 "cohens_d": 52.6334125862938
             }
@@ -1041,7 +1041,7 @@
                     0.03498345957598235
                 ],
                 "ci_upper": 4.867687744142622,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 7.463111809067417
             }
         },
@@ -1093,7 +1093,7 @@
                     0.007105898106272105
                 ],
                 "ci_upper": 1.9217880269831982,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 22.531958416154023
             }
         },
@@ -1135,7 +1135,7 @@
                 "se_diff": [
                     0.024738418846891107
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 3.63049521671275,
                 "cohens_d": 4.79271522661706
             }
@@ -1168,7 +1168,7 @@
                 "se_diff": [
                     0.13924223218616072
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 7.276737840418839,
                 "cohens_d": 2.2082191889811607
             }
@@ -1213,7 +1213,7 @@
                     1.1370237363413143
                 ],
                 "ci_upper": 227.01967372701947,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 6.766488177480723
             }
         },
@@ -1249,7 +1249,7 @@
                 "se_diff": [
                     0.12873156295715174
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 17.92538745034703,
                 "cohens_d": 11.938951280108613
             }
@@ -1296,7 +1296,7 @@
                 "se_diff": [
                     0.01770363317149609
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 4.120384308571836,
                 "cohens_d": 21.813776891738893
             }
@@ -1335,7 +1335,7 @@
                 "se_diff": [
                     0.041797544529354726
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 7.173417232977433,
                 "cohens_d": 7.541637713703108
             }
@@ -1582,7 +1582,7 @@
                 "se_diff": [
                     0.0576588665924708
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 11.022762141064874,
                 "cohens_d": 11.59430780724515
             }
@@ -1618,7 +1618,7 @@
                     0.010080509366707225
                 ],
                 "ci_upper": 1.1633327444533743,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 13.101828628541698
             }
         },
@@ -1652,7 +1652,7 @@
                     0.0280372770993237
                 ],
                 "ci_upper": 4.1012537427923,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 35.26066613125191
             }
         },
@@ -1684,7 +1684,7 @@
                 "se_diff": [
                     2.7860929529634912
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 231.32558529589076,
                 "cohens_d": 9.836537416193982
             }
@@ -1764,7 +1764,7 @@
                     0.04287507056280157
                 ],
                 "ci_upper": 7.029584564255461,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 10.953600245458556
             }
         },
@@ -1814,7 +1814,7 @@
                 "se_diff": [
                     0.006159783699683338
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 1.6211695092823204,
                 "cohens_d": 33.23736837770302
             }
@@ -1884,7 +1884,7 @@
                 "se_diff": [
                     0.034523412115023244
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 3.8693419730570677,
                 "cohens_d": 4.48598798314708
             }
@@ -1922,7 +1922,7 @@
                 "se_diff": [
                     0.02832199088345037
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 4.134066438345755,
                 "cohens_d": 1.658796031019279
             }
@@ -1957,7 +1957,7 @@
                 "se_diff": [
                     0.019863366111397225
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 1.8925423493412041,
                 "cohens_d": 8.395490832994888
             }
@@ -2047,7 +2047,7 @@
                 "se_diff": [
                     0.009769978327343665
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 1.545040494239299,
                 "cohens_d": 15.502799285509132
             }
@@ -2178,7 +2178,7 @@
                     1.2146134526628294
                 ],
                 "ci_upper": 216.42795300183,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 6.666349638405464
             }
         },
@@ -2216,7 +2216,7 @@
                     0.06099130160946013
                 ],
                 "ci_upper": 10.450131982671026,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 5.284647959728957
             }
         },
@@ -2363,7 +2363,7 @@
                 "se_diff": [
                     0.023135980215652
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 1.929690701905077,
                 "cohens_d": 26.24470842424903
             }
@@ -2398,7 +2398,7 @@
                 "se_diff": [
                     0.0005667836686201696
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 0.07711168835274229,
                 "cohens_d": 216.64590425524932
             }
@@ -2437,7 +2437,7 @@
                     0.018736092417743218
                 ],
                 "ci_upper": 0.8221330832709324,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 6.361708381340823
             }
         },
@@ -2470,7 +2470,7 @@
                 "se_diff": [
                     0.12973085490209527
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 11.775558694529252,
                 "cohens_d": 7.985970503165838
             }
@@ -2515,7 +2515,7 @@
                 "se_diff": [
                     0.026123906310489907
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 5.217339219623288,
                 "cohens_d": 1.3062427444497586
             }
@@ -2593,7 +2593,7 @@
                     0.02484919067989112
                 ],
                 "ci_upper": 2.2262588573673625,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 25.90498124567532
             }
         },
@@ -2632,7 +2632,7 @@
                     0.02050139636943561
                 ],
                 "ci_upper": 3.406671383310508,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 22.061997523551657
             }
         },
@@ -2739,7 +2739,7 @@
                     0.015310394804441461
                 ],
                 "ci_upper": 4.035859773073818,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 1.3782179421298058
             }
         },
@@ -2777,7 +2777,7 @@
                 "se_diff": [
                     0.036299696980057326
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 7.001421904303386,
                 "cohens_d": 7.711991266807943
             }
@@ -2814,7 +2814,7 @@
                     0.05803257565367442
                 ],
                 "ci_upper": 6.863000629687407,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 5.375992467775596
             }
         },
@@ -2907,7 +2907,7 @@
                     0.002327810776552564
                 ],
                 "ci_upper": 0.3706676975641905,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 49.64455770397485
             }
         },
@@ -2957,7 +2957,7 @@
                 "se_diff": [
                     0.0063567709578591265
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 1.516398294010643,
                 "cohens_d": 28.63224597270865
             }
@@ -2993,7 +2993,7 @@
                 "se_diff": [
                     0.029106090870223412
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 3.621890219762811,
                 "cohens_d": 26.401438981140444
             }
@@ -3030,7 +3030,7 @@
                 "se_diff": [
                     0.012817625399757707
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 2.1779529676035896,
                 "cohens_d": 34.5557201535418
             }
@@ -3123,7 +3123,7 @@
                 "se_diff": [
                     0.006607747919083123
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 2.1809242680731824,
                 "cohens_d": 26.199864243010193
             }
@@ -3260,7 +3260,7 @@
                 "se_diff": [
                     0.00641343254244228
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 2.294621150297533,
                 "cohens_d": 21.956702683841932
             }
@@ -3507,7 +3507,7 @@
                     0.007679699176355338
                 ],
                 "ci_upper": 2.9146084159070353,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 26.514298485118484
             }
         },
@@ -3556,7 +3556,7 @@
                     0.01477255511698647
                 ],
                 "ci_upper": 4.250333829343957,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 20.75557554453182
             }
         },
@@ -3600,7 +3600,7 @@
                 "se_diff": [
                     0.026777629873215896
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 5.116911437872772,
                 "cohens_d": 8.51583843077188
             }
@@ -3643,7 +3643,7 @@
                 "se_diff": [
                     0.00959157305909262
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 2.1748389542367192,
                 "cohens_d": 18.106009496222875
             }
@@ -3681,7 +3681,7 @@
                 "se_diff": [
                     0.0004520464973760257
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 0.07583708017156665,
                 "cohens_d": 239.9880957941266
             }
@@ -3716,7 +3716,7 @@
                     0.026961133426005295
                 ],
                 "ci_upper": 2.6357281221495237,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 1.6387641559871675
             }
         },
@@ -3803,7 +3803,7 @@
                 "se_diff": [
                     0.0014348249251454155
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 0.38575298294862037,
                 "cohens_d": 54.92909504363642
             }
@@ -3840,7 +3840,7 @@
                 "se_diff": [
                     0.008277578706404142
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 1.125511192566714,
                 "cohens_d": 48.687997905648444
             }
@@ -3876,7 +3876,7 @@
                 "se_diff": [
                     0.03160518752133917
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 2.9549041487532914,
                 "cohens_d": 10.013353638209864
             }
@@ -3915,7 +3915,7 @@
                 "se_diff": [
                     0.033057500728587645
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 5.152547899464054,
                 "cohens_d": 18.151552522424144
             }
@@ -3963,7 +3963,7 @@
                 "se_diff": [
                     0.008569168378802434
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 2.2970050097809285,
                 "cohens_d": 30.192032538721676
             }
@@ -4009,7 +4009,7 @@
                     0.03281308895524333
                 ],
                 "ci_upper": 6.854790765400988,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 8.188068695411635
             }
         },
@@ -4062,7 +4062,7 @@
                 "se_diff": [
                     0.009470737583547537
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 2.5623229941011223,
                 "cohens_d": 22.63587503536463
             }
@@ -4214,7 +4214,7 @@
                     0.028736878278847834
                 ],
                 "ci_upper": 3.335718256690175,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": 2.1063230086155826
             }
         }
