@@ -25,6 +25,7 @@
         "bins": {
             "label": "Number of bins",
             "type": "int",
+            "desc" :"Number of bins",
             "min": 1,
             "max": 100,
             "default": 20,

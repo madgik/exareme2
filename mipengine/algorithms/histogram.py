@@ -34,7 +34,7 @@ def run(algo_interface):
         variable_groups=[algo_interface.y_variables + algo_interface.x_variables],
     )
 
-    metadata = algo_interface.metadata
+    metadata = dict(algo_interface.metadata)
 
     vars = [var for var in xvars + yvars if var != "dataset"]
 
@@ -127,7 +127,7 @@ def find_min_max_global(locals_result):
         "max_value": locals_result["max"],
     }
 
-    return transfer
+    return transfer_
 
 
 @udf(
