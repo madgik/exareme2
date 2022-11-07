@@ -16,7 +16,7 @@ expected_file = (
     "test_input, expected",
     get_test_params(
         expected_file,
-        skip_indices=[5, 6, 9, 12, 18, 19, 22, 17],
+        skip_indices=[12, 17, 18, 19],  # [5, 6, 9, 12, 18, 19, 22, 17]
         skip_reason="Tests 5, 9, 12, 18, 19, 22 results in empty tables, "
         "https://team-1617704806227.atlassian.net/browse/MIP-634.\n"
         "Test 17 fails to converge in CI, "
