@@ -17,9 +17,9 @@ import scipy.stats as st
 from tests.algorithm_validation_tests.helpers import algorithm_request
 from tests.algorithm_validation_tests.helpers import get_test_params
 
-expected_file = (
-    Path(__file__).parent / "expected" / "linear_regression_cv_expected.json"
-)
+algorithm_name = "linear_regression_cv"
+
+expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected.json"
 
 
 @pytest.fixture(scope="module")
@@ -47,7 +47,7 @@ def get_cached_response(algorithm_name, test_input, cache):
     ),
 )
 def test_linearregression_cv_non_inferiority_msre(test_input, expected, cache):
-    response = get_cached_response("linear_regression_cv", test_input, cache)
+    response = get_cached_response(algorithm_name, test_input, cache)
     result = json.loads(response.content)
 
     n_splits = test_input["parameters"]["n_splits"]

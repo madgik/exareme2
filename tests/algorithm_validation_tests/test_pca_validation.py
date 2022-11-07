@@ -3,25 +3,18 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-import requests
 
 from tests.algorithm_validation_tests.helpers import algorithm_request
+from tests.algorithm_validation_tests.helpers import get_test_params
 
-expected_file = Path(__file__).parent / "expected" / "pca_expected.json"
+algorithm_name = "pca"
 
-
-def get_test_params(expected_file, slc=None):
-    with expected_file.open() as f:
-        params = json.load(f)["test_cases"]
-    if not slc:
-        slc = slice(len(params))
-    params = [(p["input"], p["output"]) for p in params[slc]]
-    return params
+expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected.json"
 
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_pca_algorithm(test_input, expected):
-    response = algorithm_request("pca", test_input)
+    response = algorithm_request(algorithm_name, test_input)
     result = json.loads(response.content)
 
     assert int(result["n_obs"]) == int(expected["n_obs"])

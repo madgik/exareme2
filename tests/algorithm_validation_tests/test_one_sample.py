@@ -8,12 +8,14 @@ from tests.algorithm_validation_tests.helpers import algorithm_request
 from tests.algorithm_validation_tests.helpers import assert_allclose
 from tests.algorithm_validation_tests.helpers import get_test_params
 
-expected_file = Path(__file__).parent / "expected" / "one_sample_expected.json"
+algorithm_name = "ttest_onesample"
+
+expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected.json"
 
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_one_sample_ttest(test_input, expected):
-    response = algorithm_request("ttest_onesample", test_input)
+    response = algorithm_request(algorithm_name, test_input)
     result = json.loads(response.content)
 
     assert_allclose(result["n_obs"], expected["n_obs"], rtol=1e-8, atol=1e-10)
