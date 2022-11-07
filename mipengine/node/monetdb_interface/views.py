@@ -6,6 +6,7 @@ from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.guard import is_list_of_identifiers
+from mipengine.node.monetdb_interface.guard import is_list_of_valid_column_names
 from mipengine.node.monetdb_interface.guard import is_primary_data_table
 from mipengine.node.monetdb_interface.guard import is_valid_filter
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
@@ -26,7 +27,7 @@ def get_view_names(context_id: str) -> List[str]:
 @sql_injection_guard(
     view_name=str.isidentifier,
     table_name=is_primary_data_table,
-    columns=is_list_of_identifiers,
+    columns=is_list_of_valid_column_names,
     filters=is_valid_filter,
     check_min_rows=None,
 )

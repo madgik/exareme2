@@ -48,7 +48,7 @@ def build_filter_clause(rules):
         return "(" + f" {cond} ".join(build_filter_clause(rule) for rule in rules) + ")"
 
     if "id" in rules:
-        column_name = rules["id"]
+        column_name = monet_escape(rules["id"])
         op = FILTER_OPERATORS[rules["operator"]]
         value = _format_value_if_string(rules["type"], rules["value"])
         return op(column_name, value)
@@ -139,3 +139,12 @@ def _check_value_column_same_type(column, value, cdes):
         raise FilterError(
             f"{column}'s type: {column_sql_type} was different from the type of the given value:{type(value)}"
         )
+
+
+def monet_escape(data):
+    """
+    returns an escaped string
+    """
+    data = str(data).replace("\\", "\\\\")
+    data = data.replace('"', '\\"')
+    return '"%s"' % str(data)

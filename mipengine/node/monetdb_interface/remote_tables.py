@@ -6,6 +6,7 @@ from mipengine.node.monetdb_interface.common_actions import (
 )
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.guard import is_socket_address
+from mipengine.node.monetdb_interface.guard import is_valid_column_name
 from mipengine.node.monetdb_interface.guard import is_valid_table_schema
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
 from mipengine.node.monetdb_interface.monet_db_facade import db_execute
@@ -18,7 +19,7 @@ def get_remote_table_names(context_id: str) -> List[str]:
 
 
 @sql_injection_guard(
-    name=str.isidentifier,
+    name=is_valid_column_name,
     monetdb_socket_address=is_socket_address,
     schema=is_valid_table_schema,
 )

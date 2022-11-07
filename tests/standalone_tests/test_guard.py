@@ -5,8 +5,10 @@ import pytest
 from mipengine.node.monetdb_interface.guard import InvalidSQLParameter
 from mipengine.node.monetdb_interface.guard import is_datamodel
 from mipengine.node.monetdb_interface.guard import is_list_of_identifiers
+from mipengine.node.monetdb_interface.guard import is_list_of_valid_column_names
 from mipengine.node.monetdb_interface.guard import is_primary_data_table
 from mipengine.node.monetdb_interface.guard import is_socket_address
+from mipengine.node.monetdb_interface.guard import is_valid_column_name
 from mipengine.node.monetdb_interface.guard import is_valid_filter
 from mipengine.node.monetdb_interface.guard import is_valid_literal_value
 from mipengine.node.monetdb_interface.guard import is_valid_request_id
@@ -104,6 +106,27 @@ def test_is_valid_filter():
     assert is_valid_filter({"rules": [{"id": "name1"}, {"rules": [{"id": "name2"}]}]})
     assert not is_valid_filter(
         {"rules": [{"id": "name1"}, {"rules": [{"id": "name.2"}]}]}
+    )
+    assert not is_valid_filter(
+        {
+            "condition": "AND",
+            "rules": [
+                {
+                    "condition": "OR",
+                    "rules": [
+                        {
+                            "id": 'col1"=3)); drop table lala; --"l3',
+                            "field": "col3",
+                            "type": "string",
+                            "input": "number",
+                            "operator": "equal",
+                            "value": 'lala"lalal',
+                        }
+                    ],
+                }
+            ],
+            "valid": True,
+        }
     )
 
 
@@ -224,3 +247,19 @@ def test_is_valid_literal_value__valid(val):
 )
 def test_is_valid_literal_value__invalid(val):
     assert not is_valid_literal_value(val)
+
+
+def test_is_valid_column_name():
+    assert is_valid_column_name("};DROP TABLE x;")
+
+
+def test_is_valid_column_name__invalid():
+    assert not is_valid_column_name('};DROP"TABLE x;')
+
+
+def test_is_list_of_valid_column_names():
+    assert is_list_of_valid_column_names(["};DROP TABLE x;", "};DROP TABLE y;"])
+
+
+def test_is_list_of_valid_column_names__invalid():
+    assert not is_list_of_valid_column_names(['};DROP "TABLE x;', '};DROP "TABLE y;'])

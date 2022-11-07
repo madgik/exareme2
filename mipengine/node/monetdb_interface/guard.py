@@ -145,7 +145,7 @@ def is_valid_filter(filter):
     if filter is None:
         return True
     if "id" in filter:  # base case
-        return filter["id"].isidentifier()
+        return is_valid_column_name(filter["id"])
     if "rules" in filter:  # recursive case
         return all(is_valid_filter(rule) for rule in filter["rules"])
     return False
@@ -221,3 +221,11 @@ def output_schema_validator(schema):
 
 def is_valid_request_id(string):
     return string.isalnum() or bool(uuid_ptrn.fullmatch(string))
+
+
+def is_valid_column_name(string):
+    return '"' not in string
+
+
+def is_list_of_valid_column_names(lst):
+    return all(is_valid_column_name(elem) for elem in lst)
