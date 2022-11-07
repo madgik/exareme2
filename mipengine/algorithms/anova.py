@@ -14,12 +14,10 @@ from mipengine.udfgen.udfgenerator import udf
 
 
 class AnovaResult(BaseModel):
-    n_obs: int
-    sum_sq: int
-    p_value: int
-    df: int
-    f_stat: int
-    eta: int
+    n_obs: float
+    grand_mean: float
+    sum_sq_x1: float
+    sum_sq_x2: float
 
 
 S = TypeVar("S")
@@ -58,12 +56,9 @@ def run(algo_interface):
 
     anova_table = AnovaResult(
         n_obs=result["n_obs"],
-        sum_sq=result["sum_sq"],
-        p_value=result["p_value"],
-        df=result["df"],
-        f_stat=result["f_stat"],
-        eta=result["eta"],
-        omega=result["omega"],
+        grand_mean=result["grand_mean"],
+        sum_sq_x1=result["sum_sq_x1"],
+        sum_sq_x2=result["sum_sq_x2"],
     )
 
     return anova_table
@@ -273,26 +268,13 @@ def global1(sec_local_transfer, local_transfers):
 
     n_obs = sec_local_transfer["n_obs"]
     sum_y = sec_local_transfer["sum_y"]
-    sum_y_sqrd = sec_local_transfer["sum_y_sqrd"]
-    var_label = [t["var_label"] for t in local_transfers][0]
-    dof_w = [t["dof_w"] for t in local_transfers][0]
-    dof_x1 = [t["dof_x1"] for t in local_transfers][0]
-    dof_x2 = [t["dof_x2"] for t in local_transfers][0]
-    dof_x1x2 = [t["dof_x1x2"] for t in local_transfers][0]
-    covar_label_x1 = [t["covar_label_x1"] for t in local_transfers][0]
-    covar_label_x2 = [t["covar_label_x2"] for t in local_transfers][0]
-    overall_stats_sum = np.array(sec_local_transfer["overall_stats_sum"])
-    overall_stats_count = np.array(sec_local_transfer["overall_stats_count"])
-    overall_ssq = np.array(sec_local_transfer["overall_ssq"])
     group_stats_x1_sum = np.array(sec_local_transfer["group_stats_x1_sum"])
     group_stats_x1_count = np.array(sec_local_transfer["group_stats_x1_count"])
     group_ssq_x1 = np.array(sec_local_transfer["group_stats_x1_ssq"])
     group_stats_x2_sum = np.array(sec_local_transfer["group_stats_x2_sum"])
     group_stats_x2_count = np.array(sec_local_transfer["group_stats_x2_count"])
     group_ssq_x2 = np.array(sec_local_transfer["group_stats_x2_ssq"])
-    group_by_x1_x2_sum = np.array(sec_local_transfer["group_by_x1_x2_sum"])
-    group_by_x1_x2_count = np.array(sec_local_transfer["group_by_x1_x2_count"])
-    group_by_x1_x2_index = np.array(sec_local_transfer["group_by_x1_x2_index"])
+
     group_stats_df_y_x1_index = [
         t["group_stats_df_y_x1_index"] for t in local_transfers
     ]
@@ -328,10 +310,8 @@ def global1(sec_local_transfer, local_transfers):
     )
     if not np.all(group_stats_x1_count):
         df_y_x1 = df_y_x1[df_y_x1["count"] != 0]
-        group_stats_index_x1 = df_y_x1["groups"].tolist()
         group_stats_x1_count = np.array(df_y_x1["count"])
         group_stats_x1_sum = np.array(df_y_x1["sum"])
-        group_ssq_x1 = np.array(df_y_x1["ssq"])
 
     # remove zero count groups
     df_y_x2 = pd.DataFrame(
@@ -345,10 +325,8 @@ def global1(sec_local_transfer, local_transfers):
     )
     if not np.all(group_stats_x2_count):
         df_y_x2 = df_y_x2[df_y_x2["count"] != 0]
-        group_stats_index_x2 = df_y_x2["groups"].tolist()
         group_stats_x2_count = np.array(df_y_x2["count"])
         group_stats_x2_sum = np.array(df_y_x2["sum"])
-        group_ssq_x2 = np.array(df_y_x2["ssq"])
 
     categories_x1 = local_transfers[0]["covar_enums_x1"]
     if len(categories_x1) < 2:
@@ -364,71 +342,11 @@ def global1(sec_local_transfer, local_transfers):
     ssq_x1 = sum((df_y_x1["mean"] - grand_mean) ** 2)
     ssq_x2 = sum((df_y_x2["mean"] - grand_mean) ** 2)
 
-    # Calculated as developments to find any differences and make it possible to add constants if necessary
-    ssq_x1_devel = dof_x1 * sum(
-        df_y_x1["mean"] ** 2 - 2 * df_y_x1["mean"] * grand_mean + (grand_mean**2)
-    )
-    ssq_x2_devel = sum(
-        df_y_x2["mean"] ** 2 - 2 * df_y_x2["mean"] * grand_mean + (grand_mean**2) * 2
-    )
-
-    # This is the rest of the code once ssqs are in order
-
-    # ssq_total = sum_y_sqrd - 2 * sum_y * grand_mean + (grand_mean ** 2) * n_obs
-    # ssq_within =
-    # ssq_x1_x2_interaction = ssq_total - ssq_x1 - ssq_x2 - ssq_w
-    # df_final = pd.DataFrame()
-    # df_final["ssq_x1"] = ssq_x1
-    # df_final["ssq_x2"] = ssq_x2
-    # df_final["ssq_total"] = ssq_total
-    # df_final["ssq_w"] = ssq_w
-    # ssq_x1x2 = ssq_total - ssq_x1 - ssq_x2 - ssq_w
-    # ms_x1 = ssq_x1 / dof_x1
-    # ms_x2 = ssq_x2 / dof_x2
-    # ms_x1x2 = ssq_x1x2 / (dof_x1 * dof_x2)
-    # ms_w = ssq_w / dof_w
-    # f_x1 = ms_x1 / ms_w
-    # f_x2 = ms_x2 / ms_w
-    # f_x1x2 = ms_x1x2 / ms_w
-    # p_x1 = st.f.sf(f_x1, dof_x1, dof_w)
-    # p_x2 = st.f.sf(f_x2, dof_x2, dof_w)
-    # p_x1x2 = st.f.sf(f_x1x2, dof_x1x2, dof_w)
-    # eta_x1 = ssq_x1 / (ssq_x1 + ssq_x2 + ssq_x1x2)
-    # eta_x2 = ssq_x2 / (ssq_x1 + ssq_x2 + ssq_x1x2)
-    # eta_x1x2 = ssq_x1x2 / (ssq_x1 + ssq_x2 + ssq_x1x2)
-    # omega_x1 = (ssq_x1 - (dof_x1 * ms_x1)) / (ssq_x1 + ssq_x2 + ssq_x1x2 + ms_x1)
-    # omega_x2 = (ssq_x2 - (dof_x2 * ms_x2)) / (ssq_x1 + ssq_x2 + ssq_x1x2 + ms_x2)
-    # omega_x1x2 = (ssq_x1x2 - (dof_x1x2 * ms_x1x2)) / (ssq_x1 + ssq_x2 + ssq_x1x2 + ms_x1x2)
-
-    raise ValueError(
-        f"n_obs: {n_obs}",
-        f"grand_mean: {grand_mean}",
-        f"df_y_x1['mean']: {df_y_x1['mean'].tolist()}",
-        f"df_y_x2['mean']: {df_y_x2['mean'].tolist()}",
-        f"sum_sq_x1: {ssq_x1}",
-        f"sum_sq_x2: {ssq_x2}",
-    )
-
     transfer_ = {
         "n_obs": n_obs,
+        "grand_mean": grand_mean,
         "sum_sq_x1": ssq_x1,
         "sum_sq_x2": ssq_x2,
-        "sum_sq_x1x2": ssq_x1x2,
-        "p_value_x1": p_x1,
-        "p_value_x2": p_x2,
-        "p_value_x1x2": p_x1x2,
-        "df_y_x1": dof_x1,
-        "df_y_x2": dof_x2,
-        "df_y_x1x2": dof_x1x2,
-        "f_stat_x1": f_x1,
-        "f_stat_x2": f_x2,
-        "f_stat_x1x2": f_x1x2,
-        "eta_x1": eta_x1,
-        "eta_x2": eta_x2,
-        "eta_x1x2": eta_x1x2,
-        "omega_x1": omega_x1,
-        "omega_x2": omega_x2,
-        "omega_x1x2": omega_x1x2,
     }
 
     return transfer_
