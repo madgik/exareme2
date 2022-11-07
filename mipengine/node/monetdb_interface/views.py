@@ -51,20 +51,25 @@ def create_view(
 
     db_execute(view_creation_query)
 
-    if check_min_rows:
-        view_rows_query_result = db_execute_and_fetchall(
-            f"""
-            SELECT COUNT(*)
-            FROM {view_name}
-            """
-        )
-        view_rows_result_row = view_rows_query_result[0]
-        view_rows_count = view_rows_result_row[0]
+    view_rows_query_result = db_execute_and_fetchall(
+        f"""
+        SELECT COUNT(*)
+        FROM {view_name}
+        """
+    )
+    view_rows_result_row = view_rows_query_result[0]
+    view_rows_count = view_rows_result_row[0]
 
-        if view_rows_count < MINIMUM_ROW_COUNT:
-            db_execute(f"""DROP VIEW {view_name}""")
+    if view_rows_count < MINIMUM_ROW_COUNT:
+        db_execute(f"""DROP VIEW {view_name}""")
+        if check_min_rows:
             raise InsufficientDataError(
-                f"The following view has less rows than the PRIVACY_THRESHOLD({MINIMUM_ROW_COUNT}):  {view_creation_query}"
+                f"Query: {view_creation_query} creates a view that has less rows than the "
+                f"{MINIMUM_ROW_COUNT=}). ({view_name=} has been DROPed)"
+            )
+        elif view_rows_count < 1:
+            raise InsufficientDataError(
+                f"Query: {view_creation_query} creates an empty view. ({view_name=} has been DROPed)"
             )
 
     view_schema = get_table_schema(view_name)

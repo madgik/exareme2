@@ -10,6 +10,7 @@ from kombu import exceptions as kombu_exceptions
 
 from mipengine.celery_app_conf import configure_celery_app_to_use_priority_queue
 from mipengine.controller import config as controller_config
+from mipengine.exceptions import InsufficientDataError
 from mipengine.singleton import Singleton
 
 
@@ -133,6 +134,8 @@ class CeleryWrapper:
                 connection_address=self._socket_addr,
                 async_result=async_result,
             )
+        except InsufficientDataError as exc:
+            raise exc
         except Exception as exc:
             logger.error(traceback.format_exc())
             raise exc
