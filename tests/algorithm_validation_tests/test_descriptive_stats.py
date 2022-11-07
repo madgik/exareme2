@@ -7,12 +7,14 @@ from tests.algorithm_validation_tests.helpers import algorithm_request
 from tests.algorithm_validation_tests.helpers import assert_allclose
 from tests.algorithm_validation_tests.helpers import get_test_params
 
-expected_file = Path(__file__).parent / "expected" / "descriptive_stats_expected.json"
+algorithm_name = "descriptive_stats"
+
+expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected.json"
 
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_descriptive_stats(test_input, expected):
-    response = algorithm_request("descriptive_stats", test_input)
+    response = algorithm_request(algorithm_name, test_input)
     try:
         result = json.loads(response.text)
     except json.decoder.JSONDecodeError:

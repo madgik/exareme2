@@ -5,22 +5,16 @@ import numpy as np
 import pytest
 
 from tests.algorithm_validation_tests.helpers import algorithm_request
+from tests.algorithm_validation_tests.helpers import get_test_params
 
-expected_file = Path(__file__).parent / "expected" / "anova_oneway_expected.json"
+algorithm_name = "anova_oneway"
 
-
-def get_test_params(file, slc=None):
-    with file.open() as f:
-        params = json.load(f)["test_cases"]
-    if not slc:
-        slc = slice(len(params))
-    params = [(p["input"], p["output"]) for p in params[slc]]
-    return params
+expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected.json"
 
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_anova_algorithm(test_input, expected):
-    response = algorithm_request("anova_oneway", test_input)
+    response = algorithm_request(algorithm_name, test_input)
 
     if response.status_code != 200:
         raise ValueError(
