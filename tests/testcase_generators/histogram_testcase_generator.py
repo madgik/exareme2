@@ -100,7 +100,7 @@ def compute_numerical_histogram(data, enums, bins, yvar, xvars, min_value, max_v
 
 class HistogramTestcaseGenerator(TestCaseGenerator):
     full_data = False
-    dropna = True
+    dropna = False
 
     def compute_expected_output(self, input_data, parameters, metadata: dict):
 
@@ -138,8 +138,9 @@ class HistogramTestcaseGenerator(TestCaseGenerator):
             xvars = list(X.columns.values)
         else:
             xvars = []
-        data = pd.concat([Y_data, X_data])
+        data = pd.concat([Y_data, X_data], axis=1)
         data = data.dropna()
+        print(data)
         if data.empty:
             return None
         all_vars = yvars + xvars
@@ -180,4 +181,4 @@ if __name__ == "__main__":
     with open("mipengine/algorithms/histogram.json") as specs_file:
         gen = HistogramTestcaseGenerator(specs_file)
     with open("histogram_tmp.json", "w") as expected_file:
-        gen.write_test_cases(expected_file, 100)
+        gen.write_test_cases(expected_file, 50)
