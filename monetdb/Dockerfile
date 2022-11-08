@@ -3,8 +3,8 @@ FROM madgik/mipenginedb_base
 #######################################################
 # Download monetdb source files
 #######################################################
-RUN wget --output-document=/home/MonetDB-11.43.15.tar.bz2 --no-check-certificate https://www.monetdb.org/downloads/sources/Jan2022-SP3/MonetDB-11.43.15.tar.bz2
-RUN tar -xf /home/MonetDB-11.43.15.tar.bz2 -C /home/
+RUN wget --output-document=/home/MonetDB-11.45.7.tar.bz2 --no-check-certificate https://www.monetdb.org/downloads/sources/Sep2022/MonetDB-11.45.7.tar.bz2
+RUN tar -xf /home/MonetDB-11.45.7.tar.bz2 -C /home/
 
 #######################################################
 # Install monetdb
@@ -12,7 +12,7 @@ RUN tar -xf /home/MonetDB-11.43.15.tar.bz2 -C /home/
 RUN pip3 install numpy
 RUN mkdir /home/monetdb-build
 WORKDIR /home/monetdb-build
-RUN cmake -DCMAKE_BUILD_TYPE=Release -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb /home/MonetDB-11.43.15
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb /home/MonetDB-11.45.7
 RUN cmake --build .
 RUN cmake --build . --target install
 ENV PATH="/usr/local/bin/monetdb/bin:$PATH"
@@ -22,8 +22,8 @@ EXPOSE 50000
 #######################################################
 # Installation clean up
 #######################################################
-RUN rm /home/MonetDB-11.43.15.tar.bz2
-RUN rm -rf /home/MonetDB-11.43.15/
+RUN rm /home/MonetDB-11.45.7.tar.bz2
+RUN rm -rf /home/MonetDB-11.45.7/
 RUN rm -rf /home/monetdb-build
 
 #######################################################
