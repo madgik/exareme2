@@ -100,7 +100,7 @@ def compute_numerical_histogram(data, enums, bins, yvar, xvars, min_value, max_v
 
 class HistogramTestcaseGenerator(TestCaseGenerator):
     full_data = False
-    dropna = False
+    dropna = True
 
     def compute_expected_output(self, input_data, parameters, metadata: dict):
 
@@ -139,7 +139,7 @@ class HistogramTestcaseGenerator(TestCaseGenerator):
         else:
             xvars = []
         data = pd.concat([Y_data, X_data], axis=1)
-        data = data.dropna()
+        # data = data.dropna()
         # print(data)
         if data.empty:
             return None
