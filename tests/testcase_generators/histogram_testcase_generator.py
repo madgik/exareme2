@@ -45,7 +45,7 @@ def compute_histogram_categorical(data, enums, yvar, xvars):
                         curr_element, 0
                     )
                     elements_list.append(curr_result)
-                print(elements_list)
+                # print(elements_list)
                 groups_list.append(elements_list)
             grouped_list.append(groups_list)
 
@@ -140,7 +140,7 @@ class HistogramTestcaseGenerator(TestCaseGenerator):
             xvars = []
         data = pd.concat([Y_data, X_data], axis=1)
         data = data.dropna()
-        print(data)
+        # print(data)
         if data.empty:
             return None
         all_vars = yvars + xvars
