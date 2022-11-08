@@ -7,6 +7,21 @@ from mipengine.celery_app_conf import configure_celery_app_to_use_priority_queue
 from mipengine.node import config as node_config
 from mipengine.node.node_logger import init_logger
 
+
+class InvalidMinimumRowCountError(Exception):
+    def __init__(self, node_identifier: str, minimum_row_count_val: int):
+        self.message = f"minimum_row_count for node:{node_identifier} is set to the invalid value:{minimum_row_count_val}. Minimum row count must be a greater than zero integer."
+        super().__init__(self.message)
+
+
+minimum_row_count = node_config.privacy.minimum_row_count
+if minimum_row_count < 1 or int(minimum_row_count) != minimum_row_count:
+    raise InvalidMinimumRowCountError(
+        node_identifier=node_config.identifier,
+        minimum_row_count_val=minimum_row_count,
+    )
+
+
 rabbitmq_credentials = node_config.rabbitmq.user + ":" + node_config.rabbitmq.password
 rabbitmq_socket_addr = node_config.rabbitmq.ip + ":" + str(node_config.rabbitmq.port)
 vhost = node_config.rabbitmq.vhost
