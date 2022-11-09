@@ -1,4 +1,5 @@
 from .udfgenerator import DEFERRED
+from .udfgenerator import MIN_ROW_COUNT
 from .udfgenerator import TensorBinaryOp
 from .udfgenerator import TensorUnaryOp
 from .udfgenerator import generate_udf_queries
@@ -32,4 +33,5 @@ __all__ = [
     "TensorBinaryOp",
     "make_unique_func_name",
     "DEFERRED",
+    "MIN_ROW_COUNT",
 ]

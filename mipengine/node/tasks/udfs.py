@@ -498,6 +498,7 @@ def _generate_udf_statements(
         {
             "udf_name": udf_name,
             "node_id": node_config.identifier,
+            "min_row_count": node_config.privacy.minimum_row_count,
         }
     )
     udf_statements = _create_udf_statements(udf_execution_queries, templates_mapping)
