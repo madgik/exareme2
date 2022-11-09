@@ -48,6 +48,7 @@ from mipengine.udfgen.udfgenerator import mapping_inverse
 from mipengine.udfgen.udfgenerator import mappings_coincide
 from mipengine.udfgen.udfgenerator import merge_mappings_consistently
 from mipengine.udfgen.udfgenerator import merge_transfer
+from mipengine.udfgen.udfgenerator import placeholder
 from mipengine.udfgen.udfgenerator import recursive_repr
 from mipengine.udfgen.udfgenerator import relation
 from mipengine.udfgen.udfgenerator import scalar
@@ -5615,6 +5616,48 @@ FROM
             expected_udf_outputs,
         ):
             assert udf_output == expected_udf_output
+
+
+class TestUDFGen_PlaceholderInputType(TestUDFGenBase, _TestGenerateUDFQueries):
+    @pytest.fixture(scope="class")
+    def udfregistry(self):
+        @udf(a=placeholder("some_name"), return_type=transfer())
+        def f(a):
+            result = {"a": a}
+            return result
+
+        return udf.registry
+
+    @pytest.fixture(scope="class")
+    def expected_udfdef(self):
+        return """\
+CREATE OR REPLACE FUNCTION
+$udf_name()
+RETURNS
+TABLE("transfer" CLOB)
+LANGUAGE PYTHON
+{
+    import pandas as pd
+    import udfio
+    import json
+    a = $some_name
+    result = {'a': a}
+    return json.dumps(result)
+}"""
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        expected_udfdef,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            request_id="",
+            func_name=funcname,
+            positional_args=[],
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~ Test SQL Generator ~~~~~~~~~~~~~~~~~~ #
