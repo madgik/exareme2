@@ -1,0 +1,3805 @@
+{
+    "test_cases": [
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftorifgorbitalpartoftheinferiorfrontalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata6",
+                        "ppmi0",
+                        "ppmi4",
+                        "edsd4",
+                        "ppmi2",
+                        "desd-synthdata8"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 37
+                },
+                "test_case_num": 0
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        10,
+                        12,
+                        35,
+                        36,
+                        57,
+                        67,
+                        63,
+                        39,
+                        41,
+                        33,
+                        21,
+                        10,
+                        3,
+                        5,
+                        3,
+                        1,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi7",
+                        "ppmi3",
+                        "edsd5",
+                        "desd-synthdata4",
+                        "desd-synthdata0",
+                        "desd-synthdata9",
+                        "ppmi2",
+                        "desd-synthdata1",
+                        "edsd4",
+                        "desd-synthdata5",
+                        "edsd6",
+                        "desd-synthdata7",
+                        "ppmi1",
+                        "desd-synthdata8",
+                        "edsd2",
+                        "edsd3",
+                        "ppmi5",
+                        "ppmi6",
+                        "desd-synthdata2",
+                        "desd-synthdata3"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 80
+                },
+                "test_case_num": 1
+            },
+            "output": {
+                "numerical": {},
+                "categorical": {
+                    "categorical_histogram": [
+                        357,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        195,
+                        0,
+                        262
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftmsfgsuperiorfrontalgyrusmedialsegment"
+                    ],
+                    "x": [
+                        "gender"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi9",
+                        "desd-synthdata0",
+                        "desd-synthdata8",
+                        "edsd0",
+                        "ppmi7",
+                        "ppmi2",
+                        "ppmi3",
+                        "ppmi5"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 81
+                },
+                "test_case_num": 2
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        2,
+                        1,
+                        1,
+                        1,
+                        3,
+                        5,
+                        2,
+                        15,
+                        17,
+                        14,
+                        22,
+                        23,
+                        21,
+                        39,
+                        41,
+                        19,
+                        23,
+                        40,
+                        36,
+                        35,
+                        28,
+                        26,
+                        24,
+                        12,
+                        18,
+                        14,
+                        8,
+                        12,
+                        6,
+                        4,
+                        1,
+                        1,
+                        1,
+                        1,
+                        5,
+                        1,
+                        4,
+                        0,
+                        1,
+                        1,
+                        0,
+                        0,
+                        1
+                    ],
+                    "grouped_histogram": [
+                        [
+                            [
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                2,
+                                1,
+                                1,
+                                1,
+                                3,
+                                5,
+                                2,
+                                12,
+                                10,
+                                7,
+                                9,
+                                16,
+                                11,
+                                21,
+                                22,
+                                9,
+                                8,
+                                15,
+                                9,
+                                15,
+                                11,
+                                8,
+                                3,
+                                2,
+                                2,
+                                1,
+                                1,
+                                2,
+                                2,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                3,
+                                7,
+                                7,
+                                13,
+                                7,
+                                10,
+                                18,
+                                19,
+                                10,
+                                15,
+                                25,
+                                27,
+                                20,
+                                17,
+                                18,
+                                21,
+                                10,
+                                16,
+                                13,
+                                7,
+                                10,
+                                4,
+                                4,
+                                1,
+                                0,
+                                1,
+                                1,
+                                5,
+                                1,
+                                4,
+                                0,
+                                1,
+                                1,
+                                0,
+                                0,
+                                1
+                            ]
+                        ]
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftamygdala"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi0",
+                        "desd-synthdata7"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 16
+                },
+                "test_case_num": 3
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        6,
+                        2,
+                        2,
+                        8,
+                        9,
+                        9,
+                        19,
+                        19,
+                        27,
+                        18,
+                        8,
+                        4,
+                        2,
+                        1,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightopifgopercularpartoftheinferiorfrontalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd5",
+                        "edsd7",
+                        "edsd4",
+                        "ppmi6",
+                        "edsd9"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 65
+                },
+                "test_case_num": 4
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        4,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        1,
+                        4,
+                        2,
+                        3,
+                        6,
+                        10,
+                        15,
+                        20,
+                        14,
+                        14,
+                        20,
+                        17,
+                        17,
+                        19,
+                        17,
+                        10,
+                        7,
+                        14,
+                        13,
+                        5,
+                        7,
+                        3,
+                        3,
+                        3,
+                        1,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd5",
+                        "edsd0",
+                        "ppmi5",
+                        "desd-synthdata3",
+                        "ppmi7",
+                        "edsd2",
+                        "ppmi4",
+                        "desd-synthdata5",
+                        "desd-synthdata9",
+                        "desd-synthdata0",
+                        "edsd8",
+                        "edsd6",
+                        "ppmi1",
+                        "edsd9",
+                        "desd-synthdata7"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 77
+                },
+                "test_case_num": 5
+            },
+            "output": {
+                "numerical": {},
+                "categorical": {
+                    "categorical_histogram": [
+                        77,
+                        208,
+                        101,
+                        296,
+                        303
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "subjectageyears"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi8",
+                        "edsd1",
+                        "edsd0",
+                        "desd-synthdata1",
+                        "ppmi6"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 74
+                },
+                "test_case_num": 6
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        1,
+                        1,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        2,
+                        0,
+                        1,
+                        0,
+                        2,
+                        1,
+                        0,
+                        0,
+                        0,
+                        2,
+                        0,
+                        0,
+                        2,
+                        2,
+                        3,
+                        0,
+                        3,
+                        1,
+                        3,
+                        0,
+                        9,
+                        1,
+                        3,
+                        0,
+                        9,
+                        7,
+                        8,
+                        0,
+                        7,
+                        12,
+                        6,
+                        7,
+                        0,
+                        12,
+                        8,
+                        16,
+                        0,
+                        12,
+                        18,
+                        15,
+                        0,
+                        11,
+                        20,
+                        19,
+                        0,
+                        13,
+                        11,
+                        11,
+                        0,
+                        7,
+                        5,
+                        19,
+                        0,
+                        11,
+                        3,
+                        8,
+                        0,
+                        6,
+                        2,
+                        0,
+                        0,
+                        2,
+                        3,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "edsdcategory"
+                    ],
+                    "x": [
+                        "agegroup",
+                        "gender"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata2"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 15
+                },
+                "test_case_num": 7
+            },
+            "output": {
+                "numerical": {},
+                "categorical": {
+                    "categorical_histogram": [
+                        23,
+                        36,
+                        18
+                    ],
+                    "grouped_histogram_categorical": [
+                        [
+                            [
+                                2,
+                                1,
+                                3
+                            ],
+                            [
+                                0,
+                                0,
+                                1
+                            ],
+                            [
+                                2,
+                                1,
+                                0
+                            ],
+                            [
+                                8,
+                                17,
+                                4
+                            ],
+                            [
+                                11,
+                                17,
+                                10
+                            ]
+                        ],
+                        [
+                            [
+                                8,
+                                20,
+                                10
+                            ],
+                            [
+                                15,
+                                16,
+                                8
+                            ]
+                        ]
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftpallidum"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata3",
+                        "desd-synthdata7",
+                        "edsd0",
+                        "desd-synthdata5",
+                        "edsd9",
+                        "edsd8",
+                        "edsd2"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 33
+                },
+                "test_case_num": 8
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        2,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        1,
+                        7,
+                        8,
+                        8,
+                        15,
+                        23,
+                        20,
+                        41,
+                        31,
+                        48,
+                        32,
+                        46,
+                        29,
+                        23,
+                        21,
+                        15,
+                        19,
+                        16,
+                        5,
+                        3,
+                        2,
+                        0,
+                        0,
+                        0,
+                        2,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata8",
+                        "ppmi2",
+                        "desd-synthdata0",
+                        "desd-synthdata5"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 93
+                },
+                "test_case_num": 9
+            },
+            "output": {
+                "numerical": {},
+                "categorical": {
+                    "categorical_histogram": [
+                        35,
+                        55,
+                        36,
+                        96,
+                        92
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftlateralventricle"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi2",
+                        "desd-synthdata3",
+                        "ppmi7",
+                        "desd-synthdata8",
+                        "desd-synthdata9",
+                        "edsd4"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 55
+                },
+                "test_case_num": 10
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        2,
+                        1,
+                        2,
+                        8,
+                        15,
+                        9,
+                        32,
+                        26,
+                        18,
+                        35,
+                        23,
+                        9,
+                        20,
+                        28,
+                        29,
+                        23,
+                        21,
+                        20,
+                        26,
+                        10,
+                        14,
+                        11,
+                        12,
+                        11,
+                        7,
+                        13,
+                        5,
+                        10,
+                        10,
+                        7,
+                        4,
+                        1,
+                        6,
+                        5,
+                        3,
+                        4,
+                        3,
+                        1,
+                        0,
+                        3,
+                        1,
+                        0,
+                        0,
+                        0,
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "cerebellarvermallobulesviiix"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata9",
+                        "ppmi5"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 27
+                },
+                "test_case_num": 11
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        6,
+                        12,
+                        16,
+                        26,
+                        31,
+                        20,
+                        20,
+                        18,
+                        14,
+                        3,
+                        1,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "gender"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd1",
+                        "edsd9",
+                        "desd-synthdata7",
+                        "ppmi2",
+                        "desd-synthdata6"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 23
+                },
+                "test_case_num": 12
+            },
+            "output": {
+                "numerical": {},
+                "categorical": {
+                    "categorical_histogram": [
+                        187,
+                        181
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftbasalforebrain"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd4",
+                        "ppmi9",
+                        "ppmi6",
+                        "desd-synthdata1",
+                        "desd-synthdata6",
+                        "ppmi7",
+                        "ppmi5",
+                        "ppmi0",
+                        "edsd0",
+                        "ppmi4",
+                        "edsd3",
+                        "desd-synthdata0",
+                        "edsd1",
+                        "edsd2",
+                        "edsd9"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 21
+                },
+                "test_case_num": 13
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        6,
+                        6,
+                        33,
+                        90,
+                        139,
+                        182,
+                        158,
+                        162,
+                        86,
+                        51,
+                        26,
+                        6,
+                        2,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftcaudate"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi9",
+                        "ppmi6",
+                        "ppmi8",
+                        "edsd1",
+                        "ppmi4",
+                        "ppmi7",
+                        "edsd3",
+                        "ppmi2",
+                        "edsd7",
+                        "desd-synthdata3"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 19
+                },
+                "test_case_num": 14
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        3,
+                        14,
+                        68,
+                        125,
+                        165,
+                        167,
+                        84,
+                        58,
+                        18,
+                        3,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightioginferioroccipitalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi9",
+                        "edsd2",
+                        "desd-synthdata5",
+                        "ppmi5",
+                        "edsd5",
+                        "ppmi4",
+                        "ppmi7",
+                        "ppmi8",
+                        "edsd7",
+                        "edsd8",
+                        "desd-synthdata0"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 92
+                },
+                "test_case_num": 15
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        2,
+                        0,
+                        0,
+                        1,
+                        1,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        3,
+                        4,
+                        2,
+                        1,
+                        5,
+                        7,
+                        6,
+                        5,
+                        3,
+                        7,
+                        6,
+                        9,
+                        9,
+                        10,
+                        7,
+                        8,
+                        14,
+                        7,
+                        13,
+                        22,
+                        10,
+                        18,
+                        16,
+                        17,
+                        19,
+                        14,
+                        14,
+                        13,
+                        22,
+                        19,
+                        18,
+                        15,
+                        21,
+                        25,
+                        11,
+                        24,
+                        13,
+                        17,
+                        12,
+                        21,
+                        19,
+                        13,
+                        11,
+                        12,
+                        10,
+                        18,
+                        19,
+                        7,
+                        12,
+                        7,
+                        12,
+                        7,
+                        8,
+                        7,
+                        4,
+                        8,
+                        5,
+                        1,
+                        6,
+                        7,
+                        3,
+                        6,
+                        3,
+                        3,
+                        0,
+                        5,
+                        3,
+                        2,
+                        3,
+                        0,
+                        1,
+                        1,
+                        1,
+                        2,
+                        0,
+                        1,
+                        0,
+                        2,
+                        1,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightprgprecentralgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd7",
+                        "desd-synthdata1",
+                        "edsd1",
+                        "ppmi5",
+                        "desd-synthdata3"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 86
+                },
+                "test_case_num": 16
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        6,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        3,
+                        3,
+                        3,
+                        11,
+                        11,
+                        9,
+                        16,
+                        19,
+                        18,
+                        24,
+                        15,
+                        28,
+                        27,
+                        22,
+                        14,
+                        20,
+                        15,
+                        17,
+                        20,
+                        21,
+                        18,
+                        13,
+                        12,
+                        13,
+                        5,
+                        4,
+                        7,
+                        4,
+                        2,
+                        4,
+                        3,
+                        1,
+                        1,
+                        1,
+                        1,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftioginferioroccipitalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd7",
+                        "edsd5",
+                        "ppmi7",
+                        "edsd9",
+                        "desd-synthdata5",
+                        "desd-synthdata4",
+                        "desd-synthdata1"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 77
+                },
+                "test_case_num": 17
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        3,
+                        3,
+                        2,
+                        4,
+                        11,
+                        6,
+                        7,
+                        15,
+                        4,
+                        17,
+                        16,
+                        4,
+                        25,
+                        11,
+                        15,
+                        20,
+                        20,
+                        30,
+                        24,
+                        26,
+                        20,
+                        34,
+                        15,
+                        10,
+                        13,
+                        18,
+                        12,
+                        15,
+                        15,
+                        12,
+                        11,
+                        8,
+                        12,
+                        8,
+                        13,
+                        18,
+                        11,
+                        3,
+                        0,
+                        2,
+                        10,
+                        6,
+                        1,
+                        2,
+                        1,
+                        0,
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightmcggmiddlecingulategyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi3",
+                        "edsd8",
+                        "ppmi1",
+                        "ppmi8",
+                        "ppmi7",
+                        "ppmi0",
+                        "desd-synthdata9",
+                        "ppmi2",
+                        "desd-synthdata1",
+                        "desd-synthdata2",
+                        "desd-synthdata7",
+                        "desd-synthdata8",
+                        "ppmi6",
+                        "edsd6"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 5
+                },
+                "test_case_num": 18
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        9,
+                        142,
+                        939,
+                        12,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightfrpfrontalpole"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi4",
+                        "edsd5",
+                        "desd-synthdata1",
+                        "ppmi6",
+                        "edsd4",
+                        "edsd2",
+                        "ppmi2",
+                        "edsd0",
+                        "ppmi9",
+                        "edsd6",
+                        "edsd1",
+                        "desd-synthdata7"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 78
+                },
+                "test_case_num": 19
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        12,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        1,
+                        3,
+                        10,
+                        11,
+                        14,
+                        16,
+                        48,
+                        44,
+                        49,
+                        47,
+                        46,
+                        61,
+                        55,
+                        61,
+                        61,
+                        45,
+                        42,
+                        35,
+                        31,
+                        18,
+                        17,
+                        28,
+                        14,
+                        8,
+                        8,
+                        7,
+                        7,
+                        7,
+                        2,
+                        3,
+                        1,
+                        1,
+                        1,
+                        1,
+                        0,
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightmfgmiddlefrontalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata8",
+                        "ppmi3",
+                        "ppmi7",
+                        "edsd6",
+                        "ppmi6",
+                        "desd-synthdata2",
+                        "ppmi5",
+                        "edsd9",
+                        "ppmi4",
+                        "edsd7",
+                        "ppmi9",
+                        "edsd4",
+                        "desd-synthdata4",
+                        "edsd1"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 37
+                },
+                "test_case_num": 20
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        3,
+                        9,
+                        16,
+                        47,
+                        84,
+                        127,
+                        119,
+                        118,
+                        107,
+                        102,
+                        81,
+                        64,
+                        38,
+                        13,
+                        13,
+                        6,
+                        3,
+                        4,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightbasalforebrain"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata5",
+                        "edsd8",
+                        "desd-synthdata6",
+                        "ppmi2",
+                        "desd-synthdata8",
+                        "edsd4",
+                        "ppmi6",
+                        "edsd0",
+                        "edsd7",
+                        "desd-synthdata4"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 51
+                },
+                "test_case_num": 21
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        5,
+                        0,
+                        3,
+                        5,
+                        3,
+                        8,
+                        3,
+                        6,
+                        17,
+                        22,
+                        30,
+                        26,
+                        24,
+                        34,
+                        21,
+                        41,
+                        25,
+                        43,
+                        43,
+                        48,
+                        43,
+                        42,
+                        50,
+                        27,
+                        28,
+                        28,
+                        13,
+                        17,
+                        12,
+                        9,
+                        6,
+                        3,
+                        2,
+                        1,
+                        2,
+                        1,
+                        3,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftcalccalcarinecortex"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd8",
+                        "edsd5",
+                        "desd-synthdata9",
+                        "ppmi3",
+                        "ppmi9",
+                        "desd-synthdata2",
+                        "ppmi1",
+                        "ppmi6",
+                        "edsd0",
+                        "desd-synthdata1",
+                        "edsd9",
+                        "edsd2",
+                        "desd-synthdata3",
+                        "edsd6",
+                        "desd-synthdata8",
+                        "desd-synthdata4",
+                        "edsd7",
+                        "edsd1",
+                        "desd-synthdata5",
+                        "desd-synthdata6"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 47
+                },
+                "test_case_num": 22
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        12,
+                        13,
+                        10,
+                        7,
+                        10,
+                        13,
+                        29,
+                        34,
+                        39,
+                        48,
+                        77,
+                        57,
+                        111,
+                        83,
+                        96,
+                        113,
+                        90,
+                        93,
+                        80,
+                        61,
+                        48,
+                        41,
+                        48,
+                        62,
+                        26,
+                        22,
+                        28,
+                        12,
+                        18,
+                        6,
+                        3,
+                        3,
+                        0,
+                        1,
+                        2,
+                        1,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightangangulargyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd1",
+                        "ppmi5",
+                        "ppmi4",
+                        "edsd6",
+                        "ppmi7",
+                        "desd-synthdata8",
+                        "desd-synthdata3",
+                        "ppmi2",
+                        "desd-synthdata2",
+                        "edsd7",
+                        "desd-synthdata1"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 38
+                },
+                "test_case_num": 23
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        3,
+                        0,
+                        0,
+                        0,
+                        1,
+                        6,
+                        9,
+                        15,
+                        49,
+                        49,
+                        72,
+                        76,
+                        102,
+                        116,
+                        102,
+                        88,
+                        57,
+                        52,
+                        36,
+                        25,
+                        17,
+                        7,
+                        3,
+                        2,
+                        2,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightacgganteriorcingulategyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd6",
+                        "desd-synthdata9",
+                        "edsd4",
+                        "ppmi7",
+                        "edsd5",
+                        "desd-synthdata3",
+                        "edsd1",
+                        "desd-synthdata7",
+                        "edsd2",
+                        "ppmi6",
+                        "ppmi0",
+                        "edsd0"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 6
+                },
+                "test_case_num": 24
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        9,
+                        3,
+                        19,
+                        460,
+                        243,
+                        11
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftsplsuperiorparietallobule"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi7",
+                        "edsd9",
+                        "desd-synthdata9",
+                        "ppmi9",
+                        "ppmi2",
+                        "edsd6",
+                        "edsd7",
+                        "ppmi4",
+                        "desd-synthdata6",
+                        "desd-synthdata0",
+                        "desd-synthdata5",
+                        "ppmi6"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 77
+                },
+                "test_case_num": 25
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        7,
+                        4,
+                        7,
+                        7,
+                        13,
+                        10,
+                        17,
+                        29,
+                        51,
+                        28,
+                        48,
+                        60,
+                        54,
+                        54,
+                        52,
+                        49,
+                        50,
+                        41,
+                        45,
+                        28,
+                        33,
+                        31,
+                        21,
+                        12,
+                        14,
+                        15,
+                        8,
+                        8,
+                        5,
+                        5,
+                        6,
+                        0,
+                        1,
+                        0,
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "lefttrifgtriangularpartoftheinferiorfrontalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd4",
+                        "desd-synthdata4",
+                        "ppmi3",
+                        "ppmi0",
+                        "edsd6",
+                        "edsd9",
+                        "ppmi6",
+                        "ppmi8",
+                        "ppmi1",
+                        "desd-synthdata1",
+                        "edsd1",
+                        "desd-synthdata3"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 71
+                },
+                "test_case_num": 26
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        7,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        1,
+                        0,
+                        0,
+                        3,
+                        1,
+                        6,
+                        12,
+                        9,
+                        20,
+                        21,
+                        31,
+                        44,
+                        46,
+                        55,
+                        65,
+                        50,
+                        72,
+                        53,
+                        49,
+                        66,
+                        45,
+                        40,
+                        31,
+                        21,
+                        15,
+                        18,
+                        7,
+                        8,
+                        7,
+                        4,
+                        5,
+                        3,
+                        0,
+                        1,
+                        2,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftputamen"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi7",
+                        "edsd4",
+                        "desd-synthdata7",
+                        "ppmi9",
+                        "ppmi8"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 26
+                },
+                "test_case_num": 27
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        4,
+                        10,
+                        27,
+                        53,
+                        40,
+                        53,
+                        47,
+                        41,
+                        43,
+                        29,
+                        11,
+                        7,
+                        5,
+                        2,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi9",
+                        "edsd0",
+                        "desd-synthdata7",
+                        "ppmi7",
+                        "ppmi1",
+                        "edsd4",
+                        "edsd5",
+                        "ppmi3",
+                        "edsd8",
+                        "desd-synthdata0",
+                        "edsd3",
+                        "ppmi0",
+                        "edsd2",
+                        "desd-synthdata9",
+                        "desd-synthdata1",
+                        "edsd7",
+                        "ppmi2",
+                        "desd-synthdata8",
+                        "desd-synthdata4",
+                        "edsd1"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 20
+                },
+                "test_case_num": 28
+            },
+            "output": {
+                "numerical": {},
+                "categorical": {
+                    "categorical_histogram": [
+                        330,
+                        285,
+                        0,
+                        551
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi2",
+                        "desd-synthdata1",
+                        "edsd0",
+                        "desd-synthdata7"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 9
+                },
+                "test_case_num": 29
+            },
+            "output": {
+                "numerical": {},
+                "categorical": {
+                    "categorical_histogram": [
+                        28,
+                        88,
+                        38,
+                        96,
+                        111
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "ppmicategory"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi0",
+                        "edsd8",
+                        "edsd4",
+                        "edsd5",
+                        "desd-synthdata3",
+                        "ppmi8",
+                        "desd-synthdata2",
+                        "ppmi9",
+                        "ppmi7",
+                        "ppmi3",
+                        "ppmi1",
+                        "desd-synthdata5",
+                        "edsd2",
+                        "edsd6",
+                        "desd-synthdata7",
+                        "desd-synthdata6",
+                        "edsd0",
+                        "ppmi4",
+                        "ppmi2",
+                        "desd-synthdata0"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 4
+                },
+                "test_case_num": 30
+            },
+            "output": {
+                "numerical": {},
+                "categorical": {
+                    "categorical_histogram": [
+                        81,
+                        129,
+                        299,
+                        45,
+                        0,
+                        0
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightmorgmedialorbitalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd3",
+                        "desd-synthdata6"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 15
+                },
+                "test_case_num": 31
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        10,
+                        23,
+                        51,
+                        34,
+                        18,
+                        2,
+                        3
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightioginferioroccipitalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata0",
+                        "ppmi6",
+                        "desd-synthdata3",
+                        "ppmi9",
+                        "edsd0",
+                        "edsd8",
+                        "edsd2",
+                        "ppmi5",
+                        "ppmi8",
+                        "desd-synthdata9"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 28
+                },
+                "test_case_num": 32
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        3,
+                        0,
+                        0,
+                        8,
+                        12,
+                        11,
+                        22,
+                        29,
+                        29,
+                        47,
+                        52,
+                        50,
+                        56,
+                        66,
+                        52,
+                        46,
+                        36,
+                        35,
+                        31,
+                        20,
+                        13,
+                        12,
+                        12,
+                        3,
+                        4,
+                        1,
+                        1,
+                        2
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "lefttrifgtriangularpartoftheinferiorfrontalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi8",
+                        "edsd1",
+                        "ppmi5",
+                        "desd-synthdata9",
+                        "edsd0"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 50
+                },
+                "test_case_num": 33
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        5,
+                        12,
+                        14,
+                        25,
+                        18,
+                        28,
+                        40,
+                        36,
+                        33,
+                        22,
+                        22,
+                        14,
+                        15,
+                        6,
+                        4,
+                        1,
+                        3,
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightmprgprecentralgyrusmedialsegment"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd2",
+                        "desd-synthdata7"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 15
+                },
+                "test_case_num": 34
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        6,
+                        25,
+                        29,
+                        40,
+                        27,
+                        14
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightpallidum"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata7",
+                        "edsd0",
+                        "desd-synthdata8",
+                        "ppmi1",
+                        "ppmi2",
+                        "edsd6",
+                        "ppmi5",
+                        "ppmi8",
+                        "desd-synthdata4"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 75
+                },
+                "test_case_num": 35
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        3,
+                        1,
+                        2,
+                        2,
+                        7,
+                        11,
+                        11,
+                        19,
+                        10,
+                        15,
+                        26,
+                        19,
+                        30,
+                        39,
+                        28,
+                        37,
+                        17,
+                        35,
+                        33,
+                        40,
+                        27,
+                        30,
+                        27,
+                        28,
+                        9,
+                        15,
+                        24,
+                        17,
+                        11,
+                        9,
+                        4,
+                        5,
+                        6,
+                        0,
+                        3,
+                        0,
+                        1,
+                        2,
+                        0,
+                        3
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftorifgorbitalpartoftheinferiorfrontalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata5",
+                        "ppmi1",
+                        "ppmi6",
+                        "edsd3",
+                        "desd-synthdata6",
+                        "desd-synthdata1"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 15
+                },
+                "test_case_num": 36
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        5,
+                        0,
+                        0,
+                        2,
+                        2,
+                        1,
+                        0,
+                        8,
+                        36,
+                        106,
+                        166,
+                        99,
+                        62,
+                        17,
+                        2
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightinflatvent"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd6",
+                        "edsd4",
+                        "desd-synthdata3",
+                        "desd-synthdata5",
+                        "ppmi1",
+                        "desd-synthdata4",
+                        "ppmi6",
+                        "ppmi5",
+                        "desd-synthdata6",
+                        "desd-synthdata8",
+                        "desd-synthdata9",
+                        "edsd2",
+                        "edsd5",
+                        "edsd1"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 77
+                },
+                "test_case_num": 37
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        18,
+                        55,
+                        79,
+                        74,
+                        83,
+                        77,
+                        67,
+                        89,
+                        55,
+                        28,
+                        42,
+                        25,
+                        38,
+                        30,
+                        20,
+                        21,
+                        18,
+                        12,
+                        11,
+                        26,
+                        16,
+                        4,
+                        14,
+                        4,
+                        12,
+                        5,
+                        17,
+                        4,
+                        9,
+                        2,
+                        6,
+                        3,
+                        4,
+                        4,
+                        3,
+                        1,
+                        5,
+                        1,
+                        0,
+                        4,
+                        2,
+                        1,
+                        0,
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightorifgorbitalpartoftheinferiorfrontalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi1",
+                        "edsd9",
+                        "desd-synthdata3"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 70
+                },
+                "test_case_num": 38
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        2,
+                        0,
+                        3,
+                        1,
+                        5,
+                        8,
+                        6,
+                        7,
+                        1,
+                        10,
+                        10,
+                        9,
+                        10,
+                        7,
+                        6,
+                        10,
+                        9,
+                        6,
+                        7,
+                        6,
+                        3,
+                        4,
+                        2,
+                        2,
+                        5,
+                        3,
+                        2,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftstgsuperiortemporalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi4",
+                        "ppmi5",
+                        "desd-synthdata8",
+                        "desd-synthdata5"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 86
+                },
+                "test_case_num": 39
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        4,
+                        0,
+                        5,
+                        1,
+                        3,
+                        1,
+                        1,
+                        2,
+                        6,
+                        3,
+                        6,
+                        8,
+                        2,
+                        7,
+                        13,
+                        6,
+                        11,
+                        6,
+                        7,
+                        8,
+                        10,
+                        6,
+                        9,
+                        7,
+                        16,
+                        10,
+                        18,
+                        12,
+                        12,
+                        6,
+                        18,
+                        8,
+                        12,
+                        7,
+                        11,
+                        7,
+                        6,
+                        16,
+                        4,
+                        4,
+                        3,
+                        3,
+                        6,
+                        4,
+                        3,
+                        2,
+                        2,
+                        0,
+                        4,
+                        2,
+                        4,
+                        2,
+                        0,
+                        0,
+                        3,
+                        2,
+                        2
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftaccumbensarea"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd1",
+                        "desd-synthdata5",
+                        "ppmi9",
+                        "desd-synthdata2",
+                        "desd-synthdata8",
+                        "ppmi1",
+                        "edsd3",
+                        "desd-synthdata7"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 60
+                },
+                "test_case_num": 40
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        3,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        1,
+                        5,
+                        3,
+                        7,
+                        11,
+                        13,
+                        12,
+                        14,
+                        23,
+                        28,
+                        32,
+                        34,
+                        40,
+                        34,
+                        35,
+                        49,
+                        34,
+                        34,
+                        28,
+                        24,
+                        26,
+                        15,
+                        15,
+                        8,
+                        9,
+                        10,
+                        6,
+                        3,
+                        1,
+                        1,
+                        0,
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "lefttrifgtriangularpartoftheinferiorfrontalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi8",
+                        "ppmi9",
+                        "edsd6",
+                        "desd-synthdata7",
+                        "ppmi7",
+                        "edsd4",
+                        "ppmi3",
+                        "edsd3",
+                        "edsd8",
+                        "desd-synthdata4",
+                        "edsd1",
+                        "desd-synthdata1",
+                        "desd-synthdata3",
+                        "desd-synthdata2",
+                        "ppmi1",
+                        "ppmi2",
+                        "desd-synthdata0",
+                        "desd-synthdata8",
+                        "edsd9"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 25
+                },
+                "test_case_num": 41
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        9,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        0,
+                        1,
+                        2,
+                        3,
+                        7,
+                        34,
+                        89,
+                        192,
+                        247,
+                        283,
+                        219,
+                        131,
+                        81,
+                        21,
+                        13,
+                        5,
+                        1,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightopifgopercularpartoftheinferiorfrontalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi6",
+                        "edsd6",
+                        "edsd4",
+                        "desd-synthdata3",
+                        "desd-synthdata0"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 55
+                },
+                "test_case_num": 42
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        2,
+                        5,
+                        4,
+                        8,
+                        11,
+                        17,
+                        26,
+                        28,
+                        28,
+                        18,
+                        26,
+                        24,
+                        21,
+                        24,
+                        16,
+                        15,
+                        9,
+                        10,
+                        4,
+                        5,
+                        5,
+                        2,
+                        1,
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi1",
+                        "desd-synthdata6",
+                        "ppmi5",
+                        "edsd2",
+                        "desd-synthdata0",
+                        "desd-synthdata1",
+                        "desd-synthdata7",
+                        "edsd8",
+                        "edsd3",
+                        "ppmi8",
+                        "edsd6",
+                        "edsd7",
+                        "edsd4"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 4
+                },
+                "test_case_num": 43
+            },
+            "output": {
+                "numerical": {},
+                "categorical": {
+                    "categorical_histogram": [
+                        90,
+                        179,
+                        69,
+                        269,
+                        305
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightmtgmiddletemporalgyrus"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata6",
+                        "ppmi4",
+                        "ppmi8",
+                        "desd-synthdata9",
+                        "edsd6",
+                        "ppmi2",
+                        "ppmi7",
+                        "edsd7",
+                        "edsd5",
+                        "desd-synthdata7",
+                        "desd-synthdata3",
+                        "edsd1",
+                        "ppmi0",
+                        "ppmi9",
+                        "desd-synthdata0",
+                        "desd-synthdata4",
+                        "edsd2",
+                        "edsd3"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 35
+                },
+                "test_case_num": 44
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        2,
+                        0,
+                        0,
+                        3,
+                        5,
+                        2,
+                        10,
+                        22,
+                        10,
+                        21,
+                        24,
+                        45,
+                        69,
+                        58,
+                        69,
+                        106,
+                        136,
+                        139,
+                        104,
+                        96,
+                        82,
+                        49,
+                        54,
+                        37,
+                        41,
+                        9,
+                        11,
+                        9,
+                        4,
+                        3,
+                        3,
+                        1,
+                        0,
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd8",
+                        "desd-synthdata3",
+                        "edsd2",
+                        "desd-synthdata2",
+                        "edsd6",
+                        "desd-synthdata4",
+                        "edsd0",
+                        "edsd3",
+                        "edsd4"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 25
+                },
+                "test_case_num": 45
+            },
+            "output": {
+                "numerical": {},
+                "categorical": {
+                    "categorical_histogram": [
+                        60,
+                        103,
+                        29,
+                        159,
+                        229
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightthalamusproper"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi7"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 61
+                },
+                "test_case_num": 46
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        1,
+                        1,
+                        0,
+                        1,
+                        0,
+                        1,
+                        0,
+                        2,
+                        3,
+                        1,
+                        0,
+                        1,
+                        2,
+                        1,
+                        0,
+                        3,
+                        5,
+                        3,
+                        2,
+                        3,
+                        0,
+                        2,
+                        2,
+                        3,
+                        2,
+                        3,
+                        4,
+                        2,
+                        0,
+                        3,
+                        1,
+                        0,
+                        4,
+                        1,
+                        2,
+                        4,
+                        1,
+                        2,
+                        0,
+                        1,
+                        1,
+                        0,
+                        3,
+                        0,
+                        1,
+                        0,
+                        1,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        1,
+                        0,
+                        0,
+                        1,
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "ppmicategory"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi7",
+                        "desd-synthdata5"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 57
+                },
+                "test_case_num": 47
+            },
+            "output": {
+                "numerical": {},
+                "categorical": {
+                    "categorical_histogram": [
+                        10,
+                        18,
+                        51,
+                        1,
+                        0,
+                        0
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "gender"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi9",
+                        "desd-synthdata0",
+                        "edsd1",
+                        "edsd2",
+                        "desd-synthdata4",
+                        "edsd3",
+                        "ppmi1",
+                        "ppmi6"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 16
+                },
+                "test_case_num": 48
+            },
+            "output": {
+                "numerical": {},
+                "categorical": {
+                    "categorical_histogram": [
+                        250,
+                        216
+                    ]
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftpallidum"
+                    ],
+                    "x": [],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd3",
+                        "edsd9",
+                        "edsd2",
+                        "ppmi6",
+                        "ppmi0",
+                        "ppmi5",
+                        "edsd0",
+                        "desd-synthdata7",
+                        "desd-synthdata1",
+                        "desd-synthdata0",
+                        "ppmi4",
+                        "desd-synthdata3",
+                        "desd-synthdata6",
+                        "ppmi8",
+                        "edsd5",
+                        "desd-synthdata5",
+                        "edsd6",
+                        "edsd7",
+                        "desd-synthdata4",
+                        "desd-synthdata9",
+                        "ppmi1",
+                        "ppmi2",
+                        "edsd1",
+                        "ppmi9",
+                        "ppmi3",
+                        "ppmi7",
+                        "edsd4",
+                        "edsd8"
+                    ],
+                    "filters": ""
+                },
+                "parameters": {
+                    "bins": 24
+                },
+                "test_case_num": 49
+            },
+            "output": {
+                "categorical": {},
+                "numerical": {
+                    "histogram": [
+                        4,
+                        2,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        6,
+                        3,
+                        12,
+                        56,
+                        140,
+                        262,
+                        363,
+                        359,
+                        319,
+                        192,
+                        126,
+                        23,
+                        11,
+                        4,
+                        3,
+                        0,
+                        2
+                    ]
+                }
+            }
+        }
+    ]
+}
