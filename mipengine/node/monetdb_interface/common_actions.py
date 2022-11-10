@@ -1,5 +1,4 @@
 import json
-import logging
 from typing import Any
 from typing import Dict
 from typing import List
@@ -189,6 +188,9 @@ def get_table_data(table_name: str) -> List[ColumnData]:
         A list of column data
     """
     schema = get_table_schema(table_name)
+    # TODO: blocked by https://team-1617704806227.atlassian.net/browse/MIP-133 .
+    # Retrieving the data should be a simple select.
+    # row_stored_data = db_execute_and_fetchall(f"SELECT * FROM {table_name}")
 
     row_stored_data = db_execute_and_fetchall(
         f"""

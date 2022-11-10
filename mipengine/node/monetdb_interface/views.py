@@ -40,7 +40,7 @@ def create_view(
     filter_clause = ""
     if filters:
         filter_clause = f"WHERE {build_filter_clause(filters)}"
-    columns_clause = ", ".join(columns)
+    columns_clause = ", ".join([f'"{column}"' for column in columns])
 
     view_creation_query = f"""
         CREATE VIEW {view_name}

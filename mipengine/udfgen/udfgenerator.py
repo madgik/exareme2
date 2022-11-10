@@ -1504,7 +1504,8 @@ class Column(ASTNode):
             else ""
         )
         postfix = f" AS {self.alias}" if self.alias and use_alias else ""
-        return prefix + self.name + postfix
+        name = self.name if self.name == "*" else f'"{self.name}"'
+        return prefix + name + postfix
 
     def __eq__(self, other):
         return ColumnEqualityClause(self, other)

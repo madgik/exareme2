@@ -14,7 +14,6 @@ from mipengine.node_tasks_DTOs import NodeUDFDTO
 from mipengine.node_tasks_DTOs import SMPCTablesInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableType
 
 
 def sql_injection_guard(**validators: Optional[Callable[[Any], bool]]):
