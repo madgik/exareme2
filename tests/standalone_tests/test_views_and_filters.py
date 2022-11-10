@@ -596,22 +596,23 @@ def test_data_model_view_min_rows_checks(
         )
 
     # Check the same view creation with min rows check disabled
-    task_signature = get_celery_task_signature("create_data_model_views")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        context_id=context_id,
-        command_id=uuid.uuid4().hex,
-        data_model=data_model,
-        datasets=[],
-        columns_per_view=[columns],
-        filters=filters,
-        check_min_rows=False,
-    )
-    localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+    with pytest.raises(InsufficientDataError):
+        task_signature = get_celery_task_signature("create_data_model_views")
+        async_result = localnode1_celery_app.queue_task(
+            task_signature=task_signature,
+            logger=StdOutputLogger(),
+            request_id=request_id,
+            context_id=context_id,
+            command_id=uuid.uuid4().hex,
+            data_model=data_model,
+            datasets=[],
+            columns_per_view=[columns],
+            filters=filters,
+            check_min_rows=False,
+        )
+        localnode1_celery_app.get_result(
+            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+        )
 
 
 @pytest.mark.slow
