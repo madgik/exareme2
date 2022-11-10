@@ -180,6 +180,7 @@ def test_run_udf_state_and_transfer_output(
     assert state_result["sum"] == input_table_name_sum
 
 
+@pytest.mark.slow
 def test_run_udf_with_remote_state_table_passed_as_normal_table(
     localnode1_node_service,
     use_localnode1_database,

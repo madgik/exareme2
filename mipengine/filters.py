@@ -48,7 +48,7 @@ def build_filter_clause(rules):
         return "(" + f" {cond} ".join(build_filter_clause(rule) for rule in rules) + ")"
 
     if "id" in rules:
-        column_name = rules["id"]
+        column_name = f'"{rules["id"]}"'
         op = FILTER_OPERATORS[rules["operator"]]
         value = _format_value_if_string(rules["type"], rules["value"])
         return op(column_name, value)
