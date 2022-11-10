@@ -771,6 +771,38 @@ def udf_logger():
     return UDFLoggerType()
 
 
+class PlaceholderType(InputType):
+    def __init__(self, name):
+        self.name = "$" + name
+
+
+def placeholder(name):
+    """
+    UDF input type factory for inserting an assignment to arbitrary an
+    placeholder in UDF definition.
+
+    Examples
+    --------
+    Using this function in the udf decorator, as show below
+
+    >>> @udf(x=placeholder("some_name"))
+    ... def f(x):
+    ...    pass
+
+    will insert the line
+
+        x = $some_name
+
+    in the SQL UDF definition.
+    """
+    return PlaceholderType(name)
+
+
+# special type for passing MIN_ROW_COUNT in UDF. Only Node knows the actual
+# value so here it's exported as a placeholder and replaced by Node.
+MIN_ROW_COUNT = placeholder("min_row_count")
+
+
 class TableType(ABC):
     @property
     @abstractmethod
@@ -984,6 +1016,15 @@ class UDFLoggerArg(UDFArgument):
     def __init__(self, request_id, udf_name):
         self.request_id = request_id
         self.udf_name = udf_name
+
+
+class PlaceholderArg(UDFArgument):
+    def __init__(self, type):
+        self.type = type
+
+    @property
+    def name(self):
+        return self.type.name
 
 
 class TableArg(UDFArgument, ABC):
@@ -1325,6 +1366,16 @@ class LoggerAssignment(ASTNode):
         return f"{name} = udfio.get_logger('{logger_arg.udf_name}', '{logger_arg.request_id}')"
 
 
+class PlaceholderAssignments(ASTNode):
+    def __init__(self, placeholders):
+        self.placeholders = placeholders
+
+    def compile(self) -> str:
+        return LN.join(
+            f"{name} = {arg.name}" for name, arg in self.placeholders.items()
+        )
+
+
 class UDFBodyStatements(ASTNode):
     def __init__(self, statements):
         self.returnless_stmts = [
@@ -1344,6 +1395,7 @@ class UDFBody(ASTNode):
         smpc_args: Dict[str, SMPCSecureTransferArg],
         literal_args: Dict[str, LiteralArg],
         logger_arg: Optional[Tuple[str, UDFLoggerArg]],
+        placeholder_args: Dict[str, PlaceholderArg],
         statements: list,
         main_return_name: str,
         main_return_type: OutputType,
@@ -1364,6 +1416,7 @@ class UDFBody(ASTNode):
         self.smpc_builds = SMPCBuilds(smpc_args)
         self.literals = LiteralAssignments(literal_args)
         self.logger = LoggerAssignment(logger_arg)
+        self.placeholders = PlaceholderAssignments(placeholder_args)
         all_types = (
             [arg.type for arg in table_args.values()]
             + [main_return_type]
@@ -1388,6 +1441,7 @@ class UDFBody(ASTNode):
                     self.smpc_builds.compile(),
                     self.literals.compile(),
                     self.logger.compile(),
+                    self.placeholders.compile(),
                     self.returnless_stmts.compile(),
                     self.loopback_return_stmts.compile(),
                     self.return_stmt.compile(),
@@ -1442,6 +1496,7 @@ class UDFDefinition(ASTNode):
         smpc_args: Dict[str, SMPCSecureTransferArg],
         literal_args: Dict[str, LiteralArg],
         logger_arg: Optional[Tuple[str, UDFLoggerArg]],
+        placeholder_args: Dict[str, PlaceholderArg],
         main_output_type: OutputType,
         sec_output_types: List[OutputType],
         smpc_used: bool,
@@ -1457,6 +1512,7 @@ class UDFDefinition(ASTNode):
             smpc_args=smpc_args,
             literal_args=literal_args,
             logger_arg=logger_arg,
+            placeholder_args=placeholder_args,
             statements=funcparts.body_statements,
             main_return_name=funcparts.main_return_name,
             main_return_type=main_output_type,
@@ -2230,6 +2286,14 @@ def get_udf_args(request_id, funcparts, posargs, keywordargs) -> Dict[str, UDFAr
             request_id=request_id,
             udf_name=funcparts.qualname,
         )
+    placeholders = get_items_of_type(PlaceholderType, funcparts.sig.parameters)
+    if placeholders:
+        udf_args.update(
+            {
+                name: PlaceholderArg(type=placeholder)
+                for name, placeholder in placeholders.items()
+            }
+        )
     return udf_args
 
 
@@ -2335,6 +2399,7 @@ def get_udf_definition_template(
     logger_param = funcparts.logger_param_name
     if logger_param:
         logger_arg = (logger_param, input_args[logger_param])
+    placeholder_args = get_items_of_type(PlaceholderArg, input_args)
 
     verify_declared_and_passed_param_types_match(
         funcparts.table_input_types, table_args
@@ -2345,6 +2410,7 @@ def get_udf_definition_template(
         smpc_args=smpc_args,
         literal_args=literal_args,
         logger_arg=logger_arg,
+        placeholder_args=placeholder_args,
         main_output_type=main_output_type,
         sec_output_types=sec_output_types,
         smpc_used=smpc_used,

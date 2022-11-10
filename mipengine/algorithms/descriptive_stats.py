@@ -36,6 +36,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.udfgen import MIN_ROW_COUNT
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
 from mipengine.udfgen import relation
@@ -152,13 +153,15 @@ def run(executor):
     data=relation(),
     numerical_vars=literal(),
     nominal_vars=literal(),
+    min_row_count=MIN_ROW_COUNT,
     return_type=transfer(),
 )
-def local(data: pd.DataFrame, numerical_vars: list, nominal_vars: list):
-    # TODO privacy threshold is hardcoded. Find beter solution.
-    # https://team-1617704806227.atlassian.net/browse/MIP-689
-    MIN_ROW_COUNT = 10
-
+def local(
+    data: pd.DataFrame,
+    numerical_vars: list,
+    nominal_vars: list,
+    min_row_count: int,
+):
     vars = numerical_vars + nominal_vars
 
     def record(var, dataset, data):
@@ -168,7 +171,7 @@ def local(data: pd.DataFrame, numerical_vars: list, nominal_vars: list):
         return [record(var, dataset, None) for var in numerical_vars + nominal_vars]
 
     def compute_records(data, dataset):
-        if len(data) < MIN_ROW_COUNT:
+        if len(data) < min_row_count:
             return get_empty_records(dataset)
         num_total = len(data)
         # number datapoints/NA
@@ -191,7 +194,7 @@ def local(data: pd.DataFrame, numerical_vars: list, nominal_vars: list):
 
         def numerical_var_data(var):
             # if privacy threshold is not met, return empty record
-            if num_dtps[var] < MIN_ROW_COUNT:
+            if num_dtps[var] < min_row_count:
                 return None
             return dict(
                 num_dtps=num_dtps[var],
@@ -210,7 +213,7 @@ def local(data: pd.DataFrame, numerical_vars: list, nominal_vars: list):
 
         def nominal_var_data(var):
             # if privacy threshold is not met, return empty record
-            if num_dtps[var] < MIN_ROW_COUNT:
+            if num_dtps[var] < min_row_count:
                 return None
             return dict(
                 num_dtps=num_dtps[var],
