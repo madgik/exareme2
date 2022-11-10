@@ -2,6 +2,8 @@ import http from 'k6/http';
 import {
     SharedArray
 } from 'k6/data';
+import { Rate } from "k6/metrics";
+import { check } from "k6";
 
 http.setResponseCallback(http.expectedStatuses(200, 461));      // 461 is considered a success (NotEnoughData)
 
@@ -19,6 +21,7 @@ algorithm_names.forEach(algo_name =>
     })
 );
 
+export let errorRate = new Rate("errors");
 
 export default function() {
     const algorithm_names = Object.keys(algorithms_requests);
@@ -32,9 +35,16 @@ export default function() {
         headers: {
             'Content-type': 'application/json',
             'Accept': 'text/plain'
-        }
+        },
+        timeout: '3600s'
     };
 
-    http.post(algorithm_url, JSON.stringify(algorithm_request["input"]), request_params);
+    const res = http.post(algorithm_url, JSON.stringify(algorithm_request["input"]), request_params);
     console.log(`${algorithm_url}`);
+
+    let success = check(res, {"is status 200 or 461": (r) => r.status === 200 || r.status === 461});
+    if (!success) {
+        errorRate.add(res.status)
+        console.log(`Status: ${res.status} \nResponse: ${res.body}`)
+    }
 }
