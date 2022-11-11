@@ -3,10 +3,10 @@ from typing import TypeVar
 from pandas import DataFrame
 
 from mipengine.udfgen import relation
+from mipengine.udfgen import secure_transfer
+from mipengine.udfgen import state
+from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
-from mipengine.udfgen.udfgenerator import secure_transfer
-from mipengine.udfgen.udfgenerator import state
-from mipengine.udfgen.udfgenerator import transfer
 
 S = TypeVar("S")
 
