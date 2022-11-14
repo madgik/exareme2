@@ -12,21 +12,6 @@ from typing import Union
 
 import astor
 
-from mipengine.udfgen.consts import ANDLN
-from mipengine.udfgen.consts import BEGIN
-from mipengine.udfgen.consts import CREATE_OR_REPLACE_FUNCTION
-from mipengine.udfgen.consts import END
-from mipengine.udfgen.consts import FROM
-from mipengine.udfgen.consts import GROUP_BY
-from mipengine.udfgen.consts import LANGUAGE_PYTHON
-from mipengine.udfgen.consts import LN
-from mipengine.udfgen.consts import ORDER_BY
-from mipengine.udfgen.consts import RETURNS
-from mipengine.udfgen.consts import SELECT
-from mipengine.udfgen.consts import SEP
-from mipengine.udfgen.consts import SEPLN
-from mipengine.udfgen.consts import SPC4
-from mipengine.udfgen.consts import WHERE
 from mipengine.udfgen.helpers import get_func_body_from_ast
 from mipengine.udfgen.helpers import get_return_names_from_body
 from mipengine.udfgen.helpers import iotype_to_sql_schema
@@ -51,6 +36,24 @@ from mipengine.udfgen.iotypes import TableType
 from mipengine.udfgen.iotypes import TransferType
 from mipengine.udfgen.iotypes import UDFLoggerArg
 from mipengine.udfgen.iotypes import UDFLoggerType
+
+CREATE_OR_REPLACE_FUNCTION = "CREATE OR REPLACE FUNCTION"
+RETURNS = "RETURNS"
+LANGUAGE_PYTHON = "LANGUAGE PYTHON"
+BEGIN = "{"
+END = "}"
+SELECT = "SELECT"
+FROM = "FROM"
+WHERE = "WHERE"
+GROUP_BY = "GROUP BY"
+ORDER_BY = "ORDER BY"
+AND = "AND"
+
+SEP = ","
+LN = "\n"
+SEPLN = SEP + LN
+ANDLN = " " + AND + LN
+SPC4 = " " * 4
 
 
 class Signature(NamedTuple):

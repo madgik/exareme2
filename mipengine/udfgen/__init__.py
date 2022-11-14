@@ -1,6 +1,6 @@
-from mipengine.udfgen.consts import DEFERRED
 from mipengine.udfgen.decorator import udf
 from mipengine.udfgen.helpers import make_unique_func_name
+from mipengine.udfgen.iotypes import DEFERRED
 from mipengine.udfgen.iotypes import MIN_ROW_COUNT
 from mipengine.udfgen.iotypes import literal
 from mipengine.udfgen.iotypes import merge_tensor

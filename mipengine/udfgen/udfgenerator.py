@@ -291,10 +291,6 @@ from mipengine.udfgen.ast import Table
 from mipengine.udfgen.ast import TableFunction
 from mipengine.udfgen.ast import UDFDefinition
 from mipengine.udfgen.ast import _get_loopback_tables_template_names
-from mipengine.udfgen.consts import CREATE_TABLE
-from mipengine.udfgen.consts import DROP_TABLE_IF_EXISTS
-from mipengine.udfgen.consts import MAIN_TABLE_PLACEHOLDER
-from mipengine.udfgen.consts import SCOLON
 from mipengine.udfgen.decorator import udf
 from mipengine.udfgen.helpers import compose_mappings
 from mipengine.udfgen.helpers import get_items_of_type
@@ -302,6 +298,7 @@ from mipengine.udfgen.helpers import iotype_to_sql_schema
 from mipengine.udfgen.helpers import mapping_inverse
 from mipengine.udfgen.helpers import merge_args_and_kwargs
 from mipengine.udfgen.helpers import merge_mappings_consistently
+from mipengine.udfgen.iotypes import MAIN_TABLE_PLACEHOLDER
 from mipengine.udfgen.iotypes import InputType
 from mipengine.udfgen.iotypes import LiteralArg
 from mipengine.udfgen.iotypes import LiteralType
@@ -880,9 +877,9 @@ def _create_table_udf_output(
     output_type: OutputType,
     table_name: str,
 ) -> UDFGenResult:
-    drop_table = DROP_TABLE_IF_EXISTS + " $" + table_name + SCOLON
+    drop_table = "DROP TABLE IF EXISTS" + " $" + table_name + ";"
     output_schema = iotype_to_sql_schema(output_type)
-    create_table = CREATE_TABLE + " $" + table_name + f"({output_schema})" + SCOLON
+    create_table = "CREATE TABLE" + " $" + table_name + f"({output_schema})" + ";"
     return UDFGenTableResult(
         tablename_placeholder=table_name,
         table_schema=output_type.schema,
@@ -948,7 +945,7 @@ def get_udf_outputs(
 
 def get_udf_execution_template(udf_select_query) -> Template:
     table_name = MAIN_TABLE_PLACEHOLDER
-    udf_execution = f"INSERT INTO ${table_name}\n" + udf_select_query + SCOLON
+    udf_execution = f"INSERT INTO ${table_name}\n" + udf_select_query + ";"
     return Template(udf_execution)
 
 

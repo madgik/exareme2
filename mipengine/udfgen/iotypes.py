@@ -3,13 +3,13 @@ from abc import abstractproperty
 from typing import TypeVar
 
 from mipengine import DType as dt
-from mipengine.udfgen.consts import DEFERRED
-from mipengine.udfgen.consts import MAIN_TABLE_PLACEHOLDER
-from mipengine.udfgen.consts import ROWID
 from mipengine.udfgen.helpers import iotype_to_sql_schema
 from mipengine.udfgen.helpers import recursive_repr
 
 LN = "\n"
+MAIN_TABLE_PLACEHOLDER = "main_output_table_name"
+ROWID = "row_id"
+DEFERRED = "deferred"
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~ IO Types ~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
