@@ -321,9 +321,10 @@ class _AlgorithmExecutionInterface:
             except InsufficientDataError:
                 nodes_with_insuffiecient_data.append(local_node)
 
-        # remove nodes generating wview tables with insufficient
+        # remove nodes that generate at least one data model view with insufficient
         # data(zero rows or row count less than .deployment.toml::minimum_row_count)
-        # TODO: removing nodes should not happen in here (jira issue link?)
+        # TODO: removing nodes should not take place in here
+        # (ticket: https://team-1617704806227.atlassian.net/browse/MIP-705)
         if nodes_with_insuffiecient_data:
             for node in nodes_with_insuffiecient_data:
                 self._local_nodes.remove(node)
