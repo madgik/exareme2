@@ -11,8 +11,6 @@ from mipengine.udfgen.iotypes import state
 from mipengine.udfgen.iotypes import tensor
 from mipengine.udfgen.iotypes import transfer
 from mipengine.udfgen.iotypes import udf_logger
-from mipengine.udfgen.tensor_ops import TensorBinaryOp
-from mipengine.udfgen.tensor_ops import TensorUnaryOp
 from mipengine.udfgen.udfgenerator import generate_udf_queries
 
 __all__ = [
@@ -27,8 +25,6 @@ __all__ = [
     "state",
     "secure_transfer",
     "generate_udf_queries",
-    "TensorUnaryOp",
-    "TensorBinaryOp",
     "make_unique_func_name",
     "DEFERRED",
     "MIN_ROW_COUNT",

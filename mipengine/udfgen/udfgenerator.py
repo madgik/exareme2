@@ -263,8 +263,6 @@ transfer                Transfer type factory
 merge_transfer          Merge transfer type factory
 generate_udf_queries    Generates a pair of strings holding the UDF definition
                         (when needed) and the query for calling the UDF
-TensorUnaryOp           Enum with tensor unary operations
-TensorBinaryOp          Enum with tensor binary operations
 make_unique_func_name   Helper for creating unique function names
 ======================= ========================================================
 """
@@ -326,10 +324,6 @@ from mipengine.udfgen.iotypes import _get_smpc_table_template_names
 from mipengine.udfgen.iotypes import merge_tensor
 from mipengine.udfgen.iotypes import merge_transfer
 from mipengine.udfgen.iotypes import relation
-from mipengine.udfgen.iotypes import tensor
-from mipengine.udfgen.tensor_ops import TENSOR_OP_NAMES
-from mipengine.udfgen.tensor_ops import TensorBinaryOp
-from mipengine.udfgen.tensor_ops import get_sql_tensor_operation_select_query
 from mipengine.udfgen.udfgen_DTOs import UDFGenExecutionQueries
 from mipengine.udfgen.udfgen_DTOs import UDFGenResult
 from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
@@ -372,18 +366,6 @@ def generate_udf_queries(
         keyword_args,
         smpc_used,
     )
-
-    if func_name in TENSOR_OP_NAMES:
-        if udf_kwargs:
-            raise UDFBadCall("Keyword args are not supported for tensor operations.")
-        udf_select = get_sql_tensor_operation_select_query(udf_posargs, func_name)
-        output_type = get_output_type_for_sql_tensor_operation(func_name, udf_posargs)
-        udf_outputs = get_udf_outputs(output_type, None, False)
-        udf_execution_query = get_udf_execution_template(udf_select)
-        return UDFGenExecutionQueries(
-            udf_results=udf_outputs,
-            udf_select_query=udf_execution_query,
-        )
 
     if func_name == "create_dummy_encoded_design_matrix":
         return get_create_dummy_encoded_design_matrix_execution_queries(keyword_args)
@@ -550,21 +532,6 @@ def get_udf_templates_using_udfregistry(
         udf_definition_query=udf_definition,
         udf_select_query=udf_execution,
     )
-
-
-def get_output_type_for_sql_tensor_operation(funcname, posargs):
-    """Computes the output type for SQL tensor operations. The output is
-    allways of type TensorType with float dtype but the dimensions must be
-    determined.  SQL tensor operation suport only matmul and elementwise
-    operations, for now. Hence the output dimensions are either matmul's result
-    or equal to the first argument's dimensions."""
-    if funcname == TensorBinaryOp.MATMUL.name:
-        out_ndims = sum(tensor_arg.ndims for tensor_arg in posargs) - 2
-    else:
-        a_tensor = next(arg for arg in posargs if isinstance(arg, TensorArg))
-        out_ndims = a_tensor.ndims
-    output_type = tensor(dtype=float, ndims=out_ndims)
-    return output_type
 
 
 def get_udf_args(funcparts, posargs, keywordargs) -> Dict[str, UDFArgument]:

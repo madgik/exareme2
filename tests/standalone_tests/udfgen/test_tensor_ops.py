@@ -14,29 +14,12 @@ from mipengine.udfgen.tensor_ops import TensorBinaryOp
 from mipengine.udfgen.tensor_ops import get_matrix_transpose_template
 from mipengine.udfgen.tensor_ops import get_tensor_binary_op_template
 from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
-from mipengine.udfgen.udfgenerator import UDFBadCall
-from mipengine.udfgen.udfgenerator import generate_udf_queries
 from tests.standalone_tests.udfgen.test_udfgenerator import TestUDFGenBase
 from tests.standalone_tests.udfgen.test_udfgenerator import _TestGenerateUDFQueries
 
-
-class TestUDFGen_KW_args_on_tensor_operation:
-    def test_generate_udf_queries(self):
-        funcname = TensorBinaryOp.MATMUL.name
-        posargs = []
-        keywordargs = {"Μ": 5, "v": 7}
-        with pytest.raises(UDFBadCall) as e:
-            generate_udf_queries(
-                func_name=funcname,
-                positional_args=posargs,
-                keyword_args=keywordargs,
-                smpc_used=False,
-            )
-        err_msg, *_ = e.value.args
-        assert "Keyword args are not supported for tensor operations." in err_msg
+pytest.skip(allow_module_level=True, msg="The tensor_ops module is deprecated.")
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def funcname(self):
@@ -106,7 +89,6 @@ ORDER BY
         ]
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def funcname(self):
@@ -181,7 +163,6 @@ ORDER BY
         ]
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase, _TestGenerateUDFQueries):
     @pytest.fixture(scope="class")
     def funcname(self):
@@ -234,7 +215,6 @@ FROM
         ]
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 def test_tensor_elementwise_binary_op_1dim():
     tensor_0 = TensorArg(table_name="tens0", dtype=None, ndims=1)
     tensor_1 = TensorArg(table_name="tens1", dtype=None, ndims=1)
@@ -252,7 +232,6 @@ WHERE
     assert result == expected
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 def test_tensor_elementwise_binary_op_2dim():
     tensor_0 = TensorArg(table_name="tens0", dtype=None, ndims=2)
     tensor_1 = TensorArg(table_name="tens1", dtype=None, ndims=2)
@@ -288,7 +267,6 @@ WHERE
     assert result == expected
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 def test_matrix_dot_matrix_template():
     tensor_0 = TensorArg(table_name="mat0", dtype=None, ndims=2)
     tensor_1 = TensorArg(table_name="mat1", dtype=None, ndims=2)
@@ -313,7 +291,6 @@ ORDER BY
     assert result == expected
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 def test_matrix_dot_vector_template():
     tensor_0 = TensorArg(table_name="mat0", dtype=None, ndims=2)
     tensor_1 = TensorArg(table_name="vec1", dtype=None, ndims=1)
@@ -335,7 +312,6 @@ ORDER BY
     assert result == expected
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 def test_vector_dot_matrix_template():
     tensor_0 = TensorArg(table_name="vec0", dtype=None, ndims=1)
     tensor_1 = TensorArg(table_name="mat1", dtype=None, ndims=2)
@@ -370,7 +346,6 @@ FROM
     assert result == expected
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 def test_tensor_number_binary_op_1dim():
     operand_0 = TensorArg(table_name="tens0", dtype=None, ndims=1)
     operand_1 = LiteralArg(value=1)
@@ -385,7 +360,6 @@ FROM
     assert result == expected
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 def test_number_tensor_binary_op_1dim():
     operand_0 = LiteralArg(value=1)
     operand_1 = TensorArg(table_name="tens1", dtype=None, ndims=1)

@@ -491,7 +491,6 @@ class Column(ASTNode):
         return ColumnEqualityClause(self, other)
 
     # XXX naive implementation ignoring operator precedence when more than 2 operands
-    # TODO multidispatch dunder methods
     def __add__(self, other):
         if isinstance(other, Column):
             name1 = self.compile(use_alias=False)

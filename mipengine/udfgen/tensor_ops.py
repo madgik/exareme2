@@ -1,4 +1,16 @@
+"""
+This module implements functions for generating SQL queries for basic tensor
+operations
+
+These are the four arithmetic operations (+ - * /), dot product (@) for 1 and 2
+dimensional tensors and matrix transposition.
+
+WARNING These operations are now deprecated and this module shouldn't be used as
+it might be completely removed in the future. If you need to perform operations
+on tensors you should use numpy within UDFs.
+"""
 import operator
+import warnings
 from enum import Enum
 
 from mipengine.udfgen.ast import Column
@@ -7,6 +19,12 @@ from mipengine.udfgen.ast import Select
 from mipengine.udfgen.ast import Table
 from mipengine.udfgen.iotypes import LiteralArg
 from mipengine.udfgen.iotypes import TensorArg
+
+warnings.warn(
+    "The tensor_ops module is deprecated and should not be imported.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class TensorBinaryOp(Enum):
