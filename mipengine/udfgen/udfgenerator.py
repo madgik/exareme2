@@ -284,6 +284,7 @@ from mipengine.node_tasks_DTOs import TableType as DBTableType
 from mipengine.udfgen.ast import Column
 from mipengine.udfgen.ast import ColumnEqualityClause
 from mipengine.udfgen.ast import ConstColumn
+from mipengine.udfgen.ast import FunctionParts
 from mipengine.udfgen.ast import Select
 from mipengine.udfgen.ast import StarColumn
 from mipengine.udfgen.ast import Table
@@ -294,7 +295,6 @@ from mipengine.udfgen.consts import CREATE_TABLE
 from mipengine.udfgen.consts import DROP_TABLE_IF_EXISTS
 from mipengine.udfgen.consts import MAIN_TABLE_PLACEHOLDER
 from mipengine.udfgen.consts import SCOLON
-from mipengine.udfgen.decorator import FunctionParts
 from mipengine.udfgen.decorator import udf
 from mipengine.udfgen.helpers import compose_mappings
 from mipengine.udfgen.helpers import get_items_of_type

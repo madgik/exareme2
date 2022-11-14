@@ -1,21 +1,16 @@
 import ast
-from typing import Dict
 from typing import List
-from typing import NamedTuple
-from typing import Optional
 
+from mipengine.udfgen.ast import Signature
+from mipengine.udfgen.ast import breakup_function
 from mipengine.udfgen.helpers import get_func_body_from_ast
 from mipengine.udfgen.helpers import get_func_parameter_names
 from mipengine.udfgen.helpers import get_items_of_type
-from mipengine.udfgen.helpers import get_return_names_from_body
-from mipengine.udfgen.helpers import make_unique_func_name
 from mipengine.udfgen.helpers import parse_func
 from mipengine.udfgen.iotypes import InputType
-from mipengine.udfgen.iotypes import LiteralType
 from mipengine.udfgen.iotypes import LoopbackOutputType
 from mipengine.udfgen.iotypes import OutputType
 from mipengine.udfgen.iotypes import RelationType
-from mipengine.udfgen.iotypes import TableType
 from mipengine.udfgen.iotypes import TensorType
 from mipengine.udfgen.iotypes import UDFLoggerType
 
@@ -42,28 +37,6 @@ class UDFDecorator:
 # Singleton pattern
 udf = UDFDecorator()
 del UDFDecorator
-
-
-class Signature(NamedTuple):
-    parameters: Dict[str, InputType]
-    main_return_annotation: OutputType
-    sec_return_annotations: List[OutputType]
-
-
-class FunctionParts(NamedTuple):
-    """A function's parts, used in various stages of the udf definition/query
-    generation."""
-
-    qualname: str
-    body_statements: list
-    main_return_name: str
-    sec_return_names: List[str]
-    table_input_types: Dict[str, TableType]
-    literal_input_types: Dict[str, LiteralType]
-    logger_param_name: Optional[str]
-    main_output_type: OutputType
-    sec_output_types: List[OutputType]
-    sig: Signature
 
 
 def validate_decorator_parameter_names(parameter_names, decorator_kwargs):
@@ -176,46 +149,6 @@ def validate_udf_return_statement(func):
             f"Expression in return statement in {func}."
             "Assign expression to variable/s and return it/them."
         )
-
-
-def breakup_function(func, funcsig) -> FunctionParts:
-    """Breaks up a function into smaller parts, which will be used during
-    the udf translation process."""
-    qualname = make_unique_func_name(func)
-    tree = parse_func(func)
-    body_statements = get_func_body_from_ast(tree)
-    main_return_name, sec_return_names = get_return_names_from_body(body_statements)
-    table_input_types = {
-        name: input_type
-        for name, input_type in funcsig.parameters.items()
-        if isinstance(input_type, TableType)
-    }
-    literal_input_types = {
-        name: input_type
-        for name, input_type in funcsig.parameters.items()
-        if isinstance(input_type, LiteralType)
-    }
-
-    logger_param_name = None
-    for name, input_type in funcsig.parameters.items():
-        if isinstance(input_type, UDFLoggerType):
-            logger_param_name = name
-            break  # Only one logger is allowed
-
-    main_output_type = funcsig.main_return_annotation
-    sec_output_types = funcsig.sec_return_annotations
-    return FunctionParts(
-        qualname=qualname,
-        body_statements=body_statements,
-        main_return_name=main_return_name,
-        sec_return_names=sec_return_names,
-        table_input_types=table_input_types,
-        literal_input_types=literal_input_types,
-        logger_param_name=logger_param_name,
-        main_output_type=main_output_type,
-        sec_output_types=sec_output_types,
-        sig=funcsig,
-    )
 
 
 def validate_udf_table_input_types(table_input_types):

@@ -5,6 +5,7 @@ from numbers import Number
 from textwrap import indent
 from typing import Dict
 from typing import List
+from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
 from typing import Union
@@ -26,11 +27,17 @@ from mipengine.udfgen.consts import SEP
 from mipengine.udfgen.consts import SEPLN
 from mipengine.udfgen.consts import SPC4
 from mipengine.udfgen.consts import WHERE
+from mipengine.udfgen.helpers import get_func_body_from_ast
+from mipengine.udfgen.helpers import get_return_names_from_body
 from mipengine.udfgen.helpers import iotype_to_sql_schema
 from mipengine.udfgen.helpers import is_any_element_of_type
+from mipengine.udfgen.helpers import make_unique_func_name
+from mipengine.udfgen.helpers import parse_func
 from mipengine.udfgen.helpers import recursive_repr
 from mipengine.udfgen.helpers import remove_empty_lines
+from mipengine.udfgen.iotypes import InputType
 from mipengine.udfgen.iotypes import LiteralArg
+from mipengine.udfgen.iotypes import LiteralType
 from mipengine.udfgen.iotypes import LoopbackOutputType
 from mipengine.udfgen.iotypes import MergeTransferType
 from mipengine.udfgen.iotypes import OutputType
@@ -40,10 +47,72 @@ from mipengine.udfgen.iotypes import SecureTransferType
 from mipengine.udfgen.iotypes import SMPCSecureTransferArg
 from mipengine.udfgen.iotypes import StateType
 from mipengine.udfgen.iotypes import TableArg
+from mipengine.udfgen.iotypes import TableType
 from mipengine.udfgen.iotypes import TransferType
 from mipengine.udfgen.iotypes import UDFLoggerArg
+from mipengine.udfgen.iotypes import UDFLoggerType
 
-# ~~~~~~~~~~~~~~~~~~~~~~ UDF AST Nodes ~~~~~~~~~~~~~~~~~~~~~~~ #
+
+class Signature(NamedTuple):
+    parameters: Dict[str, InputType]
+    main_return_annotation: OutputType
+    sec_return_annotations: List[OutputType]
+
+
+class FunctionParts(NamedTuple):
+    """A function's parts, used in various stages of the udf definition/query
+    generation."""
+
+    qualname: str
+    body_statements: list
+    main_return_name: str
+    sec_return_names: List[str]
+    table_input_types: Dict[str, TableType]
+    literal_input_types: Dict[str, LiteralType]
+    logger_param_name: Optional[str]
+    main_output_type: OutputType
+    sec_output_types: List[OutputType]
+    sig: Signature
+
+
+def breakup_function(func, funcsig) -> FunctionParts:
+    """Breaks up a function into smaller parts, which will be used during
+    the udf translation process."""
+    qualname = make_unique_func_name(func)
+    tree = parse_func(func)
+    body_statements = get_func_body_from_ast(tree)
+    main_return_name, sec_return_names = get_return_names_from_body(body_statements)
+    table_input_types = {
+        name: input_type
+        for name, input_type in funcsig.parameters.items()
+        if isinstance(input_type, TableType)
+    }
+    literal_input_types = {
+        name: input_type
+        for name, input_type in funcsig.parameters.items()
+        if isinstance(input_type, LiteralType)
+    }
+
+    logger_param_name = None
+    for name, input_type in funcsig.parameters.items():
+        if isinstance(input_type, UDFLoggerType):
+            logger_param_name = name
+            break  # Only one logger is allowed
+
+    main_output_type = funcsig.main_return_annotation
+    sec_output_types = funcsig.sec_return_annotations
+    return FunctionParts(
+        qualname=qualname,
+        body_statements=body_statements,
+        main_return_name=main_return_name,
+        sec_return_names=sec_return_names,
+        table_input_types=table_input_types,
+        literal_input_types=literal_input_types,
+        logger_param_name=logger_param_name,
+        main_output_type=main_output_type,
+        sec_output_types=sec_output_types,
+        sig=funcsig,
+    )
 
 
 class ASTNode(ABC):
@@ -344,7 +413,7 @@ class UDFDefinition(ASTNode):
     def __init__(
         self,
         udfname: str,
-        funcparts: "FunctionParts",
+        funcparts: FunctionParts,
         table_args: Dict[str, TableArg],
         smpc_args: Dict[str, SMPCSecureTransferArg],
         literal_args: Dict[str, LiteralArg],
