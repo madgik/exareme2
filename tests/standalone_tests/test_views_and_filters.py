@@ -28,6 +28,58 @@ def context_id():
     return "testviews" + uuid.uuid4().hex
 
 
+@pytest.fixture
+def zero_rows_data_model_view_generating_params():
+    data_model = "dementia:0.1"
+    columns = [
+        "dataset",
+    ]
+    filters = {
+        "condition": "AND",
+        "rules": [
+            {
+                "id": "brainstem",
+                "type": "float",
+                "input": "number",
+                "operator": "greater",
+                "value": 99999999,
+            }
+        ],
+        "valid": True,
+    }
+    return {"data_model": data_model, "columns": columns, "filters": filters}
+
+
+@pytest.fixture
+def five_rows_data_model_view_generating_params():
+    data_model = "dementia:0.1"
+    columns = [
+        "dataset",
+        "brainstem",
+    ]
+    filters = {
+        "condition": "AND",
+        "rules": [
+            {
+                "id": "brainstem",
+                "type": "float",
+                "input": "number",
+                "operator": "between",
+                "value": [17, 19],
+            },
+            {
+                "id": "dataset",
+                "type": "string",
+                "input": "str",
+                "operator": "equal",
+                "value": "edsd0",
+            },
+        ],
+        "valid": True,
+    }
+    return {"data_model": data_model, "columns": columns, "filters": filters}
+
+
 @pytest.mark.slow
 def test_view_without_filters(
     request_id,
@@ -542,42 +594,17 @@ def test_data_model_view_null_constraints(
 
 
 @pytest.mark.slow
-def test_data_model_view_min_rows_checks(
+def test_insuficient_data_error_raised_when_data_model_view_generated(
     request_id,
     context_id,
     load_data_localnode1,
     localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
+    zero_rows_data_model_view_generating_params,
+    five_rows_data_model_view_generating_params,
 ):
-    columns = [
-        "dataset",
-        "age_value",
-        "gcs_motor_response_scale",
-        "pupil_reactivity_right_eye_result",
-    ]
-    data_model = "tbi:0.1"
-
-    # Adding a filter that cannot be matched
-    filters = {
-        "condition": "AND",
-        "rules": [
-            {
-                "condition": "OR",
-                "rules": [
-                    {
-                        "id": "age_value",
-                        "field": "age_value",
-                        "type": "int",
-                        "input": "number",
-                        "operator": "greater",
-                        "value": 200,
-                    }
-                ],
-            }
-        ],
-        "valid": True,
-    }
+    # check InsufficientDataError raised when empty data model view generated
     with pytest.raises(InsufficientDataError):
         task_signature = get_celery_task_signature("create_data_model_views")
         async_result = localnode1_celery_app.queue_task(
@@ -586,16 +613,17 @@ def test_data_model_view_min_rows_checks(
             request_id=request_id,
             context_id=context_id,
             command_id=uuid.uuid4().hex,
-            data_model=data_model,
+            data_model=zero_rows_data_model_view_generating_params["data_model"],
             datasets=[],
-            columns_per_view=[columns],
-            filters=filters,
+            columns_per_view=[zero_rows_data_model_view_generating_params["columns"]],
+            filters=zero_rows_data_model_view_generating_params["filters"],
         )
         localnode1_celery_app.get_result(
             async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
         )
 
-    # Check the same view creation with min rows check disabled
+    # check InsufficientDataError raised when data model view with less than
+    # minimum_row_count (defined in testing_env_configs/test_localnode1.toml)
     with pytest.raises(InsufficientDataError):
         task_signature = get_celery_task_signature("create_data_model_views")
         async_result = localnode1_celery_app.queue_task(
@@ -604,11 +632,10 @@ def test_data_model_view_min_rows_checks(
             request_id=request_id,
             context_id=context_id,
             command_id=uuid.uuid4().hex,
-            data_model=data_model,
+            data_model=five_rows_data_model_view_generating_params["data_model"],
             datasets=[],
-            columns_per_view=[columns],
-            filters=filters,
-            check_min_rows=False,
+            columns_per_view=[five_rows_data_model_view_generating_params["columns"]],
+            filters=five_rows_data_model_view_generating_params["filters"],
         )
         localnode1_celery_app.get_result(
             async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
