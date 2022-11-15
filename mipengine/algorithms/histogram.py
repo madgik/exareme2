@@ -15,10 +15,15 @@ from mipengine.udfgen import udf
 
 S = TypeVar("S")
 
-
+"""
 class HistogramResult(BaseModel):
     numerical: dict
     categorical: dict
+"""
+
+
+class HistogramResult(BaseModel):
+    histogram: list
 
 
 def run(algo_interface):
@@ -106,10 +111,18 @@ def run(algo_interface):
         )
         categorical_histogram = {}
 
-    ret_val = HistogramResult(
-        numerical=numerical_histogram, categorical=categorical_histogram
-    )
-
+    histogram_list = []
+    if yvar in nominal_vars:
+        histogram_list.append(categorical_histogram["categorical_histogram"])
+        if xvars:
+            histogram_list = (
+                histogram_list + categorical_histogram["grouped_histogram_categorical"]
+            )
+    else:
+        histogram_list.append(numerical_histogram["histogram"])
+        if xvars:
+            histogram_list = histogram_list + numerical_histogram["grouped_histogram"]
+    ret_val = HistogramResult(histogram=histogram_list)
     return ret_val
 
 

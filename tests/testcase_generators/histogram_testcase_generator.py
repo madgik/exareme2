@@ -174,7 +174,24 @@ class HistogramTestcaseGenerator(TestCaseGenerator):
             return_dict["numerical"]["histogram"] = local_histogram
             if xvars:
                 return_dict["numerical"]["grouped_histogram"] = x_variables_list
-        return return_dict
+        histogram_list = []
+        if yvar in nominal_vars:
+            histogram_list.append(return_dict["categorical"]["categorical_histogram"])
+            if xvars:
+                histogram_list = (
+                    histogram_list
+                    + return_dict["categorical"]["grouped_histogram_categorical"]
+                )
+        else:
+            histogram_list.append(return_dict["numerical"]["histogram"])
+            if xvars:
+                histogram_list = (
+                    histogram_list + return_dict["numerical"]["grouped_histogram"]
+                )
+
+        return_dict2 = {}
+        return_dict2["histogram"] = histogram_list
+        return return_dict2
 
 
 if __name__ == "__main__":
