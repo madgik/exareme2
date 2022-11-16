@@ -287,7 +287,9 @@ from mipengine.udfgen.ast import Select
 from mipengine.udfgen.ast import StarColumn
 from mipengine.udfgen.ast import Table
 from mipengine.udfgen.ast import TableFunction
+from mipengine.udfgen.ast import UDFBody
 from mipengine.udfgen.ast import UDFDefinition
+from mipengine.udfgen.ast import UDFHeader
 from mipengine.udfgen.ast import _get_loopback_tables_template_names
 from mipengine.udfgen.decorator import udf
 from mipengine.udfgen.helpers import compose_mappings
@@ -308,9 +310,6 @@ from mipengine.udfgen.iotypes import ParametrizedType
 from mipengine.udfgen.iotypes import PlaceholderArg
 from mipengine.udfgen.iotypes import PlaceholderType
 from mipengine.udfgen.iotypes import RelationArg
-from mipengine.udfgen.iotypes import SecureTransferArg
-from mipengine.udfgen.iotypes import SecureTransferType
-from mipengine.udfgen.iotypes import SMPCSecureTransferArg
 from mipengine.udfgen.iotypes import StateArg
 from mipengine.udfgen.iotypes import StateType
 from mipengine.udfgen.iotypes import TableArg
@@ -320,10 +319,14 @@ from mipengine.udfgen.iotypes import TransferArg
 from mipengine.udfgen.iotypes import TransferType
 from mipengine.udfgen.iotypes import UDFArgument
 from mipengine.udfgen.iotypes import UDFLoggerArg
-from mipengine.udfgen.iotypes import _get_smpc_table_template_names
 from mipengine.udfgen.iotypes import merge_tensor
 from mipengine.udfgen.iotypes import merge_transfer
 from mipengine.udfgen.iotypes import relation
+from mipengine.udfgen.smpc import SecureTransferArg
+from mipengine.udfgen.smpc import SecureTransferType
+from mipengine.udfgen.smpc import SMPCSecureTransferArg
+from mipengine.udfgen.smpc import UDFBodySMPC
+from mipengine.udfgen.smpc import _get_smpc_table_template_names
 from mipengine.udfgen.udfgen_DTOs import UDFGenExecutionQueries
 from mipengine.udfgen.udfgen_DTOs import UDFGenResult
 from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
@@ -501,6 +504,10 @@ def get_udf_templates_using_udfregistry(
         expected_tables_types=funcparts.table_input_types,
         expected_literal_types=funcparts.literal_input_types,
     )
+
+    if smpc_used:
+        funcparts = set_smpc_used_in_secure_transfer_outputs(funcparts)
+
     main_output_type, sec_output_types = get_output_types(
         funcparts,
         udf_args,
@@ -521,10 +528,7 @@ def get_udf_templates_using_udfregistry(
     )
 
     table_args = get_items_of_type(TableArg, mapping=udf_args)
-    udf_select = get_udf_select_template(
-        main_output_type,
-        table_args,
-    )
+    udf_select = get_udf_select_template(main_output_type, table_args)
     udf_execution = get_udf_execution_template(udf_select)
 
     return UDFGenExecutionQueries(
@@ -640,6 +644,24 @@ def copy_types_from_udfargs(udfargs: Dict[str, UDFArgument]) -> Dict[str, InputT
     return {name: deepcopy(arg.type) for name, arg in udfargs.items()}
 
 
+def set_smpc_used_in_secure_transfer_outputs(funcparts):
+    # The secure transfer type has two behaviours, depending on whether the UDF
+    # is running with or without an SMPC cluster. At the time a UDF is defined
+    # there is no knowledge if it will run with or without the SMPC cluster,
+    # hence we need to be able to choose one or the other behaviour at the time
+    # of the UDF execution. This is done by setting the boolean flag
+    # `smpc_used` in `SecureTransferType`.
+    main_output = funcparts.main_output_type
+    if isinstance(main_output, SecureTransferType):
+        main_output.smpc_used = True
+        funcparts = funcparts._replace(main_output_type=main_output)
+    sec_output_types = funcparts.sec_output_types
+    for i, sec_output_type in enumerate(sec_output_types):
+        if isinstance(sec_output_type, SecureTransferType):
+            sec_output_types[i].smpc_used = True
+    return funcparts
+
+
 # ~~~~~~~~~~~~~~~ UDF Definition Translator ~~~~~~~~~~~~~~ #
 
 
@@ -666,17 +688,40 @@ def get_udf_definition_template(
     verify_declared_and_passed_param_types_match(
         funcparts.table_input_types, table_args
     )
-    udf_definition = UDFDefinition(
+
+    header = UDFHeader(
         udfname="$udf_name",
-        funcparts=funcparts,
         table_args=table_args,
-        smpc_args=smpc_args,
-        literal_args=literal_args,
-        logger_arg=logger_arg,
-        placeholder_args=placeholder_args,
-        main_output_type=main_output_type,
-        sec_output_types=sec_output_types,
-        smpc_used=smpc_used,
+        return_type=main_output_type,
+    )
+    if smpc_used:
+        body = UDFBodySMPC(
+            table_args=table_args,
+            smpc_args=smpc_args,
+            literal_args=literal_args,
+            logger_arg=logger_arg,
+            placeholder_args=placeholder_args,
+            statements=funcparts.body_statements,
+            main_return_name=funcparts.main_return_name,
+            main_return_type=main_output_type,
+            sec_return_names=funcparts.sec_return_names,
+            sec_return_types=sec_output_types,
+        )
+    else:
+        body = UDFBody(
+            table_args=table_args,
+            literal_args=literal_args,
+            logger_arg=logger_arg,
+            placeholder_args=placeholder_args,
+            statements=funcparts.body_statements,
+            main_return_name=funcparts.main_return_name,
+            main_return_type=main_output_type,
+            sec_return_names=funcparts.sec_return_names,
+            sec_return_types=sec_output_types,
+        )
+    udf_definition = UDFDefinition(
+        header=header,
+        body=body,
     )
     return Template(udf_definition.compile())
 

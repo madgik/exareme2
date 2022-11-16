@@ -24,16 +24,13 @@ from mipengine.udfgen.iotypes import InputType
 from mipengine.udfgen.iotypes import LiteralArg
 from mipengine.udfgen.iotypes import LiteralType
 from mipengine.udfgen.iotypes import LoopbackOutputType
-from mipengine.udfgen.iotypes import MergeTransferType
 from mipengine.udfgen.iotypes import OutputType
 from mipengine.udfgen.iotypes import ParametrizedType
 from mipengine.udfgen.iotypes import PlaceholderArg
-from mipengine.udfgen.iotypes import SecureTransferType
-from mipengine.udfgen.iotypes import SMPCSecureTransferArg
 from mipengine.udfgen.iotypes import StateType
 from mipengine.udfgen.iotypes import TableArg
 from mipengine.udfgen.iotypes import TableType
-from mipengine.udfgen.iotypes import TransferType
+from mipengine.udfgen.iotypes import TransferTypeBase
 from mipengine.udfgen.iotypes import UDFLoggerArg
 from mipengine.udfgen.iotypes import UDFLoggerType
 
@@ -239,47 +236,20 @@ class TableBuilds(ASTNode):
         return LN.join([tb.compile() for tb in self.table_builds])
 
 
-class SMPCBuild(ASTNode):
-    def __init__(self, arg_name, arg, template):
-        self.arg_name = arg_name
-        self.arg = arg
-        self.template = template
-
-    def compile(self) -> str:
-        return self.template.format(
-            varname=self.arg_name,
-            template_table_name=self.arg.template_table_name,
-            sum_op_values_table_name=self.arg.sum_op_values_table_name,
-            min_op_values_table_name=self.arg.min_op_values_table_name,
-            max_op_values_table_name=self.arg.max_op_values_table_name,
-        )
-
-
-class SMPCBuilds(ASTNode):
-    def __init__(self, smpc_args: Dict[str, SMPCSecureTransferArg]):
-        self.smpc_builds = [
-            SMPCBuild(arg_name, arg, template=arg.type.get_smpc_build_template())
-            for arg_name, arg in smpc_args.items()
-        ]
-
-    def compile(self) -> str:
-        return LN.join([tb.compile() for tb in self.smpc_builds])
-
-
 class UDFReturnStatement(ASTNode):
-    def __init__(self, return_name, return_type, smpc_used: bool):
+    def __init__(self, return_name, return_type):
         self.return_name = return_name
-        self.template = return_type.get_main_return_stmt_template(smpc_used)
+        self.template = return_type.get_main_return_stmt_template()
 
     def compile(self) -> str:
         return self.template.format(return_name=self.return_name)
 
 
 class UDFLoopbackReturnStatements(ASTNode):
-    def __init__(self, sec_return_names, sec_return_types, smpc_used):
+    def __init__(self, sec_return_names, sec_return_types):
         self.sec_return_names = sec_return_names
         self.templates = [
-            sec_return_type.get_secondary_return_stmt_template(table_name, smpc_used)
+            sec_return_type.get_secondary_return_stmt_template(table_name)
             for table_name, sec_return_type in _get_loopback_tables_template_names(
                 sec_return_types
             )
@@ -354,7 +324,6 @@ class UDFBody(ASTNode):
     def __init__(
         self,
         table_args: Dict[str, TableArg],
-        smpc_args: Dict[str, SMPCSecureTransferArg],
         literal_args: Dict[str, LiteralArg],
         logger_arg: Optional[Tuple[str, UDFLoggerArg]],
         placeholder_args: Dict[str, PlaceholderArg],
@@ -363,22 +332,7 @@ class UDFBody(ASTNode):
         main_return_type: OutputType,
         sec_return_names: List[str],
         sec_return_types: List[OutputType],
-        smpc_used: bool,
     ):
-        self.returnless_stmts = UDFBodyStatements(statements)
-        self.loopback_return_stmts = UDFLoopbackReturnStatements(
-            sec_return_names=sec_return_names,
-            sec_return_types=sec_return_types,
-            smpc_used=smpc_used,
-        )
-        self.return_stmt = UDFReturnStatement(
-            main_return_name, main_return_type, smpc_used
-        )
-        self.table_builds = TableBuilds(table_args)
-        self.smpc_builds = SMPCBuilds(smpc_args)
-        self.literals = LiteralAssignments(literal_args)
-        self.logger = LoggerAssignment(logger_arg)
-        self.placeholders = PlaceholderAssignments(placeholder_args)
         all_types = (
             [arg.type for arg in table_args.values()]
             + [main_return_type]
@@ -386,64 +340,43 @@ class UDFBody(ASTNode):
         )
 
         import_pickle = is_any_element_of_type(StateType, all_types)
-        import_json = is_any_element_of_type(
-            (TransferType, SecureTransferType, MergeTransferType), all_types
-        )
-        self.imports = Imports(
-            import_pickle=import_pickle,
-            import_json=import_json,
-        )
+        import_json = is_any_element_of_type(TransferTypeBase, all_types)
 
-    def compile(self) -> str:
-        return LN.join(
-            remove_empty_lines(
-                [
-                    self.imports.compile(),
-                    self.table_builds.compile(),
-                    self.smpc_builds.compile(),
-                    self.literals.compile(),
-                    self.logger.compile(),
-                    self.placeholders.compile(),
-                    self.returnless_stmts.compile(),
-                    self.loopback_return_stmts.compile(),
-                    self.return_stmt.compile(),
-                ]
+        self.statements = []
+
+        # imports
+        self.statements.append(
+            Imports(
+                import_pickle=import_pickle,
+                import_json=import_json,
             )
         )
 
+        # initial assignments
+        self.statements.append(TableBuilds(table_args))
+        self.statements.append(LiteralAssignments(literal_args))
+        self.statements.append(LoggerAssignment(logger_arg))
+        self.statements.append(PlaceholderAssignments(placeholder_args))
+
+        # main body
+        self.statements.append(UDFBodyStatements(statements))
+
+        # return statements
+        self.statements.append(
+            UDFLoopbackReturnStatements(
+                sec_return_names=sec_return_names,
+                sec_return_types=sec_return_types,
+            )
+        )
+        self.statements.append(UDFReturnStatement(main_return_name, main_return_type))
+
+    def compile(self) -> str:
+        return LN.join(remove_empty_lines([stmt.compile() for stmt in self.statements]))
+
 
 class UDFDefinition(ASTNode):
-    def __init__(
-        self,
-        udfname: str,
-        funcparts: FunctionParts,
-        table_args: Dict[str, TableArg],
-        smpc_args: Dict[str, SMPCSecureTransferArg],
-        literal_args: Dict[str, LiteralArg],
-        logger_arg: Optional[Tuple[str, UDFLoggerArg]],
-        placeholder_args: Dict[str, PlaceholderArg],
-        main_output_type: OutputType,
-        sec_output_types: List[OutputType],
-        smpc_used: bool,
-    ):
-        self.header = UDFHeader(
-            udfname=udfname,
-            table_args=table_args,
-            return_type=main_output_type,
-        )
-        body = UDFBody(
-            table_args=table_args,
-            smpc_args=smpc_args,
-            literal_args=literal_args,
-            logger_arg=logger_arg,
-            placeholder_args=placeholder_args,
-            statements=funcparts.body_statements,
-            main_return_name=funcparts.main_return_name,
-            main_return_type=main_output_type,
-            sec_return_names=funcparts.sec_return_names,
-            sec_return_types=sec_output_types,
-            smpc_used=smpc_used,
-        )
+    def __init__(self, header: UDFHeader, body: UDFBody):
+        self.header = header
         self.body = body
 
     def compile(self) -> str:

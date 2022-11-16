@@ -3653,6 +3653,32 @@ FROM
         max_op_values = json.loads(max_op_values_str)
         assert max_op_values == [5]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+        use_smpc,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=use_smpc,
+        )
+        if expected_udfdef != "":
+            assert (
+                udf_execution_queries.udf_definition_query.template == expected_udfdef
+            )
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
+
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
 
 class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_off(
     TestUDFGenBase, _TestGenerateUDFQueries
