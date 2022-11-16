@@ -1,5 +1,7 @@
 from typing import List
+from typing import Optional
 from typing import TypeVar
+from typing import Union
 
 import numpy
 from pydantic import BaseModel
@@ -15,15 +17,17 @@ from mipengine.udfgen import udf
 
 S = TypeVar("S")
 
-"""
-class HistogramResult(BaseModel):
-    numerical: dict
-    categorical: dict
-"""
+
+class Histogram(BaseModel):
+    var: str  # y
+    grouping_var: Optional[str]  # x[i]
+    grouping_enum: Optional[str]  # enum of x[i]
+    bins: List[Union[float, str]]
+    counts: List[int]
 
 
-class HistogramResult(BaseModel):
-    histogram: list
+class HistogramResult1(BaseModel):
+    histogram: List[Histogram]
 
 
 def run(algo_interface):
@@ -51,6 +55,8 @@ def run(algo_interface):
     print(enumerations_dict)
 
     yvar = yvars[0]
+    if yvar in xvars:
+        xvars.remove(yvar)
     print(yvar)
     print(xvars)
     if yvar in nominal_vars:
@@ -87,7 +93,7 @@ def run(algo_interface):
         min_value = min_max_result["min_value"]
         max_value = min_max_result["max_value"]
         # compute_local_histogram_numerical(data,bins,yvar,xvars,min_value,max_value)
-        local_result5 = local_run(
+        local_result5, bins_transfer = local_run(
             func=compute_local_histogram_numerical_secure2,
             positional_args=[
                 data,
@@ -98,31 +104,65 @@ def run(algo_interface):
                 min_value,
                 max_value,
             ],
-            share_to_global=[True],
+            share_to_global=[True, True],
         )
         # merge_local_histogram_numerical(local_transfers)
 
         numerical_histogram = get_transfer_data(
             global_run(
                 func=merge_grouped_histogram_numerical_secure2,
-                positional_args=[local_result5, xvars],
+                positional_args=[local_result5, bins_transfer, xvars],
                 share_to_locals=[False],
             )
         )
         categorical_histogram = {}
+        print(numerical_histogram["numerical_bins"])
 
-    histogram_list = []
+    return_list = []
     if yvar in nominal_vars:
-        histogram_list.append(categorical_histogram["categorical_histogram"])
+        categorical_histogram1 = Histogram(
+            var=yvar,
+            bins=list(sorted(enumerations_dict[yvar].keys())),
+            counts=categorical_histogram["categorical_histogram"],
+        )
+        return_list.append(categorical_histogram1)
         if xvars:
-            histogram_list = (
-                histogram_list + categorical_histogram["grouped_histogram_categorical"]
-            )
+            for i, x_variable in enumerate(xvars):
+                possible_groups = sorted(enumerations_dict[x_variable].keys())
+                possible_values = sorted(enumerations_dict[yvar].keys())
+                for j, curr_group in enumerate(possible_groups):
+                    curr_group_histogram = Histogram(
+                        var=yvar,
+                        grouping_var=x_variable,
+                        grouping_enum=curr_group,
+                        bins=possible_values,
+                        counts=categorical_histogram["grouped_histogram_categorical"][
+                            i
+                        ][j],
+                    )
+                    return_list.append(curr_group_histogram)
+
     else:
-        histogram_list.append(numerical_histogram["histogram"])
+        numerical_histogram1 = Histogram(
+            var=yvar,
+            bins=numerical_histogram["numerical_bins"],
+            counts=numerical_histogram["histogram"],
+        )
+        return_list.append(numerical_histogram1)
         if xvars:
-            histogram_list = histogram_list + numerical_histogram["grouped_histogram"]
-    ret_val = HistogramResult(histogram=histogram_list)
+            for i, x_variable in enumerate(xvars):
+                possible_groups = sorted(enumerations_dict[x_variable].keys())
+                for j, curr_group in enumerate(possible_groups):
+                    curr_group_histogram = Histogram(
+                        var=yvar,
+                        grouping_var=x_variable,
+                        grouping_enum=curr_group,
+                        bins=numerical_histogram["numerical_bins"],
+                        counts=numerical_histogram["grouped_histogram"][i][j],
+                    )
+                    return_list.append(curr_group_histogram)
+
+    ret_val = HistogramResult1(histogram=return_list)
     return ret_val
 
 
@@ -240,7 +280,7 @@ def merge_grouped_histogram_categorical_secure2(locals_result, xvars):
     xvars=literal(),
     min_value=literal(),
     max_value=literal(),
-    return_type=[secure_transfer(sum_op=True, min_op=True, max_op=True)],
+    return_type=[secure_transfer(sum_op=True, min_op=True, max_op=True), transfer()],
 )
 def compute_local_histogram_numerical_secure2(
     data, metadata, bins, yvar, xvars, min_value, max_value
@@ -251,15 +291,18 @@ def compute_local_histogram_numerical_secure2(
         return hist
 
     final_dict = {}
-    local_histogram = hist_func(
-        data[yvar], min_value=min_value, max_value=max_value, bins=bins
+    local_histogram, local_bins = numpy.histogram(
+        data[yvar], range=(min_value, max_value), bins=bins
     )
+
     secure_transfer_ = {}
     secure_transfer_["histogram"] = {
         "data": local_histogram.tolist(),
         "operation": "sum",
         "type": "int",
     }
+    transfer_ = {}
+    transfer_["bins"] = local_bins.tolist()
     if xvars:
         final_dict = {}
         for x_variable in xvars:
@@ -297,17 +340,19 @@ def compute_local_histogram_numerical_secure2(
             "type": "int",
         }
 
-    return secure_transfer_
+    return secure_transfer_, transfer_
 
 
 @udf(
     locals_result=secure_transfer(sum_op=True, min_op=True, max_op=True),
+    bins_transfer=merge_transfer(),
     xvars=literal(),
     return_type=[transfer()],
 )
-def merge_grouped_histogram_numerical_secure2(locals_result, xvars):
+def merge_grouped_histogram_numerical_secure2(locals_result, bins_transfer, xvars):
     return_dict = {}
     return_dict["histogram"] = locals_result["histogram"]
     if xvars:
         return_dict["grouped_histogram"] = locals_result["grouped_histogram"]
+    return_dict["numerical_bins"] = bins_transfer[0]["bins"]
     return return_dict
