@@ -86424,6 +86424,49 @@
                     }
                 ]
             }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "hypotensive_episode_indicator"
+                    ],
+                    "x": [],
+                    "data_model": "tbi:0.1",
+                    "datasets": [
+                        "dummy_tbi1"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 50
+            },
+            "output": {
+                "variable_based": [
+                    {
+                        "variable": "hypotensive_episode_indicator",
+                        "dataset": "dummy_tbi1",
+                        "data": null
+                    },
+                    {
+                        "variable": "hypotensive_episode_indicator",
+                        "dataset": "all datasets",
+                        "data": null
+                    }
+                ],
+                "model_based": [
+                    {
+                        "variable": "hypotensive_episode_indicator",
+                        "dataset": "dummy_tbi1",
+                        "data": null
+                    },
+                    {
+                        "variable": "hypotensive_episode_indicator",
+                        "dataset": "all datasets",
+                        "data": null
+                    }
+                ]
+            }
         }
     ]
 }
