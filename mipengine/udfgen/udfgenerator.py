@@ -508,27 +508,21 @@ def get_udf_templates_using_udfregistry(
     if smpc_used:
         funcparts = set_smpc_used_in_secure_transfer_outputs(funcparts)
 
-    main_output_type, sec_output_types = get_output_types(
-        funcparts,
-        udf_args,
-        output_schema,
-    )
-    udf_outputs = get_udf_outputs(
-        main_output_type=main_output_type,
-        sec_output_types=sec_output_types,
-        smpc_used=smpc_used,
-    )
+    output_types = get_output_types(funcparts, udf_args, output_schema)
+    udf_outputs = get_udf_outputs(output_types=output_types, smpc_used=smpc_used)
 
     udf_definition = get_udf_definition_template(
         funcparts=funcparts,
         input_args=udf_args,
-        main_output_type=main_output_type,
-        sec_output_types=sec_output_types,
+        output_types=output_types,
         smpc_used=smpc_used,
     )
 
     table_args = get_items_of_type(TableArg, mapping=udf_args)
+
+    main_output_type, *_ = output_types
     udf_select = get_udf_select_template(main_output_type, table_args)
+
     udf_execution = get_udf_execution_template(udf_select)
 
     return UDFGenExecutionQueries(
@@ -651,14 +645,9 @@ def set_smpc_used_in_secure_transfer_outputs(funcparts):
     # hence we need to be able to choose one or the other behaviour at the time
     # of the UDF execution. This is done by setting the boolean flag
     # `smpc_used` in `SecureTransferType`.
-    main_output = funcparts.main_output_type
-    if isinstance(main_output, SecureTransferType):
-        main_output.smpc_used = True
-        funcparts = funcparts._replace(main_output_type=main_output)
-    sec_output_types = funcparts.sec_output_types
-    for i, sec_output_type in enumerate(sec_output_types):
-        if isinstance(sec_output_type, SecureTransferType):
-            sec_output_types[i].smpc_used = True
+    for i, output_type in enumerate(funcparts.output_types):
+        if isinstance(output_type, SecureTransferType):
+            funcparts.output_types[i].smpc_used = True
     return funcparts
 
 
@@ -668,8 +657,7 @@ def set_smpc_used_in_secure_transfer_outputs(funcparts):
 def get_udf_definition_template(
     funcparts: FunctionParts,
     input_args: Dict[str, UDFArgument],
-    main_output_type: OutputType,
-    sec_output_types: List[OutputType],
+    output_types: List[OutputType],
     smpc_used: bool,
 ) -> Template:
     table_args: Dict[str, TableArg] = get_items_of_type(TableArg, mapping=input_args)
@@ -689,6 +677,9 @@ def get_udf_definition_template(
         funcparts.table_input_types, table_args
     )
 
+    main_output_type, *sec_output_types = output_types
+    main_return_name, *sec_return_names = funcparts.return_names
+
     header = UDFHeader(
         udfname="$udf_name",
         table_args=table_args,
@@ -702,9 +693,9 @@ def get_udf_definition_template(
             logger_arg=logger_arg,
             placeholder_args=placeholder_args,
             statements=funcparts.body_statements,
-            main_return_name=funcparts.main_return_name,
+            main_return_name=main_return_name,
             main_return_type=main_output_type,
-            sec_return_names=funcparts.sec_return_names,
+            sec_return_names=sec_return_names,
             sec_return_types=sec_output_types,
         )
     else:
@@ -714,9 +705,9 @@ def get_udf_definition_template(
             logger_arg=logger_arg,
             placeholder_args=placeholder_args,
             statements=funcparts.body_statements,
-            main_return_name=funcparts.main_return_name,
+            main_return_name=main_return_name,
             main_return_type=main_output_type,
-            sec_return_names=funcparts.sec_return_names,
+            sec_return_names=sec_return_names,
             sec_return_types=sec_output_types,
         )
     udf_definition = UDFDefinition(
@@ -736,23 +727,24 @@ def get_output_types(
     Otherwise, the declared output type is returned."""
     input_types = copy_types_from_udfargs(udf_args)
 
+    # case: output type has DEFERRED schema
     if output_schema:
         main_output_type = relation(schema=output_schema)
-        return main_output_type, []
-    if (
-        isinstance(funcparts.main_output_type, ParametrizedType)
-        and funcparts.main_output_type.is_generic
-    ):
+        return (main_output_type,)
+
+    # case: output type has to be infered at execution time
+    main_output_type, *_ = funcparts.output_types
+    if isinstance(main_output_type, ParametrizedType) and main_output_type.is_generic:
         param_table_types = get_items_of_type(TableType, mapping=input_types)
-        return (
-            infer_output_type(
-                passed_input_types=param_table_types,
-                declared_input_types=funcparts.table_input_types,
-                declared_output_type=funcparts.main_output_type,
-            ),
-            [],
+        main_output_type = infer_output_type(
+            passed_input_types=param_table_types,
+            declared_input_types=funcparts.table_input_types,
+            declared_output_type=main_output_type,
         )
-    return funcparts.main_output_type, funcparts.sec_output_types
+        return (main_output_type,)
+
+    # case: output types are known
+    return funcparts.output_types
 
 
 def verify_declared_and_passed_param_types_match(
@@ -937,20 +929,19 @@ def _create_udf_output(
 
 
 def get_udf_outputs(
-    main_output_type: OutputType,
-    sec_output_types: List[LoopbackOutputType],
+    output_types: List[OutputType],
     smpc_used: bool,
 ) -> List[UDFGenResult]:
     table_name = MAIN_TABLE_PLACEHOLDER
+    main_output_type, *sec_output_types = output_types
+
     udf_outputs = [_create_udf_output(main_output_type, table_name, smpc_used)]
 
-    if sec_output_types:
-        for table_name, sec_output_type in _get_loopback_tables_template_names(
-            sec_output_types
-        ):
-            udf_outputs.append(
-                _create_udf_output(sec_output_type, table_name, smpc_used)
-            )
+    loopback_table_names = _get_loopback_tables_template_names(sec_output_types)
+    udf_outputs += [
+        _create_udf_output(sec_output_type, table_name, smpc_used)
+        for table_name, sec_output_type in loopback_table_names
+    ]
 
     return udf_outputs
 
@@ -968,8 +959,7 @@ def get_create_dummy_encoded_design_matrix_execution_queries(keyword_args):
     output_schema = get_dummy_encoded_design_matrix_schema(dm_table)
     output_type = relation(schema=output_schema)
     udf_outputs = get_udf_outputs(
-        output_type,
-        sec_output_types=None,
+        output_types=[output_type],
         smpc_used=False,
     )
     udf_execution_query = get_udf_execution_template(udf_select)

@@ -54,15 +54,12 @@ def get_func_body_from_ast(tree):
 
 def get_return_names_from_body(statements) -> Tuple[str, List[str]]:
     """Returns names of variables in return statement. Assumes that a return
-    statement exists and is of type ast.Name or ast.Tuple because the validation is
-    supposed to happen before (in validate_func_as_udf)."""
+    statement exists and is of type ast.Name or ast.Tuple."""
     ret_stmt = next(s for s in statements if isinstance(s, ast.Return))
     if isinstance(ret_stmt.value, ast.Name):
-        return ret_stmt.value.id, []  # type: ignore
+        return (ret_stmt.value.id,)
     elif isinstance(ret_stmt.value, ast.Tuple):
-        main_ret = ret_stmt.value.elts[0].id
-        sec_rets = [value.id for value in ret_stmt.value.elts[1:]]
-        return main_ret, sec_rets
+        return tuple(value.id for value in ret_stmt.value.elts)
     else:
         raise NotImplementedError
 

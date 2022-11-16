@@ -55,8 +55,7 @@ SPC4 = " " * 4
 
 class Signature(NamedTuple):
     parameters: Dict[str, InputType]
-    main_return_annotation: OutputType
-    sec_return_annotations: List[OutputType]
+    return_annotations: List[OutputType]
 
 
 class FunctionParts(NamedTuple):
@@ -65,13 +64,11 @@ class FunctionParts(NamedTuple):
 
     qualname: str
     body_statements: list
-    main_return_name: str
-    sec_return_names: List[str]
+    return_names: List[str]
     table_input_types: Dict[str, TableType]
     literal_input_types: Dict[str, LiteralType]
     logger_param_name: Optional[str]
-    main_output_type: OutputType
-    sec_output_types: List[OutputType]
+    output_types: List[OutputType]
     sig: Signature
 
 
@@ -81,7 +78,7 @@ def breakup_function(func, funcsig) -> FunctionParts:
     qualname = make_unique_func_name(func)
     tree = parse_func(func)
     body_statements = get_func_body_from_ast(tree)
-    main_return_name, sec_return_names = get_return_names_from_body(body_statements)
+    return_names = get_return_names_from_body(body_statements)
     table_input_types = {
         name: input_type
         for name, input_type in funcsig.parameters.items()
@@ -99,18 +96,14 @@ def breakup_function(func, funcsig) -> FunctionParts:
             logger_param_name = name
             break  # Only one logger is allowed
 
-    main_output_type = funcsig.main_return_annotation
-    sec_output_types = funcsig.sec_return_annotations
     return FunctionParts(
         qualname=qualname,
         body_statements=body_statements,
-        main_return_name=main_return_name,
-        sec_return_names=sec_return_names,
+        return_names=return_names,
         table_input_types=table_input_types,
         literal_input_types=literal_input_types,
         logger_param_name=logger_param_name,
-        main_output_type=main_output_type,
-        sec_output_types=sec_output_types,
+        output_types=funcsig.return_annotations,
         sig=funcsig,
     )
 

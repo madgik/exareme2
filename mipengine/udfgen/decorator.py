@@ -94,16 +94,10 @@ def validate_udf_logger(parameter_names, decorator_kwargs):
 def make_udf_signature(parameter_names, decorator_kwargs):
     parameters = {name: decorator_kwargs[name] for name in parameter_names}
     if isinstance(decorator_kwargs["return_type"], List):
-        main_return_annotation = decorator_kwargs["return_type"][0]
-        sec_return_annotations = decorator_kwargs["return_type"][1:]
+        return_annotations = decorator_kwargs["return_type"]
     else:
-        main_return_annotation = decorator_kwargs["return_type"]
-        sec_return_annotations = []
-    signature = Signature(
-        parameters=parameters,
-        main_return_annotation=main_return_annotation,
-        sec_return_annotations=sec_return_annotations,
-    )
+        return_annotations = [decorator_kwargs["return_type"]]
+    signature = Signature(parameters=parameters, return_annotations=return_annotations)
     return signature
 
 
@@ -116,18 +110,19 @@ def validate_udf_signature_types(funcsig: Signature):
             f"Input types of func are not subclasses of InputType: {parameter_types}."
         )
 
-    main_return = funcsig.main_return_annotation
+    main_return, *sec_returns = funcsig.return_annotations
+
     if not isinstance(main_return, OutputType):
         raise UDFBadDefinition(
             f"Output type of func is not subclass of OutputType: {main_return}."
         )
 
-    sec_returns = funcsig.sec_return_annotations
     if any(
         not isinstance(output_type, LoopbackOutputType) for output_type in sec_returns
     ):
         raise UDFBadDefinition(
-            f"The secondary output types of func are not subclasses of LoopbackOutputType: {sec_returns}."
+            "The secondary output types of func are not subclasses of "
+            f"LoopbackOutputType: {sec_returns}."
         )
 
 
