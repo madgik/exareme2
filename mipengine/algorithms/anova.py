@@ -167,6 +167,7 @@ def global1(sec_local_transfer, local_transfers):
     ss_cell = sxx - (sx**2) / n
 
     cell_means = sx / n
+    G = cell_means.sum()
     total_means_x1 = cell_means.sum(axis=1)
     total_means_x2 = cell_means.sum(axis=0)
     all_means = total_means_x1.tolist() + total_means_x2.tolist()
@@ -177,11 +178,11 @@ def global1(sec_local_transfer, local_transfers):
     n_obs = sum(df["n"])
     sum_y = sum(df["sx"])
     sum_y_ssq = sum(df["sxx"])
-    grand_mean = sum(total_means_x1) ** 2 / (len(covar_enums_x1) * len(covar_enums_x2))
+    grand_mean = G**2 / (len(covar_enums_x1) * len(covar_enums_x2))
     ssq_x1 = n_harmonic * (s_x1_sq - grand_mean)
     ssq_x2 = n_harmonic * (s_x2_sq - grand_mean)
     ssq_x1x2 = n_harmonic * (s_x1x2_sq - s_x1_sq - s_x2_sq + grand_mean)
-    # raise ValueError(ssq_x1, ssq_x2, s_x1x2_sq)
+    raise ValueError(ssq_x1, ssq_x2, s_x1x2_sq)
 
     # Calculate degrees of freedom
     dof_x1 = len(covar_enums_x1) - 1

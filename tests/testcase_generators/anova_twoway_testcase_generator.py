@@ -48,11 +48,6 @@ class ANOVATwoWayTestCaseGenerator(TestCaseGenerator):
         model = ols(formula, data=data).fit()
         aov_res = sm.stats.anova_lm(model, typ=sstype)
 
-        pg_anova = pg.anova(
-            dv=f"{yname}", data=data, between=[f"{x1name}", f"{x2name}"], ss_type=sstype
-        )
-        res_pg = pg_anova.to_dict()
-
         aov_res["eta_sq"] = "NaN"
         aov_res["eta_sq"] = aov_res[:-1]["sum_sq"] / sum(aov_res["sum_sq"])
         mse = aov_res["sum_sq"][-1] / aov_res["df"][-1]
@@ -78,12 +73,6 @@ class ANOVATwoWayTestCaseGenerator(TestCaseGenerator):
 
         expected_out = {
             "n_obs": n_obs,
-            "mean_y": mean_y,
-            "dfx1_ssq": dfx1_ssq,
-            "dfx2_ssq": dfx2_ssq,
-            "res_pg_ssq": res_pg["SS"],
-            "mean_x1": mean_x1.tolist(),
-            "mean_x2": mean_x2.tolist(),
             "sum_sq": aov_to_dict["sum_sq"],
             "p_value": aov_to_dict["PR(>F)"],
             "df": aov_to_dict["df"],
