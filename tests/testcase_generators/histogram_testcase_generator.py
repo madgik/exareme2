@@ -1,7 +1,26 @@
+import json
+from typing import List
+from typing import Optional
+from typing import TypeVar
+from typing import Union
+
 import numpy
 import pandas as pd
+from pydantic import BaseModel
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
+
+
+class Histogram(BaseModel):
+    var: str  # y
+    grouping_var: Optional[str]  # x[i]
+    grouping_enum: Optional[str]  # enum of x[i]
+    bins: List[Union[float, str]]
+    counts: List[int]
+
+
+class HistogramResult1(BaseModel):
+    histogram: List[Histogram]
 
 
 def compute_histogram_categorical(data, enums, yvar, xvars):
@@ -60,8 +79,8 @@ def compute_numerical_histogram(data, enums, bins, yvar, xvars, min_value, max_v
         return hist
 
     final_dict = {}
-    local_histogram = hist_func(
-        data[yvar], min_value=min_value, max_value=max_value, bins=bins
+    local_histogram, numerical_bins = numpy.histogram(
+        data[yvar], range=(min_value, max_value), bins=bins
     )
 
     if xvars:
@@ -95,7 +114,7 @@ def compute_numerical_histogram(data, enums, bins, yvar, xvars, min_value, max_v
                 groups_list.append(curr_element)
             x_variables_list.append(groups_list)
 
-    return local_histogram.tolist(), x_variables_list
+    return local_histogram.tolist(), x_variables_list, numerical_bins.tolist()
 
 
 class HistogramTestcaseGenerator(TestCaseGenerator):
@@ -165,15 +184,22 @@ class HistogramTestcaseGenerator(TestCaseGenerator):
             min_value = data[yvar].min()
             max_value = data[yvar].max()
 
-            local_histogram, x_variables_list = compute_numerical_histogram(
+            (
+                local_histogram,
+                x_variables_list,
+                numerical_bins,
+            ) = compute_numerical_histogram(
                 data, enums, bins, yvar, xvars, min_value, max_value
             )
 
             return_dict["categorical"] = {}
             return_dict["numerical"] = {}
+            return_dict["numerical"]["numerical_bins"] = numerical_bins
             return_dict["numerical"]["histogram"] = local_histogram
             if xvars:
                 return_dict["numerical"]["grouped_histogram"] = x_variables_list
+
+        """
         histogram_list = []
         if yvar in nominal_vars:
             histogram_list.append(return_dict["categorical"]["categorical_histogram"])
@@ -188,10 +214,55 @@ class HistogramTestcaseGenerator(TestCaseGenerator):
                 histogram_list = (
                     histogram_list + return_dict["numerical"]["grouped_histogram"]
                 )
+        """
+        return_list = []
+        if yvar in nominal_vars:
+            categorical_histogram1 = Histogram(
+                var=yvar,
+                bins=list(sorted(enums2[yvar].keys())),
+                counts=return_dict["categorical"]["categorical_histogram"],
+            )
+            return_list.append(categorical_histogram1)
+            if xvars:
+                for i, x_variable in enumerate(xvars):
+                    possible_groups = sorted(enums2[x_variable].keys())
+                    possible_values = sorted(enums2[yvar].keys())
+                    for j, curr_group in enumerate(possible_groups):
+                        curr_group_histogram = Histogram(
+                            var=yvar,
+                            grouping_var=x_variable,
+                            grouping_enum=curr_group,
+                            bins=possible_values,
+                            counts=return_dict["categorical"][
+                                "grouped_histogram_categorical"
+                            ][i][j],
+                        )
+                        return_list.append(curr_group_histogram)
 
-        return_dict2 = {}
-        return_dict2["histogram"] = histogram_list
-        return return_dict2
+        else:
+            numerical_histogram1 = Histogram(
+                var=yvar,
+                bins=return_dict["numerical"]["numerical_bins"],
+                counts=return_dict["numerical"]["histogram"],
+            )
+            return_list.append(numerical_histogram1)
+            if xvars:
+                for i, x_variable in enumerate(xvars):
+                    possible_groups = sorted(enums2[x_variable].keys())
+                    for j, curr_group in enumerate(possible_groups):
+                        curr_group_histogram = Histogram(
+                            var=yvar,
+                            grouping_var=x_variable,
+                            grouping_enum=curr_group,
+                            bins=return_dict["numerical"]["numerical_bins"],
+                            counts=return_dict["numerical"]["grouped_histogram"][i][j],
+                        )
+                        return_list.append(curr_group_histogram)
+
+        ret_val = HistogramResult1(histogram=return_list)
+        # return_dict2 = {}
+        # return_dict2["histogram"] = histogram_list
+        return json.loads(ret_val.json())
 
 
 if __name__ == "__main__":
