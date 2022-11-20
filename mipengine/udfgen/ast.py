@@ -387,10 +387,11 @@ class ConstColumn(ASTNode):
 
 
 class Column(ASTNode):
-    def __init__(self, name: str, table: "Table" = None, alias=""):
+    def __init__(self, name: str, table: "Table" = None, alias="", quote=True):
         self.name = name
         self.table = table
         self.alias = alias
+        self.quote = quote
 
     def compile(self, use_alias=True, use_prefix=True) -> str:
         prefix = (
@@ -399,7 +400,10 @@ class Column(ASTNode):
             else ""
         )
         postfix = f" AS {self.alias}" if self.alias and use_alias else ""
-        name = self.name if self.name == "*" else f'"{self.name}"'
+        if self.name == "*" or not self.quote:
+            name = self.name
+        else:
+            name = f'"{self.name}"'
         return prefix + name + postfix
 
     def __eq__(self, other):
@@ -410,64 +414,64 @@ class Column(ASTNode):
         if isinstance(other, Column):
             name1 = self.compile(use_alias=False)
             name2 = other.compile(use_alias=False)
-            return Column(name=f"{name1} + {name2}")
+            return Column(name=f"{name1} + {name2}", quote=False)
         if isinstance(other, Number):
             name1 = self.compile(use_alias=False)
-            return Column(name=f"{name1} + {other}")
+            return Column(name=f"{name1} + {other}", quote=False)
         raise TypeError(f"unsupported operand types for +: Column and {type(other)}")
 
     def __radd__(self, other):
         if isinstance(other, Number):
             name1 = self.compile(use_alias=False)
-            return Column(name=f"{other} + {name1}")
+            return Column(name=f"{other} + {name1}", quote=False)
         raise TypeError(f"unsupported operand types for +: {type(other)} and Column")
 
     def __sub__(self, other):
         if isinstance(other, Column):
             name1 = self.compile(use_alias=False)
             name2 = other.compile(use_alias=False)
-            return Column(name=f"{name1} - {name2}")
+            return Column(name=f"{name1} - {name2}", quote=False)
         if isinstance(other, Number):
             name1 = self.compile(use_alias=False)
-            return Column(name=f"{name1} - {other}")
+            return Column(name=f"{name1} - {other}", quote=False)
         raise TypeError(f"unsupported operand types for -: Column and {type(other)}")
 
     def __rsub__(self, other):
         if isinstance(other, Number):
             name1 = self.compile(use_alias=False)
-            return Column(name=f"{other} - {name1}")
+            return Column(name=f"{other} - {name1}", quote=False)
         raise TypeError(f"unsupported operand types for -: {type(other)} and Column")
 
     def __mul__(self, other):
         if isinstance(other, Column):
             name1 = self.compile(use_alias=False)
             name2 = other.compile(use_alias=False)
-            return Column(name=f"{name1} * {name2}")
+            return Column(name=f"{name1} * {name2}", quote=False)
         if isinstance(other, Number):
             name1 = self.compile(use_alias=False)
-            return Column(name=f"{name1} * {other}")
+            return Column(name=f"{name1} * {other}", quote=False)
         raise TypeError(f"unsupported operand types for *: Column and {type(other)}")
 
     def __rmul__(self, other):
         if isinstance(other, Number):
             name1 = self.compile(use_alias=False)
-            return Column(name=f"{other} * {name1}")
+            return Column(name=f"{other} * {name1}", quote=False)
         raise TypeError(f"unsupported operand types for *: {type(other)} and Column")
 
     def __truediv__(self, other):
         if isinstance(other, Column):
             name1 = self.compile(use_alias=False)
             name2 = other.compile(use_alias=False)
-            return Column(name=f"{name1} / {name2}")
+            return Column(name=f"{name1} / {name2}", quote=False)
         if isinstance(other, Number):
             name1 = self.compile(use_alias=False)
-            return Column(name=f"{name1} / {other}")
+            return Column(name=f"{name1} / {other}", quote=False)
         raise TypeError(f"unsupported operand types for /: Column and {type(other)}")
 
     def __rtruediv__(self, other):
         if isinstance(other, Number):
             name1 = self.compile(use_alias=False)
-            return Column(name=f"{other} / {name1}")
+            return Column(name=f"{other} / {name1}", quote=False)
         raise TypeError(f"unsupported operand types for /: {type(other)} and Column")
 
 

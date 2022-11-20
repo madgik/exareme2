@@ -1,6 +1,4 @@
 # type: ignore
-import pytest
-
 from mipengine.udfgen.ast import Column
 from mipengine.udfgen.ast import ScalarFunction
 from mipengine.udfgen.ast import Select
@@ -15,52 +13,43 @@ def test_column_alias():
     assert result == expected
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 def test_column_mul():
     col1 = Column("col1", alias="column1")
     col2 = Column("col2", alias="column2")
-    prod = col1 * col2
-    result = prod.compile()
-    expected = "col1 * col2"
+    result = (col1 * col2).compile()
+    expected = '"col1" * "col2"'
     assert result == expected
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 def test_column_add():
     col1 = Column("col1", alias="column1")
     col2 = Column("col2", alias="column2")
-    prod = col1 + col2
-    result = prod.compile()
-    expected = "col1 + col2"
+    result = (col1 + col2).compile()
+    expected = '"col1" + "col2"'
     assert result == expected
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 def test_column_sub():
     col1 = Column("col1", alias="column1")
     col2 = Column("col2", alias="column2")
-    prod = col1 - col2
-    result = prod.compile()
-    expected = "col1 - col2"
+    result = (col1 - col2).compile()
+    expected = '"col1" - "col2"'
     assert result == expected
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 def test_column_div():
     col1 = Column("col1", alias="column1")
     col2 = Column("col2", alias="column2")
-    prod = col1 / col2
-    result = prod.compile()
-    expected = "col1 / col2"
+    result = (col1 / col2).compile()
+    expected = '"col1" / "col2"'
     assert result == expected
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-702")
 def test_column_mul_from_table():
     tab = Table(name="tab", columns=["a", "b"])
     prod = tab.c["a"] * tab.c["b"]
     result = prod.compile()
-    expected = "tab.a * tab.b"
+    expected = 'tab."a" * tab."b"'
     assert result == expected
 
 
