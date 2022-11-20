@@ -8,6 +8,7 @@ from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
+from mipengine.udfgen import generate_udf_queries
 from mipengine.udfgen.iotypes import LiteralArg
 from mipengine.udfgen.iotypes import TensorArg
 from mipengine.udfgen.tensor_ops import TensorBinaryOp
@@ -15,12 +16,11 @@ from mipengine.udfgen.tensor_ops import get_matrix_transpose_template
 from mipengine.udfgen.tensor_ops import get_tensor_binary_op_template
 from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
 from tests.standalone_tests.udfgen.test_udfgenerator import TestUDFGenBase
-from tests.standalone_tests.udfgen.test_udfgenerator import _TestGenerateUDFQueries
 
 pytest.skip(allow_module_level=True, msg="The tensor_ops module is deprecated.")
 
 
-class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase, _TestGenerateUDFQueries):
+class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def funcname(self):
         return TensorBinaryOp.MATMUL.name
@@ -50,10 +50,6 @@ class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase, _TestGenerateUDFQueries):
                 type_=TableType.NORMAL,
             ),
         ]
-
-    @pytest.fixture(scope="class")
-    def expected_udfdef(self):
-        return ""
 
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
@@ -88,8 +84,30 @@ ORDER BY
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        output_schema = [("a", DType.INT), ("b", DType.FLOAT)]
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=[],
+            keyword_args={},
+            smpc_used=False,
+            output_schema=output_schema,
+        )
+        assert udf_execution_queries.udf_definition_query.template == ""
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results,
+            expected_udf_outputs,
+        ):
+            assert udf_output == expected_udf_output
 
-class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase, _TestGenerateUDFQueries):
+
+class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def funcname(self):
         return TensorBinaryOp.MATMUL.name
@@ -120,10 +138,6 @@ class TestUDFGen_SQLTensorMultOut2D(TestUDFGenBase, _TestGenerateUDFQueries):
                 type_=TableType.NORMAL,
             ),
         ]
-
-    @pytest.fixture(scope="class")
-    def expected_udfdef(self):
-        return ""
 
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
@@ -162,8 +176,30 @@ ORDER BY
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        output_schema = [("a", DType.INT), ("b", DType.FLOAT)]
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=[],
+            keyword_args={},
+            smpc_used=False,
+            output_schema=output_schema,
+        )
+        assert udf_execution_queries.udf_definition_query.template == ""
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results,
+            expected_udf_outputs,
+        ):
+            assert udf_output == expected_udf_output
 
-class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase, _TestGenerateUDFQueries):
+
+class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def funcname(self):
         return TensorBinaryOp.SUB.name
@@ -183,10 +219,6 @@ class TestUDFGen_SQLTensorSubLiteralArg(TestUDFGenBase, _TestGenerateUDFQueries)
                 type_=TableType.NORMAL,
             ),
         ]
-
-    @pytest.fixture(scope="class")
-    def expected_udfdef(self):
-        return ""
 
     @pytest.fixture(scope="class")
     def expected_udfsel(self):
@@ -213,6 +245,28 @@ FROM
                 ),
             )
         ]
+
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        output_schema = [("a", DType.INT), ("b", DType.FLOAT)]
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=[],
+            keyword_args={},
+            smpc_used=False,
+            output_schema=output_schema,
+        )
+        assert udf_execution_queries.udf_definition_query.template == ""
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results,
+            expected_udf_outputs,
+        ):
+            assert udf_output == expected_udf_output
 
 
 def test_tensor_elementwise_binary_op_1dim():

@@ -772,64 +772,7 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
         assert "inconsistent mappings" in err_msg
 
 
-class _TestGenerateUDFQueries:
-    """
-    This class does not run as a test, it's only inherited
-    when we want to add a test case for the generate_udf_queries
-    """
-
-    @pytest.fixture(scope="class")
-    def udfregistry(self):
-        raise NotImplementedError
-
-    @pytest.fixture(scope="class")
-    def positional_args(self):
-        raise NotImplementedError
-
-    @pytest.fixture(scope="class")
-    def expected_udfdef(self):
-        raise NotImplementedError
-
-    @pytest.fixture(scope="class")
-    def expected_udfsel(self):
-        raise NotImplementedError
-
-    @pytest.fixture(scope="class")
-    def expected_udf_outputs(self):
-        raise NotImplementedError
-
-    @pytest.fixture(scope="class")
-    def use_smpc(self):
-        return False
-
-    def test_generate_udf_queries(
-        self,
-        funcname,
-        positional_args,
-        expected_udfdef,
-        expected_udfsel,
-        expected_udf_outputs,
-        use_smpc,
-    ):
-        udf_execution_queries = generate_udf_queries(
-            func_name=funcname,
-            positional_args=positional_args,
-            keyword_args={},
-            smpc_used=use_smpc,
-        )
-        if expected_udfdef != "":
-            assert (
-                udf_execution_queries.udf_definition_query.template == expected_udfdef
-            )
-        assert udf_execution_queries.udf_select_query.template == expected_udfsel
-
-        for udf_output, expected_udf_output in zip(
-            udf_execution_queries.udf_results, expected_udf_outputs
-        ):
-            assert udf_output == expected_udf_output
-
-
-class TestUDFGen_TensorToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
+class TestUDFGen_TensorToTensor(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         T = TypeVar("T")
@@ -906,10 +849,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_TensorParameterWithCapitalLetter(
-    TestUDFGenBase, _TestGenerateUDFQueries
-):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_TensorParameterWithCapitalLetter(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         T = TypeVar("T")
@@ -1009,8 +972,30 @@ FROM
             (0, 2, 7.0),
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_RelationToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_RelationToTensor(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         S = TypeVar("S")
@@ -1089,8 +1074,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_2RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_2RelationsToTensor(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         S = TypeVar("S")
@@ -1193,8 +1200,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_3RelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_3RelationsToTensor(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         S = TypeVar("S")
@@ -1317,8 +1346,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_2SameRelationsToTensor(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_2SameRelationsToTensor(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         S = TypeVar("S")
@@ -1420,8 +1471,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_TensorToRelation(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_TensorToRelation(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -1498,8 +1571,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_LiteralArgument(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_LiteralArgument(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -1577,8 +1672,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_ManyLiteralArguments(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_ManyLiteralArguments(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -1659,8 +1776,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_NoArguments(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_NoArguments(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -1716,8 +1855,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_RelationIncludeRowId(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_RelationIncludeRowId(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         S = TypeVar("S")
@@ -1796,8 +1957,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_RelationExcludeNodeid(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_RelationExcludeNodeid(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         S = TypeVar("S")
@@ -1876,8 +2059,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_UnknownReturnDimensions(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_UnknownReturnDimensions(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         T = TypeVar("S")
@@ -1956,8 +2161,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_TwoTensors1DReturnTable(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2051,8 +2278,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_ThreeTensors1DReturnTable(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2163,8 +2412,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_ThreeTensors2DReturnTable(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2284,8 +2555,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_MergeTensor(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_MergeTensor(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2361,8 +2654,30 @@ FROM
             )
         ]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_StateReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_StateReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(t=literal(), return_type=state())
@@ -2436,8 +2751,30 @@ FROM
         result = pickle.loads(state)
         assert result == {"num": 5}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_StateInputandReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_StateInputandReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2528,8 +2865,30 @@ FROM
         result = pickle.loads(state)
         assert result == {"num": 10}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_TransferReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_TransferReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(t=literal(), return_type=transfer())
@@ -2603,8 +2962,30 @@ FROM
         result = json.loads(transfer)
         assert result == {"num": 5, "list_of_nums": [5, 5, 5]}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_TransferInputAndReturnType(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_TransferInputAndReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2695,10 +3076,30 @@ FROM
         result = json.loads(transfer)
         assert result == {"num": 10}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_TransferInputAndStateReturnType(
-    TestUDFGenBase, _TestGenerateUDFQueries
-):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_TransferInputAndStateReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2790,10 +3191,30 @@ FROM
         result = pickle.loads(state)
         assert result == {"num": 10}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_TransferAndStateInputandStateReturnType(
-    TestUDFGenBase, _TestGenerateUDFQueries
-):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_TransferAndStateInputandStateReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -2903,10 +3324,30 @@ FROM
         result = pickle.loads(state)
         assert result == {"num": 15}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_MergeTransferAndStateInputandTransferReturnType(
-    TestUDFGenBase, _TestGenerateUDFQueries
-):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_MergeTransferAndStateInputandTransferReturnType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -3019,8 +3460,30 @@ FROM
         result = json.loads(transfer)
         assert result == {"num": 20}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_LocalStepLogic(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_LocalStepLogic(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -3143,10 +3606,30 @@ FROM
         result2 = json.loads(transfer_)
         assert result2 == {"num": 25}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_LocalStepLogic_Transfer_first_input_and_output(
-    TestUDFGenBase, _TestGenerateUDFQueries
-):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_LocalStepLogic_Transfer_first_input_and_output(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -3269,8 +3752,30 @@ FROM
         result2 = pickle.loads(state_)
         assert result2 == {"num": 25}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_GlobalStepLogic(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_GlobalStepLogic(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -3399,10 +3904,30 @@ FROM
         result2 = json.loads(transfer_)
         assert result2 == {"num": 75}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_SecureTransferOutput_with_SMPC_off(
-    TestUDFGenBase, _TestGenerateUDFQueries
-):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_SecureTransferOutput_with_SMPC_off(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -3504,10 +4029,30 @@ FROM
             "max": {"data": 5, "operation": "max", "type": "int"},
         }
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_SecureTransferOutput_with_SMPC_on(
-    TestUDFGenBase, _TestGenerateUDFQueries
-):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_SecureTransferOutput_with_SMPC_on(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -3613,9 +4158,6 @@ FROM
         ]
 
     @pytest.fixture(scope="class")
-    def use_smpc(self):
-        return True
-
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
@@ -3660,18 +4202,14 @@ FROM
         expected_udfdef,
         expected_udfsel,
         expected_udf_outputs,
-        use_smpc,
     ):
         udf_execution_queries = generate_udf_queries(
             func_name=funcname,
             positional_args=positional_args,
             keyword_args={},
-            smpc_used=use_smpc,
+            smpc_used=True,
         )
-        if expected_udfdef != "":
-            assert (
-                udf_execution_queries.udf_definition_query.template == expected_udfdef
-            )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
         assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
         for udf_output, expected_udf_output in zip(
@@ -3680,9 +4218,7 @@ FROM
             assert udf_output == expected_udf_output
 
 
-class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_off(
-    TestUDFGenBase, _TestGenerateUDFQueries
-):
+class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_off(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -3799,10 +4335,30 @@ FROM
             "max": {"data": 5, "operation": "max", "type": "int"},
         }
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_on(
-    TestUDFGenBase, _TestGenerateUDFQueries
-):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_SecureTransferOutputAs2ndOutput_with_SMPC_on(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -3934,10 +4490,6 @@ FROM
             ),
         ]
 
-    @pytest.fixture(scope="class")
-    def use_smpc(self):
-        return True
-
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
@@ -3982,10 +4534,30 @@ FROM
         max_op_values = json.loads(max_op_values_str)
         assert max_op_values == [5]
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=True,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_SecureTransferInput_with_SMPC_off(
-    TestUDFGenBase, _TestGenerateUDFQueries
-):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_SecureTransferInput_with_SMPC_off(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -4075,10 +4647,30 @@ FROM
         result = json.loads(transfer)
         assert result == {"sum": 111}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_SecureTransferInput_with_SMPC_on(
-    TestUDFGenBase, _TestGenerateUDFQueries
-):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_SecureTransferInput_with_SMPC_on(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -4171,10 +4763,6 @@ FROM
             ),
         ]
 
-    @pytest.fixture(scope="class")
-    def use_smpc(self):
-        return True
-
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
@@ -4199,8 +4787,30 @@ FROM
         result = json.loads(transfer)
         assert result == {"sum": [100, 200, 300], "max": 58}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=True,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_LoggerArgument(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_LoggerArgument(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(
@@ -4281,8 +4891,30 @@ FROM
         result = json.loads(transfer)
         assert result == {"num": 5}
 
+    def test_generate_udf_queries(
+        self,
+        funcname,
+        positional_args,
+        expected_udfdef,
+        expected_udfsel,
+        expected_udf_outputs,
+    ):
+        udf_execution_queries = generate_udf_queries(
+            func_name=funcname,
+            positional_args=positional_args,
+            keyword_args={},
+            smpc_used=False,
+        )
+        assert udf_execution_queries.udf_definition_query.template == expected_udfdef
+        assert udf_execution_queries.udf_select_query.template == expected_udfsel
 
-class TestUDFGen_DeferredOutputSchema(TestUDFGenBase, _TestGenerateUDFQueries):
+        for udf_output, expected_udf_output in zip(
+            udf_execution_queries.udf_results, expected_udf_outputs
+        ):
+            assert udf_output == expected_udf_output
+
+
+class TestUDFGen_DeferredOutputSchema(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(return_type=relation(schema=DEFERRED))
@@ -4356,7 +4988,7 @@ FROM
             assert udf_output == expected_udf_output
 
 
-class TestUDFGen_PlaceholderInputType(TestUDFGenBase, _TestGenerateUDFQueries):
+class TestUDFGen_PlaceholderInputType(TestUDFGenBase):
     @pytest.fixture(scope="class")
     def udfregistry(self):
         @udf(a=placeholder("some_name"), return_type=transfer())
