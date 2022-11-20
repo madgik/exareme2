@@ -325,6 +325,7 @@ from mipengine.udfgen.iotypes import relation
 from mipengine.udfgen.smpc import SecureTransferArg
 from mipengine.udfgen.smpc import SecureTransferType
 from mipengine.udfgen.smpc import SMPCSecureTransferArg
+from mipengine.udfgen.smpc import SMPCSecureTransferType
 from mipengine.udfgen.smpc import UDFBodySMPC
 from mipengine.udfgen.smpc import _get_smpc_table_template_names
 from mipengine.udfgen.udfgen_DTOs import UDFGenExecutionQueries
@@ -506,7 +507,7 @@ def get_udf_templates_using_udfregistry(
     )
 
     if smpc_used:
-        funcparts = set_smpc_used_in_secure_transfer_outputs(funcparts)
+        cast_secure_transfers_for_smpc(funcparts.output_types)
 
     output_types = get_output_types(funcparts, udf_args, output_schema)
     udf_outputs = get_udf_outputs(output_types=output_types, smpc_used=smpc_used)
@@ -638,17 +639,17 @@ def copy_types_from_udfargs(udfargs: Dict[str, UDFArgument]) -> Dict[str, InputT
     return {name: deepcopy(arg.type) for name, arg in udfargs.items()}
 
 
-def set_smpc_used_in_secure_transfer_outputs(funcparts):
-    # The secure transfer type has two behaviours, depending on whether the UDF
-    # is running with or without an SMPC cluster. At the time a UDF is defined
-    # there is no knowledge if it will run with or without the SMPC cluster,
-    # hence we need to be able to choose one or the other behaviour at the time
-    # of the UDF execution. This is done by setting the boolean flag
-    # `smpc_used` in `SecureTransferType`.
-    for i, output_type in enumerate(funcparts.output_types):
+def cast_secure_transfers_for_smpc(output_types):
+    # There are two flavors of secure transfer types. SecureTransferType, used
+    # when the SMPC mechanism is off and SMPCSecureTransferType, used when it
+    # is on. At the time a UDF is defined there is no knowledge if it will run
+    # with or without the SMPC cluster, hence we need to be able to choose one
+    # or the other behaviour at the time of the UDF execution. This is done by
+    # casting SecureTransferType to SMPCSecureTransferType when the SMPC
+    # mechanism is on.
+    for i, output_type in enumerate(output_types):
         if isinstance(output_type, SecureTransferType):
-            funcparts.output_types[i].smpc_used = True
-    return funcparts
+            output_types[i] = SMPCSecureTransferType.cast(output_types[i])
 
 
 # ~~~~~~~~~~~~~~~ UDF Definition Translator ~~~~~~~~~~~~~~ #

@@ -45,11 +45,10 @@ class SecureTransferType(DictType, InputType, LoopbackOutputType):
     _min_op: bool
     _max_op: bool
 
-    def __init__(self, sum_op=False, min_op=False, max_op=False, smpc_used=False):
+    def __init__(self, sum_op=False, min_op=False, max_op=False):
         self._sum_op = sum_op
         self._min_op = min_op
         self._max_op = max_op
-        self.smpc_used = smpc_used
 
     @property
     def sum_op(self):
@@ -74,14 +73,31 @@ class SecureTransferType(DictType, InputType, LoopbackOutputType):
         )
 
     def get_main_return_stmt_template(self) -> str:
-        if self.smpc_used:
-            return self._get_main_return_stmt_template_smpc_on()
-        return self._get_main_return_stmt_template_smpc_off()
-
-    def _get_main_return_stmt_template_smpc_off(self):
         return "return json.dumps({return_name})"
 
-    def _get_main_return_stmt_template_smpc_on(self):
+    def get_secondary_return_stmt_template(self, tablename_placeholder) -> str:
+        return (
+            '_conn.execute(f"INSERT INTO $'
+            + tablename_placeholder
+            + " VALUES ('{{json.dumps({return_name})}}');\")"
+        )
+
+
+TransferTypeBase.register(SecureTransferType)
+
+
+class SMPCSecureTransferType(SecureTransferType):
+    def get_build_template(self):
+        colname = self.data_column_name
+        return LN.join(
+            [
+                f'__transfer_strs = _conn.execute("SELECT {colname} FROM {{table_name}};")["{colname}"]',
+                "__transfers = [json.loads(str) for str in __transfer_strs]",
+                "{varname} = udfio.secure_transfers_to_merged_dict(__transfers)",
+            ]
+        )
+
+    def get_main_return_stmt_template(self) -> str:
         return_stmts = [
             "template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict({return_name})"
         ]
@@ -110,18 +126,6 @@ class SecureTransferType(DictType, InputType, LoopbackOutputType):
         return LN.join(return_stmts)
 
     def get_secondary_return_stmt_template(self, tablename_placeholder) -> str:
-        if self.smpc_used:
-            return self._get_sec_return_stmt_template_smpc_on(tablename_placeholder)
-        return self._get_sec_return_stmt_template_smpc_off(tablename_placeholder)
-
-    def _get_sec_return_stmt_template_smpc_off(self, tablename_placeholder: str):
-        return (
-            '_conn.execute(f"INSERT INTO $'
-            + tablename_placeholder
-            + " VALUES ('{{json.dumps({return_name})}}');\")"
-        )
-
-    def _get_sec_return_stmt_template_smpc_on(self, tablename_placeholder: str):
         return_stmts = [
             "template, sum_op, min_op, max_op = udfio.split_secure_transfer_dict({return_name})"
         ]
@@ -192,8 +196,10 @@ class SecureTransferType(DictType, InputType, LoopbackOutputType):
         )
         return LN.join(stmts)
 
-
-TransferTypeBase.register(SecureTransferType)
+    @classmethod
+    def cast(cls, obj):
+        obj.__class__ = cls
+        return obj
 
 
 def _get_smpc_table_template_names(prefix: str):
@@ -248,7 +254,7 @@ class SMPCSecureTransferArg(UDFArgument):
             min_op = True
         if max_op_values_table_name:
             max_op = True
-        self.type = SecureTransferType(sum_op, min_op, max_op, smpc_used=True)
+        self.type = SMPCSecureTransferType(sum_op, min_op, max_op)
         self.template_table_name = template_table_name
         self.sum_op_values_table_name = sum_op_values_table_name
         self.min_op_values_table_name = min_op_values_table_name
