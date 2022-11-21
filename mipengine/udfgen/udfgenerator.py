@@ -170,7 +170,8 @@ Global UDF step Example
 ...     transfer["sum"] = x["key"] + y["key"]
 ...     return state, transfer
 
-NOTE: Even though it's not mandatory, it's faster to have state as the first input/output.
+NOTE: Even though it's not mandatory, it's faster to have state as the first
+input/output.
 
 
 secure_transfer explained
@@ -184,7 +185,8 @@ Local UDF step Example
 ... def local_step(x, y):
 ...     state["x"] = x["key"]
 ...     state["y"] = y["key"]
-...     transfer["sum"] = {"data": x["key"] + y["key"], "operation": "sum", "type": "float"}
+...     transfer["sum"] = {"data": x["key"] + y["key"], "operation": "sum",
+...                        "type": "float"}
 ...     return state, transfer
 
 Global UDF step Example
@@ -280,7 +282,6 @@ from mipengine.node_tasks_DTOs import SMPCTablesInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType as DBTableType
 from mipengine.udfgen.ast import Column
-from mipengine.udfgen.ast import ColumnEqualityClause
 from mipengine.udfgen.ast import ConstColumn
 from mipengine.udfgen.ast import FunctionParts
 from mipengine.udfgen.ast import Select
@@ -290,7 +291,7 @@ from mipengine.udfgen.ast import TableFunction
 from mipengine.udfgen.ast import UDFBody
 from mipengine.udfgen.ast import UDFDefinition
 from mipengine.udfgen.ast import UDFHeader
-from mipengine.udfgen.ast import _get_loopback_tables_template_names
+from mipengine.udfgen.ast import get_name_loopback_table_pairs
 from mipengine.udfgen.decorator import udf
 from mipengine.udfgen.helpers import compose_mappings
 from mipengine.udfgen.helpers import get_items_of_type
@@ -327,7 +328,7 @@ from mipengine.udfgen.smpc import SecureTransferType
 from mipengine.udfgen.smpc import SMPCSecureTransferArg
 from mipengine.udfgen.smpc import SMPCSecureTransferType
 from mipengine.udfgen.smpc import UDFBodySMPC
-from mipengine.udfgen.smpc import _get_smpc_table_template_names
+from mipengine.udfgen.smpc import get_smpc_table_template_names
 from mipengine.udfgen.udfgen_DTOs import UDFGenExecutionQueries
 from mipengine.udfgen.udfgen_DTOs import UDFGenResult
 from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
@@ -405,13 +406,13 @@ def convert_udfgenarg_to_udfarg(udfgen_arg: UDFGenArgument, smpc_used) -> UDFArg
     if isinstance(udfgen_arg, SMPCTablesInfo):
         if not smpc_used:
             raise UDFBadCall("SMPC is not used, so SMPCTablesInfo cannot be used.")
-        return convert_smpc_udf_input_to_udf_arg(udfgen_arg)
+        return convert_smpc_tableinfo_to_udfarg(udfgen_arg)
     if isinstance(udfgen_arg, TableInfo):
-        return convert_table_info_to_table_arg(udfgen_arg, smpc_used)
+        return convert_tableinfo_to_udfarg(udfgen_arg, smpc_used)
     return LiteralArg(value=udfgen_arg)
 
 
-def convert_smpc_udf_input_to_udf_arg(smpc_udf_input: SMPCTablesInfo):
+def convert_smpc_tableinfo_to_udfarg(smpc_udf_input: SMPCTablesInfo):
     sum_op_table_name = None
     min_op_table_name = None
     max_op_table_name = None
@@ -429,13 +430,14 @@ def convert_smpc_udf_input_to_udf_arg(smpc_udf_input: SMPCTablesInfo):
     )
 
 
-def convert_table_info_to_table_arg(table_info: TableInfo, smpc_used):
+def convert_tableinfo_to_udfarg(table_info: TableInfo, smpc_used):
     if is_transfertype_schema(table_info.schema_.columns):
         return TransferArg(table_name=table_info.name)
     if is_secure_transfer_type_schema(table_info.schema_.columns):
         if smpc_used:
             raise UDFBadCall(
-                "When smpc is used SecureTransferArg should not be used, only SMPCSecureTransferArg. "
+                "When smpc is used SecureTransferArg should not be used, "
+                "only SMPCSecureTransferArg."
             )
         return SecureTransferArg(table_name=table_info.name)
     if is_statetype_schema(table_info.schema_.columns):
@@ -457,8 +459,6 @@ def get_tensor_arg_from_table_info(table_info):
     return TensorArg(table_name=table_info.name, dtype=dtype, ndims=ndims)
 
 
-# TODO table kinds must become known in Controller, who should send the
-# appropriate kind, avoiding heuristics like below
 def is_tensor_schema(schema):
     colnames = [col.name for col in schema]
     if "val" in colnames and any(cname.startswith("dim") for cname in colnames):
@@ -618,20 +618,20 @@ def validate_arg_types(
     for argname, arg in table_args.items():
         if not isinstance(arg.type, type(expected_tables_types[argname])):
             raise UDFBadCall(
-                f"Argument {argname} should be of type {expected_tables_types[argname]}. "
-                f"Type provided: {arg.type}"
+                f"Argument {argname} should be of type "
+                f"{expected_tables_types[argname]}. Type provided: {arg.type}"
             )
     for argname, arg in smpc_args.items():
         if not isinstance(arg.type, type(expected_tables_types[argname])):
             raise UDFBadCall(
-                f"Argument {argname} should be of type {expected_tables_types[argname]}. "
-                f"Type provided: {arg.type}"
+                f"Argument {argname} should be of type "
+                f"{expected_tables_types[argname]}. Type provided: {arg.type}"
             )
     for argname, arg in literal_args.items():
         if not isinstance(arg.type, type(expected_literal_types[argname])):
             raise UDFBadCall(
-                f"Argument {argname} should be of type {expected_tables_types[argname]}. "
-                f"Type provided: {arg.type}"
+                f"Argument {argname} should be of type "
+                f"{expected_tables_types[argname]}. Type provided: {arg.type}"
             )
 
 
@@ -661,21 +661,23 @@ def get_udf_definition_template(
     output_types: List[OutputType],
     smpc_used: bool,
 ) -> Template:
-    table_args: Dict[str, TableArg] = get_items_of_type(TableArg, mapping=input_args)
-    smpc_args: Dict[str, SMPCSecureTransferArg] = get_items_of_type(
-        SMPCSecureTransferArg, mapping=input_args
-    )
-    literal_args: Dict[str, LiteralArg] = get_items_of_type(
-        LiteralArg, mapping=input_args
-    )
+
+    table_args = get_items_of_type(TableArg, mapping=input_args)
+
+    smpc_args = get_items_of_type(SMPCSecureTransferArg, mapping=input_args)
+
+    literal_args = get_items_of_type(LiteralArg, mapping=input_args)
+
     logger_arg: Optional[str, UDFLoggerArg] = None
     logger_param = funcparts.logger_param_name
     if logger_param:
         logger_arg = (logger_param, input_args[logger_param])
+
     placeholder_args = get_items_of_type(PlaceholderArg, input_args)
 
     verify_declared_and_passed_param_types_match(
-        funcparts.table_input_types, table_args
+        funcparts.table_input_types,
+        table_args,
     )
 
     main_output_type, *sec_output_types = output_types
@@ -846,39 +848,29 @@ def get_table_ast_nodes_from_table_args(table_args, arg_type):
 
 
 def get_where_clause_for_tensors(tensors):
-    head_tensor, *tail_tensors = tensors
+    head, *tail = tensors
     where_clause = [
-        head_tensor.c[colname] == table.c[colname]
-        for table in tail_tensors
-        for colname in head_tensor.columns.keys()
+        head.c[colname] == table.c[colname]
+        for table in tail
+        for colname in head.columns.keys()
         if colname.startswith("dim")
     ]
     return where_clause
 
 
 def get_where_clause_for_relations(relations):
-    if len(relations) == 1:
-        return None
-
-    head_relation, *tail_relations = relations
+    head, *tail = relations
     where_clause = [
-        ColumnEqualityClause(
-            column1=Column(
-                name="row_id",
-                table=head_relation,
-            ),
-            column2=Column(
-                name="row_id",
-                table=relation,
-            ),
-        )
-        for relation in tail_relations
+        head.c[colname] == table.c[colname]
+        for table in tail
+        for colname in head.columns.keys()
+        if colname == "row_id"
     ]
     return where_clause
 
 
 # ~~~~~~~~~~~~~~~~~ CREATE TABLE and INSERT query generator ~~~~~~~~~ #
-def _create_table_udf_output(
+def create_table_udf_output(
     output_type: OutputType,
     table_name: str,
 ) -> UDFGenResult:
@@ -893,23 +885,23 @@ def _create_table_udf_output(
     )
 
 
-def _create_smpc_udf_output(output_type: SecureTransferType, table_name_prefix: str):
+def create_smpc_udf_output(output_type: SecureTransferType, table_name_prefix: str):
     (
         template_tmpl,
         sum_op_tmpl,
         min_op_tmpl,
         max_op_tmpl,
-    ) = _get_smpc_table_template_names(table_name_prefix)
-    template = _create_table_udf_output(output_type, template_tmpl)
+    ) = get_smpc_table_template_names(table_name_prefix)
+    template = create_table_udf_output(output_type, template_tmpl)
     sum_op = None
     min_op = None
     max_op = None
     if output_type.sum_op:
-        sum_op = _create_table_udf_output(output_type, sum_op_tmpl)
+        sum_op = create_table_udf_output(output_type, sum_op_tmpl)
     if output_type.min_op:
-        min_op = _create_table_udf_output(output_type, min_op_tmpl)
+        min_op = create_table_udf_output(output_type, min_op_tmpl)
     if output_type.max_op:
-        max_op = _create_table_udf_output(output_type, max_op_tmpl)
+        max_op = create_table_udf_output(output_type, max_op_tmpl)
     return UDFGenSMPCResult(
         template=template,
         sum_op_values=sum_op,
@@ -918,15 +910,15 @@ def _create_smpc_udf_output(output_type: SecureTransferType, table_name_prefix: 
     )
 
 
-def _create_udf_output(
+def create_udf_output(
     output_type: OutputType,
     table_name: str,
     smpc_used: bool,
 ) -> UDFGenResult:
     if isinstance(output_type, SecureTransferType) and smpc_used:
-        return _create_smpc_udf_output(output_type, table_name)
+        return create_smpc_udf_output(output_type, table_name)
     else:
-        return _create_table_udf_output(output_type, table_name)
+        return create_table_udf_output(output_type, table_name)
 
 
 def get_udf_outputs(
@@ -936,11 +928,11 @@ def get_udf_outputs(
     table_name = MAIN_TABLE_PLACEHOLDER
     main_output_type, *sec_output_types = output_types
 
-    udf_outputs = [_create_udf_output(main_output_type, table_name, smpc_used)]
+    udf_outputs = [create_udf_output(main_output_type, table_name, smpc_used)]
 
-    loopback_table_names = _get_loopback_tables_template_names(sec_output_types)
+    loopback_table_names = get_name_loopback_table_pairs(sec_output_types)
     udf_outputs += [
-        _create_udf_output(sec_output_type, table_name, smpc_used)
+        create_udf_output(sec_output_type, table_name, smpc_used)
         for table_name, sec_output_type in loopback_table_names
     ]
 

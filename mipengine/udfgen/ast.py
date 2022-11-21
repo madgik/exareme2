@@ -13,6 +13,7 @@ from typing import Union
 import astor
 
 from mipengine.udfgen.helpers import get_func_body_from_ast
+from mipengine.udfgen.helpers import get_items_of_type
 from mipengine.udfgen.helpers import get_return_names_from_body
 from mipengine.udfgen.helpers import iotype_to_sql_schema
 from mipengine.udfgen.helpers import is_any_element_of_type
@@ -79,22 +80,12 @@ def breakup_function(func, funcsig) -> FunctionParts:
     tree = parse_func(func)
     body_statements = get_func_body_from_ast(tree)
     return_names = get_return_names_from_body(body_statements)
-    table_input_types = {
-        name: input_type
-        for name, input_type in funcsig.parameters.items()
-        if isinstance(input_type, TableType)
-    }
-    literal_input_types = {
-        name: input_type
-        for name, input_type in funcsig.parameters.items()
-        if isinstance(input_type, LiteralType)
-    }
+    table_input_types = get_items_of_type(TableType, funcsig.parameters)
+    literal_input_types = get_items_of_type(LiteralType, funcsig.parameters)
 
-    logger_param_name = None
-    for name, input_type in funcsig.parameters.items():
-        if isinstance(input_type, UDFLoggerType):
-            logger_param_name = name
-            break  # Only one logger is allowed
+    logger_input_types = get_items_of_type(UDFLoggerType, funcsig.parameters)
+    assert len(logger_input_types) < 2  # Only one logger is allowed
+    logger_param_name = next(iter(logger_input_types.keys()), None)
 
     return FunctionParts(
         qualname=qualname,
@@ -242,10 +233,8 @@ class UDFLoopbackReturnStatements(ASTNode):
     def __init__(self, sec_return_names, sec_return_types):
         self.sec_return_names = sec_return_names
         self.templates = [
-            sec_return_type.get_secondary_return_stmt_template(table_name)
-            for table_name, sec_return_type in _get_loopback_tables_template_names(
-                sec_return_types
-            )
+            table.get_secondary_return_stmt_template(name)
+            for name, table in get_name_loopback_table_pairs(sec_return_types)
         ]
 
     def compile(self) -> str:
@@ -257,12 +246,12 @@ class UDFLoopbackReturnStatements(ASTNode):
         )
 
 
-def _get_loopback_tables_template_names(
+def get_name_loopback_table_pairs(
     output_types: List[LoopbackOutputType],
 ) -> List[Tuple[str, LoopbackOutputType]]:
     """
-    Receives a list of LoopbackOutputType and returns a list of the same
-    LoopbackOutputType with their corresponding table_tmpl_name.
+    Receives a list of LoopbackOutputTypes and returns a list of pairs
+    of table name placeholders and LoopbackOutputTypes.
     """
     return [
         (f"loopback_table_name_{pos}", output_type)
@@ -521,7 +510,6 @@ class TableFunction(ASTNode):
         self.subquery = subquery
         self.alias = alias
 
-    # TODO need to change tests to use alias
     def compile(self, use_alias=False) -> str:
         postfix = f" AS {self.alias}" if self.alias and use_alias else ""
         if self.subquery:
@@ -597,23 +585,10 @@ class SelectClause(ASTNode):
         return LN.join([SELECT, indent(parameters, prefix=SPC4)])
 
 
-def get_distinct_tables(tables):
-    distinct_tables = []
-    for table in tables:
-        table_exists = False
-        for d_table in distinct_tables:
-            if table.name == d_table.name:
-                table_exists = True
-                break
-        if not table_exists:
-            distinct_tables.append(table)
-    return distinct_tables
-
-
 class FromClause(ASTNode):
     def __init__(self, tables, use_alias=True):
-        # Remove duplicate tables, sql doesn't accept "FROM test1, test1
-        self.tables = get_distinct_tables(tables)
+        # Remove duplicate tables, SQL doesn't accept FROM table1, table1
+        self.tables = self._get_distinct_tables(tables)
         self.use_alias = use_alias
 
     def compile(self) -> str:
@@ -621,6 +596,10 @@ class FromClause(ASTNode):
             table.compile(use_alias=self.use_alias) for table in self.tables
         )
         return LN.join([FROM, indent(parameters, prefix=SPC4)])
+
+    @staticmethod
+    def _get_distinct_tables(tables):
+        return {table.name: table for table in tables}.values()
 
 
 class WhereClause(ASTNode):

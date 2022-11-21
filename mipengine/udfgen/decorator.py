@@ -59,13 +59,15 @@ def validate_decorator_parameter_names(parameter_names, decorator_kwargs):
     parameters_not_provided = decorator_parameter_names - parameter_names
     if parameters_not_provided:
         raise UDFBadDefinition(
-            f"The parameters: {','.join(parameters_not_provided)} were not provided in the func definition."
+            f"The parameters: {','.join(parameters_not_provided)} were not provided "
+            "in the func definition."
         )
 
     parameters_not_defined_in_dec = parameter_names - decorator_parameter_names
     if parameters_not_defined_in_dec:
         raise UDFBadDefinition(
-            f"The parameters: {','.join(parameters_not_defined_in_dec)} were not defined in the decorator."
+            f"The parameters: {','.join(parameters_not_defined_in_dec)} were not "
+            "defined in the decorator."
         )
 
 
@@ -74,21 +76,19 @@ def validate_udf_logger(parameter_names, decorator_kwargs):
     udf_logger is a special case of a parameter.
     It won't be provided by the user but from the udfgenerator.
     1) Only one input of this type can exist.
-    2) It must be the final parameter, so it won't create problems with the positional arguments.
+    2) It must be the final parameter, so it won't create problems with the
+    positional arguments.
     """
-    udf_logger_param_name = None
-    for param_name, param_type in decorator_kwargs.items():
-        if isinstance(param_type, UDFLoggerType):
-            if udf_logger_param_name:
-                raise UDFBadDefinition("Only one 'udf_logger' parameter can exist.")
-            udf_logger_param_name = param_name
+    logger_params = get_items_of_type(UDFLoggerType, decorator_kwargs)
+    if len(logger_params) > 1:
+        raise UDFBadDefinition("Only one 'udf_logger' parameter can exist.")
 
-    if not udf_logger_param_name:
-        return
+    logger_param_name = next(iter(logger_params.keys()), None)
 
-    all_parameter_names_but_the_last = parameter_names[:-1]
-    if udf_logger_param_name in all_parameter_names_but_the_last:
+    if logger_param_name and logger_param_name != parameter_names[-1]:
         raise UDFBadDefinition("'udf_logger' must be the last input parameter.")
+
+    return logger_param_name
 
 
 def make_udf_signature(parameter_names, decorator_kwargs):
@@ -137,9 +137,8 @@ def validate_udf_return_statement(func):
         ret_stmt = next(s for s in statements if isinstance(s, ast.Return))
     except StopIteration as stop_iter:
         raise UDFBadDefinition(f"Return statement not found in {func}.") from stop_iter
-    if not isinstance(ret_stmt.value, ast.Name) and not isinstance(
-        ret_stmt.value, ast.Tuple
-    ):
+    ret_val = ret_stmt.value
+    if not isinstance(ret_val, ast.Name) and not isinstance(ret_val, ast.Tuple):
         raise UDFBadDefinition(
             f"Expression in return statement in {func}."
             "Assign expression to variable/s and return it/them."

@@ -269,7 +269,7 @@ class TestUDFGenBase:
                     template_mapping[tablename_placeholder] = tablename_placeholder
             else:
                 pytest.fail(
-                    f"A udf_output must be of the format TableUDFOutput or SMPCUDFOutput."
+                    "A udf_output must be of the format TableUDFOutput or SMPCUDFOutput"
                 )
         return template_mapping
 
@@ -334,7 +334,7 @@ class TestUDFGenBase:
                     )
             else:
                 pytest.fail(
-                    f"A udf_output must be of the format TableUDFOutput or SMPCUDFOutput."
+                    "A udf_output must be of the format TableUDFOutput or SMPCUDFOutput"
                 )
 
         return "\n".join(queries)

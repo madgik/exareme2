@@ -14,7 +14,6 @@ from mipengine.udfgen.ast import UDFBody
 from mipengine.udfgen.ast import UDFBodyStatements
 from mipengine.udfgen.ast import UDFLoopbackReturnStatements
 from mipengine.udfgen.ast import UDFReturnStatement
-from mipengine.udfgen.ast import _get_loopback_tables_template_names
 from mipengine.udfgen.helpers import is_any_element_of_type
 from mipengine.udfgen.iotypes import MAIN_TABLE_PLACEHOLDER
 from mipengine.udfgen.iotypes import DictArg
@@ -106,7 +105,7 @@ class SMPCSecureTransferType(SecureTransferType):
             sum_op_tmpl,
             min_op_tmpl,
             max_op_tmpl,
-        ) = _get_smpc_table_template_names(MAIN_TABLE_PLACEHOLDER)
+        ) = get_smpc_table_template_names(MAIN_TABLE_PLACEHOLDER)
         return_stmts.extend(
             self._get_secure_transfer_op_return_stmt_template(
                 self.sum_op, sum_op_tmpl, "sum_op"
@@ -134,7 +133,7 @@ class SMPCSecureTransferType(SecureTransferType):
             sum_op_tmpl,
             min_op_tmpl,
             max_op_tmpl,
-        ) = _get_smpc_table_template_names(tablename_placeholder)
+        ) = get_smpc_table_template_names(tablename_placeholder)
         return_stmts.append(
             '_conn.execute(f"INSERT INTO $'
             + template_tmpl
@@ -202,7 +201,7 @@ class SMPCSecureTransferType(SecureTransferType):
         return obj
 
 
-def _get_smpc_table_template_names(prefix: str):
+def get_smpc_table_template_names(prefix: str):
     """
     This is used when a secure transfer is returned with smpc enabled.
     The secure_transfer is one output_type but needs to be broken into
