@@ -7,6 +7,7 @@ import numpy
 from pydantic import BaseModel
 
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.udfgen import MIN_ROW_COUNT
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
 from mipengine.udfgen import relation
@@ -23,7 +24,7 @@ class Histogram(BaseModel):
     grouping_var: Optional[str]  # x[i]
     grouping_enum: Optional[str]  # enum of x[i]
     bins: List[Union[float, str]]
-    counts: List[int]
+    counts: List[Optional[int]]
 
 
 class HistogramResult1(BaseModel):
@@ -260,15 +261,29 @@ def compute_local_histogram_categorical_secure(data, metadata, yvar, xvars):
 @udf(
     locals_result=secure_transfer(sum_op=True, min_op=True, max_op=True),
     xvars=literal(),
+    min_row_count=MIN_ROW_COUNT,
     return_type=[transfer()],
 )
-def merge_grouped_histogram_categorical_secure2(locals_result, xvars):
+def merge_grouped_histogram_categorical_secure2(locals_result, xvars, min_row_count):
     return_dict = {}
-    return_dict["categorical_histogram"] = locals_result["categorical_histogram"]
+    histogram_merge = locals_result["categorical_histogram"]
+    return_dict["categorical_histogram"] = [
+        curr_value if curr_value >= min_row_count else None
+        for curr_value in histogram_merge
+    ]
     if xvars:
-        return_dict["grouped_histogram_categorical"] = locals_result[
-            "grouped_histogram_categorical"
-        ]
+        grouped_merge = locals_result["grouped_histogram_categorical"]
+        x_variable_return = []
+        for x_variable in grouped_merge:
+            group_list = []
+            for curr_group in x_variable:
+                elements_list = []
+                for curr_element in curr_group:
+                    curr_value = curr_element if curr_element >= min_row_count else None
+                    elements_list.append(curr_value)
+                group_list.append(elements_list)
+            x_variable_return.append(group_list)
+        return_dict["grouped_histogram_categorical"] = x_variable_return
     return return_dict
 
 
@@ -347,12 +362,30 @@ def compute_local_histogram_numerical_secure2(
     locals_result=secure_transfer(sum_op=True, min_op=True, max_op=True),
     bins_transfer=merge_transfer(),
     xvars=literal(),
+    min_row_count=MIN_ROW_COUNT,
     return_type=[transfer()],
 )
-def merge_grouped_histogram_numerical_secure2(locals_result, bins_transfer, xvars):
+def merge_grouped_histogram_numerical_secure2(
+    locals_result, bins_transfer, xvars, min_row_count
+):
     return_dict = {}
-    return_dict["histogram"] = locals_result["histogram"]
+    histogram_merge = locals_result["histogram"]
+    return_dict["histogram"] = [
+        curr_value if curr_value >= min_row_count else None
+        for curr_value in histogram_merge
+    ]
     if xvars:
-        return_dict["grouped_histogram"] = locals_result["grouped_histogram"]
+        grouped_merge = locals_result["grouped_histogram"]
+        x_variable_return = []
+        for x_variable in grouped_merge:
+            group_list = []
+            for curr_group in x_variable:
+                elements_list = []
+                for curr_element in curr_group:
+                    curr_value = curr_element if curr_element >= min_row_count else None
+                    elements_list.append(curr_value)
+                group_list.append(elements_list)
+            x_variable_return.append(group_list)
+        return_dict["grouped_histogram"] = x_variable_return
     return_dict["numerical_bins"] = bins_transfer[0]["bins"]
     return return_dict

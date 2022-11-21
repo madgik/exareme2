@@ -10,13 +10,15 @@ from pydantic import BaseModel
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
+MIN_ROW_COUNT = 10
+
 
 class Histogram(BaseModel):
     var: str  # y
     grouping_var: Optional[str]  # x[i]
     grouping_enum: Optional[str]  # enum of x[i]
     bins: List[Union[float, str]]
-    counts: List[int]
+    counts: List[Optional[int]]
 
 
 class HistogramResult1(BaseModel):
@@ -217,10 +219,15 @@ class HistogramTestcaseGenerator(TestCaseGenerator):
         """
         return_list = []
         if yvar in nominal_vars:
+            cat_hist = return_dict["categorical"]["categorical_histogram"]
+            counts_privacy = [
+                curr_value if curr_value >= MIN_ROW_COUNT else None
+                for curr_value in cat_hist
+            ]
             categorical_histogram1 = Histogram(
                 var=yvar,
                 bins=list(sorted(enums2[yvar].keys())),
-                counts=return_dict["categorical"]["categorical_histogram"],
+                counts=counts_privacy,
             )
             return_list.append(categorical_histogram1)
             if xvars:
@@ -228,34 +235,51 @@ class HistogramTestcaseGenerator(TestCaseGenerator):
                     possible_groups = sorted(enums2[x_variable].keys())
                     possible_values = sorted(enums2[yvar].keys())
                     for j, curr_group in enumerate(possible_groups):
+                        cat_hist_grouped = return_dict["categorical"][
+                            "grouped_histogram_categorical"
+                        ][i][j]
+                        cat_hist_grouped_privacy = [
+                            curr_value if curr_value >= MIN_ROW_COUNT else None
+                            for curr_value in cat_hist_grouped
+                        ]
                         curr_group_histogram = Histogram(
                             var=yvar,
                             grouping_var=x_variable,
                             grouping_enum=curr_group,
                             bins=possible_values,
-                            counts=return_dict["categorical"][
-                                "grouped_histogram_categorical"
-                            ][i][j],
+                            counts=cat_hist_grouped_privacy,
                         )
                         return_list.append(curr_group_histogram)
 
         else:
+            numerical_histograms_count = return_dict["numerical"]["histogram"]
+            numerical_histograms_count_privacy = [
+                curr_value if curr_value >= MIN_ROW_COUNT else None
+                for curr_value in numerical_histograms_count
+            ]
             numerical_histogram1 = Histogram(
                 var=yvar,
                 bins=return_dict["numerical"]["numerical_bins"],
-                counts=return_dict["numerical"]["histogram"],
+                counts=numerical_histograms_count_privacy,
             )
             return_list.append(numerical_histogram1)
             if xvars:
                 for i, x_variable in enumerate(xvars):
                     possible_groups = sorted(enums2[x_variable].keys())
                     for j, curr_group in enumerate(possible_groups):
+                        grouped_numerical_counts = return_dict["numerical"][
+                            "grouped_histogram"
+                        ][i][j]
+                        grouped_numerical_counts_privacy = [
+                            curr_value if curr_value >= MIN_ROW_COUNT else None
+                            for curr_value in grouped_numerical_counts
+                        ]
                         curr_group_histogram = Histogram(
                             var=yvar,
                             grouping_var=x_variable,
                             grouping_enum=curr_group,
                             bins=return_dict["numerical"]["numerical_bins"],
-                            counts=return_dict["numerical"]["grouped_histogram"][i][j],
+                            counts=grouped_numerical_counts_privacy,
                         )
                         return_list.append(curr_group_histogram)
 
