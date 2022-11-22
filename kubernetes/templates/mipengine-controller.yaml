@@ -23,7 +23,6 @@ spec:
       containers:
       - name: controller
         image: {{ .Values.mipengine_images.repository }}/mipengine_controller:{{ .Values.mipengine_images.version }}
-        imagePullPolicy: IfNotPresent
         ports:
           - containerPort: 5000
         volumeMounts:
@@ -69,7 +68,6 @@ spec:
       {{ if .Values.smpc.enabled }}
       - name: smpc-db
         image: {{ .Values.smpc.db_image}}
-        imagePullPolicy: IfNotPresent
         ports:
           - containerPort: 27017
         env:
@@ -80,7 +78,6 @@ spec:
 
       - name: smpc-queue
         image: {{ .Values.smpc.queue_image}}
-        imagePullPolicy: IfNotPresent
         command: ["redis-server", "--requirepass", "agora"]
         ports:
           - containerPort: 6379
@@ -90,7 +87,6 @@ spec:
 
       - name: smpc-coordinator
         image: {{ .Values.smpc.image }}
-        imagePullPolicy: IfNotPresent
         command: ["python", "coordinator.py"]
         ports:
           - containerPort: 12314
