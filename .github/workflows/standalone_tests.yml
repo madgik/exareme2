@@ -123,10 +123,18 @@ jobs:
 
       - name: Run all standalone tests except the SMPC
         id: non_smpc_tests
+        env:
+          SMPC_CLUSTER_COORDINATOR_URL: ${{ secrets.SMPC_CLUSTER_COORDINATOR_URL }}
+          SMPC_CLUSTER_LOCALNODE1_URL: ${{ secrets.SMPC_CLUSTER_LOCALNODE1_URL }}
+          SMPC_CLUSTER_LOCALNODE2_URL: ${{ secrets.SMPC_CLUSTER_LOCALNODE2_URL }}
         run: poetry run pytest -s -m "not smpc" --cov=mipengine --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
 
       - name: Run SMPC specific standalone tests after releasing previous test resources
         if: success() || ( failure() && steps.non_smpc_tests.outcome == 'failure' )
+        env:
+          SMPC_CLUSTER_COORDINATOR_URL: ${{ secrets.SMPC_CLUSTER_COORDINATOR_URL }}
+          SMPC_CLUSTER_LOCALNODE1_URL: ${{ secrets.SMPC_CLUSTER_LOCALNODE1_URL }}
+          SMPC_CLUSTER_LOCALNODE2_URL: ${{ secrets.SMPC_CLUSTER_LOCALNODE2_URL }}
         run:  |
           poetry run inv cleanup
           poetry run pytest -s -m "smpc" --cov=mipengine --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4

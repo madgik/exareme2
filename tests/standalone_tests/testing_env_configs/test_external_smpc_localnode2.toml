@@ -30,5 +30,5 @@ password = "monetdb"
 enabled = true
 optional = false
 client_id = "ChildrensHospital"
-client_address = "http://138.68.175.83:9001"
-coordinator_address = "http://138.68.175.83:12314"
+client_address = "$SMPC_CLUSTER_LOCALNODE2_URL"
+coordinator_address = "$SMPC_CLUSTER_COORDINATOR_URL"

@@ -103,7 +103,7 @@ if USE_EXTERNAL_SMPC_CLUSTER:
     LOCALNODE1_SMPC_CONFIG_FILE = "test_external_smpc_localnode1.toml"
     LOCALNODE2_SMPC_CONFIG_FILE = "test_external_smpc_localnode2.toml"
     CONTROLLER_SMPC_CONFIG_FILE = "test_external_smpc_controller.toml"
-    SMPC_COORDINATOR_ADDRESS = "http://138.68.175.83:12314"
+    SMPC_COORDINATOR_ADDRESS = os.environ["SMPC_CLUSTER_COORDINATOR_URL"]
 else:
     GLOBALNODE_SMPC_CONFIG_FILE = "test_smpc_globalnode.toml"
     LOCALNODE1_SMPC_CONFIG_FILE = "test_smpc_localnode1.toml"
