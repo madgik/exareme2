@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
-MIN_ROW_COUNT = 10
+MIN_ROW_COUNT = 1
 
 
 class Histogram(BaseModel):
