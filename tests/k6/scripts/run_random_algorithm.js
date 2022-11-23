@@ -14,6 +14,9 @@ const algorithm_names = ['anova_oneway', 'descriptive_stats', 'linear_regression
     'ttest_onesample', 'ttest_paired'
 ];
 
+const datamodel_to_be_replaced = "dementia:0.1"
+const available_datamodels = ["dementia:0.1", "dementia:0.2", "dementia:0.3"];
+
 let algorithms_requests = [];
 algorithm_names.forEach(algo_name =>
     algorithms_requests[algo_name] = new SharedArray(algo_name, function() {
@@ -29,6 +32,10 @@ export default function() {
 
     const algorithm_requests = algorithms_requests[algorithm_name];
     const algorithm_request = algorithm_requests[Math.floor(Math.random() * algorithm_requests.length)];
+    const algorithm_input = JSON.stringify(algorithm_request["input"]);
+
+    const datamodel = available_datamodels[Math.floor(Math.random() * available_datamodels.length)];
+    const algorithm_input_with_random_datamodel = algorithm_input.replace(datamodel_to_be_replaced,datamodel);
 
     const algorithm_url = mip_engine_url + `/${algorithm_name}`;
     const request_params = {
@@ -39,7 +46,7 @@ export default function() {
         timeout: '3600s'
     };
 
-    const res = http.post(algorithm_url, JSON.stringify(algorithm_request["input"]), request_params);
+    const res = http.post(algorithm_url, algorithm_input_with_random_datamodel, request_params);
     console.log(`${algorithm_url}`);
 
     let success = check(res, {"is status 200 or 461": (r) => r.status === 200 || r.status === 461});
