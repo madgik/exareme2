@@ -59,6 +59,14 @@
     {
       "variables": [
         {
+            "isCategorical": false,
+            "label": "subjectcode",
+            "code": "subjectcode",
+            "sql_type": "text",
+            "description": "",
+            "methodology": ""
+        },
+        {
           "isCategorical": false,
           "minValue": 0,
           "code": "age_value",
