@@ -50,7 +50,6 @@ from mipengine.node_tasks_DTOs import SMPCTablesInfo
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.udfgen import TensorBinaryOp
 from mipengine.udfgen import make_unique_func_name
 
 
@@ -319,8 +318,7 @@ class _AlgorithmExecutionInterface:
     # UDFs functionality
     def run_udf_on_local_nodes(
         self,
-        func: Optional[Callable] = None,
-        tensor_op: Optional[TensorBinaryOp] = None,
+        func: Callable,
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_global: Union[bool, Sequence[bool]] = False,
@@ -333,7 +331,7 @@ class _AlgorithmExecutionInterface:
         # 5. create remote tables on global for each of the generated tables
         # 6. create merge table on global node to merge the remote tables
 
-        func_name = get_func_name(func, tensor_op)
+        func_name = get_func_name(func)
         command_id = get_next_command_id()
 
         self._validate_local_run_udf_args(
@@ -517,8 +515,7 @@ class _AlgorithmExecutionInterface:
 
     def run_udf_on_global_node(
         self,
-        func: Optional[Callable] = None,
-        tensor_op: Optional[TensorBinaryOp] = None,
+        func: Callable,
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_locals: Union[bool, Sequence[bool]] = False,
@@ -530,7 +527,7 @@ class _AlgorithmExecutionInterface:
         # 4. a(or multiple) new table(s) was generated on global node
         # 5. queue create_remote_table on each of the local nodes to share the generated table
 
-        func_name = get_func_name(func, tensor_op)
+        func_name = get_func_name(func)
         command_id = get_next_command_id()
 
         self._validate_global_run_udf_args(
@@ -750,19 +747,9 @@ def get_next_command_id() -> int:
     return get_next_command_id.index
 
 
-def get_func_name(
-    func: Optional[Callable] = None,
-    tensor_op: Optional[TensorBinaryOp] = None,
-) -> str:
-    if func and tensor_op:
-        raise ValueError("'func' and 'tensor_op' cannot be used at the same time.")
-
-    if tensor_op:
-        return tensor_op.name
-
+def get_func_name(func: Callable) -> str:
     if isinstance(func, str):
         return func
-
     return make_unique_func_name(func)
 
 
