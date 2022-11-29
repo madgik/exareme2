@@ -46,7 +46,7 @@ SQLAlchemy = "~1.3.0"
 statsmodels = "^0.13.2"
 psutil = "^5.9.0"
 pytest-subtests = "^0.8.0"
-mipdb = "0.5.2"
+mipdb = "0.5.4"
 
 
 [tool.pytest.ini_options]
