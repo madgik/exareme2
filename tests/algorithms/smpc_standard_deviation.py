@@ -2,6 +2,7 @@ import json
 from typing import TypeVar
 
 from mipengine.algorithm_result_DTOs import TabularDataResult
+from mipengine.algorithms.algorithm import Algorithm
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.udfgen import relation
@@ -12,58 +13,60 @@ from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
 
-def run(algo_interface):
-    local_run = algo_interface.run_udf_on_local_nodes
-    global_run = algo_interface.run_udf_on_global_node
+class StandartDeviationSMPCAlgorithm(Algorithm, algname="smpc_standard_deviation"):
+    def get_variable_groups(self):
+        return [self.executor.y_variables]
 
-    Y_relation, *_ = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.y_variables],
-    )
+    def run(self):
+        local_run = self.executor.run_udf_on_local_nodes
+        global_run = self.executor.run_udf_on_global_node
 
-    Y = local_run(
-        func=relation_to_matrix,
-        positional_args=[Y_relation],
-    )
+        Y_relation = self.executor.data_model_views[0]
 
-    local_state, local_result = local_run(
-        func=smpc_local_step_1,
-        positional_args=[Y],
-        share_to_global=[False, True],
-    )
+        Y = local_run(
+            func=relation_to_matrix,
+            positional_args=[Y_relation],
+        )
 
-    global_state, global_result = global_run(
-        func=smpc_global_step_1,
-        positional_args=[local_result],
-        share_to_locals=[False, True],
-    )
+        local_state, local_result = local_run(
+            func=smpc_local_step_1,
+            positional_args=[Y],
+            share_to_global=[False, True],
+        )
 
-    local_result = local_run(
-        func=smpc_local_step_2,
-        positional_args=[local_state, global_result],
-        share_to_global=True,
-    )
+        global_state, global_result = global_run(
+            func=smpc_global_step_1,
+            positional_args=[local_result],
+            share_to_locals=[False, True],
+        )
 
-    global_result = global_run(
-        func=smpc_global_step_2,
-        positional_args=[global_state, local_result],
-    )
+        local_result = local_run(
+            func=smpc_local_step_2,
+            positional_args=[local_state, global_result],
+            share_to_global=True,
+        )
 
-    result_data = json.loads(global_result.get_table_data()[0][0])
-    std_deviation = result_data["deviation"]
-    min_value = result_data["min_value"]
-    max_value = result_data["max_value"]
-    y_variables = algo_interface.y_variables
+        global_result = global_run(
+            func=smpc_global_step_2,
+            positional_args=[global_state, local_result],
+        )
 
-    result = TabularDataResult(
-        title="Standard Deviation",
-        columns=[
-            ColumnDataStr(name="variable", data=y_variables),
-            ColumnDataFloat(name="std_deviation", data=[std_deviation]),
-            ColumnDataFloat(name="min_value", data=[min_value]),
-            ColumnDataFloat(name="max_value", data=[max_value]),
-        ],
-    )
-    return result
+        result_data = json.loads(global_result.get_table_data()[0][0])
+        std_deviation = result_data["deviation"]
+        min_value = result_data["min_value"]
+        max_value = result_data["max_value"]
+        y_variables = self.executor.y_variables
+
+        result = TabularDataResult(
+            title="Standard Deviation",
+            columns=[
+                ColumnDataStr(name="variable", data=y_variables),
+                ColumnDataFloat(name="std_deviation", data=[std_deviation]),
+                ColumnDataFloat(name="min_value", data=[min_value]),
+                ColumnDataFloat(name="max_value", data=[max_value]),
+            ],
+        )
+        return result
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ UDFs ~~~~~~~~~~~~~~~~~~~~~~~~~~ #

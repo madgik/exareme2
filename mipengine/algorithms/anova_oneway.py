@@ -3,6 +3,7 @@ from typing import TypeVar
 import pandas as pd
 from pydantic import BaseModel
 
+from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen.udfgenerator import literal
@@ -20,83 +21,86 @@ class AnovaResult(BaseModel):
     ci_info: dict
 
 
-def run(algo_interface):
-    local_run = algo_interface.run_udf_on_local_nodes
-    global_run = algo_interface.run_udf_on_global_node
+class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
+    def get_variable_groups(self):
+        return [self.executor.x_variables, self.executor.y_variables]
 
-    X_relation, Y_relation = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
-    )
+    def run(self):
+        local_run = self.executor.run_udf_on_local_nodes
+        global_run = self.executor.run_udf_on_global_node
 
-    [x_var_name] = algo_interface.x_variables
-    [y_var_name] = algo_interface.y_variables
+        X_relation = self.executor.data_model_views[0]
+        Y_relation = self.executor.data_model_views[1]
 
-    covar_enums = list(algo_interface.metadata[x_var_name]["enumerations"])
+        [x_var_name] = self.executor.x_variables
+        [y_var_name] = self.executor.y_variables
 
-    sec_local_transfer, local_transfers = local_run(
-        func=local1,
-        keyword_args=dict(y=Y_relation, x=X_relation, covar_enums=covar_enums),
-        share_to_global=[True, True],
-    )
+        covar_enums = list(self.executor.metadata[x_var_name]["enumerations"])
 
-    result = global_run(
-        func=global1,
-        keyword_args=dict(
-            sec_local_transfer=sec_local_transfer, local_transfers=local_transfers
-        ),
-    )
+        sec_local_transfer, local_transfers = local_run(
+            func=local1,
+            keyword_args=dict(y=Y_relation, x=X_relation, covar_enums=covar_enums),
+            share_to_global=[True, True],
+        )
 
-    result = get_transfer_data(result)
-    anova_result = {
-        "n_obs": result["n_obs"],
-        "y_label": y_var_name,
-        "x_label": x_var_name,
-        "df_residual": result["df_residual"],
-        "df_explained": result["df_explained"],
-        "ss_residual": result["ss_residual"],
-        "ss_explained": result["ss_explained"],
-        "ms_residual": result["ms_residual"],
-        "ms_explained": result["ms_explained"],
-        "p_value": result["p_value"],
-        "f_stat": result["f_stat"],
-    }
+        result = global_run(
+            func=global1,
+            keyword_args=dict(
+                sec_local_transfer=sec_local_transfer, local_transfers=local_transfers
+            ),
+        )
 
-    tukey_result = {
-        "groupA": result["thsd A"],
-        "groupB": result["thsd B"],
-        "meanA": result["thsd mean(A)"],
-        "meanB": result["thsd mean(B)"],
-        "diff": result["thsd diff"],
-        "se": result["thsd Std.Err."],
-        "t_stat": result["thsd t value"],
-        "p_tuckey": result["thsd Pr(>|t|)"],
-    }
-    df_tukey_result = pd.DataFrame(tukey_result)
-    tukey_test = df_tukey_result.to_dict(orient="records")
+        result = get_transfer_data(result)
+        anova_result = {
+            "n_obs": result["n_obs"],
+            "y_label": y_var_name,
+            "x_label": x_var_name,
+            "df_residual": result["df_residual"],
+            "df_explained": result["df_explained"],
+            "ss_residual": result["ss_residual"],
+            "ss_explained": result["ss_explained"],
+            "ms_residual": result["ms_residual"],
+            "ms_explained": result["ms_explained"],
+            "p_value": result["p_value"],
+            "f_stat": result["f_stat"],
+        }
 
-    means = result["means"]
-    sample_stds = result["sample_stds"]
-    categories = result["categories"]
-    var_min_per_group = result["var_min_per_group"]
-    var_max_per_group = result["var_max_per_group"]
-    group_stats_index = result["group_stats_index"]
+        tukey_result = {
+            "groupA": result["thsd A"],
+            "groupB": result["thsd B"],
+            "meanA": result["thsd mean(A)"],
+            "meanB": result["thsd mean(B)"],
+            "diff": result["thsd diff"],
+            "se": result["thsd Std.Err."],
+            "t_stat": result["thsd t value"],
+            "p_tuckey": result["thsd Pr(>|t|)"],
+        }
+        df_tukey_result = pd.DataFrame(tukey_result)
+        tukey_test = df_tukey_result.to_dict(orient="records")
 
-    min_max_per_group, ci_info = get_min_max_ci_info(
-        means,
-        sample_stds,
-        categories,
-        var_min_per_group,
-        var_max_per_group,
-        group_stats_index,
-    )
-    anova_table = AnovaResult(
-        anova_table=anova_result,
-        tuckey_test=tukey_test,
-        min_max_per_group=min_max_per_group,
-        ci_info=ci_info,
-    )
+        means = result["means"]
+        sample_stds = result["sample_stds"]
+        categories = result["categories"]
+        var_min_per_group = result["var_min_per_group"]
+        var_max_per_group = result["var_max_per_group"]
+        group_stats_index = result["group_stats_index"]
 
-    return anova_table
+        min_max_per_group, ci_info = get_min_max_ci_info(
+            means,
+            sample_stds,
+            categories,
+            var_min_per_group,
+            var_max_per_group,
+            group_stats_index,
+        )
+        anova_table = AnovaResult(
+            anova_table=anova_result,
+            tuckey_test=tukey_test,
+            min_max_per_group=min_max_per_group,
+            ci_info=ci_info,
+        )
+
+        return anova_table
 
 
 S = TypeVar("S")

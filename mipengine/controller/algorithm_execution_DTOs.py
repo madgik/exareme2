@@ -19,7 +19,7 @@ class AlgorithmExecutionDTO(BaseModel):
     datasets_per_local_node: Dict[str, List[str]]
     x_vars: Optional[List[str]] = None
     y_vars: Optional[List[str]] = None
-    var_filters: dict = None
+    var_filters: Optional[dict] = None
     algo_parameters: Optional[Dict[str, Any]] = None
     algo_flags: Optional[Dict[str, Any]] = None
 

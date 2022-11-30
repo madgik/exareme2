@@ -1,6 +1,7 @@
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen.udfgenerator import literal
@@ -20,42 +21,47 @@ class TtestResult(BaseModel):
     cohens_d: float
 
 
-def run(algo_interface):
-    local_run = algo_interface.run_udf_on_local_nodes
-    global_run = algo_interface.run_udf_on_global_node
-    alpha = algo_interface.algorithm_parameters["alpha"]
-    alternative = algo_interface.algorithm_parameters["alt_hypothesis"]
+class PairedTTestAlgorithm(Algorithm, algname="ttest_paired"):
+    def get_variable_groups(self):
+        return [self.executor.x_variables, self.executor.y_variables]
 
-    X_relation, Y_relation = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
-    )
+    def run(self):
+        local_run = self.executor.run_udf_on_local_nodes
+        global_run = self.executor.run_udf_on_global_node
+        alpha = self.executor.algorithm_parameters["alpha"]
+        alternative = self.executor.algorithm_parameters["alt_hypothesis"]
 
-    sec_local_transfer = local_run(
-        func=local_paired,
-        keyword_args=dict(y=Y_relation, x=X_relation),
-        share_to_global=[True],
-    )
+        X_relation = self.executor.data_model_views[0]
+        Y_relation = self.executor.data_model_views[1]
 
-    result = global_run(
-        func=global_paired,
-        keyword_args=dict(
-            sec_local_transfer=sec_local_transfer, alpha=alpha, alternative=alternative
-        ),
-    )
+        sec_local_transfer = local_run(
+            func=local_paired,
+            keyword_args=dict(y=Y_relation, x=X_relation),
+            share_to_global=[True],
+        )
 
-    result = get_transfer_data(result)
-    res = TtestResult(
-        t_stat=result["t_stat"],
-        df=result["df"],
-        p=result["p"],
-        mean_diff=result["mean_diff"],
-        se_diff=result["se_diff"],
-        ci_upper=result["ci_upper"],
-        ci_lower=result["ci_lower"],
-        cohens_d=result["cohens_d"],
-    )
+        result = global_run(
+            func=global_paired,
+            keyword_args=dict(
+                sec_local_transfer=sec_local_transfer,
+                alpha=alpha,
+                alternative=alternative,
+            ),
+        )
 
-    return res
+        result = get_transfer_data(result)
+        res = TtestResult(
+            t_stat=result["t_stat"],
+            df=result["df"],
+            p=result["p"],
+            mean_diff=result["mean_diff"],
+            se_diff=result["se_diff"],
+            ci_upper=result["ci_upper"],
+            ci_lower=result["ci_lower"],
+            cohens_d=result["cohens_d"],
+        )
+
+        return res
 
 
 @udf(
