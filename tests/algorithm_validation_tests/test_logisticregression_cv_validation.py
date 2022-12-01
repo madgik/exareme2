@@ -19,7 +19,7 @@ expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected
         skip_indices=[5, 12, 18, 19],  # [5, 6, 9, 12, 18, 19, 22, 17]
         skip_reason="Tests 5, 9, 12, 18, 19, 22 results in empty tables, "
         "https://team-1617704806227.atlassian.net/browse/MIP-634.\n"
-        "Test 17 fails to converge in CI, "
+        "Test 17 fails to converge in CI, but succeeds when run locally"
         "https://team-1617704806227.atlassian.net/browse/MIP-680."
         "Test 5 seems to fail only on the one-node deployment",
     ),
