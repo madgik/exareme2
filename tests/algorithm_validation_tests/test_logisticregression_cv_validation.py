@@ -20,7 +20,7 @@ expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected
         skip_reason="Tests 5, 9, 12, 18, 19, 22 results in empty tables, "
         "https://team-1617704806227.atlassian.net/browse/MIP-634.\n"
         "Test 17 fails to converge in CI, "
-        "https://team-1617704806227.atlassian.net/browse/MIP-680.",
+        "https://team-1617704806227.atlassian.net/browse/MIP-680."
         "Test 5 seems to fail only on the one-node deployment"
     ),
 )
