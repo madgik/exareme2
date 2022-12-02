@@ -60,17 +60,20 @@ def create_view(
     view_rows_result_row = view_rows_query_result[0]
     view_rows_count = view_rows_result_row[0]
 
-    if view_rows_count < MINIMUM_ROW_COUNT:
+    if view_rows_count < 1:
         db_execute(f"""DROP VIEW {view_name}""")
-        if check_min_rows:
-            raise InsufficientDataError(
-                f"Query: {view_creation_query} creates a view that has less rows than the "
-                f"{MINIMUM_ROW_COUNT=}). ({view_name=} has been DROPed)"
-            )
-        elif view_rows_count < 1:
-            raise InsufficientDataError(
-                f"Query: {view_creation_query} creates an empty view. ({view_name=} has been DROPed)"
-            )
+        raise InsufficientDataError(
+            f"{view_rows_count=} "
+            f"Query: {view_creation_query} creates an empty view(zero row count). "
+            f"({view_name=} has been DROPed)"
+        )
+    elif check_min_rows and view_rows_count < MINIMUM_ROW_COUNT:
+        db_execute(f"""DROP VIEW {view_name}""")
+        raise InsufficientDataError(
+            f"Query: {view_creation_query} creates a view that has a row "
+            f"count={view_rows_count} wich is less than the "
+            f"{MINIMUM_ROW_COUNT=}). ({view_name=} has been DROPed)"
+        )
 
     view_schema = get_table_schema(view_name)
     ordered_view_schema = _get_ordered_table_schema(view_schema, columns)
