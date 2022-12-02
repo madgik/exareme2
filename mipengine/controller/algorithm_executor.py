@@ -42,6 +42,7 @@ from mipengine.controller.algorithm_flow_data_objects import (
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
+from mipengine.exceptions import InsufficientDataError
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
 from mipengine.node_tasks_DTOs import NodeTableDTO
@@ -297,21 +298,49 @@ class _AlgorithmExecutionInterface:
         """
 
         command_id = str(get_next_command_id())
-        views_per_localnode = [
-            (
-                local_node,
-                local_node.create_data_model_views(
-                    command_id=command_id,
-                    data_model=self._data_model,
-                    datasets=self.datasets_per_local_node[local_node.node_id],
-                    columns_per_view=variable_groups,
-                    filters=self._var_filters,
-                    dropna=dropna,
-                    check_min_rows=check_min_rows,
-                ),
+        views_per_localnode = []
+        nodes_with_insuffiecient_data = []
+        for local_node in self._local_nodes:
+            try:
+                views_per_localnode.append(
+                    (
+                        local_node,
+                        local_node.create_data_model_views(
+                            command_id=command_id,
+                            data_model=self._data_model,
+                            datasets=self.datasets_per_local_node[local_node.node_id],
+                            columns_per_view=variable_groups,
+                            filters=self._var_filters,
+                            dropna=dropna,
+                            check_min_rows=check_min_rows,
+                        ),
+                    )
+                )
+
+            except InsufficientDataError:
+                nodes_with_insuffiecient_data.append(local_node)
+
+        # remove nodes generating wview tables with insufficient
+        # data(zero rows or row count less than .deployment.toml::minimum_row_count)
+        # TODO: removing nodes should not happen in here (jira issue link?)
+        if nodes_with_insuffiecient_data:
+            for node in nodes_with_insuffiecient_data:
+                self._local_nodes.remove(node)
+
+            if not self._local_nodes:
+                raise InsufficientDataError(
+                    "None of the nodes has enough data to execute the "
+                    "algorithm. Algorithm with context_id="
+                    f"{self._global_node.context_id} is aborted"
+                )
+
+            self._logger.info(
+                f"Removed nodes:{nodes_with_insuffiecient_data} from algorithm with "
+                f"context_id:{self._global_node.context_id}, because at least "
+                f"one of the 'primary data views' created on each of these nodes "
+                f"contained insufficient rows. The algorithm will continue "
+                f"executing on nodes: {self._local_nodes}"
             )
-            for local_node in self._local_nodes
-        ]
 
         return _convert_views_per_localnode_to_local_nodes_tables(views_per_localnode)
 
