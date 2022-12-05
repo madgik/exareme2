@@ -47,7 +47,6 @@ def run(algo_interface):
 
     vars = [var for var in xvars + yvars if var != "dataset"]
 
-    numerical_vars = [var for var in vars if not metadata[var]["is_categorical"]]
     nominal_vars = [var for var in vars if metadata[var]["is_categorical"]]
 
     enumerations_dict = {var: metadata[var]["enumerations"] for var in nominal_vars}
