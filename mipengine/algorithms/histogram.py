@@ -12,7 +12,6 @@ from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
-from mipengine.udfgen import state
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
@@ -38,7 +37,6 @@ def run(algo_interface):
     xvars = algo_interface.x_variables or []
     yvars = algo_interface.y_variables or []
 
-    # bins = 20
     bins = algo_interface.algorithm_parameters["bins"]
 
     [data] = algo_interface.create_primary_data_views(
@@ -46,20 +44,18 @@ def run(algo_interface):
     )
 
     metadata = dict(algo_interface.metadata)
-    # print(metadata)
+
     vars = [var for var in xvars + yvars if var != "dataset"]
 
     numerical_vars = [var for var in vars if not metadata[var]["is_categorical"]]
     nominal_vars = [var for var in vars if metadata[var]["is_categorical"]]
 
     enumerations_dict = {var: metadata[var]["enumerations"] for var in nominal_vars}
-    print(enumerations_dict)
 
     yvar = yvars[0]
     if yvar in xvars:
         xvars.remove(yvar)
-    print(yvar)
-    print(xvars)
+
     if yvar in nominal_vars:
         locals_result = local_run(
             func=compute_local_histogram_categorical_secure,
@@ -77,13 +73,11 @@ def run(algo_interface):
         numerical_histogram = {}
 
     else:
-        # find_min_max_local()
         local_result4 = local_run(
             func=find_min_max_local,
             positional_args=[data, yvar],
             share_to_global=[True],
         )
-        # find_min_max_global()
         min_max_result = get_transfer_data(
             global_run(
                 func=find_min_max_global,
@@ -93,7 +87,6 @@ def run(algo_interface):
         )
         min_value = min_max_result["min_value"]
         max_value = min_max_result["max_value"]
-        # compute_local_histogram_numerical(data,bins,yvar,xvars,min_value,max_value)
         local_result5, bins_transfer = local_run(
             func=compute_local_histogram_numerical_secure2,
             positional_args=[
@@ -107,7 +100,6 @@ def run(algo_interface):
             ],
             share_to_global=[True, True],
         )
-        # merge_local_histogram_numerical(local_transfers)
 
         numerical_histogram = get_transfer_data(
             global_run(
@@ -117,20 +109,19 @@ def run(algo_interface):
             )
         )
         categorical_histogram = {}
-        print(numerical_histogram["numerical_bins"])
 
     return_list = []
     if yvar in nominal_vars:
         categorical_histogram1 = Histogram(
             var=yvar,
-            bins=list(sorted(enumerations_dict[yvar].keys())),
+            bins=list(enumerations_dict[yvar].keys()),
             counts=categorical_histogram["categorical_histogram"],
         )
         return_list.append(categorical_histogram1)
         if xvars:
             for i, x_variable in enumerate(xvars):
-                possible_groups = sorted(enumerations_dict[x_variable].keys())
-                possible_values = sorted(enumerations_dict[yvar].keys())
+                possible_groups = enumerations_dict[x_variable].keys()
+                possible_values = enumerations_dict[yvar].keys()
                 for j, curr_group in enumerate(possible_groups):
                     curr_group_histogram = Histogram(
                         var=yvar,
@@ -152,7 +143,7 @@ def run(algo_interface):
         return_list.append(numerical_histogram1)
         if xvars:
             for i, x_variable in enumerate(xvars):
-                possible_groups = sorted(enumerations_dict[x_variable].keys())
+                possible_groups = enumerations_dict[x_variable].keys()
                 for j, curr_group in enumerate(possible_groups):
                     curr_group_histogram = Histogram(
                         var=yvar,
@@ -209,7 +200,7 @@ def compute_local_histogram_categorical_secure(data, metadata, yvar, xvars):
     possible_enumerations = metadata[yvar].keys()
     local_counts = data[yvar].value_counts().to_dict()
     categorical_histogram_list = []
-    for curr_key in sorted(possible_enumerations):
+    for curr_key in possible_enumerations:
         curr_value = local_counts.get(curr_key, 0)
         categorical_histogram_list.append(curr_value)
 
@@ -230,7 +221,7 @@ def compute_local_histogram_categorical_secure(data, metadata, yvar, xvars):
                 )
             final_dict[x_variable] = local_grouped_histogram
 
-            possible_groups = sorted(metadata[x_variable].keys())
+            possible_groups = metadata[x_variable].keys()
 
             for curr_group in possible_groups:
                 curr_result = final_dict[x_variable].get(curr_group, {})
@@ -238,8 +229,8 @@ def compute_local_histogram_categorical_secure(data, metadata, yvar, xvars):
 
         grouped_list = []
         for x_variable in xvars:
-            possible_groups = sorted(metadata[x_variable].keys())
-            possible_values = sorted(metadata[yvar].keys())
+            possible_groups = metadata[x_variable].keys()
+            possible_values = metadata[yvar].keys()
             groups_list = []
             for curr_group in possible_groups:
                 elements_list = []
@@ -300,7 +291,6 @@ def merge_grouped_histogram_categorical_secure2(locals_result, xvars, min_row_co
 def compute_local_histogram_numerical_secure2(
     data, metadata, bins, yvar, xvars, min_value, max_value
 ):
-    # yvar = algo_interface.y_variables[0]
     def hist_func(x, min_value, max_value, bins=20):
         hist, bins = numpy.histogram(x, range=(min_value, max_value), bins=bins)
         return hist
@@ -332,11 +322,9 @@ def compute_local_histogram_numerical_secure2(
                 .to_dict()
             )
             final_dict[x_variable] = local_grouped_histogram
-        # transfer_={}
-        # transfer_['grouped_histogram']= final_dict
 
         for x_variable in xvars:
-            for curr_group in sorted(metadata[x_variable].keys()):
+            for curr_group in metadata[x_variable].keys():
                 result = final_dict[x_variable].get(
                     curr_group, numpy.zeros(bins, dtype="int64").tolist()
                 )
@@ -344,7 +332,7 @@ def compute_local_histogram_numerical_secure2(
         x_variables_list = []
         for x_variable in xvars:
             groups_list = []
-            for curr_group in sorted(metadata[x_variable].keys()):
+            for curr_group in metadata[x_variable].keys():
                 curr_element = final_dict[x_variable][curr_group]
                 groups_list.append(curr_element)
             x_variables_list.append(groups_list)

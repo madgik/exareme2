@@ -19,12 +19,5 @@ def test_histogram(test_input, expected):
         raise ValueError(f"The result is not valid json:\n{response.text}") from None
 
     # sort records by variable and dataset in order to compare them
-    """
-    expected_numerical = expected["numerical"]
-    expected_categorical = expected["categorical"]
 
-    result_numerical = result["numerical"]
-    result_categorical = result["categorical"]
-    """
     assert expected["histogram"] == result["histogram"]
-    # assert expected_categorical == result_categorical
