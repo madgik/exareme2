@@ -3,6 +3,7 @@ from typing import List
 from mipengine.exceptions import InsufficientDataError
 from mipengine.filters import build_filter_clause
 from mipengine.node import config as node_config
+from mipengine.node import node_logger
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.guard import is_list_of_identifiers
@@ -60,19 +61,11 @@ def create_view(
     view_rows_result_row = view_rows_query_result[0]
     view_rows_count = view_rows_result_row[0]
 
-    if view_rows_count < 1:
+    if view_rows_count < 1 or (check_min_rows and view_rows_count < MINIMUM_ROW_COUNT):
         db_execute(f"""DROP VIEW {view_name}""")
         raise InsufficientDataError(
-            f"{view_rows_count=} "
-            f"Query: {view_creation_query} creates an empty view(zero row count). "
-            f"({view_name=} has been DROPed)"
-        )
-    elif check_min_rows and view_rows_count < MINIMUM_ROW_COUNT:
-        db_execute(f"""DROP VIEW {view_name}""")
-        raise InsufficientDataError(
-            f"Query: {view_creation_query} creates a view that has a row "
-            f"count={view_rows_count} wich is less than the "
-            f"{MINIMUM_ROW_COUNT=}). ({view_name=} has been DROPed)"
+            f"Query: {view_creation_query} creates an "
+            f"insufficient data view. ({view_name=} has been dropped)"
         )
 
     view_schema = get_table_schema(view_name)
