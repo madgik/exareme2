@@ -59,13 +59,13 @@ def run(algo_interface):
     # )
 
     centers_local = local_run(
-        func=init_centers_local,
-        positional_args=[X_not_null, n_clusters],
+        func=init_centers_local2,
+        positional_args=[X_not_null],
         share_to_global=[True],
     )
 
     global_state, global_result = global_run(
-        func=init_centers_global,
+        func=init_centers_global2,
         positional_args=[centers_local, n_clusters],
         share_to_locals=[False, True],
     )
@@ -146,6 +146,49 @@ def init_centers_local(X, n_clusters):
     # np.random.rand(n_samples,n_clusters)
     transfer_ = {"centers": centers.tolist()}
     return transfer_
+
+
+@udf(
+    X=tensor(T, 2), return_type=[secure_transfer(sum_op=True, min_op=True, max_op=True)]
+)
+def init_centers_local2(X):
+    import numpy
+
+    min_vals = numpy.nanmin(X, axis=0)
+
+    max_vals = numpy.nanmax(X, axis=0)
+
+    secure_transfer_ = {
+        "min": {"data": min_vals.tolist(), "operation": "min", "type": "float"},
+        "max": {"data": max_vals.tolist(), "operation": "max", "type": "float"},
+    }
+
+    return secure_transfer_
+
+
+@udf(
+    min_max_transfer=secure_transfer(sum_op=True, min_op=True, max_op=True),
+    n_clusters=literal(),
+    return_type=[state(), transfer()],
+)
+def init_centers_global2(min_max_transfer, n_clusters):
+    import numpy
+
+    min_vals = min_max_transfer["min"]
+    max_vals = min_max_transfer["max"]
+
+    min_array = numpy.array(min_vals)
+    max_array = numpy.array(max_vals)
+
+    random_state = numpy.random.RandomState(seed=123)
+
+    centers_global = random_state.uniform(
+        low=min_array, high=max_array, size=(n_clusters, min_array.shape[0])
+    )
+
+    transfer_ = {"centers": centers_global.tolist()}
+    state_ = {"centers": centers_global.tolist()}
+    return state_, transfer_
 
 
 @udf(
