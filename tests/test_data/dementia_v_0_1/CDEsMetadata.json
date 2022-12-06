@@ -159,6 +159,14 @@
     {
       "variables": [
         {
+            "isCategorical": false,
+            "label": "subjectcode",
+            "code": "subjectcode",
+            "sql_type": "text",
+            "description": "",
+            "methodology": ""
+        },
+        {
           "isCategorical": false,
           "code": "av45",
           "sql_type": "real",

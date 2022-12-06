@@ -31,4 +31,4 @@ enabled = true
 optional = false
 client_id = ""
 client_address = ""
-coordinator_address = "http://138.68.175.83:12314"
+coordinator_address = "http://161.35.36.151:12314"
