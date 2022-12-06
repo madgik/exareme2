@@ -24,7 +24,7 @@ class PearsonResult(BaseModel):
 class PearsonCorrelationAlgorithm(Algorithm, algname="pearson_correlation"):
     def get_variable_groups(self):
         if self.executor.x_variables:
-            variable_groups = ([self.executor.y_variables, self.executor.x_variables],)
+            variable_groups = [self.executor.x_variables, self.executor.y_variables]
 
         else:
             variable_groups = [self.executor.y_variables, self.executor.y_variables]
