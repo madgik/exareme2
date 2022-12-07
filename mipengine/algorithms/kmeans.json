@@ -13,7 +13,7 @@
 			"stattypes": [
 				"numerical"
 			],
-			"notblank": false,
+			"notblank": true,
 			"multiple": true
 		}
 
@@ -33,7 +33,7 @@
 		"tol": {
 			"label": "tol",
 			"desc": "tol",
-			"type": "real",
+			"type": "float",
 			"default": 0.0001,
 			"min": 0.0,
 			"max": 1.0,

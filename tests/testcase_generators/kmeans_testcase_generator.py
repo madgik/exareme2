@@ -22,9 +22,11 @@ class KmeansTestcaseGenerator(TestCaseGenerator):
         tol = parameters["tol"]
         maxiter = parameters["maxiter"]
 
-        X, _ = input_data
+        X, Y = input_data
 
         X_val = X.values
+
+        print(X_val.shape)
 
         max_vals = numpy.nanmax(X_val, axis=0)
         min_vals = numpy.nanmin(X_val, axis=0)
@@ -32,12 +34,11 @@ class KmeansTestcaseGenerator(TestCaseGenerator):
         random_state = numpy.random.RandomState(seed=123)
 
         centers_init = random_state.uniform(
-            low=min_array, high=max_array, size=(k, min_vals.shape[0])
+            low=min_vals, high=max_vals, size=(k, min_vals.shape[0])
         )
 
-        kmeans = KMeans(n_clusters=k, init=centers_init, max_iter=maxiter, tol=tol).fit(
-            X
-        )
+        kmeans = KMeans(n_clusters=k, init=centers_init, max_iter=maxiter, tol=tol)
+        kmeans.fit(X_val)
 
         ret_val = {}
         ret_val["centers"] = kmeans.cluster_centers_.tolist()
