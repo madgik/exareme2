@@ -277,12 +277,12 @@ class AlgorithmExecutor:
                 raise InsufficientDataError(
                     "None of the nodes has enough data to execute the "
                     "algorithm. Algorithm with context_id="
-                    f"{self._global_node.context_id} is aborted"
+                    f"{self._context_id} is aborted"
                 )
 
             self._logger.info(
                 f"Removed nodes:{nodes_with_insuffiecient_data} from algorithm with "
-                f"context_id:{self._global_node.context_id}, because at least "
+                f"context_id:{self._context_id}, because at least "
                 f"one of the 'data model views' created on each of these nodes "
                 f"contained insufficient rows. The algorithm will continue "
                 f"executing on nodes: {self._local_nodes}"
