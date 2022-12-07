@@ -39,10 +39,12 @@ class KmeansTestcaseGenerator(TestCaseGenerator):
 
         kmeans = KMeans(n_clusters=k, init=centers_init, max_iter=maxiter, tol=tol)
         kmeans.fit(X_val)
-
+        print(k)
+        print(kmeans.cluster_centers_.shape)
         ret_val = {}
         ret_val["init_centers"] = centers_init.tolist()
         ret_val["centers"] = kmeans.cluster_centers_.tolist()
+        ret_val["n_iter"] = kmeans.n_iter_
         return ret_val
 
 

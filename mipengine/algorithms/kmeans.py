@@ -110,12 +110,13 @@ def run(algo_interface):
 
         diff = numpy.sum((new_centers_array - old_centers_array) ** 2)
 
-        if (curr_iter > maxiter) or (diff < tol):
+        if (curr_iter >= maxiter) or (diff < tol):
             ret_obj = KmeansResult(
                 title="K-Means Centers",
                 centers=new_centers_array.tolist(),
                 init_centers=init_centers_list,
             )
+            print("finished after " + str(curr_iter))
             return ret_obj
 
         else:
@@ -281,7 +282,7 @@ def compute_centers_from_metrics(transfers, n_clusters):
         if curr_count != 0:
             final_i = curr_sum / curr_count
         else:
-            final_i = curr_sum
+            final_i = numpy.zeros((1, n_dim))
 
         # final_i = curr_sum / curr_count
         centers.append(final_i)
