@@ -105,7 +105,7 @@ def local1(y, x):
     sx = X.sum(axis=0)
     sy = Y.sum(axis=0)
     sxx = (X**2).sum(axis=0)
-    sxy = (X * Y.T[:, :, numpy.newaxis]).sum(axis=1)
+    sxy = (X.T @ Y).T
     syy = (Y**2).sum(axis=0)
 
     transfer_ = {}

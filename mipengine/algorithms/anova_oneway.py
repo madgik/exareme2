@@ -4,13 +4,13 @@ import pandas as pd
 from pydantic import BaseModel
 
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.udfgen import literal
+from mipengine.udfgen import merge_transfer
+from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
-from mipengine.udfgen.udfgenerator import literal
-from mipengine.udfgen.udfgenerator import merge_transfer
-from mipengine.udfgen.udfgenerator import relation
-from mipengine.udfgen.udfgenerator import transfer
-from mipengine.udfgen.udfgenerator import udf
-from mipengine.udfgen.udfgenerator import udf_logger
+from mipengine.udfgen import transfer
+from mipengine.udfgen import udf
+from mipengine.udfgen import udf_logger
 
 
 class AnovaResult(BaseModel):

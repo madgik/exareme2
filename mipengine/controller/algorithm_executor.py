@@ -42,6 +42,7 @@ from mipengine.controller.algorithm_flow_data_objects import (
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
+from mipengine.exceptions import InsufficientDataError
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
 from mipengine.node_tasks_DTOs import NodeTableDTO
@@ -50,7 +51,6 @@ from mipengine.node_tasks_DTOs import SMPCTablesInfo
 from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.udfgen import TensorBinaryOp
 from mipengine.udfgen import make_unique_func_name
 
 
@@ -298,29 +298,57 @@ class _AlgorithmExecutionInterface:
         """
 
         command_id = str(get_next_command_id())
-        views_per_localnode = [
-            (
-                local_node,
-                local_node.create_data_model_views(
-                    command_id=command_id,
-                    data_model=self._data_model,
-                    datasets=self.datasets_per_local_node[local_node.node_id],
-                    columns_per_view=variable_groups,
-                    filters=self._var_filters,
-                    dropna=dropna,
-                    check_min_rows=check_min_rows,
-                ),
+        views_per_localnode = []
+        nodes_with_insuffiecient_data = []
+        for local_node in self._local_nodes:
+            try:
+                views_per_localnode.append(
+                    (
+                        local_node,
+                        local_node.create_data_model_views(
+                            command_id=command_id,
+                            data_model=self._data_model,
+                            datasets=self.datasets_per_local_node[local_node.node_id],
+                            columns_per_view=variable_groups,
+                            filters=self._var_filters,
+                            dropna=dropna,
+                            check_min_rows=check_min_rows,
+                        ),
+                    )
+                )
+
+            except InsufficientDataError:
+                nodes_with_insuffiecient_data.append(local_node)
+
+        # remove nodes that generate at least one data model view with insufficient
+        # data(zero rows or row count less than .deployment.toml::minimum_row_count)
+        # TODO: removing nodes should not take place in here
+        # (ticket: https://team-1617704806227.atlassian.net/browse/MIP-705)
+        if nodes_with_insuffiecient_data:
+            for node in nodes_with_insuffiecient_data:
+                self._local_nodes.remove(node)
+
+            if not self._local_nodes:
+                raise InsufficientDataError(
+                    "None of the nodes has enough data to execute the "
+                    "algorithm. Algorithm with context_id="
+                    f"{self._global_node.context_id} is aborted"
+                )
+
+            self._logger.info(
+                f"Removed nodes:{nodes_with_insuffiecient_data} from algorithm with "
+                f"context_id:{self._global_node.context_id}, because at least "
+                f"one of the 'primary data views' created on each of these nodes "
+                f"contained insufficient rows. The algorithm will continue "
+                f"executing on nodes: {self._local_nodes}"
             )
-            for local_node in self._local_nodes
-        ]
 
         return _convert_views_per_localnode_to_local_nodes_tables(views_per_localnode)
 
     # UDFs functionality
     def run_udf_on_local_nodes(
         self,
-        func: Optional[Callable] = None,
-        tensor_op: Optional[TensorBinaryOp] = None,
+        func: Callable,
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_global: Union[bool, Sequence[bool]] = False,
@@ -333,7 +361,7 @@ class _AlgorithmExecutionInterface:
         # 5. create remote tables on global for each of the generated tables
         # 6. create merge table on global node to merge the remote tables
 
-        func_name = get_func_name(func, tensor_op)
+        func_name = get_func_name(func)
         command_id = get_next_command_id()
 
         self._validate_local_run_udf_args(
@@ -517,8 +545,7 @@ class _AlgorithmExecutionInterface:
 
     def run_udf_on_global_node(
         self,
-        func: Optional[Callable] = None,
-        tensor_op: Optional[TensorBinaryOp] = None,
+        func: Callable,
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_locals: Union[bool, Sequence[bool]] = False,
@@ -530,7 +557,7 @@ class _AlgorithmExecutionInterface:
         # 4. a(or multiple) new table(s) was generated on global node
         # 5. queue create_remote_table on each of the local nodes to share the generated table
 
-        func_name = get_func_name(func, tensor_op)
+        func_name = get_func_name(func)
         command_id = get_next_command_id()
 
         self._validate_global_run_udf_args(
@@ -750,19 +777,9 @@ def get_next_command_id() -> int:
     return get_next_command_id.index
 
 
-def get_func_name(
-    func: Optional[Callable] = None,
-    tensor_op: Optional[TensorBinaryOp] = None,
-) -> str:
-    if func and tensor_op:
-        raise ValueError("'func' and 'tensor_op' cannot be used at the same time.")
-
-    if tensor_op:
-        return tensor_op.name
-
+def get_func_name(func: Callable) -> str:
     if isinstance(func, str):
         return func
-
     return make_unique_func_name(func)
 
 

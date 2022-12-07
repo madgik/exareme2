@@ -26,7 +26,6 @@ spec:
       containers:
       - name: monetdb
         image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
-        imagePullPolicy: IfNotPresent
         resources:
           limits:
             memory: {{ quote .Values.db.max_memory }}
@@ -52,7 +51,6 @@ spec:
 
       - name: rabbitmq
         image: {{ .Values.mipengine_images.repository }}/mipengine_rabbitmq:{{ .Values.mipengine_images.version }}
-        imagePullPolicy: IfNotPresent
         env:
         - name: RABBITMQ_ADMIN_USER
           value: "user"
@@ -76,7 +74,6 @@ spec:
 
       - name: node
         image: {{ .Values.mipengine_images.repository }}/mipengine_node:{{ .Values.mipengine_images.version }}
-        imagePullPolicy: IfNotPresent
         env:
         - name: NODE_IDENTIFIER
           value: "globalnode"

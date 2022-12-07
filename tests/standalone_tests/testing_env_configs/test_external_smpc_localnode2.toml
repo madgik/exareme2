@@ -30,5 +30,5 @@ password = "monetdb"
 enabled = true
 optional = false
 client_id = "ChildrensHospital"
-client_address = "http://157.230.185.50:9001"
-coordinator_address = "http://157.230.185.50:12314"
+client_address = "http://161.35.36.151:9001"
+coordinator_address = "http://161.35.36.151:12314"

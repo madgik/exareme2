@@ -28,6 +28,58 @@ def context_id():
     return "testviews" + uuid.uuid4().hex
 
 
+@pytest.fixture
+def zero_rows_data_model_view_generating_params():
+    data_model = "dementia:0.1"
+    columns = [
+        "dataset",
+    ]
+    filters = {
+        "condition": "AND",
+        "rules": [
+            {
+                "id": "brainstem",
+                "type": "float",
+                "input": "number",
+                "operator": "greater",
+                "value": 99999999,
+            }
+        ],
+        "valid": True,
+    }
+    return {"data_model": data_model, "columns": columns, "filters": filters}
+
+
+@pytest.fixture
+def five_rows_data_model_view_generating_params():
+    data_model = "dementia:0.1"
+    columns = [
+        "dataset",
+        "brainstem",
+    ]
+    filters = {
+        "condition": "AND",
+        "rules": [
+            {
+                "id": "brainstem",
+                "type": "float",
+                "input": "number",
+                "operator": "between",
+                "value": [17, 19],
+            },
+            {
+                "id": "dataset",
+                "type": "string",
+                "input": "str",
+                "operator": "equal",
+                "value": "edsd0",
+            },
+        ],
+        "valid": True,
+    }
+    return {"data_model": data_model, "columns": columns, "filters": filters}
+
+
 @pytest.mark.slow
 def test_view_without_filters(
     request_id,
@@ -542,42 +594,17 @@ def test_data_model_view_null_constraints(
 
 
 @pytest.mark.slow
-def test_data_model_view_min_rows_checks(
+def test_insuficient_data_error_raised_when_data_model_view_generated(
     request_id,
     context_id,
     load_data_localnode1,
     localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
+    zero_rows_data_model_view_generating_params,
+    five_rows_data_model_view_generating_params,
 ):
-    columns = [
-        "dataset",
-        "age_value",
-        "gcs_motor_response_scale",
-        "pupil_reactivity_right_eye_result",
-    ]
-    data_model = "tbi:0.1"
-
-    # Adding a filter that cannot be matched
-    filters = {
-        "condition": "AND",
-        "rules": [
-            {
-                "condition": "OR",
-                "rules": [
-                    {
-                        "id": "age_value",
-                        "field": "age_value",
-                        "type": "int",
-                        "input": "number",
-                        "operator": "greater",
-                        "value": 200,
-                    }
-                ],
-            }
-        ],
-        "valid": True,
-    }
+    # check InsufficientDataError raised when empty data model view generated
     with pytest.raises(InsufficientDataError):
         task_signature = get_celery_task_signature("create_data_model_views")
         async_result = localnode1_celery_app.queue_task(
@@ -586,32 +613,33 @@ def test_data_model_view_min_rows_checks(
             request_id=request_id,
             context_id=context_id,
             command_id=uuid.uuid4().hex,
-            data_model=data_model,
+            data_model=zero_rows_data_model_view_generating_params["data_model"],
             datasets=[],
-            columns_per_view=[columns],
-            filters=filters,
+            columns_per_view=[zero_rows_data_model_view_generating_params["columns"]],
+            filters=zero_rows_data_model_view_generating_params["filters"],
         )
         localnode1_celery_app.get_result(
             async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
         )
 
-    # Check the same view creation with min rows check disabled
-    task_signature = get_celery_task_signature("create_data_model_views")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        context_id=context_id,
-        command_id=uuid.uuid4().hex,
-        data_model=data_model,
-        datasets=[],
-        columns_per_view=[columns],
-        filters=filters,
-        check_min_rows=False,
-    )
-    localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+    # check InsufficientDataError raised when data model view with less than
+    # minimum_row_count (defined in testing_env_configs/test_localnode1.toml)
+    with pytest.raises(InsufficientDataError):
+        task_signature = get_celery_task_signature("create_data_model_views")
+        async_result = localnode1_celery_app.queue_task(
+            task_signature=task_signature,
+            logger=StdOutputLogger(),
+            request_id=request_id,
+            context_id=context_id,
+            command_id=uuid.uuid4().hex,
+            data_model=five_rows_data_model_view_generating_params["data_model"],
+            datasets=[],
+            columns_per_view=[five_rows_data_model_view_generating_params["columns"]],
+            filters=five_rows_data_model_view_generating_params["filters"],
+        )
+        localnode1_celery_app.get_result(
+            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+        )
 
 
 @pytest.mark.slow
@@ -752,6 +780,14 @@ def test_multiple_data_model_views(
     assert schema2 == view2_info.schema_
 
 
+# NOTES:
+# 1. this test (as well as other tests in the module) does not need the celery layer.
+# Calling the task functions through queuing the task adds a lot of complexity that is
+# unnecessary. The task functions should be tested by calling them as normal function
+# from the relevant modules ex. tasks/views.py module and
+# 2.instead of searching in the primary data tables for data that would fit the test,
+# there should be a mechanism to add specifically crafted data for each test case in the
+# db of the node
 @pytest.mark.slow
 def test_multiple_data_model_views_null_constraints(
     request_id,
@@ -761,17 +797,74 @@ def test_multiple_data_model_views_null_constraints(
     localnode1_celery_app,
     use_localnode1_database,
 ):
+
+    # datasets:"edsd2" of the data model dementia:0.1 has 53 rows. Nevertheless
+    # column 'neurodegenerativescategories' contains 20 NULL values, whereas 'opticchiasm',
+    # for the same respective rows contains numerical values
+    # The test checks that calling task "create_data_model_view" with "dropna" flag set to
+    # true will create 2 "data model views" without the NULL values but keeping the two
+    # columns rows aligned
+
+    data_model = "dementia:0.1"
+    datasets = ["edsd2"]
+    neurodegenerativescategories_column_name = "neurodegenerativescategories"
+    opticchiasm_column_name = "opticchiasm"
     columns_per_view = [
         [
-            "gose_score",  # Column with values
+            neurodegenerativescategories_column_name,
         ],
         [
-            "gcs_eye_response_scale",  # Column without values
+            opticchiasm_column_name,
         ],
     ]
-    data_model = "tbi:0.1"
-    datasets = ["dummy_tbi1"]
 
+    # Create data model passing only column 'neurodegenerativescategories' with dropna=False
+    # This data model view will contain null values
+    task_signature = get_celery_task_signature("create_data_model_views")
+    async_result = localnode1_celery_app.queue_task(
+        task_signature=task_signature,
+        logger=StdOutputLogger(),
+        request_id=request_id,
+        context_id=context_id,
+        command_id=uuid.uuid4().hex,
+        data_model=data_model,
+        datasets=datasets,
+        columns_per_view=[[neurodegenerativescategories_column_name]],
+        filters=None,
+        dropna=False,
+        check_min_rows=False,
+    )
+    result = localnode1_celery_app.get_result(
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    )
+
+    view_neurodegenerativescategories_nulls_included = TableInfo.parse_raw(result[0])
+
+    # Get count of how many null values
+    task_signature = get_celery_task_signature("get_table_data")
+    async_result = localnode1_celery_app.queue_task(
+        task_signature=task_signature,
+        logger=StdOutputLogger(),
+        request_id=request_id,
+        table_name=view_neurodegenerativescategories_nulls_included.name,
+    )
+    result = localnode1_celery_app.get_result(
+        async_result=async_result,
+        logger=StdOutputLogger(),
+        timeout=TASKS_TIMEOUT,
+    )
+    _, view_neurodegenerativescategories_nulls_included_column = TableData.parse_raw(
+        result
+    ).columns
+    view_neurodegenerativescategories_nulls_included_num_of_nulls = (
+        view_neurodegenerativescategories_nulls_included_column.data.count(None)
+    )
+    view_neurodegenerativescategories_nulls_included_num_of_rows = len(
+        view_neurodegenerativescategories_nulls_included_column.data
+    )
+
+    # Create data model with of both columns and dropna=True per view will drop the
+    # rows with null values
     task_signature = get_celery_task_signature("create_data_model_views")
     async_result = localnode1_celery_app.queue_task(
         task_signature=task_signature,
@@ -783,47 +876,55 @@ def test_multiple_data_model_views_null_constraints(
         datasets=datasets,
         columns_per_view=columns_per_view,
         filters=None,
+        dropna=True,
         check_min_rows=False,
     )
-    view_info_with_values, view_info_with_nulls = [
+    view_neurodegenerativescategories, view_opticchiasm = [
         TableInfo.parse_raw(result)
         for result in localnode1_celery_app.get_result(
             async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
         )
     ]
 
-    # Check that the all null view doesn't have any rows (All rows were dropped)
+    # Get data of the created data model views
     task_signature = get_celery_task_signature("get_table_data")
+    # neurodegenerativescategories data model view
     async_result = localnode1_celery_app.queue_task(
         task_signature=task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=view_info_with_nulls.name,
+        table_name=view_neurodegenerativescategories.name,
     )
-    view_name_with_nulls_data_json = localnode1_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
-    )
-
-    _, gose_score_column = TableData.parse_raw(view_name_with_nulls_data_json).columns
-    assert len(gose_score_column.data) == 0
-
-    # Check that the view that didn't have nulls is also empty due to multiple views having linked null constraints
-    task_signature = get_celery_task_signature("get_table_data")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=view_info_with_values.name,
-    )
-    view_info_with_values_data_json = localnode1_celery_app.get_result(
+    result = localnode1_celery_app.get_result(
         async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
-    _, gcs_eye_response_scale_column = TableData.parse_raw(
-        view_info_with_values_data_json
-    ).columns
-    assert len(gcs_eye_response_scale_column.data) == 0
+
+    _, neurodegenerativescategories_column = TableData.parse_raw(result).columns
+    view_neurodegenerativescategories_num_of_rows = len(
+        neurodegenerativescategories_column.data
+    )
+
+    # opticchiasm data model view
+    async_result = localnode1_celery_app.queue_task(
+        task_signature=task_signature,
+        logger=StdOutputLogger(),
+        request_id=request_id,
+        table_name=view_opticchiasm.name,
+    )
+    result = localnode1_celery_app.get_result(
+        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    )
+    _, opticchiasm_column = TableData.parse_raw(result).columns
+    view_opticchiasm_num_of_rows = len(opticchiasm_column.data)
+
+    # check that the 2 data model views generated are of the same row count
+    assert view_neurodegenerativescategories_num_of_rows == view_opticchiasm_num_of_rows
+    # check that the number of null rows excluded are as expected
+    assert (
+        view_neurodegenerativescategories_num_of_rows
+        == view_neurodegenerativescategories_nulls_included_num_of_rows
+        - view_neurodegenerativescategories_nulls_included_num_of_nulls
+    )
 
 
 @pytest.mark.slow

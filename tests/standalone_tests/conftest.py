@@ -103,7 +103,7 @@ if USE_EXTERNAL_SMPC_CLUSTER:
     LOCALNODE1_SMPC_CONFIG_FILE = "test_external_smpc_localnode1.toml"
     LOCALNODE2_SMPC_CONFIG_FILE = "test_external_smpc_localnode2.toml"
     CONTROLLER_SMPC_CONFIG_FILE = "test_external_smpc_controller.toml"
-    SMPC_COORDINATOR_ADDRESS = "http://157.230.185.50:12314"
+    SMPC_COORDINATOR_ADDRESS = "http://161.35.36.151:12314"
 else:
     GLOBALNODE_SMPC_CONFIG_FILE = "test_smpc_globalnode.toml"
     LOCALNODE1_SMPC_CONFIG_FILE = "test_smpc_localnode1.toml"

@@ -180,15 +180,16 @@ def local(
         num_na = {var: num_total - num_dtps[var] for var in vars}
         # numerical stats
         descr_numerical = data.describe()
-        min_ = descr_numerical.loc["min"].to_dict()
-        max_ = descr_numerical.loc["max"].to_dict()
-        q1 = descr_numerical.loc["25%"].to_dict()
-        q2 = descr_numerical.loc["50%"].to_dict()
-        q3 = descr_numerical.loc["75%"].to_dict()
-        mean = descr_numerical.loc["mean"].to_dict()
-        std = descr_numerical.loc["std"].to_dict()
-        sx = data[numerical_vars].sum().to_dict()
-        sxx = (data[numerical_vars] ** 2).sum().to_dict()
+        if (data.dtypes != "object").any():  # check if data has any numerical var
+            min_ = descr_numerical.loc["min"].to_dict()
+            max_ = descr_numerical.loc["max"].to_dict()
+            q1 = descr_numerical.loc["25%"].to_dict()
+            q2 = descr_numerical.loc["50%"].to_dict()
+            q3 = descr_numerical.loc["75%"].to_dict()
+            mean = descr_numerical.loc["mean"].to_dict()
+            std = descr_numerical.loc["std"].to_dict()
+            sx = data[numerical_vars].sum().to_dict()
+            sxx = (data[numerical_vars] ** 2).sum().to_dict()
         # nominal stats
         counts = {var: data[var].value_counts().to_dict() for var in nominal_vars}
 
