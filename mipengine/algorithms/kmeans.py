@@ -282,6 +282,8 @@ def compute_centers_from_metrics(transfers, n_clusters):
             final_i = curr_sum / curr_count
         else:
             final_i = curr_sum
+
+        # final_i = curr_sum / curr_count
         centers.append(final_i)
     centers_array = numpy.vstack(centers)
     # raise ValueError(centers_array.shape)
