@@ -33,7 +33,7 @@
 		"tol": {
 			"label": "tol",
 			"desc": "tol",
-			"type": "float",
+			"type": "real",
 			"default": 0.0001,
 			"min": 0.0,
 			"max": 1.0,
