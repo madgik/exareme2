@@ -195,6 +195,7 @@ class AlgorithmExecutor:
             dropna=self._algorithm.get_dropna(),
             check_min_rows=self._algorithm.get_check_min_rows(),
         )
+        self._execution_interface._local_nodes = self._local_nodes
         self._execution_interface._data_model_views = data_model_views
 
     def run(self):
@@ -282,7 +283,7 @@ class AlgorithmExecutor:
             self._logger.info(
                 f"Removed nodes:{nodes_with_insuffiecient_data} from algorithm with "
                 f"context_id:{self._global_node.context_id}, because at least "
-                f"one of the 'primary data views' created on each of these nodes "
+                f"one of the 'data model views' created on each of these nodes "
                 f"contained insufficient rows. The algorithm will continue "
                 f"executing on nodes: {self._local_nodes}"
             )
