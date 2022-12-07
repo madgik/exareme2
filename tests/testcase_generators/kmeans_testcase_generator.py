@@ -41,6 +41,7 @@ class KmeansTestcaseGenerator(TestCaseGenerator):
         kmeans.fit(X_val)
 
         ret_val = {}
+        ret_val["init_centers"] = centers_init.tolist()
         ret_val["centers"] = kmeans.cluster_centers_.tolist()
         return ret_val
 
