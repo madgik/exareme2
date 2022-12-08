@@ -114,7 +114,8 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
         data = self.executor.data_model_views[0]
         metadata = self.executor.metadata
 
-        vars = [v for v in self.get_variable_groups()[0] if v != DATASET_VAR_NAME]
+        vars = [v for v in data.columns if v != DATASET_VAR_NAME]
+
         numerical_vars = [var for var in vars if not metadata[var]["is_categorical"]]
         nominal_vars = [var for var in vars if metadata[var]["is_categorical"]]
         local_transfers = local_run(
