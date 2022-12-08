@@ -12,6 +12,7 @@ class Algorithm(ABC):
         algname (str): The algorithm name, as defined in the "name" field in the
             <algorithm>.json
     """
+
     def __init_subclass__(cls, algname, **kwargs):
         super().__init_subclass__(**kwargs)
         cls.algname = algname
