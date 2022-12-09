@@ -195,7 +195,12 @@ class AlgorithmExecutor:
             dropna=self._algorithm.get_dropna(),
             check_min_rows=self._algorithm.get_check_min_rows(),
         )
+
+        # TODO: reassigning execution_interface local_nodes here is very cryptic.
+        # Further refactoring is needed
+        # (https://team-1617704806227.atlassian.net/browse/MIP-718)
         self._execution_interface._local_nodes = self._local_nodes
+
         self._execution_interface._data_model_views = data_model_views
 
     def run(self):
@@ -268,7 +273,8 @@ class AlgorithmExecutor:
 
         # remove nodes that generate at least one data model view with insufficient
         # data(zero rows or row count less than .deployment.toml::minimum_row_count)
-        # TODO: move this into a separate method
+        # TODO: removing local nodes in this method is a side effect of this method that
+        # should be handled differently (https://team-1617704806227.atlassian.net/browse/MIP-718)
         if nodes_with_insuffiecient_data:
             for node in nodes_with_insuffiecient_data:
                 self._local_nodes.remove(node)
