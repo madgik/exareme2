@@ -51,5 +51,5 @@ class KmeansTestcaseGenerator(TestCaseGenerator):
 if __name__ == "__main__":
     with open("mipengine/algorithms/kmeans.json") as specs_file:
         gen = KmeansTestcaseGenerator(specs_file)
-    with open("kmeans_tmp.json", "w") as expected_file:
-        gen.write_test_cases(expected_file, 1)
+    with open("kmeans_tmp2.json", "w") as expected_file:
+        gen.write_test_cases(expected_file, 4)
