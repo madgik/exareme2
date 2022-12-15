@@ -58,7 +58,7 @@ def run(algo_interface):
     #    positional_args=[X],
     # )
 
-    centers_local = local_run(
+    min_max_transfer = local_run(
         func=init_centers_local2,
         positional_args=[X_not_null],
         share_to_global=[True],
@@ -66,7 +66,7 @@ def run(algo_interface):
 
     global_state, global_result = global_run(
         func=init_centers_global2,
-        positional_args=[centers_local, n_clusters],
+        positional_args=[min_max_transfer, n_clusters],
         share_to_locals=[False, True],
     )
 
@@ -93,7 +93,7 @@ def run(algo_interface):
 
         new_centers = global_run(
             func=compute_centers_from_metrics,
-            positional_args=[metrics_local, n_clusters],
+            positional_args=[metrics_local, min_max_transfer, n_clusters],
             share_to_locals=[True],
         )
 
@@ -260,17 +260,23 @@ def compute_metrics(X, label_state, n_clusters):
 
 @udf(
     transfers=secure_transfer(sum_op=True, min_op=True, max_op=True),
+    min_max_transfer=secure_transfer(sum_op=True, min_op=True, max_op=True),
     n_clusters=literal(),
     return_type=transfer(),
 )
-def compute_centers_from_metrics(transfers, n_clusters):
+def compute_centers_from_metrics(transfers, min_max_transfer, n_clusters):
     centers = []
     # raise ValueError(transfers)
     sum_list_sum = transfers["sum_list"]
     count_list_sum = transfers["count_list"]
 
+    min_array = min_max_transfer["min"]
+    max_array = min_max_transfer["max"]
+
     sum_array = numpy.array(sum_list_sum)
     count_array = numpy.array(count_list_sum)
+
+    generate_random = False
 
     n_dim = sum_array.shape[1]
     for i in range(n_clusters):
@@ -282,7 +288,21 @@ def compute_centers_from_metrics(transfers, n_clusters):
         if curr_count != 0:
             final_i = curr_sum / curr_count
         else:
-            final_i = numpy.zeros((1, n_dim))
+            if generate_random:
+                min_array2 = numpy.array(min_array)
+                max_array2 = numpy.array(max_array)
+                # final_i = numpy.random.randn(low=min_array,high=max_array,size=(1, n_dim))
+                final_i = numpy.zeros((1, n_dim))
+                for i in range(n_dim):
+                    min_value = min_array2[i]
+                    max_value = max_array2[i]
+                    curr_value = (
+                        min_value + (max_value - min_value) * numpy.random.randn()
+                    )
+                    final_i[0][i] = curr_value
+
+            else:
+                final_i = numpy.zeros((1, n_dim))
 
         # final_i = curr_sum / curr_count
         centers.append(final_i)
