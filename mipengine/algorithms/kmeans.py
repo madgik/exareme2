@@ -277,6 +277,7 @@ def compute_centers_from_metrics(transfers, min_max_transfer, n_clusters):
     count_array = numpy.array(count_list_sum)
 
     generate_random = False
+    generate_uniform_clusters = True
 
     n_dim = sum_array.shape[1]
     for i in range(n_clusters):
@@ -291,15 +292,22 @@ def compute_centers_from_metrics(transfers, min_max_transfer, n_clusters):
             if generate_random:
                 min_array2 = numpy.array(min_array)
                 max_array2 = numpy.array(max_array)
-                # final_i = numpy.random.randn(low=min_array,high=max_array,size=(1, n_dim))
-                final_i = numpy.zeros((1, n_dim))
-                for i in range(n_dim):
-                    min_value = min_array2[i]
-                    max_value = max_array2[i]
-                    curr_value = (
-                        min_value + (max_value - min_value) * numpy.random.randn()
+                if generate_uniform_clusters:
+                    final_i = numpy.random.uniform(
+                        low=0.0, high=n_clusters + 1, size=(1, n_dim)
                     )
-                    final_i[0][i] = curr_value
+                elif generate_uniform:
+                    final_i = numpy.random.uniform(
+                        low=min_array2, high=max_array, size=(1, n_dim)
+                    )
+                else:
+                    for i in range(n_dim):
+                        min_value = min_array2[i]
+                        max_value = max_array2[i]
+                        curr_value = (
+                            min_value + (max_value - min_value) * numpy.random.randn()
+                        )
+                        final_i[0][i] = curr_value
 
             else:
                 final_i = numpy.zeros((1, n_dim))
