@@ -31,8 +31,7 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
         conf_lvl = self.executor.algorithm_parameters["confidence_lvl"]
         alternative = self.executor.algorithm_parameters["alt_hypothesis"]
 
-        X_relation = self.executor.data_model_views[0]
-        Y_relation = self.executor.data_model_views[1]
+        X_relation, Y_relation = self.executor.data_model_views
 
         sec_local_transfer = local_run(
             func=local_independent,

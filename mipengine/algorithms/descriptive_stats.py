@@ -111,7 +111,7 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
         local_run = self.executor.run_udf_on_local_nodes
         global_run = self.executor.run_udf_on_global_node
 
-        data = self.executor.data_model_views[0]
+        [data] = self.executor.data_model_views
         metadata = self.executor.metadata
 
         vars = [v for v in data.columns if v != DATASET_VAR_NAME]

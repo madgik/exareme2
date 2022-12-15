@@ -45,8 +45,7 @@ class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
         return [self.executor.x_variables, self.executor.y_variables]
 
     def run(self):
-        X = self.executor.data_model_views[0]
-        y = self.executor.data_model_views[1]
+        X, y = self.executor.data_model_views
 
         dummy_encoder = DummyEncoder(self.executor)
         X = dummy_encoder.transform(X)

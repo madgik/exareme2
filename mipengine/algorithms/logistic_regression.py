@@ -26,9 +26,7 @@ class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
         return [self.executor.x_variables, self.executor.y_variables]
 
     def run(self):
-        xvars, yvars = self.executor.x_variables, self.executor.y_variables
-        X = self.executor.data_model_views[0]
-        y = self.executor.data_model_views[1]
+        X, y = self.executor.data_model_views
         positive_class = self.executor.algorithm_parameters["positive_class"]
 
         dummy_encoder = DummyEncoder(self.executor)

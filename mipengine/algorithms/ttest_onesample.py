@@ -34,7 +34,7 @@ class OnesampleTTestAlgorithm(Algorithm, algname="ttest_onesample"):
         alternative = self.executor.algorithm_parameters["alt_hypothesis"]
         mu = self.executor.algorithm_parameters["mu"]
 
-        X_relation = self.executor.data_model_views[0]
+        [X_relation] = self.executor.data_model_views
 
         sec_local_transfer = local_run(
             func=local_one_sample,

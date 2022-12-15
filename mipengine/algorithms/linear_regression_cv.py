@@ -30,9 +30,8 @@ class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
         return [self.executor.x_variables, self.executor.y_variables]
 
     def run(self):
-        x_vars, y_vars = self.executor.x_variables, self.executor.y_variables
-        X = self.executor.data_model_views[0]
-        y = self.executor.data_model_views[1]
+        X, y = self.executor.data_model_views
+
         n_splits = self.executor.algorithm_parameters["n_splits"]
 
         dummy_encoder = DummyEncoder(self.executor)

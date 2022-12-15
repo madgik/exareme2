@@ -22,8 +22,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
     def run(self):
         xvars, yvars = self.get_variable_groups()
 
-        X = self.executor.data_model_views[0]
-        y = self.executor.data_model_views[1]
+        X, y = self.executor.data_model_views
 
         positive_class = self.executor.algorithm_parameters["positive_class"]
         n_splits = self.executor.algorithm_parameters["n_splits"]

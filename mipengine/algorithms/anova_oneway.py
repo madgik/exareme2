@@ -29,8 +29,7 @@ class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
         local_run = self.executor.run_udf_on_local_nodes
         global_run = self.executor.run_udf_on_global_node
 
-        X_relation = self.executor.data_model_views[0]
-        Y_relation = self.executor.data_model_views[1]
+        X_relation, Y_relation = self.executor.data_model_views
 
         [x_var_name] = self.executor.x_variables
         [y_var_name] = self.executor.y_variables

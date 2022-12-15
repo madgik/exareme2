@@ -35,8 +35,7 @@ class PearsonCorrelationAlgorithm(Algorithm, algname="pearson_correlation"):
         global_run = self.executor.run_udf_on_global_node
         alpha = self.executor.algorithm_parameters["alpha"]
 
-        X_relation = self.executor.data_model_views[0]
-        Y_relation = self.executor.data_model_views[1]
+        X_relation, Y_relation = self.executor.data_model_views
 
         local_transfers = local_run(
             func=local1,

@@ -23,7 +23,7 @@ class StandardDeviationPosAndKwArgsAlgorithm(
         local_run = self.executor.run_udf_on_local_nodes
         global_run = self.executor.run_udf_on_global_node
 
-        Y_relation = self.executor.data_model_views[0]
+        [Y_relation] = self.executor.data_model_views
 
         Y = local_run(
             func=relation_to_matrix,

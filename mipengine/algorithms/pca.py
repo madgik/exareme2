@@ -28,7 +28,7 @@ class PCAAlgorithm(Algorithm, algname="pca"):
         local_run = self.executor.run_udf_on_local_nodes
         global_run = self.executor.run_udf_on_global_node
 
-        X_relation = self.executor.data_model_views[0]
+        [X_relation] = self.executor.data_model_views
 
         local_transfers = local_run(
             func=local1,
