@@ -66,14 +66,15 @@ def run(algo_interface):
     return_type=[secure_transfer(sum_op=True)],
 )
 def local_independent(x, y):
-    x1 = x.reset_index(drop=True).to_numpy().squeeze()
-    x2 = y.reset_index(drop=True).to_numpy().squeeze()
+    x.reset_index(drop=True, inplace=True)
+    y.reset_index(drop=True, inplace=True)
+    x1, x2 = x.values.squeeze(), y.values.squeeze()
     x1_sum = sum(x1)
     x2_sum = sum(x2)
     n_obs_x1 = len(x)
     n_obs_x2 = len(y)
-    x1_sqrd_sum = sum(x1**2)
-    x2_sqrd_sum = sum(x2**2)
+    x1_sqrd_sum = numpy.einsum("i,i->", x1, x1)
+    x2_sqrd_sum = numpy.einsum("i,i->", x2, x2)
 
     sec_transfer_ = {
         "n_obs_x1": {"data": n_obs_x1, "operation": "sum", "type": "int"},

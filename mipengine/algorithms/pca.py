@@ -66,8 +66,8 @@ S = TypeVar("S")
 @udf(x=relation(schema=S), return_type=[secure_transfer(sum_op=True)])
 def local1(x):
     n_obs = len(x)
-    sx = x.sum(axis=0)
-    sxx = (x**2).sum(axis=0)
+    sx = numpy.einsum("ij->j", x)
+    sxx = numpy.einsum("ij,ij->j", x, x)
 
     transfer_ = {}
     transfer_["n_obs"] = {"data": n_obs, "operation": "sum", "type": "int"}
@@ -99,13 +99,16 @@ def local2(x, global_transfer):
     means = numpy.array(global_transfer["means"])
     sigmas = numpy.array(global_transfer["sigmas"])
 
-    x -= means
-    x /= sigmas
-    gramian = x.T @ x
+    x = x.values
+    out = numpy.empty(x.shape)
+
+    numpy.subtract(x, means, out=out)
+    numpy.divide(out, sigmas, out=out)
+    gramian = numpy.einsum("ji,jk->ik", out, out)
 
     transfer_ = {
         "gramian": {
-            "data": gramian.values.tolist(),
+            "data": gramian.tolist(),
             "operation": "sum",
             "type": "float",
         }

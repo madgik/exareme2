@@ -206,10 +206,12 @@ class LinearRegression:
         return_type=secure_transfer(sum_op=True),
     )
     def _compute_summary_local(y_test, y_pred):
-        rss = sum((y_test - y_pred) ** 2)
-        sum_y_test = sum(y_test)
-        sum_sq_y_test = sum(y_test**2)
-        sum_abs_resid = sum(abs(y_test - y_pred))
+        adiff = numpy.subtract(y_test, y_pred)
+        adiff = numpy.fabs(adiff, out=adiff)
+        rss = numpy.einsum("i,i", adiff, adiff)
+        sum_y_test = numpy.einsum("i->", y_test)
+        sum_sq_y_test = numpy.einsum("i,i", y_test, y_test)
+        sum_abs_resid = numpy.einsum("i->", adiff)
         n_obs_test = len(y_test)
 
         stransfer = {}
