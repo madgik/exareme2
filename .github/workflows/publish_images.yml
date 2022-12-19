@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       - name: Log in to Docker Hub
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
@@ -23,7 +23,7 @@ jobs:
 
 # TODO Disabled due to https://team-1617704806227.atlassian.net/browse/MIP-631
 #      - name: Build and Push MONETDB_base docker image to dockerhub
-#        uses: docker/build-push-action@v2
+#        uses: docker/build-push-action@v3
 #        with:
 #          context: .
 #          file: monetdb/DockerfileBaseImage
@@ -37,7 +37,7 @@ jobs:
           images: madgik/mipenginedb
 
       - name: Build and Push MONETDB docker image to dockerhub
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: monetdb/Dockerfile
@@ -50,10 +50,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       - name: Log in to Docker Hub
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
@@ -68,7 +68,7 @@ jobs:
           images: madgik/mipengine_mipdb
 
       - name: Load MIPDB cached image
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/mipdb
           key: ${{ runner.os }}-buildx-mipdb-${{hashFiles( 'mipdb/**' )}}
@@ -76,7 +76,7 @@ jobs:
             ${{ runner.os }}-buildx-mipdb-
 
       - name: Build and Push MIPDB docker image to dockerhub
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: mipdb/Dockerfile
@@ -99,10 +99,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       - name: Log in to Docker Hub
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
@@ -117,7 +117,7 @@ jobs:
           images: madgik/mipengine_rabbitmq
 
       - name: Load RABBITMQ cached image
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/rabbitmq
           key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
@@ -125,7 +125,7 @@ jobs:
             ${{ runner.os }}-buildx-rabbitmq-
 
       - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: rabbitmq/Dockerfile
@@ -148,10 +148,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       - name: Log in to Docker Hub
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
@@ -166,7 +166,7 @@ jobs:
           images: madgik/mipengine_controller
 
       - name: Load CONTROLLER service cached image
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/controller
           key: ${{ runner.os }}-buildx-controller-${{hashFiles('mipengine/**')}}
@@ -174,7 +174,7 @@ jobs:
             ${{ runner.os }}-buildx-controller-
 
       - name: Build CONTROLLER service docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: mipengine/controller/Dockerfile
@@ -197,10 +197,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       - name: Log in to Docker Hub
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
@@ -215,14 +215,14 @@ jobs:
           images: madgik/mipengine_node
 
       - name: Load NODE service cached image
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/node
           key: ${{ runner.os }}-buildx-node-${{hashFiles('mipengine/**')}}
           restore-keys: |
             ${{ runner.os }}-buildx-node-
       - name: Build NODE service docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: mipengine/node/Dockerfile
