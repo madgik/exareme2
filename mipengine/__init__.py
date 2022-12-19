@@ -1,6 +1,7 @@
 import glob
 import importlib
 import os
+from functools import lru_cache
 from importlib import util
 from os.path import basename
 from os.path import isfile
@@ -67,9 +68,7 @@ def import_algorithm_modules() -> Dict[str, ModuleType]:
     return all_modules
 
 
-def import_algorithm_classes() -> Dict[str, type]:
+@lru_cache
+def get_algorithm_classes() -> Dict[str, type]:
     import_algorithm_modules()
     return {cls.algname: cls for cls in Algorithm.__subclasses__()}
-
-
-algorithm_classes = import_algorithm_classes()

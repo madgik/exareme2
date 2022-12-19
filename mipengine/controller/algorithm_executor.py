@@ -11,7 +11,7 @@ from typing import Union
 
 from pydantic import BaseModel
 
-from mipengine import algorithm_classes
+from mipengine import get_algorithm_classes
 from mipengine.controller import config as ctrl_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_DTOs import AlgorithmExecutionDTO
@@ -183,6 +183,7 @@ class AlgorithmExecutor:
                 algo_execution_interface_dto, self._common_data_elements
             )
 
+        algorithm_classes = get_algorithm_classes()
         self._algorithm = algorithm_classes[self._algorithm_name](
             self._execution_interface
         )
