@@ -187,7 +187,7 @@ class AlgorithmExecutor:
             self._execution_interface
         )
 
-        data_model_views = self._create_data_model_views(
+        data_model_views, insufficient_data_nodes = self._create_data_model_views(
             data_model=self._algorithm_execution_dto.data_model,
             datasets_per_local_node=self._algorithm_execution_dto.datasets_per_local_node,
             variable_groups=self._algorithm.get_variable_groups(),
@@ -196,10 +196,21 @@ class AlgorithmExecutor:
             check_min_rows=self._algorithm.get_check_min_rows(),
         )
 
-        # TODO: reassigning execution_interface local_nodes here is very cryptic.
-        # Further refactoring is needed
-        # (https://team-1617704806227.atlassian.net/browse/MIP-718)
-        self._execution_interface._local_nodes = self._local_nodes
+        if insufficient_data_nodes:
+            self._remove_nodes(insufficient_data_nodes)
+
+            self._logger.info(
+                f"Removed nodes:{insufficient_data_nodes} from algorithm with "
+                f"context_id:{self._context_id}, because at least "
+                f"one of the 'data model views' created on each of these nodes "
+                f"contained insufficient rows. The algorithm will continue "
+                f"executing on nodes: {self._local_nodes}"
+            )
+
+            # TODO: reassigning execution_interface local_nodes here is very cryptic.
+            # Further refactoring is needed
+            # (https://team-1617704806227.atlassian.net/browse/MIP-718)
+            self._execution_interface._local_nodes = self._local_nodes
 
         self._execution_interface._data_model_views = data_model_views
 
@@ -227,7 +238,7 @@ class AlgorithmExecutor:
         var_filters: list,
         dropna: bool,
         check_min_rows: bool,
-    ) -> List[LocalNodesTable]:
+    ) -> Tuple[List[LocalNodesTable], List[LocalNode]]:
         """
         Creates the data model views, for each variable group provided,
         using also the algorithm request arguments (data_model, datasets, filters).
@@ -244,7 +255,9 @@ class AlgorithmExecutor:
         Returns
         ------
         List[LocalNodesTable]
-            A (LocalNodesTable) view for each variable_group provided.
+            A LocalNodesTable view for each variable_group provided.
+        List[LocalNode]:
+            Local nodes generating insufficient data views
         """
         command_id = str(get_next_command_id())
         views_per_localnode = []
@@ -256,12 +269,10 @@ class AlgorithmExecutor:
                         local_node,
                         local_node.create_data_model_views(
                             command_id=command_id,
-                            data_model=data_model,  # self._data_model,
-                            datasets=datasets_per_local_node[
-                                local_node.node_id
-                            ],  # self.datasets_per_local_node[local_node.node_id],
+                            data_model=data_model,
+                            datasets=datasets_per_local_node[local_node.node_id],
                             columns_per_view=variable_groups,
-                            filters=var_filters,  # self._var_filters,
+                            filters=var_filters,
                             dropna=dropna,
                             check_min_rows=check_min_rows,
                         ),
@@ -271,30 +282,20 @@ class AlgorithmExecutor:
             except InsufficientDataError:
                 nodes_with_insuffiecient_data.append(local_node)
 
-        # remove nodes that generate at least one data model view with insufficient
-        # data(zero rows or row count less than .deployment.toml::minimum_row_count)
-        # TODO: removing local nodes in this method is a side effect of this method that
-        # should be handled differently (https://team-1617704806227.atlassian.net/browse/MIP-718)
-        if nodes_with_insuffiecient_data:
-            for node in nodes_with_insuffiecient_data:
-                self._local_nodes.remove(node)
+        data_model_views = _convert_views_per_localnode_to_local_nodes_tables(
+            views_per_localnode
+        )
+        return (data_model_views, nodes_with_insuffiecient_data)
 
-            if not self._local_nodes:
-                raise InsufficientDataError(
-                    "None of the nodes has enough data to execute the "
-                    "algorithm. Algorithm with context_id="
-                    f"{self._context_id} is aborted"
-                )
+    def _remove_nodes(self, nodes: List[LocalNode]):
+        for node in nodes:
+            self._local_nodes.remove(node)
 
-            self._logger.info(
-                f"Removed nodes:{nodes_with_insuffiecient_data} from algorithm with "
-                f"context_id:{self._context_id}, because at least "
-                f"one of the 'data model views' created on each of these nodes "
-                f"contained insufficient rows. The algorithm will continue "
-                f"executing on nodes: {self._local_nodes}"
+        if not self._local_nodes:
+            raise InsufficientDataError(
+                "None of the nodes has enough data to execute the "
+                f"algorithm with context_id:{self._context_id}."
             )
-
-        return _convert_views_per_localnode_to_local_nodes_tables(views_per_localnode)
 
 
 class _AlgorithmExecutionInterfaceDTO(BaseModel):
