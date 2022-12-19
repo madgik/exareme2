@@ -282,9 +282,13 @@ class AlgorithmExecutor:
             except InsufficientDataError:
                 nodes_with_insuffiecient_data.append(local_node)
 
-        data_model_views = _convert_views_per_localnode_to_local_nodes_tables(
-            views_per_localnode
-        )
+        if views_per_localnode:
+            data_model_views = _convert_views_per_localnode_to_local_nodes_tables(
+                views_per_localnode
+            )
+        else:
+            data_model_views = []
+
         return (data_model_views, nodes_with_insuffiecient_data)
 
     def _remove_nodes(self, nodes: List[LocalNode]):
