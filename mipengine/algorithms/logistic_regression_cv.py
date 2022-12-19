@@ -20,8 +20,6 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
         return [self.executor.x_variables, self.executor.y_variables]
 
     def run(self):
-        xvars, yvars = self.get_variable_groups()
-
         X, y = self.executor.data_model_views
 
         positive_class = self.executor.algorithm_parameters["positive_class"]
