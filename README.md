@@ -48,6 +48,7 @@
    rabbitmq_image = "madgik/mipengine_rabbitmq:dev"
 
    monetdb_nclients = 128
+   monetdb_memory_limit = 2048 # MB
 
    algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
 
