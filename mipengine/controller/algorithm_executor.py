@@ -266,7 +266,12 @@ class AlgorithmExecutor:
                 continue
             views_per_localnode.append((local_node, data_model_views))
 
-        return _convert_views_per_localnode_to_local_nodes_tables(views_per_localnode)
+        if views_per_localnode:
+            return _convert_views_per_localnode_to_local_nodes_tables(
+                views_per_localnode
+            )
+        else:
+            return []
 
     def _remove_insufficient_data_nodes(self, data_model_views: List[LocalNodesTable]):
         valid_nodes = {
@@ -278,7 +283,7 @@ class AlgorithmExecutor:
         tmp = [node for node in self._local_nodes if node in valid_nodes]
 
         if not tmp:
-            raise InsufficientData(
+            raise InsufficientDataError(
                 "None of the nodes has enough data to execute the "
                 "algorithm. Algorithm with context_id="
                 f"{self._context_id} is aborted"
