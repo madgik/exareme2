@@ -86,7 +86,7 @@ def mock_algorithms_modules():
     import mipengine
 
     mipengine.ALGORITHM_FOLDERS = "./mipengine/algorithms,./tests/algorithms"
-    algorithm_classes = mipengine.import_algorithm_classes()
+    algorithm_classes = mipengine.get_algorithm_classes()
 
     with patch(
         "mipengine.controller.algorithm_executor.algorithm_classes",
