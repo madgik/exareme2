@@ -27,6 +27,12 @@ class KmeansTestcaseGenerator(TestCaseGenerator):
         X_val = X.values
 
         print(X_val.shape)
+        if X_val.shape[0] == 0:
+            print("should exit")
+            return None
+        if X_val.shape[0] < k:
+            print("should exit")
+            return None
 
         max_vals = numpy.nanmax(X_val, axis=0)
         min_vals = numpy.nanmin(X_val, axis=0)
@@ -36,7 +42,8 @@ class KmeansTestcaseGenerator(TestCaseGenerator):
         centers_init = random_state.uniform(
             low=min_vals, high=max_vals, size=(k, min_vals.shape[0])
         )
-
+        if centers_init.shape[0] == 0:
+            return None
         kmeans = KMeans(n_clusters=k, init=centers_init, max_iter=maxiter, tol=tol)
         kmeans.fit(X_val)
         print(k)
@@ -51,5 +58,5 @@ class KmeansTestcaseGenerator(TestCaseGenerator):
 if __name__ == "__main__":
     with open("mipengine/algorithms/kmeans.json") as specs_file:
         gen = KmeansTestcaseGenerator(specs_file)
-    with open("kmeans_tmp2.json", "w") as expected_file:
-        gen.write_test_cases(expected_file, 4)
+    with open("kmeans_tmp100.json", "w") as expected_file:
+        gen.write_test_cases(expected_file, 100)
