@@ -330,7 +330,9 @@ def create_monetdb(
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} --memory={monetdb_memory_limit}m --memory-reservation={monetdb_memory_limit}m {image}"""
+        hard_memory_limit = monetdb_memory_limit + 1024
+        soft_memory_limit = monetdb_memory_limit
+        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} --memory={hard_memory_limit}m --memory-reservation={soft_memory_limit}m {image}"""
         run(c, cmd)
 
 
