@@ -278,7 +278,9 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False, smpc=Fa
 
 
 @task(iterable=["node"])
-def create_monetdb(c, node, image=None, log_level=None, nclients=None):
+def create_monetdb(
+    c, node, image=None, log_level=None, nclients=None, monetdb_memory_limit=None
+):
     """
     (Re)Create MonetDB container(s) for given node(s). If the container exists, it will remove it and create it again.
 
@@ -305,6 +307,9 @@ def create_monetdb(c, node, image=None, log_level=None, nclients=None):
     if not nclients:
         nclients = get_deployment_config("monetdb_nclients")
 
+    if not monetdb_memory_limit:
+        monetdb_memory_limit = get_deployment_config("monetdb_memory_limit")
+
     get_docker_image(c, image)
 
     udfio_full_path = path.abspath(udfio.__file__)
@@ -325,7 +330,7 @@ def create_monetdb(c, node, image=None, log_level=None, nclients=None):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} {image}"""
+        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} --memory={monetdb_memory_limit}m --memory-reservation={monetdb_memory_limit}m {image}"""
         run(c, cmd)
 
 
