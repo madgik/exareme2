@@ -102,11 +102,11 @@ def local1(y, x):
     Y = y.to_numpy()
     X = Y if x is None else x.to_numpy()
 
-    sx = X.sum(axis=0)
-    sy = Y.sum(axis=0)
-    sxx = (X**2).sum(axis=0)
-    sxy = (X.T @ Y).T
-    syy = (Y**2).sum(axis=0)
+    sx = numpy.einsum("ij->j", X)
+    sy = numpy.einsum("ij->j", Y)
+    sxx = numpy.einsum("ij,ij->j", X, X)
+    sxy = numpy.einsum("ji,jk->ki", X, Y)
+    syy = numpy.einsum("ij,ij->j", Y, Y)
 
     transfer_ = {}
     transfer_["n_obs"] = {"data": n_obs, "operation": "sum", "type": "int"}

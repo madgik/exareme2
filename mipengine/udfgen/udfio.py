@@ -55,7 +55,7 @@ def from_tensor_table(table: dict):
 
 
 def from_relational_table(table: dict, row_id: str):
-    result = pd.DataFrame(table)
+    result = pd.DataFrame(table, copy=False)
     if row_id in result.columns:
         return result.set_index(row_id)
     return result
