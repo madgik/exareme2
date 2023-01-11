@@ -1,0 +1,236 @@
+{
+    "test_cases": [
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightgregyrusrectus"
+                    ],
+                    "x": [
+                        "rightcuncuneus"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi2",
+                        "desd-synthdata6",
+                        "ppmi6",
+                        "desd-synthdata0",
+                        "ppmi8",
+                        "ppmi9",
+                        "ppmi4",
+                        "desd-synthdata4",
+                        "edsd6",
+                        "edsd2",
+                        "edsd8",
+                        "desd-synthdata5",
+                        "desd-synthdata3",
+                        "desd-synthdata2",
+                        "edsd1",
+                        "ppmi0",
+                        "edsd5",
+                        "ppmi5",
+                        "ppmi1"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "alt_hypothesis": "less",
+                    "confidence_lvl": 0.5727207100545569
+                },
+                "test_case_num": 0
+            },
+            "output": {
+                "n_obs": 2592,
+                "statistic": 134.30687412180572,
+                "p_value": 1.0,
+                "df": 2590,
+                "mean_diff": 2.649063055555556,
+                "se_difference": 0.01972395733931731,
+                "ci_upper": 2.6815226463968456,
+                "ci_lower": "-Infinity",
+                "cohens_d": 5.276072302860936
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "lefttmptemporalpole"
+                    ],
+                    "x": [
+                        "rightmorgmedialorbitalgyrus"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi3",
+                        "ppmi2",
+                        "desd-synthdata9",
+                        "ppmi8",
+                        "desd-synthdata5",
+                        "desd-synthdata3",
+                        "edsd1",
+                        "ppmi1",
+                        "desd-synthdata2",
+                        "desd-synthdata4",
+                        "edsd3",
+                        "desd-synthdata1",
+                        "edsd8",
+                        "edsd9",
+                        "desd-synthdata7",
+                        "ppmi6",
+                        "edsd7"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "alt_hypothesis": "two-sided",
+                    "confidence_lvl": 0.6289411870096006
+                },
+                "test_case_num": 1
+            },
+            "output": {
+                "n_obs": 2542,
+                "statistic": -126.50018246926417,
+                "p_value": 0.0,
+                "df": 2540,
+                "mean_diff": -3.6413019669551536,
+                "se_difference": 0.02878495426549984,
+                "ci_upper": -3.58484925938314,
+                "ci_lower": -3.697754674527167,
+                "cohens_d": -5.01803139949221
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "rightcocentraloperculum"
+                    ],
+                    "x": [
+                        "leftsplsuperiorparietallobule"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata1",
+                        "desd-synthdata5",
+                        "edsd3",
+                        "ppmi9",
+                        "edsd9",
+                        "edsd0",
+                        "edsd5",
+                        "edsd6",
+                        "desd-synthdata0",
+                        "edsd7",
+                        "ppmi1"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "alt_hypothesis": "greater",
+                    "confidence_lvl": 0.6313593659938367
+                },
+                "test_case_num": 2
+            },
+            "output": {
+                "n_obs": 1252,
+                "statistic": 98.27839868873693,
+                "p_value": 0.0,
+                "df": 1250,
+                "mean_diff": 6.446367140575079,
+                "se_difference": 0.06559291997615603,
+                "ci_upper": "Infinity",
+                "ci_lower": 6.33835729225039,
+                "cohens_d": 5.555023529919806
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftsmgsupramarginalgyrus"
+                    ],
+                    "x": [
+                        "leftstgsuperiortemporalgyrus"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi3",
+                        "ppmi9",
+                        "ppmi0",
+                        "edsd4",
+                        "edsd0",
+                        "desd-synthdata0",
+                        "edsd1",
+                        "edsd9",
+                        "desd-synthdata3",
+                        "ppmi7",
+                        "edsd8",
+                        "desd-synthdata9"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "alt_hypothesis": "two-sided",
+                    "confidence_lvl": 0.500807798669256
+                },
+                "test_case_num": 3
+            },
+            "output": {
+                "n_obs": 1354,
+                "statistic": -30.21349139875929,
+                "p_value": 1.0891431283886116e-151,
+                "df": 1352,
+                "mean_diff": -1.6428292466765138,
+                "se_difference": 0.05437402864152192,
+                "ci_upper": -1.5361568525333609,
+                "ci_lower": -1.7495016408196666,
+                "cohens_d": -1.6421830972737614
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftmorgmedialorbitalgyrus"
+                    ],
+                    "x": [
+                        "leftgregyrusrectus"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd9",
+                        "desd-synthdata2",
+                        "ppmi4",
+                        "ppmi6",
+                        "ppmi1",
+                        "desd-synthdata6",
+                        "ppmi3",
+                        "edsd5",
+                        "desd-synthdata7",
+                        "ppmi2",
+                        "edsd0",
+                        "ppmi0",
+                        "edsd2"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "alt_hypothesis": "less",
+                    "confidence_lvl": 0.3320808160368658
+                },
+                "test_case_num": 4
+            },
+            "output": {
+                "n_obs": 1626,
+                "statistic": -89.99972520863321,
+                "p_value": 0.0,
+                "df": 1624,
+                "mean_diff": -1.8669341451414514,
+                "se_difference": 0.020743776059466968,
+                "ci_upper": -1.8327893012832497,
+                "ci_lower": "-Infinity",
+                "cohens_d": -4.463863526514264
+            }
+        }
+    ]
+}
