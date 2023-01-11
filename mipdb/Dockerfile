@@ -28,7 +28,7 @@ WORKDIR $DATA_PATH
 #######################################################
 # Installing dependencies
 #######################################################
-RUN pip install mipdb==0.6.0
+RUN pip install mipdb==1.0.0
 RUN pip install click==8.1.2
 RUN pip install pymonetdb==1.4.1
 

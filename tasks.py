@@ -332,7 +332,7 @@ def create_monetdb(
         )
         hard_memory_limit = monetdb_memory_limit + 1024
         soft_memory_limit = monetdb_memory_limit
-        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} --memory={hard_memory_limit}m --memory-reservation={soft_memory_limit}m {image}"""
+        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py -v {TEST_DATA_FOLDER}:{TEST_DATA_FOLDER} --name {container_name} --memory={hard_memory_limit}m --memory-reservation={soft_memory_limit}m {image}"""
         run(c, cmd)
 
 
@@ -379,6 +379,15 @@ def load_data(c, port=None):
                 local_node_ports.append(node_config["monetdb"]["port"])
 
     local_node_ports = sorted(local_node_ports)
+
+    if len(local_node_ports) == 1:
+        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --port {local_node_ports[0]} "
+        message(
+            f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {port}...",
+            Level.HEADER,
+        )
+        run(c, cmd)
+        return
 
     # Load the test data folder into the dbs
     data_model_folders = [
