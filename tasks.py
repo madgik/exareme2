@@ -396,9 +396,7 @@ def load_data(c, port=None):
     for data_model_folder in data_model_folders:
 
         # Load all data models in each db
-        with open(
-            data_model_folder / "CDEsMetadata.json"
-        ) as data_model_metadata_file:
+        with open(data_model_folder / "CDEsMetadata.json") as data_model_metadata_file:
             data_model_metadata = json.load(data_model_metadata_file)
             data_model_code = data_model_metadata["code"]
             data_model_version = data_model_metadata["version"]
