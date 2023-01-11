@@ -49,6 +49,8 @@ spec:
         volumeMounts:
         - mountPath: /home/monetdb
           name: db-data
+        - mountPath: /opt/data
+          name: csv-data
         livenessProbe:
           exec:
             command:

@@ -188,7 +188,10 @@ def _create_monetdb_container(cont_name, cont_port):
             TESTING_MONETDB_CONT_IMAGE,
             detach=True,
             ports={"50000/tcp": cont_port},
-            volumes=[f"{udfio_full_path}:/home/udflib/udfio.py"],
+            volumes=[
+                f"{udfio_full_path}:/home/udflib/udfio.py",
+                f"{TEST_DATA_FOLDER}:{TEST_DATA_FOLDER}",
+            ],
             name=cont_name,
             publish_all_ports=True,
         )

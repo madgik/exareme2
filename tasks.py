@@ -330,7 +330,7 @@ def create_monetdb(
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} --memory={monetdb_memory_limit}m --memory-reservation={monetdb_memory_limit}m {image}"""
+        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py  -v {TEST_DATA_FOLDER}:{TEST_DATA_FOLDER} --name {container_name} --memory={monetdb_memory_limit}m --memory-reservation={monetdb_memory_limit}m {image}"""
         run(c, cmd)
 
 
@@ -378,6 +378,15 @@ def load_data(c, port=None):
 
     local_node_ports = sorted(local_node_ports)
 
+    if len(local_node_ports) == 1:
+        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --port {local_node_ports[0]} "
+        message(
+            f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {port}...",
+            Level.HEADER,
+        )
+        run(c, cmd)
+        return
+
     # Load the test data folder into the dbs
     data_model_folders = [
         TEST_DATA_FOLDER / folder for folder in listdir(TEST_DATA_FOLDER)
@@ -385,7 +394,9 @@ def load_data(c, port=None):
     for data_model_folder in data_model_folders:
 
         # Load all data models in each db
-        with open(data_model_folder / "CDEsMetadata.json") as data_model_metadata_file:
+        with open(
+            data_model_folder / "CDEsMetadata.json"
+        ) as data_model_metadata_file:
             data_model_metadata = json.load(data_model_metadata_file)
             data_model_code = data_model_metadata["code"]
             data_model_version = data_model_metadata["version"]
