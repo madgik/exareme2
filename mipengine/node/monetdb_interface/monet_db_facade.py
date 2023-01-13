@@ -12,21 +12,34 @@ from mipengine.singleton import Singleton
 INTEGRITY_ERROR_RETRY_INTERVAL = 1
 CONN_RECOVERY_MAX_ATTEMPTS = 10
 CONN_RECOVERY_ERROR_RETRY = 0.2
-QUERY_EXECUTION_LOCK_TIMEOUT = node_config.celery.tasks_timeout
-UDF_EXECUTION_LOCK_TIMEOUT = node_config.celery.run_udf_task_timeout
 
 query_execution_lock = Semaphore()
 udf_execution_lock = Semaphore()
 
 
-class DBExecutionDTO:
+def db_execute_and_fetchall(query: str, parameters=None, many=False) -> List:
+    return _execute_queries_with_connection_handling(
+        func=_execute_and_fetchall,
+        query=query,
+        parameters=parameters,
+        many=many,
+    )
+
+
+def db_execute(query: str, parameters=None, many=False) -> List:
+    return _execute_queries_with_connection_handling(
+        func=_execute, query=query, parameters=parameters, many=many
+    )
+
+
+class _DBExecutionDTO:
     def __init__(self, query, parameters=None, many=False):
         self.query = query
         self.parameters = parameters
         self.many = many
 
 
-class LockDTO:
+class _LockDTO:
     def __init__(self, lock, timeout):
         self.lock = lock
         self.timeout = timeout
@@ -71,14 +84,14 @@ class _MonetDBConnectionPool(metaclass=Singleton):
 
 
 @contextmanager
-def cursor(_connection):
+def _cursor(_connection):
     cur = _connection.cursor()
     yield cur
     cur.close()
 
 
 def _execute_and_commit(conn, db_execution_dto):
-    with cursor(conn) as cur:
+    with _cursor(conn) as cur:
         cur.executemany(
             db_execution_dto.query, db_execution_dto.parameters
         ) if db_execution_dto.many else cur.execute(
@@ -98,23 +111,7 @@ def _lock(query_lock, timeout):
         query_lock.release()
 
 
-def db_execute_and_fetchall(query: str, parameters=None, many=False) -> List:
-    return execute_queries_with_connection_handling(
-        func=_execute_and_fetchall,
-        query=query,
-        parameters=parameters,
-        many=many,
-    )
-
-
-def db_execute(query: str, parameters=None, many=False) -> List:
-
-    return execute_queries_with_connection_handling(
-        func=_execute, query=query, parameters=parameters, many=many
-    )
-
-
-def execute_queries_with_connection_handling(func, *args, **kwargs):
+def _execute_queries_with_connection_handling(func, *args, **kwargs):
     """
     On the query execution we need to handle the 'OSError' and 'BrokenPipeError' exception.
     On both cases we try for x amount of times to recover the connection with the database.
@@ -150,12 +147,12 @@ def _execute_and_fetchall(query: str, parameters=None, many=False, conn=None) ->
     'parameters' option to provide the functionality of bind-parameters.
     """
     logger = logging.get_logger()
-    db_execution_dto = DBExecutionDTO(query=query, parameters=parameters, many=many)
+    db_execution_dto = _DBExecutionDTO(query=query, parameters=parameters, many=many)
     logger.info(
         f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
     )
 
-    with cursor(conn) as cur:
+    with _cursor(conn) as cur:
         cur.executemany(
             db_execution_dto.query, db_execution_dto.parameters
         ) if db_execution_dto.many else cur.execute(
@@ -167,7 +164,7 @@ def _execute_and_fetchall(query: str, parameters=None, many=False, conn=None) ->
 
 def _execute(query: str, parameters=None, many=False, conn=None):
     """
-    Executes statements that don't have a result. For example "CREATE,DROP,UPDATE".
+    Executes statements that don't have a result. For example "CREATE,DROP,UPDATE,INSERT".
 
     By adding create_function_query_lock we serialized the execution of the queries that contain 'create remote table',
     in order to a bug that was found.
@@ -184,16 +181,25 @@ def _execute(query: str, parameters=None, many=False, conn=None):
     'parameters' option to provide the functionality of bind-parameters.
     """
     logger = logging.get_logger()
-    db_execution_dto = DBExecutionDTO(query=query, parameters=parameters, many=many)
 
-    logger.info(
-        f"query: {db_execution_dto.query} \n, parameters: {str(db_execution_dto.parameters)}\n, many: {db_execution_dto.many}"
+    fault_tolerant_query = _create_fault_tolerant_query(query)
+    db_execution_dto = _DBExecutionDTO(
+        query=fault_tolerant_query, parameters=parameters, many=many
     )
 
+    logger.info(
+        f"Original query: {query} \n, "
+        f"fault tolerant query: {fault_tolerant_query} \n, "
+        f"parameters: {str(db_execution_dto.parameters)}\n, "
+        f"many: {db_execution_dto.many}"
+    )
+
+    query_execution_lock_timeout = node_config.celery.tasks_timeout
+    udf_execution_lock_timeout = node_config.celery.run_udf_task_timeout
     lock_dto = (
-        LockDTO(udf_execution_lock, UDF_EXECUTION_LOCK_TIMEOUT)
+        _LockDTO(udf_execution_lock, udf_execution_lock_timeout)
         if db_execution_dto.query.startswith("INSERT INTO")
-        else LockDTO(query_execution_lock, QUERY_EXECUTION_LOCK_TIMEOUT)
+        else _LockDTO(query_execution_lock, query_execution_lock_timeout)
     )
 
     try:
@@ -212,3 +218,43 @@ def _get_lock_timeout_error_msg(db_execution_dto, lock_timeout):
         lock was not acquired during
         {lock_timeout=}
     """
+
+
+def _create_fault_tolerant_query(query: str):
+    """
+    This is a query optimization method to protect from the following edge case:
+    1) A udf starts running allocating memory,
+    2) a table creation query starts running,
+    3) the udf allocates more memory than monetdb can provide,
+    4) the container memory limit kills monetdb,
+    5) the table creation query returns with BrokenPipeError("Server closed the connection"),
+    6) when the monet_db_facade tries to rerun the failed query it receives a "Table already exists error"
+        because the table was created even though the connection was severed.
+
+    The solution to this is a suffix on the "CREATE TABLE" queries with "IF NOT EXISTS" to cover this scenario.
+    """
+    fault_tolerant_query = query
+    if "CREATE" in fault_tolerant_query:
+        fault_tolerant_query = fault_tolerant_query.replace(
+            "CREATE TABLE", "CREATE TABLE IF NOT EXISTS"
+        )
+        fault_tolerant_query = fault_tolerant_query.replace(
+            "CREATE REMOTE TABLE", "CREATE REMOTE TABLE IF NOT EXISTS"
+        )
+        fault_tolerant_query = fault_tolerant_query.replace(
+            "CREATE MERGE TABLE", "CREATE MERGE TABLE IF NOT EXISTS"
+        )
+        fault_tolerant_query = fault_tolerant_query.replace(
+            "CREATE VIEW", "CREATE OR REPLACE VIEW"
+        )
+    elif "DROP" in fault_tolerant_query:
+        fault_tolerant_query = fault_tolerant_query.replace(
+            "DROP FUNCTION", "DROP FUNCTION IF EXISTS"
+        )
+        fault_tolerant_query = fault_tolerant_query.replace(
+            "DROP TABLE", "DROP TABLE IF EXISTS"
+        )
+        fault_tolerant_query = fault_tolerant_query.replace(
+            "DROP VIEW", "DROP VIEW IF EXISTS"
+        )
+    return fault_tolerant_query
