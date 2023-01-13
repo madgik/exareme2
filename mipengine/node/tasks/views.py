@@ -16,6 +16,8 @@ from mipengine.node.node_logger import initialise_logger
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType
 
+MINIMUM_ROW_COUNT = node_config.privacy.minimum_row_count
+
 
 @shared_task
 @initialise_logger
@@ -128,6 +130,7 @@ def create_data_model_view(
         table_name=f'"{data_model}"."primary_data"',
         columns=columns,
         filters=filters,
+        minimum_row_count=MINIMUM_ROW_COUNT,
         check_min_rows=check_min_rows,
     )
 
@@ -240,4 +243,5 @@ def create_view(
         table_name=table_name,
         columns=columns,
         filters=filters,
+        minimum_row_count=MINIMUM_ROW_COUNT,
     ).json()
