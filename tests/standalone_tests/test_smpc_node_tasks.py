@@ -458,6 +458,7 @@ def test_load_data_to_smpc_client_from_globalnode_fails(
 @pytest.mark.slow
 @pytest.mark.very_slow
 @pytest.mark.smpc
+@pytest.mark.smpc_cluster
 def test_load_data_to_smpc_client(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
@@ -524,6 +525,7 @@ def test_get_smpc_result_from_localnode_fails(
 @pytest.mark.slow
 @pytest.mark.very_slow
 @pytest.mark.smpc
+@pytest.mark.smpc_cluster
 def test_get_smpc_result(
     smpc_globalnode_node_service,
     use_smpc_globalnode_database,
@@ -600,6 +602,7 @@ def test_get_smpc_result(
 @pytest.mark.slow
 @pytest.mark.very_slow
 @pytest.mark.smpc
+@pytest.mark.smpc_cluster
 def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_node_service,
     smpc_localnode1_node_service,
