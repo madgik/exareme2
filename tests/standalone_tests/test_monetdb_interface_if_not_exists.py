@@ -168,7 +168,9 @@ def test_create_remote_table_if_not_exists(
 @pytest.mark.slow
 def test_create_merge_table_if_not_exists(
     use_localnode1_database,
+    create_sample_table,
 ):
+    sample_table_info = create_sample_table
     table_name = "test_create_merge_table_if_not_exists"
     table_schema = TableSchema(
         columns=[ColumnInfo(name="sample_column", dtype=DType.INT)]
@@ -176,12 +178,14 @@ def test_create_merge_table_if_not_exists(
     create_merge_table(
         table_name=table_name,
         table_schema=table_schema,
+        merge_table_names=[sample_table_info.name],
     )
 
     try:
         create_merge_table(
             table_name=table_name,
             table_schema=table_schema,
+            merge_table_names=[sample_table_info.name],
         )
     except Exception as exc:
         pytest.fail(
@@ -215,10 +219,10 @@ def test_create_merge_table_if_not_exists_query():
     with patch(
         "mipengine.node.monetdb_interface.monet_db_facade._execute_and_commit"
     ) as execute_and_commit_mock:
-        _execute("CREATE MERGE TABLE")
+        _execute("CREATE MERGE TABLE sample_table")
         assert (
             execute_and_commit_mock.call_args.args[1].query
-            == "CREATE MERGE TABLE IF NOT EXISTS"
+            == "DROP TABLE IF EXISTS sample_table; CREATE MERGE TABLE sample_table"
         )
 
 
