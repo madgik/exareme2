@@ -4,7 +4,6 @@ import pytest
 
 from mipengine import DType
 from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 
 COMMON_TASKS_REQUEST_ID = "rqst1"

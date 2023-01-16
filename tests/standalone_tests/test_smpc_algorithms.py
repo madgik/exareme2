@@ -331,6 +331,7 @@ def get_parametrization_list_success_cases():
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.smpc
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",
@@ -435,6 +436,7 @@ def get_parametrization_list_exception_cases():
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.smpc
 @pytest.mark.parametrize(
     "algorithm_name, request_dict, expected_response",

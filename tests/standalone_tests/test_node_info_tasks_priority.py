@@ -44,6 +44,7 @@ def queue_one_second_udf(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_node_info_tasks_have_higher_priority_over_other_tasks(
     globalnode_node_service,
     reset_celery_app_factory,

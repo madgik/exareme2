@@ -68,6 +68,7 @@ def patch_node_config():
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_execute_and_fetchall_success(
     monetdb_localnodetmp,
 ):
@@ -76,6 +77,7 @@ def test_execute_and_fetchall_success(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_broken_pipe_error_properly_handled(
     capfd,
     monetdb_localnodetmp,
@@ -93,6 +95,7 @@ def test_broken_pipe_error_properly_handled(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_connection_refused_properly_handled(
     capfd,
     monetdb_localnodetmp,
@@ -108,6 +111,7 @@ def test_connection_refused_properly_handled(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_generic_exception_handled(monetdb_localnodetmp):
     with pytest.raises(pymonetdb.exceptions.OperationalError):
         db_execute_and_fetchall(query="SELECT * FROM non_existing_table;")

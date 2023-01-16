@@ -6,9 +6,7 @@ import pytest
 
 from mipengine import AttrDict
 from mipengine import DType
-from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.celery_app import CeleryConnectionError
-from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.controller.celery_app import CeleryWrapper
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
@@ -108,6 +106,7 @@ def test_get_result(localnode1_node_service, task_signatures):
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_queue_task_node_down(localnodetmp_node_service, task_signatures):
     socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALNODETMP_PORT}"
     celery_app = CeleryWrapper(socket_addr=socket_addr)
@@ -133,6 +132,7 @@ def test_queue_task_node_down(localnodetmp_node_service, task_signatures):
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_get_result_node_down(localnodetmp_node_service, task_signatures):
     socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALNODETMP_PORT}"
     celery_app = CeleryWrapper(socket_addr=socket_addr)

@@ -293,6 +293,7 @@ def test_secure_transfer_input_with_smpc_off(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.smpc
 def test_validate_smpc_templates_match(
     smpc_localnode1_node_service,
@@ -318,6 +319,7 @@ def test_validate_smpc_templates_match(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.smpc
 def test_validate_smpc_templates_dont_match(
     smpc_localnode1_node_service,
@@ -342,6 +344,7 @@ def test_validate_smpc_templates_dont_match(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.smpc
 def test_secure_transfer_run_udf_flow_with_smpc_on(
     smpc_localnode1_node_service,
@@ -432,6 +435,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.smpc
 def test_load_data_to_smpc_client_from_globalnode_fails(
     smpc_globalnode_node_service,
@@ -452,6 +456,7 @@ def test_load_data_to_smpc_client_from_globalnode_fails(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.smpc
 def test_load_data_to_smpc_client(
     smpc_localnode1_node_service,
@@ -497,6 +502,7 @@ def test_load_data_to_smpc_client(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.smpc
 def test_get_smpc_result_from_localnode_fails(
     smpc_localnode1_node_service,
@@ -516,6 +522,7 @@ def test_get_smpc_result_from_localnode_fails(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.smpc
 def test_get_smpc_result(
     smpc_globalnode_node_service,
@@ -591,6 +598,7 @@ def test_get_smpc_result(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.smpc
 def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_node_service,
