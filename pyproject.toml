@@ -52,8 +52,10 @@ mipdb = "1.0.0"
 [tool.pytest.ini_options]
 markers = [
     "database: these tests depend on an external dockerized MonetDB service running (deselect with '-m \"not database\"')",
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "smpc: marks the tests that need smpc deployment (deselect with '-m \"not smpc\"')",
+    "slow: marks tests as slow, mostly integration tests (deselect with '-m \"not slow\"')",
+    "very_slow: marks tests as very_slow, integration tests with temporary container dependencies (deselect with '-m \"not very_slow\"')",
+    "smpc: marks the tests validating smpc functionality (deselect with '-m \"not smpc\"')",
+    "smpc_cluster: marks the tests that need smpc cluster deployment (deselect with '-m \"not smpc_cluster\"')",
 ]
 filterwarnings = ["ignore::DeprecationWarning"]
 norecursedirs = ["tests/testcase_generators"]
