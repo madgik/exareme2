@@ -182,14 +182,14 @@ def _execute(query: str, parameters=None, many=False, conn=None):
     """
     logger = logging.get_logger()
 
-    fault_tolerant_query = _create_fault_tolerant_query(query)
+    idempotent_query = _create_idempotent_query(query)
     db_execution_dto = _DBExecutionDTO(
-        query=fault_tolerant_query, parameters=parameters, many=many
+        query=idempotent_query, parameters=parameters, many=many
     )
 
     logger.info(
         f"Original query: {query} \n, "
-        f"fault tolerant query: {fault_tolerant_query} \n, "
+        f"idempotent query: {idempotent_query} \n, "
         f"parameters: {str(db_execution_dto.parameters)}\n, "
         f"many: {db_execution_dto.many}"
     )
@@ -220,7 +220,7 @@ def _get_lock_timeout_error_msg(db_execution_dto, lock_timeout):
     """
 
 
-def _create_fault_tolerant_query(query: str):
+def _create_idempotent_query(query: str):
     """
     This is a query optimization method to protect from the following edge case:
     1) A udf starts running allocating memory,
@@ -231,30 +231,49 @@ def _create_fault_tolerant_query(query: str):
     6) when the monet_db_facade tries to rerun the failed query it receives a "Table already exists error"
         because the table was created even though the connection was severed.
 
-    The solution to this is a suffix on the "CREATE TABLE" queries with "IF NOT EXISTS" to cover this scenario.
+    The solution to this is to make all queries idempotent.
     """
-    fault_tolerant_query = query
-    if "CREATE" in fault_tolerant_query:
-        fault_tolerant_query = fault_tolerant_query.replace(
+    idempotent_query = query
+    create_merge_table_str = "CREATE MERGE TABLE"
+    if create_merge_table_str in idempotent_query:
+        """
+        The creation of the merge table cannot be easily idempotent because adding
+        an "IF NOT EXISTS" will leave the added tables. This means that adding afterwards tables
+        into the merge table will throw errors. We cannot add an "IF NOT EXISTS" clause in the
+        "ADD TABLE TO MERGE TABLE" query because it doesn't exist.
+        So the approach we are taking is dropping the merge table each time and recreating it to
+        make the whole merge table creation idempotent.
+        """
+
+        # We need to extract the table name from the query
+        create_merge_table_pos = idempotent_query.find(create_merge_table_str)
+        create_merge_table_name, *_ = idempotent_query[
+            create_merge_table_pos + len(create_merge_table_str) :
+        ].split()
+
+        idempotent_query = idempotent_query.replace(
+            "CREATE MERGE TABLE",
+            f"DROP TABLE {create_merge_table_name}; CREATE MERGE TABLE",
+        )
+
+    if "CREATE" in idempotent_query:
+        idempotent_query = idempotent_query.replace(
             "CREATE TABLE", "CREATE TABLE IF NOT EXISTS"
         )
-        fault_tolerant_query = fault_tolerant_query.replace(
+        idempotent_query = idempotent_query.replace(
             "CREATE REMOTE TABLE", "CREATE REMOTE TABLE IF NOT EXISTS"
         )
-        fault_tolerant_query = fault_tolerant_query.replace(
-            "CREATE MERGE TABLE", "CREATE MERGE TABLE IF NOT EXISTS"
-        )
-        fault_tolerant_query = fault_tolerant_query.replace(
+        idempotent_query = idempotent_query.replace(
             "CREATE VIEW", "CREATE OR REPLACE VIEW"
         )
-    elif "DROP" in fault_tolerant_query:
-        fault_tolerant_query = fault_tolerant_query.replace(
+
+    if "DROP" in idempotent_query:
+        idempotent_query = idempotent_query.replace(
             "DROP FUNCTION", "DROP FUNCTION IF EXISTS"
         )
-        fault_tolerant_query = fault_tolerant_query.replace(
+        idempotent_query = idempotent_query.replace(
             "DROP TABLE", "DROP TABLE IF EXISTS"
         )
-        fault_tolerant_query = fault_tolerant_query.replace(
-            "DROP VIEW", "DROP VIEW IF EXISTS"
-        )
-    return fault_tolerant_query
+        idempotent_query = idempotent_query.replace("DROP VIEW", "DROP VIEW IF EXISTS")
+
+    return idempotent_query
