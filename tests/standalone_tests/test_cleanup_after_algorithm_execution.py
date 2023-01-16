@@ -237,6 +237,7 @@ algorithm_request_dto = AlgorithmRequestDTO(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution(
     load_data_localnode1,
@@ -373,6 +374,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_timelimit(
     patch_cleaner_small_release_timelimit,
@@ -509,6 +511,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.asyncio
 async def test_cleanup_rabbitmq_down_algorithm_execution(
     load_data_localnode1,
@@ -678,6 +681,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.asyncio
 async def test_cleanup_node_service_down_algorithm_execution(
     init_data_globalnode,
@@ -844,6 +848,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.asyncio
 async def test_cleanup_controller_restart(
     init_data_globalnode,

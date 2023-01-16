@@ -1,5 +1,5 @@
 {
-    "name": "histogram",
+    "name": "multiple_histograms",
     "desc": "Multiple Histograms",
     "label": "Multiple Histograms",
     "enabled": true,
@@ -29,7 +29,7 @@
             "min": 1,
             "max": 100,
             "default": 20,
-            "notblank": true,
+            "notblank": false,
             "multiple": false
         }
     }

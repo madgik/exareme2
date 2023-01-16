@@ -258,7 +258,6 @@ def _convert_table_result_to_udf_statements(
     result: UDFGenTableResult, templates_mapping: dict
 ) -> List[str]:
     return [
-        result.drop_query.substitute(**templates_mapping),
         result.create_query.substitute(**templates_mapping),
     ]
 

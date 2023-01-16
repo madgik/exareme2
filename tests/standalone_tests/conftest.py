@@ -22,6 +22,7 @@ from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.controller_logger import init_logger
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.node_landscape_aggregator import _NLARegistries
+from mipengine.node.monetdb_interface.monet_db_facade import _MonetDBConnectionPool
 from mipengine.udfgen import udfio
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
@@ -188,7 +189,10 @@ def _create_monetdb_container(cont_name, cont_port):
             TESTING_MONETDB_CONT_IMAGE,
             detach=True,
             ports={"50000/tcp": cont_port},
-            volumes=[f"{udfio_full_path}:/home/udflib/udfio.py"],
+            volumes=[
+                f"{udfio_full_path}:/home/udflib/udfio.py",
+                f"{TEST_DATA_FOLDER}:{TEST_DATA_FOLDER}",
+            ],
             name=cont_name,
             publish_all_ports=True,
         )
@@ -516,6 +520,11 @@ def _clean_db(cursor):
                 cursor.execute(f"DROP VIEW {table_name}")
             else:
                 cursor.execute(f"DROP TABLE {table_name}")
+
+
+@pytest.fixture(scope="function")
+def reset_monet_db_facade_connection_pool():
+    _MonetDBConnectionPool()._connection_pool = []
 
 
 @pytest.fixture(scope="function")

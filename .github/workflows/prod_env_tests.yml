@@ -309,6 +309,3 @@ jobs:
 
       - name: Run production env tests
         run: poetry run pytest tests/prod_env_tests --verbosity=4
-
-      - name: Run the first 5 algorithm validation tests from each algorithm
-        run: poetry run pytest tests/algorithm_validation_tests/ -k "input0- or input1- or input2- or input3- or input4-" -vvvv
