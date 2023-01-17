@@ -454,7 +454,7 @@ def _create_db_cursor(db_port):
             password = "monetdb"
             port = db_port
             dbfarm = "db"
-            url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}:"
+            url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}"
             self._executor = sql.create_engine(url, echo=True)
 
         def execute(self, query, *args, **kwargs):
