@@ -436,14 +436,6 @@ docs = ["furo (>=2022.12.7)", "sphinx (>=5.3)", "sphinx-autodoc-typehints (>=1.1
 testing = ["covdefaults (>=2.2.2)", "coverage (>=7.0.1)", "pytest (>=7.2)", "pytest-cov (>=4)", "pytest-timeout (>=2.1)"]
 
 [[package]]
-name = "future"
-version = "0.18.3"
-description = "Clean single-source support for Python 3 and 2"
-category = "main"
-optional = false
-python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
-
-[[package]]
 name = "greenlet"
 version = "2.0.1"
 description = "Lightweight in-process concurrent programming"
@@ -707,7 +699,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "mipdb"
-version = "1.0.0"
+version = "1.0.1"
 description = ""
 category = "dev"
 optional = false
@@ -717,7 +709,7 @@ python-versions = ">=3.8,<4.0"
 click = ">=8,<9"
 pandas = ">=1.5.2,<1.6.0"
 pandera = ">=0.13.4,<0.14.0"
-pymonetdb = "<1.5"
+pymonetdb = ">=1.6.3,<1.7.0"
 SQLAlchemy = ">=1.3.0,<1.4.0"
 sqlalchemy_monetdb = ">=1.0.0,<1.1.0"
 
@@ -1012,18 +1004,15 @@ testutils = ["gitpython (>3)"]
 
 [[package]]
 name = "pymonetdb"
-version = "1.4.1"
+version = "1.6.3"
 description = "Native MonetDB client Python API"
 category = "main"
 optional = false
 python-versions = "*"
 
-[package.dependencies]
-future = "*"
-
 [package.extras]
 doc = ["sphinx", "sphinx-rtd-theme"]
-test = ["mypy", "pycodestyle", "pytest"]
+test = ["mypy", "pycodestyle", "pytest", "types-setuptools"]
 
 [[package]]
 name = "pyreadline"
@@ -1637,7 +1626,7 @@ h11 = ">=0.9.0,<1"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "24e641b1f9b297fea18e883391964ec5face18004d5a39f6081c1d520e5048d5"
+content-hash = "b44fc075b2b0fc50aec1c977b4348c4cf35992b51b310a4d704b21b09fab6d72"
 
 [metadata.files]
 aiofiles = [
@@ -1925,9 +1914,6 @@ filelock = [
     {file = "filelock-3.9.0-py3-none-any.whl", hash = "sha256:f58d535af89bb9ad5cd4df046f741f8553a418c01a7856bf0d173bbc9f6bd16d"},
     {file = "filelock-3.9.0.tar.gz", hash = "sha256:7b319f24340b51f55a2bf7a12ac0755a9b03e718311dac567a0f4f7fabd2f5de"},
 ]
-future = [
-    {file = "future-0.18.3.tar.gz", hash = "sha256:34a17436ed1e96697a86f9de3d15a3b0be01d8bc8de9c1dffd59fb8234ed5307"},
-]
 greenlet = [
     {file = "greenlet-2.0.1-cp27-cp27m-macosx_10_14_x86_64.whl", hash = "sha256:9ed358312e63bf683b9ef22c8e442ef6c5c02973f0c2a939ec1d7b50c974015c"},
     {file = "greenlet-2.0.1-cp27-cp27m-manylinux2010_x86_64.whl", hash = "sha256:4f09b0010e55bec3239278f642a8a506b91034f03a4fb28289a7d448a67f1515"},
@@ -2143,8 +2129,8 @@ mccabe = [
     {file = "mccabe-0.7.0.tar.gz", hash = "sha256:348e0240c33b60bbdf4e523192ef919f28cb2c3d7d5c7794f74009290f236325"},
 ]
 mipdb = [
-    {file = "mipdb-1.0.0-py3-none-any.whl", hash = "sha256:07860302150b3dcecfb6fbf56f10deae2446f7395aa850b5089c182f9ce9c9d1"},
-    {file = "mipdb-1.0.0.tar.gz", hash = "sha256:12e67af17e3038ecd19b20074df75d83c71850651d6e3aedb9c5a7055c811441"},
+    {file = "mipdb-1.0.1-py3-none-any.whl", hash = "sha256:0a3e5e1a7f396830f5b6789dce8561377a6a88b7140481bec0567af152f50096"},
+    {file = "mipdb-1.0.1.tar.gz", hash = "sha256:c9ef6de5bea3198406f87bbad0e7b1c50fb705f7e3a43b7397f7aadf284fef5c"},
 ]
 mypy-extensions = [
     {file = "mypy_extensions-0.4.3-py2.py3-none-any.whl", hash = "sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d"},
@@ -2336,8 +2322,8 @@ pylint = [
     {file = "pylint-2.15.10.tar.gz", hash = "sha256:b3dc5ef7d33858f297ac0d06cc73862f01e4f2e74025ec3eff347ce0bc60baf5"},
 ]
 pymonetdb = [
-    {file = "pymonetdb-1.4.1-py2.py3-none-any.whl", hash = "sha256:ac09bb35c192225a9d7b1ecc9cfc167c09420df2440f26ad2a55c0f91a737cd3"},
-    {file = "pymonetdb-1.4.1.tar.gz", hash = "sha256:91952bbc41a93a797df46c0a3854cab3e3b1fb8fb18555f8ce5cbee9eefb86d3"},
+    {file = "pymonetdb-1.6.3-py2.py3-none-any.whl", hash = "sha256:3a59cfbbd7364d34d7da9fc8bf4fc4abbdb5878240e660761e00a38286471599"},
+    {file = "pymonetdb-1.6.3.tar.gz", hash = "sha256:9e0b96d81c574856d002aefbd5d831766d8485f51050ca130b5ad246879e8d72"},
 ]
 pyreadline = [
     {file = "pyreadline-2.1.zip", hash = "sha256:4530592fc2e85b25b1a9f79664433da09237c1a270e4d78ea5aa3a2c7229e2d1"},
