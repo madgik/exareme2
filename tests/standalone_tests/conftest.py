@@ -1015,7 +1015,7 @@ def _create_controller_service(
     env["MIPENGINE_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
     env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)
 
-    cmd = f"poetry run hypercorn -b 0.0.0.0:{service_port} -w 1 --log-level DEBUG mipengine/controller/api/app:app >> {logpath} 2>&1 "
+    cmd = f"poetry run hypercorn --config python:mipengine.controller.api.hypercorn_config -b 0.0.0.0:{service_port} mipengine/controller/api/app:app >> {logpath} 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
