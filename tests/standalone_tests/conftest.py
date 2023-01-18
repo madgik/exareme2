@@ -454,7 +454,7 @@ def _create_db_cursor(db_port):
             password = "monetdb"
             port = db_port
             dbfarm = "db"
-            url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}:"
+            url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}"
             self._executor = sql.create_engine(url, echo=True)
 
         def execute(self, query, *args, **kwargs):
@@ -752,7 +752,12 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
 def kill_service(proc):
     print(f"\nKilling service with process id '{proc.pid}'...")
     psutil_proc = psutil.Process(proc.pid)
+
+    # First killing all the subprocesses, if they exist
+    for child in psutil.Process(proc.pid).children(recursive=True):
+        child.kill()
     proc.kill()
+
     for _ in range(100):
         if psutil_proc.status() == "zombie" or psutil_proc.status() == "sleeping":
             break
