@@ -6,7 +6,7 @@
                     "y": [
                         "alzheimerbroadcategory"
                     ],
-                    "x": [],
+                    "x": null,
                     "data_model": "dementia:0.1",
                     "datasets": [
                         "edsd3",
