@@ -46,6 +46,5 @@ RUN rm -rf mipengine/node
 #######################################################
 # Define Hypercorn needed env variables and start hypercorn
 #######################################################
-ENV FRAMEWORK_LOG_LEVEL="INFO"
 ENV PYTHONPATH=$CODE_PATH
-CMD ["sh", "-c", "hypercorn -b 0.0.0.0:5000 -w 1 --log-level $FRAMEWORK_LOG_LEVEL mipengine/controller/api/app:app"]
+CMD ["sh", "-c", "hypercorn --config python:mipengine.controller.api.hypercorn_config -b 0.0.0.0:5000 mipengine/controller/api/app:app"]
