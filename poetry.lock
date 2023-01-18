@@ -524,6 +524,22 @@ optional = false
 python-versions = ">=3.5"
 
 [[package]]
+name = "importlib-metadata"
+version = "6.0.0"
+description = "Read metadata from Python packages"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+zipp = ">=0.5"
+
+[package.extras]
+docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-lint"]
+perf = ["ipython"]
+testing = ["flake8 (<5)", "flufl.flake8", "importlib-resources (>=1.3)", "packaging", "pyfakefs", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)", "pytest-perf (>=0.9.2)"]
+
+[[package]]
 name = "iniconfig"
 version = "2.0.0"
 description = "brain-dead simple config-ini parsing"
@@ -699,19 +715,19 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "mipdb"
-version = "1.0.1"
+version = "1.1.0"
 description = ""
 category = "dev"
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = ">=3.8,<3.9"
 
 [package.dependencies]
-click = ">=8,<9"
-pandas = ">=1.5.2,<1.6.0"
-pandera = ">=0.13.4,<0.14.0"
-pymonetdb = ">=1.6.3,<1.7.0"
-SQLAlchemy = ">=1.3.0,<1.4.0"
-sqlalchemy_monetdb = ">=1.0.0,<1.1.0"
+click = ">=8.1,<8.2"
+pandas = ">=1.5,<1.6"
+pandera = ">=0.13,<0.14"
+pymonetdb = ">=1.6,<1.7"
+SQLAlchemy = ">=1.3,<1.4"
+sqlalchemy_monetdb = ">=1.0,<1.1"
 
 [[package]]
 name = "mypy-extensions"
@@ -1190,7 +1206,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "quart"
-version = "0.17.0"
+version = "0.18.3"
 description = "A Python ASGI web microframework with the same API as Flask"
 category = "main"
 optional = false
@@ -1199,15 +1215,16 @@ python-versions = ">=3.7"
 [package.dependencies]
 aiofiles = "*"
 blinker = "*"
-click = "*"
+click = ">=8.0.0"
 hypercorn = ">=0.11.2"
+importlib_metadata = {version = "*", markers = "python_version < \"3.10\""}
 itsdangerous = "*"
 jinja2 = "*"
 markupsafe = "*"
-toml = "*"
-werkzeug = ">=2.0.0"
+werkzeug = ">=2.2.0"
 
 [package.extras]
+docs = ["pydata_sphinx_theme"]
 dotenv = ["python-dotenv"]
 
 [[package]]
@@ -1623,10 +1640,22 @@ python-versions = ">=3.7.0"
 [package.dependencies]
 h11 = ">=0.9.0,<1"
 
+[[package]]
+name = "zipp"
+version = "3.11.0"
+description = "Backport of pathlib-compatible object wrapper for zip files"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)"]
+testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)"]
+
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "b44fc075b2b0fc50aec1c977b4348c4cf35992b51b310a4d704b21b09fab6d72"
+content-hash = "b4cf894d94f1ed5046d759f8dc50c487a96e3b95101d5c57160c4c822faf457c"
 
 [metadata.files]
 aiofiles = [
@@ -2004,6 +2033,10 @@ idna = [
     {file = "idna-3.4-py3-none-any.whl", hash = "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"},
     {file = "idna-3.4.tar.gz", hash = "sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4"},
 ]
+importlib-metadata = [
+    {file = "importlib_metadata-6.0.0-py3-none-any.whl", hash = "sha256:7efb448ec9a5e313a57655d35aa54cd3e01b7e1fbcf72dce1bf06119420f5bad"},
+    {file = "importlib_metadata-6.0.0.tar.gz", hash = "sha256:e354bedeb60efa6affdcc8ae121b73544a7aa74156d047311948f6d711cd378d"},
+]
 iniconfig = [
     {file = "iniconfig-2.0.0-py3-none-any.whl", hash = "sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374"},
     {file = "iniconfig-2.0.0.tar.gz", hash = "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3"},
@@ -2139,8 +2172,8 @@ mccabe = [
     {file = "mccabe-0.7.0.tar.gz", hash = "sha256:348e0240c33b60bbdf4e523192ef919f28cb2c3d7d5c7794f74009290f236325"},
 ]
 mipdb = [
-    {file = "mipdb-1.0.1-py3-none-any.whl", hash = "sha256:0a3e5e1a7f396830f5b6789dce8561377a6a88b7140481bec0567af152f50096"},
-    {file = "mipdb-1.0.1.tar.gz", hash = "sha256:c9ef6de5bea3198406f87bbad0e7b1c50fb705f7e3a43b7397f7aadf284fef5c"},
+    {file = "mipdb-1.1.0-py3-none-any.whl", hash = "sha256:256a707b0b5ed51663d6b5a01049811885f345144622c2034627e9b94776322f"},
+    {file = "mipdb-1.1.0.tar.gz", hash = "sha256:553cd58e74d67ed9c51c56cbed533f8e4b3ef3c8c2e7a2e9bf782275b876c072"},
 ]
 mypy-extensions = [
     {file = "mypy_extensions-0.4.3-py2.py3-none-any.whl", hash = "sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d"},
@@ -2440,8 +2473,8 @@ pyyaml = [
     {file = "PyYAML-6.0.tar.gz", hash = "sha256:68fb519c14306fec9720a2a5b45bc9f0c8d1b9c72adf45c37baedfcd949c35a2"},
 ]
 quart = [
-    {file = "Quart-0.17.0-py3-none-any.whl", hash = "sha256:69480e7384935feff1f50293a8cb70c5d31f568af94ed792d043bb368b50bd50"},
-    {file = "Quart-0.17.0.tar.gz", hash = "sha256:2cf213d8b83fa701a83e3b3125e9102a937cefd1e97e9583f22ee2fa79139640"},
+    {file = "Quart-0.18.3-py3-none-any.whl", hash = "sha256:c221a7deb83a014dee040108d654b6141fe37f59e249c5caa0fdcf6506caf50b"},
+    {file = "Quart-0.18.3.tar.gz", hash = "sha256:dc4de597d5d4693627c90904b233d729531f6b27c1164f760476d3967aee2a4a"},
 ]
 requests = [
     {file = "requests-2.28.2-py3-none-any.whl", hash = "sha256:64299f4909223da747622c030b781c0d7811e359c37124b4bd368fb8c6518baa"},
@@ -2780,4 +2813,8 @@ wrapt = [
 wsproto = [
     {file = "wsproto-1.2.0-py3-none-any.whl", hash = "sha256:b9acddd652b585d75b20477888c56642fdade28bdfd3579aa24a4d2c037dd736"},
     {file = "wsproto-1.2.0.tar.gz", hash = "sha256:ad565f26ecb92588a3e43bc3d96164de84cd9902482b130d0ddbaa9664a85065"},
+]
+zipp = [
+    {file = "zipp-3.11.0-py3-none-any.whl", hash = "sha256:83a28fcb75844b5c0cdaf5aa4003c2d728c77e05f5aeabe8e95e56727005fbaa"},
+    {file = "zipp-3.11.0.tar.gz", hash = "sha256:a7a22e05929290a67401440b39690ae6563279bced5f314609d9d03798f56766"},
 ]
