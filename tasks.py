@@ -645,10 +645,10 @@ def start_controller(c, detached=False, algorithm_folders=None):
         ):
             outpath = OUTDIR / "controller.out"
             if detached:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn -b 0.0.0.0:5000 -w 1 --log-level DEBUG mipengine/controller/api/app:app>> {outpath} 2>&1"
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:mipengine.controller.api.hypercorn_config -b 0.0.0.0:5000 mipengine/controller/api/app:app>> {outpath} 2>&1"
                 run(c, cmd, wait=False)
             else:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn -b 0.0.0.0:5000 -w 1 --log-level DEBUG mipengine/controller/api/app:app"
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:mipengine.controller.api.hypercorn_config -b 0.0.0.0:5000 mipengine/controller/api/app:app"
                 run(c, cmd, attach_=True)
 
 
