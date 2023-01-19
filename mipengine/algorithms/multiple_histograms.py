@@ -38,6 +38,8 @@ def run(algo_interface):
     yvars = algo_interface.y_variables or []
 
     bins = algo_interface.algorithm_parameters.get("bins", 10)
+    if bins == None:
+        bins = 10
 
     [data] = algo_interface.create_primary_data_views(
         variable_groups=[yvars + xvars],
