@@ -114,6 +114,7 @@ class AlgorithmExecutor:
         nodes_tasks_handlers_dto: NodesTasksHandlersDTO,
         common_data_elements: Dict[str, CommonDataElement],
     ):
+
         self._logger = ctrl_logger.get_request_logger(
             request_id=algorithm_execution_dto.request_id
         )
@@ -165,8 +166,16 @@ class AlgorithmExecutor:
             local_nodes=self._local_nodes,
             algorithm_name=self._algorithm_name,
             algorithm_parameters=self._algorithm_execution_dto.algo_parameters,
-            x_variables=self._algorithm_execution_dto.x_vars,
-            y_variables=self._algorithm_execution_dto.y_vars,
+            x_variables=(
+                self._algorithm_execution_dto.x_vars
+                if self._algorithm_execution_dto.x_vars
+                else []
+            ),
+            y_variables=(
+                self._algorithm_execution_dto.y_vars
+                if self._algorithm_execution_dto.y_vars
+                else []
+            ),
             var_filters=self._algorithm_execution_dto.var_filters,
             data_model=self._algorithm_execution_dto.data_model,
             datasets_per_local_node=self._algorithm_execution_dto.datasets_per_local_node,
@@ -174,6 +183,7 @@ class AlgorithmExecutor:
             use_smpc=self._get_use_smpc_flag(),
             logger=self._logger,
         )
+
         if len(self._local_nodes) > 1:
             self._execution_interface = _AlgorithmExecutionInterface(
                 algo_execution_interface_dto, self._common_data_elements
