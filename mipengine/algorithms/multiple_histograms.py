@@ -31,7 +31,7 @@ class HistogramResult1(BaseModel):
     histogram: List[Histogram]
 
 
-class HistogramAlgorithm(Algorithm, algname="multiple_histogram"):
+class HistogramAlgorithm(Algorithm, algname="multiple_histograms"):
     def get_variable_groups(self):
         return [self.executor.y_variables + self.executor.x_variables]
 
