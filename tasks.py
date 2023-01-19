@@ -610,12 +610,10 @@ def start_node(
 @task
 def kill_controller(c):
     """Kill the controller service."""
-    res = run(c, "ps aux | grep '[h]ypercorn'", warn=True, show_ok=False)
+    res = run(c, "ps aux | grep '[s]pawn_main'", warn=True, show_ok=False)
     if res.ok:
         message("Killing previous Hypercorn instances...", Level.HEADER)
-        cmd = (
-            "ps aux | grep '[h]ypercorn' | awk '{ print $2}' | xargs kill -9 && sleep 5"
-        )
+        cmd = "ps aux | grep '[s]pawn_main' | awk '{ print $2}' | xargs kill -9 && sleep 5"
         run(c, cmd)
     else:
         message("No hypercorn instance found", Level.HEADER)
@@ -647,10 +645,10 @@ def start_controller(c, detached=False, algorithm_folders=None):
         ):
             outpath = OUTDIR / "controller.out"
             if detached:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn -b 0.0.0.0:5000 -w 1 --log-level DEBUG mipengine/controller/api/app:app>> {outpath} 2>&1"
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:mipengine.controller.api.hypercorn_config -b 0.0.0.0:5000 mipengine/controller/api/app:app>> {outpath} 2>&1"
                 run(c, cmd, wait=False)
             else:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn -b 0.0.0.0:5000 -w 1 --log-level DEBUG mipengine/controller/api/app:app"
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:mipengine.controller.api.hypercorn_config -b 0.0.0.0:5000 mipengine/controller/api/app:app"
                 run(c, cmd, attach_=True)
 
 

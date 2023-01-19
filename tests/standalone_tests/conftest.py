@@ -454,7 +454,7 @@ def _create_db_cursor(db_port):
             password = "monetdb"
             port = db_port
             dbfarm = "db"
-            url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}:"
+            url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}"
             self._executor = sql.create_engine(url, echo=True)
 
         def execute(self, query, *args, **kwargs):
@@ -752,7 +752,12 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
 def kill_service(proc):
     print(f"\nKilling service with process id '{proc.pid}'...")
     psutil_proc = psutil.Process(proc.pid)
+
+    # First killing all the subprocesses, if they exist
+    for child in psutil.Process(proc.pid).children(recursive=True):
+        child.kill()
     proc.kill()
+
     for _ in range(100):
         if psutil_proc.status() == "zombie" or psutil_proc.status() == "sleeping":
             break
@@ -1010,7 +1015,7 @@ def _create_controller_service(
     env["MIPENGINE_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
     env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)
 
-    cmd = f"poetry run hypercorn -b 0.0.0.0:{service_port} -w 1 --log-level DEBUG mipengine/controller/api/app:app >> {logpath} 2>&1 "
+    cmd = f"poetry run hypercorn --config python:mipengine.controller.api.hypercorn_config -b 0.0.0.0:{service_port} mipengine/controller/api/app:app >> {logpath} 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
