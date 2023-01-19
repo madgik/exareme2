@@ -4,6 +4,7 @@ import numpy
 import scipy.stats as stats
 from pydantic import BaseModel
 
+from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import relation_to_vector
@@ -39,44 +40,46 @@ class LinearRegressionResult(BaseModel):
     upper_ci: List[float]
 
 
-def run(executor):
-    X, y = executor.create_primary_data_views(
-        variable_groups=[executor.x_variables, executor.y_variables],
-    )
+class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
+    def get_variable_groups(self):
+        return [self.executor.x_variables, self.executor.y_variables]
 
-    dummy_encoder = DummyEncoder(executor)
-    X = dummy_encoder.transform(X)
+    def run(self):
+        X, y = self.executor.data_model_views
 
-    p = len(dummy_encoder.new_varnames) - 1
+        dummy_encoder = DummyEncoder(self.executor)
+        X = dummy_encoder.transform(X)
 
-    lr = LinearRegression(executor)
-    lr.fit(X=X, y=y)
-    y_pred: RealVector = lr.predict(X)
-    lr.compute_summary(
-        y_test=relation_to_vector(y, executor),
-        y_pred=y_pred,
-        p=p,
-    )
+        p = len(dummy_encoder.new_varnames) - 1
 
-    result = LinearRegressionResult(
-        dependent_var=executor.y_variables[0],
-        n_obs=lr.n_obs,
-        df_resid=lr.df,
-        df_model=p,
-        rse=lr.rse,
-        r_squared=lr.r_squared,
-        r_squared_adjusted=lr.r_squared_adjusted,
-        f_stat=lr.f_stat,
-        f_pvalue=lr.f_p_value,
-        indep_vars=dummy_encoder.new_varnames,
-        coefficients=[c[0] for c in lr.coefficients],
-        std_err=lr.std_err.tolist(),
-        t_stats=lr.t_stat.tolist(),
-        pvalues=lr.t_p_values.tolist(),
-        lower_ci=lr.ci[0].tolist(),
-        upper_ci=lr.ci[1].tolist(),
-    )
-    return result
+        lr = LinearRegression(self.executor)
+        lr.fit(X=X, y=y)
+        y_pred: RealVector = lr.predict(X)
+        lr.compute_summary(
+            y_test=relation_to_vector(y, self.executor),
+            y_pred=y_pred,
+            p=p,
+        )
+
+        result = LinearRegressionResult(
+            dependent_var=self.executor.y_variables[0],
+            n_obs=lr.n_obs,
+            df_resid=lr.df,
+            df_model=p,
+            rse=lr.rse,
+            r_squared=lr.r_squared,
+            r_squared_adjusted=lr.r_squared_adjusted,
+            f_stat=lr.f_stat,
+            f_pvalue=lr.f_p_value,
+            indep_vars=dummy_encoder.new_varnames,
+            coefficients=[c[0] for c in lr.coefficients],
+            std_err=lr.std_err.tolist(),
+            t_stats=lr.t_stat.tolist(),
+            pvalues=lr.t_p_values.tolist(),
+            lower_ci=lr.ci[0].tolist(),
+            upper_ci=lr.ci[1].tolist(),
+        )
+        return result
 
 
 class LinearRegression:

@@ -35,6 +35,7 @@ from typing import Union
 import pandas as pd
 from pydantic import BaseModel
 
+from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import MIN_ROW_COUNT
 from mipengine.udfgen import literal
@@ -42,6 +43,8 @@ from mipengine.udfgen import merge_transfer
 from mipengine.udfgen import relation
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
+
+DATASET_VAR_NAME = "dataset"
 
 
 class NumericalDescriptiveStats(BaseModel):
@@ -85,68 +88,77 @@ class Result(BaseModel):
     model_based: List[Variable]
 
 
-def run(executor):
-    local_run = executor.run_udf_on_local_nodes
-    global_run = executor.run_udf_on_global_node
+class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
+    def get_variable_groups(self):
 
-    xvars = executor.x_variables or []
-    yvars = executor.y_variables or []
+        xvars = self.executor.x_variables or []
+        yvars = self.executor.y_variables or []
 
-    # dataset variable is special as it is used to group results. Thus, it
-    # doesn't make sense to include it also as variable.
-    vars = [var for var in xvars + yvars if var != "dataset"]
-    metadata = executor.metadata
+        # dataset variable is special as it is used to group results. Thus, it
+        # doesn't make sense to include it also as variable.
+        vars = [var for var in xvars + yvars if var != DATASET_VAR_NAME]
+        variable_groups = [vars + [DATASET_VAR_NAME]]
 
-    numerical_vars = [var for var in vars if not metadata[var]["is_categorical"]]
-    nominal_vars = [var for var in vars if metadata[var]["is_categorical"]]
+        return variable_groups
 
-    [data] = executor.create_primary_data_views(
-        variable_groups=[vars + ["dataset"]],  # we need dataset to group by it
-        dropna=False,
-        check_min_rows=False,
-    )
+    def get_dropna(self) -> bool:
+        return False
 
-    local_transfers = local_run(
-        func=local,
-        keyword_args={
-            "data": data,
-            "numerical_vars": numerical_vars,
-            "nominal_vars": nominal_vars,
-        },
-        share_to_global=True,
-    )
+    def get_check_min_rows(self) -> bool:
+        return False
 
-    # global udf is actually a nop but is necessary because we can't get_table_data
-    # from local nodes
-    local_transfers = get_transfer_data(
-        global_run(
-            func=global_,
+    def run(self):
+        local_run = self.executor.run_udf_on_local_nodes
+        global_run = self.executor.run_udf_on_global_node
+
+        [data] = self.executor.data_model_views
+        metadata = self.executor.metadata
+
+        vars = [v for v in data.columns if v != DATASET_VAR_NAME]
+
+        numerical_vars = [var for var in vars if not metadata[var]["is_categorical"]]
+        nominal_vars = [var for var in vars if metadata[var]["is_categorical"]]
+        local_transfers = local_run(
+            func=local,
             keyword_args={
-                "local_transfers": local_transfers,
+                "data": data,
+                "numerical_vars": numerical_vars,
+                "nominal_vars": nominal_vars,
             },
+            share_to_global=True,
         )
-    )
 
-    recs_varbased = [
-        rec
-        for local_records in local_transfers
-        for rec in local_records["recs_varbased"]
-    ]
-    recs_modbased = [
-        rec
-        for local_records in local_transfers
-        for rec in local_records["recs_modbased"]
-    ]
+        # global udf is actually a nop but is necessary because we can't get_table_data
+        # from local nodes
+        local_transfers = get_transfer_data(
+            global_run(
+                func=global_,
+                keyword_args={
+                    "local_transfers": local_transfers,
+                },
+            )
+        )
 
-    # add global records for each var
-    recs_varbased += [reduce_recs_for_var(recs_varbased, var) for var in vars]
-    recs_modbased += [reduce_recs_for_var(recs_modbased, var) for var in vars]
+        recs_varbased = [
+            rec
+            for local_records in local_transfers
+            for rec in local_records["recs_varbased"]
+        ]
+        recs_modbased = [
+            rec
+            for local_records in local_transfers
+            for rec in local_records["recs_modbased"]
+        ]
 
-    result = Result(
-        variable_based=[Variable.from_record(rec) for rec in recs_varbased],
-        model_based=[Variable.from_record(rec) for rec in recs_modbased],
-    )
-    return result
+        # add global records for each var
+        recs_varbased += [reduce_recs_for_var(recs_varbased, var) for var in vars]
+        recs_modbased += [reduce_recs_for_var(recs_modbased, var) for var in vars]
+
+        result = Result(
+            variable_based=[Variable.from_record(rec) for rec in recs_varbased],
+            model_based=[Variable.from_record(rec) for rec in recs_modbased],
+        )
+        return result
 
 
 @udf(
