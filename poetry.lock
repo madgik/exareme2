@@ -478,7 +478,7 @@ python-versions = ">=3.6.1"
 
 [[package]]
 name = "hypercorn"
-version = "0.14.3"
+version = "0.13.2"
 description = "A ASGI Server based on Hyper libraries and inspired by Gunicorn"
 category = "main"
 optional = false
@@ -493,7 +493,6 @@ wsproto = ">=0.14.0"
 
 [package.extras]
 h3 = ["aioquic (>=0.9.0,<1.0)"]
-docs = ["pydata-sphinx-theme"]
 trio = ["trio (>=0.11.0)"]
 uvloop = ["uvloop"]
 
@@ -1640,7 +1639,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "b4cf894d94f1ed5046d759f8dc50c487a96e3b95101d5c57160c4c822faf457c"
+content-hash = "d26286dd14ab0ff2164e8db1d9ecac73c5c3b34fb99d451a32090f1ace059b28"
 
 [metadata.files]
 aiofiles = []
