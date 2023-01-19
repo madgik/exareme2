@@ -37,7 +37,7 @@ def run(algo_interface):
     xvars = algo_interface.x_variables or []
     yvars = algo_interface.y_variables or []
 
-    bins = algo_interface.algorithm_parameters["bins"]
+    bins = algo_interface.algorithm_parameters.get("bins", 10)
 
     [data] = algo_interface.create_primary_data_views(
         variable_groups=[yvars + xvars],
