@@ -352,11 +352,12 @@ def init_monetdb(c, port):
 
 
 @task(iterable=["port"])
-def load_data(c, port=None):
+def load_data(c, use_sockets=False, port=None):
     """
     Load data into the specified DB from the 'TEST_DATA_FOLDER'.
 
     :param port: A list of ports, in which it will load the data. If not set, it will use the `NODES_CONFIG_DIR` files.
+    :param use_sockets: Flag that determine if the data will be loaded via sockets or not.
     """
 
     local_node_ports = port
@@ -379,7 +380,8 @@ def load_data(c, port=None):
     local_node_ports = sorted(local_node_ports)
 
     if len(local_node_ports) == 1:
-        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --port {local_node_ports[0]} "
+        port = local_node_ports[0]
+        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --copy_from_file {not use_sockets} --port {port} "
         message(
             f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {port}...",
             Level.HEADER,
@@ -421,7 +423,7 @@ def load_data(c, port=None):
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --port {port} "
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} --port {port} "
             run(c, cmd)
 
         # Load the data model's remaining csvs in the rest of the nodes with round-robin fashion
@@ -442,7 +444,7 @@ def load_data(c, port=None):
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --port {port} "
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} --port {port} "
             run(c, cmd)
 
 
