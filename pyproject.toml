@@ -21,6 +21,7 @@ pydantic = "~1.10"
 envtoml = "~0.1"
 requests = "~2.28"
 eventlet = "~0.33"
+patsy = "~0.5.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "~7.2"
