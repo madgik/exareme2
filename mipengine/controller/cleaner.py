@@ -9,12 +9,12 @@
 # is called (from the Controller). This creates a new file(ex. "cleanup_3502300.toml")
 # containing a cleanup entry as the above. As soon as the algorithm execution finishes,
 # Cleaner::release_context_id(context_id) is called (from the Controller), which sets the
-# 'released' flag, of the respecive cleanup entry, to 'true'. When the Cleaner object is
+# 'released' flag, of the respective cleanup entry, to 'true'. When the Cleaner object is
 # started (method start), it constantly loops through all the entries, finds the ones that
 # either have their 'released' flag set to 'true' or their 'timestamp' has expired
 # (check _is_timestamp_expired function) and processes them by calling the cleanup tasks
 # on the respective nodes for the respective context_id. When the cleanup tasks on all
-# the nodes of an entry are succesfull, the entry file is deleted. Otherwise the 'node_ids'
+# the nodes of an entry are successful, the entry file is deleted. Otherwise, the 'node_ids'
 # list of the entry is updated to contain only the failed 'node_ids' and will be re-processed
 # in the next iteration of the loop.
 
@@ -78,41 +78,35 @@ class Cleaner(metaclass=Singleton):
         self._keep_cleaning_up = True
         self._cleanup_loop_thread = None
 
+    def cleanup_context_id(self, context_id, node_ids):
+        self._logger.debug(f"Cleaning up file with {context_id=}")
+        failed_node_ids = self._exec_context_id_cleanup(context_id, node_ids)
+
+        if failed_node_ids:
+            self._logger.debug(
+                f"'Altering' file with {context_id=}, removing node ids "
+                f"which succeeded cleanup:{set(node_ids) - set(failed_node_ids)=}, keeping only failed node ids: {failed_node_ids=}"
+            )
+            self._logger.debug(f"Deleting file with {context_id=}")
+            self._cleanup_files_processor.delete_file_by_context_id(context_id)
+            self._logger.debug(f"Re-creating file with {context_id=}")
+            self.add_contextid_for_cleanup(
+                context_id=context_id,
+                algo_execution_node_ids=failed_node_ids,
+                released=True,
+            )
+
+        else:
+            self._logger.debug(f"Cleanup for {context_id=} complete. Deleting file")
+            self._cleanup_files_processor.delete_file_by_context_id(context_id)
+
     def _cleanup_loop(self):
         while self._keep_cleaning_up:
             try:
                 all_entries = self._cleanup_files_processor.get_all_entries() or []
                 for entry in all_entries:
                     if entry.released or _is_timestamp_expired(entry.timestamp):
-                        failed_node_ids = self._exec_context_id_cleanup(
-                            entry.context_id, entry.node_ids
-                        )
-                        if failed_node_ids:
-                            self._logger.debug(
-                                f"'Altering' file with {entry.context_id=}, removing node ids "
-                                f"which succeded cleanup, keeping only failed node ids: {failed_node_ids=}"
-                            )
-                            entry.node_ids = failed_node_ids
-                            self._logger.debug(
-                                f"Deleting file with {entry.context_id=}"
-                            )
-                            self._cleanup_files_processor.delete_file_by_context_id(
-                                entry.context_id
-                            )
-                            self._logger.debug(
-                                f"Re-creating file with {entry.context_id=}"
-                            )
-                            self._cleanup_files_processor.create_file_from_cleanup_entry(
-                                entry
-                            )
-
-                        else:
-                            self._logger.debug(
-                                f"Cleanup for {entry.context_id=} complete. Deleting file"
-                            )
-                            self._cleanup_files_processor.delete_file_by_context_id(
-                                entry.context_id
-                            )
+                        self.cleanup_context_id(entry.context_id, entry.node_ids)
 
             except Exception:
                 self._logger.error(traceback.format_exc())
@@ -128,21 +122,19 @@ class Cleaner(metaclass=Singleton):
         for node_id in node_ids:
             try:
                 node_info = self._get_node_info_by_id(node_id)
+                task_handler = _get_node_task_handler(node_info)
+                node_task_handlers_to_async_results[
+                    task_handler
+                ] = task_handler.queue_cleanup(
+                    request_id=CLEANER_REQUEST_ID,
+                    context_id=context_id,
+                )
             except Exception as exc:
+                failed_node_ids.append(node_id)
                 self._logger.debug(
                     f"Could not get node info for {node_id=}. The node is "
                     f"most likely offline exception:{exc=}"
                 )
-                failed_node_ids.append(node_id)
-                continue
-            task_handler = _get_node_task_handler(node_info)
-
-            node_task_handlers_to_async_results[
-                task_handler
-            ] = task_handler.queue_cleanup(
-                request_id=CLEANER_REQUEST_ID,
-                context_id=context_id,
-            )
 
         for task_handler, async_result in node_task_handlers_to_async_results.items():
             try:
@@ -154,7 +146,7 @@ class Cleaner(metaclass=Singleton):
                 failed_node_ids.append(task_handler.node_id)
                 self._logger.warning(
                     f"Cleanup task for {task_handler.node_id=}, for {context_id=} FAILED. "
-                    f"Will retry in {self._cleanup_interval=} secs. Failure occured while "
+                    f"Will retry in {self._cleanup_interval=} secs. Failure occurred while "
                     "waiting the completion of the task (wait_queued_cleanup_complete), "
                     f"the exception raised was: {type(exc)}:{exc}"
                 )
@@ -180,7 +172,7 @@ class Cleaner(metaclass=Singleton):
             self._cleanup_loop_thread.join()
 
     def add_contextid_for_cleanup(
-        self, context_id: str, algo_execution_node_ids: List[str]
+        self, context_id: str, algo_execution_node_ids: List[str], released=False
     ):
         self._logger.debug(f"Creating file for new {context_id=}")
         now_timestamp = datetime.now(timezone.utc).isoformat()
@@ -188,15 +180,8 @@ class Cleaner(metaclass=Singleton):
             context_id=context_id,
             node_ids=algo_execution_node_ids,
             timestamp=now_timestamp,
-            released=False,
+            released=released,
         )
-        self._cleanup_files_processor.create_file_from_cleanup_entry(entry)
-
-    def release_context_id(self, context_id):
-        self._logger.debug(f"Setting released to true for file with {context_id=}")
-        entry = self._cleanup_files_processor.get_entry_by_context_id(context_id)
-        entry.released = True
-        self._cleanup_files_processor.delete_file_by_context_id(context_id)
         self._cleanup_files_processor.create_file_from_cleanup_entry(entry)
 
     def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
@@ -294,7 +279,7 @@ class CleanupFilesProcessor:
                 f"Trying to read {file_full_path=} raised exception: {exc}"
             )
         if parsed_toml["context_id"] != context_id:
-            self._logger.error(f"File {file_full_path} contains wrnong {context_id=}")
+            self._logger.error(f"File {file_full_path} contains wrong {context_id=}")
         else:
             return file_full_path
 

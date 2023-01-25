@@ -322,7 +322,10 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     )
 
     # Releasing contextid, signals the Cleaner to start cleaning the contextid from the nodes
-    controller._cleaner.release_context_id(context_id=context_id)
+    controller._cleaner.cleanup_context_id(
+        context_id=context_id,
+        node_ids=[node_info.id for node_info in node_lanadscape_aggregator.get_nodes()],
+    )
 
     globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
@@ -333,31 +336,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     localnode2_tables_after_cleanup = localnode2_tasks_handler.get_tables(
         request_id=request_id, context_id=context_id
     )
-
-    start = time.time()
-    while (
-        globalnode_tables_after_cleanup
-        or localnode1_tables_after_cleanup
-        or localnode2_tables_after_cleanup
-    ):
-        globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
-        )
-        localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
-        )
-        localnode2_tables_after_cleanup = localnode2_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
-        )
-
-        now = time.time()
-        if now - start > WAIT_CLEANUP_TIME_LIMIT:
-            pytest.fail(
-                f"Some of the nodes were not cleaned during {WAIT_CLEANUP_TIME_LIMIT=}\n"
-                f"{globalnode_tables_after_cleanup=}\n{localnode1_tables_after_cleanup=}\n"
-                f"{localnode2_tables_after_cleanup=}"
-            )
-        time.sleep(0.5)
 
     controller.stop_cleanup_loop()
     if (
@@ -608,7 +586,10 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     # Releasing contextid, signals the Cleaner to start cleaning the contextid from the nodes
     # Nevertheless, localnodetmp is currently down, so cannot be cleaned
-    controller._cleaner.release_context_id(context_id=context_id)
+    controller._cleaner.cleanup_context_id(
+        context_id=context_id,
+        node_ids=[node_info.id for node_info in node_lanadscape_aggregator.get_nodes()],
+    )
 
     # restart tmplocalnode rabbitmq container
     _create_rabbitmq_container(RABBITMQ_LOCALNODETMP_NAME, RABBITMQ_LOCALNODETMP_PORT)
@@ -778,7 +759,10 @@ async def test_cleanup_node_service_down_algorithm_execution(
 
     # Releasing contextid, signals the Cleaner to start cleaning the contextid from the nodes
     # Nevertheless, localnodetmp is currently down, so cannot be cleaned
-    controller._cleaner.release_context_id(context_id=context_id)
+    controller._cleaner.cleanup_context_id(
+        context_id=context_id,
+        node_ids=[node_info.id for node_info in node_lanadscape_aggregator.get_nodes()],
+    )
 
     # restart tmplocalnode node service (the celery app)
     localnodetmp_node_service_proc = start_localnodetmp_node_service()
@@ -943,7 +927,10 @@ async def test_cleanup_controller_restart(
 
     # Releasing contextid, signals the Cleaner to start cleaning the contextid from the nodes
     # Nevertheless, Cleaner is not currently running
-    controller._cleaner.release_context_id(context_id=context_id)
+    controller._cleaner.cleanup_context_id(
+        context_id=context_id,
+        node_ids=[node_info.id for node_info in node_lanadscape_aggregator.get_nodes()],
+    )
 
     # instantiate a new Controller
     controller = Controller()
