@@ -38,7 +38,7 @@ def run(algo_interface):
     yvars = algo_interface.y_variables or []
 
     bins = algo_interface.algorithm_parameters.get("bins", 10)
-    if bins == None:
+    if bins is None:
         bins = 10
 
     [data] = algo_interface.create_primary_data_views(
@@ -122,7 +122,7 @@ def run(algo_interface):
         if xvars:
             for i, x_variable in enumerate(xvars):
                 possible_groups = enumerations_dict[x_variable].keys()
-                possible_values = enumerations_dict[yvar].keys()
+                possible_values = list(enumerations_dict[yvar].keys())
                 for j, curr_group in enumerate(possible_groups):
                     curr_group_histogram = Histogram(
                         var=yvar,
