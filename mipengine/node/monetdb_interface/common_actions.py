@@ -358,16 +358,12 @@ def drop_db_artifacts_by_context_id(context_id: str):
         The id of the experiment
     """
 
-    _drop_udfs_by_context_id(context_id)
-    # Order of the table types matter not to have dependencies when dropping the tables
-    table_type_drop_order = (
-        TableType.MERGE,
-        TableType.REMOTE,
-        TableType.VIEW,
-        TableType.NORMAL,
-    )
-    for table_type in table_type_drop_order:
-        _drop_table_by_type_and_context_id(table_type, context_id)
+    function_names = _get_function_names_query_by_context_id(context_id)
+
+    udfs_deletion_query = _get_drop_udfs_query(function_names)
+    table_names_by_type = _get_tables_by_type(context_id)
+    tables_deletion_query = _get_drop_tables_query(table_names_by_type)
+    db_execute(udfs_deletion_query + tables_deletion_query)
 
 
 def _convert_monet2mip_table_type(monet_table_type: int) -> TableType:
@@ -408,15 +404,13 @@ def _convert_mip2monet_table_type(table_type: TableType) -> int:
     return type_mapping.get(table_type)
 
 
-@sql_injection_guard(table_type=None, context_id=str.isalnum)
-def _drop_table_by_type_and_context_id(table_type: TableType, context_id: str):
+@sql_injection_guard(context_id=str.isalnum)
+def _get_tables_by_type(context_id: str) -> Dict[TableType, List[str]]:
     """
-    Drops all tables of specific type with name that contain a specific context_id from the DB.
+    Retrieve table names by type that contains a specific context_id from the DB.
 
     Parameters
     ----------
-    table_type : str
-        The type of the table
     context_id : str
         The id of the experiment
     """
@@ -424,33 +418,64 @@ def _drop_table_by_type_and_context_id(table_type: TableType, context_id: str):
         f"""
         SELECT name, type FROM tables
         WHERE name LIKE '%{context_id.lower()}%'
-        AND tables.type = {str(_convert_mip2monet_table_type(table_type))}
         AND system = false
         """
     )
+    table_names_by_type = {}
+    for table_type in TableType:
+        table_names_by_type[table_type] = []
+
     for name, table_type in table_names_and_types:
-        if table_type == _convert_mip2monet_table_type(TableType.VIEW):
-            db_execute(f"DROP VIEW {name}")
-        else:
-            db_execute(f"DROP TABLE {name}")
+        mip_table_type = _convert_monet2mip_table_type(table_type)
+        table_names_by_type[mip_table_type].append(name)
+    return table_names_by_type
 
 
 @sql_injection_guard(context_id=str.isalnum)
-def _drop_udfs_by_context_id(context_id: str):
+def _get_function_names_query_by_context_id(context_id: str) -> List[str]:
     """
-    Drops all functions of specific context_id from the DB.
+    Retrieve all functions of specific context_id from the DB.
 
     Parameters
     ----------
     context_id : str
         The id of the experiment
     """
-    function_names = db_execute_and_fetchall(
+    result = db_execute_and_fetchall(
         f"""
         SELECT name FROM functions
         WHERE name LIKE '%{context_id.lower()}%'
         AND system = false
         """
     )
-    for name in function_names:
-        db_execute(f"DROP FUNCTION {name[0]}")
+    return [attributes[0] for attributes in result]
+
+
+def _get_drop_udfs_query(function_names: List[str]):
+    return "".join([f"DROP FUNCTION {name};" for name in function_names])
+
+
+def _get_drop_tables_query(table_names_by_type: Dict[TableType, List[str]]):
+    # Order of the table types matter not to have dependencies when dropping the tables
+    table_type_drop_order = (
+        TableType.MERGE,
+        TableType.REMOTE,
+        TableType.VIEW,
+        TableType.NORMAL,
+    )
+    table_deletion_query = "".join(
+        [
+            _get_drop_table_query(table_name, table_type)
+            for table_type in table_type_drop_order
+            for table_name in table_names_by_type[table_type]
+        ]
+    )
+    return table_deletion_query
+
+
+def _get_drop_table_query(table_name, table_type) -> str:
+    return (
+        f"DROP VIEW {table_name};"
+        if table_type == TableType.VIEW
+        else f"DROP TABLE {table_name};"
+    )
