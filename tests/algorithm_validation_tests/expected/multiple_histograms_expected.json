@@ -6459,34 +6459,40 @@
                     }
                 ]
             }
-        }
-        ,
+        },
         {
             "input": {
                 "inputdata": {
                     "y": [
-                        "opticchiasm"
+                        "edsdcategory"
                     ],
                     "x": [],
                     "data_model": "dementia:0.1",
                     "datasets": [
+                        "desd-synthdata4",
+                        "desd-synthdata7",
+                        "ppmi0",
+                        "ppmi9",
+                        "edsd6",
+                        "ppmi4",
+                        "ppmi3",
+                        "desd-synthdata3",
+                        "desd-synthdata6",
+                        "desd-synthdata1",
+                        "ppmi2",
+                        "edsd3",
+                        "edsd8",
+                        "edsd0",
+                        "edsd4",
+                        "edsd2",
+                        "ppmi8",
+                        "desd-synthdata9",
+                        "ppmi7",
+                        "ppmi1",
+                        "edsd7",
                         "ppmi5",
                         "desd-synthdata0",
-                        "edsd6",
-                        "edsd8",
-                        "desd-synthdata4",
-                        "ppmi7",
-                        "desd-synthdata2",
-                        "ppmi8",
-                        "desd-synthdata7",
-                        "ppmi9",
-                        "edsd7",
-                        "ppmi4",
-                        "ppmi2",
-                        "edsd2",
-                        "desd-synthdata3",
-                        "edsd5",
-                        "edsd9"
+                        "ppmi6"
                     ],
                     "filters": null
                 },
@@ -6498,33 +6504,18 @@
             "output": {
                 "histogram": [
                     {
-                        "var": "opticchiasm",
+                        "var": "edsdcategory",
                         "grouping_var": null,
                         "grouping_enum": null,
                         "bins": [
-                            0.038146,
-                            0.0448804,
-                            0.0516148,
-                            0.0583492,
-                            0.06508359999999999,
-                            0.07181799999999999,
-                            0.0785524,
-                            0.0852868,
-                            0.0920212,
-                            0.0987556,
-                            0.10549
+                            "AD",
+                            "MCI",
+                            "CN"
                         ],
                         "counts": [
-                            1,
-                            3,
-                            14,
-                            90,
-                            231,
-                            342,
-                            282,
-                            130,
-                            41,
-                            16
+                            381,
+                            160,
+                            300
                         ]
                     }
                 ]
@@ -6534,16 +6525,39 @@
             "input": {
                 "inputdata": {
                     "y": [
-                        "leftcuncuneus"
+                        "agegroup"
                     ],
                     "x": [],
                     "data_model": "dementia:0.1",
                     "datasets": [
-                        "edsd4",
-                        "ppmi5",
+                        "edsd2",
+                        "edsd5",
+                        "desd-synthdata2",
+                        "ppmi1",
+                        "edsd3",
+                        "edsd0",
                         "desd-synthdata8",
+                        "edsd4",
+                        "desd-synthdata0",
+                        "ppmi3",
+                        "desd-synthdata1",
+                        "desd-synthdata7",
+                        "edsd1",
+                        "ppmi9",
+                        "edsd7",
+                        "desd-synthdata9",
+                        "desd-synthdata6",
                         "desd-synthdata3",
-                        "ppmi3"
+                        "desd-synthdata5",
+                        "ppmi0",
+                        "edsd6",
+                        "ppmi7",
+                        "ppmi8",
+                        "edsd9",
+                        "ppmi4",
+                        "ppmi5",
+                        "edsd8",
+                        "ppmi6"
                     ],
                     "filters": null
                 },
@@ -6555,37 +6569,29 @@
             "output": {
                 "histogram": [
                     {
-                        "var": "leftcuncuneus",
+                        "var": "agegroup",
                         "grouping_var": null,
                         "grouping_enum": null,
                         "bins": [
-                            2.9868,
-                            3.32804,
-                            3.66928,
-                            4.0105200000000005,
-                            4.3517600000000005,
-                            4.6930000000000005,
-                            5.0342400000000005,
-                            5.3754800000000005,
-                            5.7167200000000005,
-                            6.0579600000000005,
-                            6.3992
+                            "-50y",
+                            "50-59y",
+                            "60-69y",
+                            "70-79y",
+                            "+80y"
                         ],
                         "counts": [
-                            10,
-                            25,
-                            79,
-                            66,
-                            98,
-                            58,
-                            38,
-                            17,
-                            7,
-                            3
+                            409,
+                            213,
+                            608,
+                            623,
+                            155
                         ]
                     }
                 ]
             }
         }
+
+
+
     ]
 }

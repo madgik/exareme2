@@ -42,9 +42,10 @@ class HistogramAlgorithm(Algorithm, algname="multiple_histograms"):
         xvars = self.executor.x_variables or []
         yvars = self.executor.y_variables or []
 
-        bins = self.executor.algorithm_parameters.get("bins", 10)
+        default_bins = 20
+        bins = self.executor.algorithm_parameters.get("bins", default_bins)
         if bins is None:
-            bins = 10
+            bins = default_bins
 
         [data] = self.executor.data_model_views
 
