@@ -188,8 +188,7 @@ def _execute(query: str, parameters=None, many=False, conn=None):
     )
 
     logger.info(
-        f"Original query: {query} \n, "
-        f"idempotent query: {idempotent_query} \n, "
+        f"Query: {idempotent_query} \n, "
         f"parameters: {str(db_execution_dto.parameters)}\n, "
         f"many: {db_execution_dto.many}"
     )
