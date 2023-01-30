@@ -176,8 +176,8 @@ class LinearRegression:
             ),
         )
         global_transfer_data = get_transfer_data(global_transfer)
-        rss = global_transfer_data["rss"]
-        tss = global_transfer_data["tss"]
+        rss = numpy.array(global_transfer_data["rss"])
+        tss = numpy.array(global_transfer_data["tss"])
         sum_abs_resid = global_transfer_data["sum_abs_resid"]
         xTx_inv = numpy.array(global_transfer_data["xTx_inv"])
         coefficients = numpy.array(self.coefficients)
@@ -201,6 +201,8 @@ class LinearRegression:
         # Quanities below are only used in cross validation
         self.rmse = (rss / n_obs_test) ** 0.5
         self.mae = sum_abs_resid / n_obs_test
+        # Needed in ANOVA
+        self.rss = rss
 
     @staticmethod
     @udf(

@@ -15,6 +15,9 @@ DATAMODEL_BASEPATH = Path("tests/test_data/dementia_v_0_1/")
 DATAMODEL_CDESPATH = DATAMODEL_BASEPATH / "CDEsMetadata.json"
 
 
+random.seed(0)
+
+
 class _DB:
     @lru_cache
     def get_numerical_variables(self):

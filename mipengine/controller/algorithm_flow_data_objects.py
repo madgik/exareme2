@@ -41,7 +41,7 @@ class AlgoFlowData(ABC):
         """
         Returns the index of the table schema if one exists.
         """
-        if DATA_TABLE_PRIMARY_KEY in self._schema.columns:
+        if DATA_TABLE_PRIMARY_KEY in self._schema.column_names:
             return DATA_TABLE_PRIMARY_KEY
         else:
             return None
