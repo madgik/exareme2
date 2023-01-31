@@ -321,7 +321,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         request_id=request_id, context_id=context_id
     )
 
-    # Releasing contextid, signals the Cleaner to start cleaning the contextid from the nodes
+    # Cleaning up the specific contextid
     controller._cleaner.cleanup_context_id(
         context_id=context_id,
         node_ids=[node_info.id for node_info in node_lanadscape_aggregator.get_nodes()],
@@ -584,7 +584,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # kill the celery app of localnodetmp
     kill_service(localnodetmp_node_service)
 
-    # Releasing contextid, signals the Cleaner to start cleaning the contextid from the nodes
+    # Cleaning up the specific contextid
     # Nevertheless, localnodetmp is currently down, so cannot be cleaned
     controller._cleaner.cleanup_context_id(
         context_id=context_id,
@@ -757,7 +757,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     # kill the celery app of localnodetmp
     kill_service(localnodetmp_node_service)
 
-    # Releasing contextid, signals the Cleaner to start cleaning the contextid from the nodes
+    # Cleaning up the specific contextid
     # Nevertheless, localnodetmp is currently down, so cannot be cleaned
     controller._cleaner.cleanup_context_id(
         context_id=context_id,
@@ -925,7 +925,7 @@ async def test_cleanup_controller_restart(
 
     controller.stop_cleanup_loop()
 
-    # Releasing contextid, signals the Cleaner to start cleaning the contextid from the nodes
+    # Cleaning up the specific contextid
     # Nevertheless, Cleaner is not currently running
     controller._cleaner.cleanup_context_id(
         context_id=context_id,

@@ -8,8 +8,9 @@
 # Just before an algorithm starts executing, Cleaner::add_contextid_for_cleanup(context_id)
 # is called (from the Controller). This creates a new file(ex. "cleanup_3502300.toml")
 # containing a cleanup entry as the above. As soon as the algorithm execution finishes,
-# Cleaner::release_context_id(context_id) is called (from the Controller), which sets the
-# 'released' flag, of the respective cleanup entry, to 'true'. When the Cleaner object is
+# Cleaner::cleanup_context_id(context_id, node_ids) is called (from the Controller), which cleans up
+# the respective cleanup entry. In case a Cleaner::cleanup_context_id is unsuccessful
+# it sets the 'released' flag, of the respective cleanup entry, to 'true'.When the Cleaner object is
 # started (method start), it constantly loops through all the entries, finds the ones that
 # either have their 'released' flag set to 'true' or their 'timestamp' has expired
 # (check _is_timestamp_expired function) and processes them by calling the cleanup tasks
@@ -132,8 +133,10 @@ class Cleaner(metaclass=Singleton):
             except Exception as exc:
                 failed_node_ids.append(node_id)
                 self._logger.debug(
-                    f"Could not get node info for {node_id=}. The node is "
-                    f"most likely offline exception:{exc=}"
+                    f"""
+                    Could not queue up the clean up for the specific {node_id=}.
+                    The following exception was thrown: {exc=}
+                    """
                 )
 
         for task_handler, async_result in node_task_handlers_to_async_results.items():
