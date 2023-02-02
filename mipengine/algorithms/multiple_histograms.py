@@ -41,6 +41,7 @@ class HistogramAlgorithm(Algorithm, algname="multiple_histograms"):
 
         xvars = self.executor.x_variables or []
         yvars = self.executor.y_variables or []
+        yvar = yvars[0]
 
         default_bins = 20
         bins = self.executor.algorithm_parameters.get("bins", default_bins)
@@ -51,13 +52,12 @@ class HistogramAlgorithm(Algorithm, algname="multiple_histograms"):
 
         metadata = dict(self.executor.metadata)
 
-        vars = [var for var in xvars + yvars if var != "dataset"]
+        vars = [var for var in xvars + yvars]
 
         nominal_vars = [var for var in vars if metadata[var]["is_categorical"]]
 
         enumerations_dict = {var: metadata[var]["enumerations"] for var in nominal_vars}
 
-        yvar = yvars[0]
         if yvar in xvars:
             xvars.remove(yvar)
 
