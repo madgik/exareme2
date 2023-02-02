@@ -1,7 +1,10 @@
 import json
 
+from mipengine import DType
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.exceptions import BadUserInput
+from mipengine.node_tasks_DTOs import ColumnInfo
+from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.udfgen import DEFERRED
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
@@ -12,6 +15,7 @@ from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
 
+# TODO rewrite DummyEncoder using FormulaTransformer
 class DummyEncoder:
     def __init__(self, executor, variables, metadata, intercept=True):
         self._local_run = executor.run_udf_on_local_nodes
@@ -323,4 +327,140 @@ class KFold:
     def _get_split_local(local_state, i, key):
         split = local_state[key][i]
         result = split
+        return result
+
+
+# TODO extract CategoriesFinder class
+class FormulaTransformer:
+    """Transforms a table based on R style model formula.
+
+    Internally this class uses the patsy library to implement formulas.
+    Documentation on how formulas work can be found in https://patsy.readthedocs.io/
+    """
+
+    def __init__(self, executor, formula):
+        """
+        Parameters
+        ----------
+        executor : _AlgorithmExecutionInterface
+            Instance of algorithm execution interface.
+        formula : str
+            R style model formula.
+        """
+        self._local_run = executor.run_udf_on_local_nodes
+        self._global_run = executor.run_udf_on_global_node
+        self._categorical_vars = [
+            varname
+            for varname in executor.x_variables
+            if executor.metadata[varname]["is_categorical"]
+        ]
+        self._formula = formula
+
+    def transform(self, X):
+        """
+        Transforms X based on model formula
+
+        Parameters
+        ----------
+        X : LocalNodeTable
+
+        Returns
+        -------
+        LocalNodeTable
+        """
+        self.enums = self._gather_enums(X)
+        schema = self._compute_output_schema(X, self.enums)
+        return self._local_run(
+            func=self._transform_local,
+            positional_args=(X, self._formula, self.enums),
+            output_schema=schema,
+        )
+
+    def _gather_enums(self, x):
+        """In order to compute columns corresponding to terms of the formula,
+        we need to know all actual categorical enumerations present in the data.
+        This method gathers enumerations from local nodes by calling one local and
+        one global UDF."""
+        if self._categorical_vars:
+            local_transfers = self._local_run(
+                func=self._gather_enums_local,
+                keyword_args={"x": x, "categorical_vars": self._categorical_vars},
+                share_to_global=[True],
+            )
+            global_transfer = self._global_run(
+                func=self._gather_enums_global,
+                keyword_args=dict(local_transfers=local_transfers),
+            )
+            enums = get_transfer_data(global_transfer)
+            return enums
+        return {}
+
+    @staticmethod
+    @udf(x=relation(), categorical_vars=literal(), return_type=transfer())
+    def _gather_enums_local(x, categorical_vars):
+        categorical_vars = [varname for varname in categorical_vars]
+        enumerations = {}
+        for cat in categorical_vars:
+            enumerations[cat] = list(x[cat].unique())
+
+        transfer_ = dict(enumerations=enumerations)
+        return transfer_
+
+    @staticmethod
+    @udf(local_transfers=merge_transfer(), return_type=transfer())
+    def _gather_enums_global(local_transfers):
+        from functools import reduce
+
+        def reduce_enums(varname):
+            return list(
+                reduce(
+                    lambda a, b: set(a) | set(b),
+                    [loctrans["enumerations"][varname] for loctrans in local_transfers],
+                    {},
+                )
+            )
+
+        keys = local_transfers[0]["enumerations"].keys()
+        enumerations = {key: reduce_enums(key) for key in keys}
+
+        return enumerations
+
+    def _compute_output_schema(self, X, enums):
+        """Since the formula transformation generates new columns and the resulting
+        table schema must be at UDF definition time, we need to compute the output
+        schema in advance. This is done by applying the same transformation to
+        a dummy table, using patsy, and then looking at the produced column names."""
+        column_names = self._compute_new_column_names(X.columns, enums)
+        columns = [ColumnInfo(name=name, dtype=DType.INT) for name in column_names]
+        if X.index:
+            columns.insert(0, ColumnInfo(name=X.index, dtype=DType.INT))
+        return TableSchema(columns=columns)
+
+    def _compute_new_column_names(self, old_column_names, enums):
+        import pandas as pd
+        from patsy import dmatrix
+
+        empty_df = pd.DataFrame(columns=old_column_names)
+        for var, categories in enums.items():
+            empty_df[var] = pd.Categorical(empty_df[var], categories=categories)
+        mat = dmatrix(self._formula, empty_df)
+        self.design_info = mat.design_info
+        new_column_names = [f"_c{i}" for i in range(len(mat.design_info.column_names))]
+        return new_column_names
+
+    @staticmethod
+    @udf(
+        X=relation(),
+        formula=literal(),
+        enums=literal(),
+        return_type=relation(schema=DEFERRED),
+    )
+    def _transform_local(X, formula, enums):
+        import pandas as pd
+        from patsy import dmatrix
+
+        for var, categories in enums.items():
+            X[var] = pd.Categorical(X[var], categories=categories)
+
+        result = dmatrix(formula, X, return_type="dataframe")
         return result

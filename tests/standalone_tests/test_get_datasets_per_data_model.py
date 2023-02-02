@@ -76,6 +76,7 @@ test_cases_get_node_info_datasets = [
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 @pytest.mark.parametrize(
     "expected_datasets_per_data_model",
     test_cases_get_node_info_datasets,

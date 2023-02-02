@@ -41,20 +41,23 @@ class MultipleHistogramsAlgorithm(Algorithm, algname="multiple_histograms"):
 
         xvars = self.variables.x
         yvars = self.variables.y
+        yvar = yvars[0]
 
-        bins = self.algorithm_parameters["bins"]
+        default_bins = 20
+        bins = self.executor.algorithm_parameters.get("bins", default_bins)
+        if bins is None:
+            bins = default_bins
 
         [data] = executor.data_model_views
 
         metadata = dict(self.metadata)
 
-        vars = [var for var in xvars + yvars if var != "dataset"]
+        vars = [var for var in xvars + yvars]
 
         nominal_vars = [var for var in vars if metadata[var]["is_categorical"]]
 
         enumerations_dict = {var: metadata[var]["enumerations"] for var in nominal_vars}
 
-        yvar = yvars[0]
         if yvar in xvars:
             xvars.remove(yvar)
 
@@ -123,7 +126,7 @@ class MultipleHistogramsAlgorithm(Algorithm, algname="multiple_histograms"):
             if xvars:
                 for i, x_variable in enumerate(xvars):
                     possible_groups = enumerations_dict[x_variable].keys()
-                    possible_values = enumerations_dict[yvar].keys()
+                    possible_values = list(enumerations_dict[yvar].keys())
                     for j, curr_group in enumerate(possible_groups):
                         curr_group_histogram = Histogram(
                             var=yvar,

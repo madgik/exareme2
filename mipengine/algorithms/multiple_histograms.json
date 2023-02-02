@@ -29,7 +29,7 @@
             "min": 1,
             "max": 100,
             "default": 20,
-            "notblank": true,
+            "notblank": false,
             "multiple": false
         }
     }

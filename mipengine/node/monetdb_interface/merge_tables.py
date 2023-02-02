@@ -20,24 +20,31 @@ def get_merge_tables_names(context_id: str) -> List[str]:
     return get_table_names(TableType.MERGE, context_id)
 
 
-@sql_injection_guard(table_name=str.isidentifier, table_schema=is_valid_table_schema)
-def create_merge_table(table_name: str, table_schema: TableSchema):
-    columns_schema = convert_schema_to_sql_query_format(table_schema)
-    db_execute(f"CREATE MERGE TABLE {table_name} ( {columns_schema} )")
-
-
 @sql_injection_guard(
-    merge_table_name=str.isidentifier,
-    table_names=is_list_of_identifiers,
+    table_name=str.isidentifier,
+    table_schema=is_valid_table_schema,
+    merge_table_names=is_list_of_identifiers,
 )
-def add_to_merge_table(merge_table_name: str, table_names: List[str]):
-    for name in table_names:
-        try:
-            db_execute(f"ALTER TABLE {merge_table_name} ADD TABLE {name.lower()}")
-        except pymonetdb.exceptions.OperationalError as exc:
-            if str(exc).startswith("3F000"):
-                raise IncompatibleSchemasMergeException(table_names)
-            if str(exc).startswith("42S02"):
-                raise TablesNotFound([name])
-            else:
-                raise exc
+def create_merge_table(
+    table_name: str,
+    table_schema: TableSchema,
+    merge_table_names: List[str],
+):
+    """
+    The schema of the 1st table is used as the merge table schema.
+    If there is an incompatibility or a table doesn't exist the db will throw an error.
+    """
+    columns_schema = convert_schema_to_sql_query_format(table_schema)
+    merge_table_query = f"CREATE MERGE TABLE {table_name} ( {columns_schema} ); "
+    for name in merge_table_names:
+        merge_table_query += f"ALTER TABLE {table_name} ADD TABLE {name.lower()}; "
+
+    try:
+        db_execute(merge_table_query)
+    except pymonetdb.exceptions.ProgrammingError or pymonetdb.exceptions.OperationalError as exc:
+        if str(exc).startswith("3F000"):
+            raise IncompatibleSchemasMergeException(merge_table_names)
+        if str(exc).startswith("42S02"):
+            raise TablesNotFound(merge_table_names)
+        else:
+            raise exc

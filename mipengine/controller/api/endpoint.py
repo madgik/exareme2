@@ -1,9 +1,12 @@
+from logging.config import dictConfig
+
 import pydantic
 from quart import Blueprint
 from quart import request
 
 from mipengine.controller.algorithm_specifications import algorithm_specifications
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from mipengine.controller.api.loggers import loggers
 from mipengine.controller.api.validator import BadRequest
 from mipengine.controller.controller import Controller
 from mipengine.controller.uid_generator import UIDGenerator
@@ -14,6 +17,7 @@ controller = Controller()
 
 @algorithms.before_app_serving
 async def startup():
+    configure_loggers()
     controller.start_node_landscape_aggregator()
     controller.start_cleanup_loop()
 
@@ -71,3 +75,10 @@ async def post_algorithm(algorithm_name: str) -> str:
     )
 
     return algorithm_result
+
+
+def configure_loggers():
+    """
+    The loggers should be initialized at app startup, otherwise the configs are overwritten.
+    """
+    dictConfig(loggers)

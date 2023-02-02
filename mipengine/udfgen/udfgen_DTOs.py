@@ -21,15 +21,12 @@ class UDFGenResult(UDFGenBaseModel):
 class UDFGenTableResult(UDFGenResult):
     tablename_placeholder: str
     table_schema: List[Tuple[str, DType]]
-    drop_query: Template
     create_query: Template
 
     def __eq__(self, other):
         if self.tablename_placeholder != other.tablename_placeholder:
             return False
         if self.table_schema != other.table_schema:
-            return False
-        if self.drop_query.template != other.drop_query.template:
             return False
         if self.create_query.template != other.create_query.template:
             return False
@@ -40,7 +37,6 @@ class UDFGenTableResult(UDFGenResult):
             f"UDFGenTableResult("
             f"{self.tablename_placeholder=}, "
             f"{self.table_schema=}, "
-            f"{self.drop_query.template=}, "
             f"{self.create_query.template=}"
             f")"
         )

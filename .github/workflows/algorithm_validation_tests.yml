@@ -96,7 +96,7 @@ jobs:
         run: poetry run inv deploy --no-install-dep --no-start-all
 
       - name: Load data into DBs
-        run: poetry run mipdb load-folder ./tests/test_data --port 50000
+        run: poetry run inv load-data
 
       - name: Start services after data loading
         run: |

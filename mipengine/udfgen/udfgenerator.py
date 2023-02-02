@@ -874,13 +874,11 @@ def create_table_udf_output(
     output_type: OutputType,
     table_name: str,
 ) -> UDFGenResult:
-    drop_table = "DROP TABLE IF EXISTS" + " $" + table_name + ";"
     output_schema = iotype_to_sql_schema(output_type)
     create_table = "CREATE TABLE" + " $" + table_name + f"({output_schema})" + ";"
     return UDFGenTableResult(
         tablename_placeholder=table_name,
         table_schema=output_type.schema,
-        drop_query=Template(drop_table),
         create_query=Template(create_table),
     )
 

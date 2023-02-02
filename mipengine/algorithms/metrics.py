@@ -45,19 +45,17 @@ def confusion_matrix(executor, ytrue, proba):
     return_type=secure_transfer(sum_op=True),
 )
 def _confusion_matrix_local(ytrue, proba):
-    import sklearn.metrics
-    import sklearn.preprocessing
-
     ytrue, proba = ytrue.align(proba, axis=0, copy=False)
-    ytruec, probac = ytrue["ybin"], proba["proba"]
-    probac = probac.to_numpy()[:, numpy.newaxis]
+    ytrue, proba = ytrue["ybin"].to_numpy(), proba["proba"].to_numpy()
 
-    ypred = sklearn.preprocessing.binarize(probac, threshold=0.5).reshape(-1)
+    tp = ((proba > 0.5) & (ytrue == 1)).sum()
+    tn = ((proba <= 0.5) & (ytrue == 0)).sum()
+    fp = ((proba > 0.5) & (ytrue == 0)).sum()
+    fn = ((proba <= 0.5) & (ytrue == 1)).sum()
 
-    # labels are needed below for cases where not all labels appear in ytrue, ypred
-    confmat = sklearn.metrics.confusion_matrix(ytruec, ypred, labels=[0, 1])
+    confmat = [[int(tn), int(fp)], [int(fn), int(tp)]]
 
-    result = {"confmat": {"data": confmat.tolist(), "type": "int", "operation": "sum"}}
+    result = {"confmat": {"data": confmat, "type": "int", "operation": "sum"}}
     return result
 
 
@@ -101,23 +99,19 @@ def roc_curve(executor, ytrue, proba):
     return_type=secure_transfer(sum_op=True),
 )
 def _roc_curve_local(ytrue, proba, thresholds):
-    import sklearn.preprocessing
-
     ytrue, proba = ytrue.align(proba, axis=0, copy=False)
-    ytruec, probac = ytrue["ybin"], proba["proba"]
+    ytrue, proba = ytrue["ybin"].to_numpy(), proba["proba"].to_numpy()
 
-    probac = probac.to_numpy()[:, numpy.newaxis]
-    ytruec = ytruec.to_numpy()
+    tp = numpy.empty(len(thresholds), dtype=int)
+    tn = numpy.empty(len(thresholds), dtype=int)
+    fp = numpy.empty(len(thresholds), dtype=int)
+    fn = numpy.empty(len(thresholds), dtype=int)
 
-    def binarize_by_threshold(threshold):
-        return sklearn.preprocessing.binarize(probac, threshold=threshold).reshape(-1)
-
-    ypreds = numpy.stack([binarize_by_threshold(thres) for thres in thresholds])
-
-    tp = ((ypreds == 1) & (ytruec == 1)).sum(axis=1)
-    tn = ((ypreds == 0) & (ytruec == 0)).sum(axis=1)
-    fp = ((ypreds == 1) & (ytruec == 0)).sum(axis=1)
-    fn = ((ypreds == 0) & (ytruec == 1)).sum(axis=1)
+    for i, thres in enumerate(thresholds):
+        tp[i] = ((proba > thres) & (ytrue == 1)).sum()
+        tn[i] = ((proba <= thres) & (ytrue == 0)).sum()
+        fp[i] = ((proba > thres) & (ytrue == 0)).sum()
+        fn[i] = ((proba <= thres) & (ytrue == 1)).sum()
 
     result = dict(
         tp={"data": tp.tolist(), "type": "int", "operation": "sum"},
