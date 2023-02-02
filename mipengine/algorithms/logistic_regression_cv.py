@@ -17,27 +17,29 @@ from mipengine.algorithms.preprocessing import LabelBinarizer
 
 class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv"):
     def get_variable_groups(self):
-        return [self.executor.x_variables, self.executor.y_variables]
+        return [self.variables.x, self.variables.y]
 
-    def run(self):
-        X, y = self.executor.data_model_views
+    def run(self, executor):
+        X, y = executor.data_model_views
 
-        positive_class = self.executor.algorithm_parameters["positive_class"]
-        n_splits = self.executor.algorithm_parameters["n_splits"]
+        positive_class = self.algorithm_parameters["positive_class"]
+        n_splits = self.algorithm_parameters["n_splits"]
 
         # Dummy encode categorical variables
-        dummy_encoder = DummyEncoder(self.executor)
+        dummy_encoder = DummyEncoder(
+            executor=executor, variables=self.variables, metadata=self.metadata
+        )
         X = dummy_encoder.transform(X)
 
         # Binarize `y` by mapping positive_class to 1 and everything else to 0
-        ybin = LabelBinarizer(self.executor, positive_class).transform(y)
+        ybin = LabelBinarizer(executor, positive_class).transform(y)
 
         # Split datasets according to k-fold CV
-        kf = KFold(self.executor, n_splits=n_splits)
+        kf = KFold(executor, n_splits=n_splits)
         X_train, X_test, y_train, y_test = kf.split(X, ybin)
 
         # Create models
-        models = [LogisticRegression(self.executor) for _ in range(n_splits)]
+        models = [LogisticRegression(executor) for _ in range(n_splits)]
 
         # Train models
         for model, X, y in zip(models, X_train, y_train):
@@ -48,7 +50,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
 
         # Patrial and total confusion matrices
         confmats = [
-            confusion_matrix(self.executor, ytrue, proba)
+            confusion_matrix(executor, ytrue, proba)
             for ytrue, proba in zip(y_test, probas)
         ]
         total_confmat = sum(confmats)
@@ -62,8 +64,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
 
         # ROC curves
         roc_curves = [
-            roc_curve(self.executor, ytrue, proba)
-            for ytrue, proba in zip(y_test, probas)
+            roc_curve(executor, ytrue, proba) for ytrue, proba in zip(y_test, probas)
         ]
         aucs = [skm.auc(x=fpr, y=tpr) for tpr, fpr in roc_curves]
         roc_curves_result = [

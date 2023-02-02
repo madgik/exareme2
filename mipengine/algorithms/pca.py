@@ -22,34 +22,41 @@ class PCAResult(BaseModel):
 
 class PCAAlgorithm(Algorithm, algname="pca"):
     def get_variable_groups(self):
-        return [self.executor.y_variables]
+        return [self.variables.y]
 
-    def run(self):
-        local_run = self.executor.run_udf_on_local_nodes
-        global_run = self.executor.run_udf_on_global_node
+    def run(self, executor):
+        local_run = executor.run_udf_on_local_nodes
+        global_run = executor.run_udf_on_global_node
 
-        [X_relation] = self.executor.data_model_views
+        [X_relation] = executor.data_model_views
+        print(f"\n{X_relation.get_table_data()=}")
 
         local_transfers = local_run(
             func=local1,
             keyword_args={"x": X_relation},
             share_to_global=[True],
         )
+        print(f"\n{local_transfers.get_table_data()=}")
         global_state, global_transfer = global_run(
             func=global1,
             keyword_args=dict(local_transfers=local_transfers),
             share_to_locals=[False, True],
         )
+        # print(f"{global_state.get_table_data()=}")
+        print(f"\n{global_transfer.get_table_data()=}")
         local_transfers = local_run(
             func=local2,
             keyword_args=dict(x=X_relation, global_transfer=global_transfer),
             share_to_global=[True],
         )
+        print(f"\n{local_transfers.get_table_data()=}")
         result = global_run(
             func=global2,
             keyword_args=dict(local_transfers=local_transfers, prev_state=global_state),
         )
+        print(f"\n1. {result.get_table_data()=}")
         result = get_transfer_data(result)
+        print(f"\n2. {result=}")
         n_obs = result["n_obs"]
         eigenvalues = result["eigenvalues"]
         eigenvectors = result["eigenvectors"]

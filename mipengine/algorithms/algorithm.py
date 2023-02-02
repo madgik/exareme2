@@ -1,6 +1,28 @@
 from abc import ABC
 from abc import abstractmethod
+from typing import Any
+from typing import Dict
 from typing import List
+from typing import Optional
+
+from pydantic import BaseModel
+
+
+class Variables(BaseModel):
+    x: List[str]
+    y: List[str]
+
+
+class AlgorithmDTO(BaseModel):
+    algorithm_name: str
+    data_model: str
+    variables: Variables
+    var_filters: Optional[dict] = None
+    algorithm_parameters: Optional[Dict[str, Any]] = None
+    metadata: Dict[str, dict]
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class Algorithm(ABC):
@@ -14,14 +36,14 @@ class Algorithm(ABC):
     executor : _AlgorithmExecutionInterface
     """
 
-    def __init__(self, executor):
+    def __init__(self, algorithm_dto: AlgorithmDTO):
         """
         Parameters
         ----------
         executor : _AlgorithmExecutionInterface
             The executor attribute gives access to the algorithm execution infrastructure.
         """
-        self._executor = executor
+        self._algorithm_dto = algorithm_dto
 
     def __init_subclass__(cls, algname, **kwargs):
         """
@@ -34,14 +56,16 @@ class Algorithm(ABC):
         cls.algname = algname
 
     @property
-    def executor(self):
-        """
-        Returns
-        -------
-        executor : _AlgorithmExecutionInterface
-            The executor attribute gives access to the algorithm execution infrastructure.
-        """
-        return self._executor
+    def variables(self):
+        return self._algorithm_dto.variables
+
+    @property
+    def algorithm_parameters(self) -> Dict[str, Any]:
+        return self._algorithm_dto.algorithm_parameters
+
+    @property
+    def metadata(self):
+        return self._algorithm_dto.metadata
 
     @abstractmethod
     def get_variable_groups(self) -> List[List[str]]:
@@ -86,7 +110,14 @@ class Algorithm(ABC):
         return True
 
     @abstractmethod
-    def run(self):
+    def run(self, executor):
+        # the executor must be availiable only inside run()
+        # The reasoning for this is that executor.data_model_views must already be
+        # available when the executor is
+        # available to the algorithm, but executor.data_model_views needs to call
+        # algorithm.get_variable_groups(), algorithm.get_check_min_rows() and
+        # get_dropna() so there is no way to access the executor by mistake inside these
+        # methods
         """
         The implementation of the algorithm flow logic goes in this method.
         """

@@ -5,26 +5,26 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from mipengine.algorithms.algorithm import Variables
 from mipengine.controller.algorithm_execution_tasks_handler import (
     INodeAlgorithmTasksHandler,
 )
 
-
 # One of the two expected data object for the AlgorithmExecutor layer.
-class AlgorithmExecutionDTO(BaseModel):
-    request_id: str
-    context_id: str
-    algorithm_name: str
-    data_model: str
-    datasets_per_local_node: Dict[str, List[str]]
-    x_vars: Optional[List[str]] = None
-    y_vars: Optional[List[str]] = None
-    var_filters: Optional[dict] = None
-    algo_parameters: Optional[Dict[str, Any]] = None
-    algo_flags: Optional[Dict[str, Any]] = None
+# class AlgorithmExecutionDTO(BaseModel):
+#     request_id: str
+#     context_id: str
+#     algorithm_name: str
+#     data_model: str
+#     # datasets_per_local_node: Dict[str, List[str]]
+#     variables:Variables
+#     var_filters: Optional[dict] = None
+#     algo_parameters: Optional[Dict[str, Any]] = None
+#     algo_flags: Optional[Dict[str, Any]] = None
+#     metadata:Dict[str,dict]
 
-    class Config:
-        arbitrary_types_allowed = True
+#     class Config:
+#         arbitrary_types_allowed = True
 
 
 # The second expected data object for the AlgorithmExecutor layer.

@@ -17,13 +17,13 @@ class StandardDeviationPosAndKwArgsAlgorithm(
     Algorithm, algname="standard_deviation_pos_and_kw_args"
 ):
     def get_variable_groups(self):
-        return [self.executor.y_variables]
+        return [self.variables.y]
 
-    def run(self):
-        local_run = self.executor.run_udf_on_local_nodes
-        global_run = self.executor.run_udf_on_global_node
+    def run(self, executor):
+        local_run = executor.run_udf_on_local_nodes
+        global_run = executor.run_udf_on_global_node
 
-        [Y_relation] = self.executor.data_model_views
+        [Y_relation] = executor.data_model_views
 
         Y = local_run(
             func=relation_to_matrix,
@@ -55,7 +55,7 @@ class StandardDeviationPosAndKwArgsAlgorithm(
             keyword_args={"local_transfers": local_result},
         )
         std_deviation = json.loads(global_result.get_table_data()[0][0])["deviation"]
-        y_variables = self.executor.y_variables
+        y_variables = self.variables.y
         result = TabularDataResult(
             title="Standard Deviation",
             columns=[

@@ -7,12 +7,23 @@ from unittest.mock import patch
 import pytest
 
 from mipengine import AttrDict
+from mipengine import algorithm_classes
+from mipengine.algorithms.algorithm import AlgorithmDTO
+from mipengine.algorithms.algorithm import Variables
 from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
+from mipengine.controller.algorithm_executor import AlgorithmExecutorDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.celery_app import CeleryConnectionError
+from mipengine.controller.controller import CommandIdGenerator
 from mipengine.controller.controller import Controller
+from mipengine.controller.controller import Nodes
+from mipengine.controller.controller import _create_algorithm_executor
+from mipengine.controller.controller import _create_data_model_views
+from mipengine.controller.controller import _create_nodes
+from mipengine.controller.controller import _filter_insufficient_data_nodes
+from mipengine.controller.controller import get_metadata
+from mipengine.controller.controller import sanitize_request_variable
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.controller.uid_generator import UIDGenerator
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
@@ -169,71 +180,191 @@ def patch_celery_app(controller_config_dict_mock):
         yield
 
 
-# why do the datasets need to be passed twice in
-# the controller._exec_algorithm_with_task_handlers??
-datasets = [
-    "edsd0",
-    "edsd1",
-    "edsd2",
-    "edsd3",
-    "edsd4",
-    "edsd5",
-    "edsd6",
-    "edsd7",
-    "edsd8",
-    "edsd9",
-]
+# ------------------------------------------------------------
+@pytest.fixture(scope="session")
+def datasets():
+    return [
+        "edsd0",
+        "edsd1",
+        "edsd2",
+        "edsd3",
+        "edsd4",
+        "edsd5",
+        "edsd6",
+        "edsd7",
+        "edsd8",
+        "edsd9",
+    ]
 
-datasets_localnode1 = [f"edsd{i}" for i in DATASET_SUFFIXES_LOCALNODE1]
-datasets_localnode2 = [f"edsd{i}" for i in DATASET_SUFFIXES_LOCALNODE2]
-datasets_localnodetmp = [f"edsd{i}" for i in DATASET_SUFFIXES_LOCALNODETMP]
 
-algorithm_request_dto = AlgorithmRequestDTO(
-    inputdata=AlgorithmInputDataDTO(
-        data_model="dementia:0.1",
-        datasets=datasets,
-        filters={
-            "condition": "AND",
-            "rules": [
-                {
-                    "id": "dataset",
-                    "type": "string",
-                    "value": datasets,
-                    "operator": "in",
-                },
-                {
-                    "condition": "AND",
-                    "rules": [
-                        {
-                            "id": variable,
-                            "type": "string",
-                            "operator": "is_not_null",
-                            "value": None,
-                        }
-                        for variable in [
-                            "lefthippocampus",
-                            "righthippocampus",
-                            "rightppplanumpolare",
-                            "leftamygdala",
-                            "rightamygdala",
-                            "alzheimerbroadcategory",
-                        ]
-                    ],
-                },
+@pytest.fixture(scope="session")
+def algorithm_request_dto(datasets):
+    return AlgorithmRequestDTO(
+        request_id=UIDGenerator().get_a_uid(),
+        inputdata=AlgorithmInputDataDTO(
+            data_model="dementia:0.1",
+            datasets=datasets,
+            filters={
+                "condition": "AND",
+                "rules": [
+                    {
+                        "id": "dataset",
+                        "type": "string",
+                        "value": datasets,
+                        "operator": "in",
+                    },
+                    {
+                        "condition": "AND",
+                        "rules": [
+                            {
+                                "id": variable,
+                                "type": "string",
+                                "operator": "is_not_null",
+                                "value": None,
+                            }
+                            for variable in [
+                                "lefthippocampus",
+                                "righthippocampus",
+                                "rightppplanumpolare",
+                                "leftamygdala",
+                                "rightamygdala",
+                                "alzheimerbroadcategory",
+                            ]
+                        ],
+                    },
+                ],
+                "valid": True,
+            },
+            x=[
+                "lefthippocampus",
+                "righthippocampus",
+                "rightppplanumpolare",
+                "leftamygdala",
+                "rightamygdala",
             ],
-            "valid": True,
-        },
-        x=[
-            "lefthippocampus",
-            "righthippocampus",
-            "rightppplanumpolare",
-            "leftamygdala",
-            "rightamygdala",
-        ],
-        y=["alzheimerbroadcategory"],
-    ),
-    parameters={"positive_class": "AD", "positive_class": "CN"},
-)
+            y=["alzheimerbroadcategory"],
+        ),
+        parameters={"positive_class": "AD", "positive_class": "CN"},
+    )
+
+
+@pytest.fixture(scope="session")
+def datasets_localnode(datasets):
+    datasets_localnode1 = [f"edsd{i}" for i in DATASET_SUFFIXES_LOCALNODE1]
+    datasets_localnode2 = [f"edsd{i}" for i in DATASET_SUFFIXES_LOCALNODE2]
+    datasets_localnodetmp = [f"edsd{i}" for i in DATASET_SUFFIXES_LOCALNODETMP]
+    return (datasets_localnode1, datasets_localnode2, datasets_localnodetmp)
+
+
+@pytest.fixture(scope="function")
+def context_id():
+    return UIDGenerator().get_a_uid()
+
+
+@pytest.fixture(scope="function")
+def algorithm_name():
+    return "logistic_regression"
+
+
+@pytest.fixture(scope="function")
+def node_landscape_aggregator(
+    load_data_localnode1,
+    load_data_localnode2,
+):
+    node_landscape_aggregator = NodeLandscapeAggregator()
+    node_landscape_aggregator._update()  # manually update
+    return node_landscape_aggregator
+
+
+@pytest.fixture(scope="function")
+def nodes(algorithm_request_dto, context_id):
+    # instantiate nodes
+    return _create_nodes(
+        request_id=algorithm_request_dto.request_id,
+        context_id=context_id,
+        data_model=algorithm_request_dto.inputdata.data_model,
+        datasets=algorithm_request_dto.inputdata.datasets,
+    )
+
+
+@pytest.fixture(scope="function")
+def data_model_views_and_nodes(
+    datasets, algorithm_request_dto, nodes, algorithm, command_id_generator
+):
+    data_model_views = _create_data_model_views(
+        local_nodes=nodes.local_nodes,
+        datasets=datasets,
+        data_model=algorithm_request_dto.inputdata.data_model,
+        variable_groups=algorithm.get_variable_groups(),
+        var_filters=algorithm_request_dto.inputdata.filters,
+        dropna=algorithm.get_dropna(),
+        check_min_rows=algorithm.get_check_min_rows(),
+        command_id=command_id_generator.get_next_command_id(),
+    )
+    local_nodes_filtered = _filter_insufficient_data_nodes(
+        nodes.local_nodes, data_model_views
+    )
+    nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
+    if not nodes.local_nodes:
+        raise RequestConstraintsError(algorithm_request_dto)
+    return (data_model_views, nodes)
+
+
+@pytest.fixture(scope="function")
+def metadata(algorithm_request_dto):
+    # get metadata
+    variable_names = (algorithm_request_dto.inputdata.x or []) + (
+        algorithm_request_dto.inputdata.y or []
+    )
+    return get_metadata(
+        data_model=algorithm_request_dto.inputdata.data_model,
+        variable_names=variable_names,
+    )
+
+
+@pytest.fixture(scope="function")
+def algorithm(algorithm_request_dto, metadata):
+    algorithm_name = "logistic_regression"
+    request_id = algorithm_request_dto.request_id
+    input_data = algorithm_request_dto.inputdata
+    algorithm_parameters = algorithm_request_dto.parameters
+
+    # create AlgorithmDTO
+    algorithm_dto = AlgorithmDTO(
+        algorithm_name=algorithm_name,
+        data_model=input_data.data_model,
+        variables=Variables(
+            x=sanitize_request_variable(input_data.x),
+            y=sanitize_request_variable(input_data.y),
+        ),
+        var_filters=input_data.filters,
+        algorithm_parameters=algorithm_parameters,
+        metadata=metadata,
+    )
+    return algorithm_classes[algorithm_name](algorithm_dto=algorithm_dto)
+
+
+@pytest.fixture(scope="function")
+def command_id_generator():
+    return CommandIdGenerator()
+
+
+@pytest.fixture(scope="function")
+def algorithm_executor(
+    algorithm_request_dto, context_id, data_model_views_and_nodes, command_id_generator
+):
+    # instantiate executor
+    algorithm_executor_dto = AlgorithmExecutorDTO(
+        request_id=algorithm_request_dto.request_id,
+        context_id=context_id,
+        algo_flags=algorithm_request_dto.flags,
+        data_model_views=data_model_views_and_nodes[0],  # data_model_views,
+    )
+    return _create_algorithm_executor(
+        algorithm_executor_dto=algorithm_executor_dto,
+        command_id_generator=command_id_generator,
+        nodes=data_model_views_and_nodes[1],  # nodes,
+    )
 
 
 @pytest.mark.slow
@@ -244,22 +375,25 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     globalnode_tasks_handler,
     localnode1_tasks_handler,
     localnode2_tasks_handler,
-    patch_node_landscape_aggregator,
     patch_node_landscape_aggregator_localnode1_and_localnode2,
+    node_landscape_aggregator,
+    context_id,
+    algorithm_request_dto,
+    nodes,
+    algorithm,
+    algorithm_executor,
 ):
     controller = Controller()
 
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
-    node_lanadscape_aggregator = NodeLandscapeAggregator()
-    node_lanadscape_aggregator._update()  # manually update
-    # wait until NodeLandscapeAggregator gets filled with some node info
+    # poll NodeLandscapeAggregator until it has some node info
     start = time.time()
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
         or not controller._node_landscape_aggregator.get_datasets_locations()
     ):
-        node_lanadscape_aggregator._update()
+        node_landscape_aggregator._update()
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node registry to contain "
@@ -271,66 +405,45 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     controller._cleaner._reset()  # deletes all existing persistence files(cleanup files)
     controller.start_cleanup_loop()
 
-    context_id = UIDGenerator().get_a_uid()
-    request_id = UIDGenerator().get_a_uid()
-    algorithm_name = "logistic_regression"
-    algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-
-    # Add contextid to Cleaner but is not yet released
+    # contextid is aadded to Cleaner but is not yet released
     controller._cleaner.add_contextid_for_cleanup(
         context_id,
         [
-            globalnode_tasks_handler.node_id,
-            localnode1_tasks_handler.node_id,
-            localnode2_tasks_handler.node_id,
+            nodes.global_node.node_id,
+            nodes.local_nodes[0].node_id,
+            nodes.local_nodes[1].node_id,
         ],
     )
 
+    # run the algorithm
     try:
-        # Await for the algorithm execution to complete
-        await controller._exec_algorithm_with_task_handlers(
-            request_id=request_id,
-            context_id=context_id,
-            algorithm_name=algorithm_name,
-            algorithm_request_dto=algorithm_request_dto,
-            datasets_per_local_node={
-                localnode1_tasks_handler.node_id: datasets_localnode1,
-                localnode2_tasks_handler.node_id: datasets_localnode2,
-            },
-            tasks_handlers=NodesTasksHandlersDTO(
-                global_node_tasks_handler=globalnode_tasks_handler,
-                local_nodes_tasks_handlers=[
-                    localnode1_tasks_handler,
-                    localnode2_tasks_handler,
-                ],
-            ),
-            logger=algo_execution_logger,
+        algorithm_result = await controller._run_algorithm(
+            algorithm=algorithm, algorithm_executor=algorithm_executor
         )
-
     except Exception as exc:
         pytest.fail(f"Execution of the algorithm failed with {exc=}")
 
     globalnode_tables_before_cleanup = globalnode_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode1_tables_before_cleanup = localnode1_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode2_tables_before_cleanup = localnode2_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
 
     # Releasing contextid, signals the Cleaner to start cleaning the contextid from the nodes
     controller._cleaner.release_context_id(context_id=context_id)
 
     globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode2_tables_after_cleanup = localnode2_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
 
     start = time.time()
@@ -340,13 +453,13 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         or localnode2_tables_after_cleanup
     ):
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
         localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
         localnode2_tables_after_cleanup = localnode2_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
 
         now = time.time()
@@ -384,20 +497,24 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     patch_node_landscape_aggregator,
     patch_node_landscape_aggregator_localnode1_and_localnode2,
     reset_celery_app_factory,  # celery tasks fail if this is not reset
+    node_landscape_aggregator,
+    context_id,
+    algorithm_request_dto,
+    nodes,
+    algorithm,
+    algorithm_executor,
 ):
     controller = Controller()
 
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
-    node_lanadscape_aggregator = NodeLandscapeAggregator()
-    node_lanadscape_aggregator._update()  # manually update
-    # wait until NodeLandscapeAggregator gets filled with some node info
+    # poll NodeLandscapeAggregator until it has some node info
     start = time.time()
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
         or not controller._node_landscape_aggregator.get_datasets_locations()
     ):
-        node_lanadscape_aggregator._update()
+        node_landscape_aggregator._update()
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node registry to contain "
@@ -409,41 +526,22 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     controller._cleaner._reset()  # deletes all existing persistence files(cleanup files)
     controller.start_cleanup_loop()
 
-    request_id = UIDGenerator().get_a_uid()
-    context_id = UIDGenerator().get_a_uid()
-    algorithm_name = "logistic_regression"
-    algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-
+    # run the algorithm
     try:
-        await controller._exec_algorithm_with_task_handlers(
-            request_id=request_id,
-            context_id=context_id,
-            algorithm_name=algorithm_name,
-            algorithm_request_dto=algorithm_request_dto,
-            datasets_per_local_node={
-                localnode1_tasks_handler.node_id: datasets_localnode1,
-                localnode2_tasks_handler.node_id: datasets_localnode2,
-            },
-            tasks_handlers=NodesTasksHandlersDTO(
-                global_node_tasks_handler=globalnode_tasks_handler,
-                local_nodes_tasks_handlers=[
-                    localnode1_tasks_handler,
-                    localnode2_tasks_handler,
-                ],
-            ),
-            logger=algo_execution_logger,
+        algorithm_result = await controller._run_algorithm(
+            algorithm=algorithm, algorithm_executor=algorithm_executor
         )
     except Exception as exc:
         pytest.fail(f"Execution of the algorithm failed with {exc=}")
 
     globalnode_tables_before_cleanup = globalnode_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode1_tables_before_cleanup = localnode1_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode2_tables_before_cleanup = localnode2_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
 
     # Add contextid to Cleaner after letting the executing algorithm create some tables
@@ -460,13 +558,13 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     # expired (check patch_cleaner_small_release_timelimit)
 
     globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode2_tables_after_cleanup = localnode2_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
 
     start = time.time()
@@ -476,13 +574,13 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
         or localnode2_tables_after_cleanup
     ):
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
         localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
         localnode2_tables_after_cleanup = localnode2_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:
@@ -520,20 +618,24 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     patch_node_landscape_aggregator,
     patch_node_landscape_aggregator_localnode1_and_localnodetmp,
     reset_celery_app_factory,  # celery tasks fail if this is not reset
+    node_landscape_aggregator,
+    context_id,
+    algorithm_request_dto,
+    nodes,
+    algorithm,
+    algorithm_executor,
 ):
     controller = Controller()
 
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
-    node_lanadscape_aggregator = NodeLandscapeAggregator()
-    node_lanadscape_aggregator._update()  # manually update
-    # wait until NodeLandscapeAggregator gets filled with some node info
+    # poll NodeLandscapeAggregator until it has some node info
     start = time.time()
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
         or not controller._node_landscape_aggregator.get_datasets_locations()
     ):
-        node_lanadscape_aggregator._update()
+        node_landscape_aggregator._update()
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node registry to contain "
@@ -545,11 +647,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     controller._cleaner._reset()  # deletes all existing persistence files(cleanup files)
     controller.start_cleanup_loop()
 
-    request_id = UIDGenerator().get_a_uid()
-    context_id = UIDGenerator().get_a_uid()
-    algorithm_name = "logistic_regression"
-    algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-
     # Add contextid to Cleaner but is not yet released
     controller._cleaner.add_contextid_for_cleanup(
         context_id,
@@ -560,26 +657,11 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         ],
     )
 
+    # run the algorithm
     try:
-        # Start executing the algorithm but do not wait for it
         asyncio.create_task(
-            controller._exec_algorithm_with_task_handlers(
-                request_id=request_id,
-                context_id=context_id,
-                algorithm_name=algorithm_name,
-                algorithm_request_dto=algorithm_request_dto,
-                datasets_per_local_node={
-                    localnode1_tasks_handler.node_id: datasets_localnode1,
-                    localnodetmp_tasks_handler.node_id: datasets_localnodetmp,
-                },
-                tasks_handlers=NodesTasksHandlersDTO(
-                    global_node_tasks_handler=globalnode_tasks_handler,
-                    local_nodes_tasks_handlers=[
-                        localnode1_tasks_handler,
-                        localnodetmp_tasks_handler,
-                    ],
-                ),
-                logger=algo_execution_logger,
+            controller._run_algorithm(
+                algorithm=algorithm, algorithm_executor=algorithm_executor
             )
         )
     except Exception as exc:
@@ -589,13 +671,13 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     await asyncio.sleep(WAIT_BEFORE_BRING_TMPNODE_DOWN)
 
     globalnode_tables_before_cleanup = globalnode_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode1_tables_before_cleanup = localnode1_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnodetmp_tables_before_cleanup = localnodetmp_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
 
     # kill rabbitmq container for localnotmp
@@ -612,19 +694,19 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     # restart the celery app of localnodetmp
     localnodetmp_node_service_proc = start_localnodetmp_node_service()
-    node_lanadscape_aggregator._update()
+    node_landscape_aggregator._update()
 
     globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
 
     localnodetmp_tables_after_cleanup = None
     try:
         localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
     except CeleryConnectionError:
         pass
@@ -635,16 +717,16 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         or localnode1_tables_after_cleanup
         or localnodetmp_tables_after_cleanup
     ):
-        node_lanadscape_aggregator._update()
+        node_landscape_aggregator._update()
 
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
         localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
         localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
 
         now = time.time()
@@ -690,21 +772,25 @@ async def test_cleanup_node_service_down_algorithm_execution(
     patch_node_landscape_aggregator,
     patch_node_landscape_aggregator_localnode1_and_localnodetmp,
     reset_celery_app_factory,  # celery tasks fail if this is not reset
+    node_landscape_aggregator,
+    context_id,
+    algorithm_request_dto,
+    nodes,
+    algorithm,
+    algorithm_executor,
 ):
 
     controller = Controller()
 
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
-    node_lanadscape_aggregator = NodeLandscapeAggregator()
-    node_lanadscape_aggregator._update()  # manually update
-    # wait until NodeLandscapeAggregator gets filled with some node info
+    # poll NodeLandscapeAggregator until it has some node info
     start = time.time()
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
         or not controller._node_landscape_aggregator.get_datasets_locations()
     ):
-        node_lanadscape_aggregator._update()
+        node_landscape_aggregator._update()
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node registry to contain "
@@ -715,11 +801,6 @@ async def test_cleanup_node_service_down_algorithm_execution(
     # Start the Cleaner
     controller._cleaner._reset()  # deletes all existing persistence files(cleanup files)
     controller.start_cleanup_loop()
-
-    request_id = UIDGenerator().get_a_uid()
-    context_id = UIDGenerator().get_a_uid()
-    algorithm_name = "logistic_regression"
-    algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
 
     # Add contextid to Cleaner but is not yet released
     controller._cleaner.add_contextid_for_cleanup(
@@ -734,23 +815,8 @@ async def test_cleanup_node_service_down_algorithm_execution(
     # start executing the algorithm but do not wait for it
     try:
         asyncio.create_task(
-            controller._exec_algorithm_with_task_handlers(
-                request_id=request_id,
-                context_id=context_id,
-                algorithm_name=algorithm_name,
-                algorithm_request_dto=algorithm_request_dto,
-                datasets_per_local_node={
-                    localnode1_tasks_handler.node_id: datasets_localnode1,
-                    localnodetmp_tasks_handler.node_id: datasets_localnodetmp,
-                },
-                tasks_handlers=NodesTasksHandlersDTO(
-                    global_node_tasks_handler=globalnode_tasks_handler,
-                    local_nodes_tasks_handlers=[
-                        localnode1_tasks_handler,
-                        localnodetmp_tasks_handler,
-                    ],
-                ),
-                logger=algo_execution_logger,
+            controller._run_algorithm(
+                algorithm=algorithm, algorithm_executor=algorithm_executor
             )
         )
     except Exception as exc:
@@ -760,13 +826,13 @@ async def test_cleanup_node_service_down_algorithm_execution(
     await asyncio.sleep(WAIT_BEFORE_BRING_TMPNODE_DOWN)
 
     globalnode_tables_before_cleanup = globalnode_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode1_tables_before_cleanup = localnode1_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnodetmp_tables_before_cleanup = localnodetmp_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
 
     # kill the celery app of localnodetmp
@@ -778,19 +844,19 @@ async def test_cleanup_node_service_down_algorithm_execution(
 
     # restart tmplocalnode node service (the celery app)
     localnodetmp_node_service_proc = start_localnodetmp_node_service()
-    node_lanadscape_aggregator._update()
+    node_landscape_aggregator._update()
 
     globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
 
     localnodetmp_tables_after_cleanup = None
     try:
         localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
     except CeleryConnectionError:
         pass
@@ -801,17 +867,17 @@ async def test_cleanup_node_service_down_algorithm_execution(
         or localnode1_tables_after_cleanup
         or localnodetmp_tables_after_cleanup
     ):
-        node_lanadscape_aggregator._update()
+        node_landscape_aggregator._update()
 
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
         localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
 
         localnodetmp_tables_after_cleanup = localnodetmp_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
 
         now = time.time()
@@ -855,21 +921,25 @@ async def test_cleanup_controller_restart(
     patch_node_landscape_aggregator,
     patch_node_landscape_aggregator_localnode1_and_localnode2,
     reset_celery_app_factory,  # celery tasks fail if this is not reset
+    node_landscape_aggregator,
+    context_id,
+    algorithm_request_dto,
+    nodes,
+    algorithm,
+    algorithm_executor,
 ):
 
     controller = Controller()
 
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
-    node_lanadscape_aggregator = NodeLandscapeAggregator()
-    node_lanadscape_aggregator._update()  # manually update
-    # wait until NodeLandscapeAggregator gets filled with some node info
+    # poll NodeLandscapeAggregator until it has some node info
     start = time.time()
     while (
         not controller._node_landscape_aggregator.get_nodes()
         or not controller._node_landscape_aggregator.get_cdes_per_data_model()
         or not controller._node_landscape_aggregator.get_datasets_locations()
     ):
-        node_lanadscape_aggregator._update()
+        node_landscape_aggregator._update()
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node registry to contain "
@@ -881,11 +951,6 @@ async def test_cleanup_controller_restart(
     controller._cleaner._reset()  # deletes all existing persistence files(cleanup files)
     controller.start_cleanup_loop()
 
-    request_id = UIDGenerator().get_a_uid()
-    context_id = UIDGenerator().get_a_uid()
-    algorithm_name = "logistic_regression"
-    algo_execution_logger = ctrl_logger.get_request_logger(request_id=request_id)
-
     # Add contextid to Cleaner but is not yet released
     controller._cleaner.add_contextid_for_cleanup(
         context_id,
@@ -896,26 +961,11 @@ async def test_cleanup_controller_restart(
         ],
     )
 
+    # start executing the algorithm but do not wait for it
     try:
-        # start executing the algorithm but do not wait for it
         asyncio.create_task(
-            controller._exec_algorithm_with_task_handlers(
-                request_id=request_id,
-                context_id=context_id,
-                algorithm_name=algorithm_name,
-                algorithm_request_dto=algorithm_request_dto,
-                datasets_per_local_node={
-                    localnode1_tasks_handler.node_id: datasets_localnode1,
-                    localnode2_tasks_handler.node_id: datasets_localnode2,
-                },
-                tasks_handlers=NodesTasksHandlersDTO(
-                    global_node_tasks_handler=globalnode_tasks_handler,
-                    local_nodes_tasks_handlers=[
-                        localnode1_tasks_handler,
-                        localnode2_tasks_handler,
-                    ],
-                ),
-                logger=algo_execution_logger,
+            controller._run_algorithm(
+                algorithm=algorithm, algorithm_executor=algorithm_executor
             )
         )
     except Exception as exc:
@@ -925,13 +975,13 @@ async def test_cleanup_controller_restart(
     await asyncio.sleep(WAIT_BEFORE_BRING_TMPNODE_DOWN)
 
     globalnode_tables_before_cleanup = globalnode_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode1_tables_before_cleanup = localnode1_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode2_tables_before_cleanup = localnode2_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
 
     controller.stop_cleanup_loop()
@@ -943,7 +993,7 @@ async def test_cleanup_controller_restart(
     # instantiate a new Controller
     controller = Controller()
 
-    node_lanadscape_aggregator._update()
+    node_landscape_aggregator._update()
 
     # Start the Cleaner again
     # The Cleaner is not dependent on the Controller, the Controller is only used here to
@@ -951,13 +1001,13 @@ async def test_cleanup_controller_restart(
     controller.start_cleanup_loop()
 
     globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
     localnode2_tables_after_cleanup = localnode2_tasks_handler.get_tables(
-        request_id=request_id, context_id=context_id
+        request_id=algorithm_request_dto.request_id, context_id=context_id
     )
 
     start = time.time()
@@ -966,16 +1016,16 @@ async def test_cleanup_controller_restart(
         or localnode1_tables_after_cleanup
         or localnode2_tables_after_cleanup
     ):
-        node_lanadscape_aggregator._update()
+        node_landscape_aggregator._update()
 
         globalnode_tables_after_cleanup = globalnode_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
         localnode1_tables_after_cleanup = localnode1_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
         localnode2_tables_after_cleanup = localnode2_tasks_handler.get_tables(
-            request_id=request_id, context_id=context_id
+            request_id=algorithm_request_dto.request_id, context_id=context_id
         )
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:

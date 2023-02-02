@@ -23,19 +23,18 @@ class PearsonResult(BaseModel):
 
 class PearsonCorrelationAlgorithm(Algorithm, algname="pearson_correlation"):
     def get_variable_groups(self):
-        if self.executor.x_variables:
-            variable_groups = [self.executor.x_variables, self.executor.y_variables]
-
+        if self.variables.x:
+            variable_groups = [self.variables.x, self.variables.y]
         else:
-            variable_groups = [self.executor.y_variables, self.executor.y_variables]
+            variable_groups = [self.variables.y, self.variables.y]
         return variable_groups
 
-    def run(self):
-        local_run = self.executor.run_udf_on_local_nodes
-        global_run = self.executor.run_udf_on_global_node
-        alpha = self.executor.algorithm_parameters["alpha"]
+    def run(self, executor):
+        local_run = executor.run_udf_on_local_nodes
+        global_run = executor.run_udf_on_global_node
+        alpha = self.algorithm_parameters["alpha"]
 
-        X_relation, Y_relation = self.executor.data_model_views
+        X_relation, Y_relation = executor.data_model_views
 
         local_transfers = local_run(
             func=local1,

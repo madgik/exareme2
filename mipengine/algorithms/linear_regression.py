@@ -42,27 +42,30 @@ class LinearRegressionResult(BaseModel):
 
 class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
     def get_variable_groups(self):
-        return [self.executor.x_variables, self.executor.y_variables]
+        return [self.variables.x, self.variables.y]
 
-    def run(self):
-        X, y = self.executor.data_model_views
+    def run(self, executor):
+        X, y = executor.data_model_views
 
-        dummy_encoder = DummyEncoder(self.executor)
+        dummy_encoder = DummyEncoder(
+            executor=executor, variables=self.variables, metadata=self.metadata
+        )
+
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1
 
-        lr = LinearRegression(self.executor)
+        lr = LinearRegression(executor)
         lr.fit(X=X, y=y)
         y_pred: RealVector = lr.predict(X)
         lr.compute_summary(
-            y_test=relation_to_vector(y, self.executor),
+            y_test=relation_to_vector(y, executor),
             y_pred=y_pred,
             p=p,
         )
 
         result = LinearRegressionResult(
-            dependent_var=self.executor.y_variables[0],
+            dependent_var=self.variables.y[0],
             n_obs=lr.n_obs,
             df_resid=lr.df,
             df_model=p,

@@ -13,18 +13,16 @@ from mipengine.udfgen import udf
 
 
 class DummyEncoder:
-    def __init__(self, executor, intercept=True):
+    def __init__(self, executor, variables, metadata, intercept=True):
         self._local_run = executor.run_udf_on_local_nodes
         self._global_run = executor.run_udf_on_global_node
         self._categorical_vars = [
-            varname
-            for varname in executor.x_variables
-            if executor.metadata[varname]["is_categorical"]
+            varname for varname in variables.x if metadata[varname]["is_categorical"]
         ]
         self._numerical_vars = [
             varname
-            for varname in executor.x_variables
-            if not executor.metadata[varname]["is_categorical"]
+            for varname in variables.x
+            if not metadata[varname]["is_categorical"]
         ]
         self.intercept = intercept
         self.new_varnames = None
