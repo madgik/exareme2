@@ -75,12 +75,13 @@ class OnesampleTTestAlgorithm(Algorithm, algname="ttest_onesample"):
     return_type=[secure_transfer(sum_op=True)],
 )
 def local_one_sample(x, mu):
-    x = x.reset_index(drop=True).to_numpy().squeeze()
+    x.reset_index(drop=True, inplace=True)
+    x = x.to_numpy().squeeze()
     n_obs = len(x)
-    sum_x = sum(x)
-    sqrd_x = sum(x**2)
-    diff_x = sum(x - mu)
-    diff_sqrd_x = sum((x - mu) ** 2)
+    sum_x = numpy.einsum("i->", x)
+    sqrd_x = numpy.einsum("i,i->", x, x)
+    diff_x = sum_x - n_obs * mu
+    diff_sqrd_x = sqrd_x - 2 * mu * sum_x + n_obs * mu**2
 
     sec_transfer_ = {
         "n_obs": {"data": n_obs, "operation": "sum", "type": "int"},

@@ -152,10 +152,10 @@ class LogisticRegression:
         # However, this generates a large (n_obs, n_obs) diagonal matrix.
         # Instead, the version using Einstein summation is memory efficient
         # thanks to the optimized tensor constraction algorithms behind einsum.
-        H = numpy.einsum("ji, j..., jk -> ik", X, w, X, optimize="greedy")
+        H = numpy.einsum("ji, j, jk -> ik", X, w.squeeze(), X)
 
         # gradient
-        grad = numpy.einsum("ji, j... -> i", X, y - mu, optimize="greedy")
+        grad = numpy.einsum("ji, j -> i", X, (y - mu).squeeze())
 
         # log-likelihood
         ll = numpy.sum(special.xlogy(y, mu) + special.xlogy(1 - y, 1 - mu))

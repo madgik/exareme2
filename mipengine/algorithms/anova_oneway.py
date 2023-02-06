@@ -118,14 +118,14 @@ def local1(y, x, covar_enums):
     import numpy as np
     import pandas as pd
 
-    variable = y.reset_index(drop=True).to_numpy().squeeze()
-    covariable = x.reset_index(drop=True).to_numpy().squeeze()
+    y.reset_index(drop=True)
+    x.reset_index(drop=True)
+    variable = y.to_numpy().squeeze()
+    covariable = x.to_numpy().squeeze()
     var_label = y.columns.values.tolist()[0]
     covar_label = x.columns.values.tolist()[0]
     covar_enums = np.array(covar_enums)
-    dataset = pd.DataFrame()
-    dataset[var_label] = variable
-    dataset[covar_label] = covariable
+    dataset = pd.DataFrame({var_label: variable, covar_label: covariable}, copy=False)
 
     n_obs = y.shape[0]
     min_per_group = dataset.groupby([covar_label]).min()
