@@ -338,7 +338,7 @@ class FormulaTransformer:
     Documentation on how formulas work can be found in https://patsy.readthedocs.io/
     """
 
-    def __init__(self, executor, formula):
+    def __init__(self, executor, variables, metadata, formula):
         """
         Parameters
         ----------
@@ -350,9 +350,7 @@ class FormulaTransformer:
         self._local_run = executor.run_udf_on_local_nodes
         self._global_run = executor.run_udf_on_global_node
         self._categorical_vars = [
-            varname
-            for varname in executor.x_variables
-            if executor.metadata[varname]["is_categorical"]
+            varname for varname in variables.x if metadata[varname]["is_categorical"]
         ]
         self._formula = formula
 
