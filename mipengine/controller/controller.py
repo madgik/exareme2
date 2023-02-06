@@ -139,7 +139,14 @@ class Controller:
 
         # add contextid and nodeids to cleaner
         local_nodes_ids = [node.node_id for node in nodes.local_nodes]
-        all_nodes_ids = [nodes.global_node.node_id] + local_nodes_ids
+
+        # global node should not be optional, it was nevertheless made optional
+        # https://github.com/madgik/MIP-Engine/pull/269
+        if nodes.global_node:
+            all_nodes_ids = [nodes.global_node.node_id] + local_nodes_ids
+        else:
+            all_nodes_ids = local_nodes_ids
+
         self._cleaner.add_contextid_for_cleanup(context_id, all_nodes_ids)
 
         # get metadata
@@ -446,10 +453,18 @@ def _create_nodes(request_id, context_id, data_model, datasets):
     node_tasks_handlers = _create_nodes_tasks_handlers(
         data_model=data_model, datasets=datasets
     )
+
+    # global node should not be optional, it was nevertheless made optional
+    # https://github.com/madgik/MIP-Engine/pull/269
+    global_node_task_handler = node_tasks_handlers.global_node_tasks_handler
+    global_node = (
+        _create_global_node(request_id, context_id, global_node_tasks_handler)
+        if global_node_task_handler
+        else None
+    )
+
     nodes = Nodes(
-        global_node=_create_global_node(
-            request_id, context_id, node_tasks_handlers.global_node_tasks_handler
-        ),
+        global_node=global_node,
         local_nodes=_create_local_nodes(
             request_id, context_id, node_tasks_handlers.local_nodes_tasks_handlers
         ),
@@ -525,16 +540,22 @@ def _create_nodes_tasks_handlers(
         for node_info in local_nodes_info
     ]
 
-    global_node = node_landscape_aggregator.get_global_node()
-    # global_node = self._node_landscape_aggregator.get_global_node()
+    global_node_tasks_handler = None
+    try:
+        global_node = node_landscape_aggregator.get_global_node()
 
-    global_node_tasks_handler = NodeAlgorithmTasksHandler(
-        node_id=global_node.id,
-        node_queue_addr=":".join([str(global_node.ip), str(global_node.port)]),
-        node_db_addr=":".join([str(global_node.db_ip), str(global_node.db_port)]),
-        tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-        run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
-    )
+        global_node_tasks_handler = NodeAlgorithmTasksHandler(
+            node_id=global_node.id,
+            node_queue_addr=":".join([str(global_node.ip), str(global_node.port)]),
+            node_db_addr=":".join([str(global_node.db_ip), str(global_node.db_port)]),
+            tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+            run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+        )
+
+        # global node should not be optional, it was nevertheless made optional
+        # https://github.com/madgik/MIP-Engine/pull/269
+    except Exception:
+        pass
 
     return NodesTasksHandlersDTO(
         global_node_tasks_handler=global_node_tasks_handler,
