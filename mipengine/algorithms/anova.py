@@ -22,18 +22,18 @@ class AnovaResult(BaseModel):
 
 class AnovaTwoWay(Algorithm, algname="anova"):
     def get_variable_groups(self):
-        [y] = self.executor.y_variables
-        x1, x2 = self.executor.x_variables
+        [y] = self.variables.y
+        x1, x2 = self.variables.x
         return [[y], [x1, x2]]
 
     def run(self, executor):
         [[y], [x1, x2]] = self.get_variable_groups()
 
-        Y, X = self.executor.data_model_views
+        Y, X = executor.data_model_views
 
-        x1_enums = list(self.executor.metadata[x1]["enumerations"])
-        x2_enums = list(self.executor.metadata[x2]["enumerations"])
-        sstype = self.executor.algorithm_parameters["sstype"]
+        x1_enums = list(self.metadata[x1]["enumerations"])
+        x2_enums = list(self.metadata[x2]["enumerations"])
+        sstype = self.algorithm_parameters["sstype"]
 
         if len(x1_enums) < 2:
             raise BadUserInput(
@@ -63,7 +63,10 @@ class AnovaTwoWay(Algorithm, algname="anova"):
 
         # Define datasets for each lm based on above formulas
         transformers = {
-            formula: FormulaTransformer(self.executor, formula) for formula in formulas
+            formula: FormulaTransformer(
+                executor, self.variables, self.metadata, formula
+            )
+            for formula in formulas
         }
         Xs = {
             formula: transformer.transform(X)
@@ -87,13 +90,13 @@ class AnovaTwoWay(Algorithm, algname="anova"):
             )
 
         # Define lms and fit to data
-        models = {formula: LinearRegression(self.executor) for formula in formulas}
+        models = {formula: LinearRegression(executor) for formula in formulas}
         for formula in formulas:
             X = Xs[formula]
             model = models[formula]
             model.fit(X, Y)
             model.compute_summary(
-                y_test=relation_to_vector(Y, self.executor),
+                y_test=relation_to_vector(Y, executor),
                 y_pred=model.predict(X),
                 p=len(X.columns) - 1,
             )
