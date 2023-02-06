@@ -456,10 +456,10 @@ def _create_nodes(request_id, context_id, data_model, datasets):
 
     # global node should not be optional, it was nevertheless made optional
     # https://github.com/madgik/MIP-Engine/pull/269
-    global_node_task_handler = node_tasks_handlers.global_node_tasks_handler
+    global_node_tasks_handler = node_tasks_handlers.global_node_tasks_handler
     global_node = (
         _create_global_node(request_id, context_id, global_node_tasks_handler)
-        if global_node_task_handler
+        if global_node_tasks_handler
         else None
     )
 
