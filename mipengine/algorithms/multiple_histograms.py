@@ -44,7 +44,7 @@ class MultipleHistogramsAlgorithm(Algorithm, algname="multiple_histograms"):
         yvar = yvars[0]
 
         default_bins = 20
-        bins = self.executor.algorithm_parameters.get("bins", default_bins)
+        bins = self.algorithm_parameters.get("bins", default_bins)
         if bins is None:
             bins = default_bins
 

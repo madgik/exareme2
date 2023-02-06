@@ -26,7 +26,7 @@ class AnovaTwoWay(Algorithm, algname="anova"):
         x1, x2 = self.executor.x_variables
         return [[y], [x1, x2]]
 
-    def run(self):
+    def run(self, executor):
         [[y], [x1, x2]] = self.get_variable_groups()
 
         Y, X = self.executor.data_model_views

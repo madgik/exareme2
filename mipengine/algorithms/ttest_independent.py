@@ -72,7 +72,6 @@ def local_independent(x, y):
     x.reset_index(drop=True, inplace=True)
     y.reset_index(drop=True, inplace=True)
     x1, x2 = x.values.squeeze(), y.values.squeeze()
-
     x1_sum = sum(x1)
     x2_sum = sum(x2)
     n_obs_x1 = len(x)

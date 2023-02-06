@@ -45,14 +45,11 @@ class PCAAlgorithm(Algorithm, algname="pca"):
             keyword_args=dict(x=X_relation, global_transfer=global_transfer),
             share_to_global=[True],
         )
-        print(f"\n{local_transfers.get_table_data()=}")
         result = global_run(
             func=global2,
             keyword_args=dict(local_transfers=local_transfers, prev_state=global_state),
         )
-        print(f"\n1. {result.get_table_data()=}")
         result = get_transfer_data(result)
-        print(f"\n2. {result=}")
         n_obs = result["n_obs"]
         eigenvalues = result["eigenvalues"]
         eigenvectors = result["eigenvectors"]
