@@ -12,10 +12,12 @@ class Variables(BaseModel):
     x: List[str]
     y: List[str]
 
+    class Config:
+        arbitrary_types_allowed = True
+
 
 class AlgorithmDTO(BaseModel):
     algorithm_name: str
-    data_model: str
     variables: Variables
     var_filters: Optional[dict] = None
     algorithm_parameters: Optional[Dict[str, Any]] = None
@@ -56,15 +58,33 @@ class Algorithm(ABC):
         cls.algname = algname
 
     @property
-    def variables(self):
+    def variables(self) -> Variables:
+        """
+        Returns
+        -------
+        Variables
+            The variables
+        """
         return self._algorithm_dto.variables
 
     @property
     def algorithm_parameters(self) -> Dict[str, Any]:
+        """
+        Returns
+        -------
+        Dict[str,Any]
+            The algorithm parameters
+        """
         return self._algorithm_dto.algorithm_parameters
 
     @property
-    def metadata(self):
+    def metadata(self) -> Dict[str, dict]:
+        """
+        Returns
+        -------
+        Dist[str,dict]
+            The variables' metadata
+        """
         return self._algorithm_dto.metadata
 
     @abstractmethod
@@ -111,13 +131,11 @@ class Algorithm(ABC):
 
     @abstractmethod
     def run(self, executor):
-        # the executor must be availiable only inside run()
+        # The executor must be availiable only inside run()
         # The reasoning for this is that executor.data_model_views must already be
-        # available when the executor is
-        # available to the algorithm, but executor.data_model_views needs to call
-        # algorithm.get_variable_groups(), algorithm.get_check_min_rows() and
-        # get_dropna() so there is no way to access the executor by mistake inside these
-        # methods
+        # available when the executor is available to the algorithm, but the creation of
+        # the executor.data_model_views requires calls to
+        # algorithm.get_variable_groups(), algorithm.get_check_min_rows() and get_dropna().
         """
         The implementation of the algorithm flow logic goes in this method.
         """

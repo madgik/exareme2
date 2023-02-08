@@ -483,7 +483,7 @@ async def test_single_local_node_algorithm_execution(
 
     controller = Controller()
     try:
-        algorithm_result = await controller._run_algorithm(
+        algorithm_result = await controller._algorithm_run_in_event_loop(
             algorithm=algorithm, algorithm_executor=algorithm_executor
         )
     except Exception as exc:

@@ -1,29 +1,31 @@
 import asyncio
 import concurrent
-import logging
 import traceback
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 from pydantic import BaseModel
 
 from mipengine import algorithm_classes
-from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDTO
 from mipengine.algorithms.algorithm import Variables
 from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
+from mipengine.controller.algorithm_execution_tasks_handler import (
+    INodeAlgorithmTasksHandler,
+)
 from mipengine.controller.algorithm_execution_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
 from mipengine.controller.algorithm_executor import AlgorithmExecutorDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutorSingleLocalNode
+from mipengine.controller.algorithm_executor import CommandIdGenerator
+from mipengine.controller.algorithm_executor import Nodes
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.controller.algorithm_executor_nodes import LocalNode
-from mipengine.controller.algorithm_flow_data_objects import LocalNodesData
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import validate_algorithm_request
@@ -36,26 +38,16 @@ from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregat
 from mipengine.controller.uid_generator import UIDGenerator
 from mipengine.exceptions import InsufficientDataError
 from mipengine.node_info_DTOs import NodeInfo
-from mipengine.node_tasks_DTOs import NodeSMPCDTO
-from mipengine.node_tasks_DTOs import NodeTableDTO
-from mipengine.node_tasks_DTOs import NodeUDFDTO
 from mipengine.node_tasks_DTOs import TableInfo
 
-# node_landscape_aggregator = NodeLandscapeAggregator()
 
+class NodesTasksHandlers(BaseModel):
+    global_node_tasks_handler: Optional[INodeAlgorithmTasksHandler]
+    local_nodes_tasks_handlers: List[INodeAlgorithmTasksHandler]
 
-class Nodes:
-    def __init__(self, global_node, local_nodes):
-        self._global_node = global_node
-        self._local_nodes = local_nodes
-
-    @property
-    def global_node(self):
-        return self._global_node
-
-    @property
-    def local_nodes(self):
-        return self._local_nodes
+    class Config:
+        arbitrary_types_allowed = True
+        allow_mutation = False
 
 
 class _NodeInfoDTO(BaseModel):
@@ -67,23 +59,6 @@ class _NodeInfoDTO(BaseModel):
 
     class Config:
         allow_mutation = False
-
-
-class CommandIdGenerator:
-    def __init__(self):
-        self._index = 0
-
-    def get_next_command_id(self) -> int:
-        current = self._index
-        self._index += 1
-        return current
-
-
-class RequestConstraintsError(Exception):
-    def __init__(self, algorithm_request_dto):
-        message = f"None of the nodes has enogh data to execute request: {algorithm_request_dto} "
-        super().__init__(message)
-        self.message = message
 
 
 class Controller:
@@ -106,17 +81,14 @@ class Controller:
         self._controller_logger.info(
             "(Controller) NodeLandscapeAggregator starting ..."
         )
-        # node_landscape_aggregator.start()
         self._node_landscape_aggregator.start()
         self._controller_logger.info("(Controller) NodeLandscapeAggregator started.")
 
     def stop_node_landscape_aggregator(self):
-        # node_landscape_aggregator.stop()
         self._node_landscape_aggregator.stop()
 
     async def exec_algorithm(
         self,
-        # request_id: str,
         algorithm_name: str,
         algorithm_request_dto: AlgorithmRequestDTO,
     ) -> str:
@@ -158,7 +130,6 @@ class Controller:
         # create AlgorithmDTO
         algorithm_dto = AlgorithmDTO(
             algorithm_name=algorithm_name,
-            data_model=algorithm_request_dto.inputdata.data_model,
             variables=Variables(
                 x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
                 y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
@@ -191,7 +162,10 @@ class Controller:
         nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
         # check there are nodes left...
         if not nodes.local_nodes:
-            raise RequestConstraintsError(algorithm_request_dto)
+            raise InsufficientDataError(
+                f"None of the nodes has enough data to execute "
+                f"{algorithm_request_dto=}"
+            )
 
         # instantiate executor
         algorithm_executor_dto = AlgorithmExecutorDTO(
@@ -218,8 +192,7 @@ class Controller:
 
         # run the algorithm
         try:
-            # algorithm_result = algorithm.run(algorithm_executor)
-            algorithm_result = await self._run_algorithm(
+            algorithm_result = await self._algorithm_run_in_event_loop(
                 algorithm=algorithm, algorithm_executor=algorithm_executor
             )
 
@@ -247,7 +220,7 @@ class Controller:
         )
         return algorithm_result.json()
 
-    async def _run_algorithm(self, algorithm, algorithm_executor):
+    async def _algorithm_run_in_event_loop(self, algorithm, algorithm_executor):
         # By calling blocking method Algorithm.run() inside run_in_executor(),
         # Algorithm.run() will execute in a separate thread of the threadpool and at
         # the same time yield control to the executor event loop, through await
@@ -271,7 +244,6 @@ class Controller:
         )
 
     def get_datasets_locations(self) -> DatasetsLocations:
-        # return node_landscape_aggregator.get_datasets_locations()
         return self._node_landscape_aggregator.get_datasets_locations()
 
     def get_cdes_per_data_model(self) -> dict:
@@ -279,41 +251,32 @@ class Controller:
             data_model: {
                 column: metadata.dict() for column, metadata in cdes.values.items()
             }
-            # for data_model, cdes in node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.items()
             for data_model, cdes in self._node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.items()
         }
 
     def get_data_models_attributes(self) -> Dict[str, Dict]:
         return {
             data_model: data_model_metadata.dict()
-            # for data_model, data_model_metadata in node_landscape_aggregator.get_data_models_attributes().items()
             for data_model, data_model_metadata in self._node_landscape_aggregator.get_data_models_attributes().items()
         }
 
     def get_all_available_data_models(self) -> List[str]:
-        # return list(
-        #     node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.keys()
-        # )
         return list(
             self._node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.keys()
         )
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
-        # return node_landscape_aggregator.get_all_available_datasets_per_data_model()
         return (
             self._node_landscape_aggregator.get_all_available_datasets_per_data_model()
         )
 
     def get_all_local_nodes(self) -> List[NodeInfo]:
-        # return node_landscape_aggregator.get_all_local_nodes()
         return self._node_landscape_aggregator.get_all_local_nodes()
 
     def get_global_node(self) -> NodeInfo:
-        # return node_landscape_aggregator.get_global_node()
         return self._node_landscape_aggregator.get_global_node()
 
     def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
-        # node = node_landscape_aggregator.get_node_info(node_id)
         node = self._node_landscape_aggregator.get_node_info(node_id)
 
         return _NodeInfoDTO(
@@ -330,7 +293,6 @@ node_landscape_aggregator = NodeLandscapeAggregator()
 
 def get_metadata(data_model: str, variable_names: List[str]):
     common_data_elements = node_landscape_aggregator.get_cdes(data_model)
-    # common_data_elements = self._node_landscape_aggregator.get_cdes(data_model)
     metadata = {
         variable_name: cde.dict()
         for variable_name, cde in common_data_elements.items()
@@ -349,18 +311,6 @@ def _create_data_model_views(
     check_min_rows: bool,
     command_id: int,
 ) -> List[LocalNodesTable]:
-
-    print("---------------------------------------------------------------")
-    print(f"{local_nodes=}")
-    print(f"{datasets=}")
-    print(f"{data_model=}")
-    print(f"{variable_groups=}")
-    print(f"{var_filters=}")
-    print(f"{dropna=}")
-    print(f"{check_min_rows=}")
-    print(f"{command_id=}")
-    print("---------------------------------------------------------------")
-
     """
     Creates the data model views, for each variable group provided,
     using also the algorithm request arguments (data_model, datasets, filters).
@@ -384,18 +334,15 @@ def _create_data_model_views(
     # data model and datasets of each node is redundant
     datasets_per_local_node = {
         local_node.node_id: node_landscape_aggregator.get_node_specific_datasets(
-            # local_node.node_id: self._node_landscape_aggregator.get_node_specific_datasets(
             local_node.node_id,
             data_model,
             datasets,
         )
-        # for node_id in local_nodes_ids
         for local_node in local_nodes
     }
-    # breakpoint()
-    command_id = str(command_id)  # TODO is str cast needed?
+
+    command_id = command_id
     views_per_localnode = []
-    nodes_with_insuffiecient_data = []
     for node in local_nodes:
         try:
             data_model_views = node.create_data_model_views(
@@ -436,7 +383,6 @@ def _filter_insufficient_data_nodes(
         )
 
     elif local_nodes != tmp:
-        diff = set(local_nodes) - set(tmp)
         local_nodes = tmp
 
         # self._logger.info(
@@ -524,7 +470,7 @@ def _get_nodes_info_by_dataset(
 
 def _create_nodes_tasks_handlers(
     data_model: str, datasets: List[str]
-) -> NodesTasksHandlersDTO:
+) -> NodesTasksHandlers:
     # Get only the relevant nodes
     local_nodes_info = _get_nodes_info_by_dataset(
         data_model=data_model, datasets=datasets
@@ -557,7 +503,7 @@ def _create_nodes_tasks_handlers(
     except Exception:
         pass
 
-    return NodesTasksHandlersDTO(
+    return NodesTasksHandlers(
         global_node_tasks_handler=global_node_tasks_handler,
         local_nodes_tasks_handlers=local_nodes_tasks_handlers,
     )

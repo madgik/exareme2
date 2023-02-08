@@ -1,4 +1,3 @@
-from logging import Logger
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -12,7 +11,6 @@ from pydantic import BaseModel
 
 from mipengine.controller import config as ctrl_config
 from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_execution_DTOs import NodesTasksHandlersDTO
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.controller.algorithm_executor_nodes import LocalNode
 from mipengine.controller.algorithm_executor_smpc_helper import get_smpc_results
@@ -37,10 +35,6 @@ from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
-from mipengine.controller.celery_app import CeleryConnectionError
-from mipengine.controller.celery_app import CeleryTaskTimeoutException
-from mipengine.exceptions import InsufficientDataError
-from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
 from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import NodeUDFDTO
@@ -49,6 +43,25 @@ from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.udfgen import make_unique_func_name
+
+
+class Nodes(BaseModel):
+    global_node: GlobalNode
+    local_nodes: List[LocalNode]
+
+    class Config:
+        arbitrary_types_allowed = True
+        allow_mutation = False
+
+
+class CommandIdGenerator:
+    def __init__(self):
+        self._index = 0
+
+    def get_next_command_id(self) -> int:
+        current = self._index
+        self._index += 1
+        return str(current)
 
 
 class AsyncResult:
@@ -107,7 +120,6 @@ class InconsistentShareTablesValueException(Exception):
 class AlgorithmExecutorDTO(BaseModel):
     request_id: str
     context_id: str
-    # datasets_per_local_node: Dict[str, List[str]]
     algo_flags: Optional[Dict[str, Any]] = None
     data_model_views: List[LocalNodesTable]
 
@@ -119,8 +131,8 @@ class AlgorithmExecutor:
     def __init__(
         self,
         algorithm_executor_dto: AlgorithmExecutorDTO,
-        command_id_generator,  # TODO def type
-        nodes,  # TODO def type
+        command_id_generator: CommandIdGenerator,
+        nodes: Nodes,
     ):
         self._logger = ctrl_logger.get_request_logger(
             request_id=algorithm_executor_dto.request_id
@@ -130,9 +142,6 @@ class AlgorithmExecutor:
         self._local_nodes = nodes.local_nodes
         self._global_node = nodes.global_node
 
-        # TODO:are these used inside executor??
-        self._request_id = algorithm_executor_dto.request_id
-        self._context_id = algorithm_executor_dto.context_id
         self._algorithm_execution_flags = algorithm_executor_dto.algo_flags
         self._data_model_views = algorithm_executor_dto.data_model_views
 

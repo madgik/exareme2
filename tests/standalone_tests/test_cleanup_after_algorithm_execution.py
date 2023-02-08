@@ -418,7 +418,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
 
     # run the algorithm
     try:
-        algorithm_result = await controller._run_algorithm(
+        algorithm_result = await controller._algorithm_run_in_event_loop(
             algorithm=algorithm, algorithm_executor=algorithm_executor
         )
     except Exception as exc:
@@ -530,7 +530,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
 
     # run the algorithm
     try:
-        algorithm_result = await controller._run_algorithm(
+        algorithm_result = await controller._algorithm_run_in_event_loop(
             algorithm=algorithm, algorithm_executor=algorithm_executor
         )
     except Exception as exc:
@@ -663,7 +663,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # run the algorithm
     try:
         asyncio.create_task(
-            controller._run_algorithm(
+            controller._algorithm_run_in_event_loop(
                 algorithm=algorithm, algorithm_executor=algorithm_executor
             )
         )
@@ -819,7 +819,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     # start executing the algorithm but do not wait for it
     try:
         asyncio.create_task(
-            controller._run_algorithm(
+            controller._algorithm_run_in_event_loop(
                 algorithm=algorithm, algorithm_executor=algorithm_executor
             )
         )
@@ -969,7 +969,7 @@ async def test_cleanup_controller_restart(
     # start executing the algorithm but do not wait for it
     try:
         asyncio.create_task(
-            controller._run_algorithm(
+            controller._algorithm_run_in_event_loop(
                 algorithm=algorithm, algorithm_executor=algorithm_executor
             )
         )
