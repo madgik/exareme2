@@ -612,10 +612,12 @@ def start_node(
 @task
 def kill_controller(c):
     """Kill the controller service."""
-    res = run(c, "ps aux | grep '[s]pawn_main'", warn=True, show_ok=False)
+    res = run(c, "ps aux | grep '[h]ypercorn'", warn=True, show_ok=False)
     if res.ok:
         message("Killing previous Hypercorn instances...", Level.HEADER)
-        cmd = "ps aux | grep '[s]pawn_main' | awk '{ print $2}' | xargs kill -9 && sleep 5"
+        cmd = (
+            "ps aux | grep '[h]ypercorn' | awk '{ print $2}' | xargs kill -9 && sleep 5"
+        )
         run(c, cmd)
     else:
         message("No hypercorn instance found", Level.HEADER)
