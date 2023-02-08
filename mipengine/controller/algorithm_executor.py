@@ -46,7 +46,7 @@ from mipengine.udfgen import make_unique_func_name
 
 
 class Nodes(BaseModel):
-    global_node: GlobalNode
+    global_node: Optional[GlobalNode]
     local_nodes: List[LocalNode]
 
     class Config:
