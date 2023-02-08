@@ -33,7 +33,7 @@ def controller_config_dict_mock():
         "deployment_type": "LOCAL",
         "cleanup": {
             "contextids_cleanup_folder": "/tmp",
-            "nodes_cleanup_interval": 2,
+            "nodes_cleanup_interval": 9999,  # don't cleanup
             "contextid_release_timelimit": 3600,  # 1hour
         },
         "rabbitmq": {
