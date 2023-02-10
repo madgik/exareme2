@@ -57,18 +57,7 @@ def patch_controller_logger_config(controller_config_dict_mock):
         yield
 
 
-@pytest.fixture(scope="session")
-def patch_logger():
-    with patch(
-        "mipengine.controller.node_landscape_aggregator.logger",
-        init_logger("BACKGROUND"),
-    ):
-        yield
-
-
-def test_show_controller_audit_entries(
-    patch_controller_logger_config, capsys, patch_logger
-):
+def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
     logger = init_logger("BACKGROUND")
     _log_node_changes(
         old_nodes=[
@@ -91,14 +80,17 @@ def test_show_controller_audit_entries(
                 db_port=61002,
             )
         ],
+        logger=logger,
     )
     _log_data_model_changes(
         old_data_models={"dementia:0.1": ""},
         new_data_models={"tbi:0.1": ""},
+        logger=logger,
     )
     _log_dataset_changes(
         old_datasets_locations={"dementia:0.1": {"edsd": "localnode1"}},
         new_datasets_locations={"tbi:0.1": {"dummy_tbi": "localnode2"}},
+        logger=logger,
     )
     log_experiment_execution(
         logger=logger,

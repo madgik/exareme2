@@ -31,7 +31,6 @@ from typing import List
 import toml
 from pydantic import BaseModel
 
-from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_tasks_handler import (
     NodeAlgorithmTasksHandler,
@@ -41,6 +40,19 @@ from mipengine.singleton import Singleton
 
 CLEANER_REQUEST_ID = "CLEANER"
 CLEANUP_FILE_TEMPLATE = string.Template("cleanup_${context_id}.toml")
+
+
+class InitializationParams(BaseModel):
+    cleanup_interval: int
+    contextid_release_timelimit: int
+    celery_cleanup_task_timeout: int
+    celery_run_udf_task_timeout: int
+    contextids_cleanup_folder: str
+    node_landscape_aggregator: NodeLandscapeAggregator
+
+    class Config:
+        allow_mutation = False
+        arbitrary_types_allowed = True
 
 
 class _NodeInfoDTO(BaseModel):
@@ -61,19 +73,19 @@ class _CleanupEntry(BaseModel):
     released: bool
 
 
-def _is_timestamp_expired(timestamp: str):
-    now = datetime.now(timezone.utc)
-    timestamp = datetime.fromisoformat(timestamp)
-    time_elapsed = now - timestamp
-    return time_elapsed.seconds > controller_config.cleanup.contextid_release_timelimit
-
-
 class Cleaner(metaclass=Singleton):
-    def __init__(self):
+    def __init__(self, init_params: InitializationParams):
         self._logger = ctrl_logger.get_background_service_logger()
 
-        self._cleanup_files_processor = CleanupFilesProcessor(self._logger)
-        self._cleanup_interval = controller_config.cleanup.nodes_cleanup_interval
+        self._cleanup_interval = init_params.cleanup_interval
+        self._contextid_release_timelimit = init_params.contextid_release_timelimit
+        self._celery_cleanup_task_timeout = init_params.celery_cleanup_task_timeout
+        self._celery_run_udf_task_timeout = init_params.celery_run_udf_task_timeout
+        self._contextids_cleanup_folder = init_params.contextids_cleanup_folder
+
+        self._cleanup_files_processor = CleanupFilesProcessor(
+            self._logger, self._contextids_cleanup_folder
+        )
 
         self._keep_cleaning_up = True
         self._cleanup_loop_thread = None
@@ -83,7 +95,7 @@ class Cleaner(metaclass=Singleton):
             try:
                 all_entries = self._cleanup_files_processor.get_all_entries() or []
                 for entry in all_entries:
-                    if entry.released or _is_timestamp_expired(entry.timestamp):
+                    if entry.released or self._is_timestamp_expired(entry.timestamp):
                         failed_node_ids = self._exec_context_id_cleanup(
                             entry.context_id, entry.node_ids
                         )
@@ -119,6 +131,12 @@ class Cleaner(metaclass=Singleton):
 
             finally:
                 time.sleep(self._cleanup_interval)
+
+    def _is_timestamp_expired(self, timestamp: str):
+        now = datetime.now(timezone.utc)
+        timestamp = datetime.fromisoformat(timestamp)
+        time_elapsed = now - timestamp
+        return time_elapsed.seconds > self._contextid_release_timelimit
 
     def _exec_context_id_cleanup(
         self, context_id: str, node_ids: [str]
@@ -205,8 +223,8 @@ class Cleaner(metaclass=Singleton):
             node_id=node_info.id,
             queue_address=":".join([str(node_info.ip), str(node_info.port)]),
             db_address=":".join([str(node_info.db_ip), str(node_info.db_port)]),
-            cleanup_task_timeout=controller_config.rabbitmq.celery_cleanup_task_timeout,
-            run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+            cleanup_task_timeout=self._celery_cleanup_task_timeout,
+            run_udf_task_timeout=self._celery_run_udf_task_timeout,
         )
 
     # This is only supposed to be called from a test.
@@ -226,11 +244,9 @@ def _get_node_task_handler(node_info: _NodeInfoDTO) -> NodeAlgorithmTasksHandler
 
 
 class CleanupFilesProcessor:
-    def __init__(self, logger):
+    def __init__(self, logger, contextids_cleanup_folder: str):
         self._logger = logger
-        self._cleanup_entries_folder_path = Path(
-            controller_config.cleanup.contextids_cleanup_folder
-        )
+        self._cleanup_entries_folder_path = Path(contextids_cleanup_folder)
 
         # Create the folder, if does not exist.
         self._cleanup_entries_folder_path.mkdir(parents=True, exist_ok=True)
@@ -293,6 +309,7 @@ class CleanupFilesProcessor:
             self._logger.warning(
                 f"Trying to read {file_full_path=} raised exception: {exc}"
             )
+            return
         if parsed_toml["context_id"] != context_id:
             self._logger.error(f"File {file_full_path} contains wrnong {context_id=}")
         else:

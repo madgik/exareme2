@@ -6,7 +6,11 @@ import toml
 
 from mipengine import AttrDict
 from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller.node_landscape_aggregator import (
+    InitializationParams as NodeLandscapeAggregatorInitParams,
+)
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.node_landscape_aggregator import _NLARegistries
 from mipengine.controller.nodes_addresses import NodesAddresses
 from mipengine.controller.nodes_addresses import NodesAddressesFactory
 from tests.standalone_tests.conftest import GLOBALNODE_CONFIG_FILE
@@ -15,32 +19,29 @@ from tests.standalone_tests.conftest import LOCALNODE2_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 
-WAIT_TIME_LIMIT = 120
-WAIT_TIME_NLA_UPDATE = 5
-CELERY_TASKS_TIMEOUT = 10
 
-
-@pytest.fixture(autouse=True, scope="function")
-def patch_node_landscape_aggregator():
-    controller_config_dict_mock = {}
-    controller_config_dict_mock["deployment_type"] = "LOCAL"
-
-    controller_config_dict_mock["localnodes"] = {}
-    controller_config_dict_mock["localnodes"][
-        "config_file"
-    ] = "./tests/standalone_tests/testing_env_configs/test_globalnode_localnode1_localnode2_localnodetmp_addresses.json"
-
-    with patch(
-        "mipengine.controller.node_landscape_aggregator.NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL",
-        WAIT_TIME_NLA_UPDATE,
-    ), patch(
-        "mipengine.controller.node_landscape_aggregator.CELERY_TASKS_TIMEOUT",
-        CELERY_TASKS_TIMEOUT,
-    ), patch(
-        "mipengine.controller.node_landscape_aggregator.controller_config",
-        AttrDict(controller_config_dict_mock),
-    ):
-        yield
+@pytest.fixture(scope="session")
+def controller_config():
+    controller_config = {
+        "deployment_type": "LOCAL",
+        "node_landscape_aggregator_update_interval": 30,
+        "localnodes": {
+            "config_file": "./tests/standalone_tests/testing_env_configs/test_globalnode_localnode1_localnode2_localnodetmp_addresses.json"
+        },
+        "rabbitmq": {
+            "user": "user",
+            "password": "password",
+            "vhost": "user_vhost",
+            "celery_tasks_timeout": 10,
+            "celery_run_udf_task_timeout": 30,
+            "celery_tasks_max_retries": 3,
+            "celery_tasks_interval_start": 0,
+            "celery_tasks_interval_step": 0.2,
+            "celery_tasks_interval_max": 0.5,
+        },
+        "smpc": {"enabled": False, "optional": False},
+    }
+    return controller_config
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -49,24 +50,9 @@ def init_background_controller_logger():
 
 
 @pytest.fixture(autouse=True, scope="session")
-def patch_celery_app():
+def patch_celery_app(controller_config):
     with patch(
-        "mipengine.controller.celery_app.controller_config",
-        AttrDict(
-            {
-                "rabbitmq": {
-                    "user": "user",
-                    "password": "password",
-                    "vhost": "user_vhost",
-                    "celery_tasks_timeout": 10,
-                    "celery_run_udf_task_timeout": 30,
-                    "celery_tasks_max_retries": 3,
-                    "celery_tasks_interval_start": 0,
-                    "celery_tasks_interval_step": 0.2,
-                    "celery_tasks_interval_max": 0.5,
-                }
-            }
-        ),
+        "mipengine.controller.celery_app.controller_config", AttrDict(controller_config)
     ):
         yield
 
@@ -104,13 +90,32 @@ def patch_nodes_addresses():
         yield patched
 
 
+@pytest.fixture(scope="function")
+def node_landscape_aggregator(controller_config):
+    controller_config = AttrDict(controller_config)
+    node_landscape_aggregator_init_params = NodeLandscapeAggregatorInitParams(
+        node_landscape_aggregator_update_interval=controller_config.node_landscape_aggregator_update_interval,
+        celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+        deployment_type="",
+        localnodes=controller_config.localnodes,
+    )
+    node_landscape_aggregator = NodeLandscapeAggregator(
+        node_landscape_aggregator_init_params
+    )
+    node_landscape_aggregator.stop()
+    node_landscape_aggregator.keep_updating = False
+    node_landscape_aggregator._nla_registries = _NLARegistries()
+    return node_landscape_aggregator
+
+
 @pytest.mark.slow
 def test_update_loop_data_properly_added(
     patch_nodes_addresses,
     globalnode_node_service,
     localnode1_node_service,
     load_data_localnode1,
-    reset_node_landscape_aggregator,
+    node_landscape_aggregator,
 ):
     node_landscape_aggregator = NodeLandscapeAggregator()
     node_landscape_aggregator._update()
@@ -126,9 +131,7 @@ def test_update_loop_data_properly_added(
 
 @pytest.mark.slow
 def test_update_loop_get_node_info_fail(
-    patch_nodes_addresses,
-    globalnode_node_service,
-    reset_node_landscape_aggregator,
+    patch_nodes_addresses, globalnode_node_service, node_landscape_aggregator
 ):
 
     patch_nodes_addresses.side_effect = get_custom_nodes_addresses_global_and_tmp
@@ -158,7 +161,7 @@ def test_update_loop_nodes_properly_added(
     load_data_localnode1,
     localnode2_node_service,
     load_data_localnode2,
-    reset_node_landscape_aggregator,
+    node_landscape_aggregator,
 ):
     localnode1_node_id = get_localnode1_node_id()
     localnode2_node_id = get_localnode2_node_id()

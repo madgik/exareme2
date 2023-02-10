@@ -11,7 +11,6 @@ from pydantic import BaseModel
 from mipengine import algorithm_classes
 from mipengine.algorithms.algorithm import AlgorithmDTO
 from mipengine.algorithms.algorithm import Variables
-from mipengine.controller import config as controller_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_tasks_handler import (
     INodeAlgorithmTasksHandler,
@@ -20,15 +19,20 @@ from mipengine.controller.algorithm_execution_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
 from mipengine.controller.algorithm_executor import AlgorithmExecutor
-from mipengine.controller.algorithm_executor import AlgorithmExecutorDTO
 from mipengine.controller.algorithm_executor import AlgorithmExecutorSingleLocalNode
 from mipengine.controller.algorithm_executor import CommandIdGenerator
+from mipengine.controller.algorithm_executor import (
+    InitializationParams as AlgorithmExecutorInitParams,
+)
 from mipengine.controller.algorithm_executor import Nodes
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.controller.algorithm_executor_nodes import LocalNode
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.validator import validate_algorithm_request
+from mipengine.controller.api.validator import (
+    InitializationParams as ValidatorInitializationParams,
+)
+from mipengine.controller.api.validator import Validator
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.controller.cleaner import Cleaner
@@ -61,13 +65,36 @@ class _NodeInfoDTO(BaseModel):
         allow_mutation = False
 
 
-class Controller:
-    def __init__(self):
-        self._controller_logger = ctrl_logger.get_background_service_logger()
-        self._node_landscape_aggregator = NodeLandscapeAggregator()
-        self._cleaner = Cleaner()
+class InitializationParams(BaseModel):
+    smpc_enabled: bool
+    smpc_optional: bool
+    celery_tasks_timeout: int
+    celery_run_udf_task_timeout: int
 
-        self._executor = concurrent.futures.ThreadPoolExecutor()
+    class Config:
+        allow_mutation = False
+
+
+class Controller:
+    def __init__(
+        self,
+        initialization_params: InitializationParams,
+        cleaner: Cleaner,
+        node_landscape_aggregator: NodeLandscapeAggregator,
+    ):
+        self._controller_logger = ctrl_logger.get_background_service_logger()
+
+        self._smpc_enabled = initialization_params.smpc_enabled
+        self._smpc_optional = initialization_params.smpc_optional
+        self._celery_tasks_timeout = initialization_params.celery_tasks_timeout
+        self._celery_run_udf_task_timeout = (
+            initialization_params.celery_run_udf_task_timeout
+        )
+
+        self._cleaner = cleaner
+        self._node_landscape_aggregator = node_landscape_aggregator
+
+        self._thread_pool_executor = concurrent.futures.ThreadPoolExecutor()
 
     def start_cleanup_loop(self):
         self._controller_logger.info("(Controller) Cleaner starting ...")
@@ -102,7 +129,7 @@ class Controller:
         datasets = algorithm_request_dto.inputdata.datasets
 
         # instantiate nodes
-        nodes = _create_nodes(
+        nodes = self._create_nodes(
             request_id=algorithm_request_dto.request_id,
             context_id=context_id,
             data_model=data_model,
@@ -125,7 +152,9 @@ class Controller:
         variable_names = (algorithm_request_dto.inputdata.x or []) + (
             algorithm_request_dto.inputdata.y or []
         )
-        metadata = get_metadata(data_model=data_model, variable_names=variable_names)
+        metadata = self._node_landscape_aggregator.get_metadata(
+            data_model=data_model, variable_names=variable_names
+        )
 
         # create AlgorithmDTO
         algorithm_dto = AlgorithmDTO(
@@ -145,7 +174,7 @@ class Controller:
         command_id_generator = CommandIdGenerator()
 
         # create data model views
-        data_model_views = _create_data_model_views(
+        data_model_views = self._create_data_model_views(
             local_nodes=nodes.local_nodes,
             datasets=datasets,
             data_model=data_model,
@@ -155,27 +184,28 @@ class Controller:
             check_min_rows=algorithm.get_check_min_rows(),
             command_id=command_id_generator.get_next_command_id(),
         )
-
-        local_nodes_filtered = _filter_insufficient_data_nodes(
-            nodes.local_nodes, data_model_views
-        )
-        nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
-        # check there are nodes left...
-        if not nodes.local_nodes:
+        if not data_model_views:
             raise InsufficientDataError(
                 f"None of the nodes has enough data to execute "
                 f"{algorithm_request_dto=}"
             )
 
+        local_nodes_filtered = _filter_insufficient_data_nodes(
+            nodes.local_nodes, data_model_views
+        )
+        nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
+
         # instantiate executor
-        algorithm_executor_dto = AlgorithmExecutorDTO(
+        algorithm_executor_init_params = AlgorithmExecutorInitParams(
+            smpc_enabled=self._smpc_enabled,
+            smpc_optional=self._smpc_optional,
             request_id=algorithm_request_dto.request_id,
             context_id=context_id,
             algo_flags=algorithm_request_dto.flags,
             data_model_views=data_model_views,
         )
         algorithm_executor = _create_algorithm_executor(
-            algorithm_executor_dto=algorithm_executor_dto,
+            algorithm_executor_init_params=algorithm_executor_init_params,
             command_id_generator=command_id_generator,
             nodes=nodes,
         )
@@ -226,7 +256,7 @@ class Controller:
         # the same time yield control to the executor event loop, through await
         loop = asyncio.get_event_loop()
         algorithm_result = await loop.run_in_executor(
-            self._executor, algorithm.run, algorithm_executor
+            self._thread_pool_executor, algorithm.run, algorithm_executor
         )
         return algorithm_result
 
@@ -236,8 +266,13 @@ class Controller:
         available_datasets_per_data_model = (
             self.get_all_available_datasets_per_data_model()
         )
-
-        validate_algorithm_request(
+        validator_init_params = ValidatorInitializationParams(
+            node_landscape_aggregator=self._node_landscape_aggregator,
+            smpc_enabled=self._smpc_enabled,
+            smpc_optional=self._smpc_optional,
+        )
+        validator = Validator(initialization_params=validator_init_params)
+        validator.validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             available_datasets_per_data_model=available_datasets_per_data_model,
@@ -283,85 +318,168 @@ class Controller:
             node_id=node.id,
             queue_address=":".join([str(node.ip), str(node.port)]),
             db_address=":".join([str(node.db_ip), str(node.db_port)]),
-            tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-            run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+            tasks_timeout=self._celery_tasks_timeout,
+            run_udf_task_timeout=self._celery_run_udf_task_timeout,
         )
 
+    def _create_data_model_views(
+        self,
+        local_nodes: List[LocalNode],
+        datasets: List[str],
+        data_model: str,
+        variable_groups: List[List[str]],
+        var_filters: list,
+        dropna: bool,
+        check_min_rows: bool,
+        command_id: int,
+    ) -> List[LocalNodesTable]:
+        """
+        Creates the data model views, for each variable group provided,
+        using also the algorithm request arguments (data_model, datasets, filters).
 
-node_landscape_aggregator = NodeLandscapeAggregator()
-
-
-def get_metadata(data_model: str, variable_names: List[str]):
-    common_data_elements = node_landscape_aggregator.get_cdes(data_model)
-    metadata = {
-        variable_name: cde.dict()
-        for variable_name, cde in common_data_elements.items()
-        if variable_name in variable_names
-    }
-    return metadata
-
-
-def _create_data_model_views(
-    local_nodes: List[LocalNode],
-    datasets: List[str],
-    data_model: str,
-    variable_groups: List[List[str]],
-    var_filters: list,
-    dropna: bool,
-    check_min_rows: bool,
-    command_id: int,
-) -> List[LocalNodesTable]:
-    """
-    Creates the data model views, for each variable group provided,
-    using also the algorithm request arguments (data_model, datasets, filters).
-
-    Parameters
-    ----------
-    variable_groups : List[List[str]]
+        Parameters
+        ----------
+        variable_groups : List[List[str]]
         A list of variable_groups. The variable group is a list of columns.
-    dropna : bool
+        dropna : bool
         If True the view will not contain Remove NAs from the view.
-    check_min_rows : bool
+        check_min_rows : bool
         Raise an exception if there are not enough rows in the view.
 
-    Returns
-    ------
-    List[LocalNodesTable]
+        Returns
+        ------
+        List[LocalNodesTable]
         A (LocalNodesTable) view for each variable_group provided.
-    """
-    # NOTE:there is something redundant here, the nodes have already been chosen because
-    # they contain the specified data_model and datasets, so getting again the
-    # data model and datasets of each node is redundant
-    datasets_per_local_node = {
-        local_node.node_id: node_landscape_aggregator.get_node_specific_datasets(
-            local_node.node_id,
-            data_model,
-            datasets,
-        )
-        for local_node in local_nodes
-    }
-
-    command_id = command_id
-    views_per_localnode = []
-    for node in local_nodes:
-        try:
-            data_model_views = node.create_data_model_views(
-                command_id=command_id,
-                data_model=data_model,
-                datasets=datasets_per_local_node[node.node_id],
-                columns_per_view=variable_groups,
-                filters=var_filters,
-                dropna=dropna,
-                check_min_rows=check_min_rows,
+        """
+        # NOTE:there is something redundant here, the nodes have already been chosen because
+        # they contain the specified data_model and datasets, so getting again the
+        # data model and datasets of each node is redundant
+        datasets_per_local_node = {
+            local_node.node_id: self._node_landscape_aggregator.get_node_specific_datasets(
+                local_node.node_id,
+                data_model,
+                datasets,
             )
-        except InsufficientDataError:
-            continue
-        views_per_localnode.append((node, data_model_views))
+            for local_node in local_nodes
+        }
 
-    if views_per_localnode:
-        return _convert_views_per_localnode_to_local_nodes_tables(views_per_localnode)
-    else:
-        return []
+        views_per_localnode = []
+        for node in local_nodes:
+            try:
+                data_model_views = node.create_data_model_views(
+                    command_id=command_id,
+                    data_model=data_model,
+                    datasets=datasets_per_local_node[node.node_id],
+                    columns_per_view=variable_groups,
+                    filters=var_filters,
+                    dropna=dropna,
+                    check_min_rows=check_min_rows,
+                )
+            except InsufficientDataError:
+                continue
+            views_per_localnode.append((node, data_model_views))
+
+        if views_per_localnode:
+            return _convert_views_per_localnode_to_local_nodes_tables(
+                views_per_localnode
+            )
+        else:
+            return []
+
+    def _get_nodes_info_by_dataset(
+        self, data_model: str, datasets: List[str]
+    ) -> List[_NodeInfoDTO]:
+        local_node_ids = (
+            self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(
+                data_model=data_model,
+                datasets=datasets,
+            )
+        )
+        local_nodes_info = [
+            self._node_landscape_aggregator.get_node_info(node_id)
+            for node_id in local_node_ids
+        ]
+        nodes_info = []
+        for local_node in local_nodes_info:
+            nodes_info.append(
+                _NodeInfoDTO(
+                    node_id=local_node.id,
+                    queue_address=":".join([str(local_node.ip), str(local_node.port)]),
+                    db_address=":".join(
+                        [str(local_node.db_ip), str(local_node.db_port)]
+                    ),
+                    tasks_timeout=self._celery_tasks_timeout,
+                    run_udf_task_timeout=self._celery_run_udf_task_timeout,
+                )
+            )
+
+        return nodes_info
+
+    def _create_nodes_tasks_handlers(
+        self, data_model: str, datasets: List[str]
+    ) -> NodesTasksHandlers:
+        # Get only the relevant nodes
+        local_nodes_info = self._get_nodes_info_by_dataset(
+            data_model=data_model, datasets=datasets
+        )
+        local_nodes_tasks_handlers = [
+            NodeAlgorithmTasksHandler(
+                node_id=node_info.node_id,
+                node_queue_addr=node_info.queue_address,
+                node_db_addr=node_info.db_address,
+                tasks_timeout=node_info.tasks_timeout,
+                run_udf_task_timeout=node_info.run_udf_task_timeout,
+            )
+            for node_info in local_nodes_info
+        ]
+
+        global_node_tasks_handler = None
+        try:
+            # raises exception if there is no global node...
+            global_node = self._node_landscape_aggregator.get_global_node()
+
+            global_node_tasks_handler = NodeAlgorithmTasksHandler(
+                node_id=global_node.id,
+                node_queue_addr=":".join([str(global_node.ip), str(global_node.port)]),
+                node_db_addr=":".join(
+                    [str(global_node.db_ip), str(global_node.db_port)]
+                ),
+                tasks_timeout=self._celery_tasks_timeout,
+                run_udf_task_timeout=self._celery_run_udf_task_timeout,
+            )
+
+            # global node should not be optional, it was nevertheless made optional
+            # https://github.com/madgik/MIP-Engine/pull/269
+        except Exception:
+            pass
+
+        return NodesTasksHandlers(
+            global_node_tasks_handler=global_node_tasks_handler,
+            local_nodes_tasks_handlers=local_nodes_tasks_handlers,
+        )
+
+    def _create_nodes(self, request_id, context_id, data_model, datasets):
+        node_tasks_handlers = self._create_nodes_tasks_handlers(
+            data_model=data_model, datasets=datasets
+        )
+
+        # global node should not be optional, it was nevertheless made optional
+        # https://github.com/madgik/MIP-Engine/pull/269
+        global_node_tasks_handler = node_tasks_handlers.global_node_tasks_handler
+        global_node = (
+            _create_global_node(request_id, context_id, global_node_tasks_handler)
+            if global_node_tasks_handler
+            else None
+        )
+
+        nodes = Nodes(
+            global_node=global_node,
+            local_nodes=_create_local_nodes(
+                request_id, context_id, node_tasks_handlers.local_nodes_tasks_handlers
+            ),
+        )
+
+        return nodes
 
 
 def _filter_insufficient_data_nodes(
@@ -395,30 +513,6 @@ def _filter_insufficient_data_nodes(
     return local_nodes
 
 
-def _create_nodes(request_id, context_id, data_model, datasets):
-    node_tasks_handlers = _create_nodes_tasks_handlers(
-        data_model=data_model, datasets=datasets
-    )
-
-    # global node should not be optional, it was nevertheless made optional
-    # https://github.com/madgik/MIP-Engine/pull/269
-    global_node_tasks_handler = node_tasks_handlers.global_node_tasks_handler
-    global_node = (
-        _create_global_node(request_id, context_id, global_node_tasks_handler)
-        if global_node_tasks_handler
-        else None
-    )
-
-    nodes = Nodes(
-        global_node=global_node,
-        local_nodes=_create_local_nodes(
-            request_id, context_id, node_tasks_handlers.local_nodes_tasks_handlers
-        ),
-    )
-
-    return nodes
-
-
 def _create_local_nodes(request_id, context_id, nodes_tasks_handlers):
     local_nodes: List[LocalNode] = [
         LocalNode(
@@ -438,75 +532,6 @@ def _create_global_node(request_id, context_id, node_tasks_handler):
         node_tasks_handler=node_tasks_handler,
     )
     return global_node
-
-
-def _get_nodes_info_by_dataset(
-    data_model: str, datasets: List[str]
-) -> List[_NodeInfoDTO]:
-    local_node_ids = node_landscape_aggregator.get_node_ids_with_any_of_datasets(
-        # local_node_ids = self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(
-        data_model=data_model,
-        datasets=datasets,
-    )
-    local_nodes_info = [
-        node_landscape_aggregator.get_node_info(node_id)
-        for node_id in local_node_ids
-        # self._node_landscape_aggregator.get_node_info(node_id) for node_id in local_node_ids
-    ]
-    nodes_info = []
-    for local_node in local_nodes_info:
-        nodes_info.append(
-            _NodeInfoDTO(
-                node_id=local_node.id,
-                queue_address=":".join([str(local_node.ip), str(local_node.port)]),
-                db_address=":".join([str(local_node.db_ip), str(local_node.db_port)]),
-                tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-                run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
-            )
-        )
-
-    return nodes_info
-
-
-def _create_nodes_tasks_handlers(
-    data_model: str, datasets: List[str]
-) -> NodesTasksHandlers:
-    # Get only the relevant nodes
-    local_nodes_info = _get_nodes_info_by_dataset(
-        data_model=data_model, datasets=datasets
-    )
-    local_nodes_tasks_handlers = [
-        NodeAlgorithmTasksHandler(
-            node_id=node_info.node_id,
-            node_queue_addr=node_info.queue_address,
-            node_db_addr=node_info.db_address,
-            tasks_timeout=node_info.tasks_timeout,
-            run_udf_task_timeout=node_info.run_udf_task_timeout,
-        )
-        for node_info in local_nodes_info
-    ]
-
-    global_node_tasks_handler = None
-    try:
-        global_node = node_landscape_aggregator.get_global_node()
-
-        global_node_tasks_handler = NodeAlgorithmTasksHandler(
-            node_id=global_node.id,
-            node_queue_addr=":".join([str(global_node.ip), str(global_node.port)]),
-            node_db_addr=":".join([str(global_node.db_ip), str(global_node.db_port)]),
-            tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-            run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
-        )
-
-        # global node should not be optional, it was nevertheless made optional
-        # https://github.com/madgik/MIP-Engine/pull/269
-    except Exception:
-        pass
-
-    return NodesTasksHandlers(
-        global_node_tasks_handler=global_node_tasks_handler,
-        local_nodes_tasks_handlers=local_nodes_tasks_handlers,
-    )
 
 
 def _convert_views_per_localnode_to_local_nodes_tables(
@@ -557,19 +582,19 @@ def _get_amount_of_localnodes_views(
 
 
 def _create_algorithm_executor(
-    algorithm_executor_dto: AlgorithmExecutorDTO,
+    algorithm_executor_init_params: AlgorithmExecutorInitParams,
     command_id_generator: CommandIdGenerator,
     nodes: Nodes,
 ):
     if len(nodes.local_nodes) < 2:
         return AlgorithmExecutorSingleLocalNode(
-            algorithm_executor_dto=algorithm_executor_dto,
+            initialization_params=algorithm_executor_init_params,
             command_id_generator=command_id_generator,
             nodes=nodes,
         )
     else:
         return AlgorithmExecutor(
-            algorithm_executor_dto=algorithm_executor_dto,
+            initialization_params=algorithm_executor_init_params,
             command_id_generator=command_id_generator,
             nodes=nodes,
         )

@@ -9,7 +9,6 @@ from typing import Union
 
 from pydantic import BaseModel
 
-from mipengine.controller import config as ctrl_config
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.controller.algorithm_executor_nodes import LocalNode
@@ -117,9 +116,10 @@ class InconsistentShareTablesValueException(Exception):
         super().__init__(message)
 
 
-class AlgorithmExecutorDTO(BaseModel):
+class InitializationParams(BaseModel):
+    smpc_enabled: bool
+    smpc_optional: bool
     request_id: str
-    context_id: str
     algo_flags: Optional[Dict[str, Any]] = None
     data_model_views: List[LocalNodesTable]
 
@@ -130,22 +130,22 @@ class AlgorithmExecutorDTO(BaseModel):
 class AlgorithmExecutor:
     def __init__(
         self,
-        algorithm_executor_dto: AlgorithmExecutorDTO,
+        initialization_params: InitializationParams,
         command_id_generator: CommandIdGenerator,
         nodes: Nodes,
     ):
         self._logger = ctrl_logger.get_request_logger(
-            request_id=algorithm_executor_dto.request_id
+            request_id=initialization_params.request_id
         )
+        self._algorithm_execution_flags = initialization_params.algo_flags
+        self._data_model_views = initialization_params.data_model_views
+        self._smpc_enabled = initialization_params.smpc_enabled
+        self._smpc_optional = initialization_params.smpc_optional
 
         self._command_id_generator = command_id_generator
         self._local_nodes = nodes.local_nodes
         self._global_node = nodes.global_node
 
-        self._algorithm_execution_flags = algorithm_executor_dto.algo_flags
-        self._data_model_views = algorithm_executor_dto.data_model_views
-
-    # TODO move to Algorith
     @property
     def data_model_views(self):
         return self._data_model_views
@@ -307,8 +307,8 @@ class AlgorithmExecutor:
         """
         flags = self._algorithm_execution_flags
 
-        use_smpc = ctrl_config.smpc.enabled
-        if ctrl_config.smpc.optional and flags and USE_SMPC_FLAG in flags.keys():
+        use_smpc = self._smpc_enabled
+        if self._smpc_optional and flags and USE_SMPC_FLAG in flags.keys():
             use_smpc = flags[USE_SMPC_FLAG]
 
         return use_smpc
@@ -553,7 +553,7 @@ class AlgorithmExecutor:
         reference_schema = next(
             iter(table_info_per_node.values())
         ).schema_  # Use the first table schema as reference
-        for node, table_info in table_info_per_node.items():
+        for _, table_info in table_info_per_node.items():
             if table_info.schema_ != reference_schema:
                 raise InconsistentTableSchemasException(
                     list(table_info_per_node.values())

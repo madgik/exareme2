@@ -10,21 +10,43 @@ from mipengine.controller.algorithm_specifications import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import BadRequest
-from mipengine.controller.api.validator import validate_algorithm_request
-from mipengine.controller.controller_logger import get_request_logger
+from mipengine.controller.api.validator import (
+    InitializationParams as ValidatorInitializationParams,
+)
+from mipengine.controller.api.validator import Validator
 from mipengine.controller.node_landscape_aggregator import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import DataModelsCDES
+from mipengine.controller.node_landscape_aggregator import (
+    InitializationParams as NodeLandscapeAggregatorInitParams,
+)
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_landscape_aggregator import NodeRegistry
 from mipengine.controller.node_landscape_aggregator import _NLARegistries
 from mipengine.exceptions import BadUserInput
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 
 
-@pytest.fixture(scope="module", autouse=True)
-def mock_cdes():
-    nla = NodeLandscapeAggregator()
+@pytest.fixture
+def validator(node_landscape_aggregator):
+    validator_init_params = ValidatorInitializationParams(
+        node_landscape_aggregator=node_landscape_aggregator,
+        smpc_enabled=False,
+        smpc_optional=False,
+    )
+    return Validator(initialization_params=validator_init_params)
+
+
+@pytest.fixture
+def node_landscape_aggregator():
+    node_landscape_aggregator_init_params = NodeLandscapeAggregatorInitParams(
+        node_landscape_aggregator_update_interval=0,
+        celery_tasks_timeout=0,
+        celery_run_udf_task_timeout=0,
+        deployment_type="",
+        localnodes=[],
+    )
+    nla = NodeLandscapeAggregator(node_landscape_aggregator_init_params)
+
     data_models = {
         "test_data_model1:0.1": CommonDataElements(
             values={
@@ -123,11 +145,7 @@ def mock_cdes():
     )
     nla._registries = _NLARegistries(data_model_registry=_data_model_registry)
 
-    with patch(
-        "mipengine.controller.api.validator.node_landscape_aggregator",
-        nla,
-    ):
-        yield
+    return nla
 
 
 @pytest.fixture()
@@ -277,9 +295,9 @@ def get_parametrization_list_success_cases():
     "algorithm_name, request_dto", get_parametrization_list_success_cases()
 )
 def test_validate_algorithm_success(
-    algorithm_name, request_dto, available_datasets_per_data_model
+    algorithm_name, request_dto, available_datasets_per_data_model, validator
 ):
-    validate_algorithm_request(
+    validator.validate_algorithm_request(
         algorithm_name=algorithm_name,
         algorithm_request_dto=request_dto,
         available_datasets_per_data_model=available_datasets_per_data_model,
@@ -548,11 +566,16 @@ def get_parametrization_list_exception_cases():
     "algorithm_name, request_dto, exception", get_parametrization_list_exception_cases()
 )
 def test_validate_algorithm_exceptions(
-    algorithm_name, request_dto, exception, available_datasets_per_data_model
+    algorithm_name,
+    request_dto,
+    exception,
+    available_datasets_per_data_model,
+    node_landscape_aggregator,
+    validator,
 ):
     exception_type, exception_message = exception
     with pytest.raises(exception_type, match=exception_message):
-        validate_algorithm_request(
+        validator.validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=request_dto,
             available_datasets_per_data_model=available_datasets_per_data_model,

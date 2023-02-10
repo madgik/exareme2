@@ -10,7 +10,7 @@ from typing import Tuple
 
 from pydantic import BaseModel
 
-from mipengine.controller import config as controller_config
+from mipengine.attrdict import AttrDict
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
@@ -29,113 +29,7 @@ from mipengine.node_tasks_DTOs import CommonDataElements
 from mipengine.node_tasks_DTOs import DataModelAttributes
 from mipengine.singleton import Singleton
 
-logger = ctrl_logger.get_background_service_logger()
 NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
-NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL = (
-    controller_config.node_landscape_aggregator_update_interval
-)
-CELERY_TASKS_TIMEOUT = controller_config.rabbitmq.celery_tasks_timeout
-CELERY_RUN_UDF_TASK_TIMEOUT = controller_config.rabbitmq.celery_run_udf_task_timeout
-
-# The timeout of the node info tasks should be the celery_tasks_timeout, incremented by the
-# celery_run_udf_task_timeout to avoid starvation due to udfs being executed.
-NODE_INFO_TASKS_TIMEOUT = CELERY_TASKS_TIMEOUT + CELERY_RUN_UDF_TASK_TIMEOUT
-
-
-def _get_nodes_info(nodes_socket_addr: List[str]) -> List[NodeInfo]:
-    node_info_tasks_handlers = [
-        NodeInfoTasksHandler(
-            node_queue_addr=node_socket_addr, tasks_timeout=NODE_INFO_TASKS_TIMEOUT
-        )
-        for node_socket_addr in nodes_socket_addr
-    ]
-    nodes_info = []
-    for tasks_handler in node_info_tasks_handlers:
-        try:
-            async_result = tasks_handler.queue_node_info_task(
-                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
-            )
-            result = tasks_handler.result_node_info_task(
-                async_result=async_result,
-                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
-            )
-            nodes_info.append(result)
-        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
-            # just log the exception do not reraise it
-            logger.warning(exc)
-        except Exception:
-            # just log full traceback exception as error and do not reraise it
-            logger.error(traceback.format_exc())
-    return nodes_info
-
-
-def _get_node_datasets_per_data_model(
-    node_socket_addr: str,
-) -> Dict[str, Dict[str, str]]:
-    tasks_handler = NodeInfoTasksHandler(
-        node_queue_addr=node_socket_addr, tasks_timeout=NODE_INFO_TASKS_TIMEOUT
-    )
-    try:
-        async_result = tasks_handler.queue_node_datasets_per_data_model_task(
-            request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
-        )
-        datasets_per_data_model = (
-            tasks_handler.result_node_datasets_per_data_model_task(
-                async_result=async_result,
-                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
-            )
-        )
-    except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
-        # just log the exception do not reraise it
-        logger.warning(exc)
-        return {}
-    except Exception:
-        # just log full traceback exception as error and do not reraise it
-        logger.error(traceback.format_exc())
-        return {}
-    return datasets_per_data_model
-
-
-def _get_node_cdes(node_socket_addr: str, data_model: str) -> CommonDataElements:
-    tasks_handler = NodeInfoTasksHandler(
-        node_queue_addr=node_socket_addr, tasks_timeout=NODE_INFO_TASKS_TIMEOUT
-    )
-    try:
-        async_result = tasks_handler.queue_data_model_cdes_task(
-            request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
-        )
-        node_cdes = tasks_handler.result_data_model_cdes_task(
-            async_result=async_result, request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
-        )
-        return node_cdes
-    except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
-        # just log the exception do not reraise it
-        logger.warning(exc)
-    except Exception:
-        # just log full traceback exception as error and do not reraise it
-        logger.error(traceback.format_exc())
-
-
-def _get_data_model_attributes(
-    node_socket_addr: str, data_model: str
-) -> DataModelAttributes:
-    tasks_handler = NodeInfoTasksHandler(
-        node_queue_addr=node_socket_addr, tasks_timeout=NODE_INFO_TASKS_TIMEOUT
-    )
-    try:
-        async_result = tasks_handler.queue_data_model_attributes_task(
-            request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
-        )
-        attributes = tasks_handler.result_data_model_attributes_task(
-            async_result=async_result, request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
-        )
-        return attributes
-    except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
-        # just log the exception do not reraise it
-        logger.warning(exc)
-    except Exception:
-        # just log full traceback exception as error and do not reraise it
-        logger.error(traceback.format_exc())
 
 
 class ImmutableBaseModel(BaseModel, ABC):
@@ -354,8 +248,32 @@ class DataModelsMetadataPerNode(ImmutableBaseModel):
     data_models_metadata_per_node: Dict[str, DataModelsMetadata]
 
 
+class InitializationParams(BaseModel):
+    node_landscape_aggregator_update_interval: int
+    celery_tasks_timeout: int
+    celery_run_udf_task_timeout: int
+    deployment_type: str
+    localnodes: AttrDict
+
+    class Config:
+        allow_mutation = False
+
+
 class NodeLandscapeAggregator(metaclass=Singleton):
-    def __init__(self):
+    def __init__(self, initialization_params: InitializationParams):
+        self._logger = ctrl_logger.get_background_service_logger()
+
+        self._node_landscape_aggregator_update_interval = (
+            initialization_params.node_landscape_aggregator_update_interval
+        )
+        celery_tasks_timeout = initialization_params.celery_tasks_timeout
+        celery_run_udf_task_timeout = initialization_params.celery_run_udf_task_timeout
+        self._node_info_tasks_timeout = (
+            celery_run_udf_task_timeout + celery_tasks_timeout
+        )
+        self._deployment_type = initialization_params.deployment_type
+        self._localnodes = initialization_params.localnodes
+
         self._registries = _NLARegistries()
         self._keep_updating = True
         self._update_loop_thread = None
@@ -381,27 +299,29 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         (
             nodes_info,
             data_models_metadata_per_node,
-        ) = _fetch_nodes_metadata()
+        ) = self._fetch_nodes_metadata()
         node_registry = NodeRegistry(nodes_info=nodes_info)
-        dmr = _crunch_data_model_registry_data(data_models_metadata_per_node)
+        dmr = _crunch_data_model_registry_data(
+            data_models_metadata_per_node, self._logger
+        )
 
         self._set_new_registries(node_registry, dmr)
 
-        logger.debug(f"Nodes:{[node_info.id for node_info in self.get_nodes()]}")
+        self._logger.debug(f"Nodes:{[node_info.id for node_info in self.get_nodes()]}")
 
     def _update_loop(self):
         while self._keep_updating:
             try:
                 self._update()
             except Exception as exc:
-                logger.warning(
+                self._logger.warning(
                     f"NodeLandscapeAggregator caught an exception but will continue to "
                     f"update {exc=}"
                 )
                 tr = traceback.format_exc()
-                logger.error(tr)
+                self._logger.error(tr)
             finally:
-                time.sleep(NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL)
+                time.sleep(self._node_landscape_aggregator_update_interval)
 
     def start(self):
         self.stop()
@@ -416,18 +336,120 @@ class NodeLandscapeAggregator(metaclass=Singleton):
             self._keep_updating = False
             self._update_loop_thread.join()
 
+    def _get_nodes_info(self, nodes_socket_addr: List[str]) -> List[NodeInfo]:
+        node_info_tasks_handlers = [
+            NodeInfoTasksHandler(
+                node_queue_addr=node_socket_addr,
+                tasks_timeout=self._node_info_tasks_timeout,
+            )
+            for node_socket_addr in nodes_socket_addr
+        ]
+        nodes_info = []
+        for tasks_handler in node_info_tasks_handlers:
+            try:
+                async_result = tasks_handler.queue_node_info_task(
+                    request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+                )
+                result = tasks_handler.result_node_info_task(
+                    async_result=async_result,
+                    request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+                )
+                nodes_info.append(result)
+            except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+                # just log the exception do not reraise it
+                self._logger.warning(exc)
+            except Exception:
+                # just log full traceback exception as error and do not reraise it
+                self._logger.error(traceback.format_exc())
+        return nodes_info
+
+    def _get_node_datasets_per_data_model(
+        self,
+        node_socket_addr: str,
+    ) -> Dict[str, Dict[str, str]]:
+        tasks_handler = NodeInfoTasksHandler(
+            node_queue_addr=node_socket_addr,
+            tasks_timeout=self._node_info_tasks_timeout,
+        )
+        try:
+            async_result = tasks_handler.queue_node_datasets_per_data_model_task(
+                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+            )
+            datasets_per_data_model = (
+                tasks_handler.result_node_datasets_per_data_model_task(
+                    async_result=async_result,
+                    request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+                )
+            )
+        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+            # just log the exception do not reraise it
+            self._logger.warning(exc)
+            return {}
+        except Exception:
+            # just log full traceback exception as error and do not reraise it
+            self._logger.error(traceback.format_exc())
+            return {}
+        return datasets_per_data_model
+
+    def _get_node_cdes(
+        self, node_socket_addr: str, data_model: str
+    ) -> CommonDataElements:
+        tasks_handler = NodeInfoTasksHandler(
+            node_queue_addr=node_socket_addr,
+            tasks_timeout=self._node_info_tasks_timeout,
+        )
+        try:
+            async_result = tasks_handler.queue_data_model_cdes_task(
+                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
+            )
+            node_cdes = tasks_handler.result_data_model_cdes_task(
+                async_result=async_result,
+                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+            )
+            return node_cdes
+        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+            # just log the exception do not reraise it
+            self._logger.warning(exc)
+        except Exception:
+            # just log full traceback exception as error and do not reraise it
+            self._logger.error(traceback.format_exc())
+
+    def _get_data_model_attributes(
+        self, node_socket_addr: str, data_model: str
+    ) -> DataModelAttributes:
+        tasks_handler = NodeInfoTasksHandler(
+            node_queue_addr=node_socket_addr,
+            tasks_timeout=self._node_info_tasks_timeout,
+        )
+        try:
+            async_result = tasks_handler.queue_data_model_attributes_task(
+                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
+            )
+            attributes = tasks_handler.result_data_model_attributes_task(
+                async_result=async_result,
+                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+            )
+            return attributes
+        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+            # just log the exception do not reraise it
+            self._logger.warning(exc)
+        except Exception:
+            # just log full traceback exception as error and do not reraise it
+            self._logger.error(traceback.format_exc())
+
     def _set_new_registries(self, node_registry, data_model_registry):
         _log_node_changes(
-            self.get_nodes(),
-            list(node_registry.nodes_per_id.values()),
+            self.get_nodes(), list(node_registry.nodes_per_id.values()), self._logger
         )
         _log_data_model_changes(
             self._registries.data_model_registry.data_models_cdes.data_models_cdes,
             data_model_registry.data_models_cdes.data_models_cdes,
+            self._logger,
         )
         _log_dataset_changes(
             self._registries.data_model_registry.datasets_locations.datasets_locations,
             data_model_registry.datasets_locations.datasets_locations,
+            self._logger,
         )
         self._registries = _NLARegistries(
             node_registry=node_registry, data_model_registry=data_model_registry
@@ -451,6 +473,15 @@ class NodeLandscapeAggregator(metaclass=Singleton):
         return self._registries.data_model_registry.get_cdes_specific_data_model(
             data_model
         ).values
+
+    def get_metadata(self, data_model: str, variable_names: List[str]):
+        common_data_elements = self.get_cdes(data_model)
+        metadata = {
+            variable_name: cde.dict()
+            for variable_name, cde in common_data_elements.items()
+            if variable_name in variable_names
+        }
+        return metadata
 
     def get_cdes_per_data_model(self) -> DataModelsCDES:
         return self._registries.data_model_registry.data_models_cdes
@@ -486,35 +517,70 @@ class NodeLandscapeAggregator(metaclass=Singleton):
     def get_data_models_attributes(self) -> Dict[str, DataModelAttributes]:
         return self._registries.data_model_registry.get_data_models_attributes()
 
-
-def _fetch_nodes_metadata() -> Tuple[
-    List[NodeInfo],
-    DataModelsMetadataPerNode,
-]:
-    """
-    Returns a list of all the nodes in the federation and their metadata (data_models, datasets, cdes).
-    """
-    nodes_addresses = (
-        NodesAddressesFactory(
-            controller_config.deployment_type, controller_config.localnodes
+    def _fetch_nodes_metadata(
+        self,
+    ) -> Tuple[List[NodeInfo], DataModelsMetadataPerNode,]:
+        """
+        Returns a list of all the nodes in the federation and their metadata (data_models, datasets, cdes).
+        """
+        nodes_addresses = (
+            NodesAddressesFactory(self._deployment_type, self._localnodes)
+            .get_nodes_addresses()
+            .socket_addresses
         )
-        .get_nodes_addresses()
-        .socket_addresses
-    )
-    nodes_info = _get_nodes_info(nodes_addresses)
-    local_nodes = [
-        node_info for node_info in nodes_info if node_info.role == NodeRole.LOCALNODE
-    ]
-    data_models_metadata_per_node = _get_data_models_metadata_per_node(local_nodes)
-    return nodes_info, data_models_metadata_per_node
+        nodes_info = self._get_nodes_info(nodes_addresses)
+        local_nodes = [
+            node_info
+            for node_info in nodes_info
+            if node_info.role == NodeRole.LOCALNODE
+        ]
+        data_models_metadata_per_node = self._get_data_models_metadata_per_node(
+            local_nodes
+        )
+        return nodes_info, data_models_metadata_per_node
+
+    def _get_data_models_metadata_per_node(
+        self,
+        nodes: List[NodeInfo],
+    ) -> DataModelsMetadataPerNode:
+        data_models_metadata_per_node = {}
+
+        for node_info in nodes:
+            data_models_metadata = {}
+
+            node_socket_addr = _get_node_socket_addr(node_info)
+            datasets_per_data_model = self._get_node_datasets_per_data_model(
+                node_socket_addr
+            )
+            if datasets_per_data_model:
+                node_socket_addr = _get_node_socket_addr(node_info)
+                for data_model, datasets in datasets_per_data_model.items():
+                    cdes = self._get_node_cdes(node_socket_addr, data_model)
+                    attributes = self._get_data_model_attributes(
+                        node_socket_addr, data_model
+                    )
+                    cdes = cdes if cdes else None
+                    attributes = attributes if attributes else None
+                    data_models_metadata[data_model] = DataModelMetadata(
+                        datasets_labels=DatasetsLabels(datasets_labels=datasets),
+                        cdes=cdes,
+                        attributes=attributes,
+                    )
+                    data_models_metadata_per_node[node_info.id] = DataModelsMetadata(
+                        data_models_metadata=data_models_metadata
+                    )
+
+        return DataModelsMetadataPerNode(
+            data_models_metadata_per_node=data_models_metadata_per_node
+        )
 
 
 def _crunch_data_model_registry_data(
-    data_models_metadata_per_node: DataModelsMetadataPerNode,
+    data_models_metadata_per_node: DataModelsMetadataPerNode, logger
 ) -> DataModelRegistry:
 
     incompatible_data_models = _get_incompatible_data_models(
-        data_models_metadata_per_node
+        data_models_metadata_per_node, logger
     )
     data_models_metadata_per_node_with_compatible_data_models = (
         _remove_incompatible_data_models_from_data_models_metadata_per_node(
@@ -525,7 +591,7 @@ def _crunch_data_model_registry_data(
         datasets_locations,
         datasets_labels_per_data_model,
     ) = _aggregate_datasets_locations_and_labels(
-        data_models_metadata_per_node_with_compatible_data_models
+        data_models_metadata_per_node_with_compatible_data_models, logger
     )
     data_models_cdes = _aggregate_data_models_cdes(
         data_models_metadata_per_node_with_compatible_data_models,
@@ -542,39 +608,8 @@ def _crunch_data_model_registry_data(
     )
 
 
-def _get_data_models_metadata_per_node(
-    nodes: List[NodeInfo],
-) -> DataModelsMetadataPerNode:
-    data_models_metadata_per_node = {}
-
-    for node_info in nodes:
-        data_models_metadata = {}
-
-        node_socket_addr = _get_node_socket_addr(node_info)
-        datasets_per_data_model = _get_node_datasets_per_data_model(node_socket_addr)
-        if datasets_per_data_model:
-            node_socket_addr = _get_node_socket_addr(node_info)
-            for data_model, datasets in datasets_per_data_model.items():
-                cdes = _get_node_cdes(node_socket_addr, data_model)
-                attributes = _get_data_model_attributes(node_socket_addr, data_model)
-                cdes = cdes if cdes else None
-                attributes = attributes if attributes else None
-                data_models_metadata[data_model] = DataModelMetadata(
-                    datasets_labels=DatasetsLabels(datasets_labels=datasets),
-                    cdes=cdes,
-                    attributes=attributes,
-                )
-        data_models_metadata_per_node[node_info.id] = DataModelsMetadata(
-            data_models_metadata=data_models_metadata
-        )
-
-    return DataModelsMetadataPerNode(
-        data_models_metadata_per_node=data_models_metadata_per_node
-    )
-
-
 def _aggregate_datasets_locations_and_labels(
-    data_models_metadata_per_node,
+    data_models_metadata_per_node, logger
 ) -> Tuple[DatasetsLocations, DatasetsLabelsPerDataModel]:
     """
     Args:
@@ -628,7 +663,7 @@ def _aggregate_datasets_locations_and_labels(
                 datasets_locations_without_duplicates[data_model][dataset] = node_ids[0]
             else:
                 del datasets_labels[data_model].datasets_labels[dataset]
-                _log_duplicated_dataset(node_ids, data_model, dataset)
+                _log_duplicated_dataset(node_ids, data_model, dataset, logger)
 
     return DatasetsLocations(
         datasets_locations=datasets_locations_without_duplicates
@@ -717,7 +752,7 @@ def _get_updated_tags(data_model, data_models_attributes, tags):
 
 
 def _get_incompatible_data_models(
-    data_models_metadata_per_node: DataModelsMetadataPerNode,
+    data_models_metadata_per_node: DataModelsMetadataPerNode, logger
 ) -> List[str]:
     """
     Each node has its own data models definition.
@@ -753,7 +788,10 @@ def _get_incompatible_data_models(
                     nodes = [node_id, valid_node_id]
                     incompatible_data_models.append(data_model)
                     _log_incompatible_data_models(
-                        nodes, data_model, [data_model_metadata.cdes, valid_cdes]
+                        nodes,
+                        data_model,
+                        [data_model_metadata.cdes, valid_cdes],
+                        logger,
                     )
                     break
             else:
@@ -781,7 +819,7 @@ def _remove_incompatible_data_models_from_data_models_metadata_per_node(
     )
 
 
-def _log_node_changes(old_nodes, new_nodes):
+def _log_node_changes(old_nodes, new_nodes, logger):
     old_nodes_per_node_id = {node.id: node for node in old_nodes}
     new_nodes_per_node_id = {node.id: node for node in new_nodes}
     added_nodes = set(new_nodes_per_node_id.keys()) - set(old_nodes_per_node_id.keys())
@@ -794,7 +832,7 @@ def _log_node_changes(old_nodes, new_nodes):
         log_node_left_federation(logger, node)
 
 
-def _log_data_model_changes(old_data_models, new_data_models):
+def _log_data_model_changes(old_data_models, new_data_models, logger):
     added_data_models = new_data_models.keys() - old_data_models.keys()
     for data_model in added_data_models:
         log_datamodel_added(data_model, logger)
@@ -803,12 +841,12 @@ def _log_data_model_changes(old_data_models, new_data_models):
         log_datamodel_removed(data_model, logger)
 
 
-def _log_dataset_changes(old_datasets_locations, new_datasets_locations):
-    _log_datasets_added(old_datasets_locations, new_datasets_locations)
-    _log_datasets_removed(old_datasets_locations, new_datasets_locations)
+def _log_dataset_changes(old_datasets_locations, new_datasets_locations, logger):
+    _log_datasets_added(old_datasets_locations, new_datasets_locations, logger)
+    _log_datasets_removed(old_datasets_locations, new_datasets_locations, logger)
 
 
-def _log_datasets_added(old_datasets_locations, new_datasets_locations):
+def _log_datasets_added(old_datasets_locations, new_datasets_locations, logger):
     for data_model in new_datasets_locations:
         added_datasets = new_datasets_locations[data_model].keys()
         if data_model in old_datasets_locations:
@@ -822,7 +860,7 @@ def _log_datasets_added(old_datasets_locations, new_datasets_locations):
             )
 
 
-def _log_datasets_removed(old_datasets_locations, new_datasets_locations):
+def _log_datasets_removed(old_datasets_locations, new_datasets_locations, logger):
     for data_model in old_datasets_locations:
         removed_datasets = old_datasets_locations[data_model].keys()
         if data_model in new_datasets_locations:
@@ -836,13 +874,13 @@ def _log_datasets_removed(old_datasets_locations, new_datasets_locations):
             )
 
 
-def _log_incompatible_data_models(nodes, data_model, conflicting_cdes):
+def _log_incompatible_data_models(nodes, data_model, conflicting_cdes, logger):
     logger.info(
         f"""Nodes: '[{", ".join(nodes)}]' on data model '{data_model}' have incompatibility on the following cdes: '[{", ".join([cdes.__str__() for cdes in conflicting_cdes])}]' """
     )
 
 
-def _log_duplicated_dataset(nodes, data_model, dataset):
+def _log_duplicated_dataset(nodes, data_model, dataset, logger):
     logger.info(
         f"""Dataset '{dataset}' of the data_model: '{data_model}' is not unique in the federation. Nodes that contain the dataset: '[{", ".join(nodes)}]'"""
     )
