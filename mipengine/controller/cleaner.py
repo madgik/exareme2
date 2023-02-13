@@ -193,8 +193,8 @@ class Cleaner(metaclass=Singleton):
         self._cleanup_loop_thread.start()
 
     def stop(self):
+        self._keep_cleaning_up = False
         if self._cleanup_loop_thread and self._cleanup_loop_thread.is_alive():
-            self._keep_cleaning_up = False
             self._cleanup_loop_thread.join()
 
     def add_contextid_for_cleanup(
