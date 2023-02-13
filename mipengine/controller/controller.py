@@ -75,6 +75,27 @@ class InitializationParams(BaseModel):
         allow_mutation = False
 
 
+class NodeUnresponsiveException(Exception):
+    def __init__(self):
+        message = (
+            "One of the nodes participating in the algorithm execution "
+            "stopped responding"
+        )
+        super().__init__(message)
+        self.message = message
+
+
+class NodeTaskTimeoutException(Exception):
+    def __init__(self):
+        message = (
+            "One of the tasks in the algorithm execution took longer to finish than the timeout."
+            f"This could be caused by a high load or by an experiment with too much data. "
+            f"Please try again or increase the timeout."
+        )
+        super().__init__(message)
+        self.message = message
+
+
 class Controller:
     def __init__(
         self,
@@ -230,12 +251,12 @@ class Controller:
             algo_execution_logger.error(
                 f"ErrorType: '{type(exc)}' and message: '{exc}'"
             )
-            raise NodeUnresponsiveAlgorithmExecutionException()
+            raise NodeUnresponsiveException()
         except CeleryTaskTimeoutException as exc:
             algo_execution_logger.error(
                 f"ErrorType: '{type(exc)}' and message: '{exc}'"
             )
-            raise NodeTaskTimeoutAlgorithmExecutionException()
+            raise NodeTaskTimeoutException()
         except Exception as exc:
             algo_execution_logger.error(traceback.format_exc())
             raise exc
