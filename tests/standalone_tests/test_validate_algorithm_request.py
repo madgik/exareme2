@@ -177,12 +177,23 @@ def mock_algorithms_specs():
                     multiple=True,
                     default=1,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.ENUMS_FROM_LIST,
+                        type=ParameterEnumType.LIST,
                         source=[1, 2, 3],
                     ),
                 ),
+                "parameter_with_param_enum_inputdata_cde_enums": ParameterSpecification(
+                    label="parameter",
+                    desc="parameter that uses enums with type inputdata_CDE_enums",
+                    types=["text"],
+                    notblank=False,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.INPUTDATA_CDE_ENUMS,
+                        source="y",
+                    ),
+                ),
                 "parameter2": ParameterSpecification(
-                    label="paremeter2",
+                    label="parameter2",
                     desc="parameter 2",
                     types=["int"],
                     notblank=False,
@@ -192,7 +203,7 @@ def mock_algorithms_specs():
                     max=5,
                 ),
                 "parameter3": ParameterSpecification(
-                    label="paremeter3",
+                    label="parameter3",
                     desc="parameter 3",
                     types=["text"],
                     notblank=False,
@@ -200,7 +211,7 @@ def mock_algorithms_specs():
                     default=None,
                 ),
                 "parameter4": ParameterSpecification(
-                    label="paremeter4",
+                    label="parameter4",
                     desc="parameter 4",
                     types=["int"],
                     notblank=False,
@@ -270,6 +281,21 @@ def get_parametrization_list_success_cases():
                     datasets=["test_dataset2", "test_dataset3"],
                     y=["test_cde1"],
                 ),
+            ),
+        ),
+        (
+            "test_algorithm1",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="test_data_model1:0.1",
+                    datasets=["test_dataset1"],
+                    x=["test_cde1"],
+                    y=["test_cde3"],
+                ),
+                parameters={
+                    "parameter1": [1, 3],
+                    "parameter_with_param_enum_inputdata_cde_enums": "male",
+                },
             ),
         ),
     ]
@@ -367,7 +393,7 @@ def get_parametrization_list_exception_cases():
                     y=["non_existing"],
                 )
             ),
-            (BadUserInput, "The CDE .* does not exist in data model .*"),
+            (BadUserInput, "The CDE .* does not exist in the data model provided."),
         ),
         (
             "test_algorithm1",
@@ -542,6 +568,25 @@ def get_parametrization_list_exception_cases():
                 ),
             ),
             (BadUserInput, "Inputdata .* should be provided."),
+        ),
+        (
+            "test_algorithm1",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="test_data_model2:0.1",
+                    datasets=["test_dataset2"],
+                    x=["test_cde1"],
+                    y=["test_cde3"],
+                ),
+                parameters={
+                    "parameter1": [1],
+                    "parameter_with_param_enum_inputdata_cde_enums": "non_existing_enum",
+                },
+            ),
+            (
+                BadUserInput,
+                "Parameter's .* enums, that are taken from the CDE .* given in inputdata .* variable, should be one of the following: .*",
+            ),
         ),
     ]
     return parametrization_list
