@@ -69,7 +69,7 @@ def controller_config():
     return controller_config
 
 
-@pytest.fixture("function")
+@pytest.fixture(scope="function")
 def node_landscape_aggregator(
     controller_config, localnode1_node_service, load_data_localnode1
 ):
