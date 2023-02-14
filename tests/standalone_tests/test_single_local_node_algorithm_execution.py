@@ -17,7 +17,7 @@ from mipengine.controller.controller import Controller
 from mipengine.controller.controller import InitializationParams as ControllerInitParams
 from mipengine.controller.controller import Nodes
 from mipengine.controller.controller import _create_algorithm_executor
-from mipengine.controller.controller import _filter_insufficient_data_nodes
+from mipengine.controller.controller import _get_data_model_views_nodes
 from mipengine.controller.controller import sanitize_request_variable
 from mipengine.controller.node_landscape_aggregator import (
     InitializationParams as NodeLandscapeAggregatorInitParams,
@@ -348,9 +348,7 @@ def data_model_views_and_nodes_case_1(
         check_min_rows=algorithm_case_1.get_check_min_rows(),
         command_id=command_id_generator.get_next_command_id(),
     )
-    local_nodes_filtered = _filter_insufficient_data_nodes(
-        nodes.local_nodes, data_model_views
-    )
+    local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
     nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
     if not nodes.local_nodes:
         raise RequestConstraintsError(algorithm_request_dto)
@@ -379,9 +377,7 @@ def data_model_views_and_nodes_case_2(
         check_min_rows=algorithm_case_2.get_check_min_rows(),
         command_id=command_id_generator.get_next_command_id(),
     )
-    local_nodes_filtered = _filter_insufficient_data_nodes(
-        nodes.local_nodes, data_model_views
-    )
+    local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
     nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
     if not nodes.local_nodes:
         raise RequestConstraintsError(algorithm_request_dto)
