@@ -450,6 +450,7 @@ async def test_single_local_node_algorithm_execution(
     algorithm_executor,
     controller,
     request,
+    reset_celery_app_factory,  # celery tasks fail if this is not reset
 ):
     algorithm = request.getfixturevalue(algorithm)
     algorithm_executor = request.getfixturevalue(algorithm_executor)
