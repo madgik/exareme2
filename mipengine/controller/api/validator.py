@@ -15,6 +15,7 @@ from mipengine.controller.algorithm_specifications import algorithm_specificatio
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from mipengine.controller.api.algorithm_specifications_dtos import ParameterEnumType
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.exceptions import BadUserInput
 from mipengine.filters import validate_filter
@@ -293,7 +294,6 @@ def _validate_parameter_type(
         "int": int,
         "real": numbers.Real,
         "boolean": bool,
-        "enum_from_list": (str, int),
         "enum_from_cde": (str, int),
     }
 
@@ -312,10 +312,15 @@ def _validate_parameter_enumerations(
     if parameter_spec.enums is None:
         return
 
-    if parameter_value not in parameter_spec.enums:
-        raise BadUserInput(
-            f"Parameter '{parameter_spec.label}' values "
-            f"should be one of the following: '{str(parameter_spec.enums)}'."
+    if parameter_spec.enums.type == ParameterEnumType.ENUMS_FROM_LIST:
+        if parameter_value not in parameter_spec.enums.source:
+            raise BadUserInput(
+                f"Parameter '{parameter_spec.label}' values "
+                f"should be one of the following: '{str(parameter_spec.enums)}'."
+            )
+    else:
+        raise NotImplementedError(
+            f"Parameter enum type not supported: '{parameter_spec.enums.type}'."
         )
 
 

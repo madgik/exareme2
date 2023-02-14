@@ -23,7 +23,14 @@
             "desc": "The alternative hypothesis to the null, returning specifically whether the result is less than, greater than, or .",
             "type": "text",
             "default": "two-sided",
-            "enums": ["two-sided", "less", "greater"],
+            "enums": {
+                "type": "enums_from_list",
+                "source": [
+                    "two-sided",
+                    "less",
+                    "greater"
+                ]
+            },
             "notblank": true,
             "multiple": false
         },

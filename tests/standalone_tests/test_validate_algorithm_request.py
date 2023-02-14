@@ -6,16 +6,16 @@ from mipengine.controller.algorithm_specifications import AlgorithmSpecification
 from mipengine.controller.algorithm_specifications import AlgorithmSpecifications
 from mipengine.controller.algorithm_specifications import InputDataSpecification
 from mipengine.controller.algorithm_specifications import InputDataSpecifications
+from mipengine.controller.algorithm_specifications import ParameterEnumSpecification
 from mipengine.controller.algorithm_specifications import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from mipengine.controller.api.algorithm_specifications_dtos import ParameterEnumType
 from mipengine.controller.api.validator import BadRequest
 from mipengine.controller.api.validator import validate_algorithm_request
-from mipengine.controller.controller_logger import get_request_logger
 from mipengine.controller.node_landscape_aggregator import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import DataModelsCDES
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_landscape_aggregator import NodeRegistry
 from mipengine.controller.node_landscape_aggregator import _NLARegistries
 from mipengine.exceptions import BadUserInput
 from mipengine.node_tasks_DTOs import CommonDataElement
@@ -176,7 +176,10 @@ def mock_algorithms_specs():
                     notblank=True,
                     multiple=True,
                     default=1,
-                    enums=[1, 2, 3],
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.ENUMS_FROM_LIST,
+                        source=[1, 2, 3],
+                    ),
                 ),
                 "parameter2": ParameterSpecification(
                     label="paremeter2",

@@ -23,6 +23,10 @@ from mipengine.controller.api.algorithm_specifications_dtos import (
 from mipengine.controller.api.algorithm_specifications_dtos import InputDataStatType
 from mipengine.controller.api.algorithm_specifications_dtos import InputDataType
 from mipengine.controller.api.algorithm_specifications_dtos import (
+    ParameterEnumSpecificationDTO,
+)
+from mipengine.controller.api.algorithm_specifications_dtos import ParameterEnumType
+from mipengine.controller.api.algorithm_specifications_dtos import (
     ParameterSpecificationDTO,
 )
 from mipengine.controller.api.algorithm_specifications_dtos import ParameterType
@@ -105,6 +109,17 @@ class InputDataSpecifications(BaseModel):
         )
 
 
+class ParameterEnumSpecification(BaseModel):
+    type: ParameterEnumType
+    source: Any
+
+    def convert_to_parameter_enum_specification_dto(self):
+        return ParameterEnumSpecificationDTO(
+            type=self.type,
+            source=self.source,
+        )
+
+
 class ParameterSpecification(BaseModel):
     label: str
     desc: str
@@ -112,18 +127,21 @@ class ParameterSpecification(BaseModel):
     notblank: bool
     multiple: bool
     default: Any
-    enums: Optional[List[Any]]
+    enums: Optional[ParameterEnumSpecification]
     min: Optional[float]
     max: Optional[float]
 
     def convert_to_parameter_specification_dto(self):
         return ParameterSpecificationDTO(
             label=self.label,
+            desc=self.desc,
             type=self.type,
             notblank=self.notblank,
             multiple=self.multiple,
             default=self.default,
-            enums=self.enums,
+            enums=self.enums.convert_to_parameter_enum_specification_dto()
+            if self.enums
+            else None,
             min=self.min,
             max=self.max,
         )
@@ -145,10 +163,12 @@ class AlgorithmSpecification(BaseModel):
             desc=self.desc,
             label=self.label,
             inputdata=self.inputdata.convert_to_inputdata_specifications_dto(),
-            parameters=[
-                parameter.convert_to_parameter_specification_dto()
-                for parameter in self.parameters
-            ],
+            parameters={
+                name: value.convert_to_parameter_specification_dto()
+                for name, value in self.parameters.items()
+            }
+            if self.parameters
+            else None,
         )
 
 
