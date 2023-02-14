@@ -68,33 +68,6 @@ class AsyncResult:
         pass
 
 
-class AlgorithmExecutionException(Exception):
-    def __init__(self, message):
-        super().__init__(message)
-        self.message = message
-
-
-class NodeUnresponsiveAlgorithmExecutionException(Exception):
-    def __init__(self):
-        message = (
-            "One of the nodes participating in the algorithm execution "
-            "stopped responding"
-        )
-        super().__init__(message)
-        self.message = message
-
-
-class NodeTaskTimeoutAlgorithmExecutionException(Exception):
-    def __init__(self):
-        message = (
-            "One of the tasks in the algorithm execution took longer to finish than the timeout."
-            f"This could be caused by a high load or by an experiment with too much data. "
-            f"Please try again or increase the timeout."
-        )
-        super().__init__(message)
-        self.message = message
-
-
 class InconsistentTableSchemasException(Exception):
     def __init__(self, table_infos: List[TableInfo]):
         message = f"Table_infos: {table_infos} do not have a common schema."
