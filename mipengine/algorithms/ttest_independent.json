@@ -35,7 +35,14 @@
             "desc": "The alternative hypothesis to the null, returning specifically whether measure 1 is different to measure 2, measure 1 greater than measure 2, and measure 1 less than measure 2 respectively.",
             "type": "text",
             "default": "two-sided",
-            "enums": ["two-sided", "less", "greater"],
+            "enums": {
+                "type": "enums_from_list",
+                "source": [
+                    "two-sided",
+                    "less",
+                    "greater"
+                ]
+            },
             "notblank": true,
             "multiple": false
         },
