@@ -254,20 +254,19 @@ class EnumFromCDE(AlgorithmParameter):
 
 
 def make_parameters(properties, variable_groups):
-    if properties["type"] == "int":
-        return IntegerParameter(min=properties["min"], max=properties["max"])
-    if properties["type"] == "float":
+    if "float" in properties["types"]:
         return FloatParameter(min=properties["min"], max=properties["max"])
+    if "int" in properties["types"]:
+        return IntegerParameter(min=properties["min"], max=properties["max"])
     if "enums" in properties and properties["enums"]["type"] == "enums_from_list":
         return EnumFromList(enums=properties["enums"]["source"])
-    if properties["type"] == "enum_from_cde":
+    if "enum_from_cde" in properties["types"]:
         var_group_key = properties["variable_group"]
         var_group = variable_groups[var_group_key]
         assert len(var_group) == 1, "EnumFromCDE doesn't work when multiple=True"
         varname = var_group[0]
         return EnumFromCDE(varname=varname)
-    else:
-        raise TypeError(f"Unknown parameter type: {properties['type']}.")
+    raise TypeError(f"Unknown parameter type: {properties['types']}.")
 
 
 class InputGenerator:

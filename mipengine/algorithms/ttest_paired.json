@@ -33,7 +33,7 @@
         "alt_hypothesis": {
             "label": "Alternative Hypothesis",
             "desc": "The alternative hypothesis to the null, returning specifically whether measure 1 is different to measure 2, measure 1 greater than measure 2, and measure 1 less than measure 2 respectively.",
-            "type": "text",
+            "types": ["text"],
             "default": "two-sided",
             "enums": {
                 "type": "enums_from_list",
@@ -49,15 +49,12 @@
         "alpha": {
             "label": "Confidence level",
             "desc": "The confidence level α used in the calculation of the confidence intervals for the correlation coefficients.",
-            "type": "real",
+            "types": ["real"],
             "default": 0.95,
             "min": 0.0,
             "max": 1.0,
             "notblank": true,
             "multiple": false
         }
-    },
-    "flags": {
-        "formula": false
     }
 }

@@ -33,7 +33,7 @@
         "positive_class" : {
             "label": "Positive class",
             "desc": "Positive class of y. All other classes are considered negative.",
-            "type": "enum_from_cde",
+            "types": ["text", "int"],
             "variable_group": "y",
             "default": null,
             "notblank": true,
@@ -42,7 +42,7 @@
         "n_splits": {
             "label": "Number of splits",
             "desc": "Number of splits",
-            "type": "int",
+            "types": ["int"],
             "min": 2,
             "max": 20,
             "default": 5,
