@@ -44,7 +44,7 @@ from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
 WAIT_CLEANUP_TIME_LIMIT = 40
-WAIT_BEFORE_BRING_TMPNODE_DOWN = 30
+WAIT_BEFORE_BRING_TMPNODE_DOWN = 60
 NLA_WAIT_TIME_LIMIT = 120
 
 
@@ -90,7 +90,7 @@ def init_background_controller_logger():
     ctrl_logger.set_background_service_logger("DEBUG")
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def controller(controller_config, cleaner, node_landscape_aggregator):
     controller_config = AttrDict(controller_config)
 
@@ -345,6 +345,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     cleaner,
     node_landscape_aggregator,
     controller,
+    reset_celery_app_factory,  # celery tasks fail if this is not reset
 ):
 
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
@@ -355,7 +356,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         or not node_landscape_aggregator.get_cdes_per_data_model()
         or not node_landscape_aggregator.get_datasets_locations()
     ):
-        node_landscape_aggregator._update()
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node landscape aggregator "
@@ -427,13 +427,13 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
 @pytest.mark.very_slow
 @pytest.mark.asyncio
 async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_timelimit(
-    reset_celery_app_factory,  # celery tasks fail if this is not reset
     context_id,
     algorithm,
     algorithm_executor,
     cleaner,
     node_landscape_aggregator,
     controller,
+    reset_celery_app_factory,  # celery tasks fail if this is not reset
 ):
     cleaner._contextid_release_timelimit = 2
 
@@ -445,7 +445,6 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
         or not node_landscape_aggregator.get_cdes_per_data_model()
         or not node_landscape_aggregator.get_datasets_locations()
     ):
-        node_landscape_aggregator._update()
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node landscape aggregator "
@@ -533,7 +532,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
         or not node_landscape_aggregator.get_cdes_per_data_model()
         or not node_landscape_aggregator.get_datasets_locations()
     ):
-        node_landscape_aggregator._update()
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node landscape aggregator "
@@ -596,7 +594,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     # restart the celery app of localnodetmp
     localnodetmp_node_service_proc = start_localnodetmp_node_service()
-    node_landscape_aggregator._update()
 
     tables_after_cleanup = None
     try:
@@ -610,8 +607,6 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     while not all(
         (tables == [] for tables in flatten_list(tables_after_cleanup.values()))
     ):
-        node_landscape_aggregator._update()
-
         try:
             tables_after_cleanup = get_all_tabels_nodes(
                 algorithm_executor._global_node, algorithm_executor._local_nodes
@@ -649,8 +644,8 @@ async def test_cleanup_node_service_down_algorithm_execution(
     cleaner,
     node_landscape_aggregator,
     controller,
+    reset_celery_app_factory,  # celery tasks fail if this is not reset
 ):
-
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
     # poll NodeLandscapeAggregator until it has some node info
     start = time.time()
@@ -659,7 +654,6 @@ async def test_cleanup_node_service_down_algorithm_execution(
         or not node_landscape_aggregator.get_cdes_per_data_model()
         or not node_landscape_aggregator.get_datasets_locations()
     ):
-        node_landscape_aggregator._update()
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node landscape aggregator "
@@ -716,7 +710,6 @@ async def test_cleanup_node_service_down_algorithm_execution(
 
     # restart tmplocalnode node service (the celery app)
     localnodetmp_node_service_proc = start_localnodetmp_node_service()
-    node_landscape_aggregator._update()
 
     tables_after_cleanup = None
     try:
@@ -730,8 +723,6 @@ async def test_cleanup_node_service_down_algorithm_execution(
     while not all(
         (tables == [] for tables in flatten_list(tables_after_cleanup.values()))
     ):
-        node_landscape_aggregator._update()  # is this needed????
-
         try:
             tables_after_cleanup = get_all_tabels_nodes(
                 algorithm_executor._global_node, algorithm_executor._local_nodes
