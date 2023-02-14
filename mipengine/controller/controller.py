@@ -211,9 +211,11 @@ class Controller:
                 f"{algorithm_request_dto=}"
             )
 
-        local_nodes_filtered = _filter_insufficient_data_nodes(
-            nodes.local_nodes, data_model_views
+        local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
+        algo_execution_logger.debug(
+            f"{local_nodes_filtered=} after creating data model views"
         )
+
         nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
 
         # instantiate executor
@@ -503,35 +505,15 @@ class Controller:
         return nodes
 
 
-def _filter_insufficient_data_nodes(
-    local_nodes, data_model_views: List[LocalNodesTable]
-):
-    valid_nodes = {
-        node
-        for data_model_view in data_model_views
-        for node in data_model_view.nodes_tables_info.keys()
-    }
-
-    tmp = [node for node in local_nodes if node in valid_nodes]
-
-    if not tmp:
+def _get_data_model_views_nodes(data_model_views):
+    valid_nodes = set()
+    for data_model_view in data_model_views:
+        valid_nodes.update(data_model_view.nodes_tables_info.keys())
+    if not valid_nodes:
         raise InsufficientDataError(
-            "None of the nodes has enough data to execute the "
-            "algorithm. Algorithm with context_id="
-            # f"{self._context_id} is aborted"
+            "None of the nodes has enough data to execute the algorithm."
         )
-
-    elif local_nodes != tmp:
-        local_nodes = tmp
-
-        # self._logger.info(
-        #     f"Removed nodes:{diff} from algorithm with "
-        #     f"context_id:{self._context_id}, because at least "
-        #     f"one of the 'data model views' created on each of these nodes "
-        #     f"contained insufficient rows. The algorithm will continue "
-        #     f"executing on nodes: {self._local_nodes}"
-        # )
-    return local_nodes
+    return valid_nodes
 
 
 def _create_local_nodes(request_id, context_id, nodes_tasks_handlers):
