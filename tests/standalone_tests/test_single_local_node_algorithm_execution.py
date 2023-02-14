@@ -28,7 +28,7 @@ from tests.standalone_tests.conftest import CONTROLLER_LOCALNODE1_ADDRESSES_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def command_id_generator():
     return CommandIdGenerator()
 
@@ -69,7 +69,7 @@ def controller_config():
     return controller_config
 
 
-@pytest.fixture
+@pytest.fixture("function")
 def node_landscape_aggregator(
     controller_config, localnode1_node_service, load_data_localnode1
 ):
@@ -209,7 +209,7 @@ def algorithm_request_case_2(datasets):
     return (algorithm_name, algo_request_dto)
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def metadata_case_1(node_landscape_aggregator, algorithm_request_case_1):
     algorithm_request_dto = algorithm_request_case_1[1]
 
@@ -235,7 +235,7 @@ def metadata_case_2(node_landscape_aggregator, algorithm_request_case_2):
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def algorithm_case_1(algorithm_request_case_1, metadata_case_1):
     algorithm_name = algorithm_request_case_1[0]
     algorithm_request_dto = algorithm_request_case_1[1]
@@ -279,12 +279,12 @@ def algorithm_case_2(algorithm_request_case_2, metadata_case_2):
     return algorithm_classes[algorithm_name](algorithm_dto=algorithm_dto)
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def context_id():
     return UIDGenerator().get_a_uid()
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def nodes_case_1(controller, context_id, algorithm_request_case_1):
     algorithm_request_dto = algorithm_request_case_1[1]
 
@@ -308,7 +308,7 @@ def nodes_case_2(controller, context_id, algorithm_request_case_2):
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def controller(controller_config, node_landscape_aggregator):
     controller_config = AttrDict(controller_config)
 
@@ -326,7 +326,7 @@ def controller(controller_config, node_landscape_aggregator):
     return controller
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def data_model_views_and_nodes_case_1(
     datasets,
     algorithm_request_case_1,
@@ -388,7 +388,7 @@ def data_model_views_and_nodes_case_2(
     return (data_model_views, nodes)
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def algorithm_executor_case_1(
     algorithm_request_case_1,
     context_id,
