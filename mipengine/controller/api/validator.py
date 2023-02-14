@@ -6,7 +6,6 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from mipengine.controller import config as ctrl_config
 from mipengine.controller.algorithm_specifications import AlgorithmSpecification
 from mipengine.controller.algorithm_specifications import InputDataSpecification
 from mipengine.controller.algorithm_specifications import InputDataSpecifications
@@ -365,7 +364,5 @@ class Validator:
 
         if USE_SMPC_FLAG in flags.keys():
             validate_smpc_usage(
-                flags[USE_SMPC_FLAG],
-                ctrl_config.smpc.enabled,
-                ctrl_config.smpc.optional,
+                flags[USE_SMPC_FLAG], self._smpc_enabled, self._smpc_optional
             )
