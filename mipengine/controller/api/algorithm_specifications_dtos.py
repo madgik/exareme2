@@ -38,7 +38,8 @@ class ParameterType(str, Enum):
 
 @unique
 class ParameterEnumType(str, Enum):
-    ENUMS_FROM_LIST = "enums_from_list"
+    LIST = "list"
+    INPUTDATA_CDE_ENUMS = "inputdata_CDE_enums"
 
 
 class InputDataSpecificationDTO(ImmutableBaseModel):

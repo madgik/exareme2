@@ -282,14 +282,20 @@ def test_enum_from_cde_parameter():
 
 
 def test_make_enum_from_cde_parameter():
-    properties = {"types": ["enum_from_cde"], "variable_group": "y"}
+    properties = {
+        "types": ["int", "text"],
+        "enums": {"type": "inputdata_CDE_enums", "source": "y"},
+    }
     variable_groups = {"y": ["a_variable"], "x": []}
     enum = make_parameters(properties, variable_groups)
     assert enum.varname == "a_variable"
 
 
 def test_make_enum_from_cde_parameter__error_multiple_vars():
-    properties = {"types": ["enum_from_cde"], "variable_group": "y"}
+    properties = {
+        "types": ["int", "text"],
+        "enums": {"type": "inputdata_CDE_enums", "source": "y"},
+    }
     variable_groups = {"y": ["a_variable", "another_one"], "x": []}
     with pytest.raises(AssertionError):
         make_parameters(properties, variable_groups)

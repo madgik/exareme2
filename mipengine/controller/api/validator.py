@@ -55,47 +55,60 @@ def _validate_algorithm_request_body(
     algorithm_specs: AlgorithmSpecification,
     available_datasets_per_data_model: Dict[str, List[str]],
 ):
+    _validate_data_model(
+        requested_data_model=algorithm_request_dto.inputdata.data_model,
+        available_datasets_per_data_model=available_datasets_per_data_model,
+    )
+
+    data_model_cdes = node_landscape_aggregator.get_cdes(
+        algorithm_request_dto.inputdata.data_model
+    )
+
     _validate_inputdata(
         inputdata=algorithm_request_dto.inputdata,
         inputdata_specs=algorithm_specs.inputdata,
         available_datasets_per_data_model=available_datasets_per_data_model,
+        data_model_cdes=data_model_cdes,
     )
 
     _validate_parameters(
         algorithm_request_dto.parameters,
         algorithm_specs.parameters,
+        algorithm_request_dto.inputdata,
+        data_model_cdes=data_model_cdes,
     )
 
     _validate_flags(algorithm_request_dto.flags)
+
+
+def _validate_data_model(requested_data_model: str, available_datasets_per_data_model):
+    if requested_data_model not in available_datasets_per_data_model.keys():
+        raise BadUserInput(f"Data model '{requested_data_model}' does not exist.")
 
 
 def _validate_inputdata(
     inputdata: AlgorithmInputDataDTO,
     inputdata_specs: InputDataSpecifications,
     available_datasets_per_data_model: Dict[str, List[str]],
+    data_model_cdes: Dict[str, CommonDataElement],
 ):
-    _validate_inputdata_data_model_and_dataset(
+    _validate_inputdata_dataset(
         requested_data_model=inputdata.data_model,
         requested_datasets=inputdata.datasets,
         available_datasets_per_data_model=available_datasets_per_data_model,
     )
+    _validate_inputdata_filter(inputdata.data_model, inputdata.filters, data_model_cdes)
+    _validate_algorithm_inputdatas(inputdata, inputdata_specs, data_model_cdes)
 
-    _validate_inputdata_filter(inputdata.data_model, inputdata.filters)
-    _validate_algorithm_inputdatas(inputdata, inputdata_specs)
 
-
-def _validate_inputdata_data_model_and_dataset(
+def _validate_inputdata_dataset(
     requested_data_model: str,
     requested_datasets: List[str],
     available_datasets_per_data_model: Dict[str, List[str]],
 ):
     """
-    Validates that the data_model, dataset values exist and
-    that the datasets belong in the data_model.
+    Validates that the dataset values exist and that the datasets belong in the data_model.
     """
-    if requested_data_model not in available_datasets_per_data_model.keys():
-        raise BadUserInput(f"Data model '{requested_data_model}' does not exist.")
-
     non_existing_datasets = [
         dataset
         for dataset in requested_datasets
@@ -107,33 +120,30 @@ def _validate_inputdata_data_model_and_dataset(
         )
 
 
-def _validate_inputdata_filter(data_model, filter):
+def _validate_inputdata_filter(data_model, filter, data_model_cdes):
     """
     Validates that the filter provided have the correct format
     following: https://querybuilder.js.org/
     """
-    cdes = node_landscape_aggregator.get_cdes(data_model)
-    validate_filter(data_model, filter, cdes)
+    validate_filter(data_model, filter, data_model_cdes)
 
 
 def _validate_algorithm_inputdatas(
-    inputdata: AlgorithmInputDataDTO, inputdata_specs: InputDataSpecifications
+    inputdata: AlgorithmInputDataDTO,
+    inputdata_specs: InputDataSpecifications,
+    data_model_cdes: Dict[str, CommonDataElement],
 ):
 
     if inputdata_specs.x:
-        _validate_algorithm_inputdata(
-            inputdata.x, inputdata_specs.x, inputdata.data_model
-        )
+        _validate_algorithm_inputdata(inputdata.x, inputdata_specs.x, data_model_cdes)
     if inputdata_specs.y:
-        _validate_algorithm_inputdata(
-            inputdata.y, inputdata_specs.y, inputdata.data_model
-        )
+        _validate_algorithm_inputdata(inputdata.y, inputdata_specs.y, data_model_cdes)
 
 
 def _validate_algorithm_inputdata(
     inputdata_values: Optional[List[str]],
     inputdata_spec: InputDataSpecification,
-    data_model: str,
+    data_model_cdes: Dict[str, CommonDataElement],
 ):
     if not inputdata_values and not inputdata_spec:
         return
@@ -149,7 +159,7 @@ def _validate_algorithm_inputdata(
     _validate_inputdata_values_quantity(inputdata_values, inputdata_spec)
 
     for inputdata_value in inputdata_values:
-        _validate_inputdata_value(inputdata_value, inputdata_spec, data_model)
+        _validate_inputdata_value(inputdata_value, inputdata_spec, data_model_cdes)
 
 
 def _validate_inputdata_values_quantity(
@@ -165,9 +175,11 @@ def _validate_inputdata_values_quantity(
 
 
 def _validate_inputdata_value(
-    inputdata_value: str, inputdata_specs: InputDataSpecification, data_model: str
+    inputdata_value: str,
+    inputdata_specs: InputDataSpecification,
+    data_model_cdes: Dict[str, CommonDataElement],
 ):
-    inputdata_value_metadata = _get_cde_metadata(inputdata_value, data_model)
+    inputdata_value_metadata = _get_cde_metadata(inputdata_value, data_model_cdes)
     _validate_inputdata_types(
         inputdata_value, inputdata_specs, inputdata_value_metadata
     )
@@ -179,11 +191,10 @@ def _validate_inputdata_value(
     )
 
 
-def _get_cde_metadata(cde, data_model):
-    data_model_cdes = node_landscape_aggregator.get_cdes(data_model)
+def _get_cde_metadata(cde, data_model_cdes):
     if cde not in data_model_cdes.keys():
         raise BadUserInput(
-            f"The CDE '{cde}' does not exist in data model '{data_model}'."
+            f"The CDE '{cde}' does not exist in the data model provided."
         )
     return data_model_cdes[cde]
 
@@ -245,6 +256,8 @@ def _validate_inputdata_enumerations(
 def _validate_parameters(
     parameters: Optional[Dict[str, Any]],
     parameters_specs: Optional[Dict[str, ParameterSpecification]],
+    inputdata: AlgorithmInputDataDTO,
+    data_model_cdes: Dict[str, CommonDataElement],
 ):
     """
     If the algorithm has parameters,
@@ -263,14 +276,18 @@ def _validate_parameters(
         parameter_values = parameters.get(parameter_name)
         if parameter_values:
             _validate_parameter_values(
-                parameter_values,
-                parameter_spec,
+                parameter_values=parameter_values,
+                parameter_spec=parameter_spec,
+                inputdata=inputdata,
+                data_model_cdes=data_model_cdes,
             )
 
 
 def _validate_parameter_values(
     parameter_values: Any,
     parameter_spec: ParameterSpecification,
+    inputdata: AlgorithmInputDataDTO,
+    data_model_cdes: Dict[str, CommonDataElement],
 ):
     if parameter_spec.multiple and not isinstance(parameter_values, list):
         raise BadUserInput(f"Parameter '{parameter_spec.label}' should be a list.")
@@ -280,7 +297,9 @@ def _validate_parameter_values(
     for parameter_value in parameter_values:
         _validate_parameter_type(parameter_value, parameter_spec)
 
-        _validate_parameter_enumerations(parameter_value, parameter_spec)
+        _validate_parameter_enumerations(
+            parameter_value, parameter_spec, inputdata, data_model_cdes
+        )
 
         _validate_parameter_inside_min_max(parameter_value, parameter_spec)
 
@@ -308,15 +327,33 @@ def _validate_parameter_type(
 def _validate_parameter_enumerations(
     parameter_value: Any,
     parameter_spec: ParameterSpecification,
+    inputdata: AlgorithmInputDataDTO,
+    data_model_cdes: Dict[str, CommonDataElement],
 ):
     if parameter_spec.enums is None:
         return
 
-    if parameter_spec.enums.type == ParameterEnumType.ENUMS_FROM_LIST:
+    if parameter_spec.enums.type == ParameterEnumType.LIST:
         if parameter_value not in parameter_spec.enums.source:
             raise BadUserInput(
                 f"Parameter '{parameter_spec.label}' values "
                 f"should be one of the following: '{str(parameter_spec.enums)}'."
+            )
+    elif parameter_spec.enums.type == ParameterEnumType.INPUTDATA_CDE_ENUMS:
+        if parameter_spec.enums.source == "x":
+            inputdata_vars = inputdata.x
+        elif parameter_spec.enums.source == "y":
+            inputdata_vars = inputdata.y
+        else:
+            raise NotImplementedError(f"Source should be either 'x' or 'y'.")
+
+        inputdata_var = inputdata_vars[0]  # multiple=true is not allowed
+        inputdata_CDE_enums = list(data_model_cdes[inputdata_var].enumerations.keys())
+        if parameter_value not in inputdata_CDE_enums:
+            raise BadUserInput(
+                f"Parameter's '{parameter_spec.label}' enums, that are taken from the CDE '{inputdata_var}' "
+                f"given in inputdata '{parameter_spec.enums.source}' variable, "
+                f"should be one of the following: '{inputdata_CDE_enums}'."
             )
     else:
         raise NotImplementedError(

@@ -6,6 +6,8 @@ from typing import List
 from typing import Optional
 
 from pydantic import BaseModel
+from pydantic import root_validator
+from pydantic import validator
 
 from mipengine import ALGORITHM_FOLDERS
 from mipengine.controller.api.algorithm_specifications_dtos import (
@@ -139,12 +141,38 @@ class ParameterSpecification(BaseModel):
             notblank=self.notblank,
             multiple=self.multiple,
             default=self.default,
-            enums=self.enums.convert_to_parameter_enum_specification_dto()
-            if self.enums
-            else None,
+            enums=(
+                self.enums.convert_to_parameter_enum_specification_dto()
+                if self.enums
+                else None
+            ),
             min=self.min,
             max=self.max,
         )
+
+
+def _validate_parameter_with_type_inputdata_CDE_enums(param_value, cls_values):
+    if param_value.enums.type == ParameterEnumType.INPUTDATA_CDE_ENUMS:
+        if param_value.enums.source not in ["x", "y"]:
+            raise ValueError(
+                f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'inputdata_CDE_enums' "
+                f"that supports only 'x' or 'y' as source. Value given: '{param_value.enums.source}'."
+            )
+        if param_value.multiple:
+            raise ValueError(
+                f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'inputdata_CDE_enums' "
+                f"that doesn't support 'multiple=True', in the parameter."
+            )
+        inputdata_var = (
+            cls_values["inputdata"].x
+            if param_value.enums.source == "x"
+            else cls_values["inputdata"].y
+        )
+        if inputdata_var.multiple:
+            raise ValueError(
+                f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'inputdata_CDE_enums' "
+                f"that doesn't support 'multiple=True' in it's linked inputdata var '{inputdata_var.label}'."
+            )
 
 
 class AlgorithmSpecification(BaseModel):
@@ -156,6 +184,17 @@ class AlgorithmSpecification(BaseModel):
     parameters: Optional[Dict[str, ParameterSpecification]]
     flags: Optional[Dict[str, bool]]
 
+    @root_validator
+    def validate_parameter_enums_logic(cls, cls_values):
+        if not cls_values["parameters"]:
+            return cls_values
+
+        for param_value in cls_values["parameters"].values():
+            if not param_value.enums:
+                continue
+            _validate_parameter_with_type_inputdata_CDE_enums(param_value, cls_values)
+        return cls_values
+
     def convert_to_algorithm_specifications_dto(self):
         # Converting to a DTO does not include the flags.
         return AlgorithmSpecificationDTO(
@@ -163,12 +202,14 @@ class AlgorithmSpecification(BaseModel):
             desc=self.desc,
             label=self.label,
             inputdata=self.inputdata.convert_to_inputdata_specifications_dto(),
-            parameters={
-                name: value.convert_to_parameter_specification_dto()
-                for name, value in self.parameters.items()
-            }
-            if self.parameters
-            else None,
+            parameters=(
+                {
+                    name: value.convert_to_parameter_specification_dto()
+                    for name, value in self.parameters.items()
+                }
+                if self.parameters
+                else None
+            ),
         )
 
 

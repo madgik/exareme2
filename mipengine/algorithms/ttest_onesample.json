@@ -24,7 +24,7 @@
             "types": ["text"],
             "default": "two-sided",
             "enums": {
-                "type": "enums_from_list",
+                "type": "list",
                 "source": [
                     "two-sided",
                     "less",

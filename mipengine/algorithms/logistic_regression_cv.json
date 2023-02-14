@@ -33,8 +33,11 @@
         "positive_class" : {
             "label": "Positive class",
             "desc": "Positive class of y. All other classes are considered negative.",
-            "types": ["text", "int"],
-            "variable_group": "y",
+            "types": ["int", "text"],
+            "enums": {
+                "type": "inputdata_CDE_enums",
+                "source": "y"
+            },
             "default": null,
             "notblank": true,
             "multiple": false
