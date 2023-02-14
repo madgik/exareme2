@@ -34,7 +34,6 @@ class ParameterType(str, Enum):
     INT = "int"
     TEXT = "text"
     BOOLEAN = "boolean"
-    ENUM_FROM_CDE = "enum_from_cde"
 
 
 @unique
@@ -68,7 +67,7 @@ class ParameterEnumSpecificationDTO(ImmutableBaseModel):
 class ParameterSpecificationDTO(ImmutableBaseModel):
     label: str
     desc: str
-    type: ParameterType
+    types: List[ParameterType]
     notblank: bool
     multiple: bool
     default: Any

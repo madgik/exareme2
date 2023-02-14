@@ -294,14 +294,14 @@ def _validate_parameter_type(
         "int": int,
         "real": numbers.Real,
         "boolean": bool,
-        "enum_from_cde": (str, int),
     }
 
-    if not isinstance(
-        parameter_value, mip_types_to_python_types[parameter_spec.type.value]
-    ):
+    for param_type in parameter_spec.types:
+        if isinstance(parameter_value, mip_types_to_python_types[param_type.value]):
+            return
+    else:
         raise BadUserInput(
-            f"Parameter '{parameter_spec.label}' values should be of type '{parameter_spec.type}'."
+            f"Parameter '{parameter_spec.label}' values should be of types: {[type.value for type in parameter_spec.types]}."
         )
 
 

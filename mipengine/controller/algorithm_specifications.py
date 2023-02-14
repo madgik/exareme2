@@ -123,7 +123,7 @@ class ParameterEnumSpecification(BaseModel):
 class ParameterSpecification(BaseModel):
     label: str
     desc: str
-    type: ParameterType
+    types: List[ParameterType]
     notblank: bool
     multiple: bool
     default: Any
@@ -135,7 +135,7 @@ class ParameterSpecification(BaseModel):
         return ParameterSpecificationDTO(
             label=self.label,
             desc=self.desc,
-            type=self.type,
+            types=self.types,
             notblank=self.notblank,
             multiple=self.multiple,
             default=self.default,

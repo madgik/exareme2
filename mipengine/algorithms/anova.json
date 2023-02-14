@@ -35,7 +35,7 @@
         "sstype": {
             "label": "sstype",
             "desc": "Type of sum of squares to use. It can be 1 or 2.",
-            "type": "int",
+            "types": ["int"],
             "default": "2",
             "min": 1,
             "max": 2,

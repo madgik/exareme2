@@ -172,7 +172,7 @@ def mock_algorithms_specs():
                 "parameter1": ParameterSpecification(
                     label="paremeter1",
                     desc="parameter 1",
-                    type="real",
+                    types=["real"],
                     notblank=True,
                     multiple=True,
                     default=1,
@@ -184,7 +184,7 @@ def mock_algorithms_specs():
                 "parameter2": ParameterSpecification(
                     label="paremeter2",
                     desc="parameter 2",
-                    type="int",
+                    types=["int"],
                     notblank=False,
                     multiple=False,
                     default=None,
@@ -194,7 +194,7 @@ def mock_algorithms_specs():
                 "parameter3": ParameterSpecification(
                     label="paremeter3",
                     desc="parameter 3",
-                    type="text",
+                    types=["text"],
                     notblank=False,
                     multiple=False,
                     default=None,
@@ -202,7 +202,7 @@ def mock_algorithms_specs():
                 "parameter4": ParameterSpecification(
                     label="paremeter4",
                     desc="parameter 4",
-                    type="int",
+                    types=["int"],
                     notblank=False,
                     multiple=True,
                     default=1,
@@ -466,7 +466,7 @@ def get_parametrization_list_exception_cases():
                 ),
                 parameters={"parameter1": [1, 3], "parameter4": [1, 2.3]},
             ),
-            (BadUserInput, "Parameter .* values should be of type .*"),
+            (BadUserInput, "Parameter .* values should be of types.*"),
         ),
         (
             "test_algorithm1",
@@ -479,7 +479,7 @@ def get_parametrization_list_exception_cases():
                 ),
                 parameters={"parameter1": [1, 3], "parameter2": "wrong"},
             ),
-            (BadUserInput, "Parameter .* values should be of type .*"),
+            (BadUserInput, "Parameter .* values should be of types.*"),
         ),
         (
             "test_algorithm1",
@@ -492,7 +492,7 @@ def get_parametrization_list_exception_cases():
                 ),
                 parameters={"parameter1": [1, 3], "parameter3": 1},
             ),
-            (BadUserInput, "Parameter .* values should be of type .*"),
+            (BadUserInput, "Parameter .* values should be of types.*"),
         ),
         (
             "test_algorithm1",
