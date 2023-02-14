@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -24,6 +25,7 @@ from mipengine.controller.api.algorithm_specifications_dtos import InputDataType
 from mipengine.controller.api.algorithm_specifications_dtos import (
     ParameterSpecificationDTO,
 )
+from mipengine.controller.api.algorithm_specifications_dtos import ParameterType
 
 
 class InputDataSpecification(BaseModel):
@@ -103,9 +105,28 @@ class InputDataSpecifications(BaseModel):
         )
 
 
-class ParameterSpecification(ParameterSpecificationDTO):
-    # The parameter specification is identical to the DTO
-    pass
+class ParameterSpecification(BaseModel):
+    label: str
+    desc: str
+    type: ParameterType
+    notblank: bool
+    multiple: bool
+    default: Any
+    enums: Optional[List[Any]]
+    min: Optional[float]
+    max: Optional[float]
+
+    def convert_to_parameter_specification_dto(self):
+        return ParameterSpecificationDTO(
+            label=self.label,
+            type=self.type,
+            notblank=self.notblank,
+            multiple=self.multiple,
+            default=self.default,
+            enums=self.enums,
+            min=self.min,
+            max=self.max,
+        )
 
 
 class AlgorithmSpecification(BaseModel):
@@ -124,7 +145,10 @@ class AlgorithmSpecification(BaseModel):
             desc=self.desc,
             label=self.label,
             inputdata=self.inputdata.convert_to_inputdata_specifications_dto(),
-            parameters=self.parameters,
+            parameters=[
+                parameter.convert_to_parameter_specification_dto()
+                for parameter in self.parameters
+            ],
         )
 
 
