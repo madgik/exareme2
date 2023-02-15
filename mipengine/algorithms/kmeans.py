@@ -7,6 +7,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from mipengine.algorithm_result_DTOs import TabularDataResult
+from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
@@ -34,94 +35,102 @@ class KmeansResult(BaseModel):
     init_centers: List[List[float]]
 
 
-def run(algo_interface):
-    local_run = algo_interface.run_udf_on_local_nodes
-    global_run = algo_interface.run_udf_on_global_node
+class KMeansAlgorithm(Algorithm, algname="kmeans"):
+    def get_variable_groups(self):
+        return [self.executor.y_variables]
 
-    # X_relation = algo_interface.initial_view_tables["x"]
+    def run(self):
+        local_run = self.executor.run_udf_on_local_nodes
+        global_run = self.executor.run_udf_on_global_node
 
-    X_relation, *_ = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.y_variables], dropna=True
-    )
+        # X_relation = algo_interface.initial_view_tables["x"]
 
-    n_clusters = algo_interface.algorithm_parameters["k"]
-    tol = algo_interface.algorithm_parameters["tol"]
-    maxiter = algo_interface.algorithm_parameters["maxiter"]
+        # X_relation, *_ = algo_interface.create_primary_data_views(
+        #    variable_groups=[algo_interface.y_variables], dropna=True
+        # )
 
-    X_not_null = local_run(
-        func=relation_to_matrix,
-        positional_args=[X_relation],
-    )
+        [X_relation] = self.executor.data_model_views
 
-    # X_not_null = local_run(
-    #    func=remove_nulls,
-    #    positional_args=[X],
-    # )
+        n_clusters = self.executor.algorithm_parameters["k"]
+        tol = self.executor.algorithm_parameters["tol"]
+        maxiter = self.executor.algorithm_parameters["maxiter"]
 
-    min_max_transfer = local_run(
-        func=init_centers_local2,
-        positional_args=[X_not_null],
-        share_to_global=[True],
-    )
-
-    global_state, global_result = global_run(
-        func=init_centers_global2,
-        positional_args=[min_max_transfer, n_clusters],
-        share_to_locals=[False, True],
-    )
-
-    curr_iter = 0
-    centers_to_compute = global_result
-    print(centers_to_compute.get_table_data()[0][0])
-    init_centers = json.loads(centers_to_compute.get_table_data()[0][0])["centers"]
-
-    # init_centers = get_transfer_data(centers_to_compute)['centers']
-    init_centers_array = numpy.array(init_centers)
-    init_centers_list = init_centers_array.tolist()
-    while True:
-        label_state = local_run(
-            func=compute_cluster_labels,
-            positional_args=[X_not_null, centers_to_compute],
-            share_to_global=[False],
+        X_not_null = local_run(
+            func=relation_to_matrix,
+            positional_args=[X_relation],
         )
 
-        metrics_local = local_run(
-            func=compute_metrics,
-            positional_args=[X_not_null, label_state, n_clusters],
+        # X_not_null = local_run(
+        #    func=remove_nulls,
+        #    positional_args=[X],
+        # )
+
+        min_max_transfer = local_run(
+            func=init_centers_local2,
+            positional_args=[X_not_null],
             share_to_global=[True],
         )
 
-        new_centers = global_run(
-            func=compute_centers_from_metrics,
-            positional_args=[metrics_local, min_max_transfer, n_clusters],
-            share_to_locals=[True],
+        global_state, global_result = global_run(
+            func=init_centers_global2,
+            positional_args=[min_max_transfer, n_clusters],
+            share_to_locals=[False, True],
         )
 
-        curr_iter += 1
+        curr_iter = 0
+        centers_to_compute = global_result
+        print(centers_to_compute.get_table_data()[0][0])
+        init_centers = json.loads(centers_to_compute.get_table_data()[0][0])["centers"]
 
-        old_centers = json.loads(centers_to_compute.get_table_data()[0][0])["centers"]
-        # old_centers = get_transfer_data(centers_to_compute)['centers']
-        old_centers_array = numpy.array(old_centers)
-
-        print(new_centers.get_table_data())
-        new_centers_obj = json.loads(new_centers.get_table_data()[0][0])["centers"]
-        # new_centers_obj = get_transfer_data(new_centers)['centers']
-        new_centers_array = numpy.array(new_centers_obj)
-
-        diff = numpy.sum((new_centers_array - old_centers_array) ** 2)
-
-        if (curr_iter >= maxiter) or (diff < tol):
-            ret_obj = KmeansResult(
-                title="K-Means Centers",
-                centers=new_centers_array.tolist(),
-                init_centers=init_centers_list,
+        # init_centers = get_transfer_data(centers_to_compute)['centers']
+        init_centers_array = numpy.array(init_centers)
+        init_centers_list = init_centers_array.tolist()
+        while True:
+            label_state = local_run(
+                func=compute_cluster_labels,
+                positional_args=[X_not_null, centers_to_compute],
+                share_to_global=[False],
             )
-            print("finished after " + str(curr_iter))
-            return ret_obj
 
-        else:
-            centers_to_compute = new_centers
-    return ret_obj
+            metrics_local = local_run(
+                func=compute_metrics,
+                positional_args=[X_not_null, label_state, n_clusters],
+                share_to_global=[True],
+            )
+
+            new_centers = global_run(
+                func=compute_centers_from_metrics,
+                positional_args=[metrics_local, min_max_transfer, n_clusters],
+                share_to_locals=[True],
+            )
+
+            curr_iter += 1
+
+            old_centers = json.loads(centers_to_compute.get_table_data()[0][0])[
+                "centers"
+            ]
+            # old_centers = get_transfer_data(centers_to_compute)['centers']
+            old_centers_array = numpy.array(old_centers)
+
+            print(new_centers.get_table_data())
+            new_centers_obj = json.loads(new_centers.get_table_data()[0][0])["centers"]
+            # new_centers_obj = get_transfer_data(new_centers)['centers']
+            new_centers_array = numpy.array(new_centers_obj)
+
+            diff = numpy.sum((new_centers_array - old_centers_array) ** 2)
+
+            if (curr_iter >= maxiter) or (diff < tol):
+                ret_obj = KmeansResult(
+                    title="K-Means Centers",
+                    centers=new_centers_array.tolist(),
+                    init_centers=init_centers_list,
+                )
+                print("finished after " + str(curr_iter))
+                return ret_obj
+
+            else:
+                centers_to_compute = new_centers
+        return ret_obj
 
 
 @udf(rel=relation(S), return_type=tensor(float, 2))
