@@ -5,6 +5,7 @@ import scipy.stats as stats
 from pydantic import BaseModel
 from scipy.special import xlogy
 
+from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import LabelBinarizer
@@ -20,28 +21,31 @@ TOL = 1e-4  # tolerance for stopping criterion
 ALPHA = 0.05  # alpha level for coefficient confidence intervals
 
 
-def run(executor):
-    xvars, yvars = executor.x_variables, executor.y_variables
-    X, y = executor.create_primary_data_views([xvars, yvars])
-    positive_class = executor.algorithm_parameters["positive_class"]
+class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
+    def get_variable_groups(self):
+        return [self.executor.x_variables, self.executor.y_variables]
 
-    dummy_encoder = DummyEncoder(executor)
-    X = dummy_encoder.transform(X)
+    def run(self):
+        X, y = self.executor.data_model_views
+        positive_class = self.executor.algorithm_parameters["positive_class"]
 
-    ybin = LabelBinarizer(executor, positive_class).transform(y)
+        dummy_encoder = DummyEncoder(self.executor)
+        X = dummy_encoder.transform(X)
 
-    lr = LogisticRegression(executor)
-    lr.fit(X=X, y=ybin)
+        ybin = LabelBinarizer(self.executor, positive_class).transform(y)
 
-    summary = compute_summary(model=lr)
+        lr = LogisticRegression(self.executor)
+        lr.fit(X=X, y=ybin)
 
-    result = LogisticRegressionResult(
-        dependent_var=y.columns[0],
-        indep_vars=X.columns,
-        summary=summary,
-    )
+        summary = compute_summary(model=lr)
 
-    return result
+        result = LogisticRegressionResult(
+            dependent_var=y.columns[0],
+            indep_vars=X.columns,
+            summary=summary,
+        )
+
+        return result
 
 
 class LogisticRegression:
@@ -146,10 +150,10 @@ class LogisticRegression:
         # However, this generates a large (n_obs, n_obs) diagonal matrix.
         # Instead, the version using Einstein summation is memory efficient
         # thanks to the optimized tensor constraction algorithms behind einsum.
-        H = numpy.einsum("ji, j..., jk -> ik", X, w, X, optimize="greedy")
+        H = numpy.einsum("ji, j, jk -> ik", X, w.squeeze(), X)
 
         # gradient
-        grad = numpy.einsum("ji, j... -> i", X, y - mu, optimize="greedy")
+        grad = numpy.einsum("ji, j -> i", X, (y - mu).squeeze())
 
         # log-likelihood
         ll = numpy.sum(special.xlogy(y, mu) + special.xlogy(1 - y, 1 - mu))

@@ -77,7 +77,6 @@ ORDER BY
                     ("dim0", DType.INT),
                     ("val", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" DOUBLE);'
                 ),
@@ -169,7 +168,6 @@ ORDER BY
                     ("dim1", DType.INT),
                     ("val", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
@@ -239,7 +237,6 @@ FROM
                     ("dim0", DType.INT),
                     ("val", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" DOUBLE);'
                 ),

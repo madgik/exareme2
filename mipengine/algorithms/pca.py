@@ -4,6 +4,7 @@ from typing import TypeVar
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
@@ -19,45 +20,47 @@ class PCAResult(BaseModel):
     eigenvectors: List[List[float]]
 
 
-def run(algo_interface):
-    local_run = algo_interface.run_udf_on_local_nodes
-    global_run = algo_interface.run_udf_on_global_node
+class PCAAlgorithm(Algorithm, algname="pca"):
+    def get_variable_groups(self):
+        return [self.executor.y_variables]
 
-    X_relation, *_ = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.y_variables],
-    )
+    def run(self):
+        local_run = self.executor.run_udf_on_local_nodes
+        global_run = self.executor.run_udf_on_global_node
 
-    local_transfers = local_run(
-        func=local1,
-        keyword_args={"x": X_relation},
-        share_to_global=[True],
-    )
-    global_state, global_transfer = global_run(
-        func=global1,
-        keyword_args=dict(local_transfers=local_transfers),
-        share_to_locals=[False, True],
-    )
-    local_transfers = local_run(
-        func=local2,
-        keyword_args=dict(x=X_relation, global_transfer=global_transfer),
-        share_to_global=[True],
-    )
-    result = global_run(
-        func=global2,
-        keyword_args=dict(local_transfers=local_transfers, prev_state=global_state),
-    )
-    result = get_transfer_data(result)
-    n_obs = result["n_obs"]
-    eigenvalues = result["eigenvalues"]
-    eigenvectors = result["eigenvectors"]
+        [X_relation] = self.executor.data_model_views
 
-    result = PCAResult(
-        title="Eigenvalues and Eigenvectors",
-        n_obs=n_obs,
-        eigenvalues=eigenvalues,
-        eigenvectors=eigenvectors,
-    )
-    return result
+        local_transfers = local_run(
+            func=local1,
+            keyword_args={"x": X_relation},
+            share_to_global=[True],
+        )
+        global_state, global_transfer = global_run(
+            func=global1,
+            keyword_args=dict(local_transfers=local_transfers),
+            share_to_locals=[False, True],
+        )
+        local_transfers = local_run(
+            func=local2,
+            keyword_args=dict(x=X_relation, global_transfer=global_transfer),
+            share_to_global=[True],
+        )
+        result = global_run(
+            func=global2,
+            keyword_args=dict(local_transfers=local_transfers, prev_state=global_state),
+        )
+        result = get_transfer_data(result)
+        n_obs = result["n_obs"]
+        eigenvalues = result["eigenvalues"]
+        eigenvectors = result["eigenvectors"]
+
+        result = PCAResult(
+            title="Eigenvalues and Eigenvectors",
+            n_obs=n_obs,
+            eigenvalues=eigenvalues,
+            eigenvectors=eigenvectors,
+        )
+        return result
 
 
 S = TypeVar("S")
@@ -66,8 +69,8 @@ S = TypeVar("S")
 @udf(x=relation(schema=S), return_type=[secure_transfer(sum_op=True)])
 def local1(x):
     n_obs = len(x)
-    sx = x.sum(axis=0)
-    sxx = (x**2).sum(axis=0)
+    sx = numpy.einsum("ij->j", x)
+    sxx = numpy.einsum("ij,ij->j", x, x)
 
     transfer_ = {}
     transfer_["n_obs"] = {"data": n_obs, "operation": "sum", "type": "int"}
@@ -99,13 +102,16 @@ def local2(x, global_transfer):
     means = numpy.array(global_transfer["means"])
     sigmas = numpy.array(global_transfer["sigmas"])
 
-    x -= means
-    x /= sigmas
-    gramian = x.T @ x
+    x = x.values
+    out = numpy.empty(x.shape)
+
+    numpy.subtract(x, means, out=out)
+    numpy.divide(out, sigmas, out=out)
+    gramian = numpy.einsum("ji,jk->ik", out, out)
 
     transfer_ = {
         "gramian": {
-            "data": gramian.values.tolist(),
+            "data": gramian.tolist(),
             "operation": "sum",
             "type": "float",
         }

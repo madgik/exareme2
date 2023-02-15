@@ -50,7 +50,7 @@
                     0.008196984540644022
                 ],
                 "ci_upper": -0.5321898929847113,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -2.2736343143101996
                 ]
@@ -159,7 +159,7 @@
                     0.060804115806025356
                 ],
                 "ci_upper": -4.504997478455861,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -14.604100591542439
                 ]
@@ -204,7 +204,7 @@
                 "se_difference": [
                     0.15528691376924544
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 8.306312101273088,
                 "cohens_d": [
                     6.415151784080005
@@ -298,7 +298,7 @@
                 "se_difference": [
                     0.026154823964331612
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -2.1527685320188565,
                 "cohens_d": [
                     -4.287588771912893
@@ -496,7 +496,7 @@
                 "se_difference": [
                     0.14733087752786445
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -11.030793598582477,
                 "cohens_d": [
                     -6.38208186862121
@@ -612,7 +612,7 @@
                 "se_difference": [
                     0.039179947059955825
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 3.842600848002459,
                 "cohens_d": [
                     4.903659113365949
@@ -709,7 +709,7 @@
                     0.051771503026244496
                 ],
                 "ci_upper": -3.685321766578678,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -2.494408000623028
                 ]
@@ -825,7 +825,7 @@
                 "se_difference": [
                     0.014091448773069379
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 0.7229317194138967,
                 "cohens_d": [
                     1.4620687074622614
@@ -878,7 +878,7 @@
                 "se_difference": [
                     0.033764825976415405
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 7.185971931624665,
                 "cohens_d": [
                     12.380082090746699
@@ -939,7 +939,7 @@
                     0.05799129382409635
                 ],
                 "ci_upper": 12.512500475245368,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     8.309038901606348
                 ]
@@ -1112,7 +1112,7 @@
                     0.01628417595921823
                 ],
                 "ci_upper": 0.677925213749246,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     0.9967629543029676
                 ]
@@ -1168,7 +1168,7 @@
                     0.006733656088401463
                 ],
                 "ci_upper": -0.9578124938319439,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -6.994532447564936
                 ]
@@ -1216,7 +1216,7 @@
                 "se_difference": [
                     0.03815595443407649
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -4.262162872479215,
                 "cohens_d": [
                     -7.072019789877908
@@ -1328,7 +1328,7 @@
                 "se_difference": [
                     0.02056478190647244
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 4.933175699076928,
                 "cohens_d": [
                     8.344619025487882
@@ -1375,7 +1375,7 @@
                 "se_difference": [
                     0.050863355062987545
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -5.180135501375514,
                 "cohens_d": [
                     -8.8188176823994
@@ -1442,7 +1442,7 @@
                 "se_difference": [
                     0.0029513277539180544
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 0.008957416861622654,
                 "cohens_d": [
                     0.04830504258994359
@@ -1547,7 +1547,7 @@
                     0.07048044359467757
                 ],
                 "ci_upper": 7.858858675555532,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     4.554193196925059
                 ]
@@ -1597,7 +1597,7 @@
                 "se_difference": [
                     0.03792816390271487
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -5.206254613084029,
                 "cohens_d": [
                     -6.944273335231218
@@ -1669,7 +1669,7 @@
                     0.039898549693375196
                 ],
                 "ci_upper": -10.636254578521756,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -6.996710373051328
                 ]
@@ -1723,7 +1723,7 @@
                 "se_difference": [
                     0.02049630651677519
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -3.2280008397681517,
                 "cohens_d": [
                     -6.566428055877447
@@ -1780,7 +1780,7 @@
                     0.022350687149156254
                 ],
                 "ci_upper": -2.898212333248599,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -5.569057654061763
                 ]
@@ -1834,7 +1834,7 @@
                     0.01680877255120014
                 ],
                 "ci_upper": 2.825781245023323,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     8.040628858232418
                 ]
@@ -1934,7 +1934,7 @@
                     0.2207136182303842
                 ],
                 "ci_upper": 34.689382047355465,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     7.3545612500117965
                 ]
@@ -1995,7 +1995,7 @@
                     0.0065600021471889465
                 ],
                 "ci_upper": 0.44998491358056136,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     1.9319884980164843
                 ]
@@ -2044,7 +2044,7 @@
                 "se_difference": [
                     0.07823223080023724
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 10.748890646287549,
                 "cohens_d": [
                     10.105936908297737
@@ -2096,7 +2096,7 @@
                 "se_difference": [
                     0.5672527987578901
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 63.762501936559644,
                 "cohens_d": [
                     10.262663620726693
@@ -2143,7 +2143,7 @@
                 "se_difference": [
                     0.052354562083376015
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -0.27064161700552886,
                 "cohens_d": [
                     -0.43322155803880835
@@ -2236,7 +2236,7 @@
                 "se_difference": [
                     0.7752928653168222
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 26.83906210760294,
                 "cohens_d": [
                     3.6387581580500656
@@ -2292,7 +2292,7 @@
                 "se_difference": [
                     1.100573180269118
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 210.0079390889754,
                 "cohens_d": [
                     8.626400391932284
@@ -2337,7 +2337,7 @@
                 "se_difference": [
                     0.047454903267738185
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 1.565872500753884,
                 "cohens_d": [
                     6.193382673205814
@@ -2389,7 +2389,7 @@
                     0.04528688655722607
                 ],
                 "ci_upper": 2.3050327463006797,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     2.2027670888207185
                 ]
@@ -2439,7 +2439,7 @@
                 "se_difference": [
                     0.043395534174950755
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -6.339650617479433,
                 "cohens_d": [
                     -8.613721394212318
@@ -2599,7 +2599,7 @@
                 "se_difference": [
                     0.03259804439007754
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -0.618556011808319,
                 "cohens_d": [
                     -0.9054601956455473
@@ -2704,7 +2704,7 @@
                     0.22591447610223628
                 ],
                 "ci_upper": 16.697114555277988,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     6.403740483111813
                 ]
@@ -2770,7 +2770,7 @@
                 "se_difference": [
                     0.017962444191572495
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -2.094841878603832,
                 "cohens_d": [
                     -2.468578511211291
@@ -2820,7 +2820,7 @@
                     0.0412435569283971
                 ],
                 "ci_upper": 5.540591096171214,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     7.494481882541083
                 ]
@@ -2865,7 +2865,7 @@
                 "se_difference": [
                     0.03245094710693718
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -1.9004989820043214,
                 "cohens_d": [
                     -6.117980145291606
@@ -2972,7 +2972,7 @@
                     0.020495168083918585
                 ],
                 "ci_upper": -4.291510518363872,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -9.250541811482872
                 ]
@@ -3021,7 +3021,7 @@
                 "se_difference": [
                     0.03725834689463929
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 5.527493364173804,
                 "cohens_d": [
                     9.544178716761195
@@ -3068,7 +3068,7 @@
                     0.08779208384264417
                 ],
                 "ci_upper": -5.601546692699899,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -6.14203036438329
                 ]
@@ -3171,7 +3171,7 @@
                 "se_difference": [
                     0.06240083291015819
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 8.083160039536525,
                 "cohens_d": [
                     9.233884711560048
@@ -3224,7 +3224,7 @@
                     0.030922343143103367
                 ],
                 "ci_upper": 4.027180055997098,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     4.740462806380287
                 ]
@@ -3294,7 +3294,7 @@
                 "se_difference": [
                     0.011899452807520028
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -2.7289712820860927,
                 "cohens_d": [
                     -6.720243090637184
@@ -3348,7 +3348,7 @@
                     0.025224343199019
                 ],
                 "ci_upper": 3.8132355990644333,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     6.4982444602814065
                 ]
@@ -3403,7 +3403,7 @@
                 "se_difference": [
                     0.02360815872194062
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -3.177979389901357,
                 "cohens_d": [
                     -4.440366181076314
@@ -3456,7 +3456,7 @@
                 "se_difference": [
                     0.4622422106785431
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -55.9221931474877,
                 "cohens_d": [
                     -8.027414815577615
@@ -3519,7 +3519,7 @@
                 "se_difference": [
                     0.2319062310985318
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -6.83576492185191,
                 "cohens_d": [
                     -1.1132412242665695
@@ -3575,7 +3575,7 @@
                 "se_difference": [
                     0.06603952539473347
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -11.572680601028916,
                 "cohens_d": [
                     -5.546604442219277
@@ -3688,7 +3688,7 @@
                 "se_difference": [
                     0.020559436175250845
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -0.2276249717105225,
                 "cohens_d": [
                     -0.3970944762094945
@@ -3734,7 +3734,7 @@
                     0.03325748786796704
                 ],
                 "ci_upper": -1.37833968805285,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -4.606685111981817
                 ]
@@ -3857,7 +3857,7 @@
                     0.019172008115794892
                 ],
                 "ci_upper": -4.204346304500972,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -6.51051640132688
                 ]
@@ -3905,7 +3905,7 @@
                 "se_difference": [
                     0.09789018261319532
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -12.302251118610636,
                 "cohens_d": [
                     -7.5028780937396675
@@ -4021,7 +4021,7 @@
                 "se_difference": [
                     0.009433685320883012
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -1.0427510194924663,
                 "cohens_d": [
                     -3.014920367179318
@@ -4078,7 +4078,7 @@
                     0.4271922809925632
                 ],
                 "ci_upper": -62.91315853149201,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -8.850019883402794
                 ]
@@ -4202,7 +4202,7 @@
                     0.014140210898061644
                 ],
                 "ci_upper": -0.5223577649647707,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -1.19477969023667
                 ]
@@ -4248,7 +4248,7 @@
                     0.03124358054712404
                 ],
                 "ci_upper": -3.5204448483651345,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -9.016700967955925
                 ]
@@ -4303,7 +4303,7 @@
                     0.03223447040587286
                 ],
                 "ci_upper": -3.1381650642162024,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -3.0369063769962357
                 ]
@@ -4353,7 +4353,7 @@
                 "se_difference": [
                     0.01724130545979056
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 0.2616932907050679,
                 "cohens_d": [
                     0.926482144467518
@@ -4462,7 +4462,7 @@
                     0.014389307476625745
                 ],
                 "ci_upper": 1.4245209324260664,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     2.734214666348352
                 ]
@@ -4609,7 +4609,7 @@
                 "se_difference": [
                     0.04716101277036979
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 3.449025343107671,
                 "cohens_d": [
                     3.561120812362576
@@ -4676,7 +4676,7 @@
                     0.016408771131400865
                 ],
                 "ci_upper": 4.808726248632015,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     10.230034097332867
                 ]
@@ -4737,7 +4737,7 @@
                 "se_difference": [
                     0.02079151163372553
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -5.339820088772475,
                 "cohens_d": [
                     -7.785313889718334
@@ -4792,7 +4792,7 @@
                     0.056204785991349995
                 ],
                 "ci_upper": -8.29298047670703,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -7.23622618892249
                 ]
@@ -4857,7 +4857,7 @@
                     0.006080268753956861
                 ],
                 "ci_upper": -0.764249601263481,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     -3.0034821692523925
                 ]
@@ -4964,7 +4964,7 @@
                     0.016431668219845742
                 ],
                 "ci_upper": 0.23087233236294197,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     0.33643910000313265
                 ]
@@ -5018,7 +5018,7 @@
                     0.058021530740965936
                 ],
                 "ci_upper": 11.98302785194593,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     9.336625748189597
                 ]
@@ -5081,7 +5081,7 @@
                 "se_difference": [
                     0.026221510202214547
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -5.677561818615567,
                 "cohens_d": [
                     -5.930887016597116
@@ -5134,7 +5134,7 @@
                 "se_difference": [
                     0.338309116049225
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 15.858817232324634,
                 "cohens_d": [
                     2.6195644157034472
@@ -5184,7 +5184,7 @@
                 "se_difference": [
                     0.04173979170774807
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": -6.862070276434556,
                 "cohens_d": [
                     -10.802876271722281
@@ -5288,7 +5288,7 @@
                     0.5126859458734261
                 ],
                 "ci_upper": 66.3343898271963,
-                "ci_lower": -Infinity,
+                "ci_lower": "-Infinity",
                 "cohens_d": [
                     10.626657870859175
                 ]
@@ -5381,7 +5381,7 @@
                 "se_difference": [
                     0.07554529193248531
                 ],
-                "ci_upper": Infinity,
+                "ci_upper": "Infinity",
                 "ci_lower": 5.439531024515264,
                 "cohens_d": [
                     8.767081761729516

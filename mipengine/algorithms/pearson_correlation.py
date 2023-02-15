@@ -3,6 +3,7 @@ from typing import TypeVar
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
@@ -20,48 +21,49 @@ class PearsonResult(BaseModel):
     ci_lo: dict
 
 
-def run(algo_interface):
-    local_run = algo_interface.run_udf_on_local_nodes
-    global_run = algo_interface.run_udf_on_global_node
-    alpha = algo_interface.algorithm_parameters["alpha"]
+class PearsonCorrelationAlgorithm(Algorithm, algname="pearson_correlation"):
+    def get_variable_groups(self):
+        if self.executor.x_variables:
+            variable_groups = [self.executor.x_variables, self.executor.y_variables]
 
-    if algo_interface.x_variables:
-        Y_relation, X_relation = algo_interface.create_primary_data_views(
-            variable_groups=[algo_interface.y_variables, algo_interface.x_variables],
+        else:
+            variable_groups = [self.executor.y_variables, self.executor.y_variables]
+        return variable_groups
+
+    def run(self):
+        local_run = self.executor.run_udf_on_local_nodes
+        global_run = self.executor.run_udf_on_global_node
+        alpha = self.executor.algorithm_parameters["alpha"]
+
+        X_relation, Y_relation = self.executor.data_model_views
+
+        local_transfers = local_run(
+            func=local1,
+            keyword_args=dict(y=Y_relation, x=X_relation),
+            share_to_global=[True],
         )
-    else:
-        Y_relation, *_ = algo_interface.create_primary_data_views(
-            variable_groups=[algo_interface.y_variables],
+
+        result = global_run(
+            func=global1,
+            keyword_args=dict(local_transfers=local_transfers, alpha=alpha),
         )
-        X_relation = Y_relation
 
-    local_transfers = local_run(
-        func=local1,
-        keyword_args=dict(y=Y_relation, x=X_relation),
-        share_to_global=[True],
-    )
+        result = get_transfer_data(result)
+        n_obs = result["n_obs"]
 
-    result = global_run(
-        func=global1,
-        keyword_args=dict(local_transfers=local_transfers, alpha=alpha),
-    )
+        corr_dict, p_values_dict, ci_hi_dict, ci_lo_dict = create_dicts(
+            result, X_relation.columns, Y_relation.columns
+        )
 
-    result = get_transfer_data(result)
-    n_obs = result["n_obs"]
-
-    corr_dict, p_values_dict, ci_hi_dict, ci_lo_dict = create_dicts(
-        result, X_relation.columns, Y_relation.columns
-    )
-
-    result = PearsonResult(
-        title="Pearson Correlation Coefficient",
-        n_obs=n_obs,
-        correlations=corr_dict,
-        p_values=p_values_dict,
-        ci_hi=ci_hi_dict,
-        ci_lo=ci_lo_dict,
-    )
-    return result
+        result = PearsonResult(
+            title="Pearson Correlation Coefficient",
+            n_obs=n_obs,
+            correlations=corr_dict,
+            p_values=p_values_dict,
+            ci_hi=ci_hi_dict,
+            ci_lo=ci_lo_dict,
+        )
+        return result
 
 
 def create_dicts(global_result, row_names, column_names):
@@ -102,11 +104,11 @@ def local1(y, x):
     Y = y.to_numpy()
     X = Y if x is None else x.to_numpy()
 
-    sx = X.sum(axis=0)
-    sy = Y.sum(axis=0)
-    sxx = (X**2).sum(axis=0)
-    sxy = (X.T @ Y).T
-    syy = (Y**2).sum(axis=0)
+    sx = numpy.einsum("ij->j", X)
+    sy = numpy.einsum("ij->j", Y)
+    sxx = numpy.einsum("ij,ij->j", X, X)
+    sxy = numpy.einsum("ji,jk->ki", X, Y)
+    syy = numpy.einsum("ij,ij->j", Y, Y)
 
     transfer_ = {}
     transfer_["n_obs"] = {"data": n_obs, "operation": "sum", "type": "int"}

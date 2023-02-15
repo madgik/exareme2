@@ -1,6 +1,7 @@
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
@@ -22,48 +23,50 @@ class TtestResult(BaseModel):
     cohens_d: float
 
 
-def run(algo_interface):
-    local_run = algo_interface.run_udf_on_local_nodes
-    global_run = algo_interface.run_udf_on_global_node
-    alpha = algo_interface.algorithm_parameters["alpha"]
-    alternative = algo_interface.algorithm_parameters["alt_hypothesis"]
-    mu = algo_interface.algorithm_parameters["mu"]
+class OnesampleTTestAlgorithm(Algorithm, algname="ttest_onesample"):
+    def get_variable_groups(self):
+        return [self.executor.y_variables]
 
-    X_relation, *_ = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.y_variables],
-    )
+    def run(self):
+        local_run = self.executor.run_udf_on_local_nodes
+        global_run = self.executor.run_udf_on_global_node
+        alpha = self.executor.algorithm_parameters["alpha"]
+        alternative = self.executor.algorithm_parameters["alt_hypothesis"]
+        mu = self.executor.algorithm_parameters["mu"]
 
-    sec_local_transfer = local_run(
-        func=local_one_sample,
-        keyword_args=dict(x=X_relation, mu=mu),
-        share_to_global=[True],
-    )
+        [X_relation] = self.executor.data_model_views
 
-    result = global_run(
-        func=global_one_sample,
-        keyword_args=dict(
-            sec_local_transfer=sec_local_transfer,
-            alpha=alpha,
-            alternative=alternative,
-            mu=mu,
-        ),
-    )
+        sec_local_transfer = local_run(
+            func=local_one_sample,
+            keyword_args=dict(x=X_relation, mu=mu),
+            share_to_global=[True],
+        )
 
-    result = get_transfer_data(result)
-    one_sample_ttest_res = TtestResult(
-        n_obs=result["n_obs"],
-        t_stat=result["t_stat"],
-        df=result["df"],
-        std=result["std"],
-        p=result["p_value"],
-        mean_diff=result["mean_diff"],
-        se_diff=result["se_diff"],
-        ci_upper=result["ci_upper"],
-        ci_lower=result["ci_lower"],
-        cohens_d=result["cohens_d"],
-    )
+        result = global_run(
+            func=global_one_sample,
+            keyword_args=dict(
+                sec_local_transfer=sec_local_transfer,
+                alpha=alpha,
+                alternative=alternative,
+                mu=mu,
+            ),
+        )
 
-    return one_sample_ttest_res
+        result = get_transfer_data(result)
+        one_sample_ttest_res = TtestResult(
+            n_obs=result["n_obs"],
+            t_stat=result["t_stat"],
+            df=result["df"],
+            std=result["std"],
+            p=result["p_value"],
+            mean_diff=result["mean_diff"],
+            se_diff=result["se_diff"],
+            ci_upper=result["ci_upper"],
+            ci_lower=result["ci_lower"],
+            cohens_d=result["cohens_d"],
+        )
+
+        return one_sample_ttest_res
 
 
 @udf(
@@ -72,12 +75,13 @@ def run(algo_interface):
     return_type=[secure_transfer(sum_op=True)],
 )
 def local_one_sample(x, mu):
-    x = x.reset_index(drop=True).to_numpy().squeeze()
+    x.reset_index(drop=True, inplace=True)
+    x = x.to_numpy().squeeze()
     n_obs = len(x)
-    sum_x = sum(x)
-    sqrd_x = sum(x**2)
-    diff_x = sum(x - mu)
-    diff_sqrd_x = sum((x - mu) ** 2)
+    sum_x = numpy.einsum("i->", x)
+    sqrd_x = numpy.einsum("i,i->", x, x)
+    diff_x = sum_x - n_obs * mu
+    diff_sqrd_x = sqrd_x - 2 * mu * sum_x + n_obs * mu**2
 
     sec_transfer_ = {
         "n_obs": {"data": n_obs, "operation": "sum", "type": "int"},

@@ -1,0 +1,46 @@
+{
+    "name": "anova",
+    "desc": "Two-way analysis of variance (ANOVA)",
+    "label": "Two-way ANOVA",
+    "enabled": true,
+    "inputdata": {
+        "x": {
+            "label": "independent",
+            "desc": "independent variable",
+            "types": [
+                "int",
+                "text"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": true
+        },
+        "y": {
+            "label": "dependent",
+            "desc": "Dependent variable",
+            "types": [
+                "real",
+                "int"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": false
+        }
+    },
+    "parameters": {
+        "sstype": {
+            "label": "sstype",
+            "desc": "Type of sum of squares to use. It can be 1 or 2.",
+            "type": "int",
+            "default": "2",
+            "min": 1,
+            "max": 2,
+            "notblank": true,
+            "multiple": false
+        }
+    }
+}

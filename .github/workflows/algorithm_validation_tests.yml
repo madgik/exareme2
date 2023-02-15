@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.8
 
@@ -28,7 +28,7 @@ jobs:
 
       - name: Load cached venv
         id: cached-poetry-dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
@@ -38,10 +38,10 @@ jobs:
         run: poetry install --no-interaction --no-root
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       - name: Load MONETDB cached image
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/monetdb
           key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
@@ -49,7 +49,7 @@ jobs:
             ${{ runner.os }}-buildx-3-monetdb-
 
       - name: Build MONETDB docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: monetdb/Dockerfile
@@ -60,7 +60,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
 
       - name: Load RABBITMQ cached image
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/rabbitmq
           key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
@@ -68,7 +68,7 @@ jobs:
             ${{ runner.os }}-buildx-rabbitmq-
 
       - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: rabbitmq/Dockerfile
@@ -96,7 +96,7 @@ jobs:
         run: poetry run inv deploy --no-install-dep --no-start-all
 
       - name: Load data into DBs
-        run: poetry run mipdb load-folder ./tests/test_data --port 50000
+        run: poetry run inv load-data
 
       - name: Start services after data loading
         run: |
@@ -110,12 +110,12 @@ jobs:
         run: cat /tmp/mipengine/localnode1.out
 
       - name: Controller logs (post run)
-        uses: webiny/action-post-run@2.0.1
+        uses: webiny/action-post-run@3.0.0
         with:
           run: cat /tmp/mipengine/controller.out
 
       - name: Localnode logs (post run)
-        uses: webiny/action-post-run@2.0.1
+        uses: webiny/action-post-run@3.0.0
         with:
           run: cat /tmp/mipengine/localnode1.out
 
@@ -126,10 +126,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.8
 
@@ -141,7 +141,7 @@ jobs:
 
       - name: Load cached venv
         id: cached-poetry-dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
@@ -151,10 +151,10 @@ jobs:
         run: poetry install --no-interaction --no-root
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       - name: Load MONETDB cached image
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/monetdb
           key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
@@ -162,7 +162,7 @@ jobs:
             ${{ runner.os }}-buildx-3-monetdb-
 
       - name: Build MONETDB docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: monetdb/Dockerfile
@@ -173,7 +173,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
 
       - name: Load RABBITMQ cached image
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/rabbitmq
           key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
@@ -181,7 +181,7 @@ jobs:
             ${{ runner.os }}-buildx-rabbitmq-
 
       - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: rabbitmq/Dockerfile
@@ -226,17 +226,17 @@ jobs:
         run: cat /tmp/mipengine/localnode1.out
 
       - name: Controller logs (post run)
-        uses: webiny/action-post-run@2.0.1
+        uses: webiny/action-post-run@3.0.0
         with:
           run: cat /tmp/mipengine/controller.out
 
       - name: Globalnode logs (post run)
-        uses: webiny/action-post-run@2.0.1
+        uses: webiny/action-post-run@3.0.0
         with:
           run: cat /tmp/mipengine/globalnode.out
 
       - name: Localnode logs (post run)
-        uses: webiny/action-post-run@2.0.1
+        uses: webiny/action-post-run@3.0.0
         with:
           run: cat /tmp/mipengine/localnode1.out
 

@@ -17,6 +17,7 @@ LOGFILE_NAME = "test_show_controller_audit_entries.out"
 
 
 @pytest.mark.slow
+@pytest.mark.very_slow
 def test_show_node_db_actions(monetdb_localnodetmp, load_data_localnodetmp):
     """
     Load data into the db and then remove datamodel and datasets.

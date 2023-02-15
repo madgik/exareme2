@@ -305,7 +305,6 @@ class TestUDFGenBase:
     def _concrete_table_udf_outputs(output: UDFGenTableResult):
         queries = []
         template_mapping = {output.tablename_placeholder: output.tablename_placeholder}
-        queries.append(output.drop_query.substitute(**template_mapping))
         queries.append(output.create_query.substitute(**template_mapping))
         return queries
 
@@ -842,7 +841,6 @@ FROM
                     ("dim1", DType.INT),
                     ("val", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
@@ -942,7 +940,6 @@ FROM
                     ("dim1", DType.INT),
                     ("val", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
@@ -1067,7 +1064,6 @@ FROM
                     ("dim1", DType.INT),
                     ("val", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
@@ -1193,7 +1189,6 @@ FROM
                     ("dim1", DType.INT),
                     ("val", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
@@ -1339,7 +1334,6 @@ FROM
                     ("dim1", DType.INT),
                     ("val", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
@@ -1464,7 +1458,6 @@ FROM
                     ("dim1", DType.INT),
                     ("val", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
@@ -1564,7 +1557,6 @@ FROM
                     ("ci", DType.INT),
                     ("cf", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("ci" INT,"cf" DOUBLE);'
                 ),
@@ -1665,7 +1657,6 @@ FROM
                 table_schema=[
                     ("result", DType.INT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("result" INT);'
                 ),
@@ -1769,7 +1760,6 @@ FROM
                 table_schema=[
                     ("result", DType.INT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("result" INT);'
                 ),
@@ -1848,7 +1838,6 @@ FROM
                     ("dim0", DType.INT),
                     ("val", DType.INT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" INT);'
                 ),
@@ -1950,7 +1939,6 @@ FROM
                     ("dim1", DType.INT),
                     ("val", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
@@ -2052,7 +2040,6 @@ FROM
                     ("dim1", DType.INT),
                     ("val", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" DOUBLE);'
                 ),
@@ -2154,7 +2141,6 @@ FROM
                     ("dim1", DType.INT),
                     ("val", DType.INT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" INT);'
                 ),
@@ -2271,7 +2257,6 @@ FROM
                     ("dim0", DType.INT),
                     ("val", DType.INT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" INT);'
                 ),
@@ -2405,7 +2390,6 @@ FROM
                     ("dim0", DType.INT),
                     ("val", DType.INT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" INT);'
                 ),
@@ -2548,7 +2532,6 @@ FROM
                     ("dim1", DType.INT),
                     ("val", DType.INT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"dim1" INT,"val" INT);'
                 ),
@@ -2647,7 +2630,6 @@ FROM
                     ("dim0", DType.INT),
                     ("val", DType.INT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("dim0" INT,"val" INT);'
                 ),
@@ -2725,7 +2707,6 @@ FROM
                 table_schema=[
                     ("state", DType.BINARY),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
@@ -2839,7 +2820,6 @@ FROM
                 table_schema=[
                     ("state", DType.BINARY),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
@@ -2936,7 +2916,6 @@ FROM
                 table_schema=[
                     ("transfer", DType.JSON),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
@@ -3050,7 +3029,6 @@ FROM
                 table_schema=[
                     ("transfer", DType.JSON),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
@@ -3165,7 +3143,6 @@ FROM
                 table_schema=[
                     ("state", DType.BINARY),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
@@ -3294,7 +3271,6 @@ FROM
                 table_schema=[
                     ("state", DType.BINARY),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
@@ -3430,7 +3406,6 @@ FROM
                 table_schema=[
                     ("transfer", DType.JSON),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
@@ -3561,7 +3536,6 @@ FROM
                 table_schema=[
                     ("state", DType.BINARY),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
@@ -3571,7 +3545,6 @@ FROM
                 table_schema=[
                     ("transfer", DType.JSON),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
                     'CREATE TABLE $loopback_table_name_0("transfer" CLOB);'
                 ),
@@ -3707,7 +3680,6 @@ FROM
                 table_schema=[
                     ("transfer", DType.JSON),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
@@ -3717,7 +3689,6 @@ FROM
                 table_schema=[
                     ("state", DType.BINARY),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
                     'CREATE TABLE $loopback_table_name_0("state" BLOB);'
                 ),
@@ -3859,7 +3830,6 @@ FROM
                 table_schema=[
                     ("state", DType.BINARY),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
@@ -3869,7 +3839,6 @@ FROM
                 table_schema=[
                     ("transfer", DType.JSON),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
                     'CREATE TABLE $loopback_table_name_0("transfer" CLOB);'
                 ),
@@ -3996,7 +3965,6 @@ FROM
                 table_schema=[
                     ("secure_transfer", DType.JSON),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("secure_transfer" CLOB);'
                 ),
@@ -4123,9 +4091,6 @@ FROM
                     table_schema=[
                         ("secure_transfer", DType.JSON),
                     ],
-                    drop_query=Template(
-                        "DROP TABLE IF EXISTS $main_output_table_name;"
-                    ),
                     create_query=Template(
                         'CREATE TABLE $main_output_table_name("secure_transfer" CLOB);'
                     ),
@@ -4135,9 +4100,6 @@ FROM
                     table_schema=[
                         ("secure_transfer", DType.JSON),
                     ],
-                    drop_query=Template(
-                        "DROP TABLE IF EXISTS $main_output_table_name_sum_op;"
-                    ),
                     create_query=Template(
                         'CREATE TABLE $main_output_table_name_sum_op("secure_transfer" CLOB);'
                     ),
@@ -4147,9 +4109,6 @@ FROM
                     table_schema=[
                         ("secure_transfer", DType.JSON),
                     ],
-                    drop_query=Template(
-                        "DROP TABLE IF EXISTS $main_output_table_name_max_op;"
-                    ),
                     create_query=Template(
                         'CREATE TABLE $main_output_table_name_max_op("secure_transfer" CLOB);'
                     ),
@@ -4291,7 +4250,6 @@ FROM
                 table_schema=[
                     ("state", DType.BINARY),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
@@ -4301,7 +4259,6 @@ FROM
                 table_schema=[
                     ("secure_transfer", DType.JSON),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                 create_query=Template(
                     'CREATE TABLE $loopback_table_name_0("secure_transfer" CLOB);'
                 ),
@@ -4435,7 +4392,6 @@ FROM
                 table_schema=[
                     ("state", DType.BINARY),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("state" BLOB);'
                 ),
@@ -4446,7 +4402,6 @@ FROM
                     table_schema=[
                         ("secure_transfer", DType.JSON),
                     ],
-                    drop_query=Template("DROP TABLE IF EXISTS $loopback_table_name_0;"),
                     create_query=Template(
                         'CREATE TABLE $loopback_table_name_0("secure_transfer" CLOB);'
                     ),
@@ -4456,9 +4411,6 @@ FROM
                     table_schema=[
                         ("secure_transfer", DType.JSON),
                     ],
-                    drop_query=Template(
-                        "DROP TABLE IF EXISTS $loopback_table_name_0_sum_op;"
-                    ),
                     create_query=Template(
                         'CREATE TABLE $loopback_table_name_0_sum_op("secure_transfer" CLOB);'
                     ),
@@ -4468,9 +4420,6 @@ FROM
                     table_schema=[
                         ("secure_transfer", DType.JSON),
                     ],
-                    drop_query=Template(
-                        "DROP TABLE IF EXISTS $loopback_table_name_0_min_op;"
-                    ),
                     create_query=Template(
                         'CREATE TABLE $loopback_table_name_0_min_op("secure_transfer" CLOB);'
                     ),
@@ -4480,9 +4429,6 @@ FROM
                     table_schema=[
                         ("secure_transfer", DType.JSON),
                     ],
-                    drop_query=Template(
-                        "DROP TABLE IF EXISTS $loopback_table_name_0_max_op;"
-                    ),
                     create_query=Template(
                         'CREATE TABLE $loopback_table_name_0_max_op("secure_transfer" CLOB);'
                     ),
@@ -4618,7 +4564,6 @@ FROM
                 table_schema=[
                     ("transfer", DType.JSON),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
@@ -4756,7 +4701,6 @@ FROM
                 table_schema=[
                     ("transfer", DType.JSON),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
@@ -4865,7 +4809,6 @@ FROM
                 table_schema=[
                     ("transfer", DType.JSON),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("transfer" CLOB);'
                 ),
@@ -4957,7 +4900,6 @@ FROM
                     ("a", DType.INT),
                     ("b", DType.FLOAT),
                 ],
-                drop_query=Template("DROP TABLE IF EXISTS $main_output_table_name;"),
                 create_query=Template(
                     'CREATE TABLE $main_output_table_name("a" INT,"b" DOUBLE);'
                 ),

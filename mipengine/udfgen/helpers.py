@@ -71,7 +71,8 @@ def make_unique_func_name(func) -> str:
     full_module_name = func.__module__
     module_name = full_module_name.split(".")[-1]
     hash_ = get_base32_hash(module_name)
-    return func.__name__ + "_" + hash_.lower()
+    qualname = func.__qualname__.replace(".", "__")
+    return qualname + "_" + hash_.lower()
 
 
 def get_base32_hash(string, chars=4):

@@ -278,7 +278,9 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False, smpc=Fa
 
 
 @task(iterable=["node"])
-def create_monetdb(c, node, image=None, log_level=None, nclients=None):
+def create_monetdb(
+    c, node, image=None, log_level=None, nclients=None, monetdb_memory_limit=None
+):
     """
     (Re)Create MonetDB container(s) for given node(s). If the container exists, it will remove it and create it again.
 
@@ -305,6 +307,9 @@ def create_monetdb(c, node, image=None, log_level=None, nclients=None):
     if not nclients:
         nclients = get_deployment_config("monetdb_nclients")
 
+    if not monetdb_memory_limit:
+        monetdb_memory_limit = get_deployment_config("monetdb_memory_limit")
+
     get_docker_image(c, image)
 
     udfio_full_path = path.abspath(udfio.__file__)
@@ -325,7 +330,7 @@ def create_monetdb(c, node, image=None, log_level=None, nclients=None):
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py --name {container_name} {image}"""
+        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py -v {TEST_DATA_FOLDER}:{TEST_DATA_FOLDER} --name {container_name} --memory={monetdb_memory_limit}m {image}"""
         run(c, cmd)
 
 
@@ -347,11 +352,12 @@ def init_monetdb(c, port):
 
 
 @task(iterable=["port"])
-def load_data(c, port=None):
+def load_data(c, use_sockets=False, port=None):
     """
     Load data into the specified DB from the 'TEST_DATA_FOLDER'.
 
     :param port: A list of ports, in which it will load the data. If not set, it will use the `NODES_CONFIG_DIR` files.
+    :param use_sockets: Flag that determine if the data will be loaded via sockets or not.
     """
 
     local_node_ports = port
@@ -372,6 +378,16 @@ def load_data(c, port=None):
                 local_node_ports.append(node_config["monetdb"]["port"])
 
     local_node_ports = sorted(local_node_ports)
+
+    if len(local_node_ports) == 1:
+        port = local_node_ports[0]
+        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --copy_from_file {not use_sockets} --port {port} "
+        message(
+            f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {port}...",
+            Level.HEADER,
+        )
+        run(c, cmd)
+        return
 
     # Load the test data folder into the dbs
     data_model_folders = [
@@ -407,7 +423,7 @@ def load_data(c, port=None):
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --port {port} "
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} --port {port} "
             run(c, cmd)
 
         # Load the data model's remaining csvs in the rest of the nodes with round-robin fashion
@@ -428,7 +444,7 @@ def load_data(c, port=None):
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --port {port} "
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} --port {port} "
             run(c, cmd)
 
 
@@ -633,10 +649,10 @@ def start_controller(c, detached=False, algorithm_folders=None):
         ):
             outpath = OUTDIR / "controller.out"
             if detached:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn -b 0.0.0.0:5000 -w 1 --log-level DEBUG mipengine/controller/api/app:app>> {outpath} 2>&1"
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:mipengine.controller.api.hypercorn_config -b 0.0.0.0:5000 mipengine/controller/api/app:app>> {outpath} 2>&1"
                 run(c, cmd, wait=False)
             else:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn -b 0.0.0.0:5000 -w 1 --log-level DEBUG mipengine/controller/api/app:app"
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:mipengine.controller.api.hypercorn_config -b 0.0.0.0:5000 mipengine/controller/api/app:app"
                 run(c, cmd, attach_=True)
 
 

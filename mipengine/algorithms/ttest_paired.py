@@ -1,6 +1,7 @@
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
@@ -20,42 +21,46 @@ class TtestResult(BaseModel):
     cohens_d: float
 
 
-def run(algo_interface):
-    local_run = algo_interface.run_udf_on_local_nodes
-    global_run = algo_interface.run_udf_on_global_node
-    alpha = algo_interface.algorithm_parameters["alpha"]
-    alternative = algo_interface.algorithm_parameters["alt_hypothesis"]
+class PairedTTestAlgorithm(Algorithm, algname="ttest_paired"):
+    def get_variable_groups(self):
+        return [self.executor.x_variables, self.executor.y_variables]
 
-    X_relation, Y_relation = algo_interface.create_primary_data_views(
-        variable_groups=[algo_interface.x_variables, algo_interface.y_variables],
-    )
+    def run(self):
+        local_run = self.executor.run_udf_on_local_nodes
+        global_run = self.executor.run_udf_on_global_node
+        alpha = self.executor.algorithm_parameters["alpha"]
+        alternative = self.executor.algorithm_parameters["alt_hypothesis"]
 
-    sec_local_transfer = local_run(
-        func=local_paired,
-        keyword_args=dict(y=Y_relation, x=X_relation),
-        share_to_global=[True],
-    )
+        X_relation, Y_relation = self.executor.data_model_views
 
-    result = global_run(
-        func=global_paired,
-        keyword_args=dict(
-            sec_local_transfer=sec_local_transfer, alpha=alpha, alternative=alternative
-        ),
-    )
+        sec_local_transfer = local_run(
+            func=local_paired,
+            keyword_args=dict(y=Y_relation, x=X_relation),
+            share_to_global=[True],
+        )
 
-    result = get_transfer_data(result)
-    res = TtestResult(
-        t_stat=result["t_stat"],
-        df=result["df"],
-        p=result["p"],
-        mean_diff=result["mean_diff"],
-        se_diff=result["se_diff"],
-        ci_upper=result["ci_upper"],
-        ci_lower=result["ci_lower"],
-        cohens_d=result["cohens_d"],
-    )
+        result = global_run(
+            func=global_paired,
+            keyword_args=dict(
+                sec_local_transfer=sec_local_transfer,
+                alpha=alpha,
+                alternative=alternative,
+            ),
+        )
 
-    return res
+        result = get_transfer_data(result)
+        res = TtestResult(
+            t_stat=result["t_stat"],
+            df=result["df"],
+            p=result["p"],
+            mean_diff=result["mean_diff"],
+            se_diff=result["se_diff"],
+            ci_upper=result["ci_upper"],
+            ci_lower=result["ci_lower"],
+            cohens_d=result["cohens_d"],
+        )
+
+        return res
 
 
 @udf(
@@ -64,22 +69,24 @@ def run(algo_interface):
     return_type=[secure_transfer(sum_op=True)],
 )
 def local_paired(x, y):
-    x1 = x.reset_index(drop=True).to_numpy().squeeze()
-    x2 = y.reset_index(drop=True).to_numpy().squeeze()
-    x1_sum = sum(x1)
-    x2_sum = sum(x2)
-    n_obs = len(x)
-    diff = sum(x1 - x2)
-    diff_sqrd = sum((x1 - x2) ** 2)
-    x1_sqrd_sum = sum(x1**2)
-    x2_sqrd_sum = sum(x2**2)
+    x.reset_index(drop=True, inplace=True)
+    y.reset_index(drop=True, inplace=True)
+    x1, x2 = x.values.squeeze(), y.values.squeeze()
+    x1_sum = numpy.einsum("i->", x1)
+    x2_sum = numpy.einsum("i->", x2)
+    n_obs = x.shape[0]
+    diff = x1 - x2
+    sd = numpy.einsum("i->", diff)
+    ssd = numpy.einsum("i,i", diff, diff)
+    x1_sqrd_sum = numpy.einsum("i,i", x1, x1)
+    x2_sqrd_sum = numpy.einsum("i,i", x2, x2)
 
     sec_transfer_ = {
         "n_obs": {"data": n_obs, "operation": "sum", "type": "int"},
         "sum_x1": {"data": x1_sum.item(), "operation": "sum", "type": "float"},
         "sum_x2": {"data": x2_sum.item(), "operation": "sum", "type": "float"},
-        "diff": {"data": diff.tolist(), "operation": "sum", "type": "float"},
-        "diff_sqrd": {"data": diff_sqrd.tolist(), "operation": "sum", "type": "float"},
+        "diff": {"data": sd.tolist(), "operation": "sum", "type": "float"},
+        "diff_sqrd": {"data": ssd.tolist(), "operation": "sum", "type": "float"},
         "x1_sqrd_sum": {
             "data": x1_sqrd_sum.tolist(),
             "operation": "sum",

@@ -60,11 +60,11 @@ def create_merge_table(
         context_id,
         command_id,
     )
-    # The schema of the 1st table is used as the merge table schema.
-    # If there is an incompatibility or a table doesn't exist the db will throw an error.
-    merge_tables.create_merge_table(merge_table_name, table_infos[0].schema_)
-    merge_tables.add_to_merge_table(
-        merge_table_name, [table_info.name for table_info in table_infos]
+
+    merge_tables.create_merge_table(
+        table_name=merge_table_name,
+        table_schema=table_infos[0].schema_,
+        merge_table_names=[table_info.name for table_info in table_infos],
     )
 
     return TableInfo(

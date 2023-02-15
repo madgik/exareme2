@@ -1,9 +1,8 @@
 from typing import List
+from typing import Optional
 
 from mipengine.exceptions import InsufficientDataError
 from mipengine.filters import build_filter_clause
-from mipengine.node import config as node_config
-from mipengine.node import node_logger
 from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.common_actions import get_table_schema
 from mipengine.node.monetdb_interface.guard import is_list_of_identifiers
@@ -17,8 +16,6 @@ from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 
-MINIMUM_ROW_COUNT = node_config.privacy.minimum_row_count
-
 
 def get_view_names(context_id: str) -> List[str]:
     return get_table_names(TableType.VIEW, context_id)
@@ -29,13 +26,15 @@ def get_view_names(context_id: str) -> List[str]:
     table_name=is_primary_data_table,
     columns=is_list_of_identifiers,
     filters=is_valid_filter,
+    minimum_row_count=None,
     check_min_rows=None,
 )
 def create_view(
     view_name: str,
     table_name: str,
     columns: List[str],
-    filters: dict,
+    filters: Optional[dict],
+    minimum_row_count: int,
     check_min_rows=False,
 ) -> TableInfo:
     filter_clause = ""
@@ -61,7 +60,7 @@ def create_view(
     view_rows_result_row = view_rows_query_result[0]
     view_rows_count = view_rows_result_row[0]
 
-    if view_rows_count < 1 or (check_min_rows and view_rows_count < MINIMUM_ROW_COUNT):
+    if view_rows_count < 1 or (check_min_rows and view_rows_count < minimum_row_count):
         db_execute(f"""DROP VIEW {view_name}""")
         raise InsufficientDataError(
             f"Query: {view_creation_query} creates an "

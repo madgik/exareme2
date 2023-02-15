@@ -5,6 +5,7 @@ from typing import Optional
 import sklearn.metrics as skm
 from pydantic import BaseModel
 
+from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.logistic_regression import LogisticRegression
 from mipengine.algorithms.metrics import compute_classification_metrics
 from mipengine.algorithms.metrics import confusion_matrix
@@ -14,63 +15,69 @@ from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import LabelBinarizer
 
 
-def run(executor):
-    xvars, yvars = executor.x_variables, executor.y_variables
-    X, y = executor.create_primary_data_views([xvars, yvars])
-    positive_class = executor.algorithm_parameters["positive_class"]
-    n_splits = executor.algorithm_parameters["n_splits"]
+class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv"):
+    def get_variable_groups(self):
+        return [self.executor.x_variables, self.executor.y_variables]
 
-    # Dummy encode categorical variables
-    dummy_encoder = DummyEncoder(executor)
-    X = dummy_encoder.transform(X)
+    def run(self):
+        X, y = self.executor.data_model_views
 
-    # Binarize `y` by mapping positive_class to 1 and everything else to 0
-    ybin = LabelBinarizer(executor, positive_class).transform(y)
+        positive_class = self.executor.algorithm_parameters["positive_class"]
+        n_splits = self.executor.algorithm_parameters["n_splits"]
 
-    # Split datasets according to k-fold CV
-    kf = KFold(executor, n_splits=n_splits)
-    X_train, X_test, y_train, y_test = kf.split(X, ybin)
+        # Dummy encode categorical variables
+        dummy_encoder = DummyEncoder(self.executor)
+        X = dummy_encoder.transform(X)
 
-    # Create models
-    models = [LogisticRegression(executor) for _ in range(n_splits)]
+        # Binarize `y` by mapping positive_class to 1 and everything else to 0
+        ybin = LabelBinarizer(self.executor, positive_class).transform(y)
 
-    # Train models
-    for model, X, y in zip(models, X_train, y_train):
-        model.fit(X=X, y=y)
+        # Split datasets according to k-fold CV
+        kf = KFold(self.executor, n_splits=n_splits)
+        X_train, X_test, y_train, y_test = kf.split(X, ybin)
 
-    # Compute prediction probabilities
-    probas = [model.predict_proba(X) for model, X in zip(models, X_test)]
+        # Create models
+        models = [LogisticRegression(self.executor) for _ in range(n_splits)]
 
-    # Patrial and total confusion matrices
-    confmats = [
-        confusion_matrix(executor, ytrue, proba) for ytrue, proba in zip(y_test, probas)
-    ]
-    total_confmat = sum(confmats)
-    tn, fp, fn, tp = total_confmat.ravel()
-    confmat = ConfusionMatrix(tn=tn, fp=fp, fn=fn, tp=tp)
+        # Train models
+        for model, X, y in zip(models, X_train, y_train):
+            model.fit(X=X, y=y)
 
-    # Classification metrics
-    metrics = [compute_classification_metrics(confmat) for confmat in confmats]
-    n_obs_train = [model.nobs_train for model in models]
-    summary = make_classification_metrics_summary(n_splits, n_obs_train, metrics)
+        # Compute prediction probabilities
+        probas = [model.predict_proba(X) for model, X in zip(models, X_test)]
 
-    # ROC curves
-    roc_curves = [
-        roc_curve(executor, ytrue, proba) for ytrue, proba in zip(y_test, probas)
-    ]
-    aucs = [skm.auc(x=fpr, y=tpr) for tpr, fpr in roc_curves]
-    roc_curves_result = [
-        ROCCurve(name=f"fold_{i}", tpr=tpr, fpr=fpr, auc=auc)
-        for (tpr, fpr), auc, i in zip(roc_curves, aucs, range(n_splits))
-    ]
+        # Patrial and total confusion matrices
+        confmats = [
+            confusion_matrix(self.executor, ytrue, proba)
+            for ytrue, proba in zip(y_test, probas)
+        ]
+        total_confmat = sum(confmats)
+        tn, fp, fn, tp = total_confmat.ravel()
+        confmat = ConfusionMatrix(tn=tn, fp=fp, fn=fn, tp=tp)
 
-    return CVLogisticRegressionResult(
-        dependent_var=y.columns[0],
-        indep_vars=X.columns,
-        summary=summary,
-        confusion_matrix=confmat,
-        roc_curves=roc_curves_result,
-    )
+        # Classification metrics
+        metrics = [compute_classification_metrics(confmat) for confmat in confmats]
+        n_obs_train = [model.nobs_train for model in models]
+        summary = make_classification_metrics_summary(n_splits, n_obs_train, metrics)
+
+        # ROC curves
+        roc_curves = [
+            roc_curve(self.executor, ytrue, proba)
+            for ytrue, proba in zip(y_test, probas)
+        ]
+        aucs = [skm.auc(x=fpr, y=tpr) for tpr, fpr in roc_curves]
+        roc_curves_result = [
+            ROCCurve(name=f"fold_{i}", tpr=tpr, fpr=fpr, auc=auc)
+            for (tpr, fpr), auc, i in zip(roc_curves, aucs, range(n_splits))
+        ]
+
+        return CVLogisticRegressionResult(
+            dependent_var=y.columns[0],
+            indep_vars=X.columns,
+            summary=summary,
+            confusion_matrix=confmat,
+            roc_curves=roc_curves_result,
+        )
 
 
 def make_classification_metrics_summary(n_splits, n_obs, metrics):

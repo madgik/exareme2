@@ -609,43 +609,53 @@
             "input": {
                 "inputdata": {
                     "x": [
-                        "leftscasubcallosalarea",
-                        "rightcerebellumwhitematter",
-                        "leftsmcsupplementarymotorcortex",
-                        "leftfrpfrontalpole",
-                        "rightcuncuneus",
-                        "rightpcuprecuneus",
-                        "leftbasalforebrain",
-                        "leftfugfusiformgyrus"
+                        "leftangangulargyrus",
+                        "rightporgposteriororbitalgyrus",
+                        "rightprgprecentralgyrus",
+                        "leftfofrontaloperculum",
+                        "rightpallidum"
                     ],
                     "y": [
-                        "rightcerebellumexterior"
+                        "leftptplanumtemporale"
                     ],
                     "data_model": "dementia:0.1",
                     "datasets": [
-                        "desd-synthdata9",
-                        "ppmi7",
-                        "edsd2",
-                        "ppmi0",
-                        "edsd4",
-                        "desd-synthdata2",
-                        "ppmi5",
-                        "ppmi2",
+                        "desd-synthdata0",
                         "desd-synthdata6",
-                        "desd-synthdata7",
-                        "ppmi9",
+                        "ppmi0",
+                        "desd-synthdata5",
+                        "edsd6",
+                        "ppmi5",
+                        "edsd9",
+                        "edsd4",
                         "ppmi6",
-                        "ppmi3"
+                        "edsd8",
+                        "edsd3",
+                        "ppmi9",
+                        "edsd1",
+                        "edsd0",
+                        "ppmi1",
+                        "desd-synthdata8",
+                        "desd-synthdata7",
+                        "ppmi3",
+                        "edsd7",
+                        "desd-synthdata4",
+                        "desd-synthdata3",
+                        "edsd2",
+                        "edsd5",
+                        "ppmi8",
+                        "desd-synthdata1",
+                        "desd-synthdata9"
                     ],
                     "filters": null
                 },
                 "parameters": {
-                    "n_splits": 2
+                    "n_splits": 3
                 },
                 "test_case_num": 9
             },
             "output": {
-                "dependent_var": "rightcerebellumexterior",
+                "dependent_var": "leftptplanumtemporale",
                 "indep_vars": [
                     ""
                 ],
@@ -653,16 +663,16 @@
                     0
                 ],
                 "mean_sq_error": [
-                    3.9526945567299854,
-                    1.084653589588904
+                    0.24761453177659776,
+                    0.00860338813448563
                 ],
                 "r_squared": [
-                    0.5028061523380447,
-                    0.008266966846531255
+                    0.2859506762265404,
+                    0.10108252989288226
                 ],
                 "mean_abs_error": [
-                    2.7331418836029884,
-                    0.5031651046500886
+                    0.19087695649333894,
+                    0.007542198839596913
                 ]
             }
         },
