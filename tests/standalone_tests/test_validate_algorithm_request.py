@@ -181,8 +181,8 @@ def mock_algorithms_specs():
                         source=[1, 2, 3],
                     ),
                 ),
-                "parameter_with_param_enum_inputdata_cde_enums": ParameterSpecification(
-                    label="parameter",
+                "param_with_enum_type_inputdata_cde_enums": ParameterSpecification(
+                    label="inpudata_cde_enums_param",
                     desc="parameter that uses enums with type inputdata_CDE_enums",
                     types=["text"],
                     notblank=False,
@@ -190,6 +190,28 @@ def mock_algorithms_specs():
                     enums=ParameterEnumSpecification(
                         type=ParameterEnumType.INPUTDATA_CDE_ENUMS,
                         source="y",
+                    ),
+                ),
+                "param_with_enum_type_cde_enums": ParameterSpecification(
+                    label="cde_enums_param",
+                    desc="parameter that uses enums with type CDE_enums",
+                    types=["text"],
+                    notblank=False,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.CDE_ENUMS,
+                        source="test_cde3",
+                    ),
+                ),
+                "param_with_enum_type_cde_enums_wrong_CDE": ParameterSpecification(
+                    label="cde_enums_param_wrong_CDE",
+                    desc="parameter that uses enums with type CDE_enums",
+                    types=["text"],
+                    notblank=False,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.CDE_ENUMS,
+                        source="non_existing_CDE",
                     ),
                 ),
                 "parameter2": ParameterSpecification(
@@ -294,7 +316,22 @@ def get_parametrization_list_success_cases():
                 ),
                 parameters={
                     "parameter1": [1, 3],
-                    "parameter_with_param_enum_inputdata_cde_enums": "male",
+                    "param_with_enum_type_inputdata_cde_enums": "male",
+                },
+            ),
+        ),
+        (
+            "test_algorithm1",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="test_data_model1:0.1",
+                    datasets=["test_dataset1"],
+                    x=["test_cde1"],
+                    y=["test_cde3"],
+                ),
+                parameters={
+                    "parameter1": [1, 3],
+                    "param_with_enum_type_cde_enums": "male",
                 },
             ),
         ),
@@ -580,12 +617,50 @@ def get_parametrization_list_exception_cases():
                 ),
                 parameters={
                     "parameter1": [1],
-                    "parameter_with_param_enum_inputdata_cde_enums": "non_existing_enum",
+                    "param_with_enum_type_inputdata_cde_enums": "non_existing_enum",
                 },
             ),
             (
                 BadUserInput,
                 "Parameter's .* enums, that are taken from the CDE .* given in inputdata .* variable, should be one of the following: .*",
+            ),
+        ),
+        (
+            "test_algorithm1",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="test_data_model2:0.1",
+                    datasets=["test_dataset2"],
+                    x=["test_cde1"],
+                    y=["test_cde3"],
+                ),
+                parameters={
+                    "parameter1": [1],
+                    "param_with_enum_type_cde_enums_wrong_CDE": "male",
+                },
+            ),
+            (
+                ValueError,
+                "Parameter's .* enums source .* does not exist in the data model provided.",
+            ),
+        ),
+        (
+            "test_algorithm1",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="test_data_model2:0.1",
+                    datasets=["test_dataset2"],
+                    x=["test_cde1"],
+                    y=["test_cde3"],
+                ),
+                parameters={
+                    "parameter1": [1],
+                    "param_with_enum_type_cde_enums": "non_existing_enum",
+                },
+            ),
+            (
+                BadUserInput,
+                "Parameter's .* enums, that are taken from the CDE .*, should be one of the following: .*",
             ),
         ),
     ]
