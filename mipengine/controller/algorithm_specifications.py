@@ -7,7 +7,6 @@ from typing import Optional
 
 from pydantic import BaseModel
 from pydantic import root_validator
-from pydantic import validator
 
 from mipengine import ALGORITHM_FOLDERS
 from mipengine.controller.api.algorithm_specifications_dtos import (
@@ -151,28 +150,37 @@ class ParameterSpecification(BaseModel):
         )
 
 
-def _validate_parameter_with_type_inputdata_CDE_enums(param_value, cls_values):
-    if param_value.enums.type == ParameterEnumType.INPUTDATA_CDE_ENUMS:
-        if param_value.enums.source not in ["x", "y"]:
-            raise ValueError(
-                f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'inputdata_CDE_enums' "
-                f"that supports only 'x' or 'y' as source. Value given: '{param_value.enums.source}'."
-            )
-        if param_value.multiple:
-            raise ValueError(
-                f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'inputdata_CDE_enums' "
-                f"that doesn't support 'multiple=True', in the parameter."
-            )
-        inputdata_var = (
-            cls_values["inputdata"].x
-            if param_value.enums.source == "x"
-            else cls_values["inputdata"].y
+def _validate_parameter_with_enums_type_inputdata_CDE_enums(param_value, cls_values):
+    if param_value.enums.source not in ["x", "y"]:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'inputdata_CDE_enums' "
+            f"that supports only 'x' or 'y' as source. Value given: '{param_value.enums.source}'."
         )
-        if inputdata_var.multiple:
-            raise ValueError(
-                f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'inputdata_CDE_enums' "
-                f"that doesn't support 'multiple=True' in it's linked inputdata var '{inputdata_var.label}'."
-            )
+    if param_value.multiple:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'inputdata_CDE_enums' "
+            f"that doesn't support 'multiple=True', in the parameter."
+        )
+    inputdata_var = (
+        cls_values["inputdata"].x
+        if param_value.enums.source == "x"
+        else cls_values["inputdata"].y
+    )
+    if inputdata_var.multiple:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type "
+            f"'{ParameterEnumType.INPUTDATA_CDE_ENUMS.value}' "
+            f"that doesn't support 'multiple=True' in it's linked inputdata var '{inputdata_var.label}'."
+        )
+
+
+def _validate_parameter_with_enums_type_inputdata_CDEs(param_value, cls_values):
+    if param_value.types != [ParameterType.TEXT]:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type "
+            f"'{ParameterEnumType.INPUTDATA_CDES.value}' that supports ONLY 'types=[\"text\"]' but the 'types' "
+            f"provided were {[t.value for t in param_value.types]}."
+        )
 
 
 class AlgorithmSpecification(BaseModel):
@@ -192,7 +200,14 @@ class AlgorithmSpecification(BaseModel):
         for param_value in cls_values["parameters"].values():
             if not param_value.enums:
                 continue
-            _validate_parameter_with_type_inputdata_CDE_enums(param_value, cls_values)
+            if param_value.enums.type == ParameterEnumType.INPUTDATA_CDE_ENUMS:
+                _validate_parameter_with_enums_type_inputdata_CDE_enums(
+                    param_value, cls_values
+                )
+            if param_value.enums.type == ParameterEnumType.INPUTDATA_CDES:
+                _validate_parameter_with_enums_type_inputdata_CDEs(
+                    param_value, cls_values
+                )
         return cls_values
 
     def convert_to_algorithm_specifications_dto(self):

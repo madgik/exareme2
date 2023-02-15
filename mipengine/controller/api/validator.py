@@ -343,9 +343,28 @@ def _validate_param_enums(
         _validate_param_enums_of_type_CDE_enums(
             parameter_value, parameter_spec, data_model_cdes
         )
+    elif parameter_spec.enums.type == ParameterEnumType.INPUTDATA_CDES:
+        _validate_param_enums_of_type_inputdata_CDEs(
+            parameter_value, parameter_spec, inputdata
+        )
     else:
         raise NotImplementedError(
             f"Parameter enum type not supported: '{parameter_spec.enums.type}'."
+        )
+
+
+def _validate_param_enums_of_type_inputdata_CDEs(
+    parameter_value: Any,
+    parameter_spec: ParameterSpecification,
+    inputdata: AlgorithmInputDataDTO,
+):
+    inputdata_CDEs_enums = []
+    inputdata_CDEs_enums.extend(inputdata.y) if inputdata.y else None
+    inputdata_CDEs_enums.extend(inputdata.x) if inputdata.x else None
+    if parameter_value not in inputdata_CDEs_enums:
+        raise BadUserInput(
+            f"Parameter's '{parameter_spec.label}' enums, that are taken from inputdata {parameter_spec.enums.source} CDEs, "
+            f"should be one of the following: '{inputdata_CDEs_enums}'.",
         )
 
 

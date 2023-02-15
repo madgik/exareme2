@@ -214,6 +214,17 @@ def mock_algorithms_specs():
                         source="non_existing_CDE",
                     ),
                 ),
+                "param_with_enum_type_inputdata_CDEs": ParameterSpecification(
+                    label="cde_enums_param_inputdata_CDEs",
+                    desc="parameter that uses enums with type inputdata_CDEs",
+                    types=["text"],
+                    notblank=False,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.INPUTDATA_CDES,
+                        source=["x", "y"],
+                    ),
+                ),
                 "parameter2": ParameterSpecification(
                     label="parameter2",
                     desc="parameter 2",
@@ -332,6 +343,21 @@ def get_parametrization_list_success_cases():
                 parameters={
                     "parameter1": [1, 3],
                     "param_with_enum_type_cde_enums": "male",
+                },
+            ),
+        ),
+        (
+            "test_algorithm1",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="test_data_model1:0.1",
+                    datasets=["test_dataset1"],
+                    x=["test_cde1"],
+                    y=["test_cde3"],
+                ),
+                parameters={
+                    "parameter1": [1, 3],
+                    "param_with_enum_type_inputdata_CDEs": "test_cde3",
                 },
             ),
         ),
@@ -661,6 +687,25 @@ def get_parametrization_list_exception_cases():
             (
                 BadUserInput,
                 "Parameter's .* enums, that are taken from the CDE .*, should be one of the following: .*",
+            ),
+        ),
+        (
+            "test_algorithm1",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="test_data_model2:0.1",
+                    datasets=["test_dataset2"],
+                    x=["test_cde1"],
+                    y=["test_cde3"],
+                ),
+                parameters={
+                    "parameter1": [1],
+                    "param_with_enum_type_inputdata_CDEs": "test_cde4",
+                },
+            ),
+            (
+                BadUserInput,
+                "Parameter's .* enums, that are taken from inputdata .* CDEs, should be one of the following: .*",
             ),
         ),
     ]
