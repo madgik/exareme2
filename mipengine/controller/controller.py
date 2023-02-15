@@ -9,24 +9,24 @@ from typing import Tuple
 from pydantic import BaseModel
 
 from mipengine import algorithm_classes
-from mipengine.algorithms.algorithm import AlgorithmDTO
+from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
 from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_execution_tasks_handler import (
+from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
+from mipengine.controller.algorithm_execution_engine import (
+    AlgorithmExecutionEngineSingleLocalNode,
+)
+from mipengine.controller.algorithm_execution_engine import CommandIdGenerator
+from mipengine.controller.algorithm_execution_engine import (
+    InitializationParams as EngineInitParams,
+)
+from mipengine.controller.algorithm_execution_engine import Nodes
+from mipengine.controller.algorithm_execution_engine_tasks_handler import (
     INodeAlgorithmTasksHandler,
 )
-from mipengine.controller.algorithm_execution_tasks_handler import (
+from mipengine.controller.algorithm_execution_engine_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
-from mipengine.controller.algorithm_executor import AlgorithmExecutor
-from mipengine.controller.algorithm_executor import AlgorithmExecutorSingleLocalNode
-from mipengine.controller.algorithm_executor import CommandIdGenerator
-from mipengine.controller.algorithm_executor import (
-    InitializationParams as AlgorithmExecutorInitParams,
-)
-from mipengine.controller.algorithm_executor import Nodes
-from mipengine.controller.algorithm_executor_nodes import GlobalNode
-from mipengine.controller.algorithm_executor_nodes import LocalNode
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.validator import (
@@ -39,6 +39,8 @@ from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.federation_info_logs import log_experiment_execution
 from mipengine.controller.node_landscape_aggregator import DatasetsLocations
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.nodes import GlobalNode
+from mipengine.controller.nodes import LocalNode
 from mipengine.controller.uid_generator import UIDGenerator
 from mipengine.exceptions import InsufficientDataError
 from mipengine.node_info_DTOs import NodeInfo
@@ -177,8 +179,8 @@ class Controller:
             data_model=data_model, variable_names=variable_names
         )
 
-        # create AlgorithmDTO
-        algorithm_dto = AlgorithmDTO(
+        # instantiate algorithm
+        init_params = AlgorithmInitParams(
             algorithm_name=algorithm_name,
             variables=Variables(
                 x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
@@ -188,9 +190,7 @@ class Controller:
             algorithm_parameters=algorithm_request_dto.parameters,
             metadata=metadata,
         )
-
-        # instantiate algorithm
-        algorithm = algorithm_classes[algorithm_name](algorithm_dto=algorithm_dto)
+        algorithm = algorithm_classes[algorithm_name](initialization_params=init_params)
 
         command_id_generator = CommandIdGenerator()
 
@@ -218,8 +218,8 @@ class Controller:
 
         nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
 
-        # instantiate executor
-        algorithm_executor_init_params = AlgorithmExecutorInitParams(
+        # instantiate algorithm execution engine
+        engine_init_params = EngineInitParams(
             smpc_enabled=self._smpc_enabled,
             smpc_optional=self._smpc_optional,
             request_id=algorithm_request_dto.request_id,
@@ -227,8 +227,8 @@ class Controller:
             algo_flags=algorithm_request_dto.flags,
             data_model_views=data_model_views,
         )
-        algorithm_executor = _create_algorithm_executor(
-            algorithm_executor_init_params=algorithm_executor_init_params,
+        engine = _create_algorithm_execution_engine(
+            engine_init_params=engine_init_params,
             command_id_generator=command_id_generator,
             nodes=nodes,
         )
@@ -246,7 +246,7 @@ class Controller:
         # run the algorithm
         try:
             algorithm_result = await self._algorithm_run_in_event_loop(
-                algorithm=algorithm, algorithm_executor=algorithm_executor
+                algorithm=algorithm, engine=engine
             )
 
         except CeleryConnectionError as exc:
@@ -273,13 +273,13 @@ class Controller:
         )
         return algorithm_result.json()
 
-    async def _algorithm_run_in_event_loop(self, algorithm, algorithm_executor):
+    async def _algorithm_run_in_event_loop(self, algorithm, engine):
         # By calling blocking method Algorithm.run() inside run_in_executor(),
         # Algorithm.run() will execute in a separate thread of the threadpool and at
         # the same time yield control to the executor event loop, through await
         loop = asyncio.get_event_loop()
         algorithm_result = await loop.run_in_executor(
-            self._thread_pool_executor, algorithm.run, algorithm_executor
+            self._thread_pool_executor, algorithm.run, engine
         )
         return algorithm_result
 
@@ -584,20 +584,20 @@ def _get_amount_of_localnodes_views(
     return views_count
 
 
-def _create_algorithm_executor(
-    algorithm_executor_init_params: AlgorithmExecutorInitParams,
+def _create_algorithm_execution_engine(
+    engine_init_params: EngineInitParams,
     command_id_generator: CommandIdGenerator,
     nodes: Nodes,
 ):
     if len(nodes.local_nodes) < 2:
-        return AlgorithmExecutorSingleLocalNode(
-            initialization_params=algorithm_executor_init_params,
+        return AlgorithmExecutionEngineSingleLocalNode(
+            initialization_params=engine_init_params,
             command_id_generator=command_id_generator,
             nodes=nodes,
         )
     else:
-        return AlgorithmExecutor(
-            initialization_params=algorithm_executor_init_params,
+        return AlgorithmExecutionEngine(
+            initialization_params=engine_init_params,
             command_id_generator=command_id_generator,
             nodes=nodes,
         )

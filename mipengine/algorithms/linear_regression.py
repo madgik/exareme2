@@ -44,21 +44,21 @@ class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, executor):
-        X, y = executor.data_model_views
+    def run(self, engine):
+        X, y = engine.data_model_views
 
         dummy_encoder = DummyEncoder(
-            executor=executor, variables=self.variables, metadata=self.metadata
+            engine=engine, variables=self.variables, metadata=self.metadata
         )
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1
 
-        lr = LinearRegression(executor)
+        lr = LinearRegression(engine)
         lr.fit(X=X, y=y)
         y_pred: RealVector = lr.predict(X)
         lr.compute_summary(
-            y_test=relation_to_vector(y, executor),
+            y_test=relation_to_vector(y, engine),
             y_pred=y_pred,
             p=p,
         )
@@ -85,9 +85,9 @@ class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
 
 
 class LinearRegression:
-    def __init__(self, executor):
-        self.local_run = executor.run_udf_on_local_nodes
-        self.global_run = executor.run_udf_on_global_node
+    def __init__(self, engine):
+        self.local_run = engine.run_udf_on_local_nodes
+        self.global_run = engine.run_udf_on_global_node
 
     def fit(self, X, y):
         local_transfers = self.local_run(

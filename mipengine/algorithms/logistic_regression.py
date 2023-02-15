@@ -25,18 +25,18 @@ class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, executor):
-        X, y = executor.data_model_views
+    def run(self, engine):
+        X, y = engine.data_model_views
         positive_class = self.algorithm_parameters["positive_class"]
 
         dummy_encoder = DummyEncoder(
-            executor=executor, variables=self.variables, metadata=self.metadata
+            engine=engine, variables=self.variables, metadata=self.metadata
         )
         X = dummy_encoder.transform(X)
 
-        ybin = LabelBinarizer(executor, positive_class).transform(y)
+        ybin = LabelBinarizer(engine, positive_class).transform(y)
 
-        lr = LogisticRegression(executor)
+        lr = LogisticRegression(engine)
         lr.fit(X=X, y=ybin)
 
         summary = compute_summary(model=lr)
@@ -51,9 +51,9 @@ class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
 
 
 class LogisticRegression:
-    def __init__(self, executor):
-        self.local_run = executor.run_udf_on_local_nodes
-        self.global_run = executor.run_udf_on_global_node
+    def __init__(self, engine):
+        self.local_run = engine.run_udf_on_local_nodes
+        self.global_run = engine.run_udf_on_global_node
 
     def fit(self, X, y):
         self.p = len(X.columns)

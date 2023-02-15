@@ -24,11 +24,11 @@ class PCAAlgorithm(Algorithm, algname="pca"):
     def get_variable_groups(self):
         return [self.variables.y]
 
-    def run(self, executor):
-        local_run = executor.run_udf_on_local_nodes
-        global_run = executor.run_udf_on_global_node
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
-        [X_relation] = executor.data_model_views
+        [X_relation] = engine.data_model_views
 
         local_transfers = local_run(
             func=local1,

@@ -25,13 +25,13 @@ class PairedTTestAlgorithm(Algorithm, algname="ttest_paired"):
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, executor):
-        local_run = executor.run_udf_on_local_nodes
-        global_run = executor.run_udf_on_global_node
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
         alpha = self.algorithm_parameters["alpha"]
         alternative = self.algorithm_parameters["alt_hypothesis"]
 
-        X_relation, Y_relation = executor.data_model_views
+        X_relation, Y_relation = engine.data_model_views
 
         sec_local_transfer = local_run(
             func=local_paired,

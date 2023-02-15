@@ -19,11 +19,11 @@ class StandartDeviationIntOnlySMPC(
     def get_variable_groups(self):
         return [self.variables.y]
 
-    def run(self, executor):
-        local_run = executor.run_udf_on_local_nodes
-        global_run = executor.run_udf_on_global_node
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
-        [Y_relation] = executor.data_model_views
+        [Y_relation] = engine.data_model_views
 
         Y = local_run(
             func=relation_to_matrix,

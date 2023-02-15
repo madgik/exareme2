@@ -35,9 +35,9 @@ class MultipleHistogramsAlgorithm(Algorithm, algname="multiple_histograms"):
     def get_variable_groups(self):
         return [self.variables.y + self.variables.x]
 
-    def run(self, executor):
-        local_run = executor.run_udf_on_local_nodes
-        global_run = executor.run_udf_on_global_node
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
         xvars = self.variables.x
         yvars = self.variables.y
@@ -48,7 +48,7 @@ class MultipleHistogramsAlgorithm(Algorithm, algname="multiple_histograms"):
         if bins is None:
             bins = default_bins
 
-        [data] = executor.data_model_views
+        [data] = engine.data_model_views
 
         metadata = dict(self.metadata)
 

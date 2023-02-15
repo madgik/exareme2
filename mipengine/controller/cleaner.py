@@ -32,7 +32,7 @@ import toml
 from pydantic import BaseModel
 
 from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_execution_tasks_handler import (
+from mipengine.controller.algorithm_execution_engine_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator

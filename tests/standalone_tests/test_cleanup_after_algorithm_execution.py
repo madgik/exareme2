@@ -7,11 +7,11 @@ import pytest
 
 from mipengine import AttrDict
 from mipengine import algorithm_classes
-from mipengine.algorithms.algorithm import AlgorithmDTO
+from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
 from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_executor import (
-    InitializationParams as AlgorithmExecutorInitParams,
+from mipengine.controller.algorithm_execution_engine import (
+    InitializationParams as EngineInitParams,
 )
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
@@ -22,7 +22,7 @@ from mipengine.controller.controller import CommandIdGenerator
 from mipengine.controller.controller import Controller
 from mipengine.controller.controller import InitializationParams as ControllerInitParams
 from mipengine.controller.controller import Nodes
-from mipengine.controller.controller import _create_algorithm_executor
+from mipengine.controller.controller import _create_algorithm_execution_engine
 from mipengine.controller.controller import _get_data_model_views_nodes
 from mipengine.controller.controller import sanitize_request_variable
 from mipengine.controller.node_landscape_aggregator import (
@@ -269,7 +269,7 @@ def algorithm(algorithm_request_dto, metadata):
     input_data = algorithm_request_dto.inputdata
     algorithm_parameters = algorithm_request_dto.parameters
 
-    algorithm_dto = AlgorithmDTO(
+    init_params = AlgorithmInitParams(
         algorithm_name=algorithm_name,
         data_model=input_data.data_model,
         variables=Variables(
@@ -280,7 +280,7 @@ def algorithm(algorithm_request_dto, metadata):
         algorithm_parameters=algorithm_parameters,
         metadata=metadata,
     )
-    return algorithm_classes[algorithm_name](algorithm_dto=algorithm_dto)
+    return algorithm_classes[algorithm_name](initialization_params=init_params)
 
 
 @pytest.fixture(scope="function")
@@ -289,10 +289,10 @@ def command_id_generator():
 
 
 @pytest.fixture(scope="function")
-def algorithm_executor(
+def engine(
     algorithm_request_dto, context_id, data_model_views_and_nodes, command_id_generator
 ):
-    algorithm_executor_init_params = AlgorithmExecutorInitParams(
+    engine_init_params = EngineInitParams(
         smpc_enabled=False,
         smpc_optional=False,
         request_id=algorithm_request_dto.request_id,
@@ -300,8 +300,8 @@ def algorithm_executor(
         algo_flags=algorithm_request_dto.flags,
         data_model_views=data_model_views_and_nodes[0],  # data_model_views
     )
-    return _create_algorithm_executor(
-        algorithm_executor_init_params=algorithm_executor_init_params,
+    return _create_algorithm_execution_engine(
+        engine_init_params=engine_init_params,
         command_id_generator=command_id_generator,
         nodes=data_model_views_and_nodes[1],  # nodes,
     )
@@ -339,7 +339,7 @@ def cleaner(controller_config, node_landscape_aggregator):
 async def test_cleanup_after_uninterrupted_algorithm_execution(
     context_id,
     algorithm,
-    algorithm_executor,
+    engine,
     cleaner,
     node_landscape_aggregator,
     controller,
@@ -368,24 +368,19 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     # contextid is aadded to Cleaner but is not yet released
     cleaner.add_contextid_for_cleanup(
         context_id,
-        [
-            node.node_id
-            for node in (
-                [algorithm_executor._global_node] + algorithm_executor._local_nodes
-            )
-        ],
+        [node.node_id for node in ([engine._global_node] + engine._local_nodes)],
     )
 
     # run the algorithm
     try:
         algorithm_result = await controller._algorithm_run_in_event_loop(
-            algorithm=algorithm, algorithm_executor=algorithm_executor
+            algorithm=algorithm, engine=engine
         )
     except Exception as exc:
         pytest.fail(f"Execution of the algorithm failed with {exc=}")
 
     tables_before_cleanup = get_all_tabels_nodes(
-        algorithm_executor._global_node, algorithm_executor._local_nodes
+        engine._global_node, engine._local_nodes
     )
     # check tables were created on all nodes
     for node_id, tables in tables_before_cleanup.items():
@@ -399,7 +394,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
     cleaner.release_context_id(context_id=context_id)
 
     tables_after_cleanup = get_all_tabels_nodes(
-        algorithm_executor._global_node, algorithm_executor._local_nodes
+        engine._global_node, engine._local_nodes
     )
 
     start = time.time()
@@ -407,7 +402,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         (tables == [] for tables in flatten_list(tables_after_cleanup.values()))
     ):
         tables_after_cleanup = get_all_tabels_nodes(
-            algorithm_executor._global_node, algorithm_executor._local_nodes
+            engine._global_node, engine._local_nodes
         )
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:
@@ -427,7 +422,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
 async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_timelimit(
     context_id,
     algorithm,
-    algorithm_executor,
+    engine,
     cleaner,
     node_landscape_aggregator,
     controller,
@@ -457,13 +452,13 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     # run the algorithm
     try:
         algorithm_result = await controller._algorithm_run_in_event_loop(
-            algorithm=algorithm, algorithm_executor=algorithm_executor
+            algorithm=algorithm, engine=engine
         )
     except Exception as exc:
         pytest.fail(f"Execution of the algorithm failed with {exc=}")
 
     tables_before_cleanup = get_all_tabels_nodes(
-        algorithm_executor._global_node, algorithm_executor._local_nodes
+        engine._global_node, engine._local_nodes
     )
     # check tables were created on all nodes
     for node_id, tables in tables_before_cleanup.items():
@@ -475,16 +470,11 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
     # Add contextid to Cleaner after letting the executing algorithm create some tables
     cleaner.add_contextid_for_cleanup(
         context_id,
-        [
-            node.node_id
-            for node in (
-                [algorithm_executor._global_node] + algorithm_executor._local_nodes
-            )
-        ],
+        [node.node_id for node in ([engine._global_node] + engine._local_nodes)],
     )
 
     tables_after_cleanup = get_all_tabels_nodes(
-        algorithm_executor._global_node, algorithm_executor._local_nodes
+        engine._global_node, engine._local_nodes
     )
 
     start = time.time()
@@ -492,7 +482,7 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
         (tables is None for tables in flatten_list(tables_after_cleanup.values()))
     ):
         tables_after_cleanup = get_all_tabels_nodes(
-            algorithm_executor._global_node, algorithm_executor._local_nodes
+            engine._global_node, engine._local_nodes
         )
 
         now = time.time()
@@ -515,7 +505,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     localnodetmp_node_service,
     context_id,
     algorithm,
-    algorithm_executor,
+    engine,
     cleaner,
     node_landscape_aggregator,
     controller,
@@ -544,20 +534,13 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # Add contextid to Cleaner but is not yet released
     cleaner.add_contextid_for_cleanup(
         context_id,
-        [
-            node.node_id
-            for node in (
-                [algorithm_executor._global_node] + algorithm_executor._local_nodes
-            )
-        ],
+        [node.node_id for node in ([engine._global_node] + engine._local_nodes)],
     )
 
     # run the algorithm
     try:
         asyncio.create_task(
-            controller._algorithm_run_in_event_loop(
-                algorithm=algorithm, algorithm_executor=algorithm_executor
-            )
+            controller._algorithm_run_in_event_loop(algorithm=algorithm, engine=engine)
         )
     except Exception as exc:
         pytest.fail(f"Execution of the algorithm failed with {exc=}")
@@ -566,7 +549,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     await asyncio.sleep(WAIT_BEFORE_BRING_TMPNODE_DOWN)
 
     tables_before_cleanup = get_all_tabels_nodes(
-        algorithm_executor._global_node, algorithm_executor._local_nodes
+        engine._global_node, engine._local_nodes
     )
     # check tables were created on all nodes
     for node_id, tables in tables_before_cleanup.items():
@@ -596,7 +579,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     tables_after_cleanup = None
     try:
         tables_after_cleanup = get_all_tabels_nodes(
-            algorithm_executor._global_node, algorithm_executor._local_nodes
+            engine._global_node, engine._local_nodes
         )
     except CeleryConnectionError:
         pass
@@ -607,7 +590,7 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     ):
         try:
             tables_after_cleanup = get_all_tabels_nodes(
-                algorithm_executor._global_node, algorithm_executor._local_nodes
+                engine._global_node, engine._local_nodes
             )
         except CeleryConnectionError:
             pass
@@ -638,7 +621,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     localnodetmp_node_service,
     context_id,
     algorithm,
-    algorithm_executor,
+    engine,
     cleaner,
     node_landscape_aggregator,
     controller,
@@ -666,20 +649,13 @@ async def test_cleanup_node_service_down_algorithm_execution(
     # Add contextid to Cleaner but is not yet released
     cleaner.add_contextid_for_cleanup(
         context_id,
-        [
-            node.node_id
-            for node in (
-                [algorithm_executor._global_node] + algorithm_executor._local_nodes
-            )
-        ],
+        [node.node_id for node in ([engine._global_node] + engine._local_nodes)],
     )
 
     # start executing the algorithm but do not wait for it
     try:
         asyncio.create_task(
-            controller._algorithm_run_in_event_loop(
-                algorithm=algorithm, algorithm_executor=algorithm_executor
-            )
+            controller._algorithm_run_in_event_loop(algorithm=algorithm, engine=engine)
         )
     except Exception as exc:
         pytest.fail(f"Execution of the algorithm failed with {exc=}")
@@ -688,7 +664,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     await asyncio.sleep(WAIT_BEFORE_BRING_TMPNODE_DOWN)
 
     tables_before_cleanup = get_all_tabels_nodes(
-        algorithm_executor._global_node, algorithm_executor._local_nodes
+        engine._global_node, engine._local_nodes
     )
     # check tables were created on all nodes
     for node_id, tables in tables_before_cleanup.items():
@@ -712,7 +688,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     tables_after_cleanup = None
     try:
         tables_after_cleanup = get_all_tabels_nodes(
-            algorithm_executor._global_node, algorithm_executor._local_nodes
+            engine._global_node, engine._local_nodes
         )
     except CeleryConnectionError:
         pass
@@ -723,7 +699,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
     ):
         try:
             tables_after_cleanup = get_all_tabels_nodes(
-                algorithm_executor._global_node, algorithm_executor._local_nodes
+                engine._global_node, engine._local_nodes
             )
         except CeleryConnectionError:
             pass

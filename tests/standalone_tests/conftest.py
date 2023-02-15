@@ -15,7 +15,7 @@ import sqlalchemy as sql
 import toml
 
 from mipengine import AttrDict
-from mipengine.controller.algorithm_execution_tasks_handler import (
+from mipengine.controller.algorithm_execution_engine_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
 from mipengine.controller.celery_app import CeleryAppFactory

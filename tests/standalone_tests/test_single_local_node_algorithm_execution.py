@@ -5,10 +5,11 @@ from pydantic import BaseModel
 
 from mipengine import AttrDict
 from mipengine import algorithm_classes
-from mipengine.algorithms.algorithm import AlgorithmDTO
+from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
-from mipengine.controller.algorithm_executor import (
-    InitializationParams as AlgorithmExecutorInitParams,
+from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller.algorithm_execution_engine import (
+    InitializationParams as EngineInitParams,
 )
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
@@ -16,7 +17,7 @@ from mipengine.controller.controller import CommandIdGenerator
 from mipengine.controller.controller import Controller
 from mipengine.controller.controller import InitializationParams as ControllerInitParams
 from mipengine.controller.controller import Nodes
-from mipengine.controller.controller import _create_algorithm_executor
+from mipengine.controller.controller import _create_algorithm_execution_engine
 from mipengine.controller.controller import _get_data_model_views_nodes
 from mipengine.controller.controller import sanitize_request_variable
 from mipengine.controller.node_landscape_aggregator import (
@@ -26,6 +27,11 @@ from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregat
 from mipengine.controller.uid_generator import UIDGenerator
 from tests.standalone_tests.conftest import CONTROLLER_LOCALNODE1_ADDRESSES_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
+
+
+@pytest.fixture(autouse=True, scope="session")
+def init_background_controller_logger():
+    ctrl_logger.set_background_service_logger("DEBUG")
 
 
 @pytest.fixture(scope="function")
@@ -243,7 +249,7 @@ def algorithm_case_1(algorithm_request_case_1, metadata_case_1):
     input_data = algorithm_request_dto.inputdata
     algorithm_parameters = algorithm_request_dto.parameters
 
-    algorithm_dto = AlgorithmDTO(
+    init_params = AlgorithmInitParams(
         algorithm_name=algorithm_name,
         data_model=input_data.data_model,
         variables=Variables(
@@ -254,7 +260,7 @@ def algorithm_case_1(algorithm_request_case_1, metadata_case_1):
         algorithm_parameters=algorithm_parameters,
         metadata=metadata_case_1,
     )
-    return algorithm_classes[algorithm_name](algorithm_dto=algorithm_dto)
+    return algorithm_classes[algorithm_name](initialization_params=init_params)
 
 
 @pytest.fixture(scope="function")
@@ -265,7 +271,7 @@ def algorithm_case_2(algorithm_request_case_2, metadata_case_2):
     input_data = algorithm_request_dto.inputdata
     algorithm_parameters = algorithm_request_dto.parameters
 
-    algorithm_dto = AlgorithmDTO(
+    init_params = AlgorithmInitParams(
         algorithm_name=algorithm_name,
         data_model=input_data.data_model,
         variables=Variables(
@@ -276,7 +282,7 @@ def algorithm_case_2(algorithm_request_case_2, metadata_case_2):
         algorithm_parameters=algorithm_parameters,
         metadata=metadata_case_2,
     )
-    return algorithm_classes[algorithm_name](algorithm_dto=algorithm_dto)
+    return algorithm_classes[algorithm_name](initialization_params=init_params)
 
 
 @pytest.fixture(scope="function")
@@ -385,7 +391,7 @@ def data_model_views_and_nodes_case_2(
 
 
 @pytest.fixture(scope="function")
-def algorithm_executor_case_1(
+def engine_case_1(
     algorithm_request_case_1,
     context_id,
     data_model_views_and_nodes_case_1,
@@ -393,7 +399,7 @@ def algorithm_executor_case_1(
 ):
     algorithm_request_dto = algorithm_request_case_1[1]
 
-    algorithm_executor_init_params = AlgorithmExecutorInitParams(
+    engine_init_params = EngineInitParams(
         smpc_enabled=False,
         smpc_optional=False,
         request_id=algorithm_request_dto.request_id,
@@ -401,15 +407,15 @@ def algorithm_executor_case_1(
         algo_flags=algorithm_request_dto.flags,
         data_model_views=data_model_views_and_nodes_case_1[0],
     )
-    return _create_algorithm_executor(
-        algorithm_executor_init_params=algorithm_executor_init_params,
+    return _create_algorithm_execution_engine(
+        engine_init_params=engine_init_params,
         command_id_generator=command_id_generator,
         nodes=data_model_views_and_nodes_case_1[1],
     )
 
 
 @pytest.fixture(scope="function")
-def algorithm_executor_case_2(
+def engine_case_2(
     algorithm_request_case_2,
     context_id,
     data_model_views_and_nodes_case_2,
@@ -417,7 +423,7 @@ def algorithm_executor_case_2(
 ):
     algorithm_request_dto = algorithm_request_case_2[1]
 
-    algorithm_executor_init_params = AlgorithmExecutorInitParams(
+    engine_init_params = EngineInitParams(
         smpc_enabled=False,
         smpc_optional=False,
         request_id=algorithm_request_dto.request_id,
@@ -425,8 +431,8 @@ def algorithm_executor_case_2(
         algo_flags=algorithm_request_dto.flags,
         data_model_views=data_model_views_and_nodes_case_2[0],
     )
-    return _create_algorithm_executor(
-        algorithm_executor_init_params=algorithm_executor_init_params,
+    return _create_algorithm_execution_engine(
+        engine_init_params=engine_init_params,
         command_id_generator=command_id_generator,
         nodes=data_model_views_and_nodes_case_2[1],
     )
@@ -434,26 +440,26 @@ def algorithm_executor_case_2(
 
 @pytest.mark.slow
 @pytest.mark.parametrize(
-    "algorithm,algorithm_executor",
+    "algorithm,engine",
     [
-        ("algorithm_case_1", "algorithm_executor_case_1"),
-        ("algorithm_case_2", "algorithm_executor_case_2"),
+        ("algorithm_case_1", "engine_case_1"),
+        ("algorithm_case_2", "engine_case_2"),
     ],
 )
 @pytest.mark.asyncio
 async def test_single_local_node_algorithm_execution(
     algorithm,
-    algorithm_executor,
+    engine,
     controller,
     request,
     reset_celery_app_factory,  # celery tasks fail if this is not reset
 ):
     algorithm = request.getfixturevalue(algorithm)
-    algorithm_executor = request.getfixturevalue(algorithm_executor)
+    engine = request.getfixturevalue(engine)
 
     try:
         algorithm_result = await controller._algorithm_run_in_event_loop(
-            algorithm=algorithm, algorithm_executor=algorithm_executor
+            algorithm=algorithm, engine=engine
         )
     except Exception as exc:
         pytest.fail(f"Execution of the algorithm failed with {exc=}")

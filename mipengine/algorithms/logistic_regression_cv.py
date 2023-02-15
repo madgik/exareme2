@@ -19,27 +19,27 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, executor):
-        X, y = executor.data_model_views
+    def run(self, engine):
+        X, y = engine.data_model_views
 
         positive_class = self.algorithm_parameters["positive_class"]
         n_splits = self.algorithm_parameters["n_splits"]
 
         # Dummy encode categorical variables
         dummy_encoder = DummyEncoder(
-            executor=executor, variables=self.variables, metadata=self.metadata
+            engine=engine, variables=self.variables, metadata=self.metadata
         )
         X = dummy_encoder.transform(X)
 
         # Binarize `y` by mapping positive_class to 1 and everything else to 0
-        ybin = LabelBinarizer(executor, positive_class).transform(y)
+        ybin = LabelBinarizer(engine, positive_class).transform(y)
 
         # Split datasets according to k-fold CV
-        kf = KFold(executor, n_splits=n_splits)
+        kf = KFold(engine, n_splits=n_splits)
         X_train, X_test, y_train, y_test = kf.split(X, ybin)
 
         # Create models
-        models = [LogisticRegression(executor) for _ in range(n_splits)]
+        models = [LogisticRegression(engine) for _ in range(n_splits)]
 
         # Train models
         for model, X, y in zip(models, X_train, y_train):
@@ -50,7 +50,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
 
         # Patrial and total confusion matrices
         confmats = [
-            confusion_matrix(executor, ytrue, proba)
+            confusion_matrix(engine, ytrue, proba)
             for ytrue, proba in zip(y_test, probas)
         ]
         total_confmat = sum(confmats)
@@ -64,7 +64,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
 
         # ROC curves
         roc_curves = [
-            roc_curve(executor, ytrue, proba) for ytrue, proba in zip(y_test, probas)
+            roc_curve(engine, ytrue, proba) for ytrue, proba in zip(y_test, probas)
         ]
         aucs = [skm.auc(x=fpr, y=tpr) for tpr, fpr in roc_curves]
         roc_curves_result = [

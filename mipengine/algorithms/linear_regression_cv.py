@@ -29,22 +29,22 @@ class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, executor):
-        X, y = executor.data_model_views
+    def run(self, engine):
+        X, y = engine.data_model_views
 
         n_splits = self.algorithm_parameters["n_splits"]
 
         dummy_encoder = DummyEncoder(
-            executor=executor, variables=self.variables, metadata=self.metadata
+            engine=engine, variables=self.variables, metadata=self.metadata
         )
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1
 
-        kf = KFold(executor, n_splits=n_splits)
+        kf = KFold(engine, n_splits=n_splits)
         X_train, X_test, y_train, y_test = kf.split(X, y)
 
-        models = [LinearRegression(executor) for _ in range(n_splits)]
+        models = [LinearRegression(engine) for _ in range(n_splits)]
 
         for model, X, y in zip(models, X_train, y_train):
             model.fit(X=X, y=y)
@@ -52,7 +52,7 @@ class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
         for model, X, y in zip(models, X_test, y_test):
             y_pred = model.predict(X)
             model.compute_summary(
-                y_test=relation_to_vector(y, executor),
+                y_test=relation_to_vector(y, engine),
                 y_pred=y_pred,
                 p=p,
             )

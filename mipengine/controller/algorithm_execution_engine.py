@@ -10,16 +10,6 @@ from typing import Union
 from pydantic import BaseModel
 
 from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_executor_nodes import GlobalNode
-from mipengine.controller.algorithm_executor_nodes import LocalNode
-from mipengine.controller.algorithm_executor_smpc_helper import get_smpc_results
-from mipengine.controller.algorithm_executor_smpc_helper import (
-    load_data_to_smpc_clients,
-)
-from mipengine.controller.algorithm_executor_smpc_helper import trigger_smpc_operations
-from mipengine.controller.algorithm_executor_smpc_helper import (
-    wait_for_smpc_results_to_be_ready,
-)
 from mipengine.controller.algorithm_flow_data_objects import AlgoFlowData
 from mipengine.controller.algorithm_flow_data_objects import GlobalNodeData
 from mipengine.controller.algorithm_flow_data_objects import GlobalNodeSMPCTables
@@ -34,6 +24,12 @@ from mipengine.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
+from mipengine.controller.nodes import GlobalNode
+from mipengine.controller.nodes import LocalNode
+from mipengine.controller.smpc_helper import get_smpc_results
+from mipengine.controller.smpc_helper import load_data_to_smpc_clients
+from mipengine.controller.smpc_helper import trigger_smpc_operations
+from mipengine.controller.smpc_helper import wait_for_smpc_results_to_be_ready
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
 from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import NodeUDFDTO
@@ -100,7 +96,7 @@ class InitializationParams(BaseModel):
         arbitrary_types_allowed = True
 
 
-class AlgorithmExecutor:
+class AlgorithmExecutionEngine:
     def __init__(
         self,
         initialization_params: InitializationParams,
@@ -535,7 +531,7 @@ class AlgorithmExecutor:
         return reference_schema
 
 
-class AlgorithmExecutorSingleLocalNode(AlgorithmExecutor):
+class AlgorithmExecutionEngineSingleLocalNode(AlgorithmExecutionEngine):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._global_node = self._local_nodes[0]

@@ -16,7 +16,7 @@ class Variables(BaseModel):
         arbitrary_types_allowed = True
 
 
-class AlgorithmDTO(BaseModel):
+class InitializationParams(BaseModel):
     algorithm_name: str
     variables: Variables
     var_filters: Optional[dict] = None
@@ -35,17 +35,15 @@ class Algorithm(ABC):
     Attributes
     ----------
     algname : str
-    executor : _AlgorithmExecutionInterface
     """
 
-    def __init__(self, algorithm_dto: AlgorithmDTO):
+    def __init__(self, initialization_params: InitializationParams):
         """
         Parameters
         ----------
-        executor : _AlgorithmExecutionInterface
-            The executor attribute gives access to the algorithm execution infrastructure.
+        initialization_params : InitializationParams
         """
-        self._algorithm_dto = algorithm_dto
+        self._initialization_params = initialization_params
 
     def __init_subclass__(cls, algname, **kwargs):
         """
@@ -65,7 +63,7 @@ class Algorithm(ABC):
         Variables
             The variables
         """
-        return self._algorithm_dto.variables
+        return self._initialization_params.variables
 
     @property
     def algorithm_parameters(self) -> Dict[str, Any]:
@@ -75,7 +73,7 @@ class Algorithm(ABC):
         Dict[str,Any]
             The algorithm parameters
         """
-        return self._algorithm_dto.algorithm_parameters
+        return self._initialization_params.algorithm_parameters
 
     @property
     def metadata(self) -> Dict[str, dict]:
@@ -85,16 +83,16 @@ class Algorithm(ABC):
         Dist[str,dict]
             The variables' metadata
         """
-        return self._algorithm_dto.metadata
+        return self._initialization_params.metadata
 
     @abstractmethod
     def get_variable_groups(self) -> List[List[str]]:
         """
         This method must be implemented to return the variable groups from which the
-        data model view tables will be created. The algorithm execution infrastructure
+        data model view tables will be created. The algorithm execution engine
         will take care of creating the data model view tables on the nodes' dbs. The
         data model views can be accessed from the algorithm flow code via
-        self.executor.data_model_views list.
+        engine.data_model_views list inside the run() method .
 
         Returns
         -------
@@ -130,7 +128,7 @@ class Algorithm(ABC):
         return True
 
     @abstractmethod
-    def run(self, executor):
+    def run(self, engine):
         # The executor must be availiable only inside run()
         # The reasoning for this is that executor.data_model_views must already be
         # available when the executor is available to the algorithm, but the creation of
