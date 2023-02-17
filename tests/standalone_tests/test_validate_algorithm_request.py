@@ -10,7 +10,10 @@ from mipengine.controller.algorithm_specifications import ParameterEnumSpecifica
 from mipengine.controller.algorithm_specifications import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from mipengine.controller.api.algorithm_specifications_dtos import InputDataStatType
+from mipengine.controller.api.algorithm_specifications_dtos import InputDataType
 from mipengine.controller.api.algorithm_specifications_dtos import ParameterEnumType
+from mipengine.controller.api.algorithm_specifications_dtos import ParameterType
 from mipengine.controller.api.validator import BadRequest
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.node_landscape_aggregator import DataModelRegistry
@@ -117,8 +120,8 @@ def mock_algorithms_specs():
                 y=InputDataSpecification(
                     label="features",
                     desc="Features",
-                    types=["real"],
-                    stattypes=["numerical"],
+                    types=[InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
                     multiple=False,
                 ),
@@ -133,16 +136,16 @@ def mock_algorithms_specs():
                 x=InputDataSpecification(
                     label="features",
                     desc="Features",
-                    types=["real"],
-                    stattypes=["numerical"],
+                    types=[InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
                     multiple=False,
                 ),
                 y=InputDataSpecification(
                     label="target",
                     desc="Target variable",
-                    types=["text"],
-                    stattypes=["nominal"],
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=False,
                 ),
@@ -157,8 +160,8 @@ def mock_algorithms_specs():
                 y=InputDataSpecification(
                     label="target",
                     desc="Target variable",
-                    types=["text"],
-                    stattypes=["nominal", "numerical"],
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL, InputDataStatType.NUMERICAL],
                     notblank=True,
                     multiple=True,
                 ),
@@ -173,8 +176,8 @@ def mock_algorithms_specs():
                 y=InputDataSpecification(
                     label="target",
                     desc="Target variable",
-                    types=["text"],
-                    stattypes=["nominal"],
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=True,
                 ),
@@ -189,8 +192,8 @@ def mock_algorithms_specs():
                 y=InputDataSpecification(
                     label="target",
                     desc="Target variable",
-                    types=["text"],
-                    stattypes=["numerical"],
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
                     multiple=True,
                 ),
@@ -205,8 +208,8 @@ def mock_algorithms_specs():
                 y=InputDataSpecification(
                     label="target",
                     desc="Target variable",
-                    types=["text"],
-                    stattypes=["nominal"],
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=False,
                     enumslen=2,
@@ -222,16 +225,16 @@ def mock_algorithms_specs():
                 x=InputDataSpecification(
                     label="features",
                     desc="Features",
-                    types=["real"],
-                    stattypes=["numerical"],
+                    types=[InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
                     notblank=False,
                     multiple=False,
                 ),
                 y=InputDataSpecification(
                     label="target",
                     desc="Target variable",
-                    types=["text"],
-                    stattypes=["nominal"],
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=False,
                 ),
@@ -246,8 +249,8 @@ def mock_algorithms_specs():
                 y=InputDataSpecification(
                     label="features",
                     desc="Features",
-                    types=["real"],
-                    stattypes=["numerical"],
+                    types=[InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
                     multiple=False,
                 ),
@@ -256,23 +259,31 @@ def mock_algorithms_specs():
                 "required_param": ParameterSpecification(
                     label="required_param",
                     desc="required_param",
-                    types=["real"],
+                    types=[ParameterType.REAL],
                     notblank=True,
                     multiple=False,
                 ),
             },
         ),
         "algorithm_with_many_params": AlgorithmSpecification(
-            name="algorithm_with_x_and_y",
-            desc="algorithm_with_x_and_y",
-            label="algorithm_with_x_and_y",
+            name="algorithm_with_many_params",
+            desc="algorithm_with_many_params",
+            label="algorithm_with_many_params",
             enabled=True,
             inputdata=InputDataSpecifications(
+                x=InputDataSpecification(
+                    label="x",
+                    desc="x",
+                    types=[InputDataType.INT, InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=False,
+                    multiple=True,
+                ),
                 y=InputDataSpecification(
-                    label="target",
-                    desc="Target variable",
-                    types=["text"],
-                    stattypes=["nominal"],
+                    label="y",
+                    desc="y",
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=False,
                 ),
@@ -281,7 +292,7 @@ def mock_algorithms_specs():
                 "int_parameter_with_min_max": ParameterSpecification(
                     label="parameter_with_min_max",
                     desc="parameter_with_min_max",
-                    types=["int"],
+                    types=[ParameterType.INT],
                     notblank=False,
                     multiple=False,
                     min=2,
@@ -290,21 +301,21 @@ def mock_algorithms_specs():
                 "text_parameter": ParameterSpecification(
                     label="text_parameter",
                     desc="text_parameter",
-                    types=["text"],
+                    types=[ParameterType.TEXT],
                     notblank=False,
                     multiple=False,
                 ),
                 "parameter_multiple_true": ParameterSpecification(
                     label="parameter_multiple_true",
                     desc="parameter_multiple_true",
-                    types=["int"],
+                    types=[ParameterType.INT],
                     notblank=False,
                     multiple=True,
                 ),
                 "param_with_enum_type_list": ParameterSpecification(
                     label="param_with_enum_type_list",
                     desc="param_with_enum_type_list",
-                    types=["text"],
+                    types=[ParameterType.TEXT],
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
@@ -315,7 +326,7 @@ def mock_algorithms_specs():
                 "param_with_enum_type_list_multiple_true": ParameterSpecification(
                     label="param_with_enum_type_list_multiple_true",
                     desc="param_with_enum_type_list_multiple_true",
-                    types=["text"],
+                    types=[ParameterType.TEXT],
                     notblank=False,
                     multiple=True,
                     enums=ParameterEnumSpecification(
@@ -326,7 +337,7 @@ def mock_algorithms_specs():
                 "param_with_enum_type_input_var_CDE_enums": ParameterSpecification(
                     label="param_with_enum_type_input_var_CDE_enums",
                     desc="param_with_enum_type_input_var_CDE_enums",
-                    types=["text"],
+                    types=[ParameterType.TEXT],
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
@@ -337,7 +348,7 @@ def mock_algorithms_specs():
                 "param_with_enum_type_fixed_var_CDE_enums": ParameterSpecification(
                     label="param_with_enum_type_fixed_var_CDE_enums",
                     desc="param_with_enum_type_fixed_var_CDE_enums",
-                    types=["text"],
+                    types=[ParameterType.TEXT],
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
@@ -348,7 +359,7 @@ def mock_algorithms_specs():
                 "param_with_enum_type_fixed_var_CDE_enums_wrong_CDE": ParameterSpecification(
                     label="param_with_enum_type_fixed_var_CDE_enums_wrong_CDE",
                     desc="param_with_enum_type_fixed_var_CDE_enums_wrong_CDE",
-                    types=["text"],
+                    types=[ParameterType.TEXT],
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
@@ -359,12 +370,34 @@ def mock_algorithms_specs():
                 "param_with_enum_type_input_var_names": ParameterSpecification(
                     label="param_with_enum_type_input_var_names",
                     desc="param_with_enum_type_input_var_names",
-                    types=["text"],
+                    types=[ParameterType.TEXT],
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
                         type=ParameterEnumType.INPUT_VAR_NAMES,
                         source=["x", "y"],
+                    ),
+                ),
+                "param_with_type_dict": ParameterSpecification(
+                    label="param_with_type_dict",
+                    desc="param_with_type_dict",
+                    types=[ParameterType.DICT],
+                    notblank=False,
+                    multiple=False,
+                ),
+                "param_with_dict_enums": ParameterSpecification(
+                    label="param_with_dict_enums",
+                    desc="param_with_dict_enums",
+                    types=[ParameterType.DICT],
+                    notblank=False,
+                    multiple=False,
+                    dict_keys_enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.INPUT_VAR_NAMES,
+                        source=["x", "y"],
+                    ),
+                    dict_values_enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.LIST,
+                        source=["diff", "first", "second"],
                     ),
                 ),
             },
@@ -542,6 +575,37 @@ def get_parametrization_list_success_cases():
                 parameters={"param_with_enum_type_input_var_names": "text_cde_categ"},
             ),
             id="parameter enums type input_var_names",
+        ),
+        pytest.param(
+            "algorithm_with_many_params",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["text_cde_categ"],
+                ),
+                parameters={"param_with_type_dict": {"sample_key": "sample_value"}},
+            ),
+            id="Parameter with type dict.",
+        ),
+        pytest.param(
+            "algorithm_with_many_params",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    x=["int_cde", "real_cde"],
+                    y=["text_cde_categ"],
+                ),
+                parameters={
+                    "param_with_dict_enums": {
+                        "text_cde_categ": "first",
+                        "int_cde": "diff",
+                        "real_cde": "diff",
+                    }
+                },
+            ),
+            id="Parameter with dict enums.",
         ),
     ]
     return parametrization_list
@@ -770,6 +834,19 @@ def get_parametrization_list_exception_cases():
                     datasets=["sample_dataset1"],
                     y=["text_cde_categ"],
                 ),
+                parameters={"param_with_type_dict": "text_value"},
+            ),
+            (BadUserInput, "Parameter .* values should be of types.*"),
+            id="Parameter of type dict given wrong value.",
+        ),
+        pytest.param(
+            "algorithm_with_many_params",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["text_cde_categ"],
+                ),
                 parameters={"int_parameter_with_min_max": [1, 2, 3]},
             ),
             (BadUserInput, "Parameter .* values should be of types.*"),
@@ -830,7 +907,7 @@ def get_parametrization_list_exception_cases():
                 BadUserInput,
                 "Parameter's .* enums, that are taken from the CDE .* given in inputdata .* variable, should be one of the following: .*",
             ),
-            id="Parameter with enumerations of type input_var_CDE_enums given non existing enum.",
+            id="Parameter with enumerations of type 'input_var_CDE_enums' given non existing enum.",
         ),
         pytest.param(
             "algorithm_with_many_params",
@@ -848,7 +925,7 @@ def get_parametrization_list_exception_cases():
                 ValueError,
                 "Parameter's .* enums source .* does not exist in the data model provided.",
             ),
-            id="Parameter with enumerations of type fixed_var_CDE_enums has, in the algorithm specification, a CDE that doesn't exist.",
+            id="Parameter with enumerations of type 'fixed_var_CDE_enums' has, in the algorithm specification, a CDE that doesn't exist.",
         ),
         pytest.param(
             "algorithm_with_many_params",
@@ -866,7 +943,7 @@ def get_parametrization_list_exception_cases():
                 BadUserInput,
                 "Parameter's .* enums, that are taken from the CDE .*, should be one of the following: .*",
             ),
-            id="Parameter with enumerations of type fixed_var_CDE_enums given non existing enum.",
+            id="Parameter with enumerations of type 'fixed_var_CDE_enums' given non existing enum.",
         ),
         pytest.param(
             "algorithm_with_many_params",
@@ -884,7 +961,47 @@ def get_parametrization_list_exception_cases():
                 BadUserInput,
                 "Parameter's .* enums, that are taken from inputdata .* var names, should be one of the following: .*",
             ),
-            id="Parameter with enumerations of type input_var_names given non existing enum.",
+            id="Parameter with enumerations of type 'input_var_names' given non existing enum.",
+        ),
+        pytest.param(
+            "algorithm_with_many_params",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["text_cde_categ"],
+                ),
+                parameters={
+                    "param_with_dict_enums": {
+                        "not_selected_CDE": "first",
+                    }
+                },
+            ),
+            (
+                BadUserInput,
+                "Parameter's .* enums, that are taken from inputdata .* var names, should be one of the following: .*",
+            ),
+            id="Parameter with 'dict_keys_enums' given wrong key enum.",
+        ),
+        pytest.param(
+            "algorithm_with_many_params",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["text_cde_categ"],
+                ),
+                parameters={
+                    "param_with_dict_enums": {
+                        "text_cde_categ": "non_existing_enum",
+                    }
+                },
+            ),
+            (
+                BadUserInput,
+                "Parameter .* values should be one of the following: .*",
+            ),
+            id="Parameter with 'dict_keys_enums' given wrong value enum.",
         ),
     ]
     return parametrization_list
