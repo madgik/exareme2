@@ -256,7 +256,7 @@ class EnumFromCDE(AlgorithmParameter):
 def make_parameters(properties, variable_groups):
     if "enums" in properties and properties["enums"]["type"] == "list":
         return EnumFromList(enums=properties["enums"]["source"])
-    if "enums" in properties and properties["enums"]["type"] == "inputdata_CDE_enums":
+    if "enums" in properties and properties["enums"]["type"] == "input_var_CDE_enums":
         var_group_key = properties["enums"]["source"]
         var_group = variable_groups[var_group_key]
         assert len(var_group) == 1, "EnumFromCDE doesn't work when multiple=True"

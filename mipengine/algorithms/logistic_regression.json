@@ -35,7 +35,7 @@
             "desc": "Positive class of y. All other classes are considered negative.",
             "types": ["text", "int"],
             "enums": {
-                "type": "inputdata_CDE_enums",
+                "type": "input_var_CDE_enums",
                 "source": "y"
             },
             "default": null,

@@ -150,15 +150,15 @@ class ParameterSpecification(BaseModel):
         )
 
 
-def _validate_parameter_with_enums_type_inputdata_CDE_enums(param_value, cls_values):
+def _validate_parameter_with_enums_type_input_var_CDE_enums(param_value, cls_values):
     if param_value.enums.source not in ["x", "y"]:
         raise ValueError(
-            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'inputdata_CDE_enums' "
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'input_var_CDE_enums' "
             f"that supports only 'x' or 'y' as source. Value given: '{param_value.enums.source}'."
         )
     if param_value.multiple:
         raise ValueError(
-            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'inputdata_CDE_enums' "
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'input_var_CDE_enums' "
             f"that doesn't support 'multiple=True', in the parameter."
         )
     inputdata_var = (
@@ -169,16 +169,16 @@ def _validate_parameter_with_enums_type_inputdata_CDE_enums(param_value, cls_val
     if inputdata_var.multiple:
         raise ValueError(
             f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type "
-            f"'{ParameterEnumType.INPUTDATA_CDE_ENUMS.value}' "
+            f"'{ParameterEnumType.INPUT_VAR_CDE_ENUMS.value}' "
             f"that doesn't support 'multiple=True' in it's linked inputdata var '{inputdata_var.label}'."
         )
 
 
-def _validate_parameter_with_enums_type_inputdata_CDEs(param_value, cls_values):
+def _validate_parameter_with_enums_type_input_var_names(param_value, cls_values):
     if param_value.types != [ParameterType.TEXT]:
         raise ValueError(
             f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type "
-            f"'{ParameterEnumType.INPUTDATA_CDES.value}' that supports ONLY 'types=[\"text\"]' but the 'types' "
+            f"'{ParameterEnumType.INPUT_VAR_NAMES.value}' that supports ONLY 'types=[\"text\"]' but the 'types' "
             f"provided were {[t.value for t in param_value.types]}."
         )
 
@@ -200,12 +200,12 @@ class AlgorithmSpecification(BaseModel):
         for param_value in cls_values["parameters"].values():
             if not param_value.enums:
                 continue
-            if param_value.enums.type == ParameterEnumType.INPUTDATA_CDE_ENUMS:
-                _validate_parameter_with_enums_type_inputdata_CDE_enums(
+            if param_value.enums.type == ParameterEnumType.INPUT_VAR_CDE_ENUMS:
+                _validate_parameter_with_enums_type_input_var_CDE_enums(
                     param_value, cls_values
                 )
-            if param_value.enums.type == ParameterEnumType.INPUTDATA_CDES:
-                _validate_parameter_with_enums_type_inputdata_CDEs(
+            if param_value.enums.type == ParameterEnumType.INPUT_VAR_NAMES:
+                _validate_parameter_with_enums_type_input_var_names(
                     param_value, cls_values
                 )
         return cls_values
