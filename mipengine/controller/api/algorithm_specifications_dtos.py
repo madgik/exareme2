@@ -34,6 +34,7 @@ class ParameterType(str, Enum):
     INT = "int"
     TEXT = "text"
     BOOLEAN = "boolean"
+    DICT = "dict"
 
 
 @unique
@@ -75,6 +76,8 @@ class ParameterSpecificationDTO(ImmutableBaseModel):
     multiple: bool
     default: Any
     enums: Optional[ParameterEnumSpecificationDTO]
+    dict_keys_enums: Optional[ParameterEnumSpecificationDTO]
+    dict_values_enums: Optional[ParameterEnumSpecificationDTO]
     min: Optional[float]
     max: Optional[float]
 

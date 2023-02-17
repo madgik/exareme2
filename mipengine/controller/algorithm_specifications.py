@@ -129,6 +129,8 @@ class ParameterSpecification(BaseModel):
     multiple: bool
     default: Any
     enums: Optional[ParameterEnumSpecification]
+    dict_keys_enums: Optional[ParameterEnumSpecification]
+    dict_values_enums: Optional[ParameterEnumSpecification]
     min: Optional[float]
     max: Optional[float]
 
@@ -143,6 +145,16 @@ class ParameterSpecification(BaseModel):
             enums=(
                 self.enums.convert_to_parameter_enum_specification_dto()
                 if self.enums
+                else None
+            ),
+            dict_keys_enums=(
+                self.dict_keys_enums.convert_to_parameter_enum_specification_dto()
+                if self.dict_keys_enums
+                else None
+            ),
+            dict_values_enums=(
+                self.dict_values_enums.convert_to_parameter_enum_specification_dto()
+                if self.dict_values_enums
                 else None
             ),
             min=self.min,
@@ -183,6 +195,63 @@ def _validate_parameter_with_enums_type_input_var_names(param_value, cls_values)
         )
 
 
+def _validate_parameter_enums(param_value, cls_values):
+    if not param_value.enums:
+        return
+    if param_value.enums.type == ParameterEnumType.INPUT_VAR_CDE_ENUMS:
+        _validate_parameter_with_enums_type_input_var_CDE_enums(param_value, cls_values)
+    if param_value.enums.type == ParameterEnumType.INPUT_VAR_NAMES:
+        _validate_parameter_with_enums_type_input_var_names(param_value, cls_values)
+
+
+def _validate_parameter_type_dict(param_value, cls_values):
+    if ParameterType.DICT in param_value.types:
+        if len(param_value.types) > 1:
+            raise ValueError(
+                f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' cannot use 'dict' type "
+                f"combined with other types. Types provided: {param_value.types}. "
+            )
+
+
+def _validate_parameter_type_dict_keys_enums(param_value, cls_values):
+    if not param_value.dict_keys_enums:
+        return
+
+    if ParameterType.DICT not in param_value.types:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has the property 'dict_keys_enums' "
+            f"but the allowed 'types' is not '{ParameterType.DICT}'."
+        )
+
+
+def _validate_parameter_type_dict_values_enums(param_value, cls_values):
+    if not param_value.dict_values_enums:
+        return
+
+    if ParameterType.DICT not in param_value.types:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has the property 'dict_values_enums' "
+            f"but the allowed 'types' is not '{ParameterType.DICT}'."
+        )
+
+
+def _validate_parameter_type_dict_enums_not_allowed(param_value, cls_values):
+    if not param_value.enums:
+        return
+
+    if ParameterType.DICT in param_value.types:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has the property 'enums' "
+            f"but since the 'types' is '{ParameterType.DICT}', you should use 'dict_keys_enums' and 'dict_values_enums'."
+        )
+
+
+def _validate_parameter_type_dict_enums(param_value, cls_values):
+    _validate_parameter_type_dict_keys_enums(param_value, cls_values)
+    _validate_parameter_type_dict_values_enums(param_value, cls_values)
+    _validate_parameter_type_dict_enums_not_allowed(param_value, cls_values)
+
+
 class AlgorithmSpecification(BaseModel):
     name: str
     desc: str
@@ -198,16 +267,10 @@ class AlgorithmSpecification(BaseModel):
             return cls_values
 
         for param_value in cls_values["parameters"].values():
-            if not param_value.enums:
-                continue
-            if param_value.enums.type == ParameterEnumType.INPUT_VAR_CDE_ENUMS:
-                _validate_parameter_with_enums_type_input_var_CDE_enums(
-                    param_value, cls_values
-                )
-            if param_value.enums.type == ParameterEnumType.INPUT_VAR_NAMES:
-                _validate_parameter_with_enums_type_input_var_names(
-                    param_value, cls_values
-                )
+            _validate_parameter_enums(param_value, cls_values)
+            _validate_parameter_type_dict(param_value, cls_values)
+            _validate_parameter_type_dict_enums(param_value, cls_values)
+
         return cls_values
 
     def convert_to_algorithm_specifications_dto(self):
