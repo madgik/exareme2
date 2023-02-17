@@ -335,16 +335,16 @@ def _validate_param_enums(
 
     if parameter_spec.enums.type == ParameterEnumType.LIST:
         _validate_param_enums_of_type_list(parameter_value, parameter_spec)
-    elif parameter_spec.enums.type == ParameterEnumType.INPUTDATA_CDE_ENUMS:
-        _validate_param_enums_of_type_inputdata_CDE_enums(
+    elif parameter_spec.enums.type == ParameterEnumType.INPUT_VAR_CDE_ENUMS:
+        _validate_param_enums_of_type_input_var_CDE_enums(
             parameter_value, parameter_spec, inputdata, data_model_cdes
         )
-    elif parameter_spec.enums.type == ParameterEnumType.CDE_ENUMS:
-        _validate_param_enums_of_type_CDE_enums(
+    elif parameter_spec.enums.type == ParameterEnumType.FIXED_VAR_CDE_ENUMS:
+        _validate_param_enums_of_type_fixed_var_CDE_enums(
             parameter_value, parameter_spec, data_model_cdes
         )
-    elif parameter_spec.enums.type == ParameterEnumType.INPUTDATA_CDES:
-        _validate_param_enums_of_type_inputdata_CDEs(
+    elif parameter_spec.enums.type == ParameterEnumType.INPUT_VAR_NAMES:
+        _validate_param_enums_of_type_input_var_names(
             parameter_value, parameter_spec, inputdata
         )
     else:
@@ -353,22 +353,22 @@ def _validate_param_enums(
         )
 
 
-def _validate_param_enums_of_type_inputdata_CDEs(
+def _validate_param_enums_of_type_input_var_names(
     parameter_value: Any,
     parameter_spec: ParameterSpecification,
     inputdata: AlgorithmInputDataDTO,
 ):
-    inputdata_CDEs_enums = []
-    inputdata_CDEs_enums.extend(inputdata.y) if inputdata.y else None
-    inputdata_CDEs_enums.extend(inputdata.x) if inputdata.x else None
-    if parameter_value not in inputdata_CDEs_enums:
+    input_var_names_enums = []
+    input_var_names_enums.extend(inputdata.y) if inputdata.y else None
+    input_var_names_enums.extend(inputdata.x) if inputdata.x else None
+    if parameter_value not in input_var_names_enums:
         raise BadUserInput(
-            f"Parameter's '{parameter_spec.label}' enums, that are taken from inputdata {parameter_spec.enums.source} CDEs, "
-            f"should be one of the following: '{inputdata_CDEs_enums}'.",
+            f"Parameter's '{parameter_spec.label}' enums, that are taken from inputdata {parameter_spec.enums.source} var names, "
+            f"should be one of the following: '{input_var_names_enums}'.",
         )
 
 
-def _validate_param_enums_of_type_CDE_enums(
+def _validate_param_enums_of_type_fixed_var_CDE_enums(
     parameter_value: Any,
     parameter_spec: ParameterSpecification,
     data_model_cdes: Dict[str, CommonDataElement],
@@ -378,33 +378,35 @@ def _validate_param_enums_of_type_CDE_enums(
             f"Parameter's '{parameter_spec.label}' enums source '{parameter_spec.enums.source}' does "
             f"not exist in the data model provided."
         )
-    CDE_enums = list(data_model_cdes[parameter_spec.enums.source].enumerations.keys())
-    if parameter_value not in CDE_enums:
+    fixed_var_CDE_enums = list(
+        data_model_cdes[parameter_spec.enums.source].enumerations.keys()
+    )
+    if parameter_value not in fixed_var_CDE_enums:
         raise BadUserInput(
             f"Parameter's '{parameter_spec.label}' enums, that are taken from the CDE '{parameter_spec.enums.source}', "
-            f"should be one of the following: '{list(CDE_enums)}'."
+            f"should be one of the following: '{list(fixed_var_CDE_enums)}'."
         )
 
 
-def _validate_param_enums_of_type_inputdata_CDE_enums(
+def _validate_param_enums_of_type_input_var_CDE_enums(
     parameter_value: Any,
     parameter_spec: ParameterSpecification,
     inputdata: AlgorithmInputDataDTO,
     data_model_cdes: Dict[str, CommonDataElement],
 ):
     if parameter_spec.enums.source == "x":
-        inputdata_vars = inputdata.x
+        input_vars = inputdata.x
     elif parameter_spec.enums.source == "y":
-        inputdata_vars = inputdata.y
+        input_vars = inputdata.y
     else:
         raise NotImplementedError(f"Source should be either 'x' or 'y'.")
-    inputdata_var = inputdata_vars[0]  # multiple=true is not allowed
-    inputdata_CDE_enums = data_model_cdes[inputdata_var].enumerations.keys()
-    if parameter_value not in inputdata_CDE_enums:
+    input_var = input_vars[0]  # multiple=true is not allowed
+    input_var_CDE_enums = data_model_cdes[input_var].enumerations.keys()
+    if parameter_value not in input_var_CDE_enums:
         raise BadUserInput(
-            f"Parameter's '{parameter_spec.label}' enums, that are taken from the CDE '{inputdata_var}' "
+            f"Parameter's '{parameter_spec.label}' enums, that are taken from the CDE '{input_var}' "
             f"given in inputdata '{parameter_spec.enums.source}' variable, "
-            f"should be one of the following: '{list(inputdata_CDE_enums)}'."
+            f"should be one of the following: '{list(input_var_CDE_enums)}'."
         )
 
 

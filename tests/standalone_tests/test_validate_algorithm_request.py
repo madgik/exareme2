@@ -323,47 +323,47 @@ def mock_algorithms_specs():
                         source=["a", "b", "c"],
                     ),
                 ),
-                "param_with_enum_type_inputdata_cde_enums": ParameterSpecification(
-                    label="param_with_enum_type_inputdata_cde_enums",
-                    desc="param_with_enum_type_inputdata_cde_enums",
+                "param_with_enum_type_input_var_CDE_enums": ParameterSpecification(
+                    label="param_with_enum_type_input_var_CDE_enums",
+                    desc="param_with_enum_type_input_var_CDE_enums",
                     types=["text"],
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUTDATA_CDE_ENUMS,
+                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
                         source="y",
                     ),
                 ),
-                "param_with_enum_type_cde_enums": ParameterSpecification(
-                    label="param_with_enum_type_cde_enums",
-                    desc="param_with_enum_type_cde_enums",
+                "param_with_enum_type_fixed_var_CDE_enums": ParameterSpecification(
+                    label="param_with_enum_type_fixed_var_CDE_enums",
+                    desc="param_with_enum_type_fixed_var_CDE_enums",
                     types=["text"],
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.CDE_ENUMS,
+                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS,
                         source="text_cde_categ",
                     ),
                 ),
-                "param_with_enum_type_cde_enums_wrong_CDE": ParameterSpecification(
-                    label="cde_enums_param_wrong_CDE",
-                    desc="parameter that uses enums with type CDE_enums",
+                "param_with_enum_type_fixed_var_CDE_enums_wrong_CDE": ParameterSpecification(
+                    label="param_with_enum_type_fixed_var_CDE_enums_wrong_CDE",
+                    desc="param_with_enum_type_fixed_var_CDE_enums_wrong_CDE",
                     types=["text"],
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.CDE_ENUMS,
+                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS,
                         source="non_existing_CDE",
                     ),
                 ),
-                "param_with_enum_type_inputdata_CDEs": ParameterSpecification(
-                    label="cde_enums_param_inputdata_CDEs",
-                    desc="parameter that uses enums with type inputdata_CDEs",
+                "param_with_enum_type_input_var_names": ParameterSpecification(
+                    label="param_with_enum_type_input_var_names",
+                    desc="param_with_enum_type_input_var_names",
                     types=["text"],
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUTDATA_CDES,
+                        type=ParameterEnumType.INPUT_VAR_NAMES,
                         source=["x", "y"],
                     ),
                 ),
@@ -515,9 +515,9 @@ def get_parametrization_list_success_cases():
                     datasets=["sample_dataset1"],
                     y=["text_cde_categ"],
                 ),
-                parameters={"param_with_enum_type_inputdata_cde_enums": "male"},
+                parameters={"param_with_enum_type_input_var_CDE_enums": "male"},
             ),
-            id="parameter enums type inputdata_CDE_enums",
+            id="parameter enums type input_var_CDE_enums",
         ),
         pytest.param(
             "algorithm_with_many_params",
@@ -527,9 +527,9 @@ def get_parametrization_list_success_cases():
                     datasets=["sample_dataset1"],
                     y=["text_cde_categ"],
                 ),
-                parameters={"param_with_enum_type_cde_enums": "female"},
+                parameters={"param_with_enum_type_fixed_var_CDE_enums": "female"},
             ),
-            id="parameter enums type CDE_enums",
+            id="parameter enums type fixed_var_CDE_enums",
         ),
         pytest.param(
             "algorithm_with_many_params",
@@ -539,9 +539,9 @@ def get_parametrization_list_success_cases():
                     datasets=["sample_dataset1"],
                     y=["text_cde_categ"],
                 ),
-                parameters={"param_with_enum_type_inputdata_CDEs": "text_cde_categ"},
+                parameters={"param_with_enum_type_input_var_names": "text_cde_categ"},
             ),
-            id="parameter enums type inputdata_CDEs",
+            id="parameter enums type input_var_names",
         ),
     ]
     return parametrization_list
@@ -823,14 +823,14 @@ def get_parametrization_list_exception_cases():
                     y=["text_cde_categ"],
                 ),
                 parameters={
-                    "param_with_enum_type_inputdata_cde_enums": "non_existing_enum",
+                    "param_with_enum_type_input_var_CDE_enums": "non_existing_enum",
                 },
             ),
             (
                 BadUserInput,
                 "Parameter's .* enums, that are taken from the CDE .* given in inputdata .* variable, should be one of the following: .*",
             ),
-            id="Parameter with enumerations of type inputdata_CDE_enums given non existing enum.",
+            id="Parameter with enumerations of type input_var_CDE_enums given non existing enum.",
         ),
         pytest.param(
             "algorithm_with_many_params",
@@ -841,14 +841,14 @@ def get_parametrization_list_exception_cases():
                     y=["text_cde_categ"],
                 ),
                 parameters={
-                    "param_with_enum_type_cde_enums_wrong_CDE": "male",
+                    "param_with_enum_type_fixed_var_CDE_enums_wrong_CDE": "male",
                 },
             ),
             (
                 ValueError,
                 "Parameter's .* enums source .* does not exist in the data model provided.",
             ),
-            id="Parameter with enumerations of type CDE_enums has, in the algorithm specification, a CDE that doesn't exist.",
+            id="Parameter with enumerations of type fixed_var_CDE_enums has, in the algorithm specification, a CDE that doesn't exist.",
         ),
         pytest.param(
             "algorithm_with_many_params",
@@ -859,14 +859,14 @@ def get_parametrization_list_exception_cases():
                     y=["text_cde_categ"],
                 ),
                 parameters={
-                    "param_with_enum_type_cde_enums": "non_existing_enum",
+                    "param_with_enum_type_fixed_var_CDE_enums": "non_existing_enum",
                 },
             ),
             (
                 BadUserInput,
                 "Parameter's .* enums, that are taken from the CDE .*, should be one of the following: .*",
             ),
-            id="Parameter with enumerations of type CDE_enums given non existing enum.",
+            id="Parameter with enumerations of type fixed_var_CDE_enums given non existing enum.",
         ),
         pytest.param(
             "algorithm_with_many_params",
@@ -877,14 +877,14 @@ def get_parametrization_list_exception_cases():
                     y=["text_cde_categ"],
                 ),
                 parameters={
-                    "param_with_enum_type_inputdata_CDEs": "text_cde_non_categ",
+                    "param_with_enum_type_input_var_names": "text_cde_non_categ",
                 },
             ),
             (
                 BadUserInput,
-                "Parameter's .* enums, that are taken from inputdata .* CDEs, should be one of the following: .*",
+                "Parameter's .* enums, that are taken from inputdata .* var names, should be one of the following: .*",
             ),
-            id="Parameter with enumerations of type inputdata_CDEs given non existing enum.",
+            id="Parameter with enumerations of type input_var_names given non existing enum.",
         ),
     ]
     return parametrization_list

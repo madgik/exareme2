@@ -12,10 +12,10 @@ from mipengine.controller.api.algorithm_specifications_dtos import ParameterEnum
 from mipengine.controller.api.algorithm_specifications_dtos import ParameterType
 
 
-def test_validate_parameter_spec_inputdata_CDE_enums_source_is_x_or_y():
+def test_validate_parameter_spec_input_var_CDE_enums_source_is_x_or_y():
     exception_type = ValidationError
     exception_message = (
-        ".*In algorithm 'sample_algo', parameter 'sample_label' has enums type 'inputdata_CDE_enums' "
+        ".*In algorithm 'sample_algo', parameter 'sample_label' has enums type 'input_var_CDE_enums' "
         "that supports only 'x' or 'y' as source. Value given: 'not_x_or_y'.*"
     )
     with pytest.raises(exception_type, match=exception_message):
@@ -42,17 +42,17 @@ def test_validate_parameter_spec_inputdata_CDE_enums_source_is_x_or_y():
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUTDATA_CDE_ENUMS, source="not_x_or_y"
+                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS, source="not_x_or_y"
                     ),
                 ),
             },
         )
 
 
-def test_validate_parameter_spec_inputdata_CDE_enums_multiple_false():
+def test_validate_parameter_spec_input_var_CDE_enums_multiple_false():
     exception_type = ValidationError
     exception_message = (
-        ".*In algorithm 'sample_algo', parameter 'sample_label' has enums type 'inputdata_CDE_enums' "
+        ".*In algorithm 'sample_algo', parameter 'sample_label' has enums type 'input_var_CDE_enums' "
         "that doesn't support 'multiple=True', in the parameter.*"
     )
     with pytest.raises(exception_type, match=exception_message):
@@ -79,17 +79,17 @@ def test_validate_parameter_spec_inputdata_CDE_enums_multiple_false():
                     notblank=False,
                     multiple=True,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUTDATA_CDE_ENUMS, source="y"
+                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS, source="y"
                     ),
                 ),
             },
         )
 
 
-def test_validate_parameter_spec_inputdata_CDE_enums_inputdata_has_multiple_false():
+def test_validate_parameter_spec_input_var_CDE_enums_inputdata_has_multiple_false():
     exception_type = ValidationError
     exception_message = (
-        ".* In algorithm 'sample_algo', parameter 'sample_label' has enums type 'inputdata_CDE_enums' "
+        ".* In algorithm 'sample_algo', parameter 'sample_label' has enums type 'input_var_CDE_enums' "
         "that doesn't support 'multiple=True' in it's linked inputdata var 'y'.*"
     )
     with pytest.raises(exception_type, match=exception_message):
@@ -116,17 +116,17 @@ def test_validate_parameter_spec_inputdata_CDE_enums_inputdata_has_multiple_fals
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUTDATA_CDE_ENUMS, source="y"
+                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS, source="y"
                     ),
                 ),
             },
         )
 
 
-def test_validate_parameter_spec_inputdata_CDEs_type_must_be_text():
+def test_validate_parameter_spec_input_var_names_type_must_be_text():
     exception_type = ValidationError
     exception_message = (
-        """.* In algorithm 'sample_algo', parameter 'sample_label' has enums type 'inputdata_CDEs' """
+        """.* In algorithm 'sample_algo', parameter 'sample_label' has enums type 'input_var_names' """
         """that supports ONLY '.*' but the 'types' provided were .*"""
     )
     with pytest.raises(exception_type, match=exception_message):
@@ -146,14 +146,14 @@ def test_validate_parameter_spec_inputdata_CDEs_type_must_be_text():
                 )
             ),
             parameters={
-                "inputdata_cdes_enum_param": ParameterSpecification(
+                "input_var_names_enum_param": ParameterSpecification(
                     label="sample_label",
                     desc="sample",
                     types=[ParameterType.INT],
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUTDATA_CDES, source=["y"]
+                        type=ParameterEnumType.INPUT_VAR_NAMES, source=["y"]
                     ),
                 ),
             },
