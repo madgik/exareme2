@@ -4,14 +4,13 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.controller.algorithm_specifications import AlgorithmSpecification
-from mipengine.controller.algorithm_specifications import InputDataSpecification
-from mipengine.controller.algorithm_specifications import InputDataSpecifications
-from mipengine.controller.algorithm_specifications import InputDataStatType
-from mipengine.controller.algorithm_specifications import InputDataType
-from mipengine.controller.algorithm_specifications import ParameterEnumSpecification
-from mipengine.controller.algorithm_specifications import ParameterSpecification
-from mipengine.controller.algorithm_specifications import algorithm_specifications
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterEnumSpecification
+from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
@@ -34,11 +33,12 @@ def validate_algorithm_request(
     algorithm_name: str,
     algorithm_request_dto: AlgorithmRequestDTO,
     available_datasets_per_data_model: Dict[str, List[str]],
+    algorithms_specs: Dict[str, AlgorithmSpecification],
     node_landscape_aggregator: NodeLandscapeAggregator,
     smpc_enabled: bool,
     smpc_optional: bool,
 ):
-    algorithm_specs = _get_algorithm_specs(algorithm_name)
+    algorithm_specs = _get_algorithm_specs(algorithm_name, algorithms_specs)
     _validate_algorithm_request_body(
         algorithm_request_dto=algorithm_request_dto,
         algorithm_specs=algorithm_specs,
@@ -49,10 +49,12 @@ def validate_algorithm_request(
     )
 
 
-def _get_algorithm_specs(algorithm_name):
-    if algorithm_name not in algorithm_specifications.enabled_algorithms.keys():
+def _get_algorithm_specs(
+    algorithm_name: str, algorithms_specs: Dict[str, AlgorithmSpecification]
+):
+    if algorithm_name not in algorithms_specs.keys():
         raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
-    return algorithm_specifications.enabled_algorithms[algorithm_name]
+    return algorithms_specs[algorithm_name]
 
 
 def _validate_algorithm_request_body(

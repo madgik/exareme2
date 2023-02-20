@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from mipengine import algorithm_classes
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
+from mipengine.controller import algorithms_specifications
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
 from mipengine.controller.algorithm_execution_engine import (
@@ -290,6 +291,7 @@ class Controller:
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             available_datasets_per_data_model=available_datasets_per_data_model,
+            algorithms_specs=algorithms_specifications,
             node_landscape_aggregator=self._node_landscape_aggregator,
             smpc_enabled=self._smpc_enabled,
             smpc_optional=self._smpc_optional,

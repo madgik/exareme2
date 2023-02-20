@@ -13,7 +13,7 @@ from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
 
-class StandartDeviationSMPCAlgorithm(Algorithm, algname="smpc_standard_deviation"):
+class StandardDeviationSMPCAlgorithm(Algorithm, algname="smpc_standard_deviation"):
     def get_variable_groups(self):
         return [self.variables.y]
 
