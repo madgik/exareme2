@@ -1,13 +1,11 @@
-from unittest.mock import patch
-
 import pytest
 
-from mipengine.controller.algorithm_specifications import AlgorithmSpecification
-from mipengine.controller.algorithm_specifications import AlgorithmSpecifications
-from mipengine.controller.algorithm_specifications import InputDataSpecification
-from mipengine.controller.algorithm_specifications import InputDataSpecifications
-from mipengine.controller.algorithm_specifications import ParameterEnumSpecification
-from mipengine.controller.algorithm_specifications import ParameterSpecification
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import ParameterEnumSpecification
+from mipengine.algorithm_specification import ParameterEnumType
+from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.algorithm_specifications_dtos import InputDataStatType
@@ -114,10 +112,9 @@ def available_datasets_per_data_model():
     return d
 
 
-@pytest.fixture(scope="module", autouse=True)
-def mock_algorithms_specs():
-    algorithms_specifications = AlgorithmSpecifications()
-    algorithms_specifications.enabled_algorithms = {
+@pytest.fixture(scope="module")
+def algorithms_specs():
+    algorithms_specifications = {
         "algorithm_with_y_int": AlgorithmSpecification(
             name="algorithm_with_y_int",
             desc="algorithm_with_y_int",
@@ -410,12 +407,7 @@ def mock_algorithms_specs():
             },
         ),
     }
-
-    with patch(
-        "mipengine.controller.api.validator.algorithm_specifications",
-        algorithms_specifications,
-    ):
-        yield
+    return algorithms_specifications
 
 
 def get_parametrization_list_success_cases():
@@ -626,11 +618,13 @@ def test_validate_algorithm_success(
     request_dto,
     available_datasets_per_data_model,
     node_landscape_aggregator,
+    algorithms_specs,
 ):
     validate_algorithm_request(
         algorithm_name=algorithm_name,
         algorithm_request_dto=request_dto,
         available_datasets_per_data_model=available_datasets_per_data_model,
+        algorithms_specs=algorithms_specs,
         node_landscape_aggregator=node_landscape_aggregator,
         smpc_enabled=False,
         smpc_optional=False,
@@ -1028,6 +1022,7 @@ def test_validate_algorithm_exceptions(
     request_dto,
     exception,
     available_datasets_per_data_model,
+    algorithms_specs,
     node_landscape_aggregator,
 ):
     exception_type, exception_message = exception
@@ -1036,6 +1031,7 @@ def test_validate_algorithm_exceptions(
             algorithm_name=algorithm_name,
             algorithm_request_dto=request_dto,
             available_datasets_per_data_model=available_datasets_per_data_model,
+            algorithms_specs=algorithms_specs,
             node_landscape_aggregator=node_landscape_aggregator,
             smpc_enabled=False,
             smpc_optional=False,

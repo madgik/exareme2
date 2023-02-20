@@ -1,15 +1,15 @@
 import pytest
 from pydantic import ValidationError
 
-from mipengine.controller.algorithm_specifications import AlgorithmSpecification
-from mipengine.controller.algorithm_specifications import InputDataSpecification
-from mipengine.controller.algorithm_specifications import InputDataSpecifications
-from mipengine.controller.algorithm_specifications import ParameterEnumSpecification
-from mipengine.controller.algorithm_specifications import ParameterSpecification
-from mipengine.controller.api.algorithm_specifications_dtos import InputDataStatType
-from mipengine.controller.api.algorithm_specifications_dtos import InputDataType
-from mipengine.controller.api.algorithm_specifications_dtos import ParameterEnumType
-from mipengine.controller.api.algorithm_specifications_dtos import ParameterType
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterEnumSpecification
+from mipengine.algorithm_specification import ParameterEnumType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
 
 
 def test_validate_parameter_spec_input_var_CDE_enums_source_is_x_or_y():
