@@ -4,11 +4,20 @@ from typing import NamedTuple
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import relation_to_vector
+
+ALGORITHM_NAME = "linear_regression_cv"
 
 
 class BasicStats(NamedTuple):
@@ -25,7 +34,46 @@ class CVLinearRegressionResult(BaseModel):
     mean_abs_error: BasicStats
 
 
-class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
+class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    @staticmethod
+    def get_specification():
+        return AlgorithmSpecification(
+            name=ALGORITHM_NAME,
+            desc="Linear Regression Cross-validation",
+            label="Linear Regression Cross-validation",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                x=InputDataSpecification(
+                    label="features",
+                    desc="Features",
+                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=True,
+                ),
+                y=InputDataSpecification(
+                    label="target",
+                    desc="Target variable",
+                    types=[InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+            parameters={
+                "n_splits": ParameterSpecification(
+                    label="Number of splits",
+                    desc="Number of splits",
+                    types=[ParameterType.INT],
+                    notblank=True,
+                    multiple=False,
+                    default=5,
+                    min=2,
+                    max=20,
+                ),
+            },
+        )
+
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 

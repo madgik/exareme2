@@ -35,6 +35,11 @@ from typing import Union
 import pandas as pd
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import MIN_ROW_COUNT
@@ -45,6 +50,7 @@ from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
 DATASET_VAR_NAME = "dataset"
+ALGORITHM_NAME = "descriptive_stats"
 
 
 class NumericalDescriptiveStats(BaseModel):
@@ -88,7 +94,34 @@ class Result(BaseModel):
     model_based: List[Variable]
 
 
-class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
+class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    @staticmethod
+    def get_specification():
+        return AlgorithmSpecification(
+            name=ALGORITHM_NAME,
+            desc="Descriptive statistics",
+            label="Descriptive statistics",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                x=InputDataSpecification(
+                    label="x",
+                    desc="x",
+                    types=[InputDataType.INT, InputDataType.REAL, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
+                    notblank=False,
+                    multiple=True,
+                ),
+                y=InputDataSpecification(
+                    label="y",
+                    desc="y",
+                    types=[InputDataType.INT, InputDataType.REAL, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=True,
+                ),
+            ),
+        )
+
     def get_variable_groups(self):
         xvars = self.variables.x
         yvars = self.variables.y  # or []

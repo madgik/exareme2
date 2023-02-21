@@ -2,6 +2,11 @@ import json
 from typing import TypeVar
 
 from mipengine.algorithm_result_DTOs import TabularDataResult
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
@@ -12,10 +17,31 @@ from mipengine.udfgen import tensor
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
+ALGORITHM_NAME = "smpc_standard_deviation_int_only"
+
 
 class StandartDeviationIntOnlySMPC(
     Algorithm, algname="smpc_standard_deviation_int_only"
 ):
+    @staticmethod
+    def get_specification():
+        return AlgorithmSpecification(
+            name=ALGORITHM_NAME,
+            desc="Standard Deviation of a column, transferring only integers, using SMPC",
+            label="SMPC Standard Deviation",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="column",
+                    desc="Column",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                )
+            ),
+        )
+
     def get_variable_groups(self):
         return [self.variables.y]
 

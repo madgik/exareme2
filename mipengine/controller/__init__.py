@@ -2,12 +2,12 @@ import os
 from enum import Enum
 from enum import unique
 from importlib.resources import open_text
-from pathlib import Path
+from typing import Dict
 
 import envtoml
 
-from mipengine import ALGORITHM_FOLDERS
 from mipengine import AttrDict
+from mipengine import algorithm_classes
 from mipengine import controller
 from mipengine.algorithm_specification import AlgorithmSpecification
 
@@ -28,31 +28,12 @@ else:
         config = AttrDict(envtoml.load(fp))
 
 
-def _get_algorithms_specifications():
-    all_algorithms = {}
-    for algorithms_path in ALGORITHM_FOLDERS.split(","):
-        algorithms_path = Path(algorithms_path)
-        for algorithm_property_path in algorithms_path.glob("*.json"):
-            try:
-                with open(algorithm_property_path) as algorithm_specifications_file:
-                    algorithm = AlgorithmSpecification.parse_raw(
-                        algorithm_specifications_file.read()
-                    )
-            except Exception as e:
-                raise e
-            all_algorithms[algorithm.name] = algorithm
-
+def _get_algorithms_specifications() -> Dict[str, AlgorithmSpecification]:
     return {
-        algorithm.name: algorithm
-        for algorithm in all_algorithms.values()
-        if algorithm.enabled
+        algo_name: algorithm.get_specification()
+        for algo_name, algorithm in algorithm_classes.items()
+        if algorithm.get_specification().enabled
     }
 
 
 algorithms_specifications = _get_algorithms_specifications()
-
-# algorithms_specifications: Dict[str, AlgorithmSpecification] = {
-#     algorithm: algorithm.get_specification()
-#     for algo_name, algorithm in algorithm_classes.get_specification()
-#     if algorithm.enabled
-# }

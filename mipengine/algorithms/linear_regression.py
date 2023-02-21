@@ -4,6 +4,11 @@ import numpy
 import scipy.stats as stats
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
@@ -16,6 +21,7 @@ from mipengine.udfgen import tensor
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
+ALGORITHM_NAME = "linear_regression"
 ALPHA = 0.05  # NOTE maybe this should be a model parameter
 
 RealVector = tensor(dtype=float, ndims=1)
@@ -40,7 +46,34 @@ class LinearRegressionResult(BaseModel):
     upper_ci: List[float]
 
 
-class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
+class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    @staticmethod
+    def get_specification():
+        return AlgorithmSpecification(
+            name=ALGORITHM_NAME,
+            desc="Linear Regression",
+            label="Linear Regression",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                x=InputDataSpecification(
+                    label="features",
+                    desc="Features",
+                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=True,
+                ),
+                y=InputDataSpecification(
+                    label="target",
+                    desc="Target variable",
+                    types=[InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+        )
+
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
