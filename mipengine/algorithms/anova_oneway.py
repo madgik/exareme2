@@ -3,6 +3,11 @@ from typing import TypeVar
 import pandas as pd
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.exceptions import BadUserInput
@@ -13,6 +18,8 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
+ALGORITHM_NAME = "anova_oneway"
+
 
 class AnovaResult(BaseModel):
     anova_table: dict
@@ -21,7 +28,34 @@ class AnovaResult(BaseModel):
     ci_info: dict
 
 
-class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
+class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    @staticmethod
+    def get_specification():
+        return AlgorithmSpecification(
+            name=ALGORITHM_NAME,
+            desc="ANOVA One-way",
+            label="ANOVA One-way",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                x=InputDataSpecification(
+                    label="independent",
+                    desc="independent variable",
+                    types=[InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+                y=InputDataSpecification(
+                    label="dependent",
+                    desc="Dependent variable",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+        )
+
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 

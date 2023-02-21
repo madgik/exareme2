@@ -415,7 +415,7 @@ def _validate_param_enums_of_type_list(
     if parameter_value not in parameter_spec_enums.source:
         raise BadUserInput(
             f"Parameter '{parameter_spec_label}' values "
-            f"should be one of the following: '{str(parameter_spec_enums)}'."
+            f"should be one of the following: {parameter_spec_enums.source}. Value provided: '{parameter_value}'."
         )
 
 

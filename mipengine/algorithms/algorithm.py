@@ -27,6 +27,9 @@ class InitializationParams(BaseModel):
         arbitrary_types_allowed = True
 
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+
+
 class Algorithm(ABC):
     """
     This is the abstract class that all algorithm flow classes must implement. The class
@@ -126,6 +129,11 @@ class Algorithm(ABC):
         bool
         """
         return True
+
+    @staticmethod
+    @abstractmethod
+    def get_specification() -> AlgorithmSpecification:
+        pass
 
     @abstractmethod
     def run(self, engine):

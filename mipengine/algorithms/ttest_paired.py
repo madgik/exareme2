@@ -1,6 +1,15 @@
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterEnumSpecification
+from mipengine.algorithm_specification import ParameterEnumType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
@@ -8,6 +17,8 @@ from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
+
+ALGORITHM_NAME = "ttest_paired"
 
 
 class TtestResult(BaseModel):
@@ -21,7 +32,58 @@ class TtestResult(BaseModel):
     cohens_d: float
 
 
-class PairedTTestAlgorithm(Algorithm, algname="ttest_paired"):
+class PairedTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    @staticmethod
+    def get_specification():
+        return AlgorithmSpecification(
+            name=ALGORITHM_NAME,
+            desc="Paired t-test",
+            label="Paired t-test",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="independent",
+                    desc="independent variable",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+                x=InputDataSpecification(
+                    label="independent",
+                    desc="independent variable",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+            parameters={
+                "alt_hypothesis": ParameterSpecification(
+                    label="Alternative Hypothesis",
+                    desc="The alternative hypothesis to the null, returning specifically whether measure 1 is different to measure 2, measure 1 greater than measure 2, and measure 1 less than measure 2 respectively.",
+                    types=[ParameterType.TEXT],
+                    notblank=True,
+                    multiple=False,
+                    default="two-sided",
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.LIST,
+                        source=["two-sided", "less", "greater"],
+                    ),
+                ),
+                "alpha": ParameterSpecification(
+                    label="Confidence level",
+                    desc="The confidence level α used in the calculation of the confidence intervals for the correlation coefficients.",
+                    types=[ParameterType.REAL],
+                    notblank=True,
+                    multiple=False,
+                    default=0.95,
+                    min=0.0,
+                    max=1.0,
+                ),
+            },
+        )
+
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 

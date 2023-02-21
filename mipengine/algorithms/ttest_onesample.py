@@ -1,6 +1,15 @@
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterEnumSpecification
+from mipengine.algorithm_specification import ParameterEnumType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
@@ -8,6 +17,8 @@ from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
+
+ALGORITHM_NAME = "ttest_onesample"
 
 
 class TtestResult(BaseModel):
@@ -23,7 +34,60 @@ class TtestResult(BaseModel):
     cohens_d: float
 
 
-class OnesampleTTestAlgorithm(Algorithm, algname="ttest_onesample"):
+class OnesampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    @staticmethod
+    def get_specification():
+        return AlgorithmSpecification(
+            name=ALGORITHM_NAME,
+            desc="Student’s One-sample t-test",
+            label="T-Test One-Sample",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="Variables",
+                    desc="Variables",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+            parameters={
+                "alt_hypothesis": ParameterSpecification(
+                    label="Alternative Hypothesis",
+                    desc="The alternative hypothesis to the null, returning specifically whether the result is less than, greater than, or .",
+                    types=[ParameterType.TEXT],
+                    notblank=True,
+                    multiple=False,
+                    default="two-sided",
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.LIST,
+                        source=["two-sided", "less", "greater"],
+                    ),
+                ),
+                "alpha": ParameterSpecification(
+                    label="Confidence level",
+                    desc="The confidence level α used in the calculation of the confidence intervals for the correlation coefficients.",
+                    types=[ParameterType.REAL],
+                    notblank=True,
+                    multiple=False,
+                    default=0.95,
+                    min=0.0,
+                    max=1.0,
+                ),
+                "mu": ParameterSpecification(
+                    label="Population mean",
+                    desc="The population mean, if it is known, else it defaults to 0.",
+                    types=[ParameterType.REAL],
+                    notblank=True,
+                    multiple=False,
+                    default=0.0,
+                    min=-10,
+                    max=10,
+                ),
+            },
+        )
+
     def get_variable_groups(self):
         return [self.variables.y]
 

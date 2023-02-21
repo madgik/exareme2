@@ -5,6 +5,15 @@ import scipy.stats as stats
 from pydantic import BaseModel
 from scipy.special import xlogy
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterEnumSpecification
+from mipengine.algorithm_specification import ParameterEnumType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
@@ -16,12 +25,53 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
+ALGORITHM_NAME = "logistic_regression"
 MAX_ITER = 50  # maximum iterations before cancelling run due to non convergence
 TOL = 1e-4  # tolerance for stopping criterion
 ALPHA = 0.05  # alpha level for coefficient confidence intervals
 
 
-class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
+class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    @staticmethod
+    def get_specification():
+        return AlgorithmSpecification(
+            name=ALGORITHM_NAME,
+            desc="Logistic Regression",
+            label="Logistic Regression",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                x=InputDataSpecification(
+                    label="features",
+                    desc="Features",
+                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=True,
+                ),
+                y=InputDataSpecification(
+                    label="target",
+                    desc="Target variable",
+                    types=[InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+            parameters={
+                "positive_class": ParameterSpecification(
+                    label="Positive class",
+                    desc="Positive class of y. All other classes are considered negative.",
+                    types=[ParameterType.TEXT, ParameterType.INT],
+                    notblank=True,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
+                        source="y",
+                    ),
+                ),
+            },
+        )
+
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
