@@ -5,13 +5,13 @@ from pydantic import BaseModel
 
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
-from mipengine.udfgen import udf_logger
 
 
 class AnovaResult(BaseModel):
@@ -41,13 +41,18 @@ class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
             keyword_args=dict(y=Y_relation, x=X_relation, covar_enums=covar_enums),
             share_to_global=[True, True],
         )
-
-        result = global_run(
-            func=global1,
-            keyword_args=dict(
-                sec_local_transfer=sec_local_transfer, local_transfers=local_transfers
-            ),
-        )
+        try:
+            result = global_run(
+                func=global1,
+                keyword_args=dict(
+                    sec_local_transfer=sec_local_transfer,
+                    local_transfers=local_transfers,
+                ),
+            )
+        except Exception as ex:
+            if "Cannot perform Anova when there is only one level." in str(ex):
+                raise BadUserInput("Cannot perform Anova when there is only one level.")
+            raise ex
 
         result = get_transfer_data(result)
         anova_result = {
@@ -251,7 +256,6 @@ def global1(sec_local_transfer, local_transfers):
             diff = list(set(x) - set(y))
             if diff != []:
                 group_stats_index.append(diff)
-
     # remove zero count groups
     if not np.all(group_stats_count):
         df = pd.DataFrame(
@@ -274,8 +278,8 @@ def global1(sec_local_transfer, local_transfers):
         var_max_per_group = np.array(df["max"])
 
     categories = local_transfers[0]["covar_enums"]
-    if len(categories) < 2:
-        raise ValueError("Cannot perform Anova when there is only one level")
+    if len(categories) < 2 or len(group_stats_index) < 2:
+        raise ValueError("Cannot perform Anova when there is only one level.")
 
     df_explained = len(group_stats_index) - 1
     df_residual = n_obs - len(group_stats_index)

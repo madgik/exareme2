@@ -8,9 +8,8 @@ import requests
 
 
 def algorithm_request(algorithm: str, input: dict):
-    url = "http://127.0.0.1:5000/algorithms" + f"/{algorithm}"
-    headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    response = requests.post(url, data=json.dumps(input), headers=headers)
+    response = algorithm_request_no_parse(algorithm, input)
+
     if response.status_code != 200:
         raise ValueError(
             f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
@@ -20,6 +19,14 @@ def algorithm_request(algorithm: str, input: dict):
     except json.decoder.JSONDecodeError as exc:
         print(response)
         raise exc
+    return response
+
+
+def algorithm_request_no_parse(algorithm: str, input: dict):
+    url = "http://127.0.0.1:5000/algorithms" + f"/{algorithm}"
+    headers = {"Content-type": "application/json", "Accept": "text/plain"}
+    response = requests.post(url, data=json.dumps(input), headers=headers)
+
     return response
 
 
