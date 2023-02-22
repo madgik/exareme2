@@ -141,7 +141,9 @@ def local1(y, x, covar_enums):
     # get overall stats
     overall_stats = dataset[var_label].agg(["count", "sum"])
     overall_ssq = dataset[var_sq].sum()
-    overall_stats = overall_stats.append(pd.Series(data=overall_ssq, index=["sum_sq"]))
+    overall_stats = pd.concat(
+        [overall_stats, pd.Series(data=overall_ssq, index=["sum_sq"])]
+    )
 
     # get group stats
     group_stats = (
@@ -165,7 +167,7 @@ def local1(y, x, covar_enums):
         )
         diff_df["min_per_group"] = sys.float_info.max
         diff_df["max_per_group"] = sys.float_info.min
-        group_stats_df = group_stats.append(diff_df)
+        group_stats_df = pd.concat([group_stats, diff_df])
 
     group_stats_df["groups"] = pd.Categorical(
         group_stats_df.index, categories=covar_enums.tolist(), ordered=True
@@ -255,7 +257,8 @@ def global1(sec_local_transfer, local_transfers):
             group_stats_index = x
             diff = list(set(x) - set(y))
             if diff != []:
-                group_stats_index.append(diff)
+                pd.concat([group_stats_index, diff])
+
     # remove zero count groups
     if not np.all(group_stats_count):
         df = pd.DataFrame(
@@ -325,7 +328,7 @@ def global1(sec_local_transfer, local_transfers):
         index=("categories", "Residual"),
     )
 
-    table.loc["categories"]: {
+    table.loc["categories"] = {
         "df": df_explained,
         "sum_sq": ss_explained,
         "mean_sq": ms_explained,
@@ -333,7 +336,7 @@ def global1(sec_local_transfer, local_transfers):
         "PR('>F')": p_value,
     }
 
-    table.loc["Residual"]: {
+    table.loc["Residual"] = {
         "df": df_residual,
         "sum_sq": ss_residual,
         "mean_sq": ms_residual,

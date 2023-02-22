@@ -158,3 +158,148 @@ def test_validate_parameter_spec_input_var_names_type_must_be_text():
                 ),
             },
         )
+
+
+def test_validate_parameter_dict_type_given_with_other_type():
+    exception_type = ValidationError
+    exception_message = (
+        ".*In algorithm 'sample_algo', parameter 'sample_label' cannot use 'dict' type combined"
+        " with other types. Types provided: .* "
+    )
+    with pytest.raises(exception_type, match=exception_message):
+        AlgorithmSpecification(
+            name="sample_algo",
+            desc="sample",
+            label="sample_algo",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="y",
+                    desc="y",
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=False,
+                )
+            ),
+            parameters={
+                "dict_and_text_types_param": ParameterSpecification(
+                    label="sample_label",
+                    desc="sample",
+                    types=[ParameterType.DICT, ParameterType.TEXT],
+                    notblank=False,
+                    multiple=False,
+                ),
+            },
+        )
+
+
+def test_validate_parameter_property_dict_keys_enums_can_only_be_given_with_type_dict():
+    exception_type = ValidationError
+    exception_message = (
+        ".*In algorithm 'sample_algo', parameter 'sample_label' has the property 'dict_keys_enums' "
+        "but the allowed 'types' is not 'dict'."
+    )
+    with pytest.raises(exception_type, match=exception_message):
+        AlgorithmSpecification(
+            name="sample_algo",
+            desc="sample",
+            label="sample_algo",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="y",
+                    desc="y",
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=False,
+                )
+            ),
+            parameters={
+                "dict_keys_enums_param": ParameterSpecification(
+                    label="sample_label",
+                    desc="sample",
+                    types=[ParameterType.TEXT],
+                    notblank=False,
+                    multiple=False,
+                    dict_keys_enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.LIST, source=["sample_enum"]
+                    ),
+                ),
+            },
+        )
+
+
+def test_validate_parameter_property_dict_values_enums_can_only_be_given_with_type_dict():
+    exception_type = ValidationError
+    exception_message = (
+        ".*In algorithm 'sample_algo', parameter 'sample_label' has the property 'dict_values_enums' "
+        "but the allowed 'types' is not 'dict'."
+    )
+    with pytest.raises(exception_type, match=exception_message):
+        AlgorithmSpecification(
+            name="sample_algo",
+            desc="sample",
+            label="sample_algo",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="y",
+                    desc="y",
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=False,
+                )
+            ),
+            parameters={
+                "dict_values_enums_param": ParameterSpecification(
+                    label="sample_label",
+                    desc="sample",
+                    types=[ParameterType.TEXT],
+                    notblank=False,
+                    multiple=False,
+                    dict_values_enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.LIST, source=["sample_enum"]
+                    ),
+                ),
+            },
+        )
+
+
+def test_validate_parameter_property_enums_given_with_type_dict():
+    exception_type = ValidationError
+    exception_message = (
+        ".*In algorithm 'sample_algo', parameter 'sample_label' has the property 'enums' "
+        "but since the 'types' is 'dict', you should use 'dict_keys_enums' and 'dict_values_enums'."
+    )
+    with pytest.raises(exception_type, match=exception_message):
+        AlgorithmSpecification(
+            name="sample_algo",
+            desc="sample",
+            label="sample_algo",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="y",
+                    desc="y",
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=False,
+                )
+            ),
+            parameters={
+                "dict_type_param": ParameterSpecification(
+                    label="sample_label",
+                    desc="sample",
+                    types=[ParameterType.DICT],
+                    notblank=False,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.LIST, source=["sample_enum"]
+                    ),
+                ),
+            },
+        )
