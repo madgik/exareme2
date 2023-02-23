@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from tests.algorithm_validation_tests.helpers import algorithm_request
+from tests.algorithm_validation_tests.helpers import algorithm_request_no_parse
 from tests.algorithm_validation_tests.helpers import get_test_params
 
 algorithm_name = "anova_oneway"
@@ -38,6 +39,30 @@ def test_anova_algorithm(test_input, expected):
         r_val = aov[key]
         assert e_val == r_val or np.isclose(e_val, r_val)
     compare_results(e_tukey, tukey)
+
+
+def test_anova_algorithm_not_enough_categories():
+    test_input = {
+        "inputdata": {
+            "x": ["ppmicategory"],
+            "y": ["lefthippocampus"],
+            "data_model": "dementia:0.1",
+            "datasets": ["ppmi0"],
+            "filters": None,
+        },
+        "parameters": {},
+    }
+
+    response = algorithm_request_no_parse(algorithm_name, test_input)
+
+    if (
+        response.status_code != 460
+        and response.content
+        == "Cannot perform Anova one-way. Covariable has only one level."
+    ):
+        raise ValueError(
+            f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
+        )
 
 
 def compare_results(expected, result):
