@@ -23,18 +23,20 @@ ALPHA = 0.05  # alpha level for coefficient confidence intervals
 
 class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
     def get_variable_groups(self):
-        return [self.executor.x_variables, self.executor.y_variables]
+        return [self.variables.x, self.variables.y]
 
-    def run(self):
-        X, y = self.executor.data_model_views
-        positive_class = self.executor.algorithm_parameters["positive_class"]
+    def run(self, engine):
+        X, y = engine.data_model_views
+        positive_class = self.algorithm_parameters["positive_class"]
 
-        dummy_encoder = DummyEncoder(self.executor)
+        dummy_encoder = DummyEncoder(
+            engine=engine, variables=self.variables, metadata=self.metadata
+        )
         X = dummy_encoder.transform(X)
 
-        ybin = LabelBinarizer(self.executor, positive_class).transform(y)
+        ybin = LabelBinarizer(engine, positive_class).transform(y)
 
-        lr = LogisticRegression(self.executor)
+        lr = LogisticRegression(engine)
         lr.fit(X=X, y=ybin)
 
         summary = compute_summary(model=lr)
@@ -49,9 +51,9 @@ class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
 
 
 class LogisticRegression:
-    def __init__(self, executor):
-        self.local_run = executor.run_udf_on_local_nodes
-        self.global_run = executor.run_udf_on_global_node
+    def __init__(self, engine):
+        self.local_run = engine.run_udf_on_local_nodes
+        self.global_run = engine.run_udf_on_global_node
 
     def fit(self, X, y):
         self.p = len(X.columns)

@@ -15,13 +15,13 @@ from mipengine.udfgen import udf
 
 class StandartDeviationSMPCAlgorithm(Algorithm, algname="smpc_standard_deviation"):
     def get_variable_groups(self):
-        return [self.executor.y_variables]
+        return [self.variables.y]
 
-    def run(self):
-        local_run = self.executor.run_udf_on_local_nodes
-        global_run = self.executor.run_udf_on_global_node
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
-        [Y_relation] = self.executor.data_model_views
+        [Y_relation] = engine.data_model_views
 
         Y = local_run(
             func=relation_to_matrix,
@@ -55,7 +55,7 @@ class StandartDeviationSMPCAlgorithm(Algorithm, algname="smpc_standard_deviation
         std_deviation = result_data["deviation"]
         min_value = result_data["min_value"]
         max_value = result_data["max_value"]
-        y_variables = self.executor.y_variables
+        y_variables = self.variables.y
 
         result = TabularDataResult(
             title="Standard Deviation",

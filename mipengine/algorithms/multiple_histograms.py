@@ -31,26 +31,26 @@ class HistogramResult1(BaseModel):
     histogram: List[Histogram]
 
 
-class HistogramAlgorithm(Algorithm, algname="multiple_histograms"):
+class MultipleHistogramsAlgorithm(Algorithm, algname="multiple_histograms"):
     def get_variable_groups(self):
-        return [self.executor.y_variables + self.executor.x_variables]
+        return [self.variables.y + self.variables.x]
 
-    def run(self):
-        local_run = self.executor.run_udf_on_local_nodes
-        global_run = self.executor.run_udf_on_global_node
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
-        xvars = self.executor.x_variables or []
-        yvars = self.executor.y_variables or []
+        xvars = self.variables.x
+        yvars = self.variables.y
         yvar = yvars[0]
 
         default_bins = 20
-        bins = self.executor.algorithm_parameters.get("bins", default_bins)
+        bins = self.algorithm_parameters.get("bins", default_bins)
         if bins is None:
             bins = default_bins
 
-        [data] = self.executor.data_model_views
+        [data] = engine.data_model_views
 
-        metadata = dict(self.executor.metadata)
+        metadata = dict(self.metadata)
 
         vars = [var for var in xvars + yvars]
 

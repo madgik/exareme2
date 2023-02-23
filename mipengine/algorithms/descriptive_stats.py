@@ -90,9 +90,8 @@ class Result(BaseModel):
 
 class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
     def get_variable_groups(self):
-
-        xvars = self.executor.x_variables or []
-        yvars = self.executor.y_variables or []
+        xvars = self.variables.x
+        yvars = self.variables.y  # or []
 
         # dataset variable is special as it is used to group results. Thus, it
         # doesn't make sense to include it also as variable.
@@ -107,12 +106,12 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
     def get_check_min_rows(self) -> bool:
         return False
 
-    def run(self):
-        local_run = self.executor.run_udf_on_local_nodes
-        global_run = self.executor.run_udf_on_global_node
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
-        [data] = self.executor.data_model_views
-        metadata = self.executor.metadata
+        [data] = engine.data_model_views
+        metadata = self.metadata
 
         vars = [v for v in data.columns if v != DATASET_VAR_NAME]
 

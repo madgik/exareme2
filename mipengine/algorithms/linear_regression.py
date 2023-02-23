@@ -42,27 +42,29 @@ class LinearRegressionResult(BaseModel):
 
 class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
     def get_variable_groups(self):
-        return [self.executor.x_variables, self.executor.y_variables]
+        return [self.variables.x, self.variables.y]
 
-    def run(self):
-        X, y = self.executor.data_model_views
+    def run(self, engine):
+        X, y = engine.data_model_views
 
-        dummy_encoder = DummyEncoder(self.executor)
+        dummy_encoder = DummyEncoder(
+            engine=engine, variables=self.variables, metadata=self.metadata
+        )
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1
 
-        lr = LinearRegression(self.executor)
+        lr = LinearRegression(engine)
         lr.fit(X=X, y=y)
         y_pred: RealVector = lr.predict(X)
         lr.compute_summary(
-            y_test=relation_to_vector(y, self.executor),
+            y_test=relation_to_vector(y, engine),
             y_pred=y_pred,
             p=p,
         )
 
         result = LinearRegressionResult(
-            dependent_var=self.executor.y_variables[0],
+            dependent_var=self.variables.y[0],
             n_obs=lr.n_obs,
             df_resid=lr.df,
             df_model=p,
@@ -83,9 +85,9 @@ class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
 
 
 class LinearRegression:
-    def __init__(self, executor):
-        self.local_run = executor.run_udf_on_local_nodes
-        self.global_run = executor.run_udf_on_global_node
+    def __init__(self, engine):
+        self.local_run = engine.run_udf_on_local_nodes
+        self.global_run = engine.run_udf_on_global_node
 
     def fit(self, X, y):
         local_transfers = self.local_run(
@@ -178,6 +180,7 @@ class LinearRegression:
         global_transfer_data = get_transfer_data(global_transfer)
         rss = numpy.array(global_transfer_data["rss"])
         tss = numpy.array(global_transfer_data["tss"])
+
         sum_abs_resid = global_transfer_data["sum_abs_resid"]
         xTx_inv = numpy.array(global_transfer_data["xTx_inv"])
         coefficients = numpy.array(self.coefficients)

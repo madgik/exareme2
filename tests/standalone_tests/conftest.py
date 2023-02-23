@@ -15,7 +15,7 @@ import sqlalchemy as sql
 import toml
 
 from mipengine import AttrDict
-from mipengine.controller.algorithm_execution_tasks_handler import (
+from mipengine.controller.algorithm_execution_engine_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
 from mipengine.controller.celery_app import CeleryAppFactory
@@ -83,9 +83,13 @@ MONETDB_SMPC_GLOBALNODE_NAME = "monetdb_test_smpc_globalnode"
 MONETDB_SMPC_LOCALNODE1_NAME = "monetdb_test_smpc_localnode1"
 MONETDB_SMPC_LOCALNODE2_NAME = "monetdb_test_smpc_localnode2"
 MONETDB_GLOBALNODE_PORT = 61000
+MONETDB_GLOBALNODE_ADDR = f"{COMMON_IP}:{str(MONETDB_GLOBALNODE_PORT)}"
 MONETDB_LOCALNODE1_PORT = 61001
+MONETDB_LOCALNODE1_ADDR = f"{COMMON_IP}:{str(MONETDB_LOCALNODE1_PORT)}"
 MONETDB_LOCALNODE2_PORT = 61002
+MONETDB_LOCALNODE2_ADDR = f"{COMMON_IP}:{str(MONETDB_LOCALNODE2_PORT)}"
 MONETDB_LOCALNODETMP_PORT = 61003
+MONETDB_LOCALNODETMP_ADDR = f"{COMMON_IP}:{str(MONETDB_LOCALNODETMP_PORT)}"
 MONETDB_SMPC_GLOBALNODE_PORT = 61004
 MONETDB_SMPC_LOCALNODE1_PORT = 61005
 MONETDB_SMPC_LOCALNODE2_PORT = 61006
@@ -97,7 +101,16 @@ LOCALNODE1_CONFIG_FILE = "test_localnode1.toml"
 LOCALNODE2_CONFIG_FILE = "test_localnode2.toml"
 LOCALNODETMP_CONFIG_FILE = "test_localnodetmp.toml"
 CONTROLLER_CONFIG_FILE = "test_controller.toml"
-CONTROLLER_LOCALNODE1_CONFIG_FILE = "test_localnode1_globalnode_addresses.json"
+CONTROLLER_GLOBALNODE_LOCALNODE1_ADDRESSES_FILE = (
+    "test_localnode1_globalnode_addresses.json"
+)
+CONTROLLER_LOCALNODE1_ADDRESSES_FILE = "test_localnode1_addresses.json"
+CONTROLLER_GLOBALNODE_LOCALNODE1_LOCALNODE2_ADDRESSES_FILE = (
+    "test_globalnode_localnode1_localnode2_addresses.json"
+)
+CONTROLLER_GLOBALNODE_LOCALNODE1_LOCALNODE2_LOCALNODETMP_ADDRESSES_FILE = (
+    "test_globalnode_localnode1_localnode2_localnodetmp_addresses.json"
+)
 CONTROLLER_OUTPUT_FILE = "test_controller.out"
 if USE_EXTERNAL_SMPC_CLUSTER:
     GLOBALNODE_SMPC_CONFIG_FILE = "test_external_smpc_globalnode.toml"
@@ -950,21 +963,13 @@ def reset_celery_app_factory():
 
 
 @pytest.fixture(scope="function")
-def reset_node_landscape_aggregator():
-    nla = NodeLandscapeAggregator()
-    nla.stop()
-    nla.keep_updating = False
-    nla._nla_registries = _NLARegistries()
-
-
-@pytest.fixture(scope="function")
 def controller_service_with_localnode1():
     service_port = CONTROLLER_PORT
     controller_config_filepath = path.join(
         TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE
     )
     localnodes_config_filepath = path.join(
-        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODE1_CONFIG_FILE
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_GLOBALNODE_LOCALNODE1_ADDRESSES_FILE
     )
 
     proc = _create_controller_service(

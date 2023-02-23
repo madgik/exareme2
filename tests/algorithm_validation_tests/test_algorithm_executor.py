@@ -11,8 +11,8 @@ algorithm_name = "logistic_regression_cv"
 @pytest.fixture
 def input_no_node_with_sufficient_data():
     # with this request local nodes: localnode4,localnode1,localnode3,localnode2,localnode5
-    # will be initially chosen but then after data model views are created none of the
-    # nodes will have sufficient data so the algorithm will not continue executimng
+    # will be initially chosen but then after data_model_views are created none of the
+    # nodes will have sufficient data so the algorithm will not continue executing
     filters = {
         "condition": "AND",
         "rules": [

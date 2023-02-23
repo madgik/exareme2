@@ -4,7 +4,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.controller import config as ctrl_config
 from mipengine.controller.algorithm_specifications import AlgorithmSpecification
 from mipengine.controller.algorithm_specifications import InputDataSpecification
 from mipengine.controller.algorithm_specifications import InputDataSpecifications
@@ -24,8 +23,6 @@ from mipengine.filters import validate_filter
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 
-node_landscape_aggregator = NodeLandscapeAggregator()
-
 
 class BadRequest(Exception):
     def __init__(self, message):
@@ -37,12 +34,18 @@ def validate_algorithm_request(
     algorithm_name: str,
     algorithm_request_dto: AlgorithmRequestDTO,
     available_datasets_per_data_model: Dict[str, List[str]],
+    node_landscape_aggregator: NodeLandscapeAggregator,
+    smpc_enabled: bool,
+    smpc_optional: bool,
 ):
     algorithm_specs = _get_algorithm_specs(algorithm_name)
     _validate_algorithm_request_body(
         algorithm_request_dto=algorithm_request_dto,
         algorithm_specs=algorithm_specs,
         available_datasets_per_data_model=available_datasets_per_data_model,
+        node_landscape_aggregator=node_landscape_aggregator,
+        smpc_enabled=smpc_enabled,
+        smpc_optional=smpc_optional,
     )
 
 
@@ -56,6 +59,9 @@ def _validate_algorithm_request_body(
     algorithm_request_dto: AlgorithmRequestDTO,
     algorithm_specs: AlgorithmSpecification,
     available_datasets_per_data_model: Dict[str, List[str]],
+    node_landscape_aggregator: NodeLandscapeAggregator,
+    smpc_enabled: bool,
+    smpc_optional: bool,
 ):
     _validate_data_model(
         requested_data_model=algorithm_request_dto.inputdata.data_model,
@@ -80,7 +86,11 @@ def _validate_algorithm_request_body(
         data_model_cdes=data_model_cdes,
     )
 
-    _validate_flags(algorithm_request_dto.flags)
+    _validate_flags(
+        flags=algorithm_request_dto.flags,
+        smpc_enabled=smpc_enabled,
+        smpc_optional=smpc_optional,
+    )
 
 
 def _validate_data_model(requested_data_model: str, available_datasets_per_data_model):
@@ -489,13 +499,9 @@ def _validate_parameter_inside_min_max(
         )
 
 
-def _validate_flags(
-    flags: Dict[str, Any],
-):
+def _validate_flags(flags: Dict[str, Any], smpc_enabled: bool, smpc_optional: bool):
     if not flags:
         return
 
     if USE_SMPC_FLAG in flags.keys():
-        validate_smpc_usage(
-            flags[USE_SMPC_FLAG], ctrl_config.smpc.enabled, ctrl_config.smpc.optional
-        )
+        validate_smpc_usage(flags[USE_SMPC_FLAG], smpc_enabled, smpc_optional)
