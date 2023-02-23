@@ -50,8 +50,13 @@ class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
                 ),
             )
         except Exception as ex:
-            if "Cannot perform Anova when there is only one level." in str(ex):
-                raise BadUserInput("Cannot perform Anova when there is only one level.")
+            # TODO https://team-1617704806227.atlassian.net/browse/MIP-682
+            if "Cannot perform Anova one-way. Covariable has only one level." in str(
+                ex
+            ):
+                raise BadUserInput(
+                    "Cannot perform Anova one-way. Covariable has only one level."
+                )
             raise ex
 
         result = get_transfer_data(result)
@@ -282,7 +287,7 @@ def global1(sec_local_transfer, local_transfers):
 
     categories = local_transfers[0]["covar_enums"]
     if len(categories) < 2 or len(group_stats_index) < 2:
-        raise ValueError("Cannot perform Anova when there is only one level.")
+        raise ValueError("Cannot perform Anova one-way. Covariable has only one level.")
 
     df_explained = len(group_stats_index) - 1
     df_residual = n_obs - len(group_stats_index)
