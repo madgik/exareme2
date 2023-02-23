@@ -29,10 +29,6 @@ from mipengine.controller.algorithm_execution_engine_tasks_handler import (
 )
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.validator import (
-    InitializationParams as ValidatorInitializationParams,
-)
-from mipengine.controller.api.validator import Validator
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.controller.cleaner import Cleaner
@@ -45,7 +41,7 @@ from mipengine.controller.uid_generator import UIDGenerator
 from mipengine.exceptions import InsufficientDataError
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import TableInfo
-
+from mipengine.controller.api.validator import validate_algorithm_request
 
 class NodesTasksHandlers(BaseModel):
     global_node_tasks_handler: Optional[INodeAlgorithmTasksHandler]
@@ -289,16 +285,13 @@ class Controller:
         available_datasets_per_data_model = (
             self.get_all_available_datasets_per_data_model()
         )
-        validator_init_params = ValidatorInitializationParams(
-            node_landscape_aggregator=self._node_landscape_aggregator,
-            smpc_enabled=self._smpc_enabled,
-            smpc_optional=self._smpc_optional,
-        )
-        validator = Validator(initialization_params=validator_init_params)
-        validator.validate_algorithm_request(
+        validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             available_datasets_per_data_model=available_datasets_per_data_model,
+            node_landscape_aggregator=self._node_landscape_aggregator,
+            smpc_enabled=self._smpc_enabled,
+            smpc_optional=self._smpc_optional,
         )
 
     def get_datasets_locations(self) -> DatasetsLocations:

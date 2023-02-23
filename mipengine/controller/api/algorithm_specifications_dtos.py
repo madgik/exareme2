@@ -34,8 +34,15 @@ class ParameterType(str, Enum):
     INT = "int"
     TEXT = "text"
     BOOLEAN = "boolean"
-    ENUM_FROM_LIST = "enum_from_list"
-    ENUM_FROM_CDE = "enum_from_cde"
+    DICT = "dict"
+
+
+@unique
+class ParameterEnumType(str, Enum):
+    LIST = "list"
+    INPUT_VAR_CDE_ENUMS = "input_var_CDE_enums"
+    FIXED_VAR_CDE_ENUMS = "fixed_var_CDE_enums"
+    INPUT_VAR_NAMES = "input_var_names"
 
 
 class InputDataSpecificationDTO(ImmutableBaseModel):
@@ -56,14 +63,21 @@ class InputDataSpecificationsDTO(ImmutableBaseModel):
     x: Optional[InputDataSpecificationDTO]
 
 
+class ParameterEnumSpecificationDTO(ImmutableBaseModel):
+    type: ParameterEnumType
+    source: Any
+
+
 class ParameterSpecificationDTO(ImmutableBaseModel):
     label: str
     desc: str
-    type: ParameterType
+    types: List[ParameterType]
     notblank: bool
     multiple: bool
     default: Any
-    enums: Optional[List[Any]]
+    enums: Optional[ParameterEnumSpecificationDTO]
+    dict_keys_enums: Optional[ParameterEnumSpecificationDTO]
+    dict_values_enums: Optional[ParameterEnumSpecificationDTO]
     min: Optional[float]
     max: Optional[float]
 

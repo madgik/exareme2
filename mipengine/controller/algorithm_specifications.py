@@ -1,10 +1,12 @@
 import logging
 from pathlib import Path
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 
 from pydantic import BaseModel
+from pydantic import root_validator
 
 from mipengine import ALGORITHM_FOLDERS
 from mipengine.controller.api.algorithm_specifications_dtos import (
@@ -22,8 +24,13 @@ from mipengine.controller.api.algorithm_specifications_dtos import (
 from mipengine.controller.api.algorithm_specifications_dtos import InputDataStatType
 from mipengine.controller.api.algorithm_specifications_dtos import InputDataType
 from mipengine.controller.api.algorithm_specifications_dtos import (
+    ParameterEnumSpecificationDTO,
+)
+from mipengine.controller.api.algorithm_specifications_dtos import ParameterEnumType
+from mipengine.controller.api.algorithm_specifications_dtos import (
     ParameterSpecificationDTO,
 )
+from mipengine.controller.api.algorithm_specifications_dtos import ParameterType
 
 
 class InputDataSpecification(BaseModel):
@@ -103,9 +110,146 @@ class InputDataSpecifications(BaseModel):
         )
 
 
-class ParameterSpecification(ParameterSpecificationDTO):
-    # The parameter specification is identical to the DTO
-    pass
+class ParameterEnumSpecification(BaseModel):
+    type: ParameterEnumType
+    source: Any
+
+    def convert_to_parameter_enum_specification_dto(self):
+        return ParameterEnumSpecificationDTO(
+            type=self.type,
+            source=self.source,
+        )
+
+
+class ParameterSpecification(BaseModel):
+    label: str
+    desc: str
+    types: List[ParameterType]
+    notblank: bool
+    multiple: bool
+    default: Any
+    enums: Optional[ParameterEnumSpecification]
+    dict_keys_enums: Optional[ParameterEnumSpecification]
+    dict_values_enums: Optional[ParameterEnumSpecification]
+    min: Optional[float]
+    max: Optional[float]
+
+    def convert_to_parameter_specification_dto(self):
+        return ParameterSpecificationDTO(
+            label=self.label,
+            desc=self.desc,
+            types=self.types,
+            notblank=self.notblank,
+            multiple=self.multiple,
+            default=self.default,
+            enums=(
+                self.enums.convert_to_parameter_enum_specification_dto()
+                if self.enums
+                else None
+            ),
+            dict_keys_enums=(
+                self.dict_keys_enums.convert_to_parameter_enum_specification_dto()
+                if self.dict_keys_enums
+                else None
+            ),
+            dict_values_enums=(
+                self.dict_values_enums.convert_to_parameter_enum_specification_dto()
+                if self.dict_values_enums
+                else None
+            ),
+            min=self.min,
+            max=self.max,
+        )
+
+
+def _validate_parameter_with_enums_type_input_var_CDE_enums(param_value, cls_values):
+    if param_value.enums.source not in ["x", "y"]:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'input_var_CDE_enums' "
+            f"that supports only 'x' or 'y' as source. Value given: '{param_value.enums.source}'."
+        )
+    if param_value.multiple:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'input_var_CDE_enums' "
+            f"that doesn't support 'multiple=True', in the parameter."
+        )
+    inputdata_var = (
+        cls_values["inputdata"].x
+        if param_value.enums.source == "x"
+        else cls_values["inputdata"].y
+    )
+    if inputdata_var.multiple:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type "
+            f"'{ParameterEnumType.INPUT_VAR_CDE_ENUMS.value}' "
+            f"that doesn't support 'multiple=True' in it's linked inputdata var '{inputdata_var.label}'."
+        )
+
+
+def _validate_parameter_with_enums_type_input_var_names(param_value, cls_values):
+    if param_value.types != [ParameterType.TEXT]:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type "
+            f"'{ParameterEnumType.INPUT_VAR_NAMES.value}' that supports ONLY 'types=[\"text\"]' but the 'types' "
+            f"provided were {[t.value for t in param_value.types]}."
+        )
+
+
+def _validate_parameter_enums(param_value, cls_values):
+    if not param_value.enums:
+        return
+    if param_value.enums.type == ParameterEnumType.INPUT_VAR_CDE_ENUMS:
+        _validate_parameter_with_enums_type_input_var_CDE_enums(param_value, cls_values)
+    if param_value.enums.type == ParameterEnumType.INPUT_VAR_NAMES:
+        _validate_parameter_with_enums_type_input_var_names(param_value, cls_values)
+
+
+def _validate_parameter_type_dict(param_value, cls_values):
+    if ParameterType.DICT in param_value.types:
+        if len(param_value.types) > 1:
+            raise ValueError(
+                f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' cannot use 'dict' type "
+                f"combined with other types. Types provided: {param_value.types}. "
+            )
+
+
+def _validate_parameter_type_dict_keys_enums(param_value, cls_values):
+    if not param_value.dict_keys_enums:
+        return
+
+    if ParameterType.DICT not in param_value.types:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has the property 'dict_keys_enums' "
+            f"but the allowed 'types' is not '{ParameterType.DICT}'."
+        )
+
+
+def _validate_parameter_type_dict_values_enums(param_value, cls_values):
+    if not param_value.dict_values_enums:
+        return
+
+    if ParameterType.DICT not in param_value.types:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has the property 'dict_values_enums' "
+            f"but the allowed 'types' is not '{ParameterType.DICT}'."
+        )
+
+
+def _validate_parameter_type_dict_enums_not_allowed(param_value, cls_values):
+    if not param_value.enums:
+        return
+
+    if ParameterType.DICT in param_value.types:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has the property 'enums' "
+            f"but since the 'types' is '{ParameterType.DICT}', you should use 'dict_keys_enums' and 'dict_values_enums'."
+        )
+
+
+def _validate_parameter_type_dict_enums(param_value, cls_values):
+    _validate_parameter_type_dict_keys_enums(param_value, cls_values)
+    _validate_parameter_type_dict_values_enums(param_value, cls_values)
+    _validate_parameter_type_dict_enums_not_allowed(param_value, cls_values)
 
 
 class AlgorithmSpecification(BaseModel):
@@ -117,6 +261,18 @@ class AlgorithmSpecification(BaseModel):
     parameters: Optional[Dict[str, ParameterSpecification]]
     flags: Optional[Dict[str, bool]]
 
+    @root_validator
+    def validate_parameter_enums_logic(cls, cls_values):
+        if not cls_values["parameters"]:
+            return cls_values
+
+        for param_value in cls_values["parameters"].values():
+            _validate_parameter_enums(param_value, cls_values)
+            _validate_parameter_type_dict(param_value, cls_values)
+            _validate_parameter_type_dict_enums(param_value, cls_values)
+
+        return cls_values
+
     def convert_to_algorithm_specifications_dto(self):
         # Converting to a DTO does not include the flags.
         return AlgorithmSpecificationDTO(
@@ -124,7 +280,14 @@ class AlgorithmSpecification(BaseModel):
             desc=self.desc,
             label=self.label,
             inputdata=self.inputdata.convert_to_inputdata_specifications_dto(),
-            parameters=self.parameters,
+            parameters=(
+                {
+                    name: value.convert_to_parameter_specification_dto()
+                    for name, value in self.parameters.items()
+                }
+                if self.parameters
+                else None
+            ),
         )
 
 
