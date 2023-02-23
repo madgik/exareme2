@@ -50,7 +50,6 @@ from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
 DATASET_VAR_NAME = "dataset"
-ALGORITHM_NAME = "descriptive_stats"
 
 
 class NumericalDescriptiveStats(BaseModel):
@@ -94,11 +93,11 @@ class Result(BaseModel):
     model_based: List[Variable]
 
 
-class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Descriptive statistics",
             label="Descriptive statistics",
             enabled=True,

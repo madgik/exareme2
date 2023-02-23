@@ -18,8 +18,6 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "ttest_independent"
-
 
 class TtestResult(BaseModel):
     t_stat: float
@@ -32,11 +30,11 @@ class TtestResult(BaseModel):
     cohens_d: float
 
 
-class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Student’s Independent samples t-test",
             label="T-Test Independent",
             enabled=True,

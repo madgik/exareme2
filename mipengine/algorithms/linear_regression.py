@@ -21,7 +21,6 @@ from mipengine.udfgen import tensor
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "linear_regression"
 ALPHA = 0.05  # NOTE maybe this should be a model parameter
 
 RealVector = tensor(dtype=float, ndims=1)
@@ -46,11 +45,11 @@ class LinearRegressionResult(BaseModel):
     upper_ci: List[float]
 
 
-class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Linear Regression",
             label="Linear Regression",
             enabled=True,

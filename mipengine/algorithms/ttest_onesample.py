@@ -18,8 +18,6 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "ttest_onesample"
-
 
 class TtestResult(BaseModel):
     n_obs: int
@@ -34,11 +32,11 @@ class TtestResult(BaseModel):
     cohens_d: float
 
 
-class OnesampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class OnesampleTTestAlgorithm(Algorithm, algname="ttest_onesample"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Student’s One-sample t-test",
             label="T-Test One-Sample",
             enabled=True,

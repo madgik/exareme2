@@ -23,14 +23,12 @@ from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import LabelBinarizer
 
-ALGORITHM_NAME = "logistic_regression_cv"
 
-
-class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Logistic Regression Cross-validation",
             label="Logistic Regression Cross-validation",
             enabled=True,

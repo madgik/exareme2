@@ -18,8 +18,6 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "ttest_paired"
-
 
 class TtestResult(BaseModel):
     t_stat: float
@@ -32,11 +30,11 @@ class TtestResult(BaseModel):
     cohens_d: float
 
 
-class PairedTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class PairedTTestAlgorithm(Algorithm, algname="ttest_paired"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Paired t-test",
             label="Paired t-test",
             enabled=True,

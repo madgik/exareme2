@@ -23,7 +23,6 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "multiple_histograms"
 S = TypeVar("S")
 
 
@@ -39,11 +38,11 @@ class HistogramResult1(BaseModel):
     histogram: List[Histogram]
 
 
-class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class MultipleHistogramsAlgorithm(Algorithm, algname="multiple_histograms"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Multiple Histograms",
             label="Multiple Histograms",
             enabled=True,

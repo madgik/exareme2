@@ -18,8 +18,6 @@ from mipengine.algorithms.preprocessing import FormulaTransformer
 from mipengine.algorithms.preprocessing import relation_to_vector
 from mipengine.exceptions import BadUserInput
 
-ALGORITHM_NAME = "anova"
-
 
 class AnovaResult(BaseModel):
     terms: List[str]
@@ -29,11 +27,11 @@ class AnovaResult(BaseModel):
     f_pvalue: List[Optional[float]]
 
 
-class AnovaTwoWay(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class AnovaTwoWay(Algorithm, algname="anova"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Two-way analysis of variance (ANOVA)",
             label="Two-way ANOVA",
             enabled=True,

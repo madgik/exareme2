@@ -25,17 +25,16 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "logistic_regression"
 MAX_ITER = 50  # maximum iterations before cancelling run due to non convergence
 TOL = 1e-4  # tolerance for stopping criterion
 ALPHA = 0.05  # alpha level for coefficient confidence intervals
 
 
-class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Logistic Regression",
             label="Logistic Regression",
             enabled=True,

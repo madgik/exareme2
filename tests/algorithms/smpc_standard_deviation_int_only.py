@@ -17,16 +17,14 @@ from mipengine.udfgen import tensor
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "smpc_standard_deviation_int_only"
-
 
 class StandartDeviationIntOnlySMPC(
     Algorithm, algname="smpc_standard_deviation_int_only"
 ):
-    @staticmethod
-    def get_specification():
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Standard Deviation of a column, transferring only integers, using SMPC",
             label="SMPC Standard Deviation",
             enabled=True,
