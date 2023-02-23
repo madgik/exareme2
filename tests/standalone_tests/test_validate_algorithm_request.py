@@ -622,15 +622,18 @@ def get_parametrization_list_success_cases():
     "algorithm_name, request_dto", get_parametrization_list_success_cases()
 )
 def test_validate_algorithm_success(
-    algorithm_name, request_dto, available_datasets_per_data_model,node_landscape_aggregator
+    algorithm_name,
+    request_dto,
+    available_datasets_per_data_model,
+    node_landscape_aggregator,
 ):
     validate_algorithm_request(
         algorithm_name=algorithm_name,
         algorithm_request_dto=request_dto,
         available_datasets_per_data_model=available_datasets_per_data_model,
         node_landscape_aggregator=node_landscape_aggregator,
-            smpc_enabled=False,
-            smpc_optional=False
+        smpc_enabled=False,
+        smpc_optional=False,
     )
 
 
@@ -1032,7 +1035,8 @@ def test_validate_algorithm_exceptions(
         validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=request_dto,
-            available_datasets_per_data_model=available_datasets_per_data_model, node_landscape_aggregator=node_landscape_aggregator,
+            available_datasets_per_data_model=available_datasets_per_data_model,
+            node_landscape_aggregator=node_landscape_aggregator,
             smpc_enabled=False,
-            smpc_optional=False
+            smpc_optional=False,
         )

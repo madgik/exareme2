@@ -29,6 +29,7 @@ from mipengine.controller.algorithm_execution_engine_tasks_handler import (
 )
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.controller.cleaner import Cleaner
@@ -41,7 +42,7 @@ from mipengine.controller.uid_generator import UIDGenerator
 from mipengine.exceptions import InsufficientDataError
 from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.controller.api.validator import validate_algorithm_request
+
 
 class NodesTasksHandlers(BaseModel):
     global_node_tasks_handler: Optional[INodeAlgorithmTasksHandler]
