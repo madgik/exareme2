@@ -18,8 +18,6 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "pearson_correlation"
-
 
 class PearsonResult(BaseModel):
     title: str
@@ -30,11 +28,11 @@ class PearsonResult(BaseModel):
     ci_lo: dict
 
 
-class PearsonCorrelationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class PearsonCorrelationAlgorithm(Algorithm, algname="pearson_correlation"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Pearson Correlation",
             label="Pearson Correlation",
             enabled=True,

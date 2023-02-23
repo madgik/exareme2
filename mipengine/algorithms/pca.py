@@ -17,8 +17,6 @@ from mipengine.udfgen import state
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "pca"
-
 
 class PCAResult(BaseModel):
     title: str
@@ -27,11 +25,11 @@ class PCAResult(BaseModel):
     eigenvectors: List[List[float]]
 
 
-class PCAAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class PCAAlgorithm(Algorithm, algname="pca"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="PCA",
             label="PCA",
             enabled=True,

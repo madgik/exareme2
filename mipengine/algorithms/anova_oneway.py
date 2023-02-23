@@ -18,8 +18,6 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "anova_oneway"
-
 
 class AnovaResult(BaseModel):
     anova_table: dict
@@ -28,11 +26,11 @@ class AnovaResult(BaseModel):
     ci_info: dict
 
 
-class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="ANOVA One-way",
             label="ANOVA One-way",
             enabled=True,

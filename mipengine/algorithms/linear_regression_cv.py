@@ -17,8 +17,6 @@ from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import relation_to_vector
 
-ALGORITHM_NAME = "linear_regression_cv"
-
 
 class BasicStats(NamedTuple):
     mean: float
@@ -34,11 +32,11 @@ class CVLinearRegressionResult(BaseModel):
     mean_abs_error: BasicStats
 
 
-class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Linear Regression Cross-validation",
             label="Linear Regression Cross-validation",
             enabled=True,

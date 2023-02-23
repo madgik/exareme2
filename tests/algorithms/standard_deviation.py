@@ -17,14 +17,12 @@ from mipengine.udfgen import tensor
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "standard_deviation"
 
-
-class StandardDeviationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
+class StandardDeviationAlgorithm(Algorithm, algname="standard_deviation"):
+    @classmethod
+    def get_specification(cls):
         return AlgorithmSpecification(
-            name=ALGORITHM_NAME,
+            name=cls.algname,
             desc="Standard Deviation of a column",
             label="SMPC Standard Deviation",
             enabled=True,
