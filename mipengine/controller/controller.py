@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from mipengine import algorithm_classes
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
+from mipengine.controller import algorithms_specifications
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
 from mipengine.controller.algorithm_execution_engine import (
@@ -29,10 +30,7 @@ from mipengine.controller.algorithm_execution_engine_tasks_handler import (
 )
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.validator import (
-    InitializationParams as ValidatorInitializationParams,
-)
-from mipengine.controller.api.validator import Validator
+from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
 from mipengine.controller.cleaner import Cleaner
@@ -248,7 +246,6 @@ class Controller:
             algorithm_result = await self._algorithm_run_in_event_loop(
                 algorithm=algorithm, engine=engine
             )
-
         except CeleryConnectionError as exc:
             algo_execution_logger.error(
                 f"ErrorType: '{type(exc)}' and message: '{exc}'"
@@ -262,6 +259,7 @@ class Controller:
         except Exception as exc:
             algo_execution_logger.error(traceback.format_exc())
             raise exc
+
         finally:
             if not self._cleaner.cleanup_context_id(context_id=context_id):
                 self._cleaner.release_context_id(context_id=context_id)
@@ -290,16 +288,14 @@ class Controller:
         available_datasets_per_data_model = (
             self.get_all_available_datasets_per_data_model()
         )
-        validator_init_params = ValidatorInitializationParams(
-            node_landscape_aggregator=self._node_landscape_aggregator,
-            smpc_enabled=self._smpc_enabled,
-            smpc_optional=self._smpc_optional,
-        )
-        validator = Validator(initialization_params=validator_init_params)
-        validator.validate_algorithm_request(
+        validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             available_datasets_per_data_model=available_datasets_per_data_model,
+            algorithms_specs=algorithms_specifications,
+            node_landscape_aggregator=self._node_landscape_aggregator,
+            smpc_enabled=self._smpc_enabled,
+            smpc_optional=self._smpc_optional,
         )
 
     def get_datasets_locations(self) -> DatasetsLocations:

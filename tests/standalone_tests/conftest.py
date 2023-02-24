@@ -117,7 +117,7 @@ if USE_EXTERNAL_SMPC_CLUSTER:
     LOCALNODE1_SMPC_CONFIG_FILE = "test_external_smpc_localnode1.toml"
     LOCALNODE2_SMPC_CONFIG_FILE = "test_external_smpc_localnode2.toml"
     CONTROLLER_SMPC_CONFIG_FILE = "test_external_smpc_controller.toml"
-    SMPC_COORDINATOR_ADDRESS = "http://161.35.36.151:12314"
+    SMPC_COORDINATOR_ADDRESS = "http://167.71.139.232:12314"
 else:
     GLOBALNODE_SMPC_CONFIG_FILE = "test_smpc_globalnode.toml"
     LOCALNODE1_SMPC_CONFIG_FILE = "test_smpc_localnode1.toml"
@@ -133,7 +133,7 @@ SMPC_CLUSTER_SLEEP_TIME = 60
 
 # ------------ SMPC Cluster ------------ #
 
-SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v7.0.6.8"
+SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v7.0.7.4"
 SMPC_COORD_DB_IMAGE = "mongo:5.0.8"
 SMPC_COORD_QUEUE_IMAGE = "redis:alpine3.15"
 

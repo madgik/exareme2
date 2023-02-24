@@ -3,15 +3,20 @@ from typing import TypeVar
 import pandas as pd
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
-from mipengine.udfgen import udf_logger
 
 
 class AnovaResult(BaseModel):
@@ -22,6 +27,33 @@ class AnovaResult(BaseModel):
 
 
 class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
+    @classmethod
+    def get_specification(cls):
+        return AlgorithmSpecification(
+            name=cls.algname,
+            desc="ANOVA One-way",
+            label="ANOVA One-way",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                x=InputDataSpecification(
+                    label="independent",
+                    desc="independent variable",
+                    types=[InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+                y=InputDataSpecification(
+                    label="dependent",
+                    desc="Dependent variable",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+        )
+
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
@@ -41,13 +73,23 @@ class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
             keyword_args=dict(y=Y_relation, x=X_relation, covar_enums=covar_enums),
             share_to_global=[True, True],
         )
-
-        result = global_run(
-            func=global1,
-            keyword_args=dict(
-                sec_local_transfer=sec_local_transfer, local_transfers=local_transfers
-            ),
-        )
+        try:
+            result = global_run(
+                func=global1,
+                keyword_args=dict(
+                    sec_local_transfer=sec_local_transfer,
+                    local_transfers=local_transfers,
+                ),
+            )
+        except Exception as ex:
+            # TODO https://team-1617704806227.atlassian.net/browse/MIP-682
+            if "Cannot perform Anova one-way. Covariable has only one level." in str(
+                ex
+            ):
+                raise BadUserInput(
+                    "Cannot perform Anova one-way. Covariable has only one level."
+                )
+            raise ex
 
         result = get_transfer_data(result)
         anova_result = {
@@ -136,7 +178,9 @@ def local1(y, x, covar_enums):
     # get overall stats
     overall_stats = dataset[var_label].agg(["count", "sum"])
     overall_ssq = dataset[var_sq].sum()
-    overall_stats = overall_stats.append(pd.Series(data=overall_ssq, index=["sum_sq"]))
+    overall_stats = pd.concat(
+        [overall_stats, pd.Series(data=overall_ssq, index=["sum_sq"])]
+    )
 
     # get group stats
     group_stats = (
@@ -160,7 +204,7 @@ def local1(y, x, covar_enums):
         )
         diff_df["min_per_group"] = sys.float_info.max
         diff_df["max_per_group"] = sys.float_info.min
-        group_stats_df = group_stats.append(diff_df)
+        group_stats_df = pd.concat([group_stats, diff_df])
 
     group_stats_df["groups"] = pd.Categorical(
         group_stats_df.index, categories=covar_enums.tolist(), ordered=True
@@ -250,7 +294,7 @@ def global1(sec_local_transfer, local_transfers):
             group_stats_index = x
             diff = list(set(x) - set(y))
             if diff != []:
-                group_stats_index.append(diff)
+                pd.concat([group_stats_index, diff])
 
     # remove zero count groups
     if not np.all(group_stats_count):
@@ -274,8 +318,8 @@ def global1(sec_local_transfer, local_transfers):
         var_max_per_group = np.array(df["max"])
 
     categories = local_transfers[0]["covar_enums"]
-    if len(categories) < 2:
-        raise ValueError("Cannot perform Anova when there is only one level")
+    if len(categories) < 2 or len(group_stats_index) < 2:
+        raise ValueError("Cannot perform Anova one-way. Covariable has only one level.")
 
     df_explained = len(group_stats_index) - 1
     df_residual = n_obs - len(group_stats_index)
@@ -321,7 +365,7 @@ def global1(sec_local_transfer, local_transfers):
         index=("categories", "Residual"),
     )
 
-    table.loc["categories"]: {
+    table.loc["categories"] = {
         "df": df_explained,
         "sum_sq": ss_explained,
         "mean_sq": ms_explained,
@@ -329,7 +373,7 @@ def global1(sec_local_transfer, local_transfers):
         "PR('>F')": p_value,
     }
 
-    table.loc["Residual"]: {
+    table.loc["Residual"] = {
         "df": df_residual,
         "sum_sq": ss_residual,
         "mean_sq": ms_residual,

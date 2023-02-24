@@ -393,6 +393,10 @@ def test_synchronous_cleanup(
             tables == [] for tables in flatten_list(tables_after_cleanup.values())
         )
     else:
+        tables_after_cleanup = {
+            node_id: get_tables(cursor, context_id)
+            for node_id, cursor in db_cursors.items()
+        }
         pytest.fail(f"Some of the nodes were not cleaned {tables_after_cleanup=}")
 
 

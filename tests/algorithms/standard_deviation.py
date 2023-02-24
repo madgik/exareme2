@@ -2,6 +2,11 @@ import json
 from typing import TypeVar
 
 from mipengine.algorithm_result_DTOs import TabularDataResult
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
@@ -14,6 +19,25 @@ from mipengine.udfgen import udf
 
 
 class StandardDeviationAlgorithm(Algorithm, algname="standard_deviation"):
+    @classmethod
+    def get_specification(cls):
+        return AlgorithmSpecification(
+            name=cls.algname,
+            desc="Standard Deviation of a column",
+            label="SMPC Standard Deviation",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="column",
+                    desc="Column",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                )
+            ),
+        )
+
     def get_variable_groups(self):
         return [self.variables.y]
 

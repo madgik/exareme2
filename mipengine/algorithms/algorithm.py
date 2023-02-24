@@ -7,6 +7,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+
 
 class Variables(BaseModel):
     x: List[str]
@@ -126,6 +128,11 @@ class Algorithm(ABC):
         bool
         """
         return True
+
+    @staticmethod
+    @abstractmethod
+    def get_specification() -> AlgorithmSpecification:
+        pass
 
     @abstractmethod
     def run(self, engine):

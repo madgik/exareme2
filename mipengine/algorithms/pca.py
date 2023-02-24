@@ -4,6 +4,11 @@ from typing import TypeVar
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import relation
@@ -21,6 +26,25 @@ class PCAResult(BaseModel):
 
 
 class PCAAlgorithm(Algorithm, algname="pca"):
+    @classmethod
+    def get_specification(cls):
+        return AlgorithmSpecification(
+            name=cls.algname,
+            desc="PCA",
+            label="PCA",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="Variables",
+                    desc="Variables",
+                    types=[InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=True,
+                ),
+            ),
+        )
+
     def get_variable_groups(self):
         return [self.variables.y]
 
