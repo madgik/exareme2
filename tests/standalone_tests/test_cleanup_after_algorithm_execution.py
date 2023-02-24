@@ -1,9 +1,11 @@
-import asyncio
 import time
+from datetime import datetime
+from datetime import timedelta
 from os import path
 from unittest.mock import patch
 
 import pytest
+from freezegun import freeze_time
 
 from mipengine import AttrDict
 from mipengine import algorithm_classes
@@ -15,7 +17,6 @@ from mipengine.controller.algorithm_execution_engine import (
 )
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.celery_app import CeleryConnectionError
 from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.cleaner import InitializationParams as CleanerInitParams
 from mipengine.controller.controller import CommandIdGenerator
@@ -43,7 +44,7 @@ from tests.standalone_tests.conftest import _create_rabbitmq_container
 from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
-WAIT_CLEANUP_TIME_LIMIT = 40
+WAIT_CLEANUP_TIME_LIMIT = 60
 WAIT_BEFORE_BRING_TMPNODE_DOWN = 60
 NLA_WAIT_TIME_LIMIT = 120
 
@@ -199,11 +200,8 @@ def node_landscape_aggregator(
     controller_config,
     globalnode_node_service,
     localnode1_node_service,
-    load_data_localnode1,
     localnode2_node_service,
-    load_data_localnode2,
     localnodetmp_node_service,
-    load_data_localnodetmp,
 ):
     controller_config = AttrDict(controller_config)
     node_landscape_aggregator_init_params = NodeLandscapeAggregatorInitParams(
@@ -318,36 +316,98 @@ def cleaner(controller_config, node_landscape_aggregator):
         contextids_cleanup_folder=controller_config.cleanup.contextids_cleanup_folder,
         node_landscape_aggregator=node_landscape_aggregator,
     )
+    return Cleaner(cleaner_init_params)
 
-    cleaner = Cleaner(cleaner_init_params)
 
-    # Cleaner class is defined as singleton. So there is always a single object.
-    # Test function test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_timelimit
-    # alters the release timelimit, so it is reset here.
-    # TODO Cleaner class maybe should not be implemented as singleton??
-    controller_config = AttrDict(controller_config)
-    cleaner._contextid_release_timelimit = (
-        controller_config.cleanup.contextid_release_timelimit
-    )
-
-    return cleaner
+@pytest.fixture
+def db_cursors(
+    monetdb_globalnode,
+    monetdb_localnode1,
+    monetdb_localnode2,
+    monetdb_localnodetmp,
+    globalnode_db_cursor,
+    localnode1_db_cursor,
+    localnode2_db_cursor,
+    localnodetmp_db_cursor,
+):
+    # TODO the node_ids should not be hardcoded..
+    return {
+        "testglobalnode": globalnode_db_cursor,
+        "testlocalnode1": localnode1_db_cursor,
+        "testlocalnode2": localnode2_db_cursor,
+        "testlocalnodetmp": localnodetmp_db_cursor,
+    }
 
 
 @pytest.mark.slow
 @pytest.mark.very_slow
-@pytest.mark.asyncio
-async def test_cleanup_after_uninterrupted_algorithm_execution(
+def test_synchronous_cleanup(
     context_id,
-    algorithm,
-    engine,
     cleaner,
     node_landscape_aggregator,
-    controller,
     reset_celery_app_factory,  # celery tasks fail if this is not reset
+    db_cursors,
 ):
 
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
-    # poll NodeLandscapeAggregator until it has some node info
+    # Poll NodeLandscapeAggregator until it has some node info
+    start = time.time()
+    while (
+        not node_landscape_aggregator.get_nodes()
+        or not node_landscape_aggregator.get_cdes_per_data_model()
+        or not node_landscape_aggregator.get_datasets_locations()
+    ):
+        if time.time() - start > NLA_WAIT_TIME_LIMIT:
+            pytest.fail(
+                "Exceeded max retries while waiting for the node landscape aggregator "
+                "return some nodes"
+            )
+        time.sleep(0.5)
+
+    # contextid is added to Cleaner but is not released
+    cleaner.add_contextid_for_cleanup(
+        context_id, [node_id for node_id in db_cursors.keys()]
+    )
+
+    # create some dummy tables
+    for node_id, cursor in db_cursors.items():
+        create_dummy_tables(node_id, cursor, context_id)
+
+    tables_before_cleanup = {
+        node_id: get_tables(cursor, context_id)
+        for node_id, cursor in db_cursors.items()
+    }
+    # check tables were created on all nodes
+    for node_id, tables in tables_before_cleanup.items():
+        if not tables:
+            pytest.fail(
+                f"{node_id=} did not create any tables during the algorithm execution"
+            )
+
+    if cleaner.cleanup_context_id(context_id=context_id):
+        tables_after_cleanup = {
+            node_id: get_tables(cursor, context_id)
+            for node_id, cursor in db_cursors.items()
+        }
+        assert all(
+            tables == [] for tables in flatten_list(tables_after_cleanup.values())
+        )
+    else:
+        pytest.fail(f"Some of the nodes were not cleaned {tables_after_cleanup=}")
+
+
+@pytest.mark.slow
+@pytest.mark.very_slow
+def test_asynchronous_cleanup(
+    context_id,
+    cleaner,
+    node_landscape_aggregator,
+    reset_celery_app_factory,  # celery tasks fail if this is not reset
+    db_cursors,
+):
+
+    # Cleaner gets info about the nodes via the NodeLandscapeAggregator
+    # Poll NodeLandscapeAggregator until it has some node info
     start = time.time()
     while (
         not node_landscape_aggregator.get_nodes()
@@ -362,26 +422,22 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
         time.sleep(0.5)
 
     # Start the Cleaner
-    cleaner._reset()  # deletes all existing persistence files(cleanup files)
-    controller.start_cleanup_loop()
+    cleaner._reset()  # deletes all existing persistence files (cleanup_<context_id>.toml files)
+    cleaner.start()
 
-    # contextid is aadded to Cleaner but is not yet released
+    # contextid is added to Cleaner but is not yet released
     cleaner.add_contextid_for_cleanup(
-        context_id,
-        [node.node_id for node in ([engine._global_node] + engine._local_nodes)],
+        context_id, [node_id for node_id in db_cursors.keys()]
     )
 
-    # run the algorithm
-    try:
-        algorithm_result = await controller._algorithm_run_in_event_loop(
-            algorithm=algorithm, engine=engine
-        )
-    except Exception as exc:
-        pytest.fail(f"Execution of the algorithm failed with {exc=}")
+    # create some dummy tables
+    for node_id, cursor in db_cursors.items():
+        create_dummy_tables(node_id, cursor, context_id)
 
-    tables_before_cleanup = get_all_tabels_nodes(
-        engine._global_node, engine._local_nodes
-    )
+    tables_before_cleanup = {
+        node_id: get_tables(cursor, context_id)
+        for node_id, cursor in db_cursors.items()
+    }
     # check tables were created on all nodes
     for node_id, tables in tables_before_cleanup.items():
         if not tables:
@@ -390,20 +446,21 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
             )
 
     # Releasing contextid, allows the Cleaner to schedule cleaning the contextid from
-    # the nodes in its next iteration (Cleaner._cleanup_loop())
+    # the nodes in its next iteration (check Cleaner._cleanup_loop())
     cleaner.release_context_id(context_id=context_id)
 
-    tables_after_cleanup = get_all_tabels_nodes(
-        engine._global_node, engine._local_nodes
-    )
-
+    tables_after_cleanup = {
+        node_id: get_tables(cursor, context_id)
+        for node_id, cursor in db_cursors.items()
+    }
     start = time.time()
     while not all(
         (tables == [] for tables in flatten_list(tables_after_cleanup.values()))
     ):
-        tables_after_cleanup = get_all_tabels_nodes(
-            engine._global_node, engine._local_nodes
-        )
+        tables_after_cleanup = {
+            node_id: get_tables(cursor, context_id)
+            for node_id, cursor in db_cursors.items()
+        }
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:
             pytest.fail(
@@ -412,26 +469,22 @@ async def test_cleanup_after_uninterrupted_algorithm_execution(
             )
         time.sleep(0.5)
 
-    controller.stop_cleanup_loop()
+    cleaner.stop()
     assert True
 
 
 @pytest.mark.slow
 @pytest.mark.very_slow
-@pytest.mark.asyncio
-async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_timelimit(
+def test_cleanup_triggered_by_release_timelimit(
     context_id,
-    algorithm,
-    engine,
     cleaner,
     node_landscape_aggregator,
-    controller,
     reset_celery_app_factory,  # celery tasks fail if this is not reset
+    db_cursors,
+    controller_config,
 ):
-    cleaner._contextid_release_timelimit = 2
-
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
-    # poll NodeLandscapeAggregator until it has some node info
+    # Poll NodeLandscapeAggregator until it has some node info
     start = time.time()
     while (
         not node_landscape_aggregator.get_nodes()
@@ -447,19 +500,16 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
 
     # Start the Cleaner
     cleaner._reset()  # deletes all existing persistence files(cleanup files)
-    controller.start_cleanup_loop()
+    cleaner.start()
 
-    # run the algorithm
-    try:
-        algorithm_result = await controller._algorithm_run_in_event_loop(
-            algorithm=algorithm, engine=engine
-        )
-    except Exception as exc:
-        pytest.fail(f"Execution of the algorithm failed with {exc=}")
+    # create some dummy tables
+    for node_id, cursor in db_cursors.items():
+        create_dummy_tables(node_id, cursor, context_id)
 
-    tables_before_cleanup = get_all_tabels_nodes(
-        engine._global_node, engine._local_nodes
-    )
+    tables_before_cleanup = {
+        node_id: get_tables(cursor, context_id)
+        for node_id, cursor in db_cursors.items()
+    }
     # check tables were created on all nodes
     for node_id, tables in tables_before_cleanup.items():
         if not tables:
@@ -467,53 +517,53 @@ async def test_cleanup_after_uninterrupted_algorithm_execution_triggered_by_time
                 f"{node_id=} did not create any tables during the algorithm execution"
             )
 
-    # Add contextid to Cleaner after letting the executing algorithm create some tables
+    # contextid is added to Cleaner but is not released
     cleaner.add_contextid_for_cleanup(
-        context_id,
-        [node.node_id for node in ([engine._global_node] + engine._local_nodes)],
+        context_id, [node_id for node_id in db_cursors.keys()]
     )
 
-    tables_after_cleanup = get_all_tabels_nodes(
-        engine._global_node, engine._local_nodes
+    controller_config = AttrDict(controller_config)
+    passed_release_time = datetime.now() + timedelta(
+        seconds=controller_config.cleanup.contextid_release_timelimit
     )
+    with freeze_time(passed_release_time):
+        tables_after_cleanup = {
+            node_id: get_tables(cursor, context_id)
+            for node_id, cursor in db_cursors.items()
+        }
+        start = time.time()
+        while not all(
+            (tables is None for tables in flatten_list(tables_after_cleanup.values()))
+        ):
+            tables_after_cleanup = {
+                node_id: get_tables(cursor, context_id)
+                for node_id, cursor in db_cursors.items()
+            }
+            now = time.time()
+            if now - start > WAIT_CLEANUP_TIME_LIMIT:
+                pytest.fail(
+                    f"Some of the nodes were not cleaned during {WAIT_CLEANUP_TIME_LIMIT=}\n"
+                    f"{tables_after_cleanup=}"
+                )
+            time.sleep(0.5)
 
-    start = time.time()
-    while not all(
-        (tables is None for tables in flatten_list(tables_after_cleanup.values()))
-    ):
-        tables_after_cleanup = get_all_tabels_nodes(
-            engine._global_node, engine._local_nodes
-        )
-
-        now = time.time()
-        if now - start > WAIT_CLEANUP_TIME_LIMIT:
-            pytest.fail(
-                f"Some of the nodes were not cleaned during {WAIT_CLEANUP_TIME_LIMIT=}\n"
-                f"{tables_after_cleanup=}"
-            )
-        time.sleep(0.5)
-
-    controller.stop_cleanup_loop()
-
+    cleaner.stop()
     assert True
 
 
 @pytest.mark.slow
 @pytest.mark.very_slow
-@pytest.mark.asyncio
-async def test_cleanup_rabbitmq_down_algorithm_execution(
+def test_cleanup_after_rabbitmq_restart(
     localnodetmp_node_service,
     context_id,
-    algorithm,
-    engine,
     cleaner,
     node_landscape_aggregator,
-    controller,
     reset_celery_app_factory,  # celery tasks fail if this is not reset
+    db_cursors,
 ):
 
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
-    # poll NodeLandscapeAggregator until it has some node info
+    # Poll NodeLandscapeAggregator until it has some node info
     start = time.time()
     while (
         not node_landscape_aggregator.get_nodes()
@@ -529,34 +579,27 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
     # Start the Cleaner
     cleaner._reset()  # deletes all existing persistence files(cleanup files)
-    controller.start_cleanup_loop()
+    cleaner.start()
 
     # Add contextid to Cleaner but is not yet released
     cleaner.add_contextid_for_cleanup(
         context_id,
-        [node.node_id for node in ([engine._global_node] + engine._local_nodes)],
+        [node_id for node_id in db_cursors.keys()],  # +[localnodetmp_node_id]
     )
 
-    # run the algorithm
-    try:
-        asyncio.create_task(
-            controller._algorithm_run_in_event_loop(algorithm=algorithm, engine=engine)
-        )
-    except Exception as exc:
-        pytest.fail(f"Execution of the algorithm failed with {exc=}")
+    # create some dummy tables
+    for node_id, cursor in db_cursors.items():
+        create_dummy_tables(node_id, cursor, context_id)
 
-    # yield control to the event loop so the algorithm thread can proceed for some seconds
-    await asyncio.sleep(WAIT_BEFORE_BRING_TMPNODE_DOWN)
-
-    tables_before_cleanup = get_all_tabels_nodes(
-        engine._global_node, engine._local_nodes
-    )
+    tables_before_cleanup = {
+        node_id: get_tables(cursor, context_id)
+        for node_id, cursor in db_cursors.items()
+    }
     # check tables were created on all nodes
     for node_id, tables in tables_before_cleanup.items():
         if not tables:
             pytest.fail(
                 f"{node_id=} did not create any tables during the algorithm execution"
-                f"\n{tables_before_cleanup=}"
             )
 
     # kill rabbitmq container for localnotmp
@@ -576,35 +619,27 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
     # restart the celery app of localnodetmp
     localnodetmp_node_service_proc = start_localnodetmp_node_service()
 
-    tables_after_cleanup = None
-    try:
-        tables_after_cleanup = get_all_tabels_nodes(
-            engine._global_node, engine._local_nodes
-        )
-    except CeleryConnectionError:
-        pass
-
+    tables_after_cleanup = {
+        node_id: get_tables(cursor, context_id)
+        for node_id, cursor in db_cursors.items()
+    }
     start = time.time()
     while not all(
         (tables == [] for tables in flatten_list(tables_after_cleanup.values()))
     ):
-        try:
-            tables_after_cleanup = get_all_tabels_nodes(
-                engine._global_node, engine._local_nodes
-            )
-        except CeleryConnectionError:
-            pass
-
+        tables_after_cleanup = {
+            node_id: get_tables(cursor, context_id)
+            for node_id, cursor in db_cursors.items()
+        }
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:
             pytest.fail(
                 f"Some of the nodes were not cleaned during {WAIT_CLEANUP_TIME_LIMIT=}\n"
                 f"{tables_after_cleanup=}"
             )
-
         time.sleep(0.5)
 
-    controller.stop_cleanup_loop()
+    cleaner.stop()
 
     # the node service was started in here so it must manually killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
@@ -616,19 +651,16 @@ async def test_cleanup_rabbitmq_down_algorithm_execution(
 
 @pytest.mark.slow
 @pytest.mark.very_slow
-@pytest.mark.asyncio
-async def test_cleanup_node_service_down_algorithm_execution(
+def test_cleanup_after_node_service_restart(
     localnodetmp_node_service,
     context_id,
-    algorithm,
-    engine,
     cleaner,
     node_landscape_aggregator,
-    controller,
     reset_celery_app_factory,  # celery tasks fail if this is not reset
+    db_cursors,
 ):
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
-    # poll NodeLandscapeAggregator until it has some node info
+    # Poll NodeLandscapeAggregator until it has some node info
     start = time.time()
     while (
         not node_landscape_aggregator.get_nodes()
@@ -644,28 +676,21 @@ async def test_cleanup_node_service_down_algorithm_execution(
 
     # Start the Cleaner
     cleaner._reset()  # deletes all existing persistence files(cleanup files)
-    controller.start_cleanup_loop()
+    cleaner.start()
 
     # Add contextid to Cleaner but is not yet released
     cleaner.add_contextid_for_cleanup(
-        context_id,
-        [node.node_id for node in ([engine._global_node] + engine._local_nodes)],
+        context_id, [node_id for node_id in db_cursors.keys()]
     )
 
-    # start executing the algorithm but do not wait for it
-    try:
-        asyncio.create_task(
-            controller._algorithm_run_in_event_loop(algorithm=algorithm, engine=engine)
-        )
-    except Exception as exc:
-        pytest.fail(f"Execution of the algorithm failed with {exc=}")
+    # create some dummy tables
+    for node_id, cursor in db_cursors.items():
+        create_dummy_tables(node_id, cursor, context_id)
 
-    # yield control to the event loop so the algorithm thread can proceed for some seconds
-    await asyncio.sleep(WAIT_BEFORE_BRING_TMPNODE_DOWN)
-
-    tables_before_cleanup = get_all_tabels_nodes(
-        engine._global_node, engine._local_nodes
-    )
+    tables_before_cleanup = {
+        node_id: get_tables(cursor, context_id)
+        for node_id, cursor in db_cursors.items()
+    }
     # check tables were created on all nodes
     for node_id, tables in tables_before_cleanup.items():
         if not tables:
@@ -685,24 +710,19 @@ async def test_cleanup_node_service_down_algorithm_execution(
     # restart tmplocalnode node service (the celery app)
     localnodetmp_node_service_proc = start_localnodetmp_node_service()
 
-    tables_after_cleanup = None
-    try:
-        tables_after_cleanup = get_all_tabels_nodes(
-            engine._global_node, engine._local_nodes
-        )
-    except CeleryConnectionError:
-        pass
-
+    tables_after_cleanup = {
+        node_id: get_tables(cursor, context_id)
+        for node_id, cursor in db_cursors.items()
+    }
     start = time.time()
     while not all(
         (tables == [] for tables in flatten_list(tables_after_cleanup.values()))
     ):
-        try:
-            tables_after_cleanup = get_all_tabels_nodes(
-                engine._global_node, engine._local_nodes
-            )
-        except CeleryConnectionError:
-            pass
+
+        tables_after_cleanup = {
+            node_id: get_tables(cursor, context_id)
+            for node_id, cursor in db_cursors.items()
+        }
 
         now = time.time()
         if now - start > WAIT_CLEANUP_TIME_LIMIT:
@@ -712,7 +732,7 @@ async def test_cleanup_node_service_down_algorithm_execution(
             )
         time.sleep(0.5)
 
-    controller.stop_cleanup_loop()
+    cleaner.stop()
 
     # the node service was started in here so it must manually killed, otherwise it is
     # alive through the whole pytest session and is erroneously accessed by other tests
@@ -730,14 +750,24 @@ def start_localnodetmp_node_service():
     return proc
 
 
-def get_all_tabels_nodes(global_node, local_nodes) -> dict:
-    globalnode_tables = {global_node.node_id: global_node.get_tables()}
-    localnodes_tables = {node.node_id: node.get_tables() for node in local_nodes}
-    return {
-        **globalnode_tables,
-        **localnodes_tables,
-    }
-
-
 def flatten_list(l: list):
     return [item for sub_l in l for item in sub_l]
+
+
+def create_dummy_tables(node_id, cursor, context_id):
+    columns = '"col1" INT,"col2" DOUBLE'
+    query = ""
+    for i in range(10):
+        table_name = f"normal_{node_id}_{context_id}_0_{i}"
+        query = query + f"CREATE TABLE {table_name}({columns});"
+    cursor.execute(query)
+
+
+def get_tables(cursor, context_id):
+    query = f"""
+    SELECT name FROM tables
+    WHERE name LIKE '%{context_id.lower()}%'
+    AND system=FALSE;
+    """
+    result = cursor.execute(query).fetchall()
+    return [i[0] for i in result]

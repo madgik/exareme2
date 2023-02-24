@@ -437,6 +437,17 @@ docs = ["furo (>=2022.12.7)", "sphinx-autodoc-typehints (>=1.19.5)", "sphinx (>=
 testing = ["covdefaults (>=2.2.2)", "coverage (>=7.0.1)", "pytest-cov (>=4)", "pytest-timeout (>=2.1)", "pytest (>=7.2)"]
 
 [[package]]
+name = "freezegun"
+version = "1.2.2"
+description = "Let your Python tests travel through time"
+category = "dev"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+python-dateutil = ">=2.7"
+
+[[package]]
 name = "greenlet"
 version = "2.0.2"
 description = "Lightweight in-process concurrent programming"
@@ -1639,7 +1650,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "04cbd4724215b04f51d21dc86c89bf10b24d65350ce99b53048b152c716d6205"
+content-hash = "3a77ee03a9703e22ea3fc2008b373a8e823a87a46dfe10f55b4f4c4804fac02f"
 
 [metadata.files]
 aiofiles = []
@@ -1677,6 +1688,7 @@ execnet = []
 executing = []
 fancycompleter = []
 filelock = []
+freezegun = []
 greenlet = []
 h11 = []
 h2 = []

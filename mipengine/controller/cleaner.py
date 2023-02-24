@@ -82,7 +82,7 @@ class Cleaner(metaclass=Singleton):
         self._celery_cleanup_task_timeout = init_params.celery_cleanup_task_timeout
         self._celery_run_udf_task_timeout = init_params.celery_run_udf_task_timeout
         self._contextids_cleanup_folder = init_params.contextids_cleanup_folder
-
+        self._node_landscape_aggregator = init_params.node_landscape_aggregator
         self._cleanup_files_processor = CleanupFilesProcessor(
             self._logger, self._contextids_cleanup_folder
         )
@@ -205,7 +205,7 @@ class Cleaner(metaclass=Singleton):
         self._cleanup_files_processor.create_file_from_cleanup_entry(entry)
 
     def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
-        node_info = NodeLandscapeAggregator().get_node_info(node_id)
+        node_info = self._node_landscape_aggregator.get_node_info(node_id)
         return _NodeInfoDTO(
             node_id=node_info.id,
             queue_address=":".join([str(node_info.ip), str(node_info.port)]),
