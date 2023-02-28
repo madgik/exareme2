@@ -46,8 +46,8 @@ def patch_node_config():
                     "ip": COMMON_IP,
                     "port": MONETDB_LOCALNODETMP_PORT,
                     "database": "db",
-                    "username": "monetdb",
-                    "password": "monetdb",
+                    "username": "executor",
+                    "password": "executor",
                 },
                 "celery": {
                     "tasks_timeout": 60,

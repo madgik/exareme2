@@ -12,6 +12,7 @@ from mipengine.controller.node_landscape_aggregator import _log_dataset_changes
 from mipengine.controller.node_landscape_aggregator import _log_node_changes
 from mipengine.node_info_DTOs import NodeInfo
 from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_PORT
+from tests.standalone_tests.conftest import MonetDBConfigurations
 
 LOGFILE_NAME = "test_show_controller_audit_entries.out"
 
@@ -23,7 +24,8 @@ def test_show_node_db_actions(monetdb_localnodetmp, load_data_localnodetmp):
     Load data into the db and then remove datamodel and datasets.
     Assert that the logs produced with federation_info.py contain these changes.
     """
-    cmd = f'mipdb delete-data-model dementia -v "0.1" --port {MONETDB_LOCALNODETMP_PORT} --force'
+    monet_db_confs = MonetDBConfigurations(port=MONETDB_LOCALNODETMP_PORT)
+    cmd = f'mipdb delete-data-model dementia -v "0.1" {monet_db_confs.convert_to_mipdb_format()} --force'
     res = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )

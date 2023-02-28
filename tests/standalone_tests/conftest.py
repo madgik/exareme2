@@ -20,8 +20,6 @@ from mipengine.controller.algorithm_execution_engine_tasks_handler import (
 )
 from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.controller_logger import init_logger
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_landscape_aggregator import _NLARegistries
 from mipengine.node.monetdb_interface.monet_db_facade import _MonetDBConnectionPool
 from mipengine.udfgen import udfio
 
@@ -40,6 +38,9 @@ if not OUTDIR.exists():
 USE_EXTERNAL_SMPC_CLUSTER = True
 
 COMMON_IP = "172.17.0.1"
+COMMON_MONETDB_NAME = "db"
+COMMON_MONETDB_USERNAME = "admin"
+COMMON_MONETDB_PASSWORD = "admin"
 
 ALGORITHMS_URL = f"http://{COMMON_IP}:4500/algorithms"
 SMPC_ALGORITHMS_URL = f"http://{COMMON_IP}:4501/algorithms"
@@ -167,6 +168,24 @@ SMPC_CLIENT2_PORT = 9006
 # but when the fixture start, it should check if it already exists, thus
 # not creating it again (fast). This could solve the problem of some
 # tests destroying some containers to test things.
+
+
+class MonetDBConfigurations:
+    def __init__(self, port):
+        self.ip = COMMON_IP
+        self.port = port
+        self.username = COMMON_MONETDB_USERNAME
+        self.password = COMMON_MONETDB_PASSWORD
+        self.database = COMMON_MONETDB_NAME
+
+    def convert_to_mipdb_format(self):
+        return (
+            f"--ip {self.ip} "
+            f"--port {self.port} "
+            f"--username {self.username} "
+            f"--password {self.password} "
+            f"--db_name {self.database}"
+        )
 
 
 def _search_for_string_in_logfile(
@@ -331,23 +350,29 @@ def monetdb_localnodetmp():
     remove_monetdb_container(cont_name)
 
 
-def _init_database_monetdb_container(db_ip, db_port):
-    print(f"\nInitializing database ({db_ip}:{db_port})")
-    cmd = f"mipdb init --ip {db_ip} --port {db_port} "
+def _init_database_monetdb_container(db_port):
+    monetdb_configs = MonetDBConfigurations(db_port)
+
+    print(f"\nInitializing database ({monetdb_configs.ip}:{monetdb_configs.port})")
+    cmd = f"mipdb init {monetdb_configs.convert_to_mipdb_format()}"
     subprocess.run(
         cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
-    print(f"\nDatabase ({db_ip}:{db_port}) initialized.")
+    print(f"\nDatabase ({monetdb_configs.ip}:{monetdb_configs.port}) initialized.")
 
 
-def _load_data_monetdb_container(db_ip, db_port, dataset_suffixes):
+def _load_data_monetdb_container(db_port, dataset_suffixes):
+    monetdb_configs = MonetDBConfigurations(db_port)
+
     # Check if the database is already loaded
-    cmd = f"mipdb list-datasets --ip {db_ip} --port {db_port} "
+    cmd = f"mipdb list-datasets {monetdb_configs.convert_to_mipdb_format()}"
     res = subprocess.run(
         cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     if "There are no datasets" not in str(res.stdout):
-        print(f"\nDatabase ({db_ip}:{db_port}) already loaded, continuing.")
+        print(
+            f"\nDatabase ({monetdb_configs.ip}:{monetdb_configs.port}) already loaded, continuing."
+        )
         return
 
     datasets_per_data_model = {}
@@ -364,9 +389,9 @@ def _load_data_monetdb_container(db_ip, db_port, dataset_suffixes):
         cdes_file = data_model_folder / "CDEsMetadata.json"
 
         print(
-            f"\nLoading data model '{data_model_code}:{data_model_version}' metadata to database ({db_ip}:{db_port})"
+            f"\nLoading data model '{data_model_code}:{data_model_version}' metadata to database ({monetdb_configs.ip}:{monetdb_configs.port})"
         )
-        cmd = f"mipdb add-data-model {cdes_file} --ip {db_ip} --port {db_port} "
+        cmd = f"mipdb add-data-model {cdes_file} {monetdb_configs.convert_to_mipdb_format()}"
         subprocess.run(
             cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
@@ -381,7 +406,7 @@ def _load_data_monetdb_container(db_ip, db_port, dataset_suffixes):
         )
 
         for csv in csvs:
-            cmd = f"mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --ip {db_ip} --port {db_port} "
+            cmd = f"mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} {monetdb_configs.convert_to_mipdb_format()}"
             subprocess.run(
                 cmd,
                 shell=True,
@@ -390,11 +415,11 @@ def _load_data_monetdb_container(db_ip, db_port, dataset_suffixes):
                 stderr=subprocess.PIPE,
             )
             print(
-                f"\nLoading dataset {pathlib.PurePath(csv).name} to database ({db_ip}:{db_port})"
+                f"\nLoading dataset {pathlib.PurePath(csv).name} to database ({monetdb_configs.ip}:{monetdb_configs.port})"
             )
             datasets_per_data_model[data_model] = pathlib.PurePath(csv).name
 
-    print(f"\nData loaded to database ({db_ip}:{db_port})")
+    print(f"\nData loaded to database ({monetdb_configs.ip}:{monetdb_configs.port})")
     time.sleep(2)  # Needed to avoid db crash while loading
     return datasets_per_data_model
 
@@ -409,71 +434,87 @@ def _remove_data_model_from_localnodetmp_monetdb(data_model_code, data_model_ver
 
 @pytest.fixture(scope="session")
 def init_data_globalnode(monetdb_globalnode):
-    _init_database_monetdb_container(COMMON_IP, MONETDB_GLOBALNODE_PORT)
+    _init_database_monetdb_container(
+        MONETDB_GLOBALNODE_PORT,
+    )
     yield
 
 
 @pytest.fixture(scope="session")
 def load_data_localnode1(monetdb_localnode1):
-    _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODE1_PORT)
+    _init_database_monetdb_container(
+        MONETDB_LOCALNODE1_PORT,
+    )
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        COMMON_IP, MONETDB_LOCALNODE1_PORT, DATASET_SUFFIXES_LOCALNODE1
+        MONETDB_LOCALNODE1_PORT, DATASET_SUFFIXES_LOCALNODE1
     )
     yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="session")
 def load_data_localnode2(monetdb_localnode2):
-    _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODE2_PORT)
+    _init_database_monetdb_container(
+        MONETDB_LOCALNODE2_PORT,
+    )
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        COMMON_IP, MONETDB_LOCALNODE2_PORT, DATASET_SUFFIXES_LOCALNODE2
+        MONETDB_LOCALNODE2_PORT, DATASET_SUFFIXES_LOCALNODE2
     )
     yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="function")
 def load_data_localnodetmp(monetdb_localnodetmp):
-    _init_database_monetdb_container(COMMON_IP, MONETDB_LOCALNODETMP_PORT)
+    _init_database_monetdb_container(
+        MONETDB_LOCALNODETMP_PORT,
+    )
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        COMMON_IP, MONETDB_LOCALNODETMP_PORT, DATASET_SUFFIXES_LOCALNODETMP
+        MONETDB_LOCALNODETMP_PORT, DATASET_SUFFIXES_LOCALNODETMP
     )
     yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="session")
 def load_data_smpc_localnode1(monetdb_smpc_localnode1):
-    _init_database_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT)
+    _init_database_monetdb_container(
+        MONETDB_SMPC_LOCALNODE1_PORT,
+    )
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        COMMON_IP, MONETDB_SMPC_LOCALNODE1_PORT, DATASET_SUFFIXES_SMPC_LOCALNODE1
+        MONETDB_SMPC_LOCALNODE1_PORT, DATASET_SUFFIXES_SMPC_LOCALNODE1
     )
     yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="session")
 def load_data_smpc_localnode2(monetdb_smpc_localnode2):
-    _init_database_monetdb_container(COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT)
+    _init_database_monetdb_container(
+        MONETDB_SMPC_LOCALNODE2_PORT,
+    )
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        COMMON_IP, MONETDB_SMPC_LOCALNODE2_PORT, DATASET_SUFFIXES_SMPC_LOCALNODE2
+        MONETDB_SMPC_LOCALNODE2_PORT, DATASET_SUFFIXES_SMPC_LOCALNODE2
     )
     yield loaded_datasets_per_data_model
 
 
-def _create_db_cursor(db_port):
+def _create_db_cursor(db_port, db_username="executor", db_password="executor"):
     class MonetDBTesting:
         """MonetDB class used for testing."""
 
         def __init__(self) -> None:
-            username = "monetdb"
-            password = "monetdb"
-            port = db_port
             dbfarm = "db"
-            url = f"monetdb://{username}:{password}@{COMMON_IP}:{port}/{dbfarm}"
+            url = (
+                f"monetdb://{db_username}:{db_password}@{COMMON_IP}:{db_port}/{dbfarm}"
+            )
             self._executor = sql.create_engine(url, echo=True)
 
         def execute(self, query, *args, **kwargs):
             return self._executor.execute(query, *args, **kwargs)
 
     return MonetDBTesting()
+
+
+@pytest.fixture(scope="session")
+def globalnode_db_cursor_with_user_admin():
+    return _create_db_cursor(MONETDB_GLOBALNODE_PORT, "admin", "admin")
 
 
 @pytest.fixture(scope="session")
@@ -526,7 +567,7 @@ def _clean_db(cursor):
         TableType.NORMAL,
     )
     for table_type in table_type_drop_order:
-        select_user_tables = f"SELECT name FROM sys.tables WHERE system=FALSE AND schema_id=2000 AND type={table_type.value}"
+        select_user_tables = f"SELECT name FROM sys.tables WHERE system=FALSE AND schema_id  in (SELECT id from schemas where system=false and name='executor') AND type={table_type.value}"
         user_tables = cursor.execute(select_user_tables).fetchall()
         for table_name, *_ in user_tables:
             if table_type == TableType.VIEW:
