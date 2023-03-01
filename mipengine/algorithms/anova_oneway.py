@@ -333,22 +333,6 @@ def global1(sec_local_transfer, local_transfers):
         index=("categories", "Residual"),
     )
 
-    table.loc["categories"] = {
-        "df": df_explained,
-        "sum_sq": ss_explained,
-        "mean_sq": ms_explained,
-        "F": f_stat,
-        "PR('>F')": p_value,
-    }
-
-    table.loc["Residual"] = {
-        "df": df_residual,
-        "sum_sq": ss_residual,
-        "mean_sq": ms_residual,
-        "F": None,
-        "PR('>F')": None,
-    }
-
     # tukey data
     # pairwise tukey (model, covar_enums)
 
