@@ -5,6 +5,7 @@ from typing import TypeVar
 import numpy
 import pandas as pd
 from pydantic import BaseModel
+from sklearn.metrics.pairwise import euclidean_distances
 
 from mipengine.algorithm_result_DTOs import TabularDataResult
 from mipengine.algorithms.algorithm import Algorithm
@@ -117,7 +118,23 @@ class KMeansAlgorithm(Algorithm, algname="kmeans"):
             # new_centers_obj = get_transfer_data(new_centers)['centers']
             new_centers_array = numpy.array(new_centers_obj)
 
-            diff = numpy.sum((new_centers_array - old_centers_array) ** 2)
+            # diff = numpy.sum((new_centers_array - old_centers_array) ** 2)
+
+            k = n_clusters
+            center_shift = numpy.zeros((k, 1))
+            for j in range(k):
+                # center_shift[j] = _euclidean_dense_dense(
+                #    &centers_new[j, 0], &centers_old[j, 0], n_features, False)
+                distances = euclidean_distances(
+                    new_centers_array[j, :].reshape(1, -1),
+                    old_centers_array[j, :].reshape(1, -1),
+                    squared=False,
+                )
+                # print(distances)
+                center_shift[j] = distances[0][0]
+                # print(distances[0][0])
+            diff = (center_shift**2).sum()
+            print("diff is " + str(diff))
 
             if (curr_iter >= maxiter) or (diff < tol):
                 ret_obj = KmeansResult(
