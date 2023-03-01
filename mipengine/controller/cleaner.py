@@ -1,23 +1,3 @@
-# Cleanup entry example:
-# context_id= "3502300"
-# node_ids = [ "testglobalnode", "testlocalnode1", "testlocalnode2",]
-# timestamp = "2022-05-23T14:40:34.203085+00:00"
-# released = false
-
-# How it works:
-# Just before an algorithm starts executing, Cleaner::add_contextid_for_cleanup(context_id)
-# is called (from the Controller). This creates a new file(ex. "cleanup_3502300.toml")
-# containing a cleanup entry as the above. As soon as the algorithm execution finishes,
-# Cleaner::release_context_id(context_id) is called (from the Controller), which sets the
-# 'released' flag, of the respecive cleanup entry, to 'true'. When the Cleaner object is
-# started (method start), it constantly loops through all the entries, finds the ones that
-# either have their 'released' flag set to 'true' or their 'timestamp' has expired
-# (check _is_timestamp_expired function) and processes them by calling the cleanup tasks
-# on the respective nodes for the respective context_id. When the cleanup tasks on all
-# the nodes of an entry are succesfull, the entry file is deleted. Otherwise the 'node_ids'
-# list of the entry is updated to contain only the failed 'node_ids' and will be re-processed
-# in the next iteration of the loop.
-
 import os
 import string
 import threading
@@ -74,7 +54,64 @@ class _CleanupEntry(BaseModel):
 
 
 class Cleaner(metaclass=Singleton):
+    """
+    The Cleaner class handles the cleaning of database artifacts created during the
+    execution of algorithms.
+
+    How it works:
+    Just before an algorithm starts executing, Cleaner::add_contextid_for_cleanup(context_id)
+    is called (from the Controller). This creates a new file(ex. "cleanup_3502300.toml")
+    containing a cleanup entry. As soon as the algorithm execution finishes,
+    Cleaner::release_context_id(context_id) is called (from the Controller), which sets the
+    'released' flag, of the respective cleanup entry, to 'true'. When the Cleaner object is
+    started (method start()), it constantly loops through all the entries, finds the ones that
+    either have their 'released' flag set to 'true' or their 'timestamp' has expired
+    (check _is_timestamp_expired function) and processes them by calling the cleanup tasks
+    on the respective nodes for the respective context_id. When the cleanup tasks on all
+    the nodes of an entry are succesfull, the entry file is deleted. Otherwise the 'node_ids'
+    list of the entry is updated to contain only the failed 'node_ids' and will be re-processed
+    in the next iteration of the loop.
+
+    Cleanup entry example:
+    context_id= "3502300"
+    node_ids = [ "testglobalnode", "testlocalnode1", "testlocalnode2",]
+    timestamp = "2022-05-23T14:40:34.203085+00:00"
+    released = false
+    
+    Parameters
+    ----------
+    init_params : InitializationParams
+        A pydantic BaseModel that holds the initialization parameters
+        of the Cleaner instance.
+
+    Methods
+    -------
+    cleanup_context_id(context_id: str) -> bool:
+        Execute the cleanup task on all nodes of a given context_id.
+        Returns True if the cleanup task was successful on all nodes, False otherwise.
+
+    start():
+        Start the cleanup loop
+
+    stop():
+        Stop the cleanup loop
+
+    add_contextid_for_cleanup(context_id: str, algo_execution_node_ids: List[str]):
+        Create a new cleanup entry
+
+    release_context_id(context_id):
+        Set the "released" flag of the cleanup entry to true.
+    """
     def __init__(self, init_params: InitializationParams):
+        """
+        Initialize the Cleaner instance.
+
+        Parameters
+        ----------
+        init_params : InitializationParams
+            A pydantic BaseModel that holds the initialization parameters
+            of the Cleaner instance.
+        """
         self._logger = ctrl_logger.get_background_service_logger()
 
         self._cleanup_interval = init_params.cleanup_interval
@@ -91,6 +128,21 @@ class Cleaner(metaclass=Singleton):
         self._cleanup_loop_thread = None
 
     def cleanup_context_id(self, context_id: str) -> bool:
+        """
+        Execute the cleanup task on all nodes of a given context_id. Used for
+        synchronous call of the 'cleanup' task.
+
+        Parameters
+        ----------
+        context_id : str
+            The context_id of the finished algorithm execution that the cleanup task will be
+            executed for.
+
+        Returns
+        -------
+        bool
+            True if the cleanup task was successful on all nodes, False otherwise.
+        """
         # returns True if cleanup task was succesful for all nodes of the context_id
         entry = self._cleanup_files_processor.get_entry_by_context_id(context_id)
         return self._exec_cleanup(entry)
@@ -171,6 +223,9 @@ class Cleaner(metaclass=Singleton):
             return False
 
     def start(self):
+        """
+        Start the cleanup loop
+        """
         self.stop()
 
         self._keep_cleaning_up = True
@@ -180,6 +235,9 @@ class Cleaner(metaclass=Singleton):
         self._cleanup_loop_thread.start()
 
     def stop(self):
+        """
+        Stop the cleanup loop
+        """
         self._keep_cleaning_up = False
         if self._cleanup_loop_thread and self._cleanup_loop_thread.is_alive():
             self._cleanup_loop_thread.join()
@@ -187,6 +245,18 @@ class Cleaner(metaclass=Singleton):
     def add_contextid_for_cleanup(
         self, context_id: str, algo_execution_node_ids: List[str]
     ):
+        
+        """
+        Create a new cleanup entry for the specified context_id along with the
+        respective node_ids.
+
+        Parameters
+        ----------
+        context_id : str
+            The context_id of the algorithm execution.
+        algo_execution_node_ids : List[str]
+            The node_ids participating in the algorithm execution.
+        """
         self._logger.debug(f"Creating file for new {context_id=}")
         now_timestamp = datetime.now(timezone.utc).isoformat()
         entry = _CleanupEntry(
@@ -198,6 +268,14 @@ class Cleaner(metaclass=Singleton):
         self._cleanup_files_processor.create_file_from_cleanup_entry(entry)
 
     def release_context_id(self, context_id):
+        """
+        Set the "released" flag of the cleanup entry to true.
+
+        Parameters
+        ----------
+        context_id : str
+            The context_id of the cleanup entry.
+        """
         self._logger.debug(f"Setting released to true for file with {context_id=}")
         entry = self._cleanup_files_processor.get_entry_by_context_id(context_id)
         entry.released = True
