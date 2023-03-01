@@ -77,7 +77,7 @@ class Cleaner(metaclass=Singleton):
     node_ids = [ "testglobalnode", "testlocalnode1", "testlocalnode2",]
     timestamp = "2022-05-23T14:40:34.203085+00:00"
     released = false
-    
+
     Parameters
     ----------
     init_params : InitializationParams
@@ -102,6 +102,7 @@ class Cleaner(metaclass=Singleton):
     release_context_id(context_id):
         Set the "released" flag of the cleanup entry to true.
     """
+
     def __init__(self, init_params: InitializationParams):
         """
         Initialize the Cleaner instance.
@@ -245,7 +246,7 @@ class Cleaner(metaclass=Singleton):
     def add_contextid_for_cleanup(
         self, context_id: str, algo_execution_node_ids: List[str]
     ):
-        
+
         """
         Create a new cleanup entry for the specified context_id along with the
         respective node_ids.
