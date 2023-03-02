@@ -133,10 +133,10 @@ class KMeansAlgorithm(Algorithm, algname="kmeans"):
                 # print(distances)
                 center_shift[j] = distances[0][0]
                 # print(distances[0][0])
-            diff = (center_shift**2).sum()
+            diff = (center_shift).sum()
             print("diff is " + str(diff))
 
-            if (curr_iter >= maxiter) or (diff < tol):
+            if (curr_iter >= maxiter) or (diff <= tol):
                 ret_obj = KmeansResult(
                     title="K-Means Centers",
                     centers=new_centers_array.tolist(),
