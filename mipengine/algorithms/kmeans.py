@@ -119,7 +119,7 @@ class KMeansAlgorithm(Algorithm, algname="kmeans"):
             new_centers_array = numpy.array(new_centers_obj)
 
             # diff = numpy.sum((new_centers_array - old_centers_array) ** 2)
-
+            """
             k = n_clusters
             center_shift = numpy.zeros((k, 1))
             for j in range(k):
@@ -133,7 +133,10 @@ class KMeansAlgorithm(Algorithm, algname="kmeans"):
                 # print(distances)
                 center_shift[j] = distances[0][0]
                 # print(distances[0][0])
-            diff = (center_shift).sum()
+            diff_old = (center_shift).sum()
+            print("diff_old is " + str(diff_old))
+            """
+            diff = numpy.linalg.norm(new_centers_array - old_centers_array, "fro")
             print("diff is " + str(diff))
 
             if (curr_iter >= maxiter) or (diff <= tol):
