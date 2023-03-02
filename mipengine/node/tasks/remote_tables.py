@@ -2,6 +2,7 @@ from typing import List
 
 from celery import shared_task
 
+from mipengine.node import config as node_config
 from mipengine.node.monetdb_interface import remote_tables
 from mipengine.node.node_logger import initialise_logger
 from mipengine.node_tasks_DTOs import TableSchema
@@ -47,6 +48,12 @@ def create_remote_table(
         The monetdb_socket_address of the monetdb that we want to create the remote table from.
     """
     schema = TableSchema.parse_raw(table_schema_json)
+    username = node_config.monetdb.username
+    password = node_config.monetdb.password
     remote_tables.create_remote_table(
-        name=table_name, schema=schema, monetdb_socket_address=monetdb_socket_address
+        name=table_name,
+        schema=schema,
+        monetdb_socket_address=monetdb_socket_address,
+        username=username,
+        password=password,
     )

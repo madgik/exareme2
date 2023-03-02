@@ -49,8 +49,8 @@ def patch_node_config():
                 "ip": COMMON_IP,
                 "port": MONETDB_LOCALNODE1_PORT,
                 "database": "db",
-                "username": "monetdb",
-                "password": "monetdb",
+                "username": "executor",
+                "password": "executor",
             },
             "celery": {
                 "tasks_timeout": 60,
@@ -151,6 +151,8 @@ def test_create_remote_table_if_not_exists(
         name=table_name,
         monetdb_socket_address="127.0.0.1:50000",
         schema=table_schema,
+        username="executor",
+        password="executor",
     )
 
     try:
@@ -158,6 +160,8 @@ def test_create_remote_table_if_not_exists(
             name=table_name,
             monetdb_socket_address="127.0.0.1:50000",
             schema=table_schema,
+            username="executor",
+            password="executor",
         )
     except Exception as exc:
         pytest.fail(

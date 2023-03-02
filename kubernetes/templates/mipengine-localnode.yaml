@@ -124,6 +124,8 @@ spec:
               fieldPath: status.podIP
         - name: MONETDB_PORT
           value: "50000"
+        - name: MONETDB_PASSWORD
+          value: "executor"
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
         {{ if .Values.smpc.enabled }}

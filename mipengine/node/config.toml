@@ -23,8 +23,8 @@ vhost = "user_vhost"
 ip = "$MONETDB_IP"
 port = "$MONETDB_PORT"
 database = "db"
-username = "monetdb"
-password = "monetdb"
+username = "executor"
+password = "$MONETDB_PASSWORD"
 
 [smpc]
 enabled = "$SMPC_ENABLED"
