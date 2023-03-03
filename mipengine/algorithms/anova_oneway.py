@@ -3,6 +3,11 @@ from typing import TypeVar
 import pandas as pd
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.exceptions import BadUserInput
@@ -22,19 +27,46 @@ class AnovaResult(BaseModel):
 
 
 class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
+    @classmethod
+    def get_specification(cls):
+        return AlgorithmSpecification(
+            name=cls.algname,
+            desc="ANOVA One-way",
+            label="ANOVA One-way",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                x=InputDataSpecification(
+                    label="independent",
+                    desc="independent variable",
+                    types=[InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+                y=InputDataSpecification(
+                    label="dependent",
+                    desc="Dependent variable",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+        )
+
     def get_variable_groups(self):
-        return [self.executor.x_variables, self.executor.y_variables]
+        return [self.variables.x, self.variables.y]
 
-    def run(self):
-        local_run = self.executor.run_udf_on_local_nodes
-        global_run = self.executor.run_udf_on_global_node
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
-        X_relation, Y_relation = self.executor.data_model_views
+        X_relation, Y_relation = engine.data_model_views
 
-        [x_var_name] = self.executor.x_variables
-        [y_var_name] = self.executor.y_variables
+        [x_var_name] = self.variables.x
+        [y_var_name] = self.variables.y
 
-        covar_enums = list(self.executor.metadata[x_var_name]["enumerations"])
+        covar_enums = list(self.metadata[x_var_name]["enumerations"])
 
         sec_local_transfer, local_transfers = local_run(
             func=local1,

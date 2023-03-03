@@ -4,15 +4,13 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.controller import config as ctrl_config
-from mipengine.controller.algorithm_specifications import AlgorithmSpecification
-from mipengine.controller.algorithm_specifications import InputDataSpecification
-from mipengine.controller.algorithm_specifications import InputDataSpecifications
-from mipengine.controller.algorithm_specifications import InputDataStatType
-from mipengine.controller.algorithm_specifications import InputDataType
-from mipengine.controller.algorithm_specifications import ParameterEnumSpecification
-from mipengine.controller.algorithm_specifications import ParameterSpecification
-from mipengine.controller.algorithm_specifications import algorithm_specifications
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterEnumSpecification
+from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
@@ -23,8 +21,6 @@ from mipengine.exceptions import BadUserInput
 from mipengine.filters import validate_filter
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
-
-node_landscape_aggregator = NodeLandscapeAggregator()
 
 
 class BadRequest(Exception):
@@ -37,25 +33,37 @@ def validate_algorithm_request(
     algorithm_name: str,
     algorithm_request_dto: AlgorithmRequestDTO,
     available_datasets_per_data_model: Dict[str, List[str]],
+    algorithms_specs: Dict[str, AlgorithmSpecification],
+    node_landscape_aggregator: NodeLandscapeAggregator,
+    smpc_enabled: bool,
+    smpc_optional: bool,
 ):
-    algorithm_specs = _get_algorithm_specs(algorithm_name)
+    algorithm_specs = _get_algorithm_specs(algorithm_name, algorithms_specs)
     _validate_algorithm_request_body(
         algorithm_request_dto=algorithm_request_dto,
         algorithm_specs=algorithm_specs,
         available_datasets_per_data_model=available_datasets_per_data_model,
+        node_landscape_aggregator=node_landscape_aggregator,
+        smpc_enabled=smpc_enabled,
+        smpc_optional=smpc_optional,
     )
 
 
-def _get_algorithm_specs(algorithm_name):
-    if algorithm_name not in algorithm_specifications.enabled_algorithms.keys():
+def _get_algorithm_specs(
+    algorithm_name: str, algorithms_specs: Dict[str, AlgorithmSpecification]
+):
+    if algorithm_name not in algorithms_specs.keys():
         raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
-    return algorithm_specifications.enabled_algorithms[algorithm_name]
+    return algorithms_specs[algorithm_name]
 
 
 def _validate_algorithm_request_body(
     algorithm_request_dto: AlgorithmRequestDTO,
     algorithm_specs: AlgorithmSpecification,
     available_datasets_per_data_model: Dict[str, List[str]],
+    node_landscape_aggregator: NodeLandscapeAggregator,
+    smpc_enabled: bool,
+    smpc_optional: bool,
 ):
     _validate_data_model(
         requested_data_model=algorithm_request_dto.inputdata.data_model,
@@ -80,7 +88,11 @@ def _validate_algorithm_request_body(
         data_model_cdes=data_model_cdes,
     )
 
-    _validate_flags(algorithm_request_dto.flags)
+    _validate_flags(
+        flags=algorithm_request_dto.flags,
+        smpc_enabled=smpc_enabled,
+        smpc_optional=smpc_optional,
+    )
 
 
 def _validate_data_model(requested_data_model: str, available_datasets_per_data_model):
@@ -403,7 +415,7 @@ def _validate_param_enums_of_type_list(
     if parameter_value not in parameter_spec_enums.source:
         raise BadUserInput(
             f"Parameter '{parameter_spec_label}' values "
-            f"should be one of the following: '{str(parameter_spec_enums)}'."
+            f"should be one of the following: {parameter_spec_enums.source}. Value provided: '{parameter_value}'."
         )
 
 
@@ -489,13 +501,9 @@ def _validate_parameter_inside_min_max(
         )
 
 
-def _validate_flags(
-    flags: Dict[str, Any],
-):
+def _validate_flags(flags: Dict[str, Any], smpc_enabled: bool, smpc_optional: bool):
     if not flags:
         return
 
     if USE_SMPC_FLAG in flags.keys():
-        validate_smpc_usage(
-            flags[USE_SMPC_FLAG], ctrl_config.smpc.enabled, ctrl_config.smpc.optional
-        )
+        validate_smpc_usage(flags[USE_SMPC_FLAG], smpc_enabled, smpc_optional)

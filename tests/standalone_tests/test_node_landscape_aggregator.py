@@ -1,5 +1,6 @@
 import pytest
 
+from mipengine import AttrDict
 from mipengine.controller.node_landscape_aggregator import DataModelMetadata
 from mipengine.controller.node_landscape_aggregator import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import DataModelsAttributes
@@ -9,17 +10,50 @@ from mipengine.controller.node_landscape_aggregator import DataModelsMetadataPer
 from mipengine.controller.node_landscape_aggregator import DatasetsLabels
 from mipengine.controller.node_landscape_aggregator import DatasetsLocations
 from mipengine.controller.node_landscape_aggregator import (
+    InitializationParams as NodeLandscapeAggregatorInitParams,
+)
+from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from mipengine.controller.node_landscape_aggregator import (
     _crunch_data_model_registry_data,
 )
-from mipengine.controller.node_landscape_aggregator import _get_node_cdes
-from mipengine.controller.node_landscape_aggregator import (
-    _get_node_datasets_per_data_model,
-)
-from mipengine.controller.node_landscape_aggregator import _get_nodes_info
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 from mipengine.node_tasks_DTOs import DataModelAttributes
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_ADDR
+
+
+@pytest.fixture
+def controller_config():
+    controller_config = {
+        "deployment_type": "LOCAL",
+        "node_landscape_aggregator_update_interval": 30,
+        "rabbitmq": {
+            "celery_tasks_timeout": 5,
+            "celery_run_udf_task_timeout": 10,
+        },
+        "localnodes": {
+            "config_file": None,
+        },
+    }
+    return controller_config
+
+
+@pytest.fixture(scope="function")
+def node_landscape_aggregator(
+    controller_config,
+):
+    controller_config = AttrDict(controller_config)
+    node_landscape_aggregator_init_params = NodeLandscapeAggregatorInitParams(
+        node_landscape_aggregator_update_interval=controller_config.node_landscape_aggregator_update_interval,
+        celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+        deployment_type=controller_config.deployment_type,
+        localnodes=controller_config.localnodes,
+    )
+    node_landscape_aggregator = NodeLandscapeAggregator(
+        node_landscape_aggregator_init_params
+    )
+    return node_landscape_aggregator
 
 
 def get_parametrization_cases():
@@ -2242,8 +2276,11 @@ def get_parametrization_cases():
 def test_data_model_registry(
     data_models_metadata_per_node: DataModelsMetadataPerNode,
     expected: DataModelRegistry,
+    node_landscape_aggregator,
 ):
-    dmr = _crunch_data_model_registry_data(data_models_metadata_per_node)
+    dmr = _crunch_data_model_registry_data(
+        data_models_metadata_per_node, node_landscape_aggregator._logger
+    )
     assert (
         dmr.data_models_cdes.data_models_cdes
         == expected.data_models_cdes.data_models_cdes
@@ -2259,20 +2296,26 @@ def test_data_model_registry(
 
 
 @pytest.mark.slow
-def test_get_nodes_info_properly_handles_errors():
-    nodes_info = _get_nodes_info([RABBITMQ_LOCALNODETMP_ADDR])
+def test_get_nodes_info_properly_handles_errors(node_landscape_aggregator):
+    nodes_info = node_landscape_aggregator._get_nodes_info([RABBITMQ_LOCALNODETMP_ADDR])
     assert not nodes_info
 
 
 @pytest.mark.slow
-def test_get_node_datasets_per_data_model_properly_handles_errors():
-    datasets_per_data_model = _get_node_datasets_per_data_model(
-        RABBITMQ_LOCALNODETMP_ADDR
+def test_get_node_datasets_per_data_model_properly_handles_errors(
+    node_landscape_aggregator,
+):
+    datasets_per_data_model = (
+        node_landscape_aggregator._get_node_datasets_per_data_model(
+            RABBITMQ_LOCALNODETMP_ADDR
+        )
     )
     assert not datasets_per_data_model
 
 
 @pytest.mark.slow
-def test_get_node_cdes_properly_handles_errors():
-    cdes = _get_node_cdes(RABBITMQ_LOCALNODETMP_ADDR, "dementia:0.1")
+def test_get_node_cdes_properly_handles_errors(node_landscape_aggregator):
+    cdes = node_landscape_aggregator._get_node_cdes(
+        RABBITMQ_LOCALNODETMP_ADDR, "dementia:0.1"
+    )
     assert not cdes

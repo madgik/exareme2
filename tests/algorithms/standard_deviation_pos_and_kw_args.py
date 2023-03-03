@@ -2,6 +2,11 @@ import json
 from typing import TypeVar
 
 from mipengine.algorithm_result_DTOs import TabularDataResult
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
@@ -16,14 +21,33 @@ from mipengine.udfgen import udf
 class StandardDeviationPosAndKwArgsAlgorithm(
     Algorithm, algname="standard_deviation_pos_and_kw_args"
 ):
+    @classmethod
+    def get_specification(cls):
+        return AlgorithmSpecification(
+            name=cls.algname,
+            desc="Standard Deviation of a column",
+            label="SMPC Standard Deviation",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="column",
+                    desc="Column",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                )
+            ),
+        )
+
     def get_variable_groups(self):
-        return [self.executor.y_variables]
+        return [self.variables.y]
 
-    def run(self):
-        local_run = self.executor.run_udf_on_local_nodes
-        global_run = self.executor.run_udf_on_global_node
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
-        [Y_relation] = self.executor.data_model_views
+        [Y_relation] = engine.data_model_views
 
         Y = local_run(
             func=relation_to_matrix,
@@ -55,7 +79,7 @@ class StandardDeviationPosAndKwArgsAlgorithm(
             keyword_args={"local_transfers": local_result},
         )
         std_deviation = json.loads(global_result.get_table_data()[0][0])["deviation"]
-        y_variables = self.executor.y_variables
+        y_variables = self.variables.y
         result = TabularDataResult(
             title="Standard Deviation",
             columns=[

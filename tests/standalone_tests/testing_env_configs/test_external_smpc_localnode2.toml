@@ -23,12 +23,12 @@ vhost = "user_vhost"
 ip = "172.17.0.1"
 port = 61006
 database = "db"
-username = "monetdb"
-password = "monetdb"
+username = "executor"
+password = "executor"
 
 [smpc]
 enabled = true
 optional = false
 client_id = "ChildrensHospital"
-client_address = "http://161.35.36.151:9001"
-coordinator_address = "http://161.35.36.151:12314"
+client_address = "http://167.71.139.232:9001"
+coordinator_address = "http://167.71.139.232:12314"

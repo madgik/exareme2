@@ -1,6 +1,15 @@
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterEnumSpecification
+from mipengine.algorithm_specification import ParameterEnumType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
@@ -22,16 +31,67 @@ class TtestResult(BaseModel):
 
 
 class PairedTTestAlgorithm(Algorithm, algname="ttest_paired"):
+    @classmethod
+    def get_specification(cls):
+        return AlgorithmSpecification(
+            name=cls.algname,
+            desc="Paired t-test",
+            label="Paired t-test",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="independent",
+                    desc="independent variable",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+                x=InputDataSpecification(
+                    label="independent",
+                    desc="independent variable",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+            parameters={
+                "alt_hypothesis": ParameterSpecification(
+                    label="Alternative Hypothesis",
+                    desc="The alternative hypothesis to the null, returning specifically whether measure 1 is different to measure 2, measure 1 greater than measure 2, and measure 1 less than measure 2 respectively.",
+                    types=[ParameterType.TEXT],
+                    notblank=True,
+                    multiple=False,
+                    default="two-sided",
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.LIST,
+                        source=["two-sided", "less", "greater"],
+                    ),
+                ),
+                "alpha": ParameterSpecification(
+                    label="Confidence level",
+                    desc="The confidence level α used in the calculation of the confidence intervals for the correlation coefficients.",
+                    types=[ParameterType.REAL],
+                    notblank=True,
+                    multiple=False,
+                    default=0.95,
+                    min=0.0,
+                    max=1.0,
+                ),
+            },
+        )
+
     def get_variable_groups(self):
-        return [self.executor.x_variables, self.executor.y_variables]
+        return [self.variables.x, self.variables.y]
 
-    def run(self):
-        local_run = self.executor.run_udf_on_local_nodes
-        global_run = self.executor.run_udf_on_global_node
-        alpha = self.executor.algorithm_parameters["alpha"]
-        alternative = self.executor.algorithm_parameters["alt_hypothesis"]
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
+        alpha = self.algorithm_parameters["alpha"]
+        alternative = self.algorithm_parameters["alt_hypothesis"]
 
-        X_relation, Y_relation = self.executor.data_model_views
+        X_relation, Y_relation = engine.data_model_views
 
         sec_local_transfer = local_run(
             func=local_paired,

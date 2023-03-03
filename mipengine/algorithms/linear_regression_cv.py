@@ -4,6 +4,13 @@ from typing import NamedTuple
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import DummyEncoder
@@ -26,23 +33,64 @@ class CVLinearRegressionResult(BaseModel):
 
 
 class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
+    @classmethod
+    def get_specification(cls):
+        return AlgorithmSpecification(
+            name=cls.algname,
+            desc="Linear Regression Cross-validation",
+            label="Linear Regression Cross-validation",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                x=InputDataSpecification(
+                    label="features",
+                    desc="Features",
+                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=True,
+                ),
+                y=InputDataSpecification(
+                    label="target",
+                    desc="Target variable",
+                    types=[InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+            parameters={
+                "n_splits": ParameterSpecification(
+                    label="Number of splits",
+                    desc="Number of splits",
+                    types=[ParameterType.INT],
+                    notblank=True,
+                    multiple=False,
+                    default=5,
+                    min=2,
+                    max=20,
+                ),
+            },
+        )
+
     def get_variable_groups(self):
-        return [self.executor.x_variables, self.executor.y_variables]
+        return [self.variables.x, self.variables.y]
 
-    def run(self):
-        X, y = self.executor.data_model_views
+    def run(self, engine):
+        X, y = engine.data_model_views
 
-        n_splits = self.executor.algorithm_parameters["n_splits"]
+        n_splits = self.algorithm_parameters["n_splits"]
 
-        dummy_encoder = DummyEncoder(self.executor)
+        dummy_encoder = DummyEncoder(
+            engine=engine, variables=self.variables, metadata=self.metadata
+        )
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1
 
-        kf = KFold(self.executor, n_splits=n_splits)
+        kf = KFold(engine, n_splits=n_splits)
         X_train, X_test, y_train, y_test = kf.split(X, y)
 
-        models = [LinearRegression(self.executor) for _ in range(n_splits)]
+        models = [LinearRegression(engine) for _ in range(n_splits)]
 
         for model, X, y in zip(models, X_train, y_train):
             model.fit(X=X, y=y)
@@ -50,7 +98,7 @@ class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
         for model, X, y in zip(models, X_test, y_test):
             y_pred = model.predict(X)
             model.compute_summary(
-                y_test=relation_to_vector(y, self.executor),
+                y_test=relation_to_vector(y, engine),
                 y_pred=y_pred,
                 p=p,
             )
@@ -61,7 +109,7 @@ class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
         f_stats = numpy.array([m.f_stat for m in models])
 
         result = CVLinearRegressionResult(
-            dependent_var=self.executor.y_variables[0],
+            dependent_var=self.variables.y[0],
             indep_vars=dummy_encoder.new_varnames,
             n_obs=[m.n_obs for m in models],
             mean_sq_error=BasicStats(

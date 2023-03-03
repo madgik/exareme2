@@ -143,7 +143,7 @@ sudo docker pull madgik/mipengine_node:latest
 sudo docker pull madgik/mipengine_mipdb:latest
 sudo docker pull madgik/mipenginedb:latest
 sudo docker pull madgik/mipengine_rabbitmq:latest
-sudo docker pull gpikra/coordinator:v7.0.6.8
+sudo docker pull gpikra/coordinator:v7.0.7.4
 sudo docker pull mongo:5.0.8
 sudo docker pull redis:alpine3.15
 ```
@@ -156,7 +156,7 @@ sudo docker tag madgik/mipengine_node:latest <master_node_ip>:32000/mipengine_no
 sudo docker tag madgik/mipengine_mipdb:latest <master_node_ip>:32000/mipengine_mipdb:latest
 sudo docker tag madgik/mipenginedb:latest <master_node_ip>:32000/mipenginedb:latest
 sudo docker tag madgik/mipengine_rabbitmq:latest <master_node_ip>:32000/mipengine_rabbitmq:latest
-sudo docker tag gpikra/coordinator:v7.0.6.8 <master_node_ip>:32000/coordinator:v7.0.6.8
+sudo docker tag gpikra/coordinator:v7.0.7.4 <master_node_ip>:32000/coordinator:v7.0.6.8
 sudo docker tag mongo:5.0.8 <master_node_ip>:32000/mongo:5.0.8
 sudo docker tag redis:alpine3.15 <master_node_ip>:32000/redis:alpine3.15
 ```

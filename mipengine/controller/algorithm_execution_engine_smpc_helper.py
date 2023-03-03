@@ -6,9 +6,9 @@ from typing import Tuple
 
 from mipengine import smpc_cluster_comm_helpers as smpc_cluster
 from mipengine.controller import config as ctrl_config
-from mipengine.controller.algorithm_executor_nodes import GlobalNode
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesSMPCTables
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
+from mipengine.controller.nodes import GlobalNode
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.smpc_cluster_comm_helpers import SMPCComputationError
 from mipengine.smpc_cluster_comm_helpers import trigger_smpc

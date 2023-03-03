@@ -7,8 +7,8 @@ from typing import Optional
 from typing import Union
 
 from mipengine import DATA_TABLE_PRIMARY_KEY
-from mipengine.controller.algorithm_executor_nodes import GlobalNode
-from mipengine.controller.algorithm_executor_nodes import LocalNode
+from mipengine.controller.nodes import GlobalNode
+from mipengine.controller.nodes import LocalNode
 from mipengine.node_tasks_DTOs import NodeLiteralDTO
 from mipengine.node_tasks_DTOs import NodeSMPCDTO
 from mipengine.node_tasks_DTOs import NodeTableDTO

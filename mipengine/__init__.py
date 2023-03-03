@@ -17,7 +17,7 @@ __all__ = [
     "AttrDict",
     "ALGORITHM_FOLDERS_ENV_VARIABLE",
     "ALGORITHM_FOLDERS",
-    "algorithm_modules",
+    "algorithm_classes",
     "DATA_TABLE_PRIMARY_KEY",
 ]
 

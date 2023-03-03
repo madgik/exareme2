@@ -3,14 +3,10 @@ import enum
 from quart import Blueprint
 
 from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_executor import (
-    NodeTaskTimeoutAlgorithmExecutionException,
-)
-from mipengine.controller.algorithm_executor import (
-    NodeUnresponsiveAlgorithmExecutionException,
-)
 from mipengine.controller.api.validator import BadRequest
 from mipengine.controller.celery_app import CeleryTaskTimeoutException
+from mipengine.controller.controller import NodeTaskTimeoutException
+from mipengine.controller.controller import NodeUnresponsiveException
 from mipengine.exceptions import BadUserInput
 from mipengine.exceptions import DataModelUnavailable
 from mipengine.exceptions import DatasetUnavailable
@@ -76,9 +72,9 @@ def handle_smpc_error(error: SMPCUsageError):
     return error.message, HTTPStatusCode.SMPC_USAGE_ERROR
 
 
-@error_handlers.app_errorhandler(NodeUnresponsiveAlgorithmExecutionException)
+@error_handlers.app_errorhandler(NodeUnresponsiveException)
 def handle_node_unresponsive_algorithm_excecution_exception(
-    error: NodeUnresponsiveAlgorithmExecutionException,
+    error: NodeUnresponsiveException,
 ):
     return (
         error.message,
@@ -86,9 +82,9 @@ def handle_node_unresponsive_algorithm_excecution_exception(
     )
 
 
-@error_handlers.app_errorhandler(NodeTaskTimeoutAlgorithmExecutionException)
+@error_handlers.app_errorhandler(NodeTaskTimeoutException)
 def handle_node_task_timeout_algorithm_execution_exception(
-    error: NodeTaskTimeoutAlgorithmExecutionException,
+    error: NodeTaskTimeoutException,
 ):
     return (
         error.message,

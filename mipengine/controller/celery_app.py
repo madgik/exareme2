@@ -70,7 +70,7 @@ class CeleryWrapper:
             logger.error(
                 f"{self._socket_addr=} Exception: {exc=} was caught. Most likely this "
                 f"means the broker is not accessible. Queuing of {task_signature=} with "
-                f"{args=} and {kwargs=} FAILED."
+                f"{args=} and {kwargs=} failed."
             )
 
             # The celery app needs to be recreated due to a bug:

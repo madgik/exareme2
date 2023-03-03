@@ -29,4 +29,5 @@ optional=false
 id = "localnode1"
 role="LOCALNODE"
 monetdb_port=50000
+monetdb_password="executor"
 rabbitmq_port=5670

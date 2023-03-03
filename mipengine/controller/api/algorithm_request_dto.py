@@ -15,6 +15,9 @@ class AlgorithmInputDataDTO(BaseModel):
     y: Optional[List[str]]
     x: Optional[List[str]]
 
+    class Config:
+        allow_mutation = False
+
 
 class AlgorithmRequestDTO(BaseModel):
     request_id: Optional[str] = None

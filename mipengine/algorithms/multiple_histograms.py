@@ -6,6 +6,13 @@ from typing import Union
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import MIN_ROW_COUNT
@@ -31,26 +38,65 @@ class HistogramResult1(BaseModel):
     histogram: List[Histogram]
 
 
-class HistogramAlgorithm(Algorithm, algname="multiple_histograms"):
+class MultipleHistogramsAlgorithm(Algorithm, algname="multiple_histograms"):
+    @classmethod
+    def get_specification(cls):
+        return AlgorithmSpecification(
+            name=cls.algname,
+            desc="Multiple Histograms",
+            label="Multiple Histograms",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="y",
+                    desc="Variable to distribute among bins.",
+                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+                x=InputDataSpecification(
+                    label="x",
+                    desc="Nominal variable for grouping bins.",
+                    types=[InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=False,
+                    multiple=True,
+                ),
+            ),
+            parameters={
+                "bins": ParameterSpecification(
+                    label="Number of bins",
+                    desc="Number of bins",
+                    types=[ParameterType.INT],
+                    notblank=False,
+                    multiple=False,
+                    default=20,
+                    min=1,
+                    max=100,
+                ),
+            },
+        )
+
     def get_variable_groups(self):
-        return [self.executor.y_variables + self.executor.x_variables]
+        return [self.variables.y + self.variables.x]
 
-    def run(self):
-        local_run = self.executor.run_udf_on_local_nodes
-        global_run = self.executor.run_udf_on_global_node
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
-        xvars = self.executor.x_variables or []
-        yvars = self.executor.y_variables or []
+        xvars = self.variables.x
+        yvars = self.variables.y
         yvar = yvars[0]
 
         default_bins = 20
-        bins = self.executor.algorithm_parameters.get("bins", default_bins)
+        bins = self.algorithm_parameters.get("bins", default_bins)
         if bins is None:
             bins = default_bins
 
-        [data] = self.executor.data_model_views
+        [data] = engine.data_model_views
 
-        metadata = dict(self.executor.metadata)
+        metadata = dict(self.metadata)
 
         vars = [var for var in xvars + yvars]
 

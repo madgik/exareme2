@@ -5,6 +5,15 @@ import scipy.stats as stats
 from pydantic import BaseModel
 from scipy.special import xlogy
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterEnumSpecification
+from mipengine.algorithm_specification import ParameterEnumType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
@@ -22,19 +31,61 @@ ALPHA = 0.05  # alpha level for coefficient confidence intervals
 
 
 class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
+    @classmethod
+    def get_specification(cls):
+        return AlgorithmSpecification(
+            name=cls.algname,
+            desc="Logistic Regression",
+            label="Logistic Regression",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                x=InputDataSpecification(
+                    label="features",
+                    desc="Features",
+                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=True,
+                ),
+                y=InputDataSpecification(
+                    label="target",
+                    desc="Target variable",
+                    types=[InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+            parameters={
+                "positive_class": ParameterSpecification(
+                    label="Positive class",
+                    desc="Positive class of y. All other classes are considered negative.",
+                    types=[ParameterType.TEXT, ParameterType.INT],
+                    notblank=True,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
+                        source="y",
+                    ),
+                ),
+            },
+        )
+
     def get_variable_groups(self):
-        return [self.executor.x_variables, self.executor.y_variables]
+        return [self.variables.x, self.variables.y]
 
-    def run(self):
-        X, y = self.executor.data_model_views
-        positive_class = self.executor.algorithm_parameters["positive_class"]
+    def run(self, engine):
+        X, y = engine.data_model_views
+        positive_class = self.algorithm_parameters["positive_class"]
 
-        dummy_encoder = DummyEncoder(self.executor)
+        dummy_encoder = DummyEncoder(
+            engine=engine, variables=self.variables, metadata=self.metadata
+        )
         X = dummy_encoder.transform(X)
 
-        ybin = LabelBinarizer(self.executor, positive_class).transform(y)
+        ybin = LabelBinarizer(engine, positive_class).transform(y)
 
-        lr = LogisticRegression(self.executor)
+        lr = LogisticRegression(engine)
         lr.fit(X=X, y=ybin)
 
         summary = compute_summary(model=lr)
@@ -49,9 +100,9 @@ class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
 
 
 class LogisticRegression:
-    def __init__(self, executor):
-        self.local_run = executor.run_udf_on_local_nodes
-        self.global_run = executor.run_udf_on_global_node
+    def __init__(self, engine):
+        self.local_run = engine.run_udf_on_local_nodes
+        self.global_run = engine.run_udf_on_global_node
 
     def fit(self, X, y):
         self.p = len(X.columns)
