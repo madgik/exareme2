@@ -60,7 +60,7 @@ def test_anova_algorithm_not_enough_categories():
         and response.content
         == "Cannot perform Anova one-way. Covariable has only one level."
     ):
-        raise ValueError(
+        pytest.fail(
             f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
         )
 
