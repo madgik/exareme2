@@ -4710,7 +4710,11 @@ class N:
     ...
 
 
-@pytest.mark.skip
+@pytest.mark.skip(
+    reason="DummyEncoder is temporarily disabled due to changes in "
+    "the UDF generator API. Will be re-implemented in ticket "
+    "https://team-1617704806227.atlassian.net/browse/MIP-757"
+)
 def test_get_create_design_matrix_select_only_numerical():
     enums = {}
     numerical_vars = ["n1", "n2"]
@@ -4735,7 +4739,11 @@ FROM
     assert result.udf_select_query.template == expected
 
 
-@pytest.mark.skip
+@pytest.mark.skip(
+    reason="DummyEncoder is temporarily disabled due to changes in "
+    "the UDF generator API. Will be re-implemented in ticket "
+    "https://team-1617704806227.atlassian.net/browse/MIP-757"
+)
 def test_get_create_design_matrix_select_only_categorical():
     enums = {
         "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
@@ -4762,7 +4770,11 @@ FROM
     assert result.udf_select_query.template == expected
 
 
-@pytest.mark.skip
+@pytest.mark.skip(
+    reason="DummyEncoder is temporarily disabled due to changes in "
+    "the UDF generator API. Will be re-implemented in ticket "
+    "https://team-1617704806227.atlassian.net/browse/MIP-757"
+)
 def test_get_create_design_matrix_select_no_intercept():
     enums = {
         "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
@@ -4788,7 +4800,11 @@ FROM
     assert result.udf_select_query.template == expected
 
 
-@pytest.mark.skip
+@pytest.mark.skip(
+    reason="DummyEncoder is temporarily disabled due to changes in "
+    "the UDF generator API. Will be re-implemented in ticket "
+    "https://team-1617704806227.atlassian.net/browse/MIP-757"
+)
 def test_get_create_design_matrix_select_full():
     enums = {
         "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
@@ -4825,7 +4841,11 @@ FROM
     assert result.udf_select_query.template == expected
 
 
-@pytest.mark.skip
+@pytest.mark.skip(
+    reason="DummyEncoder is temporarily disabled due to changes in "
+    "the UDF generator API. Will be re-implemented in ticket "
+    "https://team-1617704806227.atlassian.net/browse/MIP-757"
+)
 def test_get_create_design_matrix_create_query():
     enums = {
         "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],

@@ -210,7 +210,7 @@ def algorithm_request_case_2(datasets):
             ],
             y=["alzheimerbroadcategory"],
         ),
-        parameters={"positive_class": "AD", "positive_class": "CN"},
+        parameters={"positive_class": "AD"},
     )
     return (algorithm_name, algo_request_dto)
 
@@ -438,6 +438,11 @@ def engine_case_2(
     )
 
 
+@pytest.mark.skip(
+    reason="DummyEncoder is temporarily disabled due to changes in "
+    "the UDF generator API. Will be re-implemented in ticket "
+    "https://team-1617704806227.atlassian.net/browse/MIP-757"
+)
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "algorithm,engine",

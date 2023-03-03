@@ -987,7 +987,11 @@ class UdfResultBuilder:
         )
 
 
-# ~~~~~~~~~~~~~~ SQL special queries ~~~~~~~~~~~~~~ #
+# TODO Everything below this point is non functional due to changes brought
+# by work on https://team-1617704806227.atlassian.net/browse/MIP-756
+# This is a temporary. The same functionality will be implemented using
+# a different API soon.
+# This is described in https://team-1617704806227.atlassian.net/browse/MIP-757
 def get_create_dummy_encoded_design_matrix_execution_queries(keyword_args):
     dm_table = get_dummy_encoded_design_matrix_table(keyword_args)
     udf_select = get_dummy_encoded_design_matrix_select_stmt(dm_table)
