@@ -350,19 +350,7 @@ def test_synchronous_cleanup(
 
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
     # Poll NodeLandscapeAggregator until it has some node info
-    start = time.time()
-    while (
-        not node_landscape_aggregator.get_nodes()
-        or not node_landscape_aggregator.get_cdes_per_data_model()
-        or not node_landscape_aggregator.get_datasets_locations()
-    ):
-
-        if time.time() - start > NLA_WAIT_TIME_LIMIT:
-            pytest.fail(
-                "Exceeded max retries while waiting for the node landscape aggregator to"
-                "return some nodes"
-            )
-        time.sleep(0.5)
+    wait_nla(node_landscape_aggregator)
 
     cleaner._reset()  # deletes all existing persistence files (cleanup_<context_id>.toml files)
 
@@ -424,19 +412,7 @@ def test_asynchronous_cleanup(
 
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
     # Poll NodeLandscapeAggregator until it has some node info
-    start = time.time()
-    while (
-        not node_landscape_aggregator.get_nodes()
-        or not node_landscape_aggregator.get_cdes_per_data_model()
-        or not node_landscape_aggregator.get_datasets_locations()
-    ):
-
-        if time.time() - start > NLA_WAIT_TIME_LIMIT:
-            pytest.fail(
-                "Exceeded max retries while waiting for the node landscape aggregator to"
-                "return some nodes"
-            )
-        time.sleep(0.5)
+    wait_nla(node_landscape_aggregator)
 
     # Start the Cleaner
     cleaner._reset()  # deletes all existing persistence files (cleanup_<context_id>.toml files)
@@ -502,19 +478,7 @@ def test_cleanup_triggered_by_release_timelimit(
 ):
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
     # Poll NodeLandscapeAggregator until it has some node info
-    start = time.time()
-    while (
-        not node_landscape_aggregator.get_nodes()
-        or not node_landscape_aggregator.get_cdes_per_data_model()
-        or not node_landscape_aggregator.get_datasets_locations()
-    ):
-
-        if time.time() - start > NLA_WAIT_TIME_LIMIT:
-            pytest.fail(
-                "Exceeded max retries while waiting for the node landscape aggregator to"
-                "return some nodes"
-            )
-        time.sleep(0.5)
+    wait_nla(node_landscape_aggregator)
 
     # Start the Cleaner
     cleaner._reset()  # deletes all existing persistence files(cleanup files)
@@ -582,19 +546,7 @@ def test_cleanup_after_rabbitmq_restart(
 
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
     # Poll NodeLandscapeAggregator until it has some node info
-    start = time.time()
-    while (
-        not node_landscape_aggregator.get_nodes()
-        or not node_landscape_aggregator.get_cdes_per_data_model()
-        or not node_landscape_aggregator.get_datasets_locations()
-    ):
-
-        if time.time() - start > NLA_WAIT_TIME_LIMIT:
-            pytest.fail(
-                "Exceeded max retries while waiting for the node landscape aggregator to"
-                "return some nodes"
-            )
-        time.sleep(0.5)
+    wait_nla(node_landscape_aggregator)
 
     # Start the Cleaner
     cleaner._reset()  # deletes all existing persistence files(cleanup files)
@@ -603,7 +555,7 @@ def test_cleanup_after_rabbitmq_restart(
     # Add contextid to Cleaner but is not yet released
     cleaner.add_contextid_for_cleanup(
         context_id,
-        [node_id for node_id in db_cursors.keys()],  # +[localnodetmp_node_id]
+        [node_id for node_id in db_cursors.keys()],
     )
 
     # create some dummy tables
@@ -680,19 +632,7 @@ def test_cleanup_after_node_service_restart(
 ):
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
     # Poll NodeLandscapeAggregator until it has some node info
-    start = time.time()
-    while (
-        not node_landscape_aggregator.get_nodes()
-        or not node_landscape_aggregator.get_cdes_per_data_model()
-        or not node_landscape_aggregator.get_datasets_locations()
-    ):
-
-        if time.time() - start > NLA_WAIT_TIME_LIMIT:
-            pytest.fail(
-                "Exceeded max retries while waiting for the node landscape aggregator to"
-                "return some nodes"
-            )
-        time.sleep(0.5)
+    wait_nla(node_landscape_aggregator)
 
     # Start the Cleaner
     cleaner._reset()  # deletes all existing persistence files(cleanup files)
@@ -791,3 +731,19 @@ def get_tables(cursor, context_id):
     """
     result = cursor.execute(query).fetchall()
     return [i[0] for i in result]
+
+
+def wait_nla(node_landscape_aggregator):
+    start = time.time()
+    while (
+        not node_landscape_aggregator.get_nodes()
+        or not node_landscape_aggregator.get_cdes_per_data_model()
+        or not node_landscape_aggregator.get_datasets_locations()
+    ):
+
+        if time.time() - start > NLA_WAIT_TIME_LIMIT:
+            pytest.fail(
+                "Exceeded max retries while waiting for the node landscape aggregator to"
+                "return some nodes"
+            )
+        time.sleep(0.5)
