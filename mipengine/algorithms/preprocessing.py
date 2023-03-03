@@ -438,7 +438,8 @@ class FormulaTransformer:
         import pandas as pd
         from patsy import dmatrix
 
-        empty_df = pd.DataFrame(columns=old_column_names)
+        empty_data = {col: [] for col in old_column_names}
+        empty_df = pd.DataFrame(data=empty_data)
         for var, categories in enums.items():
             empty_df[var] = pd.Categorical(empty_df[var], categories=categories)
         mat = dmatrix(self._formula, empty_df)
