@@ -268,6 +268,7 @@ generate_udf_queries    Generates a pair of strings holding the UDF definition
 make_unique_func_name   Helper for creating unique function names
 ======================= ========================================================
 """
+import functools
 from copy import deepcopy
 from numbers import Number
 from string import Template
@@ -275,7 +276,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import TypeVar
 from typing import Union
 
 from mipengine.node_tasks_DTOs import SMPCTablesInfo
@@ -291,18 +291,13 @@ from mipengine.udfgen.ast import TableFunction
 from mipengine.udfgen.ast import UDFBody
 from mipengine.udfgen.ast import UDFDefinition
 from mipengine.udfgen.ast import UDFHeader
-from mipengine.udfgen.ast import get_name_loopback_table_pairs
-from mipengine.udfgen.decorator import udf
-from mipengine.udfgen.helpers import compose_mappings
+from mipengine.udfgen.decorator import UDFBadCall
+from mipengine.udfgen.decorator import UdfRegistry
 from mipengine.udfgen.helpers import get_items_of_type
 from mipengine.udfgen.helpers import iotype_to_sql_schema
-from mipengine.udfgen.helpers import mapping_inverse
 from mipengine.udfgen.helpers import merge_args_and_kwargs
-from mipengine.udfgen.helpers import merge_mappings_consistently
-from mipengine.udfgen.iotypes import MAIN_TABLE_PLACEHOLDER
 from mipengine.udfgen.iotypes import InputType
 from mipengine.udfgen.iotypes import LiteralArg
-from mipengine.udfgen.iotypes import LiteralType
 from mipengine.udfgen.iotypes import LoopbackOutputType
 from mipengine.udfgen.iotypes import MergeTensorType
 from mipengine.udfgen.iotypes import MergeTransferType
@@ -328,311 +323,217 @@ from mipengine.udfgen.smpc import SecureTransferType
 from mipengine.udfgen.smpc import SMPCSecureTransferArg
 from mipengine.udfgen.smpc import SMPCSecureTransferType
 from mipengine.udfgen.smpc import UDFBodySMPC
-from mipengine.udfgen.smpc import get_smpc_table_template_names
-from mipengine.udfgen.udfgen_DTOs import UDFGenExecutionQueries
+from mipengine.udfgen.smpc import get_smpc_tablename_placeholders
+from mipengine.udfgen.typeinference import infer_output_type
 from mipengine.udfgen.udfgen_DTOs import UDFGenResult
 from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
 from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
 
-KnownTypeParams = Union[type, int]
-UnknownTypeParams = TypeVar
-TypeParamsInference = Dict[UnknownTypeParams, KnownTypeParams]
 LiteralValue = Union[Number, str, list, dict]
-UDFGenArgument = Union[TableInfo, LiteralValue, SMPCTablesInfo]
+FlowUdfArg = Union[TableInfo, LiteralValue, SMPCTablesInfo]
 
 
-class UDFBadCall(Exception):
-    """Raised when something is wrong with the arguments passed to the udf
-    generator."""
+class UdfGenerator:
+    """Generator for MonetDB Python UDFs
 
-
-def generate_udf_queries(
-    func_name: str,
-    positional_args: List[UDFGenArgument],
-    keyword_args: Dict[str, UDFGenArgument],
-    smpc_used: bool,
-    output_schema=None,
-) -> UDFGenExecutionQueries:
+    The generator operates starting from a python functions, decorated with the
+    `udf` decorator. Generator objects are instantiated based on a particular
+    function, found in a passed `UdfRegistry`, and on a set of arguments found
+    in the algorithm flow. Some additional flags and parameters are also
+    necessary. Then, the generator object has methods for generating two types
+    of queries, UDF definitions and UDF execution statements (basically a
+    SELECT wrapped in an INSERT statement), as well as objects representing the
+    resulting tables.
     """
-    Parameters
-    ----------
-    func_name: The name of the udf to run
-    positional_args: Positional arguments
-    keyword_args: Keyword arguments
-    smpc_used: Is SMPC used in the computations?
 
-    Returns
-    -------
-    a UDFExecutionQueries object.
+    def __init__(
+        self,
+        udfregistry: UdfRegistry,
+        func_name: str,
+        flowargs: List[FlowUdfArg],
+        flowkwargs: Dict[str, FlowUdfArg],
+        smpc_used: bool = False,
+        request_id: Optional[str] = None,
+        output_schema=None,
+        min_row_count: int = None,
+    ):
+        """
+        Parameters
+        ----------
+        udfregistry : UdfRegistry
+            Data structure containing python functions registered as UDFs
+        func_name : str
+            Unique key of a function in `udfregistry`
+        flowargs : List[FlowUdfArg]
+            Positional arguments received by the algorithm flow
+        flowkwargs : Dict[str, FlowUdfArg]
+            Keyword arguments received by the algorithm flow
+        smpc_used : bool
+            True when SMPC framework is used
+        request_id : Optional[str]
+            Request id
+        output_schema : List[Tuple[str, DType]]
+            This argument needs to be provided when the output schema is declared as
+            deferred
+        min_row_count : int
+            Minimum allowed number of rows for an input table
+        """
+        self.func_name = func_name
+        self.smpc_used = smpc_used
+        self.request_id = request_id
+        self.output_schema = output_schema
+        self.min_row_count = min_row_count
 
-    """
-    udf_posargs, udf_kwargs = convert_udfgenargs_to_udfargs(
-        positional_args,
-        keyword_args,
-        smpc_used,
-    )
-
-    if func_name == "create_dummy_encoded_design_matrix":
-        return get_create_dummy_encoded_design_matrix_execution_queries(keyword_args)
-
-    return get_udf_templates_using_udfregistry(
-        funcname=func_name,
-        posargs=udf_posargs,
-        keywordargs=udf_kwargs,
-        udfregistry=udf.registry,
-        smpc_used=smpc_used,
-        output_schema=output_schema,
-    )
-
-
-def convert_udfgenargs_to_udfargs(udfgen_posargs, udfgen_kwargs, smpc_used=False):
-    """
-    Converts the udfgen arguments coming from the NODE to the
-    "internal" arguments, used only in this udfgenerator module.
-
-    The internal arguments need to be a child class of InputType.
-    """
-    udf_posargs = [
-        convert_udfgenarg_to_udfarg(arg, smpc_used) for arg in udfgen_posargs
-    ]
-    udf_keywordargs = {
-        name: convert_udfgenarg_to_udfarg(arg, smpc_used)
-        for name, arg in udfgen_kwargs.items()
-    }
-    return udf_posargs, udf_keywordargs
-
-
-def convert_udfgenarg_to_udfarg(udfgen_arg: UDFGenArgument, smpc_used) -> UDFArgument:
-    if isinstance(udfgen_arg, SMPCTablesInfo):
-        if not smpc_used:
-            raise UDFBadCall("SMPC is not used, so SMPCTablesInfo cannot be used.")
-        return convert_smpc_tableinfo_to_udfarg(udfgen_arg)
-    if isinstance(udfgen_arg, TableInfo):
-        return convert_tableinfo_to_udfarg(udfgen_arg, smpc_used)
-    return LiteralArg(value=udfgen_arg)
-
-
-def convert_smpc_tableinfo_to_udfarg(smpc_udf_input: SMPCTablesInfo):
-    sum_op_table_name = None
-    min_op_table_name = None
-    max_op_table_name = None
-    if smpc_udf_input.sum_op:
-        sum_op_table_name = smpc_udf_input.sum_op.name
-    if smpc_udf_input.min_op:
-        min_op_table_name = smpc_udf_input.min_op.name
-    if smpc_udf_input.max_op:
-        max_op_table_name = smpc_udf_input.max_op.name
-    return SMPCSecureTransferArg(
-        template_table_name=smpc_udf_input.template.name,
-        sum_op_values_table_name=sum_op_table_name,
-        min_op_values_table_name=min_op_table_name,
-        max_op_values_table_name=max_op_table_name,
-    )
-
-
-def convert_tableinfo_to_udfarg(table_info: TableInfo, smpc_used):
-    if is_transfertype_schema(table_info.schema_.columns):
-        return TransferArg(table_name=table_info.name)
-    if is_secure_transfer_type_schema(table_info.schema_.columns):
+        self.funcparts = udfregistry[func_name]
         if smpc_used:
-            raise UDFBadCall(
-                "When smpc is used SecureTransferArg should not be used, "
-                "only SMPCSecureTransferArg."
+            cast_secure_transfers_for_smpc(self.funcparts.output_types)
+
+        self.udf_args = self._get_udf_args(flowargs, flowkwargs)
+
+    @functools.cached_property
+    def output_types(self) -> Tuple[OutputType, List[LoopbackOutputType]]:
+        """Computes the UDF output type.
+
+        There are three cases:
+            - The output type is `RelationType` whose `schema` is DEFERRED
+            - The output type is inferred dynamically
+            - The output type is known statically
+        """
+
+        input_types = copy_types_from_udfargs(self.udf_args)
+
+        # case: output type has DEFERRED schema
+        if self.output_schema:
+            main_output_type = relation(schema=self.output_schema)
+            return (main_output_type,)
+
+        # case: output type has to be infered at execution time
+        main_output_type, *_ = self.funcparts.output_types
+        if (
+            isinstance(main_output_type, ParametrizedType)
+            and main_output_type.is_generic
+        ):
+            param_table_types = get_items_of_type(TableType, mapping=input_types)
+            main_output_type = infer_output_type(
+                passed_input_types=param_table_types,
+                declared_input_types=self.funcparts.table_input_types,
+                declared_output_type=main_output_type,
             )
-        return SecureTransferArg(table_name=table_info.name)
-    if is_statetype_schema(table_info.schema_.columns):
-        if table_info.type_ == DBTableType.REMOTE:
-            raise UDFBadCall("Usage of state is only allowed on local tables.")
-        return StateArg(table_name=table_info.name)
-    if is_tensor_schema(table_info.schema_.columns):
-        return get_tensor_arg_from_table_info(table_info)
-    relation_schema = convert_table_schema_to_relation_schema(
-        table_info.schema_.columns
-    )
-    return RelationArg(table_name=table_info.name, schema=relation_schema)
+            return (main_output_type,)
 
+        # case: output types are known
+        return self.funcparts.output_types
 
-def get_tensor_arg_from_table_info(table_info):
-    ndims = sum(1 for col in table_info.schema_.columns if col.name.startswith("dim"))
-    valcol = next(col for col in table_info.schema_.columns if col.name == "val")
-    dtype = valcol.dtype
-    return TensorArg(table_name=table_info.name, dtype=dtype, ndims=ndims)
+    def get_definition(
+        self,
+        udf_name: str,
+        output_table_names: Optional[List[str]] = None,
+    ) -> str:
+        """
+        Computes the UDF definition query string
 
+        Parameters
+        ----------
+        udf_name : str
+            UDF name
+        output_table_names : Optional[List[str]]
+            Names of tables returned by UDF
 
-def is_tensor_schema(schema):
-    colnames = [col.name for col in schema]
-    if "val" in colnames and any(cname.startswith("dim") for cname in colnames):
-        return True
-    return False
+        Returns
+        -------
+        str
+            UDF definition query string
+        """
+        if output_table_names is not None:
+            main_table_name, *sec_table_names = output_table_names
+        else:
+            main_table_name, sec_table_names = None, None
 
-
-def is_transfertype_schema(schema):
-    schema = [(col.name, col.dtype) for col in schema]
-    return all(column in schema for column in TransferType().schema)
-
-
-def is_secure_transfer_type_schema(schema):
-    schema = [(col.name, col.dtype) for col in schema]
-    return all(column in schema for column in SecureTransferType().schema)
-
-
-def is_statetype_schema(schema):
-    schema = [(col.name, col.dtype) for col in schema]
-    return all(column in schema for column in StateType().schema)
-
-
-def convert_table_schema_to_relation_schema(table_schema):
-    return [(c.name, c.dtype) for c in table_schema]
-
-
-def get_udf_templates_using_udfregistry(
-    funcname: str,
-    posargs: List[UDFArgument],
-    keywordargs: Dict[str, UDFArgument],
-    udfregistry: dict,
-    smpc_used: bool,
-    output_schema=None,
-) -> UDFGenExecutionQueries:
-    funcparts = get_funcparts_from_udf_registry(funcname, udfregistry)
-    udf_args = get_udf_args(funcparts, posargs, keywordargs)
-    udf_args = resolve_merge_table_args(
-        udf_args=udf_args,
-        expected_table_types=funcparts.table_input_types,
-    )
-    validate_arg_names(udf_args=udf_args, parameters=funcparts.sig.parameters)
-    validate_arg_types(
-        udf_args=udf_args,
-        expected_tables_types=funcparts.table_input_types,
-        expected_literal_types=funcparts.literal_input_types,
-    )
-
-    if smpc_used:
-        cast_secure_transfers_for_smpc(funcparts.output_types)
-
-    output_types = get_output_types(funcparts, udf_args, output_schema)
-    udf_outputs = get_udf_outputs(output_types=output_types, smpc_used=smpc_used)
-
-    udf_definition = get_udf_definition_template(
-        funcparts=funcparts,
-        input_args=udf_args,
-        output_types=output_types,
-        smpc_used=smpc_used,
-    )
-
-    table_args = get_items_of_type(TableArg, mapping=udf_args)
-
-    main_output_type, *_ = output_types
-    udf_select = get_udf_select_template(main_output_type, table_args)
-
-    udf_execution = get_udf_execution_template(udf_select)
-
-    return UDFGenExecutionQueries(
-        udf_results=udf_outputs,
-        udf_definition_query=udf_definition,
-        udf_select_query=udf_execution,
-    )
-
-
-def get_udf_args(funcparts, posargs, keywordargs) -> Dict[str, UDFArgument]:
-    udf_args = merge_args_and_kwargs(
-        param_names=funcparts.sig.parameters.keys(),
-        args=posargs,
-        kwargs=keywordargs,
-    )
-
-    # Check logger_param_name argument is not given and if not, create it.
-    if funcparts.logger_param_name:
-        if funcparts.logger_param_name in udf_args.keys():
-            raise UDFBadCall(
-                "No argument should be provided for "
-                f"'UDFLoggerType' parameter: '{funcparts.logger_param_name}'"
-            )
-        udf_args[funcparts.logger_param_name] = UDFLoggerArg(udf_name="$udf_name")
-    placeholders = get_items_of_type(PlaceholderType, funcparts.sig.parameters)
-    if placeholders:
-        udf_args.update(
-            {
-                name: PlaceholderArg(type=placeholder)
-                for name, placeholder in placeholders.items()
-            }
+        builder = UdfDefinitionBuilder(
+            funcparts=self.funcparts,
+            input_args=self.udf_args,
+            output_types=self.output_types,
+            smpc_used=self.smpc_used,
         )
-    return udf_args
-
-
-def resolve_merge_table_args(
-    udf_args: Dict[str, UDFArgument],
-    expected_table_types: Dict[str, TableType],
-) -> Dict[str, UDFArgument]:
-    """MergeTableTypes have the same schema as the tables that they are merging.
-    The UDFArgument always contains the initial table type and must be resolved
-    to a MergeTableType, if needed, based on the function parts."""
-
-    def is_merge_tensor(arg, argname, exp_types):
-        is_tensor = isinstance(arg, TensorArg)
-        return is_tensor and isinstance(exp_types[argname], MergeTensorType)
-
-    def is_merge_transfer(arg, argname, exp_types):
-        is_transfer = isinstance(arg, TransferArg)
-        return is_transfer and isinstance(exp_types[argname], MergeTransferType)
-
-    udf_args = deepcopy(udf_args)
-    for argname, arg in udf_args.items():
-        if is_merge_tensor(arg, argname, expected_table_types):
-            tensor_type = arg.type
-            arg.type = merge_tensor(dtype=tensor_type.dtype, ndims=tensor_type.ndims)
-        if is_merge_transfer(arg, argname, expected_table_types):
-            udf_args[argname].type = merge_transfer()
-
-    return udf_args
-
-
-def get_funcparts_from_udf_registry(funcname: str, udfregistry: dict) -> FunctionParts:
-    if funcname not in udfregistry:
-        raise UDFBadCall(f"{funcname} cannot be found in udf registry.")
-    return udfregistry[funcname]
-
-
-def validate_arg_names(
-    udf_args: Dict[str, UDFArgument],
-    parameters: Dict[str, InputType],
-) -> None:
-    """Validates that the names of the udf arguments are the expected ones,
-    based on the udf's formal parameters."""
-    if udf_args.keys() != parameters.keys():
-        raise UDFBadCall(
-            f"UDF argument names do not match UDF parameter names: "
-            f"{udf_args.keys()}, {parameters.keys()}."
+        definition = builder.build_udf_definition(
+            udf_name, sec_table_names, self.request_id
         )
 
+        # XXX Ugly hack. This is needed because, when SMPC is on, a UDF might
+        # produce multiple tables, even if the len(return_types) == 1! In that
+        # case, only one table can be returned using a return statement, and
+        # the rest are returned using loopback queries. Hence we might need the
+        # main_output_table_name for the UDF definition. The reason that this
+        # cannot be passed as an argument, and needs to be a template sub
+        # instead, is that the method `get_main_return_stmt_template` of
+        # `SMPCSecureTransferType` needs to comply with the API of
+        # `SecureTransferType` which takes no arguments.
+        if main_table_name is not None:
+            subs = {"main_output_table_name": main_table_name}
+            definition = Template(definition).safe_substitute(subs)
 
-def validate_arg_types(
-    udf_args: Dict[str, UDFArgument],
-    expected_tables_types: Dict[str, TableType],
-    expected_literal_types: Dict[str, LiteralType],
-) -> None:
-    """Validates that the types of the udf arguments are the expected ones,
-    based on the udf's formal parameter types."""
-    table_args = get_items_of_type(TableArg, udf_args)
-    smpc_args = get_items_of_type(SMPCSecureTransferArg, udf_args)
-    literal_args = get_items_of_type(LiteralArg, udf_args)
-    for argname, arg in table_args.items():
-        if not isinstance(arg.type, type(expected_tables_types[argname])):
-            raise UDFBadCall(
-                f"Argument {argname} should be of type "
-                f"{expected_tables_types[argname]}. Type provided: {arg.type}"
-            )
-    for argname, arg in smpc_args.items():
-        if not isinstance(arg.type, type(expected_tables_types[argname])):
-            raise UDFBadCall(
-                f"Argument {argname} should be of type "
-                f"{expected_tables_types[argname]}. Type provided: {arg.type}"
-            )
-    for argname, arg in literal_args.items():
-        if not isinstance(arg.type, type(expected_literal_types[argname])):
-            raise UDFBadCall(
-                f"Argument {argname} should be of type "
-                f"{expected_tables_types[argname]}. Type provided: {arg.type}"
-            )
+        # XXX and another hack
+        definition = definition.replace("$min_row_count", str(self.min_row_count))
+
+        return definition
+
+    def get_exec_stmt(self, udf_name: str, output_table_names: List[str]) -> str:
+        """
+        Computes UDF execution query
+
+        The execution query is a SELECT statement wrapped inside an INSERT statement.
+
+        Parameters
+        ----------
+        udf_name : str
+            UDF name
+        output_table_names : Optional[List[str]]
+            Names of tables returned by UDF
+
+        Returns
+        -------
+        str
+            UDF execution query
+        """
+        table_args = get_items_of_type(TableArg, mapping=self.udf_args)
+        main_output_type, *_ = self.output_types
+        main_table_name, *_ = output_table_names
+        udf_select = UdfSelectStmtBuildfer(udf_name, table_args).build_select_stmt()
+        return self._get_insert_stmt(main_table_name, udf_select)
+
+    def get_results(self, output_table_names: List[str]) -> List[UDFGenResult]:
+        """
+        Computes UDF result objects
+
+        UDF results are represented by instances of the UDFGenResult class.
+
+        Parameters
+        ----------
+        output_table_names : Optional[List[str]]
+            Names of tables returned by UDF
+
+        Returns
+        -------
+        List[UDFGenResult]
+            UDF results
+        """
+        builder = UdfResultBuilder(self.output_types, self.smpc_used)
+        results = builder.build_results(output_table_names)
+        return results
+
+    def _get_udf_args(self, flowargs, flowkwargs):
+        converter = FlowArgsToUdfArgsConverter()
+        args, kwargs = converter.convert(flowargs, flowkwargs, smpc=self.smpc_used)
+
+        builder = UdfArgsBuilder(funcparts=self.funcparts)
+        udf_args = builder.build_args(args, kwargs)
+
+        return udf_args
+
+    @staticmethod
+    def _get_insert_stmt(table_name: str, udf_select_query: str) -> str:
+        udf_execution = f"INSERT INTO {table_name}\n" + udf_select_query + ";"
+        return udf_execution
 
 
 def copy_types_from_udfargs(udfargs: Dict[str, UDFArgument]) -> Dict[str, InputType]:
@@ -652,295 +553,438 @@ def cast_secure_transfers_for_smpc(output_types):
             output_types[i] = SMPCSecureTransferType.cast(output_types[i])
 
 
-# ~~~~~~~~~~~~~~~ UDF Definition Translator ~~~~~~~~~~~~~~ #
+class FlowArgsToUdfArgsConverter:
+    """Convenience class for converting arguments from algorithm flow format to
+    UDF generator format"""
 
+    def convert(
+        self,
+        flowargs: List[FlowUdfArg],
+        flowkwargs: Dict[str, FlowUdfArg],
+        smpc: bool = False,
+    ):
+        udf_posargs = [self._convert_flowarg(arg, smpc) for arg in flowargs]
+        udf_keywordargs = {
+            name: self._convert_flowarg(arg, smpc) for name, arg in flowkwargs.items()
+        }
+        return udf_posargs, udf_keywordargs
 
-def get_udf_definition_template(
-    funcparts: FunctionParts,
-    input_args: Dict[str, UDFArgument],
-    output_types: List[OutputType],
-    smpc_used: bool,
-) -> Template:
+    def _convert_flowarg(self, arg: FlowUdfArg, smpc) -> UDFArgument:
+        if isinstance(arg, TableInfo):
+            return self._convert_tableinfo(arg, smpc)
+        if isinstance(arg, SMPCTablesInfo):
+            if not smpc:
+                raise UDFBadCall("SMPC is not used, so SMPCTablesInfo cannot be used.")
+            return self._convert_smpc_tableinfo(arg)
+        return LiteralArg(value=arg)
 
-    table_args = get_items_of_type(TableArg, mapping=input_args)
+    def _convert_tableinfo(self, table_info: TableInfo, smpc):
 
-    smpc_args = get_items_of_type(SMPCSecureTransferArg, mapping=input_args)
+        if self._is_transfertype_schema(table_info.schema_.columns):
+            return TransferArg(table_name=table_info.name)
 
-    literal_args = get_items_of_type(LiteralArg, mapping=input_args)
+        if self._is_secure_transfer_type_schema(table_info.schema_.columns):
+            if smpc:
+                raise UDFBadCall(
+                    "When smpc is used SecureTransferArg should not be used, "
+                    "only SMPCSecureTransferArg."
+                )
+            return SecureTransferArg(table_name=table_info.name)
 
-    logger_arg: Optional[str, UDFLoggerArg] = None
-    logger_param = funcparts.logger_param_name
-    if logger_param:
-        logger_arg = (logger_param, input_args[logger_param])
+        if self._is_statetype_schema(table_info.schema_.columns):
+            if table_info.type_ == DBTableType.REMOTE:
+                raise UDFBadCall("Usage of state is only allowed on local tables.")
+            return StateArg(table_name=table_info.name)
 
-    placeholder_args = get_items_of_type(PlaceholderArg, input_args)
+        if self._is_tensor_schema(table_info.schema_.columns):
+            return self._get_tensor_arg_from_table_info(table_info)
 
-    verify_declared_and_passed_param_types_match(
-        funcparts.table_input_types,
-        table_args,
-    )
-
-    main_output_type, *sec_output_types = output_types
-    main_return_name, *sec_return_names = funcparts.return_names
-
-    header = UDFHeader(
-        udfname="$udf_name",
-        table_args=table_args,
-        return_type=main_output_type,
-    )
-    if smpc_used:
-        body = UDFBodySMPC(
-            table_args=table_args,
-            smpc_args=smpc_args,
-            literal_args=literal_args,
-            logger_arg=logger_arg,
-            placeholder_args=placeholder_args,
-            statements=funcparts.body_statements,
-            main_return_name=main_return_name,
-            main_return_type=main_output_type,
-            sec_return_names=sec_return_names,
-            sec_return_types=sec_output_types,
+        relation_schema = self._convert_table_schema_to_relation_schema(
+            table_info.schema_.columns
         )
-    else:
-        body = UDFBody(
-            table_args=table_args,
-            literal_args=literal_args,
-            logger_arg=logger_arg,
-            placeholder_args=placeholder_args,
-            statements=funcparts.body_statements,
-            main_return_name=main_return_name,
-            main_return_type=main_output_type,
-            sec_return_names=sec_return_names,
-            sec_return_types=sec_output_types,
+        return RelationArg(table_name=table_info.name, schema=relation_schema)
+
+    @staticmethod
+    def _get_tensor_arg_from_table_info(table_info):
+        ndims = sum(
+            1 for col in table_info.schema_.columns if col.name.startswith("dim")
         )
-    udf_definition = UDFDefinition(
-        header=header,
-        body=body,
-    )
-    return Template(udf_definition.compile())
+        valcol = next(col for col in table_info.schema_.columns if col.name == "val")
+        dtype = valcol.dtype
+        return TensorArg(table_name=table_info.name, dtype=dtype, ndims=ndims)
 
+    @staticmethod
+    def _is_tensor_schema(schema):
+        colnames = [col.name for col in schema]
+        if "val" in colnames and any(cname.startswith("dim") for cname in colnames):
+            return True
+        return False
 
-def get_output_types(
-    funcparts,
-    udf_args,
-    output_schema,
-) -> Tuple[OutputType, List[LoopbackOutputType]]:
-    """Computes  the  UDF  output  type. If the output type is generic its
-    type  parameters  must  be  inferred  from  the  passed  input  types.
-    Otherwise, the declared output type is returned."""
-    input_types = copy_types_from_udfargs(udf_args)
+    @staticmethod
+    def _is_transfertype_schema(schema):
+        schema = [(col.name, col.dtype) for col in schema]
+        return all(column in schema for column in TransferType().schema)
 
-    # case: output type has DEFERRED schema
-    if output_schema:
-        main_output_type = relation(schema=output_schema)
-        return (main_output_type,)
+    @staticmethod
+    def _is_secure_transfer_type_schema(schema):
+        schema = [(col.name, col.dtype) for col in schema]
+        return all(column in schema for column in SecureTransferType().schema)
 
-    # case: output type has to be infered at execution time
-    main_output_type, *_ = funcparts.output_types
-    if isinstance(main_output_type, ParametrizedType) and main_output_type.is_generic:
-        param_table_types = get_items_of_type(TableType, mapping=input_types)
-        main_output_type = infer_output_type(
-            passed_input_types=param_table_types,
-            declared_input_types=funcparts.table_input_types,
-            declared_output_type=main_output_type,
+    @staticmethod
+    def _is_statetype_schema(schema):
+        schema = [(col.name, col.dtype) for col in schema]
+        return all(column in schema for column in StateType().schema)
+
+    @staticmethod
+    def _convert_table_schema_to_relation_schema(table_schema):
+        return [(c.name, c.dtype) for c in table_schema]
+
+    def _convert_smpc_tableinfo(self, smpc_udf_input: SMPCTablesInfo):
+        sum_op_table_name = None
+        min_op_table_name = None
+        max_op_table_name = None
+        if smpc_udf_input.sum_op:
+            sum_op_table_name = smpc_udf_input.sum_op.name
+        if smpc_udf_input.min_op:
+            min_op_table_name = smpc_udf_input.min_op.name
+        if smpc_udf_input.max_op:
+            max_op_table_name = smpc_udf_input.max_op.name
+        return SMPCSecureTransferArg(
+            template_table_name=smpc_udf_input.template.name,
+            sum_op_values_table_name=sum_op_table_name,
+            min_op_values_table_name=min_op_table_name,
+            max_op_values_table_name=max_op_table_name,
         )
-        return (main_output_type,)
-
-    # case: output types are known
-    return funcparts.output_types
 
 
-def verify_declared_and_passed_param_types_match(
-    declared_types: Dict[str, TableType],
-    passed_args: Dict[str, TableArg],
-) -> None:
-    passed_param_args = {
-        name: arg
-        for name, arg in passed_args.items()
-        if isinstance(arg.type, ParametrizedType)
-    }
-    for argname, arg in passed_param_args.items():
-        known_params = declared_types[argname].known_typeparams
-        verify_declared_typeparams_match_passed_type(known_params, arg.type)
+class UdfArgsBuilder:
+    """Builder class for UDF arguments
 
+    This class encapsulates various loosely related procedures, necessary to
+    prepare the UDF arguments before they are used by `UdfGenerator`."""
 
-def verify_declared_typeparams_match_passed_type(
-    known_typeparams: Dict[str, KnownTypeParams],
-    passed_type: ParametrizedType,
-) -> None:
-    for name, param in known_typeparams.items():
-        if not hasattr(passed_type, name):
-            raise UDFBadCall(f"{passed_type} has no typeparam {name}.")
-        if getattr(passed_type, name) != param:
-            raise UDFBadCall(
-                "InputType's known typeparams do not match typeparams passed "
-                f"in {passed_type}: {param}, {getattr(passed_type, name)}."
+    def __init__(self, funcparts: FunctionParts) -> None:
+        self.funcparts = funcparts
+
+    def build_args(self, args, kwargs) -> Dict[str, UDFArgument]:
+        udf_args = merge_args_and_kwargs(
+            param_names=self.funcparts.sig.parameters.keys(),
+            args=args,
+            kwargs=kwargs,
+        )
+
+        self._prepare_logger_arg(udf_args)
+        self._prepare_placeholder_args(udf_args)
+
+        self._resolve_merge_table_args(udf_args)
+
+        self._validate_arg_names(udf_args)
+        self._validate_arg_types(udf_args)
+
+        return udf_args
+
+    def _prepare_logger_arg(self, args) -> None:
+        # Check logger_param_name argument is not given and if not, create it.
+        if self.funcparts.logger_param_name:
+            if self.funcparts.logger_param_name in args.keys():
+                raise UDFBadCall(
+                    "No argument should be provided for "
+                    f"'UDFLoggerType' parameter: '{self.funcparts.logger_param_name}'"
+                )
+            args[self.funcparts.logger_param_name] = UDFLoggerArg()
+
+    def _prepare_placeholder_args(self, args) -> None:
+        placeholders = get_items_of_type(PlaceholderType, self.funcparts.sig.parameters)
+        if placeholders:
+            args.update(
+                {
+                    name: PlaceholderArg(type=placeholder)
+                    for name, placeholder in placeholders.items()
+                }
             )
 
+    def _resolve_merge_table_args(self, udf_args: Dict[str, UDFArgument]) -> None:
+        """MergeTableTypes have the same schema as the tables that they are merging.
+        The UDFArgument always contains the initial table type and must be resolved
+        to a MergeTableType, if needed, based on the function parts."""
 
-def infer_output_type(
-    passed_input_types: Dict[str, ParametrizedType],
-    declared_input_types: Dict[str, ParametrizedType],
-    declared_output_type: ParametrizedType,
-) -> ParametrizedType:
-    inferred_input_typeparams = infer_unknown_input_typeparams(
-        declared_input_types,
-        passed_input_types,
-    )
-    known_output_typeparams = dict(**declared_output_type.known_typeparams)
-    inferred_output_typeparams = compose_mappings(
-        declared_output_type.unknown_typeparams,
-        inferred_input_typeparams,
-    )
-    known_output_typeparams.update(inferred_output_typeparams)
-    inferred_output_type = type(declared_output_type)(**known_output_typeparams)
-    return inferred_output_type
+        def is_merge_tensor(arg, argname, exp_types):
+            is_tensor = isinstance(arg, TensorArg)
+            return is_tensor and isinstance(exp_types[argname], MergeTensorType)
+
+        def is_merge_transfer(arg, argname, exp_types):
+            is_transfer = isinstance(arg, TransferArg)
+            return is_transfer and isinstance(exp_types[argname], MergeTransferType)
+
+        for argname, arg in udf_args.items():
+            if is_merge_tensor(arg, argname, self.funcparts.table_input_types):
+                tensor_type = arg.type
+                arg.type = merge_tensor(
+                    dtype=tensor_type.dtype, ndims=tensor_type.ndims
+                )
+            if is_merge_transfer(arg, argname, self.funcparts.table_input_types):
+                udf_args[argname].type = merge_transfer()
+
+    def _validate_arg_names(
+        self,
+        udf_args: Dict[str, UDFArgument],
+    ) -> None:
+        """Validates that the names of the udf arguments are the expected ones,
+        based on the udf's formal parameters."""
+        if udf_args.keys() != self.funcparts.sig.parameters.keys():
+            raise UDFBadCall(
+                f"UDF argument names do not match UDF parameter names: "
+                f"{udf_args.keys()}, {self.funcparts.sig.parameters.keys()}."
+            )
+
+    def _validate_arg_types(
+        self,
+        udf_args: Dict[str, UDFArgument],
+    ) -> None:
+        """Validates that the types of the udf arguments are the expected ones,
+        based on the udf's formal parameter types."""
+        expected_tables_types = self.funcparts.table_input_types
+        expected_literal_types = self.funcparts.literal_input_types
+
+        table_args = get_items_of_type(TableArg, udf_args)
+        smpc_args = get_items_of_type(SMPCSecureTransferArg, udf_args)
+        literal_args = get_items_of_type(LiteralArg, udf_args)
+        for argname, arg in table_args.items():
+            if not isinstance(arg.type, type(expected_tables_types[argname])):
+                raise UDFBadCall(
+                    f"Argument {argname} should be of type "
+                    f"{expected_tables_types[argname]}. Type provided: {arg.type}"
+                )
+        for argname, arg in smpc_args.items():
+            if not isinstance(arg.type, type(expected_tables_types[argname])):
+                raise UDFBadCall(
+                    f"Argument {argname} should be of type "
+                    f"{expected_tables_types[argname]}. Type provided: {arg.type}"
+                )
+        for argname, arg in literal_args.items():
+            if not isinstance(arg.type, type(expected_literal_types[argname])):
+                raise UDFBadCall(
+                    f"Argument {argname} should be of type "
+                    f"{expected_literal_types[argname]}. Type provided: {arg.type}"
+                )
 
 
-def infer_unknown_input_typeparams(
-    declared_input_types: Dict[str, ParametrizedType],
-    passed_input_types: Dict[str, ParametrizedType],
-) -> TypeParamsInference:
-    typeparams_inference_mappings = [
-        map_unknown_to_known_typeparams(
-            input_type.unknown_typeparams,
-            passed_input_types[name].known_typeparams,
+class UdfDefinitionBuilder:
+    """Builder class for the UDF definition query string"""
+
+    def __init__(
+        self,
+        funcparts: FunctionParts,
+        input_args: Dict[str, UDFArgument],
+        output_types: List[OutputType],
+        smpc_used: bool,
+    ) -> Template:
+        self.funcparts = funcparts
+        self.input_args = input_args
+        self.output_types = output_types
+        self.smpc_used = smpc_used
+
+        self.main_output_type, *self.sec_output_types = output_types
+        self.main_return_name, *self.sec_return_names = funcparts.return_names
+
+    def build_udf_definition(
+        self,
+        udf_name: str,
+        sec_output_table_names: Optional[List[str]],
+        request_id: str,
+    ):
+        if sec_output_table_names is None:
+            sec_output_table_names = []
+        header = self._build_header(udf_name)
+        if self.smpc_used:
+            body = self._build_body_smpc(udf_name, sec_output_table_names, request_id)
+        else:
+            body = self._build_body(udf_name, sec_output_table_names, request_id)
+        udf_definition = UDFDefinition(
+            header=header,
+            body=body,
         )
-        for name, input_type in declared_input_types.items()
-        if input_type.is_generic
-    ]
-    distinct_inferred_typeparams = merge_mappings_consistently(
-        typeparams_inference_mappings
-    )
-    return distinct_inferred_typeparams
+        return udf_definition.compile()
+
+    @functools.cached_property
+    def _table_args(self):
+        return get_items_of_type(TableArg, mapping=self.input_args)
+
+    @functools.cached_property
+    def _smpc_args(self):
+        return get_items_of_type(SMPCSecureTransferArg, mapping=self.input_args)
+
+    @functools.cached_property
+    def _literal_args(self):
+        return get_items_of_type(LiteralArg, mapping=self.input_args)
+
+    def _logger_arg(self, udf_name, request_id):
+        logger_arg_: Optional[str, UDFLoggerArg] = None
+        logger_param = self.funcparts.logger_param_name
+        if logger_param:
+            arg = self.input_args[logger_param]
+            arg.udf_name = udf_name
+            arg.request_id = request_id
+            logger_arg_ = (logger_param, self.input_args[logger_param])
+        return logger_arg_
+
+    @functools.cached_property
+    def _placeholder_args(self):
+        return get_items_of_type(PlaceholderArg, mapping=self.input_args)
+
+    def _build_header(self, udf_name):
+        return UDFHeader(
+            udfname=udf_name,
+            table_args=self._table_args,
+            return_type=self.main_output_type,
+        )
+
+    def _build_body(self, udf_name, sec_output_table_names, request_id):
+        return UDFBody(
+            table_args=self._table_args,
+            literal_args=self._literal_args,
+            logger_arg=self._logger_arg(udf_name, request_id),
+            placeholder_args=self._placeholder_args,
+            statements=self.funcparts.body_statements,
+            main_return_name=self.main_return_name,
+            main_return_type=self.main_output_type,
+            sec_return_names=self.sec_return_names,
+            sec_return_types=self.sec_output_types,
+            sec_output_table_names=sec_output_table_names,
+        )
+
+    def _build_body_smpc(self, udf_name, sec_output_table_names, request_id):
+        return UDFBodySMPC(
+            table_args=self._table_args,
+            smpc_args=self._smpc_args,
+            literal_args=self._literal_args,
+            logger_arg=self._logger_arg(udf_name, request_id),
+            placeholder_args=self._placeholder_args,
+            statements=self.funcparts.body_statements,
+            main_return_name=self.main_return_name,
+            main_return_type=self.main_output_type,
+            sec_return_names=self.sec_return_names,
+            sec_return_types=self.sec_output_types,
+            sec_output_table_names=sec_output_table_names,
+        )
 
 
-def map_unknown_to_known_typeparams(
-    unknown_params: Dict[str, UnknownTypeParams],
-    known_params: Dict[str, KnownTypeParams],
-) -> TypeParamsInference:
-    return compose_mappings(mapping_inverse(unknown_params), known_params)
+class UdfSelectStmtBuildfer:
+    """Builder class for the UDF SELECT query string"""
+
+    def __init__(self, udf_name: str, table_args: Dict[str, TableArg]):
+        self.udf_name = udf_name
+        self.table_args = table_args
+
+    def build_select_stmt(self):
+        tensors = self._make_table_ast(self.table_args, arg_type=TensorArg)
+        relations = self._make_table_ast(self.table_args, arg_type=RelationArg)
+        tables = tensors or relations
+        columns = [column for table in tables for column in table.columns.values()]
+        where_clause = self._make_tensors_where_clause(tensors) if tensors else None
+        where_clause = (
+            self._make_relations_where_clause(relations) if relations else where_clause
+        )
+        subquery = Select(columns, tables, where_clause) if tables else None
+        func = TableFunction(name=self.udf_name, subquery=subquery)
+        select_stmt = Select([StarColumn()], [func])
+        return select_stmt.compile()
+
+    @staticmethod
+    def _make_table_ast(table_args, arg_type):
+        return [
+            Table(name=table.table_name, columns=table.column_names())
+            for table in get_items_of_type(arg_type, table_args).values()
+        ]
+
+    @staticmethod
+    def _make_tensors_where_clause(tensors):
+        head, *tail = tensors
+        where_clause = [
+            head.c[colname] == table.c[colname]
+            for table in tail
+            for colname in head.columns.keys()
+            if colname.startswith("dim")
+        ]
+        return where_clause
+
+    @staticmethod
+    def _make_relations_where_clause(relations):
+        head, *tail = relations
+        where_clause = [
+            head.c[colname] == table.c[colname]
+            for table in tail
+            for colname in head.columns.keys()
+            if colname == "row_id"
+        ]
+        return where_clause
 
 
-# ~~~~~~~~~~~~~~ UDF SELECT Query Generator ~~~~~~~~~~~~~~ #
+class UdfResultBuilder:
+    """Builder class for the UDF result objects"""
 
+    def __init__(self, output_types: List[OutputType], smpc_used: bool = False) -> None:
+        self.output_types = output_types
+        self.smpc_used = smpc_used
 
-def get_udf_select_template(output_type: OutputType, table_args: Dict[str, TableArg]):
-    tensors = get_table_ast_nodes_from_table_args(table_args, arg_type=TensorArg)
-    relations = get_table_ast_nodes_from_table_args(table_args, arg_type=RelationArg)
-    tables = tensors or relations
-    columns = [column for table in tables for column in table.columns.values()]
-    where_clause = get_where_clause_for_tensors(tensors) if tensors else None
-    where_clause = (
-        get_where_clause_for_relations(relations) if relations else where_clause
-    )
-    subquery = Select(columns, tables, where_clause) if tables else None
-    func = TableFunction(name="$udf_name", subquery=subquery)
-    select_stmt = Select([StarColumn()], [func])
-    return select_stmt.compile()
+    def build_results(self, output_table_names: List[str]) -> List[UDFGenResult]:
+        main_table_name, *sec_table_names = output_table_names
+        main_output_type, *sec_output_types = self.output_types
 
+        udf_outputs = [self._make_result(main_output_type, main_table_name)]
+        udf_outputs += [
+            self._make_result(output_type, table_name)
+            for table_name, output_type in zip(sec_table_names, sec_output_types)
+        ]
+        return udf_outputs
 
-def get_table_ast_nodes_from_table_args(table_args, arg_type):
-    return [
-        Table(name=table.table_name, columns=table.column_names())
-        for table in get_items_of_type(arg_type, table_args).values()
-    ]
+    def _make_result(
+        self,
+        output_type: OutputType,
+        table_name: str,
+    ) -> UDFGenResult:
+        if isinstance(output_type, SecureTransferType) and self.smpc_used:
+            return self._make_smpc_result(output_type, table_name)
+        else:
+            return self._make_table_result(output_type, table_name)
 
+    @staticmethod
+    def _make_table_result(
+        output_type: OutputType,
+        table_name: str,
+    ) -> UDFGenResult:
+        output_schema = iotype_to_sql_schema(output_type)
+        create_table = "CREATE TABLE " + table_name + f"({output_schema})" + ";"
+        return UDFGenTableResult(
+            table_name=table_name,
+            table_schema=output_type.schema,
+            create_query=create_table,
+        )
 
-def get_where_clause_for_tensors(tensors):
-    head, *tail = tensors
-    where_clause = [
-        head.c[colname] == table.c[colname]
-        for table in tail
-        for colname in head.columns.keys()
-        if colname.startswith("dim")
-    ]
-    return where_clause
+    def _make_smpc_result(
+        self,
+        output_type: SecureTransferType,
+        table_name_prefix: str,
+    ) -> UDFGenSMPCResult:
+        placeholders = get_smpc_tablename_placeholders(table_name_prefix)
+        template_ph, sum_op_ph, min_op_ph, max_op_ph = placeholders
 
+        template = self._make_table_result(output_type, template_ph)
 
-def get_where_clause_for_relations(relations):
-    head, *tail = relations
-    where_clause = [
-        head.c[colname] == table.c[colname]
-        for table in tail
-        for colname in head.columns.keys()
-        if colname == "row_id"
-    ]
-    return where_clause
+        sum_op, min_op, max_op = None, None, None
+        if output_type.sum_op:
+            sum_op = self._make_table_result(output_type, sum_op_ph)
+        if output_type.min_op:
+            min_op = self._make_table_result(output_type, min_op_ph)
+        if output_type.max_op:
+            max_op = self._make_table_result(output_type, max_op_ph)
 
-
-# ~~~~~~~~~~~~~~~~~ CREATE TABLE and INSERT query generator ~~~~~~~~~ #
-def create_table_udf_output(
-    output_type: OutputType,
-    table_name: str,
-) -> UDFGenResult:
-    output_schema = iotype_to_sql_schema(output_type)
-    create_table = "CREATE TABLE" + " $" + table_name + f"({output_schema})" + ";"
-    return UDFGenTableResult(
-        tablename_placeholder=table_name,
-        table_schema=output_type.schema,
-        create_query=Template(create_table),
-    )
-
-
-def create_smpc_udf_output(output_type: SecureTransferType, table_name_prefix: str):
-    (
-        template_tmpl,
-        sum_op_tmpl,
-        min_op_tmpl,
-        max_op_tmpl,
-    ) = get_smpc_table_template_names(table_name_prefix)
-    template = create_table_udf_output(output_type, template_tmpl)
-    sum_op = None
-    min_op = None
-    max_op = None
-    if output_type.sum_op:
-        sum_op = create_table_udf_output(output_type, sum_op_tmpl)
-    if output_type.min_op:
-        min_op = create_table_udf_output(output_type, min_op_tmpl)
-    if output_type.max_op:
-        max_op = create_table_udf_output(output_type, max_op_tmpl)
-    return UDFGenSMPCResult(
-        template=template,
-        sum_op_values=sum_op,
-        min_op_values=min_op,
-        max_op_values=max_op,
-    )
-
-
-def create_udf_output(
-    output_type: OutputType,
-    table_name: str,
-    smpc_used: bool,
-) -> UDFGenResult:
-    if isinstance(output_type, SecureTransferType) and smpc_used:
-        return create_smpc_udf_output(output_type, table_name)
-    else:
-        return create_table_udf_output(output_type, table_name)
-
-
-def get_udf_outputs(
-    output_types: List[OutputType],
-    smpc_used: bool,
-) -> List[UDFGenResult]:
-    table_name = MAIN_TABLE_PLACEHOLDER
-    main_output_type, *sec_output_types = output_types
-
-    udf_outputs = [create_udf_output(main_output_type, table_name, smpc_used)]
-
-    loopback_table_names = get_name_loopback_table_pairs(sec_output_types)
-    udf_outputs += [
-        create_udf_output(sec_output_type, table_name, smpc_used)
-        for table_name, sec_output_type in loopback_table_names
-    ]
-
-    return udf_outputs
-
-
-def get_udf_execution_template(udf_select_query) -> Template:
-    table_name = MAIN_TABLE_PLACEHOLDER
-    udf_execution = f"INSERT INTO ${table_name}\n" + udf_select_query + ";"
-    return Template(udf_execution)
+        return UDFGenSMPCResult(
+            template=template,
+            sum_op_values=sum_op,
+            min_op_values=min_op,
+            max_op_values=max_op,
+        )
 
 
 # ~~~~~~~~~~~~~~ SQL special queries ~~~~~~~~~~~~~~ #

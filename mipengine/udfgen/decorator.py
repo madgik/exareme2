@@ -1,4 +1,5 @@
 import ast
+from collections import defaultdict
 from typing import List
 
 from mipengine.udfgen.ast import Signature
@@ -15,8 +16,13 @@ from mipengine.udfgen.iotypes import TensorType
 from mipengine.udfgen.iotypes import UDFLoggerType
 
 
+class UdfRegistry(defaultdict):
+    def __missing__(self, funcname):
+        raise UDFBadCall(f"The function {funcname} cannot be found in udf registry.")
+
+
 class UDFDecorator:
-    registry = {}
+    registry = UdfRegistry()
 
     def __call__(self, **kwargs):
         def decorator(func):
@@ -155,3 +161,8 @@ def validate_udf_table_input_types(table_input_types):
 class UDFBadDefinition(Exception):
     """Raised when an error is detected in the definition of a udf decorated
     function. These checks are made as soon as the function is defined."""
+
+
+class UDFBadCall(Exception):
+    """Raised when something is wrong with the arguments passed to the udf
+    generator."""

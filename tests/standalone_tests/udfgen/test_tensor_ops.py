@@ -3,6 +3,8 @@ from string import Template
 
 import pytest
 
+pytest.skip(allow_module_level=True, msg="The tensor_ops module is deprecated.")
+
 from mipengine.datatypes import DType
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableInfo
@@ -16,8 +18,6 @@ from mipengine.udfgen.tensor_ops import get_matrix_transpose_template
 from mipengine.udfgen.tensor_ops import get_tensor_binary_op_template
 from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
 from tests.standalone_tests.udfgen.test_udfgenerator import TestUDFGenBase
-
-pytest.skip(allow_module_level=True, msg="The tensor_ops module is deprecated.")
 
 
 class TestUDFGen_SQLTensorMultOut1D(TestUDFGenBase):

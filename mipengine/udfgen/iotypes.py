@@ -7,7 +7,6 @@ from mipengine.udfgen.helpers import iotype_to_sql_schema
 from mipengine.udfgen.helpers import recursive_repr
 
 LN = "\n"
-MAIN_TABLE_PLACEHOLDER = "main_output_table_name"
 ROWID = "row_id"
 DEFERRED = "deferred"
 
@@ -245,7 +244,7 @@ class TransferType(DictType, InputType, LoopbackOutputType):
 
     def get_secondary_return_stmt_template(self, tablename_placeholder) -> str:
         return (
-            '_conn.execute(f"INSERT INTO $'
+            '_conn.execute(f"INSERT INTO '
             + tablename_placeholder
             + " VALUES ('{{json.dumps({return_name})}}');\")"
         )
@@ -299,7 +298,7 @@ class StateType(DictType, InputType, LoopbackOutputType):
 
     def get_secondary_return_stmt_template(self, tablename_placeholder) -> str:
         return (
-            '_conn.execute(f"INSERT INTO $'
+            '_conn.execute(f"INSERT INTO '
             + tablename_placeholder
             + " VALUES ('{{pickle.dumps({return_name}).hex()}}');\")"
         )
@@ -329,8 +328,9 @@ class UDFLoggerArg(UDFArgument):
     type = UDFLoggerType()
     udf_name: str
 
-    def __init__(self, udf_name):
+    def __init__(self, udf_name="", request_id=""):
         self.udf_name = udf_name
+        self.request_id = request_id
 
 
 class PlaceholderArg(UDFArgument):
