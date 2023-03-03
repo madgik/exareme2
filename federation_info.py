@@ -6,8 +6,8 @@ from sys import stdin
 import click
 import pymonetdb
 
-DB_USERNAME = "monetdb"
-DB_PASSWORD = "monetdb"
+DB_USERNAME = "admin"
+DB_PASSWORD = "admin"
 DB_FARM = "db"
 DB_METADATA_SCHEMA = "mipdb_metadata"
 ACTIONS_TABLE = "actions"

@@ -77,12 +77,14 @@
    id = "globalnode"
    role = "GLOBALNODE"
    monetdb_port=50000
+   monetdb_password="executor"
    rabbitmq_port=5670
 
    [[nodes]]
    id = "localnode1"
    role = "LOCALNODE"
    monetdb_port=50001
+   monetdb_password="executor"
    rabbitmq_port=5671
    smpc_client_port=9001
 
@@ -90,6 +92,7 @@
    id = "localnode2"
    role = "LOCALNODE"
    monetdb_port=50002
+   monetdb_password="executor"
    rabbitmq_port=5672
    smpc_client_port=9002
 

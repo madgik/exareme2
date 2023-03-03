@@ -33,10 +33,12 @@ RUN wget http://gr.archive.ubuntu.com/ubuntu/pool/universe/s/strigi/libstreams0v
 RUN dpkg -i libstreams0v5_0.7.8-2.2_amd64.deb libstreams-dev_0.7.8-2.2_amd64.deb
 
 #######################################################
-# Setup bootstrap file
+# Setup bootstrap files
 #######################################################
 COPY monetdb/bootstrap.sh /home/bootstrap.sh
+COPY monetdb/configure_users.sh /home/configure_users.sh
 RUN chmod 775 /home/bootstrap.sh
+RUN chmod 775 /home/configure_users.sh
 
 #######################################################
 # Setup logrotate file
@@ -61,10 +63,17 @@ ENV PYTHONPATH "/home/udflib/"
 ENV LOG_LEVEL "INFO"
 
 #######################################################
-# DEV ONLY add username/password
+# Default username/password
 #######################################################
 RUN echo "user=monetdb" > /home/.monetdb
 RUN echo "password=monetdb" >> /home/.monetdb
+
+#######################################################
+# Initializing the default users passwords, that will be configured with configure_users.sh
+#######################################################
+ENV ADMIN_PASSWORD='admin'
+ENV EXECUTOR_PASSWORD='executor'
+ENV GUEST_PASSWORD='guest'
 
 #######################################################
 # Setup MONETDB Volume
