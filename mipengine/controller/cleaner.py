@@ -130,8 +130,8 @@ class Cleaner(metaclass=Singleton):
 
     def cleanup_context_id(self, context_id: str) -> bool:
         """
-        Execute the cleanup task on all nodes of a given context_id. Used for
-        synchronous call of the 'cleanup' task.
+        Synchronously cleanup context_id. Calls the cleanup task on all the nodes for the
+        given context_id.
 
         Parameters
         ----------
@@ -249,7 +249,9 @@ class Cleaner(metaclass=Singleton):
 
         """
         Create a new cleanup entry for the specified context_id along with the
-        respective node_ids.
+        respective node_ids. Calling this method will not call the cleanup task on any
+        node, it just "stores" the information that db artifacts with the specific
+        context_id will be (potentially) created on the specified nodes
 
         Parameters
         ----------
@@ -270,7 +272,9 @@ class Cleaner(metaclass=Singleton):
 
     def release_context_id(self, context_id):
         """
-        Set the "released" flag of the cleanup entry to true.
+        Asynchronously cleanup context_id. Sets the "released" flag of the cleanup entry
+        to true and will call the cleanup task on the relevant nodes again and again in
+        the "cleanup loop" until the task succeds on all nodes
 
         Parameters
         ----------
