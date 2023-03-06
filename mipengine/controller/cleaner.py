@@ -130,8 +130,8 @@ class Cleaner(metaclass=Singleton):
 
     def cleanup_context_id(self, context_id: str) -> bool:
         """
-        Synchronously cleanup context_id. Calls the cleanup task on all the nodes for the
-        given context_id.
+        Synchronously cleanup context_id. Calls the cleanup task on all the relevant
+        nodes for the given context_id.
 
         Parameters
         ----------
