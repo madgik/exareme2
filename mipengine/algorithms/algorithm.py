@@ -7,6 +7,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+
 
 class Variables(BaseModel):
     x: List[str]
@@ -25,9 +27,6 @@ class InitializationParams(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
-
-
-from mipengine.algorithm_specification import AlgorithmSpecification
 
 
 class Algorithm(ABC):

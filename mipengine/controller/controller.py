@@ -246,7 +246,6 @@ class Controller:
             algorithm_result = await self._algorithm_run_in_event_loop(
                 algorithm=algorithm, engine=engine
             )
-
         except CeleryConnectionError as exc:
             algo_execution_logger.error(
                 f"ErrorType: '{type(exc)}' and message: '{exc}'"
@@ -260,8 +259,10 @@ class Controller:
         except Exception as exc:
             algo_execution_logger.error(traceback.format_exc())
             raise exc
+
         finally:
-            self._cleaner.release_context_id(context_id=context_id)
+            if not self._cleaner.cleanup_context_id(context_id=context_id):
+                self._cleaner.release_context_id(context_id=context_id)
 
         algo_execution_logger.info(
             f"Finished execution->  {algorithm_name=} with {algorithm_request_dto.request_id=}"
