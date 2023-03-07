@@ -28,7 +28,7 @@ def create_table_name(
     node_id: str,
     context_id: str,
     command_id: str,
-    command_subid: str = "0",
+    result_id: str = "0",
 ) -> str:
     """
     Creates and returns in lower case a table name with the format
@@ -42,15 +42,13 @@ def create_table_name(
         raise ValueError(f"'context_id' is not alphanumeric. Value: '{context_id}'")
     if not command_id.isalnum():
         raise ValueError(f"'command_id' is not alphanumeric. Value: '{command_id}'")
-    if not command_subid.isalnum():
-        raise ValueError(
-            f"'command_subid' is not alphanumeric. Value: '{command_subid}'"
-        )
+    if not result_id.isalnum():
+        raise ValueError(f"'result_id' is not alphanumeric. Value: '{result_id}'")
 
     if table_type not in {TableType.NORMAL, TableType.VIEW, TableType.MERGE}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
 
-    return f"{table_type}_{node_id}_{context_id}_{command_id}_{command_subid}".lower()
+    return f"{table_type}_{node_id}_{context_id}_{command_id}_{result_id}".lower()
 
 
 def convert_schema_to_sql_query_format(schema: TableSchema) -> str:

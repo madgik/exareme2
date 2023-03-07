@@ -12,7 +12,7 @@ def test_create_table_name():
         node_id="nodeid",
         context_id="contextid",
         command_id="commandid",
-        command_subid="commandsubid",
+        result_id="commandsubid",
     )
 
     tablename_obj = TableInfo(
@@ -23,7 +23,7 @@ def test_create_table_name():
     assert tablename_obj.node_id == "nodeid"
     assert tablename_obj.context_id == "contextid"
     assert tablename_obj.command_id == "commandid"
-    assert tablename_obj.command_subid == "commandsubid"
+    assert tablename_obj.result_id == "commandsubid"
 
 
 def test_create_table_name_with_bad_table_type():
@@ -33,7 +33,7 @@ def test_create_table_name_with_bad_table_type():
             node_id="nodeid",
             context_id="contextid",
             command_id="commandid",
-            command_subid="commandsubid",
+            result_id="commandsubid",
         )
 
     assert "Table type is not acceptable: " in str(exc)
@@ -95,11 +95,11 @@ def get_test_create_table_name_with_bad_parameters_cases():
 
 
 @pytest.mark.parametrize(
-    "table_type, node_id, context_id, command_id, command_subid",
+    "table_type, node_id, context_id, command_id, result_id",
     get_test_create_table_name_with_bad_parameters_cases(),
 )
 def test_create_table_with_bad_parameters(
-    table_type, node_id, context_id, command_id, command_subid
+    table_type, node_id, context_id, command_id, result_id
 ):
     with pytest.raises(ValueError) as exc:
         create_table_name(
@@ -107,7 +107,7 @@ def test_create_table_with_bad_parameters(
             node_id=node_id,
             context_id=context_id,
             command_id=command_id,
-            command_subid=command_subid,
+            result_id=result_id,
         )
 
     assert "is not alphanumeric" in str(exc)
