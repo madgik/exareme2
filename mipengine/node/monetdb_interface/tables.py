@@ -1,3 +1,4 @@
+from itertools import chain
 from typing import List
 from typing import Union
 
@@ -29,6 +30,13 @@ def insert_data_to_table(
     row_length = len(table_values[0])
     if all(len(row) != row_length for row in table_values):
         raise Exception("Row counts does not match")
-    params_format = ", ".join(("%s",) * row_length)
-    sql_clause = "INSERT INTO %s VALUES (%s)" % (table_name, params_format)
-    db_execute(query=sql_clause, parameters=table_values, many=True)
+
+    # In order to achieve insertion with parameters we need to create query to the following format:
+    # INSERT INTO <table_name> VALUES (%s, %s), (%s, %s);
+    # The following variable 'values' create that specific str according to row_length and the amount of the rows.
+    values = ", ".join(
+        "(" + ", ".join("%s" for _ in range(row_length)) + ")" for _ in table_values
+    )
+
+    sql_clause = f"INSERT INTO {table_name} VALUES {values}"
+    db_execute(query=sql_clause, parameters=list(chain(*table_values)))

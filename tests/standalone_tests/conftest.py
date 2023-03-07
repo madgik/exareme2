@@ -20,7 +20,6 @@ from mipengine.controller.algorithm_execution_engine_tasks_handler import (
 )
 from mipengine.controller.celery_app import CeleryAppFactory
 from mipengine.controller.controller_logger import init_logger
-from mipengine.node.monetdb_interface.monet_db_facade import _MonetDBConnectionPool
 from mipengine.udfgen import udfio
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
@@ -574,11 +573,6 @@ def _clean_db(cursor):
                 cursor.execute(f"DROP VIEW {table_name}")
             else:
                 cursor.execute(f"DROP TABLE {table_name}")
-
-
-@pytest.fixture(scope="function")
-def reset_monet_db_facade_connection_pool():
-    _MonetDBConnectionPool()._connection_pool = []
 
 
 @pytest.fixture(scope="function")

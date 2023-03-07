@@ -69,6 +69,7 @@ def create_table(
     ).json()
 
 
+# TODO: https://team-1617704806227.atlassian.net/browse/MIP-762
 @shared_task
 @initialise_logger
 def insert_data_to_table(

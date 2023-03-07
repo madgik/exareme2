@@ -331,7 +331,7 @@ def create_monetdb(
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py -v {TEST_DATA_FOLDER}:{TEST_DATA_FOLDER} --name {container_name} --memory={monetdb_memory_limit}m {image}"""
+        cmd = f"""docker run -d -P -p {container_ports} -e SOFT_RESTART_MEMORY_LIMIT={monetdb_memory_limit * 0.7} -e HARD_RESTART_MEMORY_LIMIT={monetdb_memory_limit * 0.85}  -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py -v {TEST_DATA_FOLDER}:{TEST_DATA_FOLDER} --name {container_name} --memory={monetdb_memory_limit}m {image}"""
         run(c, cmd)
 
 
@@ -384,7 +384,7 @@ def load_data(c, use_sockets=False, port=None):
         port = local_node_ports[0]
         cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)}"
         message(
-            f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {port}...",
+            f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {local_node_ports[0]}...",
             Level.HEADER,
         )
         run(c, cmd)
