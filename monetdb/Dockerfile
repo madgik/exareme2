@@ -1,4 +1,4 @@
-FROM madgik/mipenginedb_base
+FROM madgik/mipenginedb_base:0.1
 
 #######################################################
 # Download monetdb source files
@@ -37,8 +37,10 @@ RUN dpkg -i libstreams0v5_0.7.8-2.2_amd64.deb libstreams-dev_0.7.8-2.2_amd64.deb
 #######################################################
 COPY monetdb/bootstrap.sh /home/bootstrap.sh
 COPY monetdb/configure_users.sh /home/configure_users.sh
+COPY monetdb/configure_monit.sh /home/configure_monit.sh
 RUN chmod 775 /home/bootstrap.sh
 RUN chmod 775 /home/configure_users.sh
+RUN chmod 775 /home/configure_monit.sh
 
 #######################################################
 # Setup logrotate file
@@ -81,6 +83,13 @@ ENV GUEST_PASSWORD='guest'
 ENV MONETDB_NCLIENTS=64
 ENV MONETDB_STORAGE=/home/monetdb
 VOLUME $MONETDB_STORAGE
+
+#######################################################
+# Configure monit
+#######################################################
+ENV MONIT_CONFIG_FOLDER=/home/monit
+RUN mkdir $MONIT_CONFIG_FOLDER
+
 
 WORKDIR /home
 CMD ["/bin/bash","/home/bootstrap.sh"]

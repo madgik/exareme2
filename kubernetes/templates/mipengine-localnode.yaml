@@ -40,10 +40,15 @@ spec:
         image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
         resources:
           limits:
-            memory: {{ quote .Values.db.max_memory }}
+            memory: "{{ .Values.db.max_memory }}Mi"
         env:
         - name: LOG_LEVEL
           value: {{ .Values.log_level }}
+        - name: SOFT_RESTART_MEMORY_LIMIT
+          value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_soft_memory_limit) 100 | quote }}
+        - name: HARD_RESTART_MEMORY_LIMIT
+          value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_hard_memory_limit) 100 | quote }}
+
         ports:
           - containerPort: 50000
         volumeMounts:

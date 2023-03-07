@@ -153,7 +153,7 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
-          version: 3.6.3
+          version: 3.9.1
         id: install
 
       - name: Taint Nodes
@@ -195,8 +195,11 @@ jobs:
       - name: Copy prod_env_tests values.yaml
         run: cp -r tests/prod_env_tests/deployment_configs/kubernetes_values.yaml kubernetes/values.yaml
 
+      - name: Print Helm Templates
+        run: helm template kubernetes/
+
       - name: Deploy Helm
-        run: helm install mipengine kubernetes/
+        run: helm install mipengine kubernetes/ --debug
 
       - name: Wait for MONETDB container to start
         uses: jakejarvis/wait-action@master
