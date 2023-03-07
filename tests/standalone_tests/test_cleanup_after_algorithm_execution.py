@@ -217,7 +217,9 @@ def node_landscape_aggregator(
     node_landscape_aggregator._update()
     node_landscape_aggregator.start()
 
-    return node_landscape_aggregator
+    # TODO https://team-1617704806227.atlassian.net/jira/software/projects/MIP/issues/MIP-771
+    yield node_landscape_aggregator
+    del node_landscape_aggregator
 
 
 @pytest.fixture(scope="function")
@@ -315,7 +317,9 @@ def cleaner(controller_config, node_landscape_aggregator):
         contextids_cleanup_folder=controller_config.cleanup.contextids_cleanup_folder,
         node_landscape_aggregator=node_landscape_aggregator,
     )
-    return Cleaner(cleaner_init_params)
+    cleaner = Cleaner(cleaner_init_params)
+    yield cleaner
+    del cleaner
 
 
 @pytest.fixture
