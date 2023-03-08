@@ -281,8 +281,6 @@ from typing import Union
 from mipengine.node_tasks_DTOs import SMPCTablesInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType as DBTableType
-from mipengine.udfgen.ast import Column
-from mipengine.udfgen.ast import ConstColumn
 from mipengine.udfgen.ast import FunctionParts
 from mipengine.udfgen.ast import Select
 from mipengine.udfgen.ast import StarColumn
@@ -985,59 +983,3 @@ class UdfResultBuilder:
             min_op_values=min_op,
             max_op_values=max_op,
         )
-
-
-# TODO Everything below this point is non functional due to changes brought
-# by work on https://team-1617704806227.atlassian.net/browse/MIP-756
-# This is a temporary. The same functionality will be implemented using
-# a different API soon.
-# This is described in https://team-1617704806227.atlassian.net/browse/MIP-757
-def get_create_dummy_encoded_design_matrix_execution_queries(keyword_args):
-    dm_table = get_dummy_encoded_design_matrix_table(keyword_args)
-    udf_select = get_dummy_encoded_design_matrix_select_stmt(dm_table)
-    output_schema = get_dummy_encoded_design_matrix_schema(dm_table)
-    output_type = relation(schema=output_schema)
-    udf_outputs = get_udf_outputs(
-        output_types=[output_type],
-        smpc_used=False,
-    )
-    udf_execution_query = get_udf_execution_template(udf_select)
-    return UDFGenExecutionQueries(
-        udf_results=udf_outputs,
-        udf_select_query=udf_execution_query,
-    )
-
-
-def get_dummy_encoded_design_matrix_table(keyword_args):
-    enums = keyword_args["enums"]
-    numerical_vars = keyword_args["numerical_vars"]
-    intercept = keyword_args["intercept"]
-    table_name = keyword_args["x"].name
-    rowid_column = [Column(name="row_id")]
-    intercept_column = [ConstColumn(value=1, alias="intercept")] if intercept else []
-    numerical_columns = [Column(name=varname) for varname in numerical_vars]
-    dummy_columns = [
-        ConstColumn(
-            value=f"CASE WHEN {varname} = '{enum['code']}' THEN 1 ELSE 0 END",
-            alias=enum["dummy"],
-        )
-        for varname in enums.keys()
-        for enum in enums[varname]
-    ]
-    columns = rowid_column + intercept_column + dummy_columns + numerical_columns
-    table = Table(name=table_name, columns=columns)
-    return table
-
-
-def get_dummy_encoded_design_matrix_select_stmt(design_matrix_table):
-    sel = Select(columns=design_matrix_table.columns, tables=[design_matrix_table])
-    return sel.compile()
-
-
-def get_dummy_encoded_design_matrix_schema(design_matrix_table):
-    assert design_matrix_table.columns[0].name == "row_id"
-    schema = [("row_id", int)]
-    for column in design_matrix_table.columns[1:]:
-        colname = column.alias or column.name
-        schema.append((colname, float))
-    return schema
