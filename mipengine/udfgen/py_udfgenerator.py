@@ -281,7 +281,9 @@ from typing import Union
 from mipengine.node_tasks_DTOs import SMPCTablesInfo
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableType as DBTableType
+from mipengine.udfgen.ast import CreateTable
 from mipengine.udfgen.ast import FunctionParts
+from mipengine.udfgen.ast import Insert
 from mipengine.udfgen.ast import Select
 from mipengine.udfgen.ast import StarColumn
 from mipengine.udfgen.ast import Table
@@ -292,7 +294,6 @@ from mipengine.udfgen.ast import UDFHeader
 from mipengine.udfgen.decorator import UDFBadCall
 from mipengine.udfgen.decorator import UdfRegistry
 from mipengine.udfgen.helpers import get_items_of_type
-from mipengine.udfgen.helpers import iotype_to_sql_schema
 from mipengine.udfgen.helpers import merge_args_and_kwargs
 from mipengine.udfgen.iotypes import InputType
 from mipengine.udfgen.iotypes import LiteralArg
@@ -496,8 +497,8 @@ class UdfGenerator:
         table_args = get_items_of_type(TableArg, mapping=self.udf_args)
         main_output_type, *_ = self.output_types
         main_table_name, *_ = output_table_names
-        udf_select = UdfSelectStmtBuildfer(udf_name, table_args).build_select_stmt()
-        return self._get_insert_stmt(main_table_name, udf_select)
+        builder = UdfExecStmtBuildfer(table_args)
+        return builder.build_exec_stmt(udf_name, main_table_name)
 
     def get_results(self, output_table_names: List[str]) -> List[UDFGenResult]:
         """
@@ -527,11 +528,6 @@ class UdfGenerator:
         udf_args = builder.build_args(args, kwargs)
 
         return udf_args
-
-    @staticmethod
-    def _get_insert_stmt(table_name: str, udf_select_query: str) -> str:
-        udf_execution = f"INSERT INTO {table_name}\n" + udf_select_query + ";"
-        return udf_execution
 
 
 def copy_types_from_udfargs(udfargs: Dict[str, UDFArgument]) -> Dict[str, InputType]:
@@ -867,26 +863,28 @@ class UdfDefinitionBuilder:
         )
 
 
-class UdfSelectStmtBuildfer:
+class UdfExecStmtBuildfer:
     """Builder class for the UDF SELECT query string"""
 
-    def __init__(self, udf_name: str, table_args: Dict[str, TableArg]):
-        self.udf_name = udf_name
+    def __init__(self, table_args: Dict[str, TableArg]):
         self.table_args = table_args
 
-    def build_select_stmt(self):
+    def build_exec_stmt(self, udf_name: str, main_table_name: str) -> str:
         tensors = self._make_table_ast(self.table_args, arg_type=TensorArg)
         relations = self._make_table_ast(self.table_args, arg_type=RelationArg)
         tables = tensors or relations
         columns = [column for table in tables for column in table.columns.values()]
-        where_clause = self._make_tensors_where_clause(tensors) if tensors else None
-        where_clause = (
-            self._make_relations_where_clause(relations) if relations else where_clause
-        )
-        subquery = Select(columns, tables, where_clause) if tables else None
-        func = TableFunction(name=self.udf_name, subquery=subquery)
-        select_stmt = Select([StarColumn()], [func])
-        return select_stmt.compile()
+        if tensors:
+            where_clause = self._make_tensors_where_clause(tensors)
+        elif relations:
+            where_clause = self._make_relations_where_clause(relations)
+        else:
+            where_clause = None
+        subselect = Select(columns, tables, where_clause) if tables else None
+        func = TableFunction(name=udf_name, subquery=subselect)
+        select = Select([StarColumn()], [func])
+        insert = Insert(table=main_table_name, values=select)
+        return insert.compile()
 
     @staticmethod
     def _make_table_ast(table_args, arg_type):
@@ -951,12 +949,11 @@ class UdfResultBuilder:
         output_type: OutputType,
         table_name: str,
     ) -> UDFGenResult:
-        output_schema = iotype_to_sql_schema(output_type)
-        create_table = "CREATE TABLE " + table_name + f"({output_schema})" + ";"
+        create = CreateTable(table_name, output_type.schema).compile()
         return UDFGenTableResult(
             table_name=table_name,
             table_schema=output_type.schema,
-            create_query=create_table,
+            create_query=create,
         )
 
     def _make_smpc_result(
