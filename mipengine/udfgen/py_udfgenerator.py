@@ -453,10 +453,9 @@ class UdfGenerator:
             input_args=self.udf_args,
             output_types=self.output_types,
             smpc_used=self.smpc_used,
+            request_id=self.request_id,
         )
-        definition = builder.build_udf_definition(
-            udf_name, sec_table_names, self.request_id
-        )
+        definition = builder.build_udf_definition(udf_name, sec_table_names)
 
         # XXX Ugly hack. This is needed because, when SMPC is on, a UDF might
         # produce multiple tables, even if the len(return_types) == 1! In that
@@ -772,11 +771,13 @@ class UdfDefinitionBuilder:
         input_args: Dict[str, UDFArgument],
         output_types: List[OutputType],
         smpc_used: bool,
+        request_id: str,
     ) -> Template:
         self.funcparts = funcparts
         self.input_args = input_args
         self.output_types = output_types
         self.smpc_used = smpc_used
+        self.request_id = request_id
 
         self.main_output_type, *self.sec_output_types = output_types
         self.main_return_name, *self.sec_return_names = funcparts.return_names
@@ -784,20 +785,16 @@ class UdfDefinitionBuilder:
     def build_udf_definition(
         self,
         udf_name: str,
-        sec_output_table_names: Optional[List[str]],
-        request_id: str,
+        sec_output_names: Optional[List[str]],
     ):
-        if sec_output_table_names is None:
-            sec_output_table_names = []
+        if sec_output_names is None:
+            sec_output_names = []
         header = self._build_header(udf_name)
         if self.smpc_used:
-            body = self._build_body_smpc(udf_name, sec_output_table_names, request_id)
+            body = self._build_body_smpc(udf_name, sec_output_names, self.request_id)
         else:
-            body = self._build_body(udf_name, sec_output_table_names, request_id)
-        udf_definition = UDFDefinition(
-            header=header,
-            body=body,
-        )
+            body = self._build_body(udf_name, sec_output_names, self.request_id)
+        udf_definition = UDFDefinition(header=header, body=body)
         return udf_definition.compile()
 
     @functools.cached_property
