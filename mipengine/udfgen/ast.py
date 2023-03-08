@@ -12,6 +12,7 @@ from typing import Union
 
 import astor
 
+from mipengine import DType
 from mipengine.udfgen.helpers import get_func_body_from_ast
 from mipengine.udfgen.helpers import get_items_of_type
 from mipengine.udfgen.helpers import get_return_names_from_body
@@ -651,3 +652,26 @@ class OrderbyClause(ASTNode):
             column.compile(use_alias=False, use_prefix=False) for column in self.columns
         )
         return LN.join([ORDER_BY, indent(parameters, prefix=SPC4)])
+
+
+class Insert(ASTNode):
+    def __init__(self, table, values):
+        self.table = table
+        self.values = values
+
+    def compile(self) -> str:
+        if isinstance(self.values, Select):
+            values = self.values.compile()
+        else:
+            raise NotImplementedError("Insert only accepts a nested Select")
+        return LN.join([f"INSERT INTO {self.table}", values + ";"])
+
+
+class CreateTable(ASTNode):
+    def __init__(self, table: str, schema: List[Tuple[str, DType]]):
+        self.table = table
+        self.schema = schema
+
+    def compile(self) -> str:
+        schema = ",".join(f'"{name}" {dtype.to_sql()}' for name, dtype in self.schema)
+        return f"CREATE TABLE {self.table}({schema});"
