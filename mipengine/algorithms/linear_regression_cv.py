@@ -4,18 +4,28 @@ from typing import NamedTuple
 import numpy
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
-from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import relation_to_vector
+from mipengine.algorithms.specifications.algorithm_specification import (
+    AlgorithmSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecifications,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataStatType,
+)
+from mipengine.algorithms.specifications.inputdata_specification import InputDataType
+from mipengine.algorithms.specifications.parameter_specification import (
+    ParameterSpecification,
+)
+from mipengine.algorithms.specifications.parameter_specification import ParameterType
 
 
 class BasicStats(NamedTuple):
@@ -32,11 +42,11 @@ class CVLinearRegressionResult(BaseModel):
     mean_abs_error: BasicStats
 
 
-class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
+class LinearRegressionCVAlgorithm(Algorithm, stepname="linear_regression_cv"):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
-            name=cls.algname,
+            name=cls.stepname,
             desc="Linear Regression Cross-validation",
             label="Linear Regression Cross-validation",
             enabled=True,

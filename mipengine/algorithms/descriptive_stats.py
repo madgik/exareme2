@@ -35,13 +35,21 @@ from typing import Union
 import pandas as pd
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications.algorithm_specification import (
+    AlgorithmSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecifications,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataStatType,
+)
+from mipengine.algorithms.specifications.inputdata_specification import InputDataType
 from mipengine.udfgen import MIN_ROW_COUNT
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
@@ -93,11 +101,11 @@ class Result(BaseModel):
     model_based: List[Variable]
 
 
-class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
+class DescriptiveStatisticsAlgorithm(Algorithm, stepname="descriptive_stats"):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
-            name=cls.algname,
+            name=cls.stepname,
             desc="Descriptive statistics",
             label="Descriptive statistics",
             enabled=True,

@@ -5,19 +5,33 @@ import scipy.stats as stats
 from pydantic import BaseModel
 from scipy.special import xlogy
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
-from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import LabelBinarizer
+from mipengine.algorithms.specifications.algorithm_specification import (
+    AlgorithmSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecifications,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataStatType,
+)
+from mipengine.algorithms.specifications.inputdata_specification import InputDataType
+from mipengine.algorithms.specifications.parameter_specification import (
+    ParameterEnumSpecification,
+)
+from mipengine.algorithms.specifications.parameter_specification import (
+    ParameterEnumType,
+)
+from mipengine.algorithms.specifications.parameter_specification import (
+    ParameterSpecification,
+)
+from mipengine.algorithms.specifications.parameter_specification import ParameterType
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
@@ -30,11 +44,11 @@ TOL = 1e-4  # tolerance for stopping criterion
 ALPHA = 0.05  # alpha level for coefficient confidence intervals
 
 
-class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
+class LogisticRegressionAlgorithm(Algorithm, stepname="logistic_regression"):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
-            name=cls.algname,
+            name=cls.stepname,
             desc="Logistic Regression",
             label="Logistic Regression",
             enabled=True,

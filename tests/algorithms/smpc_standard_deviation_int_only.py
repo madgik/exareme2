@@ -2,12 +2,20 @@ import json
 from typing import TypeVar
 
 from mipengine.algorithm_result_DTOs import TabularDataResult
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.base_classes.algorithm import Algorithm
+from mipengine.algorithms.specifications.algorithm_specification import (
+    AlgorithmSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecifications,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataStatType,
+)
+from mipengine.algorithms.specifications.inputdata_specification import InputDataType
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.udfgen import relation
@@ -19,12 +27,12 @@ from mipengine.udfgen import udf
 
 
 class StandartDeviationIntOnlySMPC(
-    Algorithm, algname="smpc_standard_deviation_int_only"
+    Algorithm, stepname="smpc_standard_deviation_int_only"
 ):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
-            name=cls.algname,
+            name=cls.stepname,
             desc="Standard Deviation of a column, transferring only integers, using SMPC",
             label="SMPC Standard Deviation",
             enabled=True,

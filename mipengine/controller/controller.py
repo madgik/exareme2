@@ -9,8 +9,10 @@ from typing import Tuple
 from pydantic import BaseModel
 
 from mipengine import algorithm_classes
-from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
-from mipengine.algorithms.algorithm import Variables
+from mipengine.algorithms.base_classes.algorithm import (
+    InitializationParams as AlgorithmInitParams,
+)
+from mipengine.algorithms.base_classes.algorithm import Variables
 from mipengine.controller import algorithms_specifications
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine

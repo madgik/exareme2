@@ -9,7 +9,13 @@ import envtoml
 from mipengine import AttrDict
 from mipengine import algorithm_classes
 from mipengine import controller
-from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine import transformer_classes
+from mipengine.algorithms.specifications.algorithm_specification import (
+    AlgorithmSpecification,
+)
+from mipengine.algorithms.specifications.transformer_specification import (
+    TransformerSpecification,
+)
 
 BACKGROUND_LOGGER_NAME = "controller_background_service"
 
@@ -30,10 +36,21 @@ else:
 
 def _get_algorithms_specifications() -> Dict[str, AlgorithmSpecification]:
     return {
-        algo_name: algorithm.get_specification()
-        for algo_name, algorithm in algorithm_classes.items()
+        name: algorithm.get_specification()
+        for name, algorithm in algorithm_classes.items()
         if algorithm.get_specification().enabled
     }
 
 
 algorithms_specifications = _get_algorithms_specifications()
+
+
+def _get_transformers_specifications() -> Dict[str, TransformerSpecification]:
+    return {
+        name: transformer.get_specification()
+        for name, transformer in transformer_classes.items()
+        if transformer.get_specification().enabled
+    }
+
+
+transformers_specifications = _get_transformers_specifications()

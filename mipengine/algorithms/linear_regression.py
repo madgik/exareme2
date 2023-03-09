@@ -4,15 +4,23 @@ import numpy
 import scipy.stats as stats
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import relation_to_vector
+from mipengine.algorithms.specifications.algorithm_specification import (
+    AlgorithmSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecifications,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataStatType,
+)
+from mipengine.algorithms.specifications.inputdata_specification import InputDataType
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
@@ -45,11 +53,11 @@ class LinearRegressionResult(BaseModel):
     upper_ci: List[float]
 
 
-class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
+class LinearRegressionAlgorithm(Algorithm, stepname="linear_regression"):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
-            name=cls.algname,
+            name=cls.stepname,
             desc="Linear Regression",
             label="Linear Regression",
             enabled=True,

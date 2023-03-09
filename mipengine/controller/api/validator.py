@@ -4,18 +4,32 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithms.specifications.algorithm_specification import (
+    AlgorithmSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecifications,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataStatType,
+)
+from mipengine.algorithms.specifications.inputdata_specification import InputDataType
+from mipengine.algorithms.specifications.parameter_specification import (
+    ParameterEnumSpecification,
+)
+from mipengine.algorithms.specifications.parameter_specification import (
+    ParameterEnumType,
+)
+from mipengine.algorithms.specifications.parameter_specification import (
+    ParameterSpecification,
+)
+from mipengine.algorithms.specifications.parameter_specification import ParameterType
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.algorithm_specifications_dtos import ParameterEnumType
-from mipengine.controller.api.algorithm_specifications_dtos import ParameterType
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.exceptions import BadUserInput
 from mipengine.filters import validate_filter

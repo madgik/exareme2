@@ -3,15 +3,25 @@ from typing import TypeVar
 import numpy
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
-from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications.algorithm_specification import (
+    AlgorithmSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecifications,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataStatType,
+)
+from mipengine.algorithms.specifications.inputdata_specification import InputDataType
+from mipengine.algorithms.specifications.parameter_specification import (
+    ParameterSpecification,
+)
+from mipengine.algorithms.specifications.parameter_specification import ParameterType
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
@@ -28,11 +38,11 @@ class PearsonResult(BaseModel):
     ci_lo: dict
 
 
-class PearsonCorrelationAlgorithm(Algorithm, algname="pearson_correlation"):
+class PearsonCorrelationAlgorithm(Algorithm, stepname="pearson_correlation"):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
-            name=cls.algname,
+            name=cls.stepname,
             desc="Pearson Correlation",
             label="Pearson Correlation",
             enabled=True,

@@ -7,7 +7,10 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithms.base_classes.pipeline_step import PipelineStep
+from mipengine.algorithms.specifications.algorithm_specification import (
+    AlgorithmSpecification,
+)
 
 
 class Variables(BaseModel):
@@ -29,15 +32,15 @@ class InitializationParams(BaseModel):
         arbitrary_types_allowed = True
 
 
-class Algorithm(ABC):
+class Algorithm(PipelineStep, ABC):
     """
-    This is the abstract class that all algorithm flow classes must implement. The class
-    can be named arbitrarily, it will be detected by its 'algname' attribute
+    This is the abstract class that all algorithm classes must implement.
+    """
 
-    Attributes
-    ----------
-    algname : str
-    """
+    # TODO This logic cannot be inherited, should we find another approach?
+    def __init_subclass__(cls, stepname, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.stepname = stepname
 
     def __init__(self, initialization_params: InitializationParams):
         """
@@ -46,16 +49,6 @@ class Algorithm(ABC):
         initialization_params : InitializationParams
         """
         self._initialization_params = initialization_params
-
-    def __init_subclass__(cls, algname, **kwargs):
-        """
-        Parameters
-        ----------
-        algname : str
-            The algorithm name, as defined in the "name" field in the <algorithm>.json
-        """
-        super().__init_subclass__(**kwargs)
-        cls.algname = algname
 
     @property
     def variables(self) -> Variables:
@@ -132,16 +125,4 @@ class Algorithm(ABC):
     @staticmethod
     @abstractmethod
     def get_specification() -> AlgorithmSpecification:
-        pass
-
-    @abstractmethod
-    def run(self, engine):
-        # The executor must be availiable only inside run()
-        # The reasoning for this is that executor.data_model_views must already be
-        # available when the executor is available to the algorithm, but the creation of
-        # the executor.data_model_views requires calls to
-        # algorithm.get_variable_groups(), algorithm.get_check_min_rows() and get_dropna().
-        """
-        The implementation of the algorithm flow logic goes in this method.
-        """
         pass

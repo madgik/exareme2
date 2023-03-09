@@ -1,26 +1,10 @@
 from enum import Enum
 from enum import unique
 from typing import Any
-from typing import Dict
 from typing import List
 from typing import Optional
 
-from pydantic import BaseModel
-from pydantic import root_validator
-
-
-@unique
-class InputDataType(Enum):
-    REAL = "real"
-    INT = "int"
-    TEXT = "text"
-    JSONOBJECT = "jsonObject"
-
-
-@unique
-class InputDataStatType(Enum):
-    NUMERICAL = "numerical"
-    NOMINAL = "nominal"
+from mipengine.algorithms.specifications import ImmutableBaseModel
 
 
 @unique
@@ -38,26 +22,6 @@ class ParameterEnumType(str, Enum):
     INPUT_VAR_CDE_ENUMS = "input_var_CDE_enums"
     FIXED_VAR_CDE_ENUMS = "fixed_var_CDE_enums"
     INPUT_VAR_NAMES = "input_var_names"
-
-
-class ImmutableBaseModel(BaseModel):
-    class Config:
-        allow_mutation = False
-
-
-class InputDataSpecification(ImmutableBaseModel):
-    label: str
-    desc: str
-    types: List[InputDataType]
-    stattypes: List[InputDataStatType]
-    notblank: bool
-    multiple: bool
-    enumslen: Optional[int]
-
-
-class InputDataSpecifications(ImmutableBaseModel):
-    y: InputDataSpecification
-    x: Optional[InputDataSpecification]
 
 
 class ParameterEnumSpecification(ImmutableBaseModel):
@@ -169,22 +133,16 @@ def _validate_parameter_type_dict_enums(param_value, cls_values):
     _validate_parameter_type_dict_enums_not_allowed(param_value, cls_values)
 
 
-class AlgorithmSpecification(ImmutableBaseModel):
-    name: str
-    desc: str
-    label: str
-    enabled: bool
-    inputdata: InputDataSpecifications
-    parameters: Optional[Dict[str, ParameterSpecification]]
-    flags: Optional[Dict[str, bool]]
-
-    @root_validator
-    def validate_parameter_enums_logic(cls, cls_values):
-        if not cls_values["parameters"]:
-            return cls_values
-
-        for param_value in cls_values["parameters"].values():
-            _validate_parameter_enums(param_value, cls_values)
-            _validate_parameter_type_dict(param_value, cls_values)
-            _validate_parameter_type_dict_enums(param_value, cls_values)
+def validate_parameters(cls_values):
+    """
+    This method is used to validate that all parameters have values that are allowed according to the rest
+    of the algorithm specifications.
+    """
+    if not cls_values["parameters"]:
         return cls_values
+
+    for param_value in cls_values["parameters"].values():
+        _validate_parameter_enums(param_value, cls_values)
+        _validate_parameter_type_dict(param_value, cls_values)
+        _validate_parameter_type_dict_enums(param_value, cls_values)
+    return cls_values

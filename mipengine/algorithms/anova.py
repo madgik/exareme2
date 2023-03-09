@@ -5,17 +5,27 @@ import numpy as np
 import scipy.stats as st
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
-from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import FormulaTransformer
 from mipengine.algorithms.preprocessing import relation_to_vector
+from mipengine.algorithms.specifications.algorithm_specification import (
+    AlgorithmSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecifications,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataStatType,
+)
+from mipengine.algorithms.specifications.inputdata_specification import InputDataType
+from mipengine.algorithms.specifications.parameter_specification import (
+    ParameterSpecification,
+)
+from mipengine.algorithms.specifications.parameter_specification import ParameterType
 from mipengine.exceptions import BadUserInput
 
 
@@ -27,11 +37,11 @@ class AnovaResult(BaseModel):
     f_pvalue: List[Optional[float]]
 
 
-class AnovaTwoWay(Algorithm, algname="anova"):
+class AnovaTwoWay(Algorithm, stepname="anova"):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
-            name=cls.algname,
+            name=cls.stepname,
             desc="Two-way analysis of variance (ANOVA)",
             label="Two-way ANOVA",
             enabled=True,

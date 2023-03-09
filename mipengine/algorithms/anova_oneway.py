@@ -3,13 +3,21 @@ from typing import TypeVar
 import pandas as pd
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications.algorithm_specification import (
+    AlgorithmSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecifications,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataStatType,
+)
+from mipengine.algorithms.specifications.inputdata_specification import InputDataType
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
@@ -26,11 +34,11 @@ class AnovaResult(BaseModel):
     ci_info: dict
 
 
-class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
+class AnovaOneWayAlgorithm(Algorithm, stepname="anova_oneway"):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
-            name=cls.algname,
+            name=cls.stepname,
             desc="ANOVA One-way",
             label="ANOVA One-way",
             enabled=True,

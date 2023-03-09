@@ -5,16 +5,7 @@ from typing import Optional
 import sklearn.metrics as skm
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
-from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.logistic_regression import LogisticRegression
 from mipengine.algorithms.metrics import compute_classification_metrics
 from mipengine.algorithms.metrics import confusion_matrix
@@ -22,13 +13,36 @@ from mipengine.algorithms.metrics import roc_curve
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import LabelBinarizer
+from mipengine.algorithms.specifications.algorithm_specification import (
+    AlgorithmSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecification,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataSpecifications,
+)
+from mipengine.algorithms.specifications.inputdata_specification import (
+    InputDataStatType,
+)
+from mipengine.algorithms.specifications.inputdata_specification import InputDataType
+from mipengine.algorithms.specifications.parameter_specification import (
+    ParameterEnumSpecification,
+)
+from mipengine.algorithms.specifications.parameter_specification import (
+    ParameterEnumType,
+)
+from mipengine.algorithms.specifications.parameter_specification import (
+    ParameterSpecification,
+)
+from mipengine.algorithms.specifications.parameter_specification import ParameterType
 
 
-class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv"):
+class LogisticRegressionCVAlgorithm(Algorithm, stepname="logistic_regression_cv"):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
-            name=cls.algname,
+            name=cls.stepname,
             desc="Logistic Regression Cross-validation",
             label="Logistic Regression Cross-validation",
             enabled=True,

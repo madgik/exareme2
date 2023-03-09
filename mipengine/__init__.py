@@ -7,7 +7,8 @@ from os.path import isfile
 from types import ModuleType
 from typing import Dict
 
-from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.base_classes.algorithm import Algorithm
+from mipengine.algorithms.base_classes.transformer import Transformer
 
 from .attrdict import AttrDict
 from .datatypes import DType
@@ -67,9 +68,18 @@ def import_algorithm_modules() -> Dict[str, ModuleType]:
     return all_modules
 
 
+import_algorithm_modules()
+
+
 def get_algorithm_classes() -> Dict[str, type]:
-    import_algorithm_modules()
-    return {cls.algname: cls for cls in Algorithm.__subclasses__()}
+    return {cls.stepname: cls for cls in Algorithm.__subclasses__()}
 
 
 algorithm_classes = get_algorithm_classes()
+
+
+def get_transformer_classes() -> Dict[str, type]:
+    return {cls.stepname: cls for cls in Transformer.__subclasses__()}
+
+
+transformer_classes = get_transformer_classes()
