@@ -32,7 +32,6 @@ class BadRequest(Exception):
 def validate_algorithm_request(
     algorithm_name: str,
     algorithm_request_dto: AlgorithmRequestDTO,
-    available_datasets_per_data_model: Dict[str, List[str]],
     algorithms_specs: Dict[str, AlgorithmSpecification],
     node_landscape_aggregator: NodeLandscapeAggregator,
     smpc_enabled: bool,
@@ -42,7 +41,6 @@ def validate_algorithm_request(
     _validate_algorithm_request_body(
         algorithm_request_dto=algorithm_request_dto,
         algorithm_specs=algorithm_specs,
-        available_datasets_per_data_model=available_datasets_per_data_model,
         node_landscape_aggregator=node_landscape_aggregator,
         smpc_enabled=smpc_enabled,
         smpc_optional=smpc_optional,
@@ -60,11 +58,13 @@ def _get_algorithm_specs(
 def _validate_algorithm_request_body(
     algorithm_request_dto: AlgorithmRequestDTO,
     algorithm_specs: AlgorithmSpecification,
-    available_datasets_per_data_model: Dict[str, List[str]],
     node_landscape_aggregator: NodeLandscapeAggregator,
     smpc_enabled: bool,
     smpc_optional: bool,
 ):
+    available_datasets_per_data_model = (
+        node_landscape_aggregator.get_all_available_datasets_per_data_model()
+    )
     _validate_data_model(
         requested_data_model=algorithm_request_dto.inputdata.data_model,
         available_datasets_per_data_model=available_datasets_per_data_model,
