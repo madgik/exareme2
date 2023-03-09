@@ -29,15 +29,15 @@ from mipengine.udfgen.iotypes import state
 from mipengine.udfgen.iotypes import tensor
 from mipengine.udfgen.iotypes import transfer
 from mipengine.udfgen.iotypes import udf_logger
-from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
-from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
-from mipengine.udfgen.udfgenerator import FlowArgsToUdfArgsConverter
-from mipengine.udfgen.udfgenerator import UDFBadCall
-from mipengine.udfgen.udfgenerator import UdfGenerator
-from mipengine.udfgen.udfgenerator import copy_types_from_udfargs
-from mipengine.udfgen.udfgenerator import (
+from mipengine.udfgen.py_udfgenerator import FlowArgsToUdfArgsConverter
+from mipengine.udfgen.py_udfgenerator import UDFBadCall
+from mipengine.udfgen.py_udfgenerator import UdfGenerator
+from mipengine.udfgen.py_udfgenerator import copy_types_from_udfargs
+from mipengine.udfgen.py_udfgenerator import (
     get_create_dummy_encoded_design_matrix_execution_queries,
 )
+from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
+from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
 
 
 def test_copy_types_from_udfargs():
