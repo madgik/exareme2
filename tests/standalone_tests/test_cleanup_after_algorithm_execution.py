@@ -342,11 +342,6 @@ def db_cursors(
     }
 
 
-@pytest.mark.skip(
-    reason="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757"
-)
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_synchronous_cleanup(
@@ -475,11 +470,6 @@ def test_asynchronous_cleanup(
     assert True
 
 
-@pytest.mark.skip(
-    reason="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757"
-)
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_cleanup_triggered_by_release_timelimit(
@@ -547,11 +537,6 @@ def test_cleanup_triggered_by_release_timelimit(
     assert True
 
 
-@pytest.mark.skip(
-    reason="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757"
-)
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_cleanup_after_rabbitmq_restart(
@@ -639,11 +624,6 @@ def test_cleanup_after_rabbitmq_restart(
     assert True
 
 
-@pytest.mark.skip(
-    reason="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757"
-)
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_cleanup_after_node_service_restart(
