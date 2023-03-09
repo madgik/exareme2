@@ -29,6 +29,7 @@ from mipengine.controller.api.validator import BadRequest
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.node_landscape_aggregator import DataModelRegistry
 from mipengine.controller.node_landscape_aggregator import DataModelsCDES
+from mipengine.controller.node_landscape_aggregator import DatasetsLocations
 from mipengine.controller.node_landscape_aggregator import (
     InitializationParams as NodeLandscapeAggregatorInitParams,
 )
@@ -110,19 +111,19 @@ def node_landscape_aggregator():
     }
     _data_model_registry = DataModelRegistry(
         data_models_cdes=DataModelsCDES(data_models_cdes=data_models),
+        datasets_locations=DatasetsLocations(
+            datasets_locations={
+                "data_model_with_all_cde_types:0.1": {
+                    "sample_dataset1": "sample_node",
+                    "sample_dataset2": "sample_node",
+                },
+                "sample_data_model:0.1": {"sample_dataset": "sample_node"},
+            }
+        ),
     )
     nla._registries = _NLARegistries(data_model_registry=_data_model_registry)
 
     return nla
-
-
-@pytest.fixture()
-def available_datasets_per_data_model():
-    d = {
-        "data_model_with_all_cde_types:0.1": ["sample_dataset1", "sample_dataset2"],
-        "sample_data_model:0.1": ["sample_dataset"],
-    }
-    return d
 
 
 @pytest.fixture(scope="module")
@@ -629,14 +630,12 @@ def get_parametrization_list_success_cases():
 def test_validate_algorithm_success(
     algorithm_name,
     request_dto,
-    available_datasets_per_data_model,
     node_landscape_aggregator,
     algorithms_specs,
 ):
     validate_algorithm_request(
         algorithm_name=algorithm_name,
         algorithm_request_dto=request_dto,
-        available_datasets_per_data_model=available_datasets_per_data_model,
         algorithms_specs=algorithms_specs,
         node_landscape_aggregator=node_landscape_aggregator,
         smpc_enabled=False,
@@ -1034,7 +1033,6 @@ def test_validate_algorithm_exceptions(
     algorithm_name,
     request_dto,
     exception,
-    available_datasets_per_data_model,
     algorithms_specs,
     node_landscape_aggregator,
 ):
@@ -1043,7 +1041,6 @@ def test_validate_algorithm_exceptions(
         validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=request_dto,
-            available_datasets_per_data_model=available_datasets_per_data_model,
             algorithms_specs=algorithms_specs,
             node_landscape_aggregator=node_landscape_aggregator,
             smpc_enabled=False,

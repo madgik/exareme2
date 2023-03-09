@@ -293,7 +293,6 @@ class Controller:
         validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
-            available_datasets_per_data_model=available_datasets_per_data_model,
             algorithms_specs=algorithms_specifications,
             node_landscape_aggregator=self._node_landscape_aggregator,
             smpc_enabled=self._smpc_enabled,
