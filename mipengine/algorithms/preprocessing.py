@@ -1,4 +1,5 @@
 import json
+from typing import List
 
 from mipengine import DType
 from mipengine.algorithms.helpers import get_transfer_data
@@ -6,6 +7,7 @@ from mipengine.exceptions import BadUserInput
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.udfgen import DEFERRED
+from mipengine.udfgen import AdhocUdfGenerator
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
 from mipengine.udfgen import relation
@@ -13,9 +15,10 @@ from mipengine.udfgen import state
 from mipengine.udfgen import tensor
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
+from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
 
 
-# TODO rewrite DummyEncoder using FormulaTransformer
+# TODO extract EnumAggregator class
 class DummyEncoder:
     def __init__(self, engine, variables, metadata, intercept=True):
         self._local_run = engine.run_udf_on_local_nodes
@@ -90,7 +93,7 @@ class DummyEncoder:
 
     def _create_design_matrix(self, x, enums):
         design_matrix = self._local_run(
-            func="create_dummy_encoded_design_matrix",
+            func=DummyEncoderUdf,
             keyword_args=dict(
                 x=x,
                 enums=enums,
@@ -115,6 +118,60 @@ class DummyEncoder:
         if self._categorical_vars or self.intercept:
             x = self._create_design_matrix(x, enums)
         return x
+
+
+class DummyEncoderUdf(AdhocUdfGenerator):
+    @property
+    def output_schema(self):
+        columns = [("row_id", DType.INT)]
+        if self.intercept:
+            columns.append(("intercept", DType.FLOAT))
+
+        enums = [enum for enums in self.enums.values() for enum in enums]
+        dummy_columns = [enum["dummy"] for enum in enums]
+        columns.extend([(col, DType.FLOAT) for col in dummy_columns])
+
+        columns.extend([(col, DType.FLOAT) for col in self.numerical_vars])
+
+        return columns
+
+    def get_definition(self, udf_name: str, output_table_names: List[str]) -> str:
+        return ""
+
+    def get_exec_stmt(self, udf_name: None, output_table_names: List[str]) -> str:
+        main_output_name, *_ = output_table_names
+
+        columns = [self.ast.Column(name="row_id")]
+        if self.intercept:
+            columns.append(self.ast.ConstColumn(value=1, alias="intercept"))
+
+        dummy_columns = [
+            self.ast.ConstColumn(
+                value=f"CASE WHEN {varname} = '{enum['code']}' THEN 1 ELSE 0 END",
+                alias=enum["dummy"],
+            )
+            for varname in self.enums.keys()
+            for enum in self.enums[varname]
+        ]
+        columns.extend(dummy_columns)
+
+        num_columns = [self.ast.Column(name=varname) for varname in self.numerical_vars]
+        columns.extend(num_columns)
+
+        table = self.ast.Table(name=self.x.name, columns=columns)
+        sel = self.ast.Select(columns=table.columns, tables=[table])
+        return self.ast.Insert(table=main_output_name, values=sel).compile()
+
+    def get_results(self, output_table_names: List[str]) -> List[UDFGenTableResult]:
+        main_output_name, *_ = output_table_names
+        create = self.ast.CreateTable(main_output_name, self.output_schema).compile()
+        return [
+            UDFGenTableResult(
+                table_name=main_output_name,
+                table_schema=self.output_schema,
+                create_query=create,
+            )
+        ]
 
 
 class LabelBinarizer:
@@ -330,7 +387,7 @@ class KFold:
         return result
 
 
-# TODO extract CategoriesFinder class
+# TODO extract EnumAggregator class
 class FormulaTransformer:
     """Transforms a table based on R style model formula.
 
