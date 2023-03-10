@@ -15,6 +15,7 @@ from mipengine.algorithms.base_classes.algorithm import (
 from mipengine.algorithms.base_classes.algorithm import Variables
 from mipengine.controller import algorithms_specifications
 from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller import transformers_specifications
 from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
 from mipengine.controller.algorithm_execution_engine import (
     AlgorithmExecutionEngineSingleLocalNode,
@@ -287,13 +288,11 @@ class Controller:
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
     ):
-        available_datasets_per_data_model = (
-            self.get_all_available_datasets_per_data_model()
-        )
         validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             algorithms_specs=algorithms_specifications,
+            transformers_specs=transformers_specifications,
             node_landscape_aggregator=self._node_landscape_aggregator,
             smpc_enabled=self._smpc_enabled,
             smpc_optional=self._smpc_optional,
