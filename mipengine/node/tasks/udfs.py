@@ -30,7 +30,7 @@ from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
 from mipengine.udfgen import FlowUdfArg
-from mipengine.udfgen import UdfGenerator
+from mipengine.udfgen import get_udfgenerator
 from mipengine.udfgen import udf
 from mipengine.udfgen.udfgen_DTOs import UDFGenResult
 from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
@@ -270,17 +270,7 @@ def _generate_udf_statements(
     # min_row_count is necessary when an algorithm needs it in the UDF
     min_row_count = node_config.privacy.minimum_row_count
 
-    # outputlen is the number of UDF outputs, we need it to create an
-    # equal number of output names before calling the UDF generator
-    outputlen = len(udf.registry[func_name].output_types)
-
-    # A UDF may produce more than one table results, so we create a
-    # list of one or more output table names
-    output_names = _make_output_table_names(outputlen, node_id, context_id, command_id)
-
-    # UDF generation
-    # --------------
-    udfgen = UdfGenerator(
+    udfgen = get_udfgenerator(
         udfregistry=udf.registry,
         func_name=func_name,
         flowargs=flowargs,
@@ -290,6 +280,16 @@ def _generate_udf_statements(
         output_schema=output_schema,
         min_row_count=min_row_count,
     )
+    # outputnum is the number of UDF outputs, we need it to create an
+    # equal number of output names before calling the UDF generator
+    outputnum = udfgen.num_outputs
+
+    # A UDF may produce more than one table results, so we create a
+    # list of one or more output table names
+    output_names = _make_output_table_names(outputnum, node_id, context_id, command_id)
+
+    # UDF generation
+    # --------------
     udf_definition = udfgen.get_definition(udf_name, output_names)
     udf_exec_stmt = udfgen.get_exec_stmt(udf_name, output_names)
     udf_results = udfgen.get_results(output_names)

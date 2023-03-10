@@ -327,12 +327,13 @@ from mipengine.udfgen.typeinference import infer_output_type
 from mipengine.udfgen.udfgen_DTOs import UDFGenResult
 from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
 from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
+from mipengine.udfgen.udfgenerator import UdfGenerator
 
 LiteralValue = Union[Number, str, list, dict]
 FlowUdfArg = Union[TableInfo, LiteralValue, SMPCTablesInfo]
 
 
-class UdfGenerator:
+class PyUdfGenerator(UdfGenerator):
     """Generator for MonetDB Python UDFs
 
     The generator operates starting from a python functions, decorated with the
@@ -390,7 +391,7 @@ class UdfGenerator:
         self.udf_args = self._get_udf_args(flowargs, flowkwargs)
 
     @functools.cached_property
-    def output_types(self) -> Tuple[OutputType, List[LoopbackOutputType]]:
+    def output_types(self) -> List[Union[OutputType, LoopbackOutputType]]:
         """Computes the UDF output type.
 
         There are three cases:
@@ -422,6 +423,10 @@ class UdfGenerator:
 
         # case: output types are known
         return self.funcparts.output_types
+
+    @property
+    def num_outputs(self) -> int:
+        return len(self.output_types)
 
     def get_definition(
         self,
