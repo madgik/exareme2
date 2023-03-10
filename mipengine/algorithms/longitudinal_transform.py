@@ -1,4 +1,5 @@
 from mipengine.algorithms.base_classes.transformer import Transformer
+from mipengine.algorithms.specifications.algorithm_specification import AlgorithmName
 from mipengine.algorithms.specifications.parameter_specification import (
     ParameterEnumSpecification,
 )
@@ -10,11 +11,16 @@ from mipengine.algorithms.specifications.parameter_specification import (
 )
 from mipengine.algorithms.specifications.parameter_specification import ParameterType
 from mipengine.algorithms.specifications.transformer_specification import (
+    TransformerName,
+)
+from mipengine.algorithms.specifications.transformer_specification import (
     TransformerSpecification,
 )
 
 
-class LongitudinalTransformation(Transformer, stepname="longitudinal_transform"):
+class LongitudinalTransformation(
+    Transformer, stepname=TransformerName.LONGITUDINAL_TRANSFORM.value
+):
     @classmethod
     def get_specification(cls):
         return TransformerSpecification(
@@ -57,4 +63,11 @@ class LongitudinalTransformation(Transformer, stepname="longitudinal_transform")
                     ),
                 ),
             },
+            compatible_algorithms=[
+                AlgorithmName.LINEAR_REGRESSION,
+                AlgorithmName.LINEAR_REGRESSION_CV,
+                AlgorithmName.LOGISTIC_REGRESSION,
+                AlgorithmName.ANOVA_ONEWAY,
+                AlgorithmName.ANOVA,
+            ],
         )

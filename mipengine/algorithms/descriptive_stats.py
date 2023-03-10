@@ -37,6 +37,7 @@ from pydantic import BaseModel
 
 from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications.algorithm_specification import AlgorithmName
 from mipengine.algorithms.specifications.algorithm_specification import (
     AlgorithmSpecification,
 )
@@ -101,7 +102,9 @@ class Result(BaseModel):
     model_based: List[Variable]
 
 
-class DescriptiveStatisticsAlgorithm(Algorithm, stepname="descriptive_stats"):
+class DescriptiveStatisticsAlgorithm(
+    Algorithm, stepname=AlgorithmName.DESCRIPTIVE_STATS.value
+):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(

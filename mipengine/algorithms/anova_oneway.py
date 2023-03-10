@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications.algorithm_specification import AlgorithmName
 from mipengine.algorithms.specifications.algorithm_specification import (
     AlgorithmSpecification,
 )
@@ -34,7 +35,7 @@ class AnovaResult(BaseModel):
     ci_info: dict
 
 
-class AnovaOneWayAlgorithm(Algorithm, stepname="anova_oneway"):
+class AnovaOneWayAlgorithm(Algorithm, stepname=AlgorithmName.ANOVA_ONEWAY.value):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(

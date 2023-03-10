@@ -9,6 +9,7 @@ from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import FormulaTransformer
 from mipengine.algorithms.preprocessing import relation_to_vector
+from mipengine.algorithms.specifications.algorithm_specification import AlgorithmName
 from mipengine.algorithms.specifications.algorithm_specification import (
     AlgorithmSpecification,
 )
@@ -37,7 +38,7 @@ class AnovaResult(BaseModel):
     f_pvalue: List[Optional[float]]
 
 
-class AnovaTwoWay(Algorithm, stepname="anova"):
+class AnovaTwoWay(Algorithm, stepname=AlgorithmName.ANOVA.value):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(

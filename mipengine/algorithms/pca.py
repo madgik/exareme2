@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications.algorithm_specification import AlgorithmName
 from mipengine.algorithms.specifications.algorithm_specification import (
     AlgorithmSpecification,
 )
@@ -33,7 +34,7 @@ class PCAResult(BaseModel):
     eigenvectors: List[List[float]]
 
 
-class PCAAlgorithm(Algorithm, stepname="pca"):
+class PCAAlgorithm(Algorithm, stepname=AlgorithmName.PCA.value):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(

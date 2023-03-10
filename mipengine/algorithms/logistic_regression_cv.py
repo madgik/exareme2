@@ -13,6 +13,7 @@ from mipengine.algorithms.metrics import roc_curve
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import LabelBinarizer
+from mipengine.algorithms.specifications.algorithm_specification import AlgorithmName
 from mipengine.algorithms.specifications.algorithm_specification import (
     AlgorithmSpecification,
 )
@@ -38,7 +39,9 @@ from mipengine.algorithms.specifications.parameter_specification import (
 from mipengine.algorithms.specifications.parameter_specification import ParameterType
 
 
-class LogisticRegressionCVAlgorithm(Algorithm, stepname="logistic_regression_cv"):
+class LogisticRegressionCVAlgorithm(
+    Algorithm, stepname=AlgorithmName.LOGISTIC_REGRESSION_CV.value
+):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(

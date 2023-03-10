@@ -9,6 +9,7 @@ from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import relation_to_vector
+from mipengine.algorithms.specifications.algorithm_specification import AlgorithmName
 from mipengine.algorithms.specifications.algorithm_specification import (
     AlgorithmSpecification,
 )
@@ -42,7 +43,9 @@ class CVLinearRegressionResult(BaseModel):
     mean_abs_error: BasicStats
 
 
-class LinearRegressionCVAlgorithm(Algorithm, stepname="linear_regression_cv"):
+class LinearRegressionCVAlgorithm(
+    Algorithm, stepname=AlgorithmName.LINEAR_REGRESSION_CV.value
+):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(

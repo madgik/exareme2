@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications.algorithm_specification import AlgorithmName
 from mipengine.algorithms.specifications.algorithm_specification import (
     AlgorithmSpecification,
 )
@@ -48,7 +49,9 @@ class HistogramResult1(BaseModel):
     histogram: List[Histogram]
 
 
-class MultipleHistogramsAlgorithm(Algorithm, stepname="multiple_histograms"):
+class MultipleHistogramsAlgorithm(
+    Algorithm, stepname=AlgorithmName.MULTIPLE_HISTOGRAMS.value
+):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(

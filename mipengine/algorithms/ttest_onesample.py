@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications.algorithm_specification import AlgorithmName
 from mipengine.algorithms.specifications.algorithm_specification import (
     AlgorithmSpecification,
 )
@@ -46,7 +47,7 @@ class TtestResult(BaseModel):
     cohens_d: float
 
 
-class OnesampleTTestAlgorithm(Algorithm, stepname="ttest_onesample"):
+class OnesampleTTestAlgorithm(Algorithm, stepname=AlgorithmName.TTEST_ONESAMPLE.value):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(

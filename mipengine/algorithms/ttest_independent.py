@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications.algorithm_specification import AlgorithmName
 from mipengine.algorithms.specifications.algorithm_specification import (
     AlgorithmSpecification,
 )
@@ -44,7 +45,9 @@ class TtestResult(BaseModel):
     cohens_d: float
 
 
-class IndependentTTestAlgorithm(Algorithm, stepname="ttest_independent"):
+class IndependentTTestAlgorithm(
+    Algorithm, stepname=AlgorithmName.TTEST_INDEPENDENT.value
+):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(

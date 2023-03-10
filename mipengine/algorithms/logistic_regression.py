@@ -9,6 +9,7 @@ from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import LabelBinarizer
+from mipengine.algorithms.specifications.algorithm_specification import AlgorithmName
 from mipengine.algorithms.specifications.algorithm_specification import (
     AlgorithmSpecification,
 )
@@ -44,7 +45,9 @@ TOL = 1e-4  # tolerance for stopping criterion
 ALPHA = 0.05  # alpha level for coefficient confidence intervals
 
 
-class LogisticRegressionAlgorithm(Algorithm, stepname="logistic_regression"):
+class LogisticRegressionAlgorithm(
+    Algorithm, stepname=AlgorithmName.LOGISTIC_REGRESSION.value
+):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from mipengine.algorithms.base_classes.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications.algorithm_specification import AlgorithmName
 from mipengine.algorithms.specifications.algorithm_specification import (
     AlgorithmSpecification,
 )
@@ -38,7 +39,9 @@ class PearsonResult(BaseModel):
     ci_lo: dict
 
 
-class PearsonCorrelationAlgorithm(Algorithm, stepname="pearson_correlation"):
+class PearsonCorrelationAlgorithm(
+    Algorithm, stepname=AlgorithmName.PEARSON_CORRELATION.value
+):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
