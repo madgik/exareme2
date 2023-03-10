@@ -332,7 +332,7 @@ LiteralValue = Union[Number, str, list, dict]
 FlowUdfArg = Union[TableInfo, LiteralValue, SMPCTablesInfo]
 
 
-class UdfGenerator:
+class PyUdfGenerator:
     """Generator for MonetDB Python UDFs
 
     The generator operates starting from a python functions, decorated with the
@@ -349,6 +349,7 @@ class UdfGenerator:
         self,
         udfregistry: UdfRegistry,
         func_name: str,
+        *,
         flowargs: List[FlowUdfArg],
         flowkwargs: Dict[str, FlowUdfArg],
         smpc_used: bool = False,

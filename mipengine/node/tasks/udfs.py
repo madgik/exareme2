@@ -272,7 +272,10 @@ def _generate_udf_statements(
 
     # outputlen is the number of UDF outputs, we need it to create an
     # equal number of output names before calling the UDF generator
-    outputlen = len(udf.registry[func_name].output_types)
+    if func_name in udf.registry:
+        outputlen = len(udf.registry[func_name].output_types)
+    else:
+        outputlen = 1  # AdhocUdfGenerator case
 
     # A UDF may produce more than one table results, so we create a
     # list of one or more output table names

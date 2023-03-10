@@ -30,8 +30,8 @@ from mipengine.udfgen.iotypes import tensor
 from mipengine.udfgen.iotypes import transfer
 from mipengine.udfgen.iotypes import udf_logger
 from mipengine.udfgen.py_udfgenerator import FlowArgsToUdfArgsConverter
+from mipengine.udfgen.py_udfgenerator import PyUdfGenerator
 from mipengine.udfgen.py_udfgenerator import UDFBadCall
-from mipengine.udfgen.py_udfgenerator import UdfGenerator
 from mipengine.udfgen.py_udfgenerator import copy_types_from_udfargs
 from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
 from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
@@ -311,7 +311,7 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
         posargs = [TensorArg("table_name", dtype=int, ndims=1)]
         keywordargs = {"z": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -333,7 +333,7 @@ class TestUDFGen_LoggerArgument_provided_in_pos_args(TestUDFGenBase):
     def test_get_udf_templates(self, udfregistry, funcname):
         posargs = [TensorArg("table_name", dtype=int, ndims=1), LiteralArg(1)]
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -358,7 +358,7 @@ class TestUDFGen_LoggerArgument_provided_in_kw_args(TestUDFGenBase):
         posargs = [TensorArg("table_name", dtype=int, ndims=1)]
         keywordargs = {"logger": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -402,7 +402,7 @@ class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -446,7 +446,7 @@ class TestUDFGen_InvalidUDFArgs_TensorTableInTransferArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -490,7 +490,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
             )
         ]
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -524,7 +524,7 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
         ]
 
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -568,7 +568,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
             )
         ]
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -615,7 +615,7 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
 
         keywordargs = {}
         with pytest.raises(ValueError) as e:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -704,7 +704,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -824,7 +824,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -921,7 +921,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1042,7 +1042,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1183,7 +1183,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1303,7 +1303,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1397,7 +1397,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1492,7 +1492,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1590,7 +1590,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1663,7 +1663,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1759,7 +1759,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1855,7 +1855,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1951,7 +1951,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2062,7 +2062,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2190,7 +2190,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2327,7 +2327,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2420,7 +2420,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2513,7 +2513,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2623,7 +2623,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2716,7 +2716,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2826,7 +2826,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2937,7 +2937,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3066,7 +3066,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3198,7 +3198,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3337,7 +3337,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3481,7 +3481,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3631,7 +3631,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3759,7 +3759,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3911,7 +3911,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -4046,7 +4046,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -4227,7 +4227,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -4342,7 +4342,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -4478,7 +4478,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -4579,7 +4579,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -4647,7 +4647,7 @@ FROM
         expected_udf_outputs,
     ):
         output_schema = [("a", DType.INT), ("b", DType.FLOAT)]
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=[],
@@ -4692,7 +4692,7 @@ LANGUAGE PYTHON
         funcname,
         expected_udfdef,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=[],
