@@ -6,10 +6,8 @@ from quart import request
 
 from mipengine.controller import config as controller_config
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.algorithm_specifications_dtos import (
-    algorithm_specifications_dtos,
-)
 from mipengine.controller.api.loggers import loggers
+from mipengine.controller.api.specifications_dtos import algorithm_specifications_dtos
 from mipengine.controller.api.validator import BadRequest
 from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.cleaner import InitializationParams as CleanerInitParams

@@ -64,10 +64,10 @@ class LongitudinalTransformation(
                 ),
             },
             compatible_algorithms=[
-                AlgorithmName.LINEAR_REGRESSION,
-                AlgorithmName.LINEAR_REGRESSION_CV,
-                AlgorithmName.LOGISTIC_REGRESSION,
-                AlgorithmName.ANOVA_ONEWAY,
-                AlgorithmName.ANOVA,
+                AlgorithmName.LINEAR_REGRESSION.value,
+                AlgorithmName.LINEAR_REGRESSION_CV.value,
+                AlgorithmName.LOGISTIC_REGRESSION.value,
+                AlgorithmName.ANOVA_ONEWAY.value,
+                AlgorithmName.ANOVA.value,
             ],
         )
