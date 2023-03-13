@@ -8,7 +8,7 @@ from mipengine.node.monetdb_interface.common_actions import (
 )
 from mipengine.node.monetdb_interface.guard import is_valid_table_schema
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
-from mipengine.node.monetdb_interface.monet_db_facade import db_execute
+from mipengine.node.monetdb_interface.monet_db_facade import db_execute_query
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 
@@ -20,7 +20,7 @@ def get_table_names(context_id: str) -> List[str]:
 @sql_injection_guard(table_name=str.isidentifier, table_schema=is_valid_table_schema)
 def create_table(table_name: str, table_schema: TableSchema):
     columns_schema = convert_schema_to_sql_query_format(table_schema)
-    db_execute(f"CREATE TABLE {table_name} ( {columns_schema} )")
+    db_execute_query(f"CREATE TABLE {table_name} ( {columns_schema} )")
 
 
 @sql_injection_guard(table_name=str.isidentifier, table_values=None)
@@ -39,4 +39,4 @@ def insert_data_to_table(
     )
 
     sql_clause = f"INSERT INTO {table_name} VALUES {values}"
-    db_execute(query=sql_clause, parameters=list(chain(*table_values)))
+    db_execute_query(query=sql_clause, parameters=list(chain(*table_values)))

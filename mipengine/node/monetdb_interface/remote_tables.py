@@ -7,7 +7,7 @@ from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.guard import is_socket_address
 from mipengine.node.monetdb_interface.guard import is_valid_table_schema
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
-from mipengine.node.monetdb_interface.monet_db_facade import db_execute
+from mipengine.node.monetdb_interface.monet_db_facade import db_execute_query
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 
@@ -31,7 +31,7 @@ def create_remote_table(
     password: str,
 ):
     columns_schema = convert_schema_to_sql_query_format(schema)
-    db_execute(
+    db_execute_query(
         f"""
         CREATE REMOTE TABLE {username}.{name}
         ( {columns_schema}) ON 'mapi:monetdb://{monetdb_socket_address}/db/{username}/{name}'

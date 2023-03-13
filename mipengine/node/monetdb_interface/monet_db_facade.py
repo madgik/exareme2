@@ -35,15 +35,7 @@ def db_execute_and_fetchall(query: str, parameters=None) -> List:
     return _execute_and_fetchall(db_execution_dto=db_execution_dto)
 
 
-# TODO:https://team-1617704806227.atlassian.net/browse/MIP-763
-def db_execute(query: str, parameters=None):
-    if query.startswith(UDF_EXECUTION_QUERY_PREFIX):
-        _db_execute_udf(query, parameters)
-    else:
-        _db_execute_query(query, parameters)
-
-
-def _db_execute_query(query: str, parameters=None):
+def db_execute_query(query: str, parameters=None):
     query_execution_timeout = node_config.celery.run_udf_task_timeout
     db_execution_dto = _DBExecutionDTO(
         query=query, parameters=parameters, timeout=query_execution_timeout
@@ -51,7 +43,7 @@ def _db_execute_query(query: str, parameters=None):
     _execute(db_execution_dto=db_execution_dto, lock=query_execution_lock)
 
 
-def _db_execute_udf(query: str, parameters=None):
+def db_execute_udf(query: str, parameters=None):
     # Check if there is only one query
     split_queries = [query for query in query.strip().split(";") if query]
     if len(split_queries) > 1:
