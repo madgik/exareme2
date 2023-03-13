@@ -11,7 +11,7 @@ from mipengine.node.monetdb_interface.common_actions import get_table_names
 from mipengine.node.monetdb_interface.guard import is_list_of_identifiers
 from mipengine.node.monetdb_interface.guard import is_valid_table_schema
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
-from mipengine.node.monetdb_interface.monet_db_facade import db_execute
+from mipengine.node.monetdb_interface.monet_db_facade import db_execute_query
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 
@@ -40,7 +40,7 @@ def create_merge_table(
         merge_table_query += f"ALTER TABLE {table_name} ADD TABLE {name.lower()}; "
 
     try:
-        db_execute(merge_table_query)
+        db_execute_query(merge_table_query)
     except pymonetdb.exceptions.ProgrammingError or pymonetdb.exceptions.OperationalError as exc:
         if str(exc).startswith("3F000"):
             raise IncompatibleSchemasMergeException(merge_table_names)

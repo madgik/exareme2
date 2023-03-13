@@ -7,7 +7,7 @@ from mipengine import DType
 from mipengine.node.monetdb_interface.common_actions import get_table_data
 from mipengine.node.monetdb_interface.merge_tables import create_merge_table
 from mipengine.node.monetdb_interface.monet_db_facade import _create_idempotent_query
-from mipengine.node.monetdb_interface.monet_db_facade import _db_execute_udf
+from mipengine.node.monetdb_interface.monet_db_facade import db_execute_udf
 from mipengine.node.monetdb_interface.remote_tables import create_remote_table
 from mipengine.node.monetdb_interface.tables import create_table
 from mipengine.node.monetdb_interface.tables import insert_data_to_table
@@ -229,7 +229,7 @@ def test_create_merge_table_if_not_exists(
 
 def test_udf_execution_query_should_contain_only_one_query():
     with pytest.raises(ValueError):
-        _db_execute_udf(query="INSERT INTO table1 func1();INSERT INTO table2 func2();")
+        db_execute_udf(query="INSERT INTO table1 func1();INSERT INTO table2 func2();")
 
 
 def get_idempotent_query_cases():

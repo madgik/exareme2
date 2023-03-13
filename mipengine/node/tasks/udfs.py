@@ -90,7 +90,7 @@ def run_udf(
     if output_schema is not None:
         output_schema = _convert_output_schema(output_schema)
 
-    udf_statements, udf_results = _generate_udf_statements(
+    udf_definitions, udf_exec_stmt, udf_results = _generate_udf_statements(
         request_id=request_id,
         command_id=command_id,
         context_id=context_id,
@@ -101,7 +101,7 @@ def run_udf(
         output_schema=output_schema,
     )
 
-    udfs.run_udf(udf_statements)
+    udfs.run_udf(udf_definitions, udf_exec_stmt)
 
     return udf_results.json()
 
@@ -153,7 +153,7 @@ def get_run_udf_query(
     positional_args = NodeUDFPosArguments.parse_raw(positional_args_json)
     keyword_args = NodeUDFKeyArguments.parse_raw(keyword_args_json)
 
-    udf_statements, _ = _generate_udf_statements(
+    udf_definitions, udf_exec_stmt, _ = _generate_udf_statements(
         request_id=request_id,
         command_id=command_id,
         context_id=context_id,
@@ -163,7 +163,7 @@ def get_run_udf_query(
         use_smpc=use_smpc,
     )
 
-    return udf_statements
+    return udf_definitions + [udf_exec_stmt]
 
 
 def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
@@ -258,7 +258,7 @@ def _generate_udf_statements(
     keyword_args: NodeUDFKeyArguments,
     use_smpc: bool,
     output_schema,
-) -> Tuple[List[str], NodeUDFResults]:
+) -> Tuple[List[str], str, NodeUDFResults]:
     # Data needed for UDF generation
     # ------------------------------
     flowargs, flowkwargs = _convert_nodeudf_to_flow_args(positional_args, keyword_args)
@@ -295,15 +295,14 @@ def _generate_udf_statements(
     udf_results = udfgen.get_results(output_names)
 
     # Create list of udf statements
-    udf_statements = [res.create_query for res in udf_results]
-    udf_statements.append(udf_definition)
-    udf_statements.append(udf_exec_stmt)
+    udf_definitions = [res.create_query for res in udf_results]
+    udf_definitions.append(udf_definition)
 
     # Convert results
     results = [_convert_result(res) for res in udf_results]
     results_dto = NodeUDFResults(results=results)
 
-    return udf_statements, results_dto
+    return udf_definitions, udf_exec_stmt, results_dto
 
 
 def _make_output_table_names(

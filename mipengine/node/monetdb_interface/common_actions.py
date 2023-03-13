@@ -7,8 +7,8 @@ from mipengine import DType
 from mipengine.exceptions import TablesNotFound
 from mipengine.node.monetdb_interface.guard import is_datamodel
 from mipengine.node.monetdb_interface.guard import sql_injection_guard
-from mipengine.node.monetdb_interface.monet_db_facade import db_execute
 from mipengine.node.monetdb_interface.monet_db_facade import db_execute_and_fetchall
+from mipengine.node.monetdb_interface.monet_db_facade import db_execute_query
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
@@ -361,7 +361,7 @@ def drop_db_artifacts_by_context_id(context_id: str):
     udfs_deletion_query = _get_drop_udfs_query(function_names)
     table_names_by_type = _get_tables_by_type(context_id)
     tables_deletion_query = _get_drop_tables_query(table_names_by_type)
-    db_execute(udfs_deletion_query + tables_deletion_query)
+    db_execute_query(udfs_deletion_query + tables_deletion_query)
 
 
 def _convert_monet2mip_table_type(monet_table_type: int) -> TableType:
