@@ -113,7 +113,7 @@ class Cleaner:
     @classmethod
     def _delete_instance(cls):
         """
-        Delete the NodeLandscapeAggregator instance.
+        Delete the Cleaner instance.
         """
         if hasattr(cls, "instance"):
             del cls.instance
