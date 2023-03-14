@@ -187,6 +187,7 @@ class Controller:
             var_filters=algorithm_request_dto.inputdata.filters,
             algorithm_parameters=algorithm_request_dto.parameters,
             metadata=metadata,
+            datasets=algorithm_request_dto.inputdata.datasets,
         )
         algorithm = algorithm_classes[algorithm_name](initialization_params=init_params)
 
