@@ -8,6 +8,13 @@ from pydantic import BaseModel
 from sklearn.metrics.pairwise import euclidean_distances
 
 from mipengine.algorithm_result_DTOs import TabularDataResult
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.table_data_DTOs import ColumnDataFloat
@@ -37,12 +44,64 @@ class KmeansResult(BaseModel):
 
 
 class KMeansAlgorithm(Algorithm, algname="kmeans"):
-    def get_variable_groups(self):
-        return [self.executor.y_variables]
+    @classmethod
+    def get_specification(cls):
+        return AlgorithmSpecification(
+            name=cls.algname,
+            desc="K-Means",
+            label="K-Means",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="y",
+                    desc="Features",
+                    types=[InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=True,
+                ),
+            ),
+            parameters={
+                "k": ParameterSpecification(
+                    label="k",
+                    desc="k",
+                    types=[ParameterType.INT],
+                    notblank=True,
+                    multiple=False,
+                    default=4,
+                    min=1,
+                    max=100,
+                ),
+                "maxiter": ParameterSpecification(
+                    label="maxiter",
+                    desc="maxiter",
+                    types=[ParameterType.INT],
+                    notblank=True,
+                    multiple=False,
+                    default=1,
+                    min=1,
+                    max=100,
+                ),
+                "tol": ParameterSpecification(
+                    label="tol",
+                    desc="tol",
+                    types=[ParameterType.REAL],
+                    notblank=True,
+                    multiple=False,
+                    default=0.0001,
+                    min=0.0,
+                    max=1.0,
+                ),
+            },
+        )
 
-    def run(self):
-        local_run = self.executor.run_udf_on_local_nodes
-        global_run = self.executor.run_udf_on_global_node
+    def get_variable_groups(self):
+        # return [self.executor.y_variables]
+        return [self.variables.y]
+
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
         # X_relation = algo_interface.initial_view_tables["x"]
 
@@ -50,11 +109,11 @@ class KMeansAlgorithm(Algorithm, algname="kmeans"):
         #    variable_groups=[algo_interface.y_variables], dropna=True
         # )
 
-        [X_relation] = self.executor.data_model_views
+        [X_relation] = engine.data_model_views
 
-        n_clusters = self.executor.algorithm_parameters["k"]
-        tol = self.executor.algorithm_parameters["tol"]
-        maxiter = self.executor.algorithm_parameters["maxiter"]
+        n_clusters = self.algorithm_parameters["k"]
+        tol = self.algorithm_parameters["tol"]
+        maxiter = self.algorithm_parameters["maxiter"]
 
         X_not_null = local_run(
             func=relation_to_matrix,
