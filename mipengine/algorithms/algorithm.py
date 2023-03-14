@@ -24,6 +24,7 @@ class InitializationParams(BaseModel):
     var_filters: Optional[dict] = None
     algorithm_parameters: Optional[Dict[str, Any]] = None
     metadata: Dict[str, dict]
+    datasets: List[str]
 
     class Config:
         arbitrary_types_allowed = True
@@ -86,6 +87,10 @@ class Algorithm(ABC):
             The variables' metadata
         """
         return self._initialization_params.metadata
+
+    @property
+    def datasets(self) -> List[str]:
+        return self._initialization_params.datasets
 
     @abstractmethod
     def get_variable_groups(self) -> List[List[str]]:
