@@ -23,8 +23,8 @@ vhost = "user_vhost"
 ip = "172.17.0.1"
 port = 61000
 database = "db"
-username = "monetdb"
-password = "monetdb"
+username = "executor"
+password = "executor"
 
 [smpc]
 enabled = false

@@ -12,6 +12,7 @@ from mipengine.controller.node_landscape_aggregator import _log_dataset_changes
 from mipengine.controller.node_landscape_aggregator import _log_node_changes
 from mipengine.node_info_DTOs import NodeInfo
 from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_PORT
+from tests.standalone_tests.conftest import MonetDBConfigurations
 
 LOGFILE_NAME = "test_show_controller_audit_entries.out"
 
@@ -23,7 +24,8 @@ def test_show_node_db_actions(monetdb_localnodetmp, load_data_localnodetmp):
     Load data into the db and then remove datamodel and datasets.
     Assert that the logs produced with federation_info.py contain these changes.
     """
-    cmd = f'mipdb delete-data-model dementia -v "0.1" --port {MONETDB_LOCALNODETMP_PORT} --force'
+    monet_db_confs = MonetDBConfigurations(port=MONETDB_LOCALNODETMP_PORT)
+    cmd = f'mipdb delete-data-model dementia -v "0.1" {monet_db_confs.convert_to_mipdb_format()} --force'
     res = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
@@ -57,18 +59,7 @@ def patch_controller_logger_config(controller_config_dict_mock):
         yield
 
 
-@pytest.fixture(scope="session")
-def patch_logger():
-    with patch(
-        "mipengine.controller.node_landscape_aggregator.logger",
-        init_logger("BACKGROUND"),
-    ):
-        yield
-
-
-def test_show_controller_audit_entries(
-    patch_controller_logger_config, capsys, patch_logger
-):
+def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
     logger = init_logger("BACKGROUND")
     _log_node_changes(
         old_nodes=[
@@ -91,14 +82,17 @@ def test_show_controller_audit_entries(
                 db_port=61002,
             )
         ],
+        logger=logger,
     )
     _log_data_model_changes(
         old_data_models={"dementia:0.1": ""},
         new_data_models={"tbi:0.1": ""},
+        logger=logger,
     )
     _log_dataset_changes(
         old_datasets_locations={"dementia:0.1": {"edsd": "localnode1"}},
         new_datasets_locations={"tbi:0.1": {"dummy_tbi": "localnode2"}},
+        logger=logger,
     )
     log_experiment_execution(
         logger=logger,

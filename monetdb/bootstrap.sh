@@ -18,6 +18,8 @@ then
   monetdb create db
   monetdb set nclients=$MONETDB_NCLIENTS db
   monetdb set embedpy3=true db
+  # 'monetdb set mal_for_all=yes db' is needed to be able to access tables on a remote database with user that is not the master user.
+  monetdb set mal_for_all=yes db
   monetdb release db
   monetdb start db
   echo 'Database initialized.'
@@ -35,9 +37,13 @@ else
   echo 'Starting the already existing database...'
   monetdbd start $MONETDB_STORAGE
   monetdb set nclients=$MONETDB_NCLIENTS db
+  monetdb set mal_for_all=yes db
   monetdb start db
   echo 'Database restarted.'
 fi
 
+./configure_users.sh
+./configure_monit.sh
+
 echo 'MonetDB merovingian logs:'
-tail -fn +1 $MONETDB_STORAGE/merovingian.log
+tail -fn +1 $MONETDB_STORAGE/merovingian.log -fn +1 $MONIT_CONFIG_FOLDER/monit.log

@@ -138,6 +138,7 @@ def create_configs(c):
 
         node_config["monetdb"]["ip"] = deployment_config["ip"]
         node_config["monetdb"]["port"] = node["monetdb_port"]
+        node_config["monetdb"]["password"] = node["monetdb_password"]
 
         node_config["rabbitmq"]["ip"] = deployment_config["ip"]
         node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
@@ -330,7 +331,7 @@ def create_monetdb(
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py -v {TEST_DATA_FOLDER}:{TEST_DATA_FOLDER} --name {container_name} --memory={monetdb_memory_limit}m {image}"""
+        cmd = f"""docker run -d -P -p {container_ports} -e SOFT_RESTART_MEMORY_LIMIT={monetdb_memory_limit * 0.7} -e HARD_RESTART_MEMORY_LIMIT={monetdb_memory_limit * 0.85}  -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py -v {TEST_DATA_FOLDER}:{TEST_DATA_FOLDER} --name {container_name} --memory={monetdb_memory_limit}m {image}"""
         run(c, cmd)
 
 
@@ -347,7 +348,7 @@ def init_monetdb(c, port):
             f"Initializing MonetDB with mipdb in port: {port}...",
             Level.HEADER,
         )
-        cmd = f"""poetry run mipdb init --ip 127.0.0.1 --port {port}"""
+        cmd = f"""poetry run mipdb init --ip 127.0.0.1 {get_monetdb_configs_in_mipdb_format(port)}"""
         run(c, cmd)
 
 
@@ -381,9 +382,9 @@ def load_data(c, use_sockets=False, port=None):
 
     if len(local_node_ports) == 1:
         port = local_node_ports[0]
-        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --copy_from_file {not use_sockets} --port {port} "
+        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)}"
         message(
-            f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {port}...",
+            f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {local_node_ports[0]}...",
             Level.HEADER,
         )
         run(c, cmd)
@@ -406,7 +407,7 @@ def load_data(c, use_sockets=False, port=None):
                 f"Loading data model '{data_model_code}:{data_model_version}' metadata in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-data-model {cdes_file} --port {port} "
+            cmd = f"poetry run mipdb add-data-model {cdes_file} {get_monetdb_configs_in_mipdb_format(port)}"
             run(c, cmd)
 
         # Load only the 1st csv of each dataset "with 0 suffix" in the 1st node
@@ -423,7 +424,7 @@ def load_data(c, use_sockets=False, port=None):
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} --port {port} "
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)}"
             run(c, cmd)
 
         # Load the data model's remaining csvs in the rest of the nodes with round-robin fashion
@@ -444,8 +445,18 @@ def load_data(c, use_sockets=False, port=None):
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} --port {port} "
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)}"
             run(c, cmd)
+
+
+def get_monetdb_configs_in_mipdb_format(port):
+    return (
+        f"--ip 127.0.0.1 "
+        f"--port {port} "
+        f"--username admin "
+        f"--password admin "
+        f"--db_name db"
+    )
 
 
 @task(iterable=["node"])

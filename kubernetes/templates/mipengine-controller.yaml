@@ -82,8 +82,8 @@ spec:
         ports:
           - containerPort: 6379
         env:
-          - name: REDIS_REPLICATION_MODE
-            value: "master"
+        - name: REDIS_REPLICATION_MODE
+          value: "master"
 
       - name: smpc-coordinator
         image: {{ .Values.smpc.image }}

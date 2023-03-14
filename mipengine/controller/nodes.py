@@ -4,7 +4,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from mipengine.controller.algorithm_execution_tasks_handler import (
+from mipengine.controller.algorithm_execution_engine_tasks_handler import (
     INodeAlgorithmTasksHandler,
 )
 from mipengine.node_tasks_DTOs import NodeSMPCDTO

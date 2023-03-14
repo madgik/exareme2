@@ -70,10 +70,8 @@ class TableInfo(ImmutableBaseModel):
 
     @property
     def _tablename_parts(self) -> Tuple[str, str, str, str]:
-        table_type, node_id, context_id, command_id, command_subid = self.name.split(
-            "_"
-        )
-        return node_id, context_id, command_id, command_subid
+        table_type, node_id, context_id, command_id, result_id = self.name.split("_")
+        return node_id, context_id, command_id, result_id
 
     @property
     def node_id(self) -> str:
@@ -91,9 +89,9 @@ class TableInfo(ImmutableBaseModel):
         return command_id
 
     @property
-    def command_subid(self) -> str:
-        _, _, _, command_subid = self._tablename_parts
-        return command_subid
+    def result_id(self) -> str:
+        _, _, _, result_id = self._tablename_parts
+        return result_id
 
     @property
     def name_without_node_id(self) -> str:
@@ -104,7 +102,7 @@ class TableInfo(ImmutableBaseModel):
             + "_"
             + self.command_id
             + "_"
-            + self.command_subid
+            + self.result_id
         )
 
 

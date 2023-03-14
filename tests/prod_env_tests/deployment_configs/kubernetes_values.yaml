@@ -12,7 +12,9 @@ max_concurrent_experiments: 32
 db:
   storage_location: /opt/mipengine/db
   csvs_location: /opt/mipengine/csvs
-  max_memory: 1024Mi    # k8s memory limit
+  max_memory: 1024    # k8s memory limit in megabytes
+  percentage_soft_memory_limit: 65
+  percentage_hard_memory_limit: 85
 
 controller:
   node_landscape_aggregator_update_interval: 20

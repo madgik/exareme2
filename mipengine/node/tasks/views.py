@@ -97,7 +97,7 @@ def create_data_model_views(
         create_data_model_view(
             context_id=context_id,
             command_id=command_id,
-            command_sub_id=str(count),
+            result_id=str(count),
             data_model=data_model,
             columns=view_columns,
             filters=filters,
@@ -110,7 +110,7 @@ def create_data_model_views(
 def create_data_model_view(
     context_id: str,
     command_id: str,
-    command_sub_id: str,
+    result_id: str,
     data_model: str,
     columns: List[str],
     filters: dict = None,
@@ -121,7 +121,7 @@ def create_data_model_view(
         node_id=node_config.identifier,
         context_id=context_id,
         command_id=command_id,
-        command_subid=command_sub_id,
+        result_id=result_id,
     )
     columns.insert(0, DATA_TABLE_PRIMARY_KEY)
 

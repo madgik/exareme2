@@ -15,7 +15,6 @@ from mipengine.udfgen.ast import UDFBodyStatements
 from mipengine.udfgen.ast import UDFLoopbackReturnStatements
 from mipengine.udfgen.ast import UDFReturnStatement
 from mipengine.udfgen.helpers import is_any_element_of_type
-from mipengine.udfgen.iotypes import MAIN_TABLE_PLACEHOLDER
 from mipengine.udfgen.iotypes import DictArg
 from mipengine.udfgen.iotypes import DictType
 from mipengine.udfgen.iotypes import InputType
@@ -76,7 +75,7 @@ class SecureTransferType(DictType, InputType, LoopbackOutputType):
 
     def get_secondary_return_stmt_template(self, tablename_placeholder) -> str:
         return (
-            '_conn.execute(f"INSERT INTO $'
+            '_conn.execute(f"INSERT INTO '
             + tablename_placeholder
             + " VALUES ('{{json.dumps({return_name})}}');\")"
         )
@@ -105,7 +104,7 @@ class SMPCSecureTransferType(SecureTransferType):
             sum_op_tmpl,
             min_op_tmpl,
             max_op_tmpl,
-        ) = get_smpc_table_template_names(MAIN_TABLE_PLACEHOLDER)
+        ) = get_smpc_tablename_placeholders("${{main_output_table_name}}")
         return_stmts.extend(
             self._get_secure_transfer_op_return_stmt_template(
                 self.sum_op, sum_op_tmpl, "sum_op"
@@ -133,9 +132,9 @@ class SMPCSecureTransferType(SecureTransferType):
             sum_op_tmpl,
             min_op_tmpl,
             max_op_tmpl,
-        ) = get_smpc_table_template_names(tablename_placeholder)
+        ) = get_smpc_tablename_placeholders(tablename_placeholder)
         return_stmts.append(
-            '_conn.execute(f"INSERT INTO $'
+            '_conn.execute(f"INSERT INTO '
             + template_tmpl
             + " VALUES ('{{json.dumps(template)}}');\")"
         )
@@ -163,7 +162,7 @@ class SMPCSecureTransferType(SecureTransferType):
         if not op_enabled:
             return []
         return [
-            '_conn.execute(f"INSERT INTO $'
+            '_conn.execute(f"INSERT INTO '
             + table_name_tmpl
             + f" VALUES ('{{{{json.dumps({op_name})}}}}');\")"
         ]
@@ -201,7 +200,7 @@ class SMPCSecureTransferType(SecureTransferType):
         return obj
 
 
-def get_smpc_table_template_names(prefix: str):
+def get_smpc_tablename_placeholders(prefix: str):
     """
     This is used when a secure transfer is returned with smpc enabled.
     The secure_transfer is one output_type but needs to be broken into
@@ -209,9 +208,9 @@ def get_smpc_table_template_names(prefix: str):
     """
     return (
         prefix,
-        prefix + "_sum_op",
-        prefix + "_min_op",
-        prefix + "_max_op",
+        prefix + "sum",
+        prefix + "min",
+        prefix + "max",
     )
 
 
@@ -276,6 +275,7 @@ class UDFBodySMPC(UDFBody):
         main_return_type: OutputType,
         sec_return_names: List[str],
         sec_return_types: List[OutputType],
+        sec_output_table_names: List[str],
     ):
         all_types = (
             [arg.type for arg in table_args.values()]
@@ -313,6 +313,7 @@ class UDFBodySMPC(UDFBody):
             UDFLoopbackReturnStatements(
                 sec_return_names=sec_return_names,
                 sec_return_types=sec_return_types,
+                sec_output_table_names=sec_output_table_names,
             )
         )
         self.statements.append(UDFReturnStatement(main_return_name, main_return_type))

@@ -3,6 +3,13 @@ from typing import TypeVar
 import numpy
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
@@ -22,20 +29,58 @@ class PearsonResult(BaseModel):
 
 
 class PearsonCorrelationAlgorithm(Algorithm, algname="pearson_correlation"):
-    def get_variable_groups(self):
-        if self.executor.x_variables:
-            variable_groups = [self.executor.x_variables, self.executor.y_variables]
+    @classmethod
+    def get_specification(cls):
+        return AlgorithmSpecification(
+            name=cls.algname,
+            desc="Pearson Correlation",
+            label="Pearson Correlation",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="Variables",
+                    desc="Variables",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=True,
+                ),
+                x=InputDataSpecification(
+                    label="Covariates",
+                    desc="Covariates",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=False,
+                    multiple=True,
+                ),
+            ),
+            parameters={
+                "alpha": ParameterSpecification(
+                    label="Confidence level",
+                    desc="The confidence level α used in the calculation of the confidence intervals for the correlation coefficients.",
+                    types=[ParameterType.REAL],
+                    notblank=True,
+                    multiple=False,
+                    default=0.95,
+                    min=0.0,
+                    max=1.0,
+                ),
+            },
+        )
 
+    def get_variable_groups(self):
+        if self.variables.x:
+            variable_groups = [self.variables.x, self.variables.y]
         else:
-            variable_groups = [self.executor.y_variables, self.executor.y_variables]
+            variable_groups = [self.variables.y, self.variables.y]
         return variable_groups
 
-    def run(self):
-        local_run = self.executor.run_udf_on_local_nodes
-        global_run = self.executor.run_udf_on_global_node
-        alpha = self.executor.algorithm_parameters["alpha"]
+    def run(self, engine):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
+        alpha = self.algorithm_parameters["alpha"]
 
-        X_relation, Y_relation = self.executor.data_model_views
+        X_relation, Y_relation = engine.data_model_views
 
         local_transfers = local_run(
             func=local1,

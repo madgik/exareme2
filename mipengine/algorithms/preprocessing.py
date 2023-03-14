@@ -17,18 +17,16 @@ from mipengine.udfgen import udf
 
 # TODO rewrite DummyEncoder using FormulaTransformer
 class DummyEncoder:
-    def __init__(self, executor, intercept=True):
-        self._local_run = executor.run_udf_on_local_nodes
-        self._global_run = executor.run_udf_on_global_node
+    def __init__(self, engine, variables, metadata, intercept=True):
+        self._local_run = engine.run_udf_on_local_nodes
+        self._global_run = engine.run_udf_on_global_node
         self._categorical_vars = [
-            varname
-            for varname in executor.x_variables
-            if executor.metadata[varname]["is_categorical"]
+            varname for varname in variables.x if metadata[varname]["is_categorical"]
         ]
         self._numerical_vars = [
             varname
-            for varname in executor.x_variables
-            if not executor.metadata[varname]["is_categorical"]
+            for varname in variables.x
+            if not metadata[varname]["is_categorical"]
         ]
         self.intercept = intercept
         self.new_varnames = None
@@ -143,9 +141,9 @@ class LabelBinarizer:
         considered negative.
     """
 
-    def __init__(self, executor, positive_class):
-        self._local_run = executor.run_udf_on_local_nodes
-        self._global_run = executor.run_udf_on_global_node
+    def __init__(self, engine, positive_class):
+        self._local_run = engine.run_udf_on_local_nodes
+        self._global_run = engine.run_udf_on_global_node
         self.positive_class = positive_class
 
     def transform(self, y):
@@ -168,8 +166,8 @@ class LabelBinarizer:
         return result
 
 
-def relation_to_vector(rel, executor):
-    return executor.run_udf_on_local_nodes(
+def relation_to_vector(rel, engine):
+    return engine.run_udf_on_local_nodes(
         func=relation_to_vector_local_udf,
         keyword_args={"rel": rel},
         share_to_global=[False],
@@ -190,15 +188,15 @@ class KFold:
     more efficiently. However, the interface won't change.
     """
 
-    def __init__(self, executor, n_splits):
+    def __init__(self, engine, n_splits):
         """
         Parameters
         ----------
-        executor: _AlgorithmExecutionInterface
+        angine: AlgorithmExecutionEngine
         n_splits: int
         """
-        self._local_run = executor.run_udf_on_local_nodes
-        self._global_run = executor.run_udf_on_global_node
+        self._local_run = engine.run_udf_on_local_nodes
+        self._global_run = engine.run_udf_on_global_node
         self.n_splits = n_splits
 
     def split(self, X, y):
@@ -340,21 +338,19 @@ class FormulaTransformer:
     Documentation on how formulas work can be found in https://patsy.readthedocs.io/
     """
 
-    def __init__(self, executor, formula):
+    def __init__(self, engine, variables, metadata, formula):
         """
         Parameters
         ----------
-        executor : _AlgorithmExecutionInterface
-            Instance of algorithm execution interface.
+        engine : AlgorithmExecutionEngine
+            Instance of algorithm execution engine.
         formula : str
             R style model formula.
         """
-        self._local_run = executor.run_udf_on_local_nodes
-        self._global_run = executor.run_udf_on_global_node
+        self._local_run = engine.run_udf_on_local_nodes
+        self._global_run = engine.run_udf_on_global_node
         self._categorical_vars = [
-            varname
-            for varname in executor.x_variables
-            if executor.metadata[varname]["is_categorical"]
+            varname for varname in variables.x if metadata[varname]["is_categorical"]
         ]
         self._formula = formula
 
@@ -442,7 +438,8 @@ class FormulaTransformer:
         import pandas as pd
         from patsy import dmatrix
 
-        empty_df = pd.DataFrame(columns=old_column_names)
+        empty_data = {col: [] for col in old_column_names}
+        empty_df = pd.DataFrame(data=empty_data)
         for var, categories in enums.items():
             empty_df[var] = pd.Categorical(empty_df[var], categories=categories)
         mat = dmatrix(self._formula, empty_df)

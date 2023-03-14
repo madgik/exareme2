@@ -7,7 +7,11 @@ import pytest
 from billiard.exceptions import TimeLimitExceeded
 
 from mipengine import DType
-from mipengine.node.tasks.udfs import _convert_tableschema2udfgen_iotype
+from mipengine.node.monetdb_interface.common_actions import create_table_name
+from mipengine.node.tasks.udfs import _convert_output_schema
+from mipengine.node.tasks.udfs import _convert_result
+from mipengine.node.tasks.udfs import _convert_result_schema
+from mipengine.node.tasks.udfs import _make_output_table_names
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import NodeTableDTO
 from mipengine.node_tasks_DTOs import NodeUDFKeyArguments
@@ -18,6 +22,7 @@ from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
 from mipengine.udfgen import make_unique_func_name
+from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
 from tests.algorithms.orphan_udfs import get_column_rows
 from tests.algorithms.orphan_udfs import local_step
 from tests.algorithms.orphan_udfs import one_hundred_seconds_udf
@@ -259,6 +264,48 @@ def test_parse_output_schema():
             ColumnInfo(name="a", dtype=DType.INT),
             ColumnInfo(name="b", dtype=DType.FLOAT),
         ]
-    )
-    result = _convert_tableschema2udfgen_iotype(output_schema)
+    ).json()
+    result = _convert_output_schema(output_schema)
     assert result == [("a", DType.INT), ("b", DType.FLOAT)]
+
+
+def test_convert_schema():
+    input = [("a", DType.INT)]
+    result = _convert_result_schema(input)
+    assert result == TableSchema(columns=[ColumnInfo(name="a", dtype=DType.INT)])
+
+
+def test_create_table_name():
+    table_name = create_table_name(
+        table_type=TableType.NORMAL,
+        node_id="node1",
+        context_id="context2",
+        command_id="command3",
+        result_id="output4",
+    )
+    assert table_name == "normal_node1_context2_command3_output4"
+
+
+def test_convert_table_result():
+    udfgen_result = UDFGenTableResult(
+        table_schema=[("a", DType.INT)], create_query="", table_name="table_name"
+    )
+    expected = NodeTableDTO(
+        value=TableInfo(
+            name="table_name",
+            schema_=TableSchema(columns=[ColumnInfo(name="a", dtype=DType.INT)]),
+            type_=TableType.NORMAL,
+        )
+    )
+    result = _convert_result(udfgen_result)
+    assert result == expected
+
+
+def test_create_output_table_names():
+    names = _make_output_table_names(
+        outputlen=2, node_id="node1", context_id="context2", command_id="command3"
+    )
+    assert names == [
+        "normal_node1_context2_command3_0",
+        "normal_node1_context2_command3_1",
+    ]

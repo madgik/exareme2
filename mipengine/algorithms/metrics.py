@@ -8,14 +8,14 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import udf
 
 
-def confusion_matrix(executor, ytrue, proba):
+def confusion_matrix(engine, ytrue, proba):
     """
     Compute confusion matrix for binary classification
 
     Parameters
     ----------
-    executor : _AlgorithmExecutionInterface
-        Algorithm execution interface passed in algorithm's `run` function.
+    engine : AlgorithmExecutionEngine
+        Algorithm execution engine passed in algorithm's `run` function.
     ytrue : relation
         Ground truth (correct) target values.
     proba : relation
@@ -26,12 +26,12 @@ def confusion_matrix(executor, ytrue, proba):
     numpy.array of shape (2, 2):
         Confusion matrix arranged as [[TN, FP], [FN, TP]]
     """
-    loctransf = executor.run_udf_on_local_nodes(
+    loctransf = engine.run_udf_on_local_nodes(
         func=_confusion_matrix_local,
         keyword_args={"ytrue": ytrue, "proba": proba},
         share_to_global=[True],
     )
-    result = executor.run_udf_on_global_node(
+    result = engine.run_udf_on_global_node(
         func=sum_secure_transfers,
         keyword_args={"loctransf": loctransf},
     )
@@ -59,14 +59,14 @@ def _confusion_matrix_local(ytrue, proba):
     return result
 
 
-def roc_curve(executor, ytrue, proba):
+def roc_curve(engine, ytrue, proba):
     """
     Compute Receiver operating characteristic (ROC) for binary classification
 
     Parameters
     ----------
-    executor : _AlgorithmExecutionInterface
-        Algorithm execution interface passed in algorithm's `run` function.
+    engine : AlgorithmExecutionEngine
+        Algorithm execution engine passed in algorithm's `run` function.
     ytrue : relation
         Ground truth (correct) target values.
     proba : relation
@@ -79,12 +79,12 @@ def roc_curve(executor, ytrue, proba):
         and the second the false positive rate FPR.
     """
     thresholds = numpy.linspace(1.0, 0.0, num=200).tolist()
-    loctransf = executor.run_udf_on_local_nodes(
+    loctransf = engine.run_udf_on_local_nodes(
         func=_roc_curve_local,
         keyword_args={"ytrue": ytrue, "proba": proba, "thresholds": thresholds},
         share_to_global=[True],
     )
-    global_transfer = executor.run_udf_on_global_node(
+    global_transfer = engine.run_udf_on_global_node(
         func=sum_secure_transfers,
         keyword_args={"loctransf": loctransf},
     )

@@ -5,6 +5,13 @@ import numpy as np
 import scipy.stats as st
 from pydantic import BaseModel
 
+from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import InputDataSpecification
+from mipengine.algorithm_specification import InputDataSpecifications
+from mipengine.algorithm_specification import InputDataStatType
+from mipengine.algorithm_specification import InputDataType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import FormulaTransformer
@@ -21,19 +28,58 @@ class AnovaResult(BaseModel):
 
 
 class AnovaTwoWay(Algorithm, algname="anova"):
+    @classmethod
+    def get_specification(cls):
+        return AlgorithmSpecification(
+            name=cls.algname,
+            desc="Two-way analysis of variance (ANOVA)",
+            label="Two-way ANOVA",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                x=InputDataSpecification(
+                    label="independent",
+                    desc="independent variable",
+                    types=[InputDataType.INT, InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=True,
+                ),
+                y=InputDataSpecification(
+                    label="dependent",
+                    desc="Dependent variable",
+                    types=[InputDataType.REAL, InputDataType.INT],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+            parameters={
+                "sstype": ParameterSpecification(
+                    label="sstype",
+                    desc="Type of sum of squares to use. It can be 1 or 2.",
+                    types=[ParameterType.INT],
+                    notblank=True,
+                    multiple=False,
+                    default="2",
+                    min=1,
+                    max=2,
+                ),
+            },
+        )
+
     def get_variable_groups(self):
-        [y] = self.executor.y_variables
-        x1, x2 = self.executor.x_variables
+        [y] = self.variables.y
+        x1, x2 = self.variables.x
         return [[y], [x1, x2]]
 
-    def run(self):
+    def run(self, engine):
         [[y], [x1, x2]] = self.get_variable_groups()
 
-        Y, X = self.executor.data_model_views
+        Y, X = engine.data_model_views
 
-        x1_enums = list(self.executor.metadata[x1]["enumerations"])
-        x2_enums = list(self.executor.metadata[x2]["enumerations"])
-        sstype = self.executor.algorithm_parameters["sstype"]
+        x1_enums = list(self.metadata[x1]["enumerations"])
+        x2_enums = list(self.metadata[x2]["enumerations"])
+        sstype = self.algorithm_parameters["sstype"]
 
         if len(x1_enums) < 2:
             raise BadUserInput(
@@ -63,7 +109,8 @@ class AnovaTwoWay(Algorithm, algname="anova"):
 
         # Define datasets for each lm based on above formulas
         transformers = {
-            formula: FormulaTransformer(self.executor, formula) for formula in formulas
+            formula: FormulaTransformer(engine, self.variables, self.metadata, formula)
+            for formula in formulas
         }
         Xs = {
             formula: transformer.transform(X)
@@ -87,13 +134,13 @@ class AnovaTwoWay(Algorithm, algname="anova"):
             )
 
         # Define lms and fit to data
-        models = {formula: LinearRegression(self.executor) for formula in formulas}
+        models = {formula: LinearRegression(engine) for formula in formulas}
         for formula in formulas:
             X = Xs[formula]
             model = models[formula]
             model.fit(X, Y)
             model.compute_summary(
-                y_test=relation_to_vector(Y, self.executor),
+                y_test=relation_to_vector(Y, engine),
                 y_pred=model.predict(X),
                 p=len(X.columns) - 1,
             )

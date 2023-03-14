@@ -1,9 +1,7 @@
-import subprocess
 import uuid
 
 import pytest
 
-from tests.standalone_tests.conftest import MONETDB_GLOBALNODE_NAME
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
@@ -11,7 +9,7 @@ from tests.standalone_tests.std_output_logger import StdOutputLogger
 label_identifier = "test_get_datasets_per_data_model"
 
 
-def setup_data_table_in_db(datasets_per_data_model):
+def setup_data_table_in_db(datasets_per_data_model, cursor):
     data_model_id = 0
     dataset_id = 0
     for data_model in datasets_per_data_model.keys():
@@ -19,30 +17,24 @@ def setup_data_table_in_db(datasets_per_data_model):
         dataset_id += 1
         data_model_code, data_model_version = data_model.split(":")
         sql_query = f"""INSERT INTO "mipdb_metadata"."data_models" VALUES ({data_model_id}, '{data_model_code}', '{data_model_version}', '{label_identifier}', 'ENABLED', null);"""
-        cmd = f'docker exec -i {MONETDB_GLOBALNODE_NAME} mclient db -s "{sql_query}"'
-        subprocess.call(cmd, shell=True)
+        cursor.execute(sql_query)
         for dataset_name in datasets_per_data_model[data_model]:
             dataset_id += 1
             sql_query = f"""INSERT INTO "mipdb_metadata"."datasets" VALUES ({dataset_id}, {data_model_id}, '{dataset_name}', '{label_identifier}', 'ENABLED', null);"""
-            cmd = (
-                f'docker exec -i {MONETDB_GLOBALNODE_NAME} mclient db -s "{sql_query}"'
-            )
-            subprocess.call(cmd, shell=True)
+            cursor.execute(sql_query)
 
 
 # The cleanup task cannot be used because it requires specific table name convention
 # that doesn't fit with the initial data table names
-def teardown_data_tables_in_db():
+def teardown_data_tables_in_db(cursor):
     sql_query = (
         f"DELETE FROM mipdb_metadata.datasets WHERE label = '{label_identifier}';"
     )
-    cmd = f'docker exec -i {MONETDB_GLOBALNODE_NAME} mclient db -s "{sql_query}" '
-    subprocess.call(cmd, shell=True)
+    cursor.execute(sql_query)
     sql_query = (
         f"DELETE FROM mipdb_metadata.data_models WHERE label = '{label_identifier}';"
     )
-    cmd = f'docker exec -i {MONETDB_GLOBALNODE_NAME} mclient db -s "{sql_query}" '
-    subprocess.call(cmd, shell=True)
+    cursor.execute(sql_query)
 
 
 data_model1 = "data_model1:0.1"
@@ -86,10 +78,13 @@ def test_get_node_datasets_per_data_model(
     globalnode_node_service,
     globalnode_celery_app,
     use_globalnode_database,
+    globalnode_db_cursor_with_user_admin,
     init_data_globalnode,
 ):
     request_id = "test_node_info_" + uuid.uuid4().hex + "_request"
-    setup_data_table_in_db(expected_datasets_per_data_model)
+    setup_data_table_in_db(
+        expected_datasets_per_data_model, globalnode_db_cursor_with_user_admin
+    )
     task_signature = get_celery_task_signature("get_node_datasets_per_data_model")
     async_result = globalnode_celery_app.queue_task(
         task_signature=task_signature,
@@ -111,4 +106,4 @@ def test_get_node_datasets_per_data_model(
             expected_datasets_per_data_model[data_model]
         )
 
-    teardown_data_tables_in_db()
+    teardown_data_tables_in_db(globalnode_db_cursor_with_user_admin)

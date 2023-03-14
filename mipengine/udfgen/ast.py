@@ -230,11 +230,12 @@ class UDFReturnStatement(ASTNode):
 
 
 class UDFLoopbackReturnStatements(ASTNode):
-    def __init__(self, sec_return_names, sec_return_types):
+    def __init__(self, sec_return_names, sec_return_types, sec_output_table_names):
         self.sec_return_names = sec_return_names
+        assert len(sec_output_table_names) == len(sec_return_types)
         self.templates = [
             table.get_secondary_return_stmt_template(name)
-            for name, table in get_name_loopback_table_pairs(sec_return_types)
+            for name, table in zip(sec_output_table_names, sec_return_types)
         ]
 
     def compile(self) -> str:
@@ -277,7 +278,9 @@ class LoggerAssignment(ASTNode):
         if not self.logger:
             return ""
         name, logger_arg = self.logger
-        return f"{name} = udfio.get_logger('{logger_arg.udf_name}', '$request_id')"
+        udf_name = logger_arg.udf_name
+        request_id = logger_arg.request_id
+        return f"{name} = udfio.get_logger('{udf_name}', '{request_id}')"
 
 
 class PlaceholderAssignments(ASTNode):
@@ -314,6 +317,7 @@ class UDFBody(ASTNode):
         main_return_type: OutputType,
         sec_return_names: List[str],
         sec_return_types: List[OutputType],
+        sec_output_table_names: List[str],
     ):
         all_types = (
             [arg.type for arg in table_args.values()]
@@ -348,6 +352,7 @@ class UDFBody(ASTNode):
             UDFLoopbackReturnStatements(
                 sec_return_names=sec_return_names,
                 sec_return_types=sec_return_types,
+                sec_output_table_names=sec_output_table_names,
             )
         )
         self.statements.append(UDFReturnStatement(main_return_name, main_return_type))

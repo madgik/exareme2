@@ -1,4 +1,4 @@
-FROM madgik/mipenginedb_base
+FROM madgik/mipenginedb_base:0.1
 
 #######################################################
 # Download monetdb source files
@@ -33,10 +33,14 @@ RUN wget http://gr.archive.ubuntu.com/ubuntu/pool/universe/s/strigi/libstreams0v
 RUN dpkg -i libstreams0v5_0.7.8-2.2_amd64.deb libstreams-dev_0.7.8-2.2_amd64.deb
 
 #######################################################
-# Setup bootstrap file
+# Setup bootstrap files
 #######################################################
 COPY monetdb/bootstrap.sh /home/bootstrap.sh
+COPY monetdb/configure_users.sh /home/configure_users.sh
+COPY monetdb/configure_monit.sh /home/configure_monit.sh
 RUN chmod 775 /home/bootstrap.sh
+RUN chmod 775 /home/configure_users.sh
+RUN chmod 775 /home/configure_monit.sh
 
 #######################################################
 # Setup logrotate file
@@ -61,10 +65,17 @@ ENV PYTHONPATH "/home/udflib/"
 ENV LOG_LEVEL "INFO"
 
 #######################################################
-# DEV ONLY add username/password
+# Default username/password
 #######################################################
 RUN echo "user=monetdb" > /home/.monetdb
 RUN echo "password=monetdb" >> /home/.monetdb
+
+#######################################################
+# Initializing the default users passwords, that will be configured with configure_users.sh
+#######################################################
+ENV ADMIN_PASSWORD='admin'
+ENV EXECUTOR_PASSWORD='executor'
+ENV GUEST_PASSWORD='guest'
 
 #######################################################
 # Setup MONETDB Volume
@@ -72,6 +83,13 @@ RUN echo "password=monetdb" >> /home/.monetdb
 ENV MONETDB_NCLIENTS=64
 ENV MONETDB_STORAGE=/home/monetdb
 VOLUME $MONETDB_STORAGE
+
+#######################################################
+# Configure monit
+#######################################################
+ENV MONIT_CONFIG_FOLDER=/home/monit
+RUN mkdir $MONIT_CONFIG_FOLDER
+
 
 WORKDIR /home
 CMD ["/bin/bash","/home/bootstrap.sh"]

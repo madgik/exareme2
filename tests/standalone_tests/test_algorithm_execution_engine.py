@@ -3,7 +3,7 @@ from typing import List
 
 import pytest
 
-from mipengine.controller.algorithm_executor_nodes import _INode
+from mipengine.controller.nodes import _INode
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import DType
 from mipengine.node_tasks_DTOs import TableData

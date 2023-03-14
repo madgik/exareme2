@@ -108,7 +108,7 @@ def test_table_schema_immutable():
 @pytest.fixture
 def table_info_proper_type():
     return TableInfo(
-        name="test",
+        name="a_b_c_d_e",
         schema_=TableSchema(
             columns=[
                 ColumnInfo(name="layla", dtype=DType.FLOAT),
@@ -159,7 +159,7 @@ def test_table_info_error():
 
 def test_table_info_immutable():
     info = TableInfo(
-        name="name",
+        name="a_b_c_d_e",
         schema_=TableSchema(
             columns=[
                 ColumnInfo(name="layla", dtype=DType.FLOAT),
@@ -170,6 +170,29 @@ def test_table_info_immutable():
     )
     with pytest.raises(TypeError):
         info.name = "newname"
+
+
+def test_table_info__valid_name():
+    info = TableInfo(
+        name="NORMAL_nodeid_ctxid_cmdid_resid",
+        schema_=TableSchema(columns=[]),
+        type_=TableType.NORMAL,
+    )
+    assert info.node_id == "nodeid"
+    assert info.context_id == "ctxid"
+    assert info.command_id == "cmdid"
+    assert info.result_id == "resid"
+    assert info.name_without_node_id == "NORMAL_ctxid_cmdid_resid"
+
+
+def test_table_info__invalid_name():
+    info = TableInfo(
+        name="name",
+        schema_=TableSchema(columns=[]),
+        type_=TableType.NORMAL,
+    )
+    with pytest.raises(ValueError):
+        info.node_id
 
 
 def test_table_data_error():
@@ -206,7 +229,7 @@ def test_udf_dto_instantiation():
 def test_udf_dtos_immutable():
     argument = NodeTableDTO(
         value=TableInfo(
-            name="whatever",
+            name="a_b_c_d_e",
             schema_=TableSchema(columns=[ColumnInfo(name="test", dtype=DType.INT)]),
             type_=TableType.NORMAL,
         )
@@ -223,7 +246,7 @@ def test_udf_dtos_immutable():
     argument = NodeSMPCDTO(
         value=SMPCTablesInfo(
             template=TableInfo(
-                name="whatever",
+                name="a_b_c_d_e",
                 schema_=TableSchema(columns=[ColumnInfo(name="test", dtype=DType.INT)]),
                 type_=TableType.NORMAL,
             )
@@ -237,7 +260,7 @@ def test_udf_dtos_immutable():
 def test_udf_dtos_correct_type():
     argument = NodeTableDTO(
         value=TableInfo(
-            name="whatever",
+            name="a_b_c_d_e",
             schema_=TableSchema(columns=[ColumnInfo(name="test", dtype=DType.INT)]),
             type_=TableType.NORMAL,
         )
@@ -250,7 +273,7 @@ def test_udf_dtos_correct_type():
     argument = NodeSMPCDTO(
         value=SMPCTablesInfo(
             template=TableInfo(
-                name="whatever",
+                name="a_b_c_d_e",
                 schema_=TableSchema(columns=[ColumnInfo(name="test", dtype=DType.INT)]),
                 type_=TableType.NORMAL,
             )
@@ -264,7 +287,7 @@ def get_udf_args_cases():
         [
             NodeTableDTO(
                 value=TableInfo(
-                    name="whatever",
+                    name="a_b_c_d_e",
                     schema_=TableSchema(
                         columns=[ColumnInfo(name="test", dtype=DType.INT)]
                     ),
@@ -275,30 +298,30 @@ def get_udf_args_cases():
         [
             NodeTableDTO(
                 value=TableInfo(
-                    name="whatever",
+                    name="a_b_c_d_e",
                     schema_=TableSchema(
                         columns=[ColumnInfo(name="test", dtype=DType.INT)]
                     ),
                     type_=TableType.NORMAL,
                 )
             ),
-            NodeLiteralDTO(value="whatever"),
+            NodeLiteralDTO(value="a_b_c_d_e"),
         ],
         [
             NodeTableDTO(
                 value=TableInfo(
-                    name="whatever",
+                    name="a_b_c_d_e",
                     schema_=TableSchema(
                         columns=[ColumnInfo(name="test", dtype=DType.INT)]
                     ),
                     type_=TableType.NORMAL,
                 )
             ),
-            NodeLiteralDTO(value="whatever"),
+            NodeLiteralDTO(value="a_b_c_d_e"),
             NodeSMPCDTO(
                 value=SMPCTablesInfo(
                     template=TableInfo(
-                        name="whatever",
+                        name="a_b_c_d_e",
                         schema_=TableSchema(
                             columns=[ColumnInfo(name="test", dtype=DType.INT)]
                         ),
@@ -336,7 +359,7 @@ def get_udf_results_cases():
             results=[
                 NodeTableDTO(
                     value=TableInfo(
-                        name="whatever",
+                        name="a_b_c_d_e",
                         schema_=TableSchema(
                             columns=[ColumnInfo(name="test", dtype=DType.INT)]
                         ),
@@ -350,7 +373,7 @@ def get_udf_results_cases():
                 NodeSMPCDTO(
                     value=SMPCTablesInfo(
                         template=TableInfo(
-                            name="whatever",
+                            name="a_b_c_d_e",
                             schema_=TableSchema(
                                 columns=[ColumnInfo(name="test", dtype=DType.INT)]
                             ),
@@ -364,7 +387,7 @@ def get_udf_results_cases():
             results=[
                 NodeTableDTO(
                     value=TableInfo(
-                        name="whatever",
+                        name="a_b_c_d_e",
                         schema_=TableSchema(
                             columns=[ColumnInfo(name="test", dtype=DType.INT)]
                         ),
@@ -374,7 +397,7 @@ def get_udf_results_cases():
                 NodeSMPCDTO(
                     value=SMPCTablesInfo(
                         template=TableInfo(
-                            name="whatever",
+                            name="a_b_c_d_e",
                             schema_=TableSchema(
                                 columns=[ColumnInfo(name="test", dtype=DType.INT)]
                             ),

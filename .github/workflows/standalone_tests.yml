@@ -23,6 +23,7 @@ jobs:
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
+          version: 1.3.2 # TODO https://github.com/pgjones/hypercorn/issues/102
           virtualenvs-create: true
           virtualenvs-in-project: true
 
@@ -99,9 +100,7 @@ jobs:
         if: success() || ( failure() && steps.non_smpc_tests.outcome == 'failure' )
         run:  |
           poetry run inv cleanup
-          poetry run pytest -s -m "smpc and not smpc_cluster" --cov=mipengine --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4
-# TODO SMPC cluster is unstable always crashing
-#          poetry run pytest -s -m "smpc" --cov=mipengine --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4
+          poetry run pytest -s -m "smpc" --cov=mipengine --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4
 
       - name: Publish coverage on codeclimate
         uses: paambaati/codeclimate-action@v3.2.0

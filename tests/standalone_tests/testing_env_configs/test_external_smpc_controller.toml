@@ -18,6 +18,7 @@ user = "user"
 password = "password"
 vhost = "user_vhost"
 celery_tasks_timeout = 20
+celery_cleanup_task_timeout=2
 celery_run_udf_task_timeout = 120
 celery_tasks_max_retries = 3
 celery_tasks_interval_start = 0
@@ -27,6 +28,6 @@ celery_tasks_interval_max = 0.5
 [smpc]
 enabled = true
 optional = false
-coordinator_address = "http://161.35.36.151:12314"
+coordinator_address = "http://167.71.139.232:12314"
 get_result_interval = 5
 get_result_max_retries = 100

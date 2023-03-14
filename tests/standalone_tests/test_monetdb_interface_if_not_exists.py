@@ -4,10 +4,13 @@ import pytest
 
 from mipengine import AttrDict
 from mipengine import DType
+from mipengine.node.monetdb_interface.common_actions import get_table_data
 from mipengine.node.monetdb_interface.merge_tables import create_merge_table
-from mipengine.node.monetdb_interface.monet_db_facade import _execute
+from mipengine.node.monetdb_interface.monet_db_facade import _create_idempotent_query
+from mipengine.node.monetdb_interface.monet_db_facade import db_execute_udf
 from mipengine.node.monetdb_interface.remote_tables import create_remote_table
 from mipengine.node.monetdb_interface.tables import create_table
+from mipengine.node.monetdb_interface.tables import insert_data_to_table
 from mipengine.node.monetdb_interface.views import create_view
 from mipengine.node.node_logger import init_logger
 from mipengine.node_tasks_DTOs import ColumnInfo
@@ -49,8 +52,8 @@ def patch_node_config():
                 "ip": COMMON_IP,
                 "port": MONETDB_LOCALNODE1_PORT,
                 "database": "db",
-                "username": "monetdb",
-                "password": "monetdb",
+                "username": "executor",
+                "password": "executor",
             },
             "celery": {
                 "tasks_timeout": 60,
@@ -140,6 +143,33 @@ def test_create_table_if_not_exists(
 
 
 @pytest.mark.slow
+def test_insert_into_table_if_empty(
+    use_localnode1_database,
+):
+    table_name = "test_insert_into_table_if_empty"
+    table_schema = TableSchema(
+        columns=[ColumnInfo(name="sample_column", dtype=DType.INT)]
+    )
+    create_table(
+        table_name=table_name,
+        table_schema=table_schema,
+    )
+
+    insert_data_to_table(
+        table_name=table_name,
+        table_values=[[1], [2]],
+    )
+    insert_data_to_table(
+        table_name=table_name,
+        table_values=[[3], [4]],
+    )
+    [column] = get_table_data(table_name)
+    data = column.data
+    if data != [3, 4]:
+        pytest.fail("Each insert into should clear and re-add the values")
+
+
+@pytest.mark.slow
 def test_create_remote_table_if_not_exists(
     use_localnode1_database,
 ):
@@ -151,6 +181,8 @@ def test_create_remote_table_if_not_exists(
         name=table_name,
         monetdb_socket_address="127.0.0.1:50000",
         schema=table_schema,
+        username="executor",
+        password="executor",
     )
 
     try:
@@ -158,6 +190,8 @@ def test_create_remote_table_if_not_exists(
             name=table_name,
             monetdb_socket_address="127.0.0.1:50000",
             schema=table_schema,
+            username="executor",
+            password="executor",
         )
     except Exception as exc:
         pytest.fail(
@@ -193,70 +227,86 @@ def test_create_merge_table_if_not_exists(
         )
 
 
-def test_create_table_if_not_exists_query():
-    with patch(
-        "mipengine.node.monetdb_interface.monet_db_facade._execute_and_commit"
-    ) as execute_and_commit_mock:
-        _execute("CREATE TABLE")
-        assert (
-            execute_and_commit_mock.call_args.args[1].query
-            == "CREATE TABLE IF NOT EXISTS"
-        )
+def test_udf_execution_query_should_contain_only_one_query():
+    with pytest.raises(ValueError):
+        db_execute_udf(query="INSERT INTO table1 func1();INSERT INTO table2 func2();")
 
 
-def test_create_remote_table_if_not_exists_query():
-    with patch(
-        "mipengine.node.monetdb_interface.monet_db_facade._execute_and_commit"
-    ) as execute_and_commit_mock:
-        _execute("CREATE REMOTE TABLE")
-        assert (
-            execute_and_commit_mock.call_args.args[1].query
-            == "CREATE REMOTE TABLE IF NOT EXISTS"
-        )
+def get_idempotent_query_cases():
+    return [
+        pytest.param(
+            "INSERT INTO table1 values ();INSERT INTO table2 values ();",
+            "DELETE FROM table1;INSERT INTO table1 values ();DELETE FROM table2;INSERT INTO table2 values ();",
+            id="insert into if values are not present",
+        ),
+        pytest.param(
+            "CREATE TABLE table1 ();CREATE TABLE table2 ();",
+            "CREATE TABLE IF NOT EXISTS table1 ();CREATE TABLE IF NOT EXISTS table2 ();",
+            id="create table if not exists query",
+        ),
+        pytest.param(
+            "CREATE REMOTE TABLE table1 ();CREATE REMOTE TABLE table2 ();",
+            "CREATE REMOTE TABLE IF NOT EXISTS table1 ();CREATE REMOTE TABLE IF NOT EXISTS table2 ();",
+            id="create remote table if not exists query",
+        ),
+        pytest.param(
+            "CREATE MERGE TABLE table1 ();CREATE MERGE TABLE table2 ();",
+            "DROP TABLE IF EXISTS table1;CREATE MERGE TABLE table1 ();DROP TABLE IF EXISTS table2;CREATE MERGE TABLE table2 ();",
+            id="create merge table if not exists query",
+        ),
+        pytest.param(
+            "CREATE VIEW view1 as ();CREATE VIEW view2 as ();",
+            "CREATE OR REPLACE VIEW view1 as ();CREATE OR REPLACE VIEW view2 as ();",
+            id="mutliple create view if not exists query",
+        ),
+        pytest.param(
+            "DROP VIEW view1;DROP VIEW view2;",
+            "DROP VIEW IF EXISTS view1;DROP VIEW IF EXISTS view2;",
+            id="drop view if exists query",
+        ),
+        pytest.param(
+            "DROP TABLE table1;DROP TABLE table2;",
+            "DROP TABLE IF EXISTS table1;DROP TABLE IF EXISTS table2;",
+            id="mutliple drop table if exists query",
+        ),
+        pytest.param(
+            "DROP FUNCTION func1;DROP FUNCTION func2;",
+            "DROP FUNCTION IF EXISTS func1;DROP FUNCTION IF EXISTS func2;",
+            id="drop function if exists",
+        ),
+        pytest.param(
+            "CREATE TABLE sample_table (col1);"
+            "INSERT INTO sample_table VALUES(1);"
+            "CREATE REMOTE TABLE sample_remote_table;"
+            "CREATE MERGE TABLE sample_merge_table (col1);"
+            "CREATE VIEW sample_view as ();"
+            "CREATE FUNCTION sample_func stuff;"
+            "DROP VIEW sample_view;"
+            "DROP TABLE sample_table;"
+            "DROP TABLE sample_remote_table;"
+            "DROP TABLE sample_merge_table;"
+            "DROP FUNCTION sample_func;",
+            "CREATE TABLE IF NOT EXISTS sample_table (col1);"
+            "DELETE FROM sample_table;"
+            "INSERT INTO sample_table VALUES(1);"
+            "CREATE REMOTE TABLE IF NOT EXISTS sample_remote_table;"
+            "DROP TABLE IF EXISTS sample_merge_table;"
+            "CREATE MERGE TABLE sample_merge_table (col1);"
+            "CREATE OR REPLACE VIEW sample_view as ();"
+            "CREATE OR REPLACE FUNCTION sample_func stuff;"
+            "DROP VIEW IF EXISTS sample_view;"
+            "DROP TABLE IF EXISTS sample_table;"
+            "DROP TABLE IF EXISTS sample_remote_table;"
+            "DROP TABLE IF EXISTS sample_merge_table;"
+            "DROP FUNCTION IF EXISTS sample_func;",
+            id="multiple different queries",
+        ),
+    ]
 
 
-def test_create_merge_table_if_not_exists_query():
-    with patch(
-        "mipengine.node.monetdb_interface.monet_db_facade._execute_and_commit"
-    ) as execute_and_commit_mock:
-        _execute("CREATE MERGE TABLE sample_table")
-        assert (
-            execute_and_commit_mock.call_args.args[1].query
-            == "DROP TABLE IF EXISTS sample_table; CREATE MERGE TABLE sample_table"
-        )
-
-
-def test_create_view_if_not_exists_query():
-    with patch(
-        "mipengine.node.monetdb_interface.monet_db_facade._execute_and_commit"
-    ) as execute_and_commit_mock:
-        _execute("CREATE VIEW")
-        assert (
-            execute_and_commit_mock.call_args.args[1].query == "CREATE OR REPLACE VIEW"
-        )
-
-
-def test_drop_view_if_exists_query():
-    with patch(
-        "mipengine.node.monetdb_interface.monet_db_facade._execute_and_commit"
-    ) as execute_and_commit_mock:
-        _execute("DROP VIEW")
-        assert execute_and_commit_mock.call_args.args[1].query == "DROP VIEW IF EXISTS"
-
-
-def test_drop_table_if_exists_query():
-    with patch(
-        "mipengine.node.monetdb_interface.monet_db_facade._execute_and_commit"
-    ) as execute_and_commit_mock:
-        _execute("DROP TABLE")
-        assert execute_and_commit_mock.call_args.args[1].query == "DROP TABLE IF EXISTS"
-
-
-def test_drop_function_if_exists_query():
-    with patch(
-        "mipengine.node.monetdb_interface.monet_db_facade._execute_and_commit"
-    ) as execute_and_commit_mock:
-        _execute("DROP FUNCTION")
-        assert (
-            execute_and_commit_mock.call_args.args[1].query == "DROP FUNCTION IF EXISTS"
-        )
+@pytest.mark.parametrize(
+    "original_query,excpected_idempotent_query",
+    get_idempotent_query_cases(),
+)
+def test_create_idempotent_query(original_query: str, excpected_idempotent_query: str):
+    assert _create_idempotent_query(original_query) == excpected_idempotent_query

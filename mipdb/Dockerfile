@@ -16,7 +16,10 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DEFAULT_TIMEOUT=100 \
     DATA_PATH="/opt/data" \
     DB_IP="172.17.0.1" \
-    DB_PORT=50000
+    DB_PORT=50000 \
+    DB_USERNAME="admin" \
+    DB_PASSWORD="admin" \
+    DB_NAME="db"
 
 #######################################################
 # Creating the data folder
@@ -28,7 +31,7 @@ WORKDIR $DATA_PATH
 #######################################################
 # Installing dependencies
 #######################################################
-RUN pip install mipdb==1.1.0 # Must be updated together with pyproject.toml
+RUN pip install mipdb==2.0.1 # Must be updated together with pyproject.toml
 RUN pip install click==8.1.2
 RUN pip install pymonetdb==1.6.3 # Must be updated together with pyproject.toml
 
