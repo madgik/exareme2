@@ -35,6 +35,7 @@ def node_landscape_aggregator():
         deployment_type="",
         localnodes=[],
     )
+    NodeLandscapeAggregator._delete_instance()
     nla = NodeLandscapeAggregator(node_landscape_aggregator_init_params)
 
     data_models = {

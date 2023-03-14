@@ -100,6 +100,7 @@ def node_landscape_aggregator(controller_config):
         deployment_type="",
         localnodes=controller_config.localnodes,
     )
+    NodeLandscapeAggregator._delete_instance()
     node_landscape_aggregator = NodeLandscapeAggregator(
         node_landscape_aggregator_init_params
     )
@@ -117,7 +118,6 @@ def test_update_loop_data_properly_added(
     load_data_localnode1,
     node_landscape_aggregator,
 ):
-    node_landscape_aggregator = NodeLandscapeAggregator()
     node_landscape_aggregator._update()
 
     assert (
@@ -135,7 +135,6 @@ def test_update_loop_get_node_info_fail(
 ):
 
     patch_nodes_addresses.side_effect = get_custom_nodes_addresses_global_and_tmp
-    node_landscape_aggregator = NodeLandscapeAggregator()
     node_landscape_aggregator._update()
     assert node_landscape_aggregator.get_nodes()
     assert any(
@@ -165,7 +164,6 @@ def test_update_loop_nodes_properly_added(
 ):
     localnode1_node_id = get_localnode1_node_id()
     localnode2_node_id = get_localnode2_node_id()
-    node_landscape_aggregator = NodeLandscapeAggregator()
     node_landscape_aggregator._update()
     assert any(
         [

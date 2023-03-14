@@ -211,6 +211,7 @@ def node_landscape_aggregator(
         deployment_type=controller_config.deployment_type,
         localnodes=controller_config.localnodes,
     )
+    NodeLandscapeAggregator._delete_instance()
     node_landscape_aggregator = NodeLandscapeAggregator(
         node_landscape_aggregator_init_params
     )

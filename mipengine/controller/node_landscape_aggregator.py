@@ -259,7 +259,22 @@ class InitializationParams(BaseModel):
         allow_mutation = False
 
 
-class NodeLandscapeAggregator(metaclass=Singleton):
+class NodeLandscapeAggregator:
+    def __new__(cls, *args):
+        if not hasattr(cls, "instance"):
+            cls.instance = super(NodeLandscapeAggregator, cls).__new__(cls)
+            return cls.instance
+        else:
+            raise Exception("NodeLandscapeAggregator instance already exists.")
+
+    @classmethod
+    def _delete_instance(cls):
+        """
+        Delete the NodeLandscapeAggregator instance.
+        """
+        if hasattr(cls, "instance"):
+            del cls.instance
+
     def __init__(self, initialization_params: InitializationParams):
         self._logger = ctrl_logger.get_background_service_logger()
 

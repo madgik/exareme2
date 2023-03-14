@@ -53,7 +53,7 @@ class _CleanupEntry(BaseModel):
     released: bool
 
 
-class Cleaner(metaclass=Singleton):
+class Cleaner:
     """
     The Cleaner class handles the cleaning of database artifacts created during the
     execution of algorithms.
@@ -102,6 +102,21 @@ class Cleaner(metaclass=Singleton):
     release_context_id(context_id):
         Set the "released" flag of the cleanup entry to true.
     """
+
+    def __new__(cls, *args):
+        if not hasattr(cls, "instance"):
+            cls.instance = super(Cleaner, cls).__new__(cls)
+            return cls.instance
+        else:
+            raise Exception("Cleaner instance already exists.")
+
+    @classmethod
+    def _delete_instance(cls):
+        """
+        Delete the NodeLandscapeAggregator instance.
+        """
+        if hasattr(cls, "instance"):
+            del cls.instance
 
     def __init__(self, init_params: InitializationParams):
         """
