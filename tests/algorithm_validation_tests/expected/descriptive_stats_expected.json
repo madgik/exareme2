@@ -86467,6 +86467,2194 @@
                     }
                 ]
             }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "righthippocampus",
+                        "lefthippocampus",
+                        "subjectage"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata0",
+                        "desd-synthdata1",
+                        "desd-synthdata2",
+                        "desd-synthdata4",
+                        "desd-synthdata5",
+                        "desd-synthdata6",
+                        "desd-synthdata7",
+                        "desd-synthdata9",
+                        "edsd0",
+                        "edsd1",
+                        "edsd2",
+                        "edsd3",
+                        "edsd4",
+                        "edsd5",
+                        "edsd6",
+                        "edsd7",
+                        "edsd8",
+                        "edsd9",
+                        "ppmi0",
+                        "ppmi1",
+                        "ppmi2",
+                        "ppmi3",
+                        "ppmi4",
+                        "ppmi5",
+                        "ppmi6",
+                        "ppmi7",
+                        "ppmi8",
+                        "ppmi9"
+                    ],
+                    "filters": {
+                        "condition": "AND",
+                        "rules": [
+                            {
+                                "condition": "OR",
+                                "rules": [
+                                    {
+                                        "id": "alzheimerbroadcategory",
+                                        "type": "string",
+                                        "operator": "equal",
+                                        "value": "AD"
+                                    },
+                                    {
+                                        "id": "alzheimerbroadcategory",
+                                        "type": "string",
+                                        "operator": "equal",
+                                        "value": "MCI"
+                                    }
+                                ]
+                            }
+                        ],
+                        "valid": true
+                    }
+                },
+                "parameters": {},
+                "test_case_num": 51
+            },
+            "output": {
+                "variable_based": [
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata0",
+                        "data": {
+                            "num_dtps": 17,
+                            "num_na": 2,
+                            "num_total": 19,
+                            "mean": 2.9673823529411765,
+                            "std": 0.3062740485155699,
+                            "min": 2.4167,
+                            "q1": 2.7652,
+                            "q2": 3.0156,
+                            "q3": 3.1177,
+                            "max": 3.6778
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata0",
+                        "data": {
+                            "num_dtps": 17,
+                            "num_na": 2,
+                            "num_total": 19,
+                            "mean": 2.7682941176470583,
+                            "std": 0.28708514954318914,
+                            "min": 2.0602,
+                            "q1": 2.6672,
+                            "q2": 2.8579,
+                            "q3": 2.9145,
+                            "max": 3.2487
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata0",
+                        "data": {
+                            "num_dtps": 19,
+                            "num_na": 0,
+                            "num_total": 19,
+                            "mean": 74.15789473684211,
+                            "std": 6.534210467435873,
+                            "min": 61,
+                            "q1": 69,
+                            "q2": 75,
+                            "q3": 80.5,
+                            "max": 83
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata0",
+                        "data": {
+                            "num_dtps": 19,
+                            "num_na": 0,
+                            "num_total": 19,
+                            "counts": {
+                                "AD": 19
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata1",
+                        "data": {
+                            "num_dtps": 40,
+                            "num_na": 6,
+                            "num_total": 46,
+                            "mean": 3.095015,
+                            "std": 0.4205608468736443,
+                            "min": 2.4134,
+                            "q1": 2.8578,
+                            "q2": 3.0467500000000003,
+                            "q3": 3.341775,
+                            "max": 4.14
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata1",
+                        "data": {
+                            "num_dtps": 40,
+                            "num_na": 6,
+                            "num_total": 46,
+                            "mean": 2.8891,
+                            "std": 0.39499345077335923,
+                            "min": 2.0491,
+                            "q1": 2.615875,
+                            "q2": 2.9035,
+                            "q3": 3.0896500000000002,
+                            "max": 3.7377
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata1",
+                        "data": {
+                            "num_dtps": 46,
+                            "num_na": 0,
+                            "num_total": 46,
+                            "mean": 71.3695652173913,
+                            "std": 9.553030224668502,
+                            "min": 38,
+                            "q1": 65.5,
+                            "q2": 75.5,
+                            "q3": 78,
+                            "max": 85
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata1",
+                        "data": {
+                            "num_dtps": 46,
+                            "num_na": 0,
+                            "num_total": 46,
+                            "counts": {
+                                "AD": 46
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata2",
+                        "data": {
+                            "num_dtps": 19,
+                            "num_na": 4,
+                            "num_total": 23,
+                            "mean": 2.9804263157894737,
+                            "std": 0.5536198533712314,
+                            "min": 1.1821,
+                            "q1": 2.81325,
+                            "q2": 3.0664,
+                            "q3": 3.32195,
+                            "max": 3.6912
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata2",
+                        "data": {
+                            "num_dtps": 19,
+                            "num_na": 4,
+                            "num_total": 23,
+                            "mean": 2.8699999999999997,
+                            "std": 0.5560526843544393,
+                            "min": 1.3047,
+                            "q1": 2.5532000000000004,
+                            "q2": 3.0505,
+                            "q3": 3.21745,
+                            "max": 3.5761
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata2",
+                        "data": {
+                            "num_dtps": 23,
+                            "num_na": 0,
+                            "num_total": 23,
+                            "mean": 70.73913043478261,
+                            "std": 6.689322504792435,
+                            "min": 57,
+                            "q1": 67.5,
+                            "q2": 70,
+                            "q3": 75,
+                            "max": 83
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata2",
+                        "data": {
+                            "num_dtps": 23,
+                            "num_na": 0,
+                            "num_total": 23,
+                            "counts": {
+                                "AD": 23
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata4",
+                        "data": {
+                            "num_dtps": 31,
+                            "num_na": 8,
+                            "num_total": 39,
+                            "mean": 3.11618064516129,
+                            "std": 0.3912091030121486,
+                            "min": 2.4134,
+                            "q1": 2.8145499999999997,
+                            "q2": 3.1412,
+                            "q3": 3.4004000000000003,
+                            "max": 3.9391
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata4",
+                        "data": {
+                            "num_dtps": 31,
+                            "num_na": 8,
+                            "num_total": 39,
+                            "mean": 2.8743032258064516,
+                            "std": 0.4616221344230011,
+                            "min": 1.3047,
+                            "q1": 2.66725,
+                            "q2": 2.9435,
+                            "q3": 3.13515,
+                            "max": 3.6642
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata4",
+                        "data": {
+                            "num_dtps": 39,
+                            "num_na": 0,
+                            "num_total": 39,
+                            "mean": 70.43589743589743,
+                            "std": 11.493235703515884,
+                            "min": 36,
+                            "q1": 66,
+                            "q2": 71,
+                            "q3": 79.5,
+                            "max": 87
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata4",
+                        "data": {
+                            "num_dtps": 39,
+                            "num_na": 0,
+                            "num_total": 39,
+                            "counts": {
+                                "AD": 39
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata5",
+                        "data": {
+                            "num_dtps": 29,
+                            "num_na": 4,
+                            "num_total": 33,
+                            "mean": 2.948124137931035,
+                            "std": 0.361893161676178,
+                            "min": 2.4553,
+                            "q1": 2.6675,
+                            "q2": 2.9427,
+                            "q3": 3.1193,
+                            "max": 3.684
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata5",
+                        "data": {
+                            "num_dtps": 29,
+                            "num_na": 4,
+                            "num_total": 33,
+                            "mean": 2.7581068965517246,
+                            "std": 0.4607373949372854,
+                            "min": 1.3047,
+                            "q1": 2.5551,
+                            "q2": 2.7514,
+                            "q3": 3.0347,
+                            "max": 3.6464
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata5",
+                        "data": {
+                            "num_dtps": 33,
+                            "num_na": 0,
+                            "num_total": 33,
+                            "mean": 70.0909090909091,
+                            "std": 9.527472239409951,
+                            "min": 43,
+                            "q1": 64,
+                            "q2": 71,
+                            "q3": 78,
+                            "max": 85
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata5",
+                        "data": {
+                            "num_dtps": 33,
+                            "num_na": 0,
+                            "num_total": 33,
+                            "counts": {
+                                "AD": 33
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata6",
+                        "data": {
+                            "num_dtps": 33,
+                            "num_na": 5,
+                            "num_total": 38,
+                            "mean": 3.134712121212121,
+                            "std": 0.34956980325606624,
+                            "min": 2.4966,
+                            "q1": 2.89,
+                            "q2": 3.1193,
+                            "q3": 3.4092,
+                            "max": 3.9721
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata6",
+                        "data": {
+                            "num_dtps": 33,
+                            "num_na": 5,
+                            "num_total": 38,
+                            "mean": 2.94220303030303,
+                            "std": 0.360505687788737,
+                            "min": 2.3076,
+                            "q1": 2.5833,
+                            "q2": 2.9396,
+                            "q3": 3.2736,
+                            "max": 3.6848
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata6",
+                        "data": {
+                            "num_dtps": 38,
+                            "num_na": 0,
+                            "num_total": 38,
+                            "mean": 72.55263157894737,
+                            "std": 6.644230858303712,
+                            "min": 58,
+                            "q1": 67.25,
+                            "q2": 72.5,
+                            "q3": 78,
+                            "max": 84
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata6",
+                        "data": {
+                            "num_dtps": 38,
+                            "num_na": 0,
+                            "num_total": 38,
+                            "counts": {
+                                "AD": 38
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata7",
+                        "data": {
+                            "num_dtps": 25,
+                            "num_na": 7,
+                            "num_total": 32,
+                            "mean": 3.0141359999999997,
+                            "std": 0.40903184256648445,
+                            "min": 2.4134,
+                            "q1": 2.7718,
+                            "q2": 3.0009,
+                            "q3": 3.2181,
+                            "max": 3.9712
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata7",
+                        "data": {
+                            "num_dtps": 25,
+                            "num_na": 7,
+                            "num_total": 32,
+                            "mean": 2.809416,
+                            "std": 0.45639776025597084,
+                            "min": 2.0602,
+                            "q1": 2.4984,
+                            "q2": 2.8348,
+                            "q3": 3.0505,
+                            "max": 3.8846
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata7",
+                        "data": {
+                            "num_dtps": 32,
+                            "num_na": 0,
+                            "num_total": 32,
+                            "mean": 71.125,
+                            "std": 5.64400909900732,
+                            "min": 60,
+                            "q1": 68,
+                            "q2": 71,
+                            "q3": 73.25,
+                            "max": 84
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata7",
+                        "data": {
+                            "num_dtps": 32,
+                            "num_na": 0,
+                            "num_total": 32,
+                            "counts": {
+                                "AD": 32
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata9",
+                        "data": {
+                            "num_dtps": 27,
+                            "num_na": 9,
+                            "num_total": 36,
+                            "mean": 3.012040740740741,
+                            "std": 0.35627064934407043,
+                            "min": 2.5942,
+                            "q1": 2.6948999999999996,
+                            "q2": 2.9639,
+                            "q3": 3.199,
+                            "max": 3.73
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata9",
+                        "data": {
+                            "num_dtps": 27,
+                            "num_na": 9,
+                            "num_total": 36,
+                            "mean": 2.802707407407408,
+                            "std": 0.37190535388820667,
+                            "min": 2.3678,
+                            "q1": 2.48435,
+                            "q2": 2.6408,
+                            "q3": 3.01945,
+                            "max": 3.7705
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata9",
+                        "data": {
+                            "num_dtps": 36,
+                            "num_na": 0,
+                            "num_total": 36,
+                            "mean": 71.5,
+                            "std": 11.205865810879075,
+                            "min": 38,
+                            "q1": 67.75,
+                            "q2": 75,
+                            "q3": 78.25,
+                            "max": 85
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata9",
+                        "data": {
+                            "num_dtps": 36,
+                            "num_na": 0,
+                            "num_total": 36,
+                            "counts": {
+                                "AD": 36
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd0",
+                        "data": {
+                            "num_dtps": 15,
+                            "num_na": 0,
+                            "num_total": 15,
+                            "mean": 3.043093333333333,
+                            "std": 0.2966872823762582,
+                            "min": 2.6159,
+                            "q1": 2.72875,
+                            "q2": 3.108,
+                            "q3": 3.2401,
+                            "max": 3.515
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd0",
+                        "data": {
+                            "num_dtps": 15,
+                            "num_na": 0,
+                            "num_total": 15,
+                            "mean": 2.7848666666666673,
+                            "std": 0.2865711471536386,
+                            "min": 2.3678,
+                            "q1": 2.47885,
+                            "q2": 2.8601,
+                            "q3": 2.99055,
+                            "max": 3.1564
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd0",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd0",
+                        "data": {
+                            "num_dtps": 15,
+                            "num_na": 0,
+                            "num_total": 15,
+                            "counts": {
+                                "AD": 15
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd1",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd1",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd1",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd1",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd2",
+                        "data": {
+                            "num_dtps": 24,
+                            "num_na": 0,
+                            "num_total": 24,
+                            "mean": 2.9249999999999994,
+                            "std": 0.35109748181827,
+                            "min": 2.4134,
+                            "q1": 2.69525,
+                            "q2": 2.9135999999999997,
+                            "q3": 3.147475,
+                            "max": 3.804
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd2",
+                        "data": {
+                            "num_dtps": 24,
+                            "num_na": 0,
+                            "num_total": 24,
+                            "mean": 2.730295833333333,
+                            "std": 0.2932400641100656,
+                            "min": 2.2563,
+                            "q1": 2.538975,
+                            "q2": 2.7583,
+                            "q3": 2.87655,
+                            "max": 3.4541
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd2",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd2",
+                        "data": {
+                            "num_dtps": 24,
+                            "num_na": 0,
+                            "num_total": 24,
+                            "counts": {
+                                "AD": 24
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd3",
+                        "data": {
+                            "num_dtps": 18,
+                            "num_na": 0,
+                            "num_total": 18,
+                            "mean": 2.962438888888889,
+                            "std": 0.3348496100339215,
+                            "min": 2.239,
+                            "q1": 2.774325,
+                            "q2": 2.9532999999999996,
+                            "q3": 3.0471000000000004,
+                            "max": 3.8025
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd3",
+                        "data": {
+                            "num_dtps": 18,
+                            "num_na": 0,
+                            "num_total": 18,
+                            "mean": 2.8030166666666663,
+                            "std": 0.36490688618911443,
+                            "min": 2.0491,
+                            "q1": 2.64215,
+                            "q2": 2.81095,
+                            "q3": 3.00995,
+                            "max": 3.6642
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd3",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd3",
+                        "data": {
+                            "num_dtps": 18,
+                            "num_na": 0,
+                            "num_total": 18,
+                            "counts": {
+                                "AD": 18
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd4",
+                        "data": {
+                            "num_dtps": 8,
+                            "num_na": 0,
+                            "num_total": 8,
+                            "mean": 3.1683,
+                            "std": 0.3154012048169759,
+                            "min": 2.6549,
+                            "q1": 3.0077,
+                            "q2": 3.14855,
+                            "q3": 3.3308999999999997,
+                            "max": 3.5946
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd4",
+                        "data": {
+                            "num_dtps": 8,
+                            "num_na": 0,
+                            "num_total": 8,
+                            "mean": 3.0351375000000003,
+                            "std": 0.3889124100341507,
+                            "min": 2.3086,
+                            "q1": 2.84415,
+                            "q2": 3.0708,
+                            "q3": 3.224425,
+                            "max": 3.5722
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd4",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd4",
+                        "data": {
+                            "num_dtps": 8,
+                            "num_na": 0,
+                            "num_total": 8,
+                            "counts": {
+                                "AD": 8
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd5",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd5",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd5",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd5",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd6",
+                        "data": {
+                            "num_dtps": 15,
+                            "num_na": 0,
+                            "num_total": 15,
+                            "mean": 3.0301933333333335,
+                            "std": 0.4741095224081618,
+                            "min": 2.6165,
+                            "q1": 2.74395,
+                            "q2": 2.9796,
+                            "q3": 3.0715,
+                            "max": 4.58
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd6",
+                        "data": {
+                            "num_dtps": 15,
+                            "num_na": 0,
+                            "num_total": 15,
+                            "mean": 2.8668333333333336,
+                            "std": 0.47773839175052807,
+                            "min": 2.4348,
+                            "q1": 2.6339499999999996,
+                            "q2": 2.7291,
+                            "q3": 2.8832,
+                            "max": 4.4519
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd6",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd6",
+                        "data": {
+                            "num_dtps": 15,
+                            "num_na": 0,
+                            "num_total": 15,
+                            "counts": {
+                                "AD": 15
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd7",
+                        "data": {
+                            "num_dtps": 27,
+                            "num_na": 0,
+                            "num_total": 27,
+                            "mean": 2.958625925925926,
+                            "std": 0.4259985974991293,
+                            "min": 2.478,
+                            "q1": 2.63535,
+                            "q2": 2.8602,
+                            "q3": 3.15435,
+                            "max": 4.2465
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd7",
+                        "data": {
+                            "num_dtps": 27,
+                            "num_na": 0,
+                            "num_total": 27,
+                            "mean": 2.713588888888889,
+                            "std": 0.3831903316322193,
+                            "min": 2.2897,
+                            "q1": 2.48055,
+                            "q2": 2.5777,
+                            "q3": 2.7806,
+                            "max": 4.0127
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd7",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd7",
+                        "data": {
+                            "num_dtps": 27,
+                            "num_na": 0,
+                            "num_total": 27,
+                            "counts": {
+                                "AD": 27
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd8",
+                        "data": {
+                            "num_dtps": 33,
+                            "num_na": 0,
+                            "num_total": 33,
+                            "mean": 3.069809090909091,
+                            "std": 0.3370720039580159,
+                            "min": 2.2385,
+                            "q1": 2.8752,
+                            "q2": 3.051,
+                            "q3": 3.2981,
+                            "max": 3.721
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd8",
+                        "data": {
+                            "num_dtps": 33,
+                            "num_na": 0,
+                            "num_total": 33,
+                            "mean": 2.8102848484848484,
+                            "std": 0.3017171493315512,
+                            "min": 2.1047,
+                            "q1": 2.6408,
+                            "q2": 2.7733,
+                            "q3": 3.0493,
+                            "max": 3.3827
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd8",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd8",
+                        "data": {
+                            "num_dtps": 33,
+                            "num_na": 0,
+                            "num_total": 33,
+                            "counts": {
+                                "AD": 33
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd9",
+                        "data": {
+                            "num_dtps": 1,
+                            "num_na": 0,
+                            "num_total": 1,
+                            "mean": 3.6912,
+                            "std": NaN,
+                            "min": 3.6912,
+                            "q1": 3.6912,
+                            "q2": 3.6912,
+                            "q3": 3.6912,
+                            "max": 3.6912
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd9",
+                        "data": {
+                            "num_dtps": 1,
+                            "num_na": 0,
+                            "num_total": 1,
+                            "mean": 3.3804,
+                            "std": NaN,
+                            "min": 3.3804,
+                            "q1": 3.3804,
+                            "q2": 3.3804,
+                            "q3": 3.3804,
+                            "max": 3.3804
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd9",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd9",
+                        "data": {
+                            "num_dtps": 1,
+                            "num_na": 0,
+                            "num_total": 1,
+                            "counts": {
+                                "AD": 1
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi0",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi0",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi0",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi0",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi1",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi1",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi1",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi1",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi2",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi2",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi2",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi2",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi3",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi3",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi3",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi3",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi4",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi4",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi4",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi4",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi5",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi5",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi5",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi5",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi6",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi6",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi6",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi6",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi7",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi7",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi7",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi7",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi8",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi8",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi8",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi8",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi9",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi9",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi9",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi9",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "all datasets",
+                        "data": {
+                            "num_dtps": 362,
+                            "num_na": 45,
+                            "num_total": 407,
+                            "mean": 3.0329911602209947,
+                            "std": 0.3859768169078873,
+                            "min": 1.1821,
+                            "q1": null,
+                            "q2": null,
+                            "q3": null,
+                            "max": 4.58
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "all datasets",
+                        "data": {
+                            "num_dtps": 362,
+                            "num_na": 45,
+                            "num_total": 407,
+                            "mean": 2.827816022099448,
+                            "std": 0.39612630091926,
+                            "min": 1.3047,
+                            "q1": null,
+                            "q2": null,
+                            "q3": null,
+                            "max": 4.4519
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "all datasets",
+                        "data": {
+                            "num_dtps": 266,
+                            "num_na": 0,
+                            "num_total": 266,
+                            "mean": 71.37593984962406,
+                            "std": 8.923237845179932,
+                            "min": 36,
+                            "q1": null,
+                            "q2": null,
+                            "q3": null,
+                            "max": 87
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "all datasets",
+                        "data": {
+                            "num_dtps": 407,
+                            "num_na": 0,
+                            "num_total": 407,
+                            "counts": {
+                                "AD": 407
+                            }
+                        }
+                    }
+                ],
+                "model_based": [
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata0",
+                        "data": {
+                            "num_dtps": 17,
+                            "num_na": 0,
+                            "num_total": 17,
+                            "mean": 2.967382352941176,
+                            "std": 0.3062740485155699,
+                            "min": 2.4167,
+                            "q1": 2.7652,
+                            "q2": 3.0156,
+                            "q3": 3.1177,
+                            "max": 3.6778
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata0",
+                        "data": {
+                            "num_dtps": 17,
+                            "num_na": 0,
+                            "num_total": 17,
+                            "mean": 2.7682941176470583,
+                            "std": 0.28708514954318914,
+                            "min": 2.0602,
+                            "q1": 2.6672,
+                            "q2": 2.8579,
+                            "q3": 2.9145,
+                            "max": 3.2487
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata0",
+                        "data": {
+                            "num_dtps": 17,
+                            "num_na": 0,
+                            "num_total": 17,
+                            "mean": 74.17647058823529,
+                            "std": 6.921301305730439,
+                            "min": 61,
+                            "q1": 69,
+                            "q2": 75,
+                            "q3": 81,
+                            "max": 83
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata0",
+                        "data": {
+                            "num_dtps": 17,
+                            "num_na": 0,
+                            "num_total": 17,
+                            "counts": {
+                                "AD": 17
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata1",
+                        "data": {
+                            "num_dtps": 40,
+                            "num_na": 0,
+                            "num_total": 40,
+                            "mean": 3.095015,
+                            "std": 0.4205608468736443,
+                            "min": 2.4134,
+                            "q1": 2.8578,
+                            "q2": 3.0467500000000003,
+                            "q3": 3.341775,
+                            "max": 4.14
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata1",
+                        "data": {
+                            "num_dtps": 40,
+                            "num_na": 0,
+                            "num_total": 40,
+                            "mean": 2.8891,
+                            "std": 0.39499345077335923,
+                            "min": 2.0491,
+                            "q1": 2.615875,
+                            "q2": 2.9035,
+                            "q3": 3.0896500000000002,
+                            "max": 3.7377
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata1",
+                        "data": {
+                            "num_dtps": 40,
+                            "num_na": 0,
+                            "num_total": 40,
+                            "mean": 70.9,
+                            "std": 9.731787724138474,
+                            "min": 38,
+                            "q1": 64.5,
+                            "q2": 71.5,
+                            "q3": 78,
+                            "max": 85
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata1",
+                        "data": {
+                            "num_dtps": 40,
+                            "num_na": 0,
+                            "num_total": 40,
+                            "counts": {
+                                "AD": 40
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata2",
+                        "data": {
+                            "num_dtps": 19,
+                            "num_na": 0,
+                            "num_total": 19,
+                            "mean": 2.9804263157894737,
+                            "std": 0.5536198533712314,
+                            "min": 1.1821,
+                            "q1": 2.81325,
+                            "q2": 3.0664,
+                            "q3": 3.32195,
+                            "max": 3.6912
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata2",
+                        "data": {
+                            "num_dtps": 19,
+                            "num_na": 0,
+                            "num_total": 19,
+                            "mean": 2.8700000000000006,
+                            "std": 0.5560526843544393,
+                            "min": 1.3047,
+                            "q1": 2.5532000000000004,
+                            "q2": 3.0505,
+                            "q3": 3.21745,
+                            "max": 3.5761
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata2",
+                        "data": {
+                            "num_dtps": 19,
+                            "num_na": 0,
+                            "num_total": 19,
+                            "mean": 71.21052631578948,
+                            "std": 5.977540811407881,
+                            "min": 59,
+                            "q1": 68,
+                            "q2": 70,
+                            "q3": 75,
+                            "max": 83
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata2",
+                        "data": {
+                            "num_dtps": 19,
+                            "num_na": 0,
+                            "num_total": 19,
+                            "counts": {
+                                "AD": 19
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata4",
+                        "data": {
+                            "num_dtps": 31,
+                            "num_na": 0,
+                            "num_total": 31,
+                            "mean": 3.11618064516129,
+                            "std": 0.3912091030121486,
+                            "min": 2.4134,
+                            "q1": 2.8145499999999997,
+                            "q2": 3.1412,
+                            "q3": 3.4004000000000003,
+                            "max": 3.9391
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata4",
+                        "data": {
+                            "num_dtps": 31,
+                            "num_na": 0,
+                            "num_total": 31,
+                            "mean": 2.8743032258064516,
+                            "std": 0.4616221344230011,
+                            "min": 1.3047,
+                            "q1": 2.66725,
+                            "q2": 2.9435,
+                            "q3": 3.13515,
+                            "max": 3.6642
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata4",
+                        "data": {
+                            "num_dtps": 31,
+                            "num_na": 0,
+                            "num_total": 31,
+                            "mean": 70.12903225806451,
+                            "std": 11.406845709145806,
+                            "min": 36,
+                            "q1": 67,
+                            "q2": 71,
+                            "q3": 76.5,
+                            "max": 87
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata4",
+                        "data": {
+                            "num_dtps": 31,
+                            "num_na": 0,
+                            "num_total": 31,
+                            "counts": {
+                                "AD": 31
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata5",
+                        "data": {
+                            "num_dtps": 29,
+                            "num_na": 0,
+                            "num_total": 29,
+                            "mean": 2.9481241379310346,
+                            "std": 0.361893161676178,
+                            "min": 2.4553,
+                            "q1": 2.6675,
+                            "q2": 2.9427,
+                            "q3": 3.1193,
+                            "max": 3.684
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata5",
+                        "data": {
+                            "num_dtps": 29,
+                            "num_na": 0,
+                            "num_total": 29,
+                            "mean": 2.758106896551724,
+                            "std": 0.4607373949372853,
+                            "min": 1.3047,
+                            "q1": 2.5551,
+                            "q2": 2.7514,
+                            "q3": 3.0347,
+                            "max": 3.6464
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata5",
+                        "data": {
+                            "num_dtps": 29,
+                            "num_na": 0,
+                            "num_total": 29,
+                            "mean": 70.17241379310344,
+                            "std": 9.714014050098818,
+                            "min": 43,
+                            "q1": 64,
+                            "q2": 71,
+                            "q3": 78,
+                            "max": 85
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata5",
+                        "data": {
+                            "num_dtps": 29,
+                            "num_na": 0,
+                            "num_total": 29,
+                            "counts": {
+                                "AD": 29
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata6",
+                        "data": {
+                            "num_dtps": 33,
+                            "num_na": 0,
+                            "num_total": 33,
+                            "mean": 3.134712121212121,
+                            "std": 0.34956980325606624,
+                            "min": 2.4966,
+                            "q1": 2.89,
+                            "q2": 3.1193,
+                            "q3": 3.4092,
+                            "max": 3.9721
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata6",
+                        "data": {
+                            "num_dtps": 33,
+                            "num_na": 0,
+                            "num_total": 33,
+                            "mean": 2.94220303030303,
+                            "std": 0.36050568778873704,
+                            "min": 2.3076,
+                            "q1": 2.5833,
+                            "q2": 2.9396,
+                            "q3": 3.2736,
+                            "max": 3.6848
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata6",
+                        "data": {
+                            "num_dtps": 33,
+                            "num_na": 0,
+                            "num_total": 33,
+                            "mean": 73.3030303030303,
+                            "std": 6.424974943943598,
+                            "min": 58,
+                            "q1": 68,
+                            "q2": 73,
+                            "q3": 79,
+                            "max": 84
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata6",
+                        "data": {
+                            "num_dtps": 33,
+                            "num_na": 0,
+                            "num_total": 33,
+                            "counts": {
+                                "AD": 33
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata7",
+                        "data": {
+                            "num_dtps": 25,
+                            "num_na": 0,
+                            "num_total": 25,
+                            "mean": 3.0141359999999997,
+                            "std": 0.40903184256648445,
+                            "min": 2.4134,
+                            "q1": 2.7718,
+                            "q2": 3.0009,
+                            "q3": 3.2181,
+                            "max": 3.9712
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata7",
+                        "data": {
+                            "num_dtps": 25,
+                            "num_na": 0,
+                            "num_total": 25,
+                            "mean": 2.809416,
+                            "std": 0.4563977602559709,
+                            "min": 2.0602,
+                            "q1": 2.4984,
+                            "q2": 2.8348,
+                            "q3": 3.0505,
+                            "max": 3.8846
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata7",
+                        "data": {
+                            "num_dtps": 25,
+                            "num_na": 0,
+                            "num_total": 25,
+                            "mean": 71.6,
+                            "std": 5.951190357119041,
+                            "min": 61,
+                            "q1": 68,
+                            "q2": 71,
+                            "q3": 75,
+                            "max": 84
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata7",
+                        "data": {
+                            "num_dtps": 25,
+                            "num_na": 0,
+                            "num_total": 25,
+                            "counts": {
+                                "AD": 25
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "desd-synthdata9",
+                        "data": {
+                            "num_dtps": 27,
+                            "num_na": 0,
+                            "num_total": 27,
+                            "mean": 3.012040740740741,
+                            "std": 0.35627064934407043,
+                            "min": 2.5942,
+                            "q1": 2.6948999999999996,
+                            "q2": 2.9639,
+                            "q3": 3.199,
+                            "max": 3.73
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "desd-synthdata9",
+                        "data": {
+                            "num_dtps": 27,
+                            "num_na": 0,
+                            "num_total": 27,
+                            "mean": 2.802707407407407,
+                            "std": 0.3719053538882067,
+                            "min": 2.3678,
+                            "q1": 2.48435,
+                            "q2": 2.6408,
+                            "q3": 3.01945,
+                            "max": 3.7705
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "desd-synthdata9",
+                        "data": {
+                            "num_dtps": 27,
+                            "num_na": 0,
+                            "num_total": 27,
+                            "mean": 71.55555555555556,
+                            "std": 12.254774056647767,
+                            "min": 38,
+                            "q1": 69,
+                            "q2": 75,
+                            "q3": 78.5,
+                            "max": 85
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "desd-synthdata9",
+                        "data": {
+                            "num_dtps": 27,
+                            "num_na": 0,
+                            "num_total": 27,
+                            "counts": {
+                                "AD": 27
+                            }
+                        }
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd0",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd0",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd0",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd0",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd1",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd1",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd1",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd1",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd2",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd2",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd2",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd2",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd3",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd3",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd3",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd3",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd4",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd4",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd4",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd4",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd5",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd5",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd5",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd5",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd6",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd6",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd6",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd6",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd7",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd7",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd7",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd7",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd8",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd8",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd8",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd8",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "edsd9",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "edsd9",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "edsd9",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "edsd9",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi0",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi0",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi0",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi0",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi1",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi1",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi1",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi1",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi2",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi2",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi2",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi2",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi3",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi3",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi3",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi3",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi4",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi4",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi4",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi4",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi5",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi5",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi5",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi5",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi6",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi6",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi6",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi6",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi7",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi7",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi7",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi7",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi8",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi8",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi8",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi8",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "ppmi9",
+                        "data": null
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "ppmi9",
+                        "data": null
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "ppmi9",
+                        "data": null
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "ppmi9",
+                        "data": null
+                    },
+                    {
+                        "variable": "righthippocampus",
+                        "dataset": "all datasets",
+                        "data": {
+                            "num_dtps": 221,
+                            "num_na": 0,
+                            "num_total": 221,
+                            "mean": 3.0456805429864255,
+                            "std": 0.39559858641588663,
+                            "min": 1.1821,
+                            "q1": null,
+                            "q2": null,
+                            "q3": null,
+                            "max": 4.14
+                        }
+                    },
+                    {
+                        "variable": "lefthippocampus",
+                        "dataset": "all datasets",
+                        "data": {
+                            "num_dtps": 221,
+                            "num_na": 0,
+                            "num_total": 221,
+                            "mean": 2.8472610859728507,
+                            "std": 0.42042024151890633,
+                            "min": 1.3047,
+                            "q1": null,
+                            "q2": null,
+                            "q3": null,
+                            "max": 3.8846
+                        }
+                    },
+                    {
+                        "variable": "subjectage",
+                        "dataset": "all datasets",
+                        "data": {
+                            "num_dtps": 221,
+                            "num_na": 0,
+                            "num_total": 221,
+                            "mean": 71.49321266968326,
+                            "std": 9.065228227334178,
+                            "min": 36,
+                            "q1": null,
+                            "q2": null,
+                            "q3": null,
+                            "max": 87
+                        }
+                    },
+                    {
+                        "variable": "alzheimerbroadcategory",
+                        "dataset": "all datasets",
+                        "data": {
+                            "num_dtps": 221,
+                            "num_na": 0,
+                            "num_total": 221,
+                            "counts": {
+                                "AD": 221
+                            }
+                        }
+                    }
+                ]
+            }
         }
     ]
 }

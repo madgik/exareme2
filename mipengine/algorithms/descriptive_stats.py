@@ -144,6 +144,7 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
 
         [data] = engine.data_model_views
         metadata = self.metadata
+        datasets = self.datasets
 
         vars = [v for v in data.columns if v != DATASET_VAR_NAME]
 
@@ -180,6 +181,9 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
             for local_records in local_transfers
             for rec in local_records["recs_modbased"]
         ]
+
+        append_missing_datasets(vars, datasets, recs_varbased)
+        append_missing_datasets(vars, datasets, recs_modbased)
 
         # add global records for each var
         recs_varbased += [reduce_recs_for_var(recs_varbased, var) for var in vars]
@@ -352,3 +356,22 @@ def add_records(r1, r2):
 
 def isempty(rec):
     return rec["data"] is None
+
+
+def append_missing_datasets(vars, datasets, records):
+    # When a user selects some datasets, they should all apear in the result.
+    # Some datasets might have empty records, however. This function appends
+    # the missing datasets to the results. For each missing datasets we need
+    # to add records for each variable.
+    def all_different(var, dataset):
+        return not any(
+            record
+            for record in records
+            if record["variable"] == var and record["dataset"] == dataset
+        )
+
+    combos = ((var, dataset) for var in vars for dataset in datasets)
+
+    for var, dataset in combos:
+        if all_different(var, dataset):
+            records.append({"variable": var, "dataset": dataset, "data": None})
