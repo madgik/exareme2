@@ -261,6 +261,7 @@ def algorithm_case_1(algorithm_request_case_1, metadata_case_1):
         var_filters=input_data.filters,
         algorithm_parameters=algorithm_parameters,
         metadata=metadata_case_1,
+        datasets=algorithm_request_dto.inputdata.datasets,
     )
     return algorithm_classes[algorithm_name](initialization_params=init_params)
 
@@ -283,6 +284,7 @@ def algorithm_case_2(algorithm_request_case_2, metadata_case_2):
         var_filters=input_data.filters,
         algorithm_parameters=algorithm_parameters,
         metadata=metadata_case_2,
+        datasets=algorithm_request_dto.inputdata.datasets,
     )
     return algorithm_classes[algorithm_name](initialization_params=init_params)
 
