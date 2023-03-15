@@ -40,7 +40,6 @@ S = TypeVar("S")
 class KmeansResult(BaseModel):
     title: str
     centers: List[List[float]]
-    init_centers: List[List[float]]
 
 
 class KMeansAlgorithm(Algorithm, algname="kmeans"):
@@ -103,12 +102,6 @@ class KMeansAlgorithm(Algorithm, algname="kmeans"):
         local_run = engine.run_udf_on_local_nodes
         global_run = engine.run_udf_on_global_node
 
-        # X_relation = algo_interface.initial_view_tables["x"]
-
-        # X_relation, *_ = algo_interface.create_primary_data_views(
-        #    variable_groups=[algo_interface.y_variables], dropna=True
-        # )
-
         [X_relation] = engine.data_model_views
 
         n_clusters = self.algorithm_parameters["k"]
@@ -119,11 +112,6 @@ class KMeansAlgorithm(Algorithm, algname="kmeans"):
             func=relation_to_matrix,
             positional_args=[X_relation],
         )
-
-        # X_not_null = local_run(
-        #    func=remove_nulls,
-        #    positional_args=[X],
-        # )
 
         min_max_transfer = local_run(
             func=init_centers_local2,
@@ -139,7 +127,6 @@ class KMeansAlgorithm(Algorithm, algname="kmeans"):
 
         curr_iter = 0
         centers_to_compute = global_result
-        print(centers_to_compute.get_table_data()[0][0])
         init_centers = json.loads(centers_to_compute.get_table_data()[0][0])["centers"]
 
         # init_centers = get_transfer_data(centers_to_compute)['centers']
@@ -177,32 +164,12 @@ class KMeansAlgorithm(Algorithm, algname="kmeans"):
             # new_centers_obj = get_transfer_data(new_centers)['centers']
             new_centers_array = numpy.array(new_centers_obj)
 
-            # diff = numpy.sum((new_centers_array - old_centers_array) ** 2)
-            """
-            k = n_clusters
-            center_shift = numpy.zeros((k, 1))
-            for j in range(k):
-                # center_shift[j] = _euclidean_dense_dense(
-                #    &centers_new[j, 0], &centers_old[j, 0], n_features, False)
-                distances = euclidean_distances(
-                    new_centers_array[j, :].reshape(1, -1),
-                    old_centers_array[j, :].reshape(1, -1),
-                    squared=False,
-                )
-                # print(distances)
-                center_shift[j] = distances[0][0]
-                # print(distances[0][0])
-            diff_old = (center_shift).sum()
-            print("diff_old is " + str(diff_old))
-            """
             diff = numpy.linalg.norm(new_centers_array - old_centers_array, "fro")
-            print("diff is " + str(diff))
 
             if (curr_iter >= maxiter) or (diff <= tol):
                 ret_obj = KmeansResult(
                     title="K-Means Centers",
                     centers=new_centers_array.tolist(),
-                    init_centers=init_centers_list,
                 )
                 print("finished after " + str(curr_iter))
                 return ret_obj
