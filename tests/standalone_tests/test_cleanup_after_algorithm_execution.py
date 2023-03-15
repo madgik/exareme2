@@ -318,6 +318,7 @@ def cleaner(controller_config, node_landscape_aggregator):
         contextids_cleanup_folder=controller_config.cleanup.contextids_cleanup_folder,
         node_landscape_aggregator=node_landscape_aggregator,
     )
+    Cleaner._delete_instance()
     cleaner = Cleaner(cleaner_init_params)
     yield cleaner
     del cleaner
