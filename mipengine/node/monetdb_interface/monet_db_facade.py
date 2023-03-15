@@ -157,6 +157,23 @@ def _execute_and_fetchall(db_execution_dto) -> List:
     return result
 
 
+def create_idempotent_query(query: str) -> str:
+    """
+    This function creates an idempotent query to protect from a potential edge case
+    where a table creation query is interrupted due to a UDF running and allocating memory.
+    """
+    idempotent_query = query
+    if "CREATE" in query:
+        idempotent_query = query.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS")
+        idempotent_query = idempotent_query.replace(
+            "CREATE REMOTE TABLE", "CREATE REMOTE TABLE IF NOT EXISTS"
+        )
+        idempotent_query = idempotent_query.replace(
+            "CREATE VIEW", "CREATE OR REPLACE VIEW"
+        )
+    return idempotent_query
+
+
 @_execute_queries_with_error_handling
 def _execute(db_execution_dto: _DBExecutionDTO, lock):
     """
@@ -179,12 +196,12 @@ def _execute(db_execution_dto: _DBExecutionDTO, lock):
     try:
         with _lock(lock, db_execution_dto.timeout):
             with _cursor(commit=True) as cur:
-                cur.execute(db_execution_dto.query, db_execution_dto.parameters)
+                query = create_idempotent_query(db_execution_dto.query)
+                cur.execute(query, db_execution_dto.parameters)
     except TimeoutError:
         error_msg = f"""
         The execution of {db_execution_dto} failed because the
         lock was not acquired during
         {db_execution_dto.timeout}
         """
-        sleep(3)
         raise TimeoutError(error_msg)
