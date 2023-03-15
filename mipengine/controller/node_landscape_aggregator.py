@@ -27,7 +27,6 @@ from mipengine.node_info_DTOs import NodeRole
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 from mipengine.node_tasks_DTOs import DataModelAttributes
-from mipengine.singleton import Singleton
 
 NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
 
@@ -265,13 +264,10 @@ class NodeLandscapeAggregator:
             cls.instance = super(NodeLandscapeAggregator, cls).__new__(cls)
             return cls.instance
         else:
-            raise Exception("NodeLandscapeAggregator instance already exists.")
+            raise ValueError("NodeLandscapeAggregator instance already exists.")
 
     @classmethod
     def _delete_instance(cls):
-        """
-        Delete the NodeLandscapeAggregator instance.
-        """
         if hasattr(cls, "instance"):
             del cls.instance
 

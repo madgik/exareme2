@@ -16,7 +16,6 @@ from mipengine.controller.algorithm_execution_engine_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.singleton import Singleton
 
 CLEANER_REQUEST_ID = "CLEANER"
 CLEANUP_FILE_TEMPLATE = string.Template("cleanup_${context_id}.toml")
@@ -108,13 +107,10 @@ class Cleaner:
             cls.instance = super(Cleaner, cls).__new__(cls)
             return cls.instance
         else:
-            raise Exception("Cleaner instance already exists.")
+            raise ValueError("Cleaner instance already exists.")
 
     @classmethod
     def _delete_instance(cls):
-        """
-        Delete the Cleaner instance.
-        """
         if hasattr(cls, "instance"):
             del cls.instance
 
