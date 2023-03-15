@@ -1,4 +1,3 @@
-from itertools import chain
 from typing import List
 from typing import Union
 
@@ -26,17 +25,21 @@ def create_table(table_name: str, table_schema: TableSchema):
 @sql_injection_guard(table_name=str.isidentifier, table_values=None)
 def insert_data_to_table(
     table_name: str, table_values: List[List[Union[str, int, float]]]
-):
+) -> None:
+    # Ensure all rows have the same length
     row_length = len(table_values[0])
-    if all(len(row) != row_length for row in table_values):
-        raise Exception("Row counts does not match")
+    column_length = len(table_values)
+    if not all(len(row) == row_length for row in table_values):
+        raise ValueError("All rows must have the same length")
 
-    # In order to achieve insertion with parameters we need to create query to the following format:
-    # INSERT INTO <table_name> VALUES (%s, %s), (%s, %s);
-    # The following variable 'values' create that specific str according to row_length and the amount of the rows.
-    values = ", ".join(
-        "(" + ", ".join("%s" for _ in range(row_length)) + ")" for _ in table_values
+    # Create the query parameters by flattening the list of rows
+    parameters = [value for row in table_values for value in row]
+
+    # Create the query with placeholders for each row value
+    placeholders = ", ".join(
+        ["(" + ", ".join(["%s"] * row_length) + ")"] * column_length
     )
+    query = f"INSERT INTO {table_name} VALUES {placeholders}"
 
-    sql_clause = f"INSERT INTO {table_name} VALUES {values}"
-    db_execute_query(query=sql_clause, parameters=list(chain(*table_values)))
+    # Execute the query with the parameters
+    db_execute_query(query, parameters)

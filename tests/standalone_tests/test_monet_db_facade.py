@@ -1,11 +1,16 @@
 from unittest.mock import patch
 
 import pytest
+from pymonetdb import DatabaseError
+from pymonetdb import OperationalError
+from pymonetdb import ProgrammingError
 
 from mipengine import AttrDict
 from mipengine.node.monetdb_interface.monet_db_facade import _DBExecutionDTO
 from mipengine.node.monetdb_interface.monet_db_facade import _execute_and_fetchall
-from mipengine.node.monetdb_interface.monet_db_facade import db_execute_and_fetchall
+from mipengine.node.monetdb_interface.monet_db_facade import (
+    _validate_exception_is_recoverable,
+)
 from mipengine.node.node_logger import init_logger
 from tests.standalone_tests.conftest import COMMON_IP
 from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_NAME
@@ -66,7 +71,8 @@ def patch_node_config():
 def test_execute_and_fetchall_success(
     monetdb_localnodetmp,
 ):
-    result = db_execute_and_fetchall(query="SELECT 1;")
+    db_execution_dto = _DBExecutionDTO(query="select 1;", timeout=1)
+    result = _execute_and_fetchall(db_execution_dto=db_execution_dto)
     assert result[0][0] == 1
 
 
@@ -76,10 +82,12 @@ def test_broken_pipe_error_properly_handled(
     capfd,
     monetdb_localnodetmp,
 ):
-    result = db_execute_and_fetchall(query="SELECT 1;")
+    db_execution_dto = _DBExecutionDTO(query="select 1;", timeout=1)
+    result = _execute_and_fetchall(db_execution_dto=db_execution_dto)
     assert result[0][0] == 1
     restart_monetdb_container(MONETDB_LOCALNODETMP_NAME)
-    result = db_execute_and_fetchall(query="SELECT 1;")
+    db_execution_dto = _DBExecutionDTO(query="select 1;", timeout=1)
+    result = _execute_and_fetchall(db_execution_dto=db_execution_dto)
     assert result[0][0] == 1
 
 
@@ -89,12 +97,61 @@ def test_generic_exception_handled(
     monetdb_localnodetmp,
 ):
     remove_monetdb_container(MONETDB_LOCALNODETMP_NAME)
-    db_execution_dto = _DBExecutionDTO(query="select 1;", timeout=3)
+    db_execution_dto = _DBExecutionDTO(query="select 1;", timeout=1)
+    # MonetDB is inaccessible, therefore an OSError is raised.
     with pytest.raises(OSError):
         _execute_and_fetchall(db_execution_dto=db_execution_dto)
 
 
-def test_connection_refused_with_stopped_monetdb_container():
-    db_execution_dto = _DBExecutionDTO(query="select 1;", timeout=1)
-    with pytest.raises(ConnectionError):
+@pytest.mark.slow
+@pytest.mark.very_slow
+# Fix for the task https://team-1617704806227.atlassian.net/browse/MIP-731
+def test_connection_error_while_waiting_for_table_to_be_present(monetdb_localnodetmp):
+    db_execution_dto = _DBExecutionDTO(
+        query="select * from non_existing_table;", timeout=1
+    )
+    with pytest.raises(OperationalError):
         _execute_and_fetchall(db_execution_dto=db_execution_dto)
+
+
+def get_exception_cases():
+    return [
+        pytest.param(
+            OSError("OSError"),
+            False,
+            id="Monetdb is down",
+        ),
+        pytest.param(
+            BrokenPipeError("error"),
+            True,
+            id="broken pipe occurs on container restart",
+        ),
+        pytest.param(
+            DatabaseError("table not found"),
+            True,
+            id="generic DatabaseError",
+        ),
+        pytest.param(
+            DatabaseError("python exception"),
+            True,
+            id="python exception DatabaseError",
+        ),
+        pytest.param(
+            DatabaseError("python exception: ValueError(print stuff)"),
+            False,
+            id="Algorithms debugging",
+        ),
+        pytest.param(
+            ProgrammingError("ProgrammingError"),
+            False,
+            id="generic ProgrammingError",
+        ),
+    ]
+
+
+@pytest.mark.parametrize(
+    "exception,expected",
+    get_exception_cases(),
+)
+def test_validate_exception_is_recoverable(exception: Exception, expected):
+    assert _validate_exception_is_recoverable(exception) == expected
