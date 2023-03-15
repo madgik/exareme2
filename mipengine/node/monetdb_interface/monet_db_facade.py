@@ -179,12 +179,14 @@ def _execute(db_execution_dto: _DBExecutionDTO, lock):
     try:
         with _lock(lock, db_execution_dto.timeout):
             with _cursor(commit=True) as cur:
-                cur.execute(db_execution_dto.query, db_execution_dto.parameters)
+                query = db_execution_dto.query.replace(
+                    "CREATE TABLE", "CREATE TABLE IF NOT EXISTS"
+                )
+                cur.execute(query, db_execution_dto.parameters)
     except TimeoutError:
         error_msg = f"""
         The execution of {db_execution_dto} failed because the
         lock was not acquired during
         {db_execution_dto.timeout}
         """
-        sleep(3)
         raise TimeoutError(error_msg)
