@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import pytest
@@ -6,6 +5,7 @@ import scipy.stats as st
 
 from tests.algorithm_validation_tests.helpers import algorithm_request
 from tests.algorithm_validation_tests.helpers import get_test_params
+from tests.algorithm_validation_tests.helpers import parse_response
 
 pytest.skip(
     allow_module_level=True,
@@ -35,7 +35,7 @@ expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected
 )
 def test_logisticregression_cv_algorithm(test_input, expected, subtests):
     response = algorithm_request(algorithm_name, test_input)
-    result = json.loads(response.content)
+    result = parse_response(response)
 
     # summary results also contain their average and stdev in the last
     # positions, so I remove them

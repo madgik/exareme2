@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import numpy as np
@@ -7,6 +6,7 @@ import pytest
 from tests.algorithm_validation_tests.helpers import algorithm_request
 from tests.algorithm_validation_tests.helpers import assert_allclose
 from tests.algorithm_validation_tests.helpers import get_test_params
+from tests.algorithm_validation_tests.helpers import parse_response
 
 pytest.skip(
     allow_module_level=True,
@@ -30,7 +30,7 @@ expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected
 )
 def test_logisticregression_algorithm(test_input, expected, subtests):
     response = algorithm_request(algorithm_name, test_input)
-    result = json.loads(response.content)
+    result = parse_response(response)
 
     result = result["summary"]
 

@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import pytest
@@ -6,6 +5,7 @@ import pytest
 from tests.algorithm_validation_tests.helpers import algorithm_request
 from tests.algorithm_validation_tests.helpers import assert_allclose
 from tests.algorithm_validation_tests.helpers import get_test_params
+from tests.algorithm_validation_tests.helpers import parse_response
 
 expected_file = Path(__file__).parent / "expected" / "anova_twoway_expected.json"
 
@@ -13,7 +13,7 @@ expected_file = Path(__file__).parent / "expected" / "anova_twoway_expected.json
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_anova_two_way(test_input, expected, subtests):
     response = algorithm_request("anova", test_input)
-    result = json.loads(response.content)
+    result = parse_response(response)
 
     validate_results(result, expected, subtests)
 
@@ -56,3 +56,49 @@ def validate_results(result, expected, subtests):
         for term in expected_terms:
             if f_pvalue[term]:
                 assert_allclose(f_pvalue[term], expected["f_pvalue"][term])
+
+
+def test_anova_two_way__invalid_input__single_depvar():
+    test_input = {
+        "inputdata": {
+            "data_model": "dementia:0.1",
+            "datasets": [
+                "desd-synthdata0",
+                "desd-synthdata1",
+                "desd-synthdata2",
+                "desd-synthdata3",
+                "desd-synthdata4",
+                "desd-synthdata5",
+                "desd-synthdata6",
+                "desd-synthdata7",
+                "desd-synthdata8",
+                "desd-synthdata9",
+                "edsd0",
+                "edsd1",
+                "edsd2",
+                "edsd3",
+                "edsd4",
+                "edsd5",
+                "edsd6",
+                "edsd7",
+                "edsd8",
+                "edsd9",
+                "ppmi0",
+                "ppmi1",
+                "ppmi2",
+                "ppmi3",
+                "ppmi4",
+                "ppmi5",
+                "ppmi6",
+                "ppmi7",
+                "ppmi8",
+                "ppmi9",
+            ],
+            "filters": None,
+            "y": ["leftmpogpostcentralgyrusmedialsegment"],
+            "x": ["dataset"],
+        },
+        "parameters": {"sstype": 2},
+    }
+    response = algorithm_request("anova", test_input)
+    assert response.status_code == 460

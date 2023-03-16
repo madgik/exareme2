@@ -1,4 +1,3 @@
-import copy
 import functools
 import json
 
@@ -8,26 +7,22 @@ import requests
 
 
 def algorithm_request(algorithm: str, input: dict):
-    response = algorithm_request_no_parse(algorithm, input)
-
-    if response.status_code != 200:
-        raise ValueError(
-            f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
-        )
-    try:
-        json.loads(response.content)
-    except json.decoder.JSONDecodeError as exc:
-        print(response)
-        raise exc
-    return response
-
-
-def algorithm_request_no_parse(algorithm: str, input: dict):
     url = "http://127.0.0.1:5000/algorithms" + f"/{algorithm}"
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
     response = requests.post(url, data=json.dumps(input), headers=headers)
-
     return response
+
+
+def parse_response(response) -> dict:
+    if response.status_code != 200:
+        msg = f"Unexpected response status: '{response.status_code}'. "
+        msg += f"Response message: '{response.content}'"
+        raise ValueError(msg)
+    try:
+        result = json.loads(response.content)
+    except json.decoder.JSONDecodeError:
+        raise ValueError(f"The result is not valid json:\n{response.content}") from None
+    return result
 
 
 def get_test_params(expected_file, slc=None, skip_indices=None, skip_reason=None):
