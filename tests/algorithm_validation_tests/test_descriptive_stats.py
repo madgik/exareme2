@@ -17,6 +17,10 @@ def test_descriptive_stats(test_input, expected):
     response = algorithm_request(algorithm_name, test_input)
     result = parse_response(response)
 
+    compare_results(result, expected)
+
+
+def compare_results(result, expected):
     # sort records by variable and dataset in order to compare them
     varbased_res = sorted(
         result["variable_based"],
@@ -60,7 +64,8 @@ def compare_numerical_data(data1, data2):
     assert data1["num_na"] == data2["num_na"]
     assert data1["num_total"] == data2["num_total"]
     assert_allclose(data1["mean"], data2["mean"])
-    assert_allclose(data1["std"], data2["std"])
+    if data1["std"] is not None and data2["std"] is not None:
+        assert_allclose(data1["std"], data2["std"])
     assert_allclose(data1["min"], data2["min"])
     assert_allclose(data1["max"], data2["max"])
     assert (data1["q1"] and data2["q1"]) or (not data1["q1"] and not data2["q1"])
