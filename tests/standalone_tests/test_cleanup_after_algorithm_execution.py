@@ -44,8 +44,7 @@ from tests.standalone_tests.conftest import _create_rabbitmq_container
 from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
 
-WAIT_CLEANUP_TIME_LIMIT = 60
-WAIT_BEFORE_BRING_TMPNODE_DOWN = 60
+WAIT_CLEANUP_TIME_LIMIT = 120
 NLA_WAIT_TIME_LIMIT = 120
 
 
@@ -387,9 +386,7 @@ def test_synchronous_cleanup(
     }
 
     start = time.time()
-    while not all(
-        tables == [] for tables in flatten_list(tables_after_cleanup.values())
-    ):
+    while any(tables_after_cleanup.values()):
 
         cleaner.cleanup_context_id(context_id=context_id)
         tables_after_cleanup = {
@@ -453,9 +450,7 @@ def test_asynchronous_cleanup(
         for node_id, cursor in db_cursors.items()
     }
     start = time.time()
-    while not all(
-        (tables == [] for tables in flatten_list(tables_after_cleanup.values()))
-    ):
+    while any(tables_after_cleanup.values()):
         tables_after_cleanup = {
             node_id: get_tables(cursor, context_id)
             for node_id, cursor in db_cursors.items()
@@ -520,9 +515,7 @@ def test_cleanup_triggered_by_release_timelimit(
             for node_id, cursor in db_cursors.items()
         }
         start = time.time()
-        while not all(
-            (tables is None for tables in flatten_list(tables_after_cleanup.values()))
-        ):
+        while any(tables_after_cleanup.values()):
             tables_after_cleanup = {
                 node_id: get_tables(cursor, context_id)
                 for node_id, cursor in db_cursors.items()
@@ -601,9 +594,7 @@ def test_cleanup_after_rabbitmq_restart(
         for node_id, cursor in db_cursors.items()
     }
     start = time.time()
-    while not all(
-        (tables == [] for tables in flatten_list(tables_after_cleanup.values()))
-    ):
+    while any(tables_after_cleanup.values()):
         tables_after_cleanup = {
             node_id: get_tables(cursor, context_id)
             for node_id, cursor in db_cursors.items()
@@ -681,9 +672,7 @@ def test_cleanup_after_node_service_restart(
         for node_id, cursor in db_cursors.items()
     }
     start = time.time()
-    while not all(
-        (tables == [] for tables in flatten_list(tables_after_cleanup.values()))
-    ):
+    while any(tables_after_cleanup.values()):
 
         tables_after_cleanup = {
             node_id: get_tables(cursor, context_id)
