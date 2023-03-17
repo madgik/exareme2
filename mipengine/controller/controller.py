@@ -224,7 +224,7 @@ class Controller:
             request_id=algorithm_request_dto.request_id,
             context_id=context_id,
             algo_flags=algorithm_request_dto.flags,
-            data_model_views=data_model_views,
+            # data_model_views=data_model_views,
         )
         engine = _create_algorithm_execution_engine(
             engine_init_params=engine_init_params,
@@ -245,7 +245,7 @@ class Controller:
         # run the algorithm
         try:
             algorithm_result = await self._algorithm_run_in_event_loop(
-                algorithm=algorithm, engine=engine
+                algorithm=algorithm, data_model_views=data_model_views,metadata=metadata#engine=engine
             )
         except CeleryConnectionError as exc:
             algo_execution_logger.error(
@@ -273,13 +273,14 @@ class Controller:
         )
         return algorithm_result.json()
 
-    async def _algorithm_run_in_event_loop(self, algorithm, engine):
+    # TODO add types
+    async def _algorithm_run_in_event_loop(self, algorithm,data_model_views,metadata): #engine):
         # By calling blocking method Algorithm.run() inside run_in_executor(),
         # Algorithm.run() will execute in a separate thread of the threadpool and at
         # the same time yield control to the executor event loop, through await
         loop = asyncio.get_event_loop()
         algorithm_result = await loop.run_in_executor(
-            self._thread_pool_executor, algorithm.run, engine
+            self._thread_pool_executor, algorithm.run,data_model_views,metadata# engine
         )
         return algorithm_result
 
