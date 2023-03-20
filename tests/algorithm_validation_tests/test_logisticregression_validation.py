@@ -8,13 +8,6 @@ from tests.algorithm_validation_tests.helpers import assert_allclose
 from tests.algorithm_validation_tests.helpers import get_test_params
 from tests.algorithm_validation_tests.helpers import parse_response
 
-pytest.skip(
-    allow_module_level=True,
-    msg="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757",
-)
-
 algorithm_name = "logistic_regression"
 
 expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected.json"
