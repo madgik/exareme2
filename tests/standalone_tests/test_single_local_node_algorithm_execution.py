@@ -261,6 +261,7 @@ def algorithm_case_1(algorithm_request_case_1, metadata_case_1):
         var_filters=input_data.filters,
         algorithm_parameters=algorithm_parameters,
         metadata=metadata_case_1,
+        datasets=algorithm_request_dto.inputdata.datasets,
     )
     return algorithm_classes[algorithm_name](initialization_params=init_params)
 
@@ -283,6 +284,7 @@ def algorithm_case_2(algorithm_request_case_2, metadata_case_2):
         var_filters=input_data.filters,
         algorithm_parameters=algorithm_parameters,
         metadata=metadata_case_2,
+        datasets=algorithm_request_dto.inputdata.datasets,
     )
     return algorithm_classes[algorithm_name](initialization_params=init_params)
 
@@ -440,11 +442,6 @@ def engine_case_2(
     )
 
 
-@pytest.mark.skip(
-    reason="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757"
-)
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "algorithm,engine",

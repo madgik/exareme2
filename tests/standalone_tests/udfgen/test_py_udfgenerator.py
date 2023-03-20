@@ -29,15 +29,12 @@ from mipengine.udfgen.iotypes import state
 from mipengine.udfgen.iotypes import tensor
 from mipengine.udfgen.iotypes import transfer
 from mipengine.udfgen.iotypes import udf_logger
+from mipengine.udfgen.py_udfgenerator import FlowArgsToUdfArgsConverter
+from mipengine.udfgen.py_udfgenerator import PyUdfGenerator
+from mipengine.udfgen.py_udfgenerator import UDFBadCall
+from mipengine.udfgen.py_udfgenerator import copy_types_from_udfargs
 from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
 from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
-from mipengine.udfgen.udfgenerator import FlowArgsToUdfArgsConverter
-from mipengine.udfgen.udfgenerator import UDFBadCall
-from mipengine.udfgen.udfgenerator import UdfGenerator
-from mipengine.udfgen.udfgenerator import copy_types_from_udfargs
-from mipengine.udfgen.udfgenerator import (
-    get_create_dummy_encoded_design_matrix_execution_queries,
-)
 
 
 def test_copy_types_from_udfargs():
@@ -314,7 +311,7 @@ class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
         posargs = [TensorArg("table_name", dtype=int, ndims=1)]
         keywordargs = {"z": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -336,7 +333,7 @@ class TestUDFGen_LoggerArgument_provided_in_pos_args(TestUDFGenBase):
     def test_get_udf_templates(self, udfregistry, funcname):
         posargs = [TensorArg("table_name", dtype=int, ndims=1), LiteralArg(1)]
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -361,7 +358,7 @@ class TestUDFGen_LoggerArgument_provided_in_kw_args(TestUDFGenBase):
         posargs = [TensorArg("table_name", dtype=int, ndims=1)]
         keywordargs = {"logger": LiteralArg(1)}
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -405,7 +402,7 @@ class TestUDFGen_InvalidUDFArgs_TransferTableInStateArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -449,7 +446,7 @@ class TestUDFGen_InvalidUDFArgs_TensorTableInTransferArgument(TestUDFGenBase):
             ),
         ]
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -493,7 +490,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_To_Transfer_Type(TestUDFGenBase):
             )
         ]
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -527,7 +524,7 @@ class TestUDFGen_Invalid_TableInfoArgs_To_SecureTransferType(TestUDFGenBase):
         ]
 
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -571,7 +568,7 @@ class TestUDFGen_Invalid_SMPCUDFInput_with_SMPC_off(TestUDFGenBase):
             )
         ]
         with pytest.raises(UDFBadCall) as exc:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -618,7 +615,7 @@ class TestUDFGen_InvalidUDFArgs_InconsistentTypeVars(TestUDFGenBase):
 
         keywordargs = {}
         with pytest.raises(ValueError) as e:
-            UdfGenerator(
+            PyUdfGenerator(
                 udfregistry=udfregistry,
                 func_name=funcname,
                 flowargs=posargs,
@@ -707,7 +704,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -827,7 +824,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -924,7 +921,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1045,7 +1042,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1186,7 +1183,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1306,7 +1303,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1400,7 +1397,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1495,7 +1492,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1593,7 +1590,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1666,7 +1663,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1762,7 +1759,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1858,7 +1855,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -1954,7 +1951,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2065,7 +2062,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2193,7 +2190,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2330,7 +2327,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2423,7 +2420,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2516,7 +2513,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2626,7 +2623,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2719,7 +2716,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2829,7 +2826,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -2940,7 +2937,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3069,7 +3066,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3201,7 +3198,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3340,7 +3337,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3484,7 +3481,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3634,7 +3631,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3762,7 +3759,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -3914,7 +3911,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -4049,7 +4046,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -4230,7 +4227,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -4345,7 +4342,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -4481,7 +4478,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -4582,7 +4579,7 @@ FROM
         expected_udfexec,
         expected_udf_outputs,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=positional_args,
@@ -4650,7 +4647,7 @@ FROM
         expected_udf_outputs,
     ):
         output_schema = [("a", DType.INT), ("b", DType.FLOAT)]
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=[],
@@ -4695,7 +4692,7 @@ LANGUAGE PYTHON
         funcname,
         expected_udfdef,
     ):
-        gen = UdfGenerator(
+        gen = PyUdfGenerator(
             udf.registry,
             func_name=funcname,
             flowargs=[],
@@ -4704,166 +4701,3 @@ LANGUAGE PYTHON
         )
         definition = gen.get_definition(udf_name="__udf")
         assert definition == expected_udfdef
-
-
-class N:
-    ...
-
-
-@pytest.mark.skip(
-    reason="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757"
-)
-def test_get_create_design_matrix_select_only_numerical():
-    enums = {}
-    numerical_vars = ["n1", "n2"]
-    design_matrix = N()
-    design_matrix.name = "test_table"
-    args = {
-        "x": design_matrix,
-        "enums": enums,
-        "numerical_vars": numerical_vars,
-        "intercept": True,
-    }
-    expected = """\
-INSERT INTO __main
-SELECT
-    "row_id",
-    1 AS "intercept",
-    "n1",
-    "n2"
-FROM
-    test_table;"""
-    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
-    assert result.udf_select_query.template == expected
-
-
-@pytest.mark.skip(
-    reason="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757"
-)
-def test_get_create_design_matrix_select_only_categorical():
-    enums = {
-        "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
-    }
-    numerical_vars = []
-    design_matrix = N()
-    design_matrix.name = "test_table"
-    args = {
-        "x": design_matrix,
-        "enums": enums,
-        "numerical_vars": numerical_vars,
-        "intercept": True,
-    }
-    expected = """\
-INSERT INTO __main
-SELECT
-    "row_id",
-    1 AS "intercept",
-    CASE WHEN c1 = 'l1' THEN 1 ELSE 0 END AS "c1__1",
-    CASE WHEN c1 = 'l2' THEN 1 ELSE 0 END AS "c1__2"
-FROM
-    test_table;"""
-    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
-    assert result.udf_select_query.template == expected
-
-
-@pytest.mark.skip(
-    reason="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757"
-)
-def test_get_create_design_matrix_select_no_intercept():
-    enums = {
-        "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
-    }
-    numerical_vars = []
-    design_matrix = N()
-    design_matrix.name = "test_table"
-    args = {
-        "x": design_matrix,
-        "enums": enums,
-        "numerical_vars": numerical_vars,
-        "intercept": False,
-    }
-    expected = """\
-INSERT INTO __main
-SELECT
-    "row_id",
-    CASE WHEN c1 = 'l1' THEN 1 ELSE 0 END AS "c1__1",
-    CASE WHEN c1 = 'l2' THEN 1 ELSE 0 END AS "c1__2"
-FROM
-    test_table;"""
-    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
-    assert result.udf_select_query.template == expected
-
-
-@pytest.mark.skip(
-    reason="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757"
-)
-def test_get_create_design_matrix_select_full():
-    enums = {
-        "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
-        "c2": [
-            {"code": "A", "dummy": "c2__1"},
-            {"code": "B", "dummy": "c2__2"},
-            {"code": "C", "dummy": "c2__3"},
-        ],
-    }
-    numerical_vars = ["n1", "n2"]
-    design_matrix = N()
-    design_matrix.name = "test_table"
-    args = {
-        "x": design_matrix,
-        "enums": enums,
-        "numerical_vars": numerical_vars,
-        "intercept": True,
-    }
-    expected = """\
-INSERT INTO __main
-SELECT
-    "row_id",
-    1 AS "intercept",
-    CASE WHEN c1 = 'l1' THEN 1 ELSE 0 END AS "c1__1",
-    CASE WHEN c1 = 'l2' THEN 1 ELSE 0 END AS "c1__2",
-    CASE WHEN c2 = 'A' THEN 1 ELSE 0 END AS "c2__1",
-    CASE WHEN c2 = 'B' THEN 1 ELSE 0 END AS "c2__2",
-    CASE WHEN c2 = 'C' THEN 1 ELSE 0 END AS "c2__3",
-    "n1",
-    "n2"
-FROM
-    test_table;"""
-    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
-    assert result.udf_select_query.template == expected
-
-
-@pytest.mark.skip(
-    reason="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757"
-)
-def test_get_create_design_matrix_create_query():
-    enums = {
-        "c1": [{"code": "l1", "dummy": "c1__1"}, {"code": "l2", "dummy": "c1__2"}],
-        "c2": [
-            {"code": "A", "dummy": "c2__1"},
-            {"code": "B", "dummy": "c2__2"},
-            {"code": "C", "dummy": "c2__3"},
-        ],
-    }
-    numerical_vars = ["n1", "n2"]
-    design_matrix = N()
-    design_matrix.name = "test_table"
-    args = {
-        "x": design_matrix,
-        "enums": enums,
-        "numerical_vars": numerical_vars,
-        "intercept": True,
-    }
-    expected = 'CREATE TABLE __main("row_id" INT,"intercept" DOUBLE,"c1__1" DOUBLE,"c1__2" DOUBLE,"c2__1" DOUBLE,"c2__2" DOUBLE,"c2__3" DOUBLE,"n1" DOUBLE,"n2" DOUBLE);'
-    result = get_create_dummy_encoded_design_matrix_execution_queries(args)
-    assert result.udf_results[0].create_query.template == expected

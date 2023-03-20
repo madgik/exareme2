@@ -68,12 +68,16 @@ class AnovaTwoWay(Algorithm, algname="anova"):
         )
 
     def get_variable_groups(self):
-        [y] = self.variables.y
-        x1, x2 = self.variables.x
-        return [[y], [x1, x2]]
+        return [self.variables.y, self.variables.x]
 
-    def run(self, data_model_views, metadata):
-        [[y], [x1, x2]] = self.get_variable_groups()
+    def run(self,  data_model_views, metadata):
+        [[y], xs] = self.get_variable_groups()
+        if len(xs) == 2:
+            x1, x2 = xs
+        else:
+            msg = "Anova two-way only works with two dependent variables. "
+            msg += f"Got {len(xs)} varible(s) instead."
+            raise BadUserInput(msg)
 
         Y, X = data_model_views
 

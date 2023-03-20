@@ -32,6 +32,7 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+import numpy
 import pandas as pd
 from pydantic import BaseModel
 
@@ -254,7 +255,7 @@ def local(
                 q2=q2[var],
                 q3=q3[var],
                 mean=mean[var],
-                std=std[var],
+                std=None if numpy.isnan(std[var]) else std[var],
                 min=min_[var],
                 max=max_[var],
             )
@@ -350,7 +351,7 @@ def add_records(r1, r2):
     mean = sx / num
     result["mean"] = mean
     variance = sxx / (num - 1) - 2 * mean * sx / (num - 1) + num / (num - 1) * mean**2
-    result["std"] = math.sqrt(variance)
+    result["std"] = None if numpy.isnan(variance) else math.sqrt(variance)
     return result
 
 

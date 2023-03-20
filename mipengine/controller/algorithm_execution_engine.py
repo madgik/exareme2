@@ -139,7 +139,7 @@ class AlgorithmExecutionEngine:
         # 5. create remote tables on global for each of the generated tables
         # 6. create merge table on global node to merge the remote tables
 
-        func_name = get_func_name(func)
+        func_name = make_unique_func_name(func)
         command_id = self._command_id_generator.get_next_command_id()
 
         self._validate_local_run_udf_args(
@@ -218,7 +218,7 @@ class AlgorithmExecutionEngine:
         # 4. a(or multiple) new table(s) was generated on global node
         # 5. queue create_remote_table on each of the local nodes to share the generated table
 
-        func_name = get_func_name(func)
+        func_name = make_unique_func_name(func)
         command_id = self._command_id_generator.get_next_command_id()
 
         self._validate_global_run_udf_args(
@@ -559,9 +559,3 @@ class AlgorithmExecutionEngineSingleLocalNode(AlgorithmExecutionEngine):
         return LocalNodesTable(
             nodes_tables_info=dict({self._global_node: global_table.table_info})
         )
-
-
-def get_func_name(func: Callable) -> str:
-    if isinstance(func, str):
-        return func
-    return make_unique_func_name(func)

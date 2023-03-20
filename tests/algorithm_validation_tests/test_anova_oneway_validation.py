@@ -1,12 +1,11 @@
-import json
 from pathlib import Path
 
 import numpy as np
 import pytest
 
 from tests.algorithm_validation_tests.helpers import algorithm_request
-from tests.algorithm_validation_tests.helpers import algorithm_request_no_parse
 from tests.algorithm_validation_tests.helpers import get_test_params
+from tests.algorithm_validation_tests.helpers import parse_response
 
 algorithm_name = "anova_oneway"
 
@@ -19,12 +18,8 @@ expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected
 )
 def test_anova_algorithm(test_input, expected):
     response = algorithm_request(algorithm_name, test_input)
+    result = parse_response(response)
 
-    if response.status_code != 200:
-        raise ValueError(
-            f"Unexpected response status: '{response.status_code}'. Response message: '{response.content}'"
-        )
-    result = json.loads(response.content)
     aov = result["anova_table"]
     tukey = result["tuckey_test"]
 
@@ -53,7 +48,7 @@ def test_anova_algorithm_not_enough_categories():
         "parameters": {},
     }
 
-    response = algorithm_request_no_parse(algorithm_name, test_input)
+    response = algorithm_request(algorithm_name, test_input)
 
     if (
         response.status_code != 460

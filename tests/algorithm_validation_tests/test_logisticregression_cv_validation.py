@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import pytest
@@ -6,13 +5,7 @@ import scipy.stats as st
 
 from tests.algorithm_validation_tests.helpers import algorithm_request
 from tests.algorithm_validation_tests.helpers import get_test_params
-
-pytest.skip(
-    allow_module_level=True,
-    msg="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757",
-)
+from tests.algorithm_validation_tests.helpers import parse_response
 
 algorithm_name = "logistic_regression_cv"
 
@@ -36,7 +29,7 @@ expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected
 )
 def test_logisticregression_cv_algorithm(test_input, expected, subtests):
     response = algorithm_request(algorithm_name, test_input)
-    result = json.loads(response.content)
+    result = parse_response(response)
 
     # summary results also contain their average and stdev in the last
     # positions, so I remove them

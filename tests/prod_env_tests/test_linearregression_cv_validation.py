@@ -8,7 +8,6 @@ some quantity is computed for each CV fold. The way we test for equality
 between our and the SOA implementation is by conducting a two-tailed t-test
 with 99% confidence.
 """
-import json
 from pathlib import Path
 
 import pytest
@@ -16,13 +15,7 @@ import scipy.stats as st
 
 from tests.algorithm_validation_tests.helpers import algorithm_request
 from tests.algorithm_validation_tests.helpers import get_test_params
-
-pytest.skip(
-    allow_module_level=True,
-    msg="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757",
-)
+from tests.algorithm_validation_tests.helpers import parse_response
 
 algorithm_name = "linear_regression_cv"
 
@@ -52,7 +45,7 @@ def get_cached_response(algorithm_name, test_input, cache):
 )
 def test_linearregression_cv_non_inferiority_msre(test_input, expected, cache):
     response = get_cached_response(algorithm_name, test_input, cache)
-    result = json.loads(response.content)
+    result = parse_response(response)
 
     n_splits = test_input["parameters"]["n_splits"]
     msre_res_mean, msre_res_std = result["mean_sq_error"]
@@ -78,10 +71,7 @@ def test_linearregression_cv_non_inferiority_msre(test_input, expected, cache):
 )
 def test_linearregression_cv_non_inferiority_mae(test_input, expected, cache):
     response = get_cached_response("linear_regression_cv", test_input, cache)
-    try:
-        result = json.loads(response.text)
-    except json.decoder.JSONDecodeError:
-        raise ValueError(f"The result is not valid json:\n{response.text}") from None
+    result = parse_response(response)
 
     n_splits = test_input["parameters"]["n_splits"]
     mae_res_mean, mae_res_std = result["mean_abs_error"]
@@ -107,10 +97,7 @@ def test_linearregression_cv_non_inferiority_mae(test_input, expected, cache):
 )
 def test_linearregression_cv_non_inferiority_r2(test_input, expected, cache):
     response = get_cached_response("linear_regression_cv", test_input, cache)
-    try:
-        result = json.loads(response.text)
-    except json.decoder.JSONDecodeError:
-        raise ValueError(f"The result is not valid json:\n{response.text}") from None
+    result = parse_response(response)
 
     n_splits = test_input["parameters"]["n_splits"]
     r2_res_mean, r2_res_std = result["r_squared"]
