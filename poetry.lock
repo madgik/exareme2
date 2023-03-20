@@ -1231,14 +1231,14 @@ files = [
 
 [[package]]
 name = "mipdb"
-version = "2.0.1"
+version = "2.0.2"
 description = ""
 category = "dev"
 optional = false
 python-versions = ">=3.8,<3.9"
 files = [
-    {file = "mipdb-2.0.1-py3-none-any.whl", hash = "sha256:093a4b263ff063c23f0b35fcd49408efa4106c91426a570f51854f4fa5e9ac79"},
-    {file = "mipdb-2.0.1.tar.gz", hash = "sha256:c6fab4148b26c54a3c7ca685060196afed2956fd09dfd3c67ff40d0cbe4b2ad1"},
+    {file = "mipdb-2.0.2-py3-none-any.whl", hash = "sha256:41220275785e47acf2f0dfbc0005c255a3444ad417cb1d5865cf1bcd4a121bb5"},
+    {file = "mipdb-2.0.2.tar.gz", hash = "sha256:fbe2a3e80aa4619e8285b5fbbd349541a4979ce33c950f71029357f924e79f1f"},
 ]
 
 [package.dependencies]
@@ -2835,4 +2835,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.8"
-content-hash = "9cd65218d3923cf29a72e39aa4638d18013f77fd158c95529e9afccc9034cbf7"
+content-hash = "a078ffd8045d4a2eb2be3094d98e02b55d13fffc4d67ce0c29cc990941304fd7"

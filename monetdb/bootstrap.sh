@@ -22,6 +22,8 @@ then
   monetdb set mal_for_all=yes db
   monetdb release db
   monetdb start db
+  ./configure_users.sh
+
   echo 'Database initialized.'
 else
   echo 'Checking if previous instances are still running (from other containers).'
@@ -42,8 +44,4 @@ else
   echo 'Database restarted.'
 fi
 
-./configure_users.sh
 ./configure_monit.sh
-
-echo 'MonetDB merovingian logs:'
-tail -fn +1 $MONETDB_STORAGE/merovingian.log -fn +1 $MONIT_CONFIG_FOLDER/monit.log
