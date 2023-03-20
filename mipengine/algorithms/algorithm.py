@@ -8,7 +8,9 @@ from typing import Optional
 from pydantic import BaseModel
 
 from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
+
+# from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
+
 
 class Variables(BaseModel):
     x: List[str]
@@ -25,7 +27,7 @@ class InitializationParams(BaseModel):
     algorithm_parameters: Optional[Dict[str, Any]] = None
     # metadata: Dict[str, dict]
     datasets: List[str]
-    engine: AlgorithmExecutionEngine
+    engine: Any  # AlgorithmExecutionEngine
 
     class Config:
         arbitrary_types_allowed = True
@@ -58,6 +60,10 @@ class Algorithm(ABC):
         """
         super().__init_subclass__(**kwargs)
         cls.algname = algname
+
+    @property
+    def engine(self):  # TODO return type
+        return self._initialization_params.engine
 
     @property
     def variables(self) -> Variables:
@@ -141,7 +147,7 @@ class Algorithm(ABC):
         pass
 
     @abstractmethod
-    def run(self,data_model_views,metadata): #engine):
+    def run(self, data_model_views, metadata):  # engine):
         # The executor must be availiable only inside run()
         # The reasoning for this is that executor.data_model_views must already be
         # available when the executor is available to the algorithm, but the creation of

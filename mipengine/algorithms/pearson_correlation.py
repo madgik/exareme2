@@ -75,12 +75,12 @@ class PearsonCorrelationAlgorithm(Algorithm, algname="pearson_correlation"):
             variable_groups = [self.variables.y, self.variables.y]
         return variable_groups
 
-    def run(self, engine):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
+    def run(self, data_model_views, metadata):
+        local_run = self.engine.run_udf_on_local_nodes
+        global_run = self.engine.run_udf_on_global_node
         alpha = self.algorithm_parameters["alpha"]
 
-        X_relation, Y_relation = engine.data_model_views
+        X_relation, Y_relation = data_model_views
 
         local_transfers = local_run(
             func=local1,
