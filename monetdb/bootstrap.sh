@@ -45,6 +45,3 @@ else
 fi
 
 ./configure_monit.sh
-
-echo 'MonetDB merovingian logs:'
-tail -fn +1 $MONETDB_STORAGE/merovingian.log -fn +1 $MONIT_CONFIG_FOLDER/monit.log

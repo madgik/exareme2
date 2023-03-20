@@ -88,4 +88,4 @@ RUN mkdir $MONIT_CONFIG_FOLDER
 
 
 WORKDIR /home
-CMD ["/bin/bash","/home/bootstrap.sh"]
+CMD ["sh", "-c", "/home/bootstrap.sh; tail -fn +1 $MONETDB_STORAGE/merovingian.log -fn +1 $MONIT_CONFIG_FOLDER/monit.log"]
