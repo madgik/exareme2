@@ -70,7 +70,7 @@ class AnovaTwoWay(Algorithm, algname="anova"):
     def get_variable_groups(self):
         return [self.variables.y, self.variables.x]
 
-    def run(self,  data_model_views, metadata):
+    def run(self, data_model_views, metadata):
         [[y], xs] = self.get_variable_groups()
         if len(xs) == 2:
             x1, x2 = xs
