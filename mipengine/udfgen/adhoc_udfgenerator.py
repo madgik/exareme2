@@ -10,6 +10,7 @@ from mipengine.udfgen.ast import Column
 from mipengine.udfgen.ast import ConstColumn
 from mipengine.udfgen.ast import CreateTable
 from mipengine.udfgen.ast import Insert
+from mipengine.udfgen.ast import Join
 from mipengine.udfgen.ast import Select
 from mipengine.udfgen.ast import Table
 from mipengine.udfgen.helpers import make_unique_func_name
@@ -76,6 +77,7 @@ class AdhocUdfGenerator(UdfGenerator, ABC):
         Select=Select,
         Insert=Insert,
         CreateTable=CreateTable,
+        Join=Join,
     )
 
     def __init__(

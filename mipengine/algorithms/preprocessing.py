@@ -165,7 +165,7 @@ class DummyEncoderUdf(AdhocUdfGenerator):
         columns.extend(num_columns)
 
         table = self.ast.Table(name=self.x.name, columns=columns)
-        sel = self.ast.Select(columns=table.columns, tables=[table])
+        sel = self.ast.Select(columns=table.columns, from_=[table])
         return self.ast.Insert(table=main_output_name, values=sel).compile()
 
     def get_results(self, output_table_names: List[str]) -> List[UDFGenTableResult]:
