@@ -32,21 +32,21 @@ class AnovaTwoWay(Algorithm, algname="anova"):
     def get_specification(cls):
         return AlgorithmSpecification(
             name=cls.algname,
-            desc="Two-way analysis of variance (ANOVA)",
+            desc="Test the difference in the means of the dependent variable between two or more groups, when there are two independent covariates.",
             label="Two-way ANOVA",
             enabled=True,
             inputdata=InputDataSpecifications(
                 x=InputDataSpecification(
-                    label="independent",
-                    desc="independent variable",
+                    label="Covariates (independent)",
+                    desc="Two nominal variables.",
                     types=[InputDataType.INT, InputDataType.TEXT],
                     stattypes=[InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=True,
                 ),
                 y=InputDataSpecification(
-                    label="dependent",
-                    desc="Dependent variable",
+                    label="Variable (dependent)",
+                    desc="A unique numerical variable.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,

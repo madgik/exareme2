@@ -35,21 +35,21 @@ class PairedTTestAlgorithm(Algorithm, algname="ttest_paired"):
     def get_specification(cls):
         return AlgorithmSpecification(
             name=cls.algname,
-            desc="Paired t-test",
-            label="Paired t-test",
+            desc="Test the difference in means between two related groups. It is commonly used when the same subjects are measured twice, such as before and after a treatment.",
+            label="T-Test paired",
             enabled=True,
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
-                    label="independent",
-                    desc="independent variable",
+                    label="Variable (dependent)",
+                    desc="A unique numerical variable.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
                     multiple=False,
                 ),
                 x=InputDataSpecification(
-                    label="independent",
-                    desc="independent variable",
+                    label="Covariate (independent)",
+                    desc="A unique continuous variable.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,

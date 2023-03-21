@@ -20,21 +20,21 @@ class LinearRegressionLongitudinal(Algorithm, algname="linear_regression_longitu
     def get_specification(cls):
         return AlgorithmSpecification(
             name=cls.algname,
-            desc="Linear Regression on longitudinal dataset",
-            label="Linear Regression Longitudinal",
+            desc="Linear Regression for longitudinal data. The user selects a pair of visits and a strategy for each variable and covariate. A non-longitudinal dataset is then created from these parameters and an ordinary Linear Regression is run.",
+            label="Linear Regression for longitudinal data",
             enabled=True,
             inputdata=InputDataSpecifications(
                 x=InputDataSpecification(
-                    label="features",
-                    desc="Features",
+                    label="Covariates (independent)",
+                    desc="One or more variables. Can be numerical or nominal. For nominal variables dummy encoding is used.",
                     types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
                     stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=True,
                 ),
                 y=InputDataSpecification(
-                    label="target",
-                    desc="Target variable",
+                    label="Variable (dependent)",
+                    desc="A unique numerical variable.",
                     types=[InputDataType.REAL],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
@@ -43,8 +43,8 @@ class LinearRegressionLongitudinal(Algorithm, algname="linear_regression_longitu
             ),
             parameters={
                 "visit1": ParameterSpecification(
-                    label="visit1",
-                    desc="visit1",
+                    label="1st visit",
+                    desc="Can be chosen among BL (baseline), FL1 (follow-up1), FL2, FL3 or FL4.",
                     types=[ParameterType.TEXT],
                     notblank=True,
                     multiple=False,
@@ -53,8 +53,8 @@ class LinearRegressionLongitudinal(Algorithm, algname="linear_regression_longitu
                     ),
                 ),
                 "visit2": ParameterSpecification(
-                    label="visit2",
-                    desc="visit2",
+                    label="2nd visit",
+                    desc="Can be chosen among BL (baseline), FL1 (follow-up1), FL2, FL3 or FL4.",
                     types=[ParameterType.TEXT],
                     notblank=True,
                     multiple=False,
@@ -63,8 +63,8 @@ class LinearRegressionLongitudinal(Algorithm, algname="linear_regression_longitu
                     ),
                 ),
                 "strategies": ParameterSpecification(
-                    label="strategies",
-                    desc="strategies",
+                    label="Strategies",
+                    desc=" The strategies can be: 'diff': Compute the difference between the second and first visits, 'first': Keep value on first visit, 'second': Keep value on second visit.",
                     types=[ParameterType.DICT],
                     notblank=True,
                     multiple=False,

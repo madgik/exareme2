@@ -29,21 +29,21 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
     def get_specification(cls):
         return AlgorithmSpecification(
             name=cls.algname,
-            desc="Logistic Regression Cross-validation",
+            desc="Method used to evaluate the performance of a logistic regression model. It involves splitting the data into training and validation sets and testing the model's ability to generalize to new data by using the validation set.",
             label="Logistic Regression Cross-validation",
             enabled=True,
             inputdata=InputDataSpecifications(
                 x=InputDataSpecification(
-                    label="features",
-                    desc="Features",
+                    label="Covariates (independent)",
+                    desc="One or more variables. Can be numerical or nominal. For nominal variables dummy encoding is used.",
                     types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
                     stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=True,
                 ),
                 y=InputDataSpecification(
-                    label="target",
-                    desc="Target",
+                    label="Variable (dependent)",
+                    desc="A unique nominal variable. The variable is converted to binary by assigning 1 to the positive class and 0 to all other classes. ",
                     types=[InputDataType.INT, InputDataType.TEXT],
                     stattypes=[InputDataStatType.NOMINAL],
                     notblank=True,
@@ -64,7 +64,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
                 ),
                 "n_splits": ParameterSpecification(
                     label="Number of splits",
-                    desc="Number of splits",
+                    desc="Number of splits for cross-validation.",
                     types=[ParameterType.INT],
                     notblank=True,
                     multiple=False,
