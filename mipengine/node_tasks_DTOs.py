@@ -58,6 +58,13 @@ class TableSchema(ImmutableBaseModel):
     def column_names(self):
         return [column_info.name for column_info in self.columns]
 
+    @classmethod
+    def from_list(cls, lst: List[Tuple[str, DType]]):
+        return cls(columns=[ColumnInfo(name=name, dtype=dtype) for name, dtype in lst])
+
+    def to_list(self) -> List[Tuple[str, DType]]:
+        return [(col.name, col.dtype) for col in self.columns]
+
 
 class TableInfo(ImmutableBaseModel):
     name: str

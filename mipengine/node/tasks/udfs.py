@@ -108,7 +108,7 @@ def run_udf(
 
 def _convert_output_schema(output_schema: str) -> List[Tuple[str, DType]]:
     table_schema = TableSchema.parse_raw(output_schema)
-    return [(col.name, col.dtype) for col in table_schema.columns]
+    return table_schema.to_list()
 
 
 @shared_task
@@ -331,7 +331,7 @@ def _convert_result(result: UDFGenResult) -> NodeUDFDTO:
 def _convert_table_result(result: UDFGenTableResult) -> NodeTableDTO:
     table_info = TableInfo(
         name=result.table_name,
-        schema_=_convert_result_schema(result.table_schema),
+        schema_=TableSchema.from_list(result.table_schema),
         type_=TableType.NORMAL,
     )
     return NodeTableDTO(value=table_info)
@@ -342,34 +342,29 @@ def _convert_smpc_result(result: UDFGenSMPCResult) -> NodeSMPCDTO:
 
     table_infos["template"] = TableInfo(
         name=result.template.table_name,
-        schema_=_convert_result_schema(result.template.table_schema),
+        schema_=TableSchema.from_list(result.template.table_schema),
         type_=TableType.NORMAL,
     )
 
     if result.sum_op_values:
         table_infos["sum_op"] = TableInfo(
             name=result.sum_op_values.table_name,
-            schema_=_convert_result_schema(result.sum_op_values.table_schema),
+            schema_=TableSchema.from_list(result.sum_op_values.table_schema),
             type_=TableType.NORMAL,
         )
 
     if result.min_op_values:
         table_infos["min_op"] = TableInfo(
             name=result.min_op_values.table_name,
-            schema_=_convert_result_schema(result.min_op_values.table_schema),
+            schema_=TableSchema.from_list(result.min_op_values.table_schema),
             type_=TableType.NORMAL,
         )
 
     if result.max_op_values:
         table_infos["max_op"] = TableInfo(
             name=result.max_op_values.table_name,
-            schema_=_convert_result_schema(result.max_op_values.table_schema),
+            schema_=TableSchema.from_list(result.max_op_values.table_schema),
             type_=TableType.NORMAL,
         )
 
     return NodeSMPCDTO(value=SMPCTablesInfo(**table_infos))
-
-
-def _convert_result_schema(schema: List[Tuple[str, DType]]) -> TableSchema:
-    columns = [ColumnInfo(name=name, dtype=dtype) for name, dtype in schema]
-    return TableSchema(columns=columns)

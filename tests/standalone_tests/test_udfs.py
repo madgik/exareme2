@@ -10,7 +10,6 @@ from mipengine import DType
 from mipengine.node.monetdb_interface.common_actions import create_table_name
 from mipengine.node.tasks.udfs import _convert_output_schema
 from mipengine.node.tasks.udfs import _convert_result
-from mipengine.node.tasks.udfs import _convert_result_schema
 from mipengine.node.tasks.udfs import _make_output_table_names
 from mipengine.node_tasks_DTOs import ColumnInfo
 from mipengine.node_tasks_DTOs import NodeTableDTO
@@ -267,12 +266,6 @@ def test_parse_output_schema():
     ).json()
     result = _convert_output_schema(output_schema)
     assert result == [("a", DType.INT), ("b", DType.FLOAT)]
-
-
-def test_convert_schema():
-    input = [("a", DType.INT)]
-    result = _convert_result_schema(input)
-    assert result == TableSchema(columns=[ColumnInfo(name="a", dtype=DType.INT)])
 
 
 def test_create_table_name():
