@@ -22,7 +22,15 @@ USERS PASSWORD:
     guest   | guest
 comments
 
+#######################################################
+# Default username/password
+#######################################################
+echo "user=monetdb" > /home/.monetdb
+echo "password=monetdb" >> /home/.monetdb
 
+#######################################################
+# New usernames/passwords
+#######################################################
 mclient db -s "CREATE USER executor WITH PASSWORD '$EXECUTOR_PASSWORD' NAME 'executor';"
 echo "User 'executor' created."
 mclient db -s "CREATE USER guest WITH PASSWORD '$GUEST_PASSWORD' NAME 'guest';"

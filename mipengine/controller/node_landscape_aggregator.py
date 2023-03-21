@@ -224,7 +224,7 @@ class DataModelMetadata(ImmutableBaseModel):
 
     datasets_labels: DatasetsLabels
     cdes: Optional[CommonDataElements]
-    attributes: DataModelAttributes
+    attributes: Optional[DataModelAttributes]
 
 
 class DataModelsMetadata(ImmutableBaseModel):
@@ -790,7 +790,11 @@ def _get_incompatible_data_models(
             data_model_metadata,
         ) in data_models_metadata.data_models_metadata.items():
 
-            if data_model in incompatible_data_models or not data_model_metadata.cdes:
+            if (
+                data_model in incompatible_data_models
+                or not data_model_metadata.cdes
+                or not data_model_metadata.attributes
+            ):
                 continue
 
             if data_model in validation_dictionary:
@@ -823,6 +827,7 @@ def _remove_incompatible_data_models_from_data_models_metadata_per_node(
                     for data_model, data_model_metadata in data_models_metadata.data_models_metadata.items()
                     if data_model not in incompatible_data_models
                     and data_model_metadata.cdes
+                    and data_model_metadata.attributes
                 }
             )
             for node_id, data_models_metadata in data_models_metadata_per_node.data_models_metadata_per_node.items()
