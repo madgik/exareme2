@@ -233,21 +233,6 @@ class Controller:
 
         nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
 
-        # # instantiate algorithm execution engine
-        # engine_init_params = EngineInitParams(
-        #     smpc_enabled=self._smpc_enabled,
-        #     smpc_optional=self._smpc_optional,
-        #     request_id=algorithm_request_dto.request_id,
-        #     context_id=context_id,
-        #     algo_flags=algorithm_request_dto.flags,
-        #     # data_model_views=data_model_views,
-        # )
-        # engine = _create_algorithm_execution_engine(
-        #     engine_init_params=engine_init_params,
-        #     command_id_generator=command_id_generator,
-        #     nodes=nodes,
-        # )
-
         log_experiment_execution(
             logger=algo_execution_logger,
             request_id=algorithm_request_dto.request_id,
