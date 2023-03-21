@@ -20,19 +20,14 @@ from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
 
 # TODO extract EnumAggregator class
 class DummyEncoder:
-    def __init__(self, engine, variables, metadata, intercept=True):
+    def __init__(self, engine, metadata, intercept=True):
         self._local_run = engine.run_udf_on_local_nodes
         self._global_run = engine.run_udf_on_global_node
-        self._categorical_vars = [
-            varname for varname in variables.x if metadata[varname]["is_categorical"]
-        ]
-        self._numerical_vars = [
-            varname
-            for varname in variables.x
-            if not metadata[varname]["is_categorical"]
-        ]
+        self.metadata = metadata
         self.intercept = intercept
         self.new_varnames = None
+        self._categorical_vars = None
+        self._numerical_vars = None
 
     def _gather_enums(self, x):
         if self._categorical_vars:
@@ -112,7 +107,18 @@ class DummyEncoder:
         names.extend([varname for varname in numerical_vars])
         return names
 
+    def _split_variables(self, x):
+        variables = x.columns
+        metadata = self.metadata
+        self._categorical_vars = [
+            varname for varname in variables if metadata[varname]["is_categorical"]
+        ]
+        self._numerical_vars = [
+            varname for varname in variables if not metadata[varname]["is_categorical"]
+        ]
+
     def transform(self, x):
+        self._split_variables(x)
         enums = self._gather_enums(x)
         self.new_varnames = self._get_new_variable_names(self._numerical_vars, enums)
         if self._categorical_vars or self.intercept:

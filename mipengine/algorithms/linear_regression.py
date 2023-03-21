@@ -79,9 +79,7 @@ class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
     def run(self, engine):
         X, y = engine.data_model_views
 
-        dummy_encoder = DummyEncoder(
-            engine=engine, variables=self.variables, metadata=self.metadata
-        )
+        dummy_encoder = DummyEncoder(engine=engine, metadata=self.metadata)
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1

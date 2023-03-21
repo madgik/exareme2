@@ -85,9 +85,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
         n_splits = self.algorithm_parameters["n_splits"]
 
         # Dummy encode categorical variables
-        dummy_encoder = DummyEncoder(
-            engine=engine, variables=self.variables, metadata=self.metadata
-        )
+        dummy_encoder = DummyEncoder(engine=engine, metadata=self.metadata)
         X = dummy_encoder.transform(X)
 
         # Binarize `y` by mapping positive_class to 1 and everything else to 0
