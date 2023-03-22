@@ -89,9 +89,9 @@ class OnesampleTTestAlgorithm(Algorithm, algname="ttest_onesample"):
     def get_variable_groups(self):
         return [self.variables.y]
 
-    def run(self, data_model_views, metadata):
-        local_run = self.engine.run_udf_on_local_nodes
-        global_run = self.engine.run_udf_on_global_node
+    def run(self, engine, data_model_views, metadata):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
         alpha = self.algorithm_parameters["alpha"]
         alternative = self.algorithm_parameters["alt_hypothesis"]
         mu = self.algorithm_parameters["mu"]

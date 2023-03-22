@@ -76,21 +76,21 @@ class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, data_model_views, metadata):
+    def run(self, engine, data_model_views, metadata):
         X, y = data_model_views
 
         dummy_encoder = DummyEncoder(
-            engine=self.engine, variables=self.variables, metadata=metadata
+            engine=engine, variables=self.variables, metadata=metadata
         )
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1
 
-        lr = LinearRegression(self.engine)
+        lr = LinearRegression(engine)
         lr.fit(X=X, y=y)
         y_pred: RealVector = lr.predict(X)
         lr.compute_summary(
-            y_test=relation_to_vector(y, self.engine),
+            y_test=relation_to_vector(y, engine),
             y_pred=y_pred,
             p=p,
         )

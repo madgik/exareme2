@@ -62,10 +62,6 @@ class Algorithm(ABC):
         cls.algname = algname
 
     @property
-    def engine(self):  # TODO return type
-        return self._initialization_params.engine
-
-    @property
     def variables(self) -> Variables:
         """
         Returns
@@ -147,12 +143,7 @@ class Algorithm(ABC):
         pass
 
     @abstractmethod
-    def run(self, data_model_views, metadata):  # engine):
-        # The executor must be availiable only inside run()
-        # The reasoning for this is that executor.data_model_views must already be
-        # available when the executor is available to the algorithm, but the creation of
-        # the executor.data_model_views requires calls to
-        # algorithm.get_variable_groups(), algorithm.get_check_min_rows() and get_dropna().
+    def run(self, engine, data_model_views, metadata):
         """
         The implementation of the algorithm flow logic goes in this method.
         """

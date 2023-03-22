@@ -70,7 +70,7 @@ class AnovaTwoWay(Algorithm, algname="anova"):
     def get_variable_groups(self):
         return [self.variables.y, self.variables.x]
 
-    def run(self, data_model_views, metadata):
+    def run(self, engine, data_model_views, metadata):
         [[y], xs] = self.get_variable_groups()
         if len(xs) == 2:
             x1, x2 = xs
@@ -113,7 +113,7 @@ class AnovaTwoWay(Algorithm, algname="anova"):
 
         # Define datasets for each lm based on above formulas
         transformers = {
-            formula: FormulaTransformer(self.engine, self.variables, metadata, formula)
+            formula: FormulaTransformer(engine, self.variables, metadata, formula)
             for formula in formulas
         }
         Xs = {
@@ -138,13 +138,13 @@ class AnovaTwoWay(Algorithm, algname="anova"):
             )
 
         # Define lms and fit to data
-        models = {formula: LinearRegression(self.engine) for formula in formulas}
+        models = {formula: LinearRegression(engine) for formula in formulas}
         for formula in formulas:
             X = Xs[formula]
             model = models[formula]
             model.fit(X, Y)
             model.compute_summary(
-                y_test=relation_to_vector(Y, self.engine),
+                y_test=relation_to_vector(Y, engine),
                 y_pred=model.predict(X),
                 p=len(X.columns) - 1,
             )

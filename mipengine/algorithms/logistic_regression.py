@@ -74,18 +74,18 @@ class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, data_model_views, metadata):
+    def run(self, engine, data_model_views, metadata):
         X, y = data_model_views
         positive_class = self.algorithm_parameters["positive_class"]
 
         dummy_encoder = DummyEncoder(
-            engine=self.engine, variables=self.variables, metadata=metadata
+            engine=engine, variables=self.variables, metadata=metadata
         )
         X = dummy_encoder.transform(X)
 
-        ybin = LabelBinarizer(self.engine, positive_class).transform(y)
+        ybin = LabelBinarizer(engine, positive_class).transform(y)
 
-        lr = LogisticRegression(self.engine)
+        lr = LogisticRegression(engine)
         lr.fit(X=X, y=ybin)
 
         summary = compute_summary(model=lr)

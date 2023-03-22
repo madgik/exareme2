@@ -139,9 +139,9 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
     def get_check_min_rows(self) -> bool:
         return False
 
-    def run(self, data_model_views, metadata):
-        local_run = self.engine.run_udf_on_local_nodes
-        global_run = self.engine.run_udf_on_global_node
+    def run(self, engine, data_model_views, metadata):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
         [data] = data_model_views
         metadata = metadata

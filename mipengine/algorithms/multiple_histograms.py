@@ -81,9 +81,9 @@ class MultipleHistogramsAlgorithm(Algorithm, algname="multiple_histograms"):
     def get_variable_groups(self):
         return [self.variables.y + self.variables.x]
 
-    def run(self, data_model_views, metadata):
-        local_run = self.engine.run_udf_on_local_nodes
-        global_run = self.engine.run_udf_on_global_node
+    def run(self, engine, data_model_views, metadata):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
         xvars = self.variables.x
         yvars = self.variables.y

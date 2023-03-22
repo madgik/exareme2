@@ -57,9 +57,9 @@ class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, data_model_views, metadata):
-        local_run = self.engine.run_udf_on_local_nodes
-        global_run = self.engine.run_udf_on_global_node
+    def run(self, engine, data_model_views, metadata):
+        local_run = engine.run_udf_on_local_nodes
+        global_run = engine.run_udf_on_global_node
 
         X_relation, Y_relation = data_model_views
 
