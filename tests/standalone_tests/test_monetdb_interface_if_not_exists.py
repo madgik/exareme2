@@ -1,8 +1,8 @@
 import pytest
 
-from mipengine.node.monetdb_interface.monet_db_facade import make_idempotent
+from mipengine.node.monetdb_interface.monet_db_facade import convert_to_idempotent
 from mipengine.node.monetdb_interface.monet_db_facade import (
-    make_udf_execution_idempotent,
+    convert_udf_execution_query_to_idempotent,
 )
 
 
@@ -25,12 +25,12 @@ from mipengine.node.monetdb_interface.monet_db_facade import (
     ],
 )
 def test_make_idempotent(query, expected_idempotent_query):
-    assert make_idempotent(query) == expected_idempotent_query
+    assert convert_to_idempotent(query) == expected_idempotent_query
 
 
 def test_make_udf_execution_idempotent():
     assert (
-        make_udf_execution_idempotent("INSERT INTO my_tbl1 VALUES (1);")
+        convert_udf_execution_query_to_idempotent("INSERT INTO my_tbl1 VALUES (1);")
         == "INSERT INTO my_tbl1 VALUES (1)\n"
         "WHERE NOT EXISTS (SELECT * FROM my_tbl1);"
     )
