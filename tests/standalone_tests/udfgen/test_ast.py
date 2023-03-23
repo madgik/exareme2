@@ -1,5 +1,8 @@
 # type: ignore
+from inspect import cleandoc
+
 from mipengine.udfgen.ast import Column
+from mipengine.udfgen.ast import Join
 from mipengine.udfgen.ast import ScalarFunction
 from mipengine.udfgen.ast import Select
 from mipengine.udfgen.ast import Table
@@ -9,8 +12,13 @@ from mipengine.udfgen.ast import TableFunction
 def test_column_alias():
     col = Column("very_long_name", alias="name")
     result = col.compile()
-    expected = '"very_long_name" AS name'
+    expected = '"very_long_name" AS "name"'
     assert result == expected
+
+
+def test_column__use_prefix():
+    result = Column("column", table="table").compile(use_prefix=True)
+    assert result == 'table."column"'
 
 
 def test_column_mul():
@@ -43,6 +51,24 @@ def test_column_div():
     result = (col1 / col2).compile()
     expected = '"col1" / "col2"'
     assert result == expected
+
+
+def test_column_equality():
+    col1 = Column("col1")
+    col2 = Column("col2")
+
+    result = (col1 == col2).compile()
+
+    assert result == '"col1"="col2"'
+
+
+def test_column_equality_with_string():
+    col1 = Column("col1")
+    col2 = "col2"
+
+    result = (col1 == col2).compile()
+
+    assert result == "\"col1\"='col2'"
 
 
 def test_column_mul_from_table():
@@ -206,7 +232,7 @@ def test_select_star_and_aliased_column_from_table_returning_func():
     result = sel.compile()
     expected = """\
 SELECT
-    "extra_column" AS extra,
+    "extra_column" AS "extra",
     *
 FROM
     the_func((
@@ -234,7 +260,7 @@ FROM
 def test_select_with_groupby():
     tab = Table(name="tab", columns=["a", "b"])
     func = ScalarFunction(name="the_func", columns=[tab.c["a"]])
-    sel = Select([func], tables=[tab], groupby=[tab.c["b"]])
+    sel = Select([func], from_=[tab], groupby=[tab.c["b"]])
     expected = '''\
 SELECT
     the_func(tab."a")
@@ -249,7 +275,7 @@ GROUP BY
 def test_select_with_groupby_aliased_table():
     tab = Table(name="tab", columns=["a", "b"], alias="the_table")
     func = ScalarFunction(name="the_func", columns=[tab.c["a"]])
-    sel = Select([func], tables=[tab], groupby=[tab.c["b"]])
+    sel = Select([func], from_=[tab], groupby=[tab.c["b"]])
     expected = '''\
 SELECT
     the_func(the_table."a")
@@ -265,7 +291,7 @@ def test_select_with_groupby_aliased_column():
     tab = Table(name="tab", columns=["a", "b"], alias="the_table")
     tab.c["b"].alias = "bbb"
     func = ScalarFunction(name="the_func", columns=[tab.c["a"]])
-    sel = Select([func], tables=[tab], groupby=[tab.c["b"]])
+    sel = Select([func], from_=[tab], groupby=[tab.c["b"]])
     expected = '''\
 SELECT
     the_func(the_table."a")
@@ -291,3 +317,47 @@ ORDER BY
     "b"'''
     result = sel.compile()
     assert expected == result
+
+
+def test_join__inner():
+    left = Table(name="left", columns=[])
+    right = Table(name="right", columns=[])
+    join = Join(
+        left=left,
+        right=right,
+        l_alias="Left",
+        r_alias="Right",
+        on="some_column",
+        type="inner",
+    )
+
+    result = join.compile()
+
+    expected = """
+    (left) AS Left
+    INNER JOIN
+    (right) AS Right
+    ON Left.some_column=Right.some_column"""
+    assert result == cleandoc(expected)
+
+
+def test_join__outer():
+    left = Table(name="left", columns=[])
+    right = Table(name="right", columns=[])
+    join = Join(
+        left=left,
+        right=right,
+        l_alias="Left",
+        r_alias="Right",
+        on="some_column",
+        type="outer",
+    )
+
+    result = join.compile()
+
+    expected = """
+    (left) AS Left
+    OUTER JOIN
+    (right) AS Right
+    ON Left.some_column=Right.some_column"""
+    assert result == cleandoc(expected)

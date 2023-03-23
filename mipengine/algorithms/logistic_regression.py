@@ -78,9 +78,7 @@ class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
         X, y = engine.data_model_views
         positive_class = self.algorithm_parameters["positive_class"]
 
-        dummy_encoder = DummyEncoder(
-            engine=engine, variables=self.variables, metadata=self.metadata
-        )
+        dummy_encoder = DummyEncoder(engine=engine, metadata=self.metadata)
         X = dummy_encoder.transform(X)
 
         ybin = LabelBinarizer(engine, positive_class).transform(y)

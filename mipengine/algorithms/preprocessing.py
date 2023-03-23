@@ -4,8 +4,6 @@ from typing import List
 from mipengine import DType
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.exceptions import BadUserInput
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.udfgen import DEFERRED
 from mipengine.udfgen import AdhocUdfGenerator
 from mipengine.udfgen import literal
@@ -20,19 +18,14 @@ from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
 
 # TODO extract EnumAggregator class
 class DummyEncoder:
-    def __init__(self, engine, variables, metadata, intercept=True):
+    def __init__(self, engine, metadata, intercept=True):
         self._local_run = engine.run_udf_on_local_nodes
         self._global_run = engine.run_udf_on_global_node
-        self._categorical_vars = [
-            varname for varname in variables.x if metadata[varname]["is_categorical"]
-        ]
-        self._numerical_vars = [
-            varname
-            for varname in variables.x
-            if not metadata[varname]["is_categorical"]
-        ]
+        self.metadata = metadata
         self.intercept = intercept
         self.new_varnames = None
+        self._categorical_vars = None
+        self._numerical_vars = None
 
     def _gather_enums(self, x):
         if self._categorical_vars:
@@ -112,7 +105,18 @@ class DummyEncoder:
         names.extend([varname for varname in numerical_vars])
         return names
 
+    def _split_variables(self, x):
+        variables = x.columns
+        metadata = self.metadata
+        self._categorical_vars = [
+            varname for varname in variables if metadata[varname]["is_categorical"]
+        ]
+        self._numerical_vars = [
+            varname for varname in variables if not metadata[varname]["is_categorical"]
+        ]
+
     def transform(self, x):
+        self._split_variables(x)
         enums = self._gather_enums(x)
         self.new_varnames = self._get_new_variable_names(self._numerical_vars, enums)
         if self._categorical_vars or self.intercept:
@@ -159,7 +163,7 @@ class DummyEncoderUdf(AdhocUdfGenerator):
         columns.extend(num_columns)
 
         table = self.ast.Table(name=self.x.name, columns=columns)
-        sel = self.ast.Select(columns=table.columns, tables=[table])
+        sel = self.ast.Select(columns=table.columns, from_=[table])
         return self.ast.Insert(table=main_output_name, values=sel).compile()
 
     def get_results(self, output_table_names: List[str]) -> List[UDFGenTableResult]:
@@ -281,7 +285,7 @@ class KFold:
                     key="x_train",
                 ),
                 share_to_global=[False],
-                output_schema=X.full_schema,
+                output_schema=X.full_schema.to_list(),
             )
             for i in range(self.n_splits)
         ]
@@ -295,7 +299,7 @@ class KFold:
                     key="x_test",
                 ),
                 share_to_global=[False],
-                output_schema=X.full_schema,
+                output_schema=X.full_schema.to_list(),
             )
             for i in range(self.n_splits)
         ]
@@ -309,7 +313,7 @@ class KFold:
                     key="y_train",
                 ),
                 share_to_global=[False],
-                output_schema=y.full_schema,
+                output_schema=y.full_schema.to_list(),
             )
             for i in range(self.n_splits)
         ]
@@ -323,7 +327,7 @@ class KFold:
                     key="y_test",
                 ),
                 share_to_global=[False],
-                output_schema=y.full_schema,
+                output_schema=y.full_schema.to_list(),
             )
             for i in range(self.n_splits)
         ]
@@ -486,10 +490,10 @@ class FormulaTransformer:
         schema in advance. This is done by applying the same transformation to
         a dummy table, using patsy, and then looking at the produced column names."""
         column_names = self._compute_new_column_names(X.columns, enums)
-        columns = [ColumnInfo(name=name, dtype=DType.INT) for name in column_names]
+        schema = [(name, DType.INT) for name in column_names]
         if X.index:
-            columns.insert(0, ColumnInfo(name=X.index, dtype=DType.INT))
-        return TableSchema(columns=columns)
+            schema.insert(0, (X.index, DType.INT))
+        return schema
 
     def _compute_new_column_names(self, old_column_names, enums):
         import pandas as pd

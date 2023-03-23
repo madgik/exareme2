@@ -215,7 +215,7 @@ def parse_argv(argv):
 def guess_type_and_cast(value: str):
     """Casts values passed in the command line by guessing their type.
 
-    Types supported: bool, int, float, str.
+    Types supported: bool, int, float, valid json as string and any other string.
     """
     try:
         return int(value)
@@ -229,6 +229,10 @@ def guess_type_and_cast(value: str):
         return True
     if value == "False":
         return False
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        pass
     return value
 
 
