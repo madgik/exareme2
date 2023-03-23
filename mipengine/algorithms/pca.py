@@ -30,13 +30,13 @@ class PCAAlgorithm(Algorithm, algname="pca"):
     def get_specification(cls):
         return AlgorithmSpecification(
             name=cls.algname,
-            desc="PCA",
-            label="PCA",
+            desc="Computes the principal components of a set of correlated variables. The principal components can then be used to represent the original data with reduced dimensions.",
+            label="Principal Component Analysis (PCA)",
             enabled=True,
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="Variables",
-                    desc="Variables",
+                    desc="A list of numerical variables.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,

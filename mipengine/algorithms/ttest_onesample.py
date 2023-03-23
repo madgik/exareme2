@@ -37,13 +37,13 @@ class OnesampleTTestAlgorithm(Algorithm, algname="ttest_onesample"):
     def get_specification(cls):
         return AlgorithmSpecification(
             name=cls.algname,
-            desc="Student’s One-sample t-test",
+            desc="Test the difference in mean of a single sample with a population mean. It assumes that the sample is drawn from a normal distribution.",
             label="T-Test One-Sample",
             enabled=True,
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
-                    label="Variables",
-                    desc="Variables",
+                    label="Variable",
+                    desc="A unique numerical variable.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,

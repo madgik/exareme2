@@ -50,21 +50,21 @@ class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
     def get_specification(cls):
         return AlgorithmSpecification(
             name=cls.algname,
-            desc="Linear Regression",
+            desc="Statistical method that models the relationship between a dependent variable and one or more independent variables by fitting a linear model to the observed data by ordinary least squares (OLS).",
             label="Linear Regression",
             enabled=True,
             inputdata=InputDataSpecifications(
                 x=InputDataSpecification(
-                    label="features",
-                    desc="Features",
+                    label="Covariates (independent)",
+                    desc="One or more variables. Can be numerical or nominal. For nominal variables dummy encoding is used.",
                     types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
                     stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=True,
                 ),
                 y=InputDataSpecification(
-                    label="target",
-                    desc="Target variable",
+                    label="Variable (dependent)",
+                    desc="A unique numerical variable.",
                     types=[InputDataType.REAL],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
