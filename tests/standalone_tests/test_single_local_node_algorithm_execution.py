@@ -239,7 +239,7 @@ def metadata_case_2(node_landscape_aggregator, algorithm_request_case_2):
 
 
 @pytest.fixture(scope="function")
-def algorithm_case_1(algorithm_request_case_1, engine_case_1):
+def algorithm_case_1(algorithm_request_case_1):
     algorithm_name = algorithm_request_case_1[0]
     algorithm_request_dto = algorithm_request_case_1[1]
 
@@ -256,13 +256,12 @@ def algorithm_case_1(algorithm_request_case_1, engine_case_1):
         var_filters=input_data.filters,
         algorithm_parameters=algorithm_parameters,
         datasets=algorithm_request_dto.inputdata.datasets,
-        engine=engine_case_1,
     )
     return algorithm_classes[algorithm_name](initialization_params=init_params)
 
 
 @pytest.fixture(scope="function")
-def algorithm_case_2(algorithm_request_case_2, engine_case_2):
+def algorithm_case_2(algorithm_request_case_2):
     algorithm_name = algorithm_request_case_2[0]
     algorithm_request_dto = algorithm_request_case_2[1]
 
@@ -279,7 +278,6 @@ def algorithm_case_2(algorithm_request_case_2, engine_case_2):
         var_filters=input_data.filters,
         algorithm_parameters=algorithm_parameters,
         datasets=algorithm_request_dto.inputdata.datasets,
-        engine=engine_case_2,
     )
     return algorithm_classes[algorithm_name](initialization_params=init_params)
 
@@ -399,7 +397,7 @@ def data_model_views_and_nodes_case_2(
 def engine_case_1(
     algorithm_request_case_1,
     context_id,
-    nodes_case_1,
+    data_model_views_and_nodes_case_1,
     command_id_generator,
 ):
     algorithm_request_dto = algorithm_request_case_1[1]
@@ -414,7 +412,7 @@ def engine_case_1(
     return _create_algorithm_execution_engine(
         engine_init_params=engine_init_params,
         command_id_generator=command_id_generator,
-        nodes=nodes_case_1,
+        nodes=data_model_views_and_nodes_case_1[1],
     )
 
 
@@ -422,7 +420,7 @@ def engine_case_1(
 def engine_case_2(
     algorithm_request_case_2,
     context_id,
-    nodes_case_2,
+    data_model_views_and_nodes_case_2,
     command_id_generator,
 ):
     algorithm_request_dto = algorithm_request_case_2[1]
@@ -437,21 +435,32 @@ def engine_case_2(
     return _create_algorithm_execution_engine(
         engine_init_params=engine_init_params,
         command_id_generator=command_id_generator,
-        nodes=nodes_case_2,
+        nodes=data_model_views_and_nodes_case_2[1],
     )
 
 
 @pytest.mark.slow
 @pytest.mark.parametrize(
-    "algorithm,data_model_views_and_nodes,metadata",
+    "algorithm,engine,data_model_views_and_nodes,metadata",
     [
-        ("algorithm_case_1", "data_model_views_and_nodes_case_1", "metadata_case_1"),
-        ("algorithm_case_2", "data_model_views_and_nodes_case_2", "metadata_case_2"),
+        (
+            "algorithm_case_1",
+            "engine_case_1",
+            "data_model_views_and_nodes_case_1",
+            "metadata_case_1",
+        ),
+        (
+            "algorithm_case_2",
+            "engine_case_2",
+            "data_model_views_and_nodes_case_2",
+            "metadata_case_2",
+        ),
     ],
 )
 @pytest.mark.asyncio
 async def test_single_local_node_algorithm_execution(
     algorithm,
+    engine,
     data_model_views_and_nodes,
     metadata,
     controller,
@@ -459,12 +468,13 @@ async def test_single_local_node_algorithm_execution(
     reset_celery_app_factory,  # celery tasks fail if this is not reset
 ):
     algorithm = request.getfixturevalue(algorithm)
+    engine = request.getfixturevalue(engine)
     data_model_views = request.getfixturevalue(data_model_views_and_nodes)
     metadata = request.getfixturevalue(metadata)
-
     try:
         algorithm_result = await controller._algorithm_run_in_event_loop(
             algorithm=algorithm,
+            engine=engine,
             data_model_views=data_model_views[0],
             metadata=metadata,
         )
