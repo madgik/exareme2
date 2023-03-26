@@ -65,7 +65,7 @@ class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
                     multiple=False,
                     enums=ParameterEnumSpecification(
                         type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
-                        source="y",
+                        source=["y"],
                     ),
                 ),
             },

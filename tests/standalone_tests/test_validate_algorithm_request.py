@@ -4,7 +4,6 @@ from mipengine.algorithm_specification import AlgorithmSpecification
 from mipengine.algorithm_specification import InputDataSpecification
 from mipengine.algorithm_specification import InputDataSpecifications
 from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
@@ -347,7 +346,7 @@ def algorithms_specs():
                     multiple=False,
                     enums=ParameterEnumSpecification(
                         type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
-                        source="y",
+                        source=["y"],
                     ),
                 ),
                 "param_with_enum_type_fixed_var_CDE_enums": ParameterSpecification(
@@ -358,7 +357,7 @@ def algorithms_specs():
                     multiple=False,
                     enums=ParameterEnumSpecification(
                         type=ParameterEnumType.FIXED_VAR_CDE_ENUMS,
-                        source="text_cde_categ",
+                        source=["text_cde_categ"],
                     ),
                 ),
                 "param_with_enum_type_fixed_var_CDE_enums_wrong_CDE": ParameterSpecification(
@@ -369,7 +368,7 @@ def algorithms_specs():
                     multiple=False,
                     enums=ParameterEnumSpecification(
                         type=ParameterEnumType.FIXED_VAR_CDE_ENUMS,
-                        source="non_existing_CDE",
+                        source=["non_existing_CDE"],
                     ),
                 ),
                 "param_with_enum_type_input_var_names": ParameterSpecification(

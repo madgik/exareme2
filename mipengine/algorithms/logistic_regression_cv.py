@@ -59,7 +59,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
                     multiple=False,
                     enums=ParameterEnumSpecification(
                         type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
-                        source="y",
+                        source=["y"],
                     ),
                 ),
                 "n_splits": ParameterSpecification(
