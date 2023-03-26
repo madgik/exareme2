@@ -49,7 +49,7 @@ class LinearRegressionLongitudinal(Algorithm, algname="linear_regression_longitu
                     notblank=True,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source="visitid"
+                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitid"]
                     ),
                 ),
                 "visit2": ParameterSpecification(
@@ -59,7 +59,7 @@ class LinearRegressionLongitudinal(Algorithm, algname="linear_regression_longitu
                     notblank=True,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source="visitid"
+                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitid"]
                     ),
                 ),
                 "strategies": ParameterSpecification(
