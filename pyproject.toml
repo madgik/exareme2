@@ -51,7 +51,7 @@ freezegun = "^1.2.2"
 
 
 [tool.poetry.group.dev.dependencies]
-mipdb = "2.0.2"  # Must be updated together with mipdb Dockerfile
+mipdb = "2.0.3"  # Must be updated together with mipdb Dockerfile
 
 [tool.pytest.ini_options]
 markers = [
