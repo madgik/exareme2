@@ -31,21 +31,21 @@ class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
     def get_specification(cls):
         return AlgorithmSpecification(
             name=cls.algname,
-            desc="ANOVA One-way",
-            label="ANOVA One-way",
+            desc="Test the difference in the means of the dependent variable between two or more groups, when there is a single independent covariate.",
+            label="One-way ANOVA",
             enabled=True,
             inputdata=InputDataSpecifications(
                 x=InputDataSpecification(
-                    label="independent",
-                    desc="independent variable",
+                    label="Covariate (independent)",
+                    desc="A unique nominal variable.",
                     types=[InputDataType.INT, InputDataType.TEXT],
                     stattypes=[InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=False,
                 ),
                 y=InputDataSpecification(
-                    label="dependent",
-                    desc="Dependent variable",
+                    label="Variable (dependent)",
+                    desc="A unique continuous variable.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,

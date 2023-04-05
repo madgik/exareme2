@@ -1,6 +1,9 @@
 import pytest
 
-from mipengine.node.monetdb_interface.monet_db_facade import create_idempotent_query
+from mipengine.node.monetdb_interface.monet_db_facade import convert_to_idempotent
+from mipengine.node.monetdb_interface.monet_db_facade import (
+    convert_udf_execution_query_to_idempotent,
+)
 
 
 @pytest.mark.parametrize(
@@ -21,5 +24,13 @@ from mipengine.node.monetdb_interface.monet_db_facade import create_idempotent_q
         ("SELECT * FROM my_table WHERE id = 1", "SELECT * FROM my_table WHERE id = 1"),
     ],
 )
-def test_create_idempotent_query(query, expected_idempotent_query):
-    assert create_idempotent_query(query) == expected_idempotent_query
+def test_make_idempotent(query, expected_idempotent_query):
+    assert convert_to_idempotent(query) == expected_idempotent_query
+
+
+def test_make_udf_execution_idempotent():
+    assert (
+        convert_udf_execution_query_to_idempotent("INSERT INTO my_tbl1 VALUES (1);")
+        == "INSERT INTO my_tbl1 VALUES (1)\n"
+        "WHERE NOT EXISTS (SELECT * FROM my_tbl1);"
+    )

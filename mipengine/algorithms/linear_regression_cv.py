@@ -37,21 +37,21 @@ class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
     def get_specification(cls):
         return AlgorithmSpecification(
             name=cls.algname,
-            desc="Linear Regression Cross-validation",
+            desc="Method used to evaluate the performance of a linear regression model. It involves splitting the data into training and validation sets and testing the model's ability to generalize to new data by using the validation set.",
             label="Linear Regression Cross-validation",
             enabled=True,
             inputdata=InputDataSpecifications(
                 x=InputDataSpecification(
-                    label="features",
-                    desc="Features",
+                    label="Covariates (independent)",
+                    desc="One or more variables. Can be numerical or nominal. For nominal variables dummy encoding is used.",
                     types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
                     stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=True,
                 ),
                 y=InputDataSpecification(
-                    label="target",
-                    desc="Target variable",
+                    label="Variable (dependent)",
+                    desc="A unique numerical variable.",
                     types=[InputDataType.REAL],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
@@ -61,7 +61,7 @@ class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
             parameters={
                 "n_splits": ParameterSpecification(
                     label="Number of splits",
-                    desc="Number of splits",
+                    desc="Number of splits for cross-validation.",
                     types=[ParameterType.INT],
                     notblank=True,
                     multiple=False,
@@ -80,9 +80,7 @@ class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
 
         n_splits = self.algorithm_parameters["n_splits"]
 
-        dummy_encoder = DummyEncoder(
-            engine=engine, variables=self.variables, metadata=metadata
-        )
+        dummy_encoder = DummyEncoder(engine=engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1

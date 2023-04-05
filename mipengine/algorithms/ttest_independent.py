@@ -35,21 +35,21 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
     def get_specification(cls):
         return AlgorithmSpecification(
             name=cls.algname,
-            desc="Student’s Independent samples t-test",
+            desc="Test the difference in means between two independent groups. It assumes that the two groups have equal variances and are independently sampled from normal distributions.",
             label="T-Test Independent",
             enabled=True,
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
-                    label="independent",
-                    desc="independent variable",
+                    label="Variable (dependent)",
+                    desc="A unique numerical variable.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
                     multiple=False,
                 ),
                 x=InputDataSpecification(
-                    label="dependent",
-                    desc="Dependent variable",
+                    label="Covariate (independent)",
+                    desc="A unique continuous variable.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,

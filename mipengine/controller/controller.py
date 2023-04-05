@@ -288,7 +288,7 @@ class Controller:
             algorithm.run,
             engine,
             data_model_views,
-            metadata,  # engine
+            metadata,
         )
         return algorithm_result
 

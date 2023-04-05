@@ -369,17 +369,20 @@ def _validate_param_enums_of_type_fixed_var_CDE_enums(
     parameter_spec_label: str,
     data_model_cdes: Dict[str, CommonDataElement],
 ):
-    if parameter_spec_enums.source not in data_model_cdes.keys():
+    param_spec_enums_source = parameter_spec_enums.source[
+        0
+    ]  # Fixed var CDE enums allows only one source value
+    if param_spec_enums_source not in data_model_cdes.keys():
         raise ValueError(
-            f"Parameter's '{parameter_spec_label}' enums source '{parameter_spec_enums.source}' does "
+            f"Parameter's '{parameter_spec_label}' enums source '{param_spec_enums_source}' does "
             f"not exist in the data model provided."
         )
     fixed_var_CDE_enums = list(
-        data_model_cdes[parameter_spec_enums.source].enumerations.keys()
+        data_model_cdes[param_spec_enums_source].enumerations.keys()
     )
     if parameter_value not in fixed_var_CDE_enums:
         raise BadUserInput(
-            f"Parameter's '{parameter_spec_label}' enums, that are taken from the CDE '{parameter_spec_enums.source}', "
+            f"Parameter's '{parameter_spec_label}' enums, that are taken from the CDE '{param_spec_enums_source}', "
             f"should be one of the following: '{list(fixed_var_CDE_enums)}'."
         )
 
@@ -391,9 +394,12 @@ def _validate_param_enums_of_type_input_var_CDE_enums(
     inputdata: AlgorithmInputDataDTO,
     data_model_cdes: Dict[str, CommonDataElement],
 ):
-    if parameter_spec_enums.source == "x":
+    param_spec_enums_source = parameter_spec_enums.source[
+        0
+    ]  # Input var CDE enums allows only one source value
+    if param_spec_enums_source == "x":
         input_vars = inputdata.x
-    elif parameter_spec_enums.source == "y":
+    elif param_spec_enums_source == "y":
         input_vars = inputdata.y
     else:
         raise NotImplementedError(f"Source should be either 'x' or 'y'.")

@@ -1,3 +1,4 @@
+import re
 from contextlib import contextmanager
 from functools import wraps
 from math import log2
@@ -38,6 +39,7 @@ def db_execute_and_fetchall(query: str, parameters=None) -> List:
 
 def db_execute_query(query: str, parameters=None):
     query_execution_timeout = node_config.celery.tasks_timeout
+    query = convert_to_idempotent(query)
     db_execution_dto = _DBExecutionDTO(
         query=query, parameters=parameters, timeout=query_execution_timeout
     )
@@ -51,6 +53,7 @@ def db_execute_udf(query: str, parameters=None):
         raise ValueError(f"UDF execution query: {query} should contain only one query.")
 
     udf_execution_timeout = node_config.celery.run_udf_task_timeout
+    query = convert_udf_execution_query_to_idempotent(query)
     db_execution_dto = _DBExecutionDTO(
         query=query, parameters=parameters, timeout=udf_execution_timeout
     )
@@ -96,7 +99,7 @@ def _validate_exception_is_recoverable(exc):
     """
     Check whether the query needs to be re-executed and return True or False accordingly.
     """
-    if isinstance(exc, BrokenPipeError):
+    if isinstance(exc, (BrokenPipeError, ConnectionResetError)):
         return True
     elif isinstance(exc, DatabaseError):
         return "ValueError" not in str(exc) and not isinstance(exc, ProgrammingError)
@@ -157,20 +160,62 @@ def _execute_and_fetchall(db_execution_dto) -> List:
     return result
 
 
-def create_idempotent_query(query: str) -> str:
+def convert_udf_execution_query_to_idempotent(query: str) -> str:
+    def extract_table_name(query: str) -> str:
+        """
+        Extracts the name of the table from an INSERT INTO statement.
+
+        Args:
+            query (str): The SQL query to extract the table name from.
+
+        Returns:
+            str: The name of the table.
+        """
+        # Use a regular expression to extract the table name
+        insert_regex = r"(?i)INSERT\s+INTO\s+(\w+)"
+        match = re.search(insert_regex, query)
+        if match:
+            table_name = match.group(1)
+            return table_name
+        else:
+            raise ValueError("Query is not a valid INSERT INTO statement.")
+
+    return (
+        f"{query.rstrip(';')}\n"
+        f"WHERE NOT EXISTS (SELECT * FROM {extract_table_name(query)});"
+    )
+
+
+def convert_to_idempotent(query: str) -> str:
     """
     This function creates an idempotent query to protect from a potential edge case
     where a table creation query is interrupted due to a UDF running and allocating memory.
     """
     idempotent_query = query
+
     if "CREATE" in query:
-        idempotent_query = query.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS")
+        idempotent_query = idempotent_query.replace(
+            "CREATE TABLE", "CREATE TABLE IF NOT EXISTS"
+        )
+        idempotent_query = idempotent_query.replace(
+            "CREATE MERGE TABLE", "CREATE MERGE TABLE IF NOT EXISTS"
+        )
         idempotent_query = idempotent_query.replace(
             "CREATE REMOTE TABLE", "CREATE REMOTE TABLE IF NOT EXISTS"
         )
         idempotent_query = idempotent_query.replace(
             "CREATE VIEW", "CREATE OR REPLACE VIEW"
         )
+
+    if "DROP" in query:
+        idempotent_query = idempotent_query.replace(
+            "DROP TABLE", "DROP TABLE IF EXISTS"
+        )
+        idempotent_query = idempotent_query.replace("DROP VIEW", "DROP VIEW IF EXISTS")
+        idempotent_query = idempotent_query.replace(
+            "DROP FUNCTION", "DROP FUNCTION IF EXISTS"
+        )
+
     return idempotent_query
 
 
@@ -196,8 +241,7 @@ def _execute(db_execution_dto: _DBExecutionDTO, lock):
     try:
         with _lock(lock, db_execution_dto.timeout):
             with _cursor(commit=True) as cur:
-                query = create_idempotent_query(db_execution_dto.query)
-                cur.execute(query, db_execution_dto.parameters)
+                cur.execute(db_execution_dto.query, db_execution_dto.parameters)
     except TimeoutError:
         error_msg = f"""
         The execution of {db_execution_dto} failed because the

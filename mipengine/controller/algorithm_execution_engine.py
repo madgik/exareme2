@@ -9,6 +9,7 @@ from typing import Union
 
 from pydantic import BaseModel
 
+from mipengine import DType
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_flow_data_objects import AlgoFlowData
 from mipengine.controller.algorithm_flow_data_objects import GlobalNodeData
@@ -90,7 +91,6 @@ class InitializationParams(BaseModel):
     smpc_optional: bool
     request_id: str
     algo_flags: Optional[Dict[str, Any]] = None
-    # data_model_views: List[LocalNodesTable]
 
     class Config:
         arbitrary_types_allowed = True
@@ -107,17 +107,12 @@ class AlgorithmExecutionEngine:
             request_id=initialization_params.request_id
         )
         self._algorithm_execution_flags = initialization_params.algo_flags
-        # self._data_model_views = initialization_params.data_model_views
         self._smpc_enabled = initialization_params.smpc_enabled
         self._smpc_optional = initialization_params.smpc_optional
 
         self._command_id_generator = command_id_generator
         self._local_nodes = nodes.local_nodes
         self._global_node = nodes.global_node
-
-    # @property
-    # def data_model_views(self):
-    #     return self._data_model_views
 
     @property
     def use_smpc(self):
@@ -130,7 +125,7 @@ class AlgorithmExecutionEngine:
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_global: Union[bool, Sequence[bool]] = False,
-        output_schema: Optional[TableSchema] = None,
+        output_schema: Optional[List[Tuple[str, DType]]] = None,
     ) -> Union[AlgoFlowData, List[AlgoFlowData]]:
         # 1. check positional_args and keyword_args tables do not contain _GlobalNodeTable(s)
         # 2. queues run_udf task on all local nodes
@@ -150,10 +145,11 @@ class AlgorithmExecutionEngine:
         if isinstance(share_to_global, bool):
             share_to_global = (share_to_global,)
 
-        if output_schema and len(share_to_global) != 1:
-            raise ValueError(
-                "output_schema cannot be used with multiple output UDFs for now."
-            )
+        if output_schema:
+            if len(share_to_global) != 1:
+                msg = "output_schema cannot be used with multiple output UDFs."
+                raise ValueError(msg)
+            output_schema = TableSchema.from_list(output_schema)
 
         # Queue the udf on all local nodes
         tasks = {}
@@ -210,7 +206,7 @@ class AlgorithmExecutionEngine:
         positional_args: Optional[List[Any]] = None,
         keyword_args: Optional[Dict[str, Any]] = None,
         share_to_locals: Union[bool, Sequence[bool]] = False,
-        output_schema: Optional[TableSchema] = None,
+        output_schema: Optional[List[Tuple[str, DType]]] = None,
     ) -> Union[AlgoFlowData, List[AlgoFlowData]]:
         # 1. check positional_args and keyword_args tables do not contain _LocalNodeTable(s)
         # 2. queue run_udf on the global node
@@ -232,10 +228,11 @@ class AlgorithmExecutionEngine:
         if isinstance(share_to_locals, bool):
             share_to_locals = (share_to_locals,)
 
-        if output_schema and len(share_to_locals) != 1:
-            raise NotImplementedError(
-                "output_schema cannot be used with multiple output UDFs for now."
-            )
+        if output_schema:
+            if len(share_to_locals) != 1:
+                msg = "output_schema cannot be used with multiple output UDFs."
+                raise ValueError(msg)
+            output_schema = TableSchema.from_list(output_schema)
 
         # Queue the udf on global node
         task = self._global_node.queue_run_udf(

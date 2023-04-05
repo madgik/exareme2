@@ -33,21 +33,21 @@ class PearsonCorrelationAlgorithm(Algorithm, algname="pearson_correlation"):
     def get_specification(cls):
         return AlgorithmSpecification(
             name=cls.algname,
-            desc="Pearson Correlation",
-            label="Pearson Correlation",
+            desc="Measure the linear relationship between two continuous variables. It calculates the correlation coefficient (range: -1 to 1). The correlation matrix will be computed between all possible pairs of variables and covariates. Leaving covariates empty is equivalent to having covariates = variables.",
+            label="Pearson Correlation Matrix",
             enabled=True,
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="Variables",
-                    desc="Variables",
+                    desc="Nuerical variables on x axis of correlation matrix.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
                     multiple=True,
                 ),
                 x=InputDataSpecification(
-                    label="Covariates",
-                    desc="Covariates",
+                    label="Covariates (optional)",
+                    desc="Nuerical variables on y axis of correlation matrix.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=False,

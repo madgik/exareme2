@@ -35,21 +35,21 @@ class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
     def get_specification(cls):
         return AlgorithmSpecification(
             name=cls.algname,
-            desc="Logistic Regression",
+            desc="Statistical method. that models the relationship between a dependent binary variable and one or more independent variables by fitting a binary logistic curve to the observed data.",
             label="Logistic Regression",
             enabled=True,
             inputdata=InputDataSpecifications(
                 x=InputDataSpecification(
-                    label="features",
-                    desc="Features",
+                    label="Covariates (independent)",
+                    desc="One or more variables. Can be numerical or nominal. For nominal variables dummy encoding is used.",
                     types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
                     stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=True,
                 ),
                 y=InputDataSpecification(
-                    label="target",
-                    desc="Target variable",
+                    label="Variable (dependent)",
+                    desc="A unique nominal variable. The variable is converted to binary by assigning 1 to the positive class and 0 to all other classes. ",
                     types=[InputDataType.INT, InputDataType.TEXT],
                     stattypes=[InputDataStatType.NOMINAL],
                     notblank=True,
@@ -65,7 +65,7 @@ class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
                     multiple=False,
                     enums=ParameterEnumSpecification(
                         type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
-                        source="y",
+                        source=["y"],
                     ),
                 ),
             },
@@ -78,9 +78,7 @@ class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
         X, y = data_model_views
         positive_class = self.algorithm_parameters["positive_class"]
 
-        dummy_encoder = DummyEncoder(
-            engine=engine, variables=self.variables, metadata=metadata
-        )
+        dummy_encoder = DummyEncoder(engine=engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
         ybin = LabelBinarizer(engine, positive_class).transform(y)

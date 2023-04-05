@@ -393,24 +393,37 @@ class ConstColumn(ASTNode):
 
 
 class Column(ASTNode):
-    def __init__(self, name: str, table: "Table" = None, alias="", quote=True):
+    def __init__(
+        self, name: str, table: Union["Table", str] = None, alias="", quote=True
+    ):
         self.name = name
         self.table = table
         self.alias = alias
         self.quote = quote
 
     def compile(self, use_alias=True, use_prefix=True) -> str:
-        prefix = (
-            self.table.compile(use_alias=False) + "."
-            if self.table and use_prefix
-            else ""
-        )
-        postfix = f" AS {self.alias}" if self.alias and use_alias else ""
+        prefix = self._get_prefix(use_prefix)
+        postfix = f' AS "{self.alias}"' if self.alias and use_alias else ""
         if self.name == "*" or not self.quote:
             name = self.name
         else:
             name = f'"{self.name}"'
         return prefix + name + postfix
+
+    def _get_prefix(self, use_prefix):
+        # When prefix is used return a str of the form "table.column". The
+        # prefix is the name of the table. If `table` is a Table, we get it
+        # from `compile`. If `table` is a string it's just the table name.
+        if self.table and use_prefix:
+            if isinstance(self.table, Table):
+                prefix = self.table.compile(use_alias=False) + "."
+            elif isinstance(self.table, str):
+                prefix = self.table + "."
+            else:
+                raise TypeError(f"table can be of type Table or str. Got {self.table}.")
+        else:
+            prefix = ""
+        return prefix
 
     def __eq__(self, other):
         return ColumnEqualityClause(self, other)
@@ -493,13 +506,25 @@ class Cast(ASTNode):
 
 
 class ColumnEqualityClause(ASTNode):
-    def __init__(self, column1: Column, column2: Column):
+    def __init__(self, column1: Union[Column, str], column2: Union[Column, str]):
         self.column1 = column1
         self.column2 = column2
 
     def compile(self) -> str:
-        col1 = self.column1.compile(use_alias=False, use_prefix=True)
-        col2 = self.column2.compile(use_alias=False, use_prefix=True)
+        if isinstance(self.column1, Column):
+            col1 = self.column1.compile(use_alias=False, use_prefix=True)
+        elif isinstance(self.column1, str):
+            col1 = f"'{self.column1}'"
+        else:
+            msg = f"Expected column of type Column or str. Got {self.column1}."
+            raise TypeError(msg)
+        if isinstance(self.column2, Column):
+            col2 = self.column2.compile(use_alias=False, use_prefix=True)
+        elif isinstance(self.column2, str):
+            col2 = f"'{self.column2}'"
+        else:
+            msg = f"Expected column of type Column or str. Got {self.column2}."
+            raise TypeError(msg)
         return col1 + "=" + col2
 
 
@@ -554,13 +579,13 @@ class Select(ASTNode):
     def __init__(
         self,
         columns: List[Union[Column, ScalarFunction]],
-        tables: List[Union[Table, TableFunction]],
+        from_: List[Union[Table, TableFunction]],
         where: List[ColumnEqualityClause] = None,
         groupby: List[Column] = None,
         orderby: List[Column] = None,
     ):
         self.select_clause = SelectClause(columns)
-        self.from_clause = FromClause(tables)
+        self.from_clause = FromClause(from_)
         self.where_clause = WhereClause(where) if where else None
         self.groupby_clause = GroupbyClause(groupby) if groupby else None
         self.orderby_clause = OrderbyClause(orderby) if orderby else None
@@ -675,3 +700,23 @@ class CreateTable(ASTNode):
     def compile(self) -> str:
         schema = ",".join(f'"{name}" {dtype.to_sql()}' for name, dtype in self.schema)
         return f"CREATE TABLE {self.table}({schema});"
+
+
+class Join(ASTNode):
+    def __init__(self, left, right, l_alias, r_alias, on, type):
+        self.left = left
+        self.right = right
+        self.l_alias = l_alias
+        self.r_alias = r_alias
+        self.on = on
+        type = type.upper()
+        if type not in ("INNER", "OUTER"):
+            raise ValueError(f"Expected INNER or OUTER, got {type}.")
+        self.type = type
+
+    def compile(self):
+        result = f"({self.left.compile()})" + " AS " + self.l_alias
+        result += f"\n{self.type} JOIN\n"
+        result += f"({self.right.compile()})" + " AS " + self.r_alias
+        result += "\nON " + f"{self.l_alias}.{self.on}={self.r_alias}.{self.on}"
+        return result
