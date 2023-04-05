@@ -22,9 +22,11 @@ then
   monetdb set mal_for_all=yes db
   monetdb release db
   monetdb start db
-  ./configure_users.sh
 
   echo 'Database initialized.'
+
+  ./configure_users.sh creation
+
 else
   echo 'Checking if previous instances are still running (from other containers).'
   monetdbd_stopped_status_message="no monetdbd is serving this dbfarm"
@@ -42,6 +44,9 @@ else
   monetdb set mal_for_all=yes db
   monetdb start db
   echo 'Database restarted.'
+
+  ./configure_users.sh restart
+
 fi
 
 ./configure_monit.sh
