@@ -62,7 +62,7 @@ spec:
             - mclient
             - db
             - -s
-            - "select name from sys.tables;"
+            - "select 1;"
           initialDelaySeconds: 30
           periodSeconds: 30
 
