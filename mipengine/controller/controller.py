@@ -223,7 +223,6 @@ class Controller:
             request_id=algorithm_request_dto.request_id,
             context_id=context_id,
             algo_flags=algorithm_request_dto.flags,
-            # data_model_views=data_model_views,
         )
         engine = _create_algorithm_execution_engine(
             engine_init_params=engine_init_params,

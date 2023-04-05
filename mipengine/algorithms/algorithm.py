@@ -9,8 +9,6 @@ from pydantic import BaseModel
 
 from mipengine.algorithm_specification import AlgorithmSpecification
 
-# from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
-
 
 class Variables(BaseModel):
     x: List[str]
@@ -25,9 +23,7 @@ class InitializationParams(BaseModel):
     variables: Variables
     var_filters: Optional[dict] = None
     algorithm_parameters: Optional[Dict[str, Any]] = None
-    # metadata: Dict[str, dict]
     datasets: List[str]
-    engine: Any  # AlgorithmExecutionEngine
 
     class Config:
         arbitrary_types_allowed = True
@@ -80,16 +76,6 @@ class Algorithm(ABC):
             The algorithm parameters
         """
         return self._initialization_params.algorithm_parameters
-
-    # @property
-    # def metadata(self) -> Dict[str, dict]:
-    #     """
-    #     Returns
-    #     -------
-    #     Dist[str,dict]
-    #         The variables' metadata
-    #     """
-    #     return self._initialization_params.metadata
 
     @property
     def datasets(self) -> List[str]:
