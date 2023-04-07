@@ -75,8 +75,8 @@ class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, engine, data_model_views, metadata):
-        X, y = data_model_views
+    def run(self, engine, data, metadata):
+        X, y = data
 
         n_splits = self.algorithm_parameters["n_splits"]
 

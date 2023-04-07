@@ -129,7 +129,7 @@ class Algorithm(ABC):
         pass
 
     @abstractmethod
-    def run(self, engine, data_model_views, metadata):
+    def run(self, engine, data, metadata):
         """
         The implementation of the algorithm flow logic goes in this method.
         """

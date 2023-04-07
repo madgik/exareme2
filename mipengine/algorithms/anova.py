@@ -70,7 +70,7 @@ class AnovaTwoWay(Algorithm, algname="anova"):
     def get_variable_groups(self):
         return [self.variables.y, self.variables.x]
 
-    def run(self, engine, data_model_views, metadata):
+    def run(self, engine, data, metadata):
         [[y], xs] = self.get_variable_groups()
         if len(xs) == 2:
             x1, x2 = xs
@@ -79,7 +79,7 @@ class AnovaTwoWay(Algorithm, algname="anova"):
             msg += f"Got {len(xs)} varible(s) instead."
             raise BadUserInput(msg)
 
-        Y, X = data_model_views
+        Y, X = data
 
         x1_enums = list(metadata[x1]["enumerations"])
         x2_enums = list(metadata[x2]["enumerations"])

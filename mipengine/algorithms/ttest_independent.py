@@ -85,13 +85,13 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, engine, data_model_views, metadata):
+    def run(self, engine, data, metadata):
         local_run = engine.run_udf_on_local_nodes
         global_run = engine.run_udf_on_global_node
         conf_lvl = self.algorithm_parameters["confidence_lvl"]
         alternative = self.algorithm_parameters["alt_hypothesis"]
 
-        X_relation, Y_relation = data_model_views
+        X_relation, Y_relation = data
 
         sec_local_transfer = local_run(
             func=local_independent,

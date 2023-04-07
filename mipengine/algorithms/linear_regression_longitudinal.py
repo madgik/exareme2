@@ -85,8 +85,8 @@ class LinearRegressionLongitudinal(Algorithm, algname="linear_regression_longitu
         yvars += ["subjectid", "visitid"]
         return [xvars, yvars]
 
-    def run(self, engine, data_model_views, metadata):
-        X, y = data_model_views
+    def run(self, engine, data, metadata):
+        X, y = data
         metadata: dict = metadata
 
         visit1 = self.algorithm_parameters["visit1"]
