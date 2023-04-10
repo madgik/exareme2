@@ -75,12 +75,12 @@ class LinearRegressionCVAlgorithm(Algorithm, algname="linear_regression_cv"):
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, engine):
-        X, y = engine.data_model_views
+    def run(self, engine, data, metadata):
+        X, y = data
 
         n_splits = self.algorithm_parameters["n_splits"]
 
-        dummy_encoder = DummyEncoder(engine=engine, metadata=self.metadata)
+        dummy_encoder = DummyEncoder(engine=engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1

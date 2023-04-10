@@ -85,9 +85,9 @@ class LinearRegressionLongitudinal(Algorithm, algname="linear_regression_longitu
         yvars += ["subjectid", "visitid"]
         return [xvars, yvars]
 
-    def run(self, engine):
-        X, y = engine.data_model_views
-        metadata: dict = self.metadata
+    def run(self, engine, data, metadata):
+        X, y = data
+        metadata: dict = metadata
 
         visit1 = self.algorithm_parameters["visit1"]
         visit2 = self.algorithm_parameters["visit2"]
@@ -105,11 +105,11 @@ class LinearRegressionLongitudinal(Algorithm, algname="linear_regression_longitu
             if name in self.variables.y
         }
 
-        xlt = LongitudinalTransformer(engine, self.metadata, x_strats, visit1, visit2)
+        xlt = LongitudinalTransformer(engine, metadata, x_strats, visit1, visit2)
         X = xlt.transform(X)
         metadata = xlt.transform_metadata(metadata)
 
-        ylt = LongitudinalTransformer(engine, self.metadata, y_strats, visit1, visit2)
+        ylt = LongitudinalTransformer(engine, metadata, y_strats, visit1, visit2)
         y = ylt.transform(y)
         metadata = ylt.transform_metadata(metadata)
 

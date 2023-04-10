@@ -23,7 +23,6 @@ class InitializationParams(BaseModel):
     variables: Variables
     var_filters: Optional[dict] = None
     algorithm_parameters: Optional[Dict[str, Any]] = None
-    metadata: Dict[str, dict]
     datasets: List[str]
 
     class Config:
@@ -79,16 +78,6 @@ class Algorithm(ABC):
         return self._initialization_params.algorithm_parameters
 
     @property
-    def metadata(self) -> Dict[str, dict]:
-        """
-        Returns
-        -------
-        Dist[str,dict]
-            The variables' metadata
-        """
-        return self._initialization_params.metadata
-
-    @property
     def datasets(self) -> List[str]:
         return self._initialization_params.datasets
 
@@ -140,12 +129,7 @@ class Algorithm(ABC):
         pass
 
     @abstractmethod
-    def run(self, engine):
-        # The executor must be availiable only inside run()
-        # The reasoning for this is that executor.data_model_views must already be
-        # available when the executor is available to the algorithm, but the creation of
-        # the executor.data_model_views requires calls to
-        # algorithm.get_variable_groups(), algorithm.get_check_min_rows() and get_dropna().
+    def run(self, engine, data, metadata):
         """
         The implementation of the algorithm flow logic goes in this method.
         """

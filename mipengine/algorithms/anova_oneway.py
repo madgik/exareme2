@@ -57,16 +57,16 @@ class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, engine):
+    def run(self, engine, data, metadata):
         local_run = engine.run_udf_on_local_nodes
         global_run = engine.run_udf_on_global_node
 
-        X_relation, Y_relation = engine.data_model_views
+        X_relation, Y_relation = data
 
         [x_var_name] = self.variables.x
         [y_var_name] = self.variables.y
 
-        covar_enums = list(self.metadata[x_var_name]["enumerations"])
+        covar_enums = list(metadata[x_var_name]["enumerations"])
 
         sec_local_transfer, local_transfers = local_run(
             func=local1,

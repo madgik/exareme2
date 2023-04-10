@@ -115,6 +115,10 @@ ALGORITHM EXAMPLES
         ./run_algorithm -a anova_oneway -x ppmicategory -y lefthippocampus \
             -d ppmi1 -m dementia:0.1
 
+    TWO WAY ANOVA
+        ./run_algorithm -a anova -x ppmicategory gender -y lefthippocampus \
+            -d ppmi1 -m dementia:0.1 -p sstype 2
+
     LINEAR REGRESSION
 
         ./run_algorithm -a linear_regression -y righthippocampus \
