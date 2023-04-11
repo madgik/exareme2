@@ -14,7 +14,7 @@ jobs:
           source_repo: "madgik/MIP-Engine"
           source_branch: "master"
           destination_repo: "https://ghpusher:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/hbp-mip/MIP-Engine.git"
-          destination_branch: "mirror_ebrains"
+          destination_branch: "master"
       - name: synctags
         uses: wei/git-sync@v3
         with:
