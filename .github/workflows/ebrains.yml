@@ -1,0 +1,24 @@
+name: Mirror to Ebrains
+
+on:
+  push:
+    branches: [ mirror_ebrains ]
+
+jobs:
+  to_ebrains:
+    runs-on: ubuntu-latest
+    steps:
+      - name: syncmaster
+        uses: wei/git-sync@v3
+        with:
+          source_repo: "madgik/MIP-Engine"
+          source_branch: "main"
+          destination_repo: "https://ghpusher:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/hbp-mip/MIP-Engine.git"
+          destination_branch: "master"
+      - name: synctags
+        uses: wei/git-sync@v3
+        with:
+          source_repo: "madgik/MIP-Engine"
+          source_branch: "refs/tags/*"
+          destination_repo: "https://ghpusher:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/hbp-mip/MIP-Engine.git"
+          destination_branch: "refs/tags/*"
