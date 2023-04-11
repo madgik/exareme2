@@ -36,11 +36,6 @@ import numpy
 import pandas as pd
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import MIN_ROW_COUNT
@@ -95,33 +90,6 @@ class Result(BaseModel):
 
 
 class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Descriptive statistics",
-            label="Descriptive statistics",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="x",
-                    desc="x",
-                    types=[InputDataType.INT, InputDataType.REAL, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=False,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="y",
-                    desc="y",
-                    types=[InputDataType.INT, InputDataType.REAL, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-            ),
-        )
-
     def get_variable_groups(self):
         xvars = self.variables.x
         yvars = self.variables.y  # or []

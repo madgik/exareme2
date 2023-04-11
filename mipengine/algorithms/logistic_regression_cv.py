@@ -5,15 +5,6 @@ from typing import Optional
 import sklearn.metrics as skm
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.logistic_regression import LogisticRegression
 from mipengine.algorithms.metrics import compute_classification_metrics
@@ -25,56 +16,6 @@ from mipengine.algorithms.preprocessing import LabelBinarizer
 
 
 class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv"):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Method used to evaluate the performance of a logistic regression model. It involves splitting the data into training and validation sets and testing the model's ability to generalize to new data by using the validation set.",
-            label="Logistic Regression Cross-validation",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="Covariates (independent)",
-                    desc="One or more variables. Can be numerical or nominal. For nominal variables dummy encoding is used.",
-                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="Variable (dependent)",
-                    desc="A unique nominal variable. The variable is converted to binary by assigning 1 to the positive class and 0 to all other classes. ",
-                    types=[InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-            parameters={
-                "positive_class": ParameterSpecification(
-                    label="Positive class",
-                    desc="Positive class of y. All other classes are considered negative.",
-                    types=[ParameterType.TEXT, ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
-                        source=["y"],
-                    ),
-                ),
-                "n_splits": ParameterSpecification(
-                    label="Number of splits",
-                    desc="Number of splits for cross-validation.",
-                    types=[ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    default=5,
-                    min=2,
-                    max=20,
-                ),
-            },
-        )
-
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 

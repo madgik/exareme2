@@ -1,15 +1,6 @@
 import numpy
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
@@ -31,57 +22,6 @@ class TtestResult(BaseModel):
 
 
 class PairedTTestAlgorithm(Algorithm, algname="ttest_paired"):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Test the difference in means between two related groups. It is commonly used when the same subjects are measured twice, such as before and after a treatment.",
-            label="T-Test paired",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                y=InputDataSpecification(
-                    label="Variable (dependent)",
-                    desc="A unique numerical variable.",
-                    types=[InputDataType.REAL, InputDataType.INT],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-                x=InputDataSpecification(
-                    label="Covariate (independent)",
-                    desc="A unique continuous variable.",
-                    types=[InputDataType.REAL, InputDataType.INT],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-            parameters={
-                "alt_hypothesis": ParameterSpecification(
-                    label="Alternative Hypothesis",
-                    desc="The alternative hypothesis to the null, returning specifically whether measure 1 is different to measure 2, measure 1 greater than measure 2, and measure 1 less than measure 2 respectively.",
-                    types=[ParameterType.TEXT],
-                    notblank=True,
-                    multiple=False,
-                    default="two-sided",
-                    enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.LIST,
-                        source=["two-sided", "less", "greater"],
-                    ),
-                ),
-                "alpha": ParameterSpecification(
-                    label="Confidence level",
-                    desc="The confidence level α used in the calculation of the confidence intervals for the correlation coefficients.",
-                    types=[ParameterType.REAL],
-                    notblank=True,
-                    multiple=False,
-                    default=0.95,
-                    min=0.0,
-                    max=1.0,
-                ),
-            },
-        )
-
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
