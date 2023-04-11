@@ -15,6 +15,7 @@ from mipengine.algorithm_specification import ParameterEnumType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmInputData
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import LabelBinarizer
@@ -29,8 +30,15 @@ MAX_ITER = 50  # maximum iterations before cancelling run due to non convergence
 TOL = 1e-4  # tolerance for stopping criterion
 ALPHA = 0.05  # alpha level for coefficient confidence intervals
 
+ALGORITHM_NAME = "logistic_regression"
 
-class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
+
+class LogisticRegressionInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        return [self._variables.x, self._variables.y]
+
+
+class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
@@ -71,19 +79,16 @@ class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
             },
         )
 
-    def get_variable_groups(self):
-        return [self.variables.x, self.variables.y]
-
-    def run(self, engine, data, metadata):
+    def run(self, data, metadata):
         X, y = data
         positive_class = self.algorithm_parameters["positive_class"]
 
-        dummy_encoder = DummyEncoder(engine=engine, metadata=metadata)
+        dummy_encoder = DummyEncoder(engine=self._engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
-        ybin = LabelBinarizer(engine, positive_class).transform(y)
+        ybin = LabelBinarizer(self._engine, positive_class).transform(y)
 
-        lr = LogisticRegression(engine)
+        lr = LogisticRegression(self._engine)
         lr.fit(X=X, y=ybin)
 
         summary = compute_summary(model=lr)

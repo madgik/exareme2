@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from mipengine import AttrDict
 from mipengine import algorithm_classes
+from mipengine import algorithms_input_data
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
 from mipengine.controller import controller_logger as ctrl_logger
@@ -239,7 +240,35 @@ def metadata_case_2(node_landscape_aggregator, algorithm_request_case_2):
 
 
 @pytest.fixture(scope="function")
-def algorithm_case_1(algorithm_request_case_1):
+def algorithm_input_data_case_1(algorithm_request_case_1):
+    algorithm_name = algorithm_request_case_1[0]
+    algorithm_request_dto = algorithm_request_case_1[1]
+    algorithm_input_data = algorithms_input_data[algorithm_name](
+        variables=Variables(
+            x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
+            y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
+        ),
+    )
+    return algorithm_input_data
+
+
+@pytest.fixture(scope="function")
+def algorithm_input_data_case_2(algorithm_request_case_2):
+    algorithm_name = algorithm_request_case_2[0]
+    algorithm_request_dto = algorithm_request_case_2[1]
+    algorithm_input_data = algorithms_input_data[algorithm_name](
+        variables=Variables(
+            x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
+            y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
+        ),
+    )
+    return algorithm_input_data
+
+
+@pytest.fixture(scope="function")
+def algorithm_case_1(
+    algorithm_request_case_1, algorithm_input_data_case_1, engine_case_1
+):
     algorithm_name = algorithm_request_case_1[0]
     algorithm_request_dto = algorithm_request_case_1[1]
 
@@ -257,11 +286,17 @@ def algorithm_case_1(algorithm_request_case_1):
         algorithm_parameters=algorithm_parameters,
         datasets=algorithm_request_dto.inputdata.datasets,
     )
-    return algorithm_classes[algorithm_name](initialization_params=init_params)
+    return algorithm_classes[algorithm_name](
+        initialization_params=init_params,
+        input_data=algorithm_input_data_case_1,
+        engine=engine_case_1,
+    )
 
 
 @pytest.fixture(scope="function")
-def algorithm_case_2(algorithm_request_case_2):
+def algorithm_case_2(
+    algorithm_request_case_2, algorithm_input_data_case_2, engine_case_2
+):
     algorithm_name = algorithm_request_case_2[0]
     algorithm_request_dto = algorithm_request_case_2[1]
 
@@ -279,7 +314,11 @@ def algorithm_case_2(algorithm_request_case_2):
         algorithm_parameters=algorithm_parameters,
         datasets=algorithm_request_dto.inputdata.datasets,
     )
-    return algorithm_classes[algorithm_name](initialization_params=init_params)
+    return algorithm_classes[algorithm_name](
+        initialization_params=init_params,
+        input_data=algorithm_input_data_case_2,
+        engine=engine_case_2,
+    )
 
 
 @pytest.fixture(scope="function")
@@ -334,7 +373,7 @@ def data_model_views_and_nodes_case_1(
     datasets,
     algorithm_request_case_1,
     nodes_case_1,
-    algorithm_case_1,
+    algorithm_input_data_case_1,
     command_id_generator,
     controller,
 ):
@@ -345,10 +384,10 @@ def data_model_views_and_nodes_case_1(
         local_nodes=nodes.local_nodes,
         datasets=datasets,
         data_model=algorithm_request_dto.inputdata.data_model,
-        variable_groups=algorithm_case_1.get_variable_groups(),
+        variable_groups=algorithm_input_data_case_1.get_variable_groups(),
         var_filters=algorithm_request_dto.inputdata.filters,
-        dropna=algorithm_case_1.get_dropna(),
-        check_min_rows=algorithm_case_1.get_check_min_rows(),
+        dropna=algorithm_input_data_case_1.get_dropna(),
+        check_min_rows=algorithm_input_data_case_1.get_check_min_rows(),
         command_id=command_id_generator.get_next_command_id(),
     )
     local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
@@ -366,7 +405,7 @@ def data_model_views_and_nodes_case_2(
     datasets,
     algorithm_request_case_2,
     nodes_case_2,
-    algorithm_case_2,
+    algorithm_input_data_case_2,
     command_id_generator,
     controller,
 ):
@@ -377,10 +416,10 @@ def data_model_views_and_nodes_case_2(
         local_nodes=nodes.local_nodes,
         datasets=datasets,
         data_model=algorithm_request_dto.inputdata.data_model,
-        variable_groups=algorithm_case_2.get_variable_groups(),
+        variable_groups=algorithm_input_data_case_2.get_variable_groups(),
         var_filters=algorithm_request_dto.inputdata.filters,
-        dropna=algorithm_case_2.get_dropna(),
-        check_min_rows=algorithm_case_2.get_check_min_rows(),
+        dropna=algorithm_input_data_case_2.get_dropna(),
+        check_min_rows=algorithm_input_data_case_2.get_check_min_rows(),
         command_id=command_id_generator.get_next_command_id(),
     )
     local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
@@ -441,17 +480,15 @@ def engine_case_2(
 
 @pytest.mark.slow
 @pytest.mark.parametrize(
-    "algorithm,engine,data_model_views_and_nodes,metadata",
+    "algorithm,data_model_views_and_nodes,metadata",
     [
         (
             "algorithm_case_1",
-            "engine_case_1",
             "data_model_views_and_nodes_case_1",
             "metadata_case_1",
         ),
         (
             "algorithm_case_2",
-            "engine_case_2",
             "data_model_views_and_nodes_case_2",
             "metadata_case_2",
         ),
@@ -460,7 +497,6 @@ def engine_case_2(
 @pytest.mark.asyncio
 async def test_single_local_node_algorithm_execution(
     algorithm,
-    engine,
     data_model_views_and_nodes,
     metadata,
     controller,
@@ -468,13 +504,11 @@ async def test_single_local_node_algorithm_execution(
     reset_celery_app_factory,  # celery tasks fail if this is not reset
 ):
     algorithm = request.getfixturevalue(algorithm)
-    engine = request.getfixturevalue(engine)
     data_model_views = request.getfixturevalue(data_model_views_and_nodes)
     metadata = request.getfixturevalue(metadata)
     try:
         algorithm_result = await controller._algorithm_run_in_event_loop(
             algorithm=algorithm,
-            engine=engine,
             data_model_views=data_model_views[0],
             metadata=metadata,
         )

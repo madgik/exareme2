@@ -42,6 +42,7 @@ from mipengine.algorithm_specification import InputDataSpecifications
 from mipengine.algorithm_specification import InputDataStatType
 from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmInputData
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import MIN_ROW_COUNT
 from mipengine.udfgen import literal
@@ -51,6 +52,26 @@ from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
 DATASET_VAR_NAME = "dataset"
+ALGORITHM_NAME = "descriptive_stats"
+
+
+class DescriptiveStatisticsInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        xvars = self._variables.x
+        yvars = self._variables.y
+
+        # dataset variable is special as it is used to group results. Thus, it
+        # doesn't make sense to include it also as variable.
+        vars = [var for var in xvars + yvars if var != DATASET_VAR_NAME]
+        variable_groups = [vars + [DATASET_VAR_NAME]]
+
+        return variable_groups
+
+    def get_dropna(self) -> bool:
+        return False
+
+    def get_check_min_rows(self) -> bool:
+        return False
 
 
 class NumericalDescriptiveStats(BaseModel):
@@ -94,7 +115,7 @@ class Result(BaseModel):
     model_based: List[Variable]
 
 
-class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
+class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
@@ -122,26 +143,9 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
             ),
         )
 
-    def get_variable_groups(self):
-        xvars = self.variables.x
-        yvars = self.variables.y  # or []
-
-        # dataset variable is special as it is used to group results. Thus, it
-        # doesn't make sense to include it also as variable.
-        vars = [var for var in xvars + yvars if var != DATASET_VAR_NAME]
-        variable_groups = [vars + [DATASET_VAR_NAME]]
-
-        return variable_groups
-
-    def get_dropna(self) -> bool:
-        return False
-
-    def get_check_min_rows(self) -> bool:
-        return False
-
-    def run(self, engine, data, metadata):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
+    def run(self, data, metadata):
+        local_run = self._engine.run_udf_on_local_nodes
+        global_run = self._engine.run_udf_on_global_node
 
         [data] = data
         metadata = metadata

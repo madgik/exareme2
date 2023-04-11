@@ -15,6 +15,7 @@ from mipengine.algorithm_specification import ParameterEnumType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmInputData
 from mipengine.algorithms.logistic_regression import LogisticRegression
 from mipengine.algorithms.metrics import compute_classification_metrics
 from mipengine.algorithms.metrics import confusion_matrix
@@ -23,8 +24,15 @@ from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import LabelBinarizer
 
+ALGORITHM_NAME = "logistic_regression_cv"
 
-class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv"):
+
+class LogisticRegressionCVInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        return [self._variables.x, self._variables.y]
+
+
+class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
@@ -75,28 +83,25 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
             },
         )
 
-    def get_variable_groups(self):
-        return [self.variables.x, self.variables.y]
-
-    def run(self, engine, data, metadata):
+    def run(self, data, metadata):
         X, y = data
 
         positive_class = self.algorithm_parameters["positive_class"]
         n_splits = self.algorithm_parameters["n_splits"]
 
         # Dummy encode categorical variables
-        dummy_encoder = DummyEncoder(engine=engine, metadata=metadata)
+        dummy_encoder = DummyEncoder(engine=self._engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
         # Binarize `y` by mapping positive_class to 1 and everything else to 0
-        ybin = LabelBinarizer(engine, positive_class).transform(y)
+        ybin = LabelBinarizer(self._engine, positive_class).transform(y)
 
         # Split datasets according to k-fold CV
-        kf = KFold(engine, n_splits=n_splits)
+        kf = KFold(self._engine, n_splits=n_splits)
         X_train, X_test, y_train, y_test = kf.split(X, ybin)
 
         # Create models
-        models = [LogisticRegression(engine) for _ in range(n_splits)]
+        models = [LogisticRegression(self._engine) for _ in range(n_splits)]
 
         # Train models
         for model, X, y in zip(models, X_train, y_train):
@@ -107,7 +112,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
 
         # Patrial and total confusion matrices
         confmats = [
-            confusion_matrix(engine, ytrue, proba)
+            confusion_matrix(self._engine, ytrue, proba)
             for ytrue, proba in zip(y_test, probas)
         ]
         total_confmat = sum(confmats)
@@ -121,7 +126,8 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
 
         # ROC curves
         roc_curves = [
-            roc_curve(engine, ytrue, proba) for ytrue, proba in zip(y_test, probas)
+            roc_curve(self._engine, ytrue, proba)
+            for ytrue, proba in zip(y_test, probas)
         ]
         aucs = [skm.auc(x=fpr, y=tpr) for tpr, fpr in roc_curves]
         roc_curves_result = [

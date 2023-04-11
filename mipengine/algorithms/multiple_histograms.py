@@ -14,6 +14,7 @@ from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmInputData
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import MIN_ROW_COUNT
 from mipengine.udfgen import literal
@@ -24,6 +25,13 @@ from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
 S = TypeVar("S")
+
+ALGORITHM_NAME = "multiple_histograms"
+
+
+class MultipleHistogramsInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        return [self._variables.y + self._variables.x]
 
 
 class Histogram(BaseModel):
@@ -38,7 +46,7 @@ class HistogramResult1(BaseModel):
     histogram: List[Histogram]
 
 
-class MultipleHistogramsAlgorithm(Algorithm, algname="multiple_histograms"):
+class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
@@ -78,12 +86,9 @@ class MultipleHistogramsAlgorithm(Algorithm, algname="multiple_histograms"):
             },
         )
 
-    def get_variable_groups(self):
-        return [self.variables.y + self.variables.x]
-
-    def run(self, engine, data, metadata):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
+    def run(self, data, metadata):
+        local_run = self._engine.run_udf_on_local_nodes
+        global_run = self._engine.run_udf_on_global_node
 
         xvars = self.variables.x
         yvars = self.variables.y

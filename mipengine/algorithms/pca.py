@@ -10,12 +10,20 @@ from mipengine.algorithm_specification import InputDataSpecifications
 from mipengine.algorithm_specification import InputDataStatType
 from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmInputData
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import state
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
+
+ALGORITHM_NAME = "pca"
+
+
+class PCAInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        return [self._variables.y]
 
 
 class PCAResult(BaseModel):
@@ -25,7 +33,7 @@ class PCAResult(BaseModel):
     eigenvectors: List[List[float]]
 
 
-class PCAAlgorithm(Algorithm, algname="pca"):
+class PCAAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
@@ -45,12 +53,9 @@ class PCAAlgorithm(Algorithm, algname="pca"):
             ),
         )
 
-    def get_variable_groups(self):
-        return [self.variables.y]
-
-    def run(self, engine, data, metadata):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
+    def run(self, data, metadata):
+        local_run = self._engine.run_udf_on_local_nodes
+        global_run = self._engine.run_udf_on_global_node
 
         [X_relation] = data
 

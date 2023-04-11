@@ -16,70 +16,16 @@ class Variables(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+        allow_mutation = False
 
 
-class InitializationParams(BaseModel):
-    algorithm_name: str
-    variables: Variables
-    var_filters: Optional[dict] = None
-    algorithm_parameters: Optional[Dict[str, Any]] = None
-    datasets: List[str]
-
-    class Config:
-        arbitrary_types_allowed = True
-
-
-class Algorithm(ABC):
-    """
-    This is the abstract class that all algorithm flow classes must implement. The class
-    can be named arbitrarily, it will be detected by its 'algname' attribute
-
-    Attributes
-    ----------
-    algname : str
-    """
-
-    def __init__(self, initialization_params: InitializationParams):
-        """
-        Parameters
-        ----------
-        initialization_params : InitializationParams
-        """
-        self._initialization_params = initialization_params
+class AlgorithmInputData(ABC):
+    def __init__(self, variables: Variables):
+        self._variables = variables
 
     def __init_subclass__(cls, algname, **kwargs):
-        """
-        Parameters
-        ----------
-        algname : str
-            The algorithm name, as defined in the "name" field in the <algorithm>.json
-        """
         super().__init_subclass__(**kwargs)
         cls.algname = algname
-
-    @property
-    def variables(self) -> Variables:
-        """
-        Returns
-        -------
-        Variables
-            The variables
-        """
-        return self._initialization_params.variables
-
-    @property
-    def algorithm_parameters(self) -> Dict[str, Any]:
-        """
-        Returns
-        -------
-        Dict[str,Any]
-            The algorithm parameters
-        """
-        return self._initialization_params.algorithm_parameters
-
-    @property
-    def datasets(self) -> List[str]:
-        return self._initialization_params.datasets
 
     @abstractmethod
     def get_variable_groups(self) -> List[List[str]]:
@@ -123,13 +69,87 @@ class Algorithm(ABC):
         """
         return True
 
+    def get_variables(self) -> Variables:
+        return self._variables
+
+
+class InitializationParams(BaseModel):
+    algorithm_name: str
+    var_filters: Optional[dict] = None
+    algorithm_parameters: Optional[Dict[str, Any]] = None
+    datasets: List[str]
+
+    class Config:
+        arbitrary_types_allowed = True
+        allow_mutation = False
+
+
+class Algorithm(ABC):
+    """
+    This is the abstract class that all algorithm flow classes must implement. The class
+    can be named arbitrarily, it will be detected by its 'algname' attribute
+
+    Attributes
+    ----------
+    algname : str
+    """
+
+    def __init__(
+        self,
+        initialization_params: InitializationParams,
+        input_data: AlgorithmInputData,
+        engine,
+    ):
+        """
+        Parameters
+        ----------
+        initialization_params : InitializationParams
+        """
+        self._initialization_params = initialization_params
+        self._input_data = input_data
+        self._engine = engine
+
+    def __init_subclass__(cls, algname, **kwargs):
+        """
+        Parameters
+        ----------
+        algname : str
+            The algorithm name, as defined in the "name" field in the <algorithm>.json
+        """
+        super().__init_subclass__(**kwargs)
+        cls.algname = algname
+
+    @property
+    def variables(self) -> Variables:
+        """
+        Returns
+        -------
+        Variables
+            The variables
+        """
+        return self._input_data.get_variables()
+
+    @property
+    def algorithm_parameters(self) -> Dict[str, Any]:
+        """
+        Returns
+        -------
+        Dict[str,Any]
+            The algorithm parameters
+        """
+        return self._initialization_params.algorithm_parameters
+
+    @property
+    def datasets(self) -> List[str]:
+        return self._initialization_params.datasets
+
     @staticmethod
     @abstractmethod
     def get_specification() -> AlgorithmSpecification:
         pass
 
     @abstractmethod
-    def run(self, engine, data, metadata):
+    def run(self, data, metadata):
         """
         The implementation of the algorithm flow logic goes in this method.
         """
