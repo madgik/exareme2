@@ -41,7 +41,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: mipenginedb
+          images: |
+            madgik/mipenginedb
+            docker-registry.ebrains.eu/medical-informatics-platform/mipenginedb
 
       - name: Build and Push MONETDB docker image to dockerhub
         uses: docker/build-push-action@v3
@@ -49,9 +51,7 @@ jobs:
           context: .
           file: monetdb/Dockerfile
           push: true
-          tags: |
-            madgik/${{ steps.meta.outputs.tags }}
-            docker-registry.ebrains.eu/medical-informatics-platform/${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
   build_and_push_mipdb:
@@ -81,7 +81,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: mipengine_mipdb
+          images: |
+            madgik/mipengine_mipdb
+            docker-registry.ebrains.eu/medical-informatics-platform/mipengine_mipdb
 
       - name: Load MIPDB cached image
         uses: actions/cache@v3
@@ -97,9 +99,7 @@ jobs:
           context: .
           file: mipdb/Dockerfile
           push: true
-          tags: |
-            madgik/${{ steps.meta.outputs.tags }}
-            docker-registry.ebrains.eu/medical-informatics-platform/${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache/mipdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/mipdb
@@ -139,7 +139,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: mipengine_rabbitmq
+          images: |
+            madgik/mipengine_rabbitmq
+            docker-registry.ebrains.eu/medical-informatics-platform/mipengine_rabbitmq
 
       - name: Load RABBITMQ cached image
         uses: actions/cache@v3
@@ -155,9 +157,7 @@ jobs:
           context: .
           file: rabbitmq/Dockerfile
           push: true
-          tags: |
-            madgik/${{ steps.meta.outputs.tags }}
-            docker-registry.ebrains.eu/medical-informatics-platform/${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
           cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
@@ -197,7 +197,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: mipengine_controller
+          images: |
+            madgik/mipengine_controller
+            docker-registry.ebrains.eu/medical-informatics-platform/mipengine_controller
 
       - name: Load CONTROLLER service cached image
         uses: actions/cache@v3
@@ -213,9 +215,7 @@ jobs:
           context: .
           file: mipengine/controller/Dockerfile
           push: true
-          tags: |
-            madgik/${{ steps.meta.outputs.tags }}
-            docker-registry.ebrains.eu/medical-informatics-platform/${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache/controller
           cache-to: type=local,dest=/tmp/.buildx-cache-new/controller
@@ -255,7 +255,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: mipengine_node
+          images: |
+            madgik/mipengine_node
+            docker-registry.ebrains.eu/medical-informatics-platform/mipengine_node
 
       - name: Load NODE service cached image
         uses: actions/cache@v3
@@ -271,9 +273,7 @@ jobs:
           context: .
           file: mipengine/node/Dockerfile
           push: true
-          tags: |
-            madgik/${{ steps.meta.outputs.tags }}
-            docker-registry.ebrains.eu/medical-informatics-platform/${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache/node
           cache-to: type=local,dest=/tmp/.buildx-cache-new/node
