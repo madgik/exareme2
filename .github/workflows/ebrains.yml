@@ -2,7 +2,7 @@ name: Mirror to Ebrains
 
 on:
   push:
-    branches: [ mirror_ebrains ]
+    branches: [ master ]
 
 jobs:
   to_ebrains:
@@ -12,7 +12,7 @@ jobs:
         uses: wei/git-sync@v3
         with:
           source_repo: "madgik/MIP-Engine"
-          source_branch: "mirror_ebrains"
+          source_branch: "master"
           destination_repo: "https://ghpusher:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/hbp-mip/MIP-Engine.git"
           destination_branch: "mirror_ebrains"
       - name: synctags
