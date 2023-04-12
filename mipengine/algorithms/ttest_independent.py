@@ -12,14 +12,17 @@ from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
+from mipengine.udfgen import state
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
 
 class TtestResult(BaseModel):
+    n_obs: int
     t_stat: float
     df: int
     p: float
@@ -49,9 +52,9 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
                 ),
                 x=InputDataSpecification(
                     label="Covariate (independent)",
-                    desc="A unique continuous variable.",
-                    types=[InputDataType.REAL, InputDataType.INT],
-                    stattypes=[InputDataStatType.NUMERICAL],
+                    desc="A categorical variable.",
+                    types=[InputDataType.TEXT, InputDataType.INT],
+                    stattypes=[InputDataStatType.NOMINAL],
                     notblank=True,
                     multiple=False,
                 ),
@@ -79,6 +82,28 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
                     min=0.0,
                     max=1.0,
                 ),
+                "groupA": ParameterSpecification(
+                    label="Positive groupA",
+                    desc="Positive class of y. All other classes are considered negative.",
+                    types=[ParameterType.TEXT, ParameterType.INT],
+                    notblank=True,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
+                        source=["x"],
+                    ),
+                ),
+                "groupB": ParameterSpecification(
+                    label="groupB",
+                    desc="Positive class of y. All other classes are considered negative.",
+                    types=[ParameterType.TEXT, ParameterType.INT],
+                    notblank=True,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
+                        source=["x"],
+                    ),
+                ),
             },
         )
 
@@ -90,12 +115,40 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
         global_run = engine.run_udf_on_global_node
         conf_lvl = self.algorithm_parameters["confidence_lvl"]
         alternative = self.algorithm_parameters["alt_hypothesis"]
+        groupA = self.algorithm_parameters["groupA"]
+        groupB = self.algorithm_parameters["groupB"]
 
         X_relation, Y_relation = engine.data_model_views
 
+        self.split_state_local, split_result_local = local_run(
+            func=split_data_into_groups_local,
+            keyword_args=dict(y=Y_relation, x=X_relation, groupA=groupA, groupB=groupB),
+            share_to_global=[False, True],
+        )
+
+        split_res = global_run(
+            func=split_data_into_groups_global,
+            keyword_args=dict(
+                sec_local_transfer=split_result_local,
+            ),
+        )
+
+        res = get_transfer_data(split_res)
+        n_x1 = res["n_x1"]
+        n_x2 = res["n_x2"]
+
+        if n_x1 == 0:
+            raise BadUserInput(
+                f"Not enough data in {groupA}. Please select a different enumeration or more datasets."
+            )
+        if n_x2 == 0:
+            raise BadUserInput(
+                f"Not enough data in {groupB}. Please select a different enumeration or more datasets."
+            )
+
         sec_local_transfer = local_run(
             func=local_independent,
-            keyword_args=dict(y=Y_relation, x=X_relation),
+            keyword_args=dict(split_state=self.split_state_local),
             share_to_global=[True],
         )
 
@@ -107,9 +160,9 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
                 alternative=alternative,
             ),
         )
-
         result = get_transfer_data(result)
         res = TtestResult(
+            n_obs=result["n_obs"],
             t_stat=result["t_stat"],
             df=result["df"],
             p=result["p"],
@@ -126,24 +179,66 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
 @udf(
     y=relation(),
     x=relation(),
+    groupA=literal(),
+    groupB=literal(),
+    return_type=[state(), secure_transfer(sum_op=True)],
+)
+def split_data_into_groups_local(x, y, groupA, groupB):
+    import numpy as np
+
+    x = np.array(x)
+    y = np.array(y)
+
+    state = {}
+    x1 = y[x == groupA]
+    x2 = y[x == groupB]
+    state["x1"] = x1
+    state["x2"] = x2
+    n_x1 = len(x1)
+    n_x2 = len(x2)
+
+    transfer = {
+        "n_x1": {"data": n_x1, "operation": "sum", "type": "int"},
+        "n_x2": {"data": n_x2, "operation": "sum", "type": "int"},
+    }
+
+    return state, transfer
+
+
+@udf(
+    sec_local_transfer=secure_transfer(sum_op=True),
+    return_type=[transfer()],
+)
+def split_data_into_groups_global(sec_local_transfer):
+    n_x1 = sec_local_transfer["n_x1"]
+    n_x2 = sec_local_transfer["n_x2"]
+
+    transfer = {"n_x1": n_x1, "n_x2": n_x2}
+
+    return transfer
+
+
+@udf(
+    split_state=state(),
     return_type=[secure_transfer(sum_op=True)],
 )
-def local_independent(x, y):
-    x.reset_index(drop=True, inplace=True)
-    y.reset_index(drop=True, inplace=True)
-    x1, x2 = x.values.squeeze(), y.values.squeeze()
+def local_independent(split_state):
+    import numpy as np
+
+    x1 = np.array(split_state["x1"])
+    x2 = np.array(split_state["x2"])
     x1_sum = sum(x1)
     x2_sum = sum(x2)
-    n_obs_x1 = len(x)
-    n_obs_x2 = len(y)
+    n_obs_x1 = len(x1)
+    n_obs_x2 = len(x2)
     x1_sqrd_sum = numpy.einsum("i,i->", x1, x1)
     x2_sqrd_sum = numpy.einsum("i,i->", x2, x2)
 
     sec_transfer_ = {
         "n_obs_x1": {"data": n_obs_x1, "operation": "sum", "type": "int"},
         "n_obs_x2": {"data": n_obs_x2, "operation": "sum", "type": "int"},
-        "sum_x1": {"data": x1_sum.item(), "operation": "sum", "type": "float"},
-        "sum_x2": {"data": x2_sum.item(), "operation": "sum", "type": "float"},
+        "sum_x1": {"data": x1_sum, "operation": "sum", "type": "float"},
+        "sum_x2": {"data": x2_sum, "operation": "sum", "type": "float"},
         "x1_sqrd_sum": {
             "data": x1_sqrd_sum.tolist(),
             "operation": "sum",
@@ -216,6 +311,7 @@ def global_independent(sec_local_transfer, conf_lvl, alternative):
     cohens_d = (mean_x1 - mean_x2) / numpy.sqrt((sd_x1**2 + sd_x2**2) / 2)
 
     transfer_ = {
+        "n_obs": n_obs,
         "t_stat": t_stat,
         "df": df,
         "p": p,
